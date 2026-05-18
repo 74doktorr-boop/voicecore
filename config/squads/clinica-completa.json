@@ -1,0 +1,63 @@
+{
+  "id": "clinica-completa",
+  "name": "Clínica Dental Completa",
+  "description": "Squad de 3 agentes para gestión integral de clínica dental",
+  "entryAgent": "receptionist",
+  "transferMessage": "Un momento, le paso con {agent}...",
+  "maxTransfers": 3,
+  "agents": [
+    {
+      "id": "receptionist",
+      "role": "Recepcionista",
+      "assistantId": "demo-clinic",
+      "description": "Gestiona citas, información general y primera atención",
+      "handoffConditions": [
+        {
+          "intent": "urgencia",
+          "keywords": ["urgencia", "emergencia", "dolor fuerte", "sangrado", "hinchazón"],
+          "transferTo": "nurse",
+          "transferMessage": "Detecto una situación urgente. Le paso con nuestra enfermera de triaje..."
+        },
+        {
+          "intent": "facturacion",
+          "keywords": ["factura", "pago", "precio", "coste", "presupuesto", "seguro", "cobertura"],
+          "transferTo": "billing",
+          "transferMessage": "Le paso con nuestro departamento de administración para resolver su consulta..."
+        },
+        {
+          "onToolCall": "book_appointment",
+          "transferTo": "billing",
+          "transferMessage": "Perfecto, su cita ha sido reservada. Le paso con administración para confirmar los detalles del pago..."
+        }
+      ]
+    },
+    {
+      "id": "nurse",
+      "role": "Enfermera de Triaje",
+      "assistantId": "demo-clinic-nurse",
+      "description": "Evalúa urgencias y proporciona indicaciones médicas básicas",
+      "handoffConditions": [
+        {
+          "intent": "cita",
+          "keywords": ["cita", "reservar", "programar", "agenda", "disponibilidad"],
+          "transferTo": "receptionist",
+          "transferMessage": "Entendido. Le paso con recepción para gestionar su cita..."
+        }
+      ]
+    },
+    {
+      "id": "billing",
+      "role": "Administración y Facturación",
+      "assistantId": "demo-clinic-billing",
+      "description": "Gestiona pagos, presupuestos y cobertura de seguros",
+      "handoffConditions": [
+        {
+          "intent": "cita",
+          "keywords": ["cita", "reservar", "otra consulta", "horario"],
+          "transferTo": "receptionist",
+          "transferMessage": "Le paso de nuevo con recepción para cualquier otra consulta..."
+        }
+      ]
+    }
+  ]
+}

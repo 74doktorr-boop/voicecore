@@ -1,0 +1,152 @@
+{
+  "voices": [
+    {
+      "id": "sofia-es",
+      "name": "Sofía",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "openai",
+      "providerVoiceId": "nova",
+      "tags": ["profesional", "cálida", "recepcionista", "default"],
+      "description": "Voz femenina cálida y profesional, ideal para recepción y atención al cliente",
+      "latency": "medium"
+    },
+    {
+      "id": "lucia-es",
+      "name": "Lucía",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "openai",
+      "providerVoiceId": "shimmer",
+      "tags": ["suave", "amable", "clínica"],
+      "description": "Voz suave y tranquila, perfecta para clínicas y consultas médicas",
+      "latency": "medium"
+    },
+    {
+      "id": "carlos-es",
+      "name": "Carlos",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "openai",
+      "providerVoiceId": "echo",
+      "tags": ["profesional", "serio", "corporativo"],
+      "description": "Voz masculina firme y profesional para entornos corporativos",
+      "latency": "medium"
+    },
+    {
+      "id": "pablo-es",
+      "name": "Pablo",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "openai",
+      "providerVoiceId": "onyx",
+      "tags": ["grave", "autoridad", "premium"],
+      "description": "Voz masculina grave y autoritativa, transmite confianza",
+      "latency": "medium"
+    },
+    {
+      "id": "elena-es",
+      "name": "Elena",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "openai",
+      "providerVoiceId": "alloy",
+      "tags": ["neutral", "versátil", "joven"],
+      "description": "Voz femenina neutral y versátil, ideal para cualquier sector",
+      "latency": "medium"
+    },
+    {
+      "id": "marta-studio",
+      "name": "Marta (Studio)",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "google",
+      "providerVoiceId": "studio-female-es",
+      "tags": ["studio", "alta-calidad", "natural"],
+      "description": "Voz Studio de Google, calidad de estudio profesional",
+      "latency": "medium"
+    },
+    {
+      "id": "jorge-studio",
+      "name": "Jorge (Studio)",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "google",
+      "providerVoiceId": "studio-male-es",
+      "tags": ["studio", "alta-calidad", "natural"],
+      "description": "Voz masculina Studio de Google, sonido premium",
+      "latency": "medium"
+    },
+    {
+      "id": "carmen-journey",
+      "name": "Carmen (Journey)",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "google",
+      "providerVoiceId": "journey-female-es",
+      "tags": ["conversacional", "natural", "journey"],
+      "description": "Voz Journey optimizada para conversaciones telefónicas naturales",
+      "latency": "medium"
+    },
+    {
+      "id": "isabel-cartesia",
+      "name": "Isabel (Ultra-Fast)",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "a0e99841-438c-4a64-b679-ae501e7d6091",
+      "tags": ["ultra-rápida", "baja-latencia", "premium"],
+      "description": "Voz Cartesia Sonic con latencia ultra-baja (40-90ms), la más rápida del mercado",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "andrea-11labs",
+      "name": "Andrea (ElevenLabs)",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "21m00Tcm4TlvDq8ikWAM",
+      "tags": ["premium", "emocional", "expresiva"],
+      "description": "Voz ElevenLabs multilingüe con control emocional avanzado",
+      "latency": "medium"
+    },
+    {
+      "id": "custom-clone",
+      "name": "Voz Personalizada",
+      "gender": "any",
+      "language": "multi",
+      "accent": "custom",
+      "provider": "cartesia",
+      "providerVoiceId": "custom",
+      "tags": ["clonada", "personalizada", "enterprise"],
+      "description": "Clona cualquier voz con solo 3-15 segundos de audio",
+      "latency": "ultra-low",
+      "isClone": true
+    }
+  ],
+  "defaults": {
+    "hosteleria": "sofia-es",
+    "dental": "lucia-es",
+    "peluquerias": "elena-es",
+    "veterinarias": "sofia-es",
+    "talleres": "carlos-es",
+    "inmobiliaria": "pablo-es",
+    "general": "sofia-es"
+  },
+  "recommended": {
+    "lowest-latency": "isabel-cartesia",
+    "best-quality": "andrea-11labs",
+    "best-value": "sofia-es",
+    "most-natural": "carmen-journey"
+  }
+}

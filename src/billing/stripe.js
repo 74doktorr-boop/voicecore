@@ -1,0 +1,281 @@
+// ============================================
+// VoiceCore — Stripe Billing Integration
+// Subscriptions, usage metering, invoicing
+// ============================================
+
+const { Logger } = require('../utils/logger');
+const log = new Logger('BILLING');
+
+class StripeBilling {
+  constructor(config = {}) {
+    this.secretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY;
+    this.webhookSecret = config.stripeWebhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
+    this.stripe = null;
+    this.enabled = false;
+
+    if (this.secretKey) {
+      try {
+        this.stripe = require('stripe')(this.secretKey);
+        this.enabled = true;
+        log.info('Stripe billing initialized');
+      } catch (e) {
+        log.warn('Stripe SDK not available — billing disabled');
+      }
+    } else {
+      log.warn('No Stripe key — billing disabled');
+    }
+
+    // Plan → Stripe Price ID mapping
+    this.plans = {
+      starter: {
+        name: 'Starter', price: 0, priceId: config.starterPriceId || null,
+        minutes: 50, assistants: 1, overagePerMinute: 0.10,
+      },
+      pro: {
+        name: 'Pro', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
+        minutes: 500, assistants: 5, overagePerMinute: 0.08,
+      },
+      business: {
+        name: 'Business', price: 14900, priceId: config.businessPriceId || process.env.STRIPE_BUSINESS_PRICE_ID,
+        minutes: 2000, assistants: 20, overagePerMinute: 0.06,
+      },
+      enterprise: {
+        name: 'Enterprise', price: null, priceId: null,
+        minutes: 99999, assistants: 999, overagePerMinute: 0.04,
+      },
+    };
+  }
+
+  /**
+   * Create a Stripe customer for a new org
+   */
+  async createCustomer({ email, name, orgId, metadata = {} }) {
+    if (!this.enabled) return { id: `cus_mock_${orgId}` };
+
+    const customer = await this.stripe.customers.create({
+      email,
+      name,
+      metadata: { orgId, ...metadata },
+    });
+
+    log.info(`Customer created: ${customer.id} — ${email}`);
+    return customer;
+  }
+
+  /**
+   * Create a checkout session for plan subscription
+   */
+  async createCheckoutSession({ orgId, plan, customerId, successUrl, cancelUrl }) {
+    if (!this.enabled) return { url: successUrl };
+
+    const planConfig = this.plans[plan];
+    if (!planConfig?.priceId) throw new Error(`No price configured for plan: ${plan}`);
+
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      success_url: successUrl || `${process.env.PUBLIC_URL}/dashboard?checkout=success`,
+      cancel_url: cancelUrl || `${process.env.PUBLIC_URL}/dashboard?checkout=cancelled`,
+      metadata: { orgId, plan },
+      subscription_data: { metadata: { orgId, plan } },
+    });
+
+    log.info(`Checkout session created for org ${orgId}: ${plan}`);
+    return session;
+  }
+
+  /**
+   * Create a billing portal session for managing subscription
+   */
+  async createPortalSession({ customerId, returnUrl }) {
+    if (!this.enabled) return { url: returnUrl };
+
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl || `${process.env.PUBLIC_URL}/dashboard`,
+    });
+
+    return session;
+  }
+
+  /**
+   * Report usage for overage billing
+   */
+  async reportUsage({ subscriptionItemId, minutes, timestamp }) {
+    if (!this.enabled) return;
+
+    await this.stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
+      quantity: Math.ceil(minutes),
+      timestamp: timestamp || Math.floor(Date.now() / 1000),
+      action: 'increment',
+    });
+
+    log.metric(`Usage reported: ${minutes} min for ${subscriptionItemId}`);
+  }
+
+  /**
+   * Get subscription details
+   */
+  async getSubscription(subscriptionId) {
+    if (!this.enabled) return null;
+    return await this.stripe.subscriptions.retrieve(subscriptionId);
+  }
+
+  /**
+   * Cancel subscription
+   */
+  async cancelSubscription(subscriptionId, { atPeriodEnd = true } = {}) {
+    if (!this.enabled) return null;
+
+    const sub = await this.stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: atPeriodEnd,
+    });
+
+    log.info(`Subscription ${subscriptionId} cancellation scheduled`);
+    return sub;
+  }
+
+  /**
+   * Get upcoming invoice
+   */
+  async getUpcomingInvoice(customerId) {
+    if (!this.enabled) return null;
+    try {
+      return await this.stripe.invoices.retrieveUpcoming({ customer: customerId });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Get invoice history
+   */
+  async getInvoices(customerId, limit = 12) {
+    if (!this.enabled) return [];
+    const invoices = await this.stripe.invoices.list({ customer: customerId, limit });
+    return invoices.data;
+  }
+
+  /**
+   * Handle Stripe webhook events
+   */
+  async handleWebhook(body, signature) {
+    if (!this.enabled) return { received: true };
+
+    let event;
+    try {
+      event = this.stripe.webhooks.constructEvent(body, signature, this.webhookSecret);
+    } catch (e) {
+      throw new Error(`Webhook signature invalid: ${e.message}`);
+    }
+
+    log.info(`Stripe webhook: ${event.type}`);
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        return {
+          action: 'subscription_created',
+          orgId: session.metadata.orgId,
+          plan: session.metadata.plan,
+          customerId: session.customer,
+          subscriptionId: session.subscription,
+        };
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object;
+        return {
+          action: 'invoice_paid',
+          customerId: invoice.customer,
+          amount: invoice.amount_paid,
+          period: invoice.period_start,
+        };
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        log.warn(`Payment failed for customer ${invoice.customer}`);
+        return {
+          action: 'payment_failed',
+          customerId: invoice.customer,
+          amount: invoice.amount_due,
+        };
+      }
+
+      case 'customer.subscription.updated': {
+        const sub = event.data.object;
+        return {
+          action: 'subscription_updated',
+          subscriptionId: sub.id,
+          status: sub.status,
+          plan: sub.metadata.plan,
+          orgId: sub.metadata.orgId,
+        };
+      }
+
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object;
+        log.warn(`Subscription cancelled: ${sub.id}`);
+        return {
+          action: 'subscription_cancelled',
+          subscriptionId: sub.id,
+          orgId: sub.metadata.orgId,
+        };
+      }
+
+      default:
+        return { action: 'unhandled', type: event.type };
+    }
+  }
+
+  /**
+   * Calculate cost for a call
+   */
+  calculateCallCost(durationMs, providers = {}) {
+    const minutes = durationMs / 60000;
+    const costs = {
+      stt: minutes * 0.0043,  // Deepgram
+      llm: minutes * 0.005,   // GPT-4o-mini estimate
+      tts: minutes * 0.02,    // OpenAI TTS
+      twilio: minutes * 0.018,
+      platform: 0,            // We don't charge like Vapi!
+    };
+
+    // Adjust for actual providers used
+    if (providers.llm === 'groq') costs.llm = minutes * 0.001;
+    if (providers.llm === 'anthropic') costs.llm = minutes * 0.03;
+    if (providers.tts === 'cartesia') costs.tts = minutes * 0.015;
+    if (providers.tts === 'elevenlabs') costs.tts = minutes * 0.10;
+    if (providers.tts === 'google') costs.tts = minutes * 0.016;
+
+    costs.total = Object.values(costs).reduce((s, v) => s + v, 0);
+
+    return {
+      minutes: Math.round(minutes * 100) / 100,
+      breakdown: Object.fromEntries(
+        Object.entries(costs).map(([k, v]) => [k, Math.round(v * 10000) / 10000])
+      ),
+      total: Math.round(costs.total * 10000) / 10000,
+    };
+  }
+
+  /**
+   * Get plan info
+   */
+  getPlans() {
+    return Object.entries(this.plans).map(([id, plan]) => ({
+      id, ...plan, price: plan.price ? `€${(plan.price / 100).toFixed(0)}/mes` : 'Gratis',
+    }));
+  }
+}
+
+// Singleton
+let billingInstance = null;
+function getBilling(config) {
+  if (!billingInstance) billingInstance = new StripeBilling(config);
+  return billingInstance;
+}
+
+module.exports = { StripeBilling, getBilling };

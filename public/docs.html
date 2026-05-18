@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceCore API Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e; --accent: #6c5ce7; --green: #00d2d3; --text: #e8e8f0; --dim: #8888a8; --muted: #55556a; --border: rgba(255,255,255,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px; position: fixed; top: 0; bottom: 0; overflow-y: auto; }
+    .sidebar h2 { font-size: 18px; margin-bottom: 24px; }
+    .sidebar h2 span { color: #a29bfe; }
+    .sidebar h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 20px 0 8px; }
+    .sidebar a { display: block; padding: 6px 12px; margin: 2px 0; border-radius: 6px; color: var(--dim); text-decoration: none; font-size: 13px; transition: all 0.2s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(108,92,231,0.15); color: var(--text); }
+    .main { margin-left: 260px; padding: 40px 48px; max-width: 900px; }
+    h1 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
+    h2 { font-size: 22px; font-weight: 700; margin: 48px 0 16px; padding-top: 24px; border-top: 1px solid var(--border); }
+    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: #a29bfe; }
+    p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; font-size: 14px; }
+    .endpoint { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .method { padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+    .method-get { background: rgba(0,210,211,0.15); color: var(--green); }
+    .method-post { background: rgba(108,92,231,0.15); color: #a29bfe; }
+    .method-put { background: rgba(254,202,87,0.15); color: #feca57; }
+    .method-delete { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .path { color: var(--text); }
+    .desc { color: var(--dim); font-size: 12px; margin-left: auto; }
+    code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); }
+    pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0 24px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; color: var(--dim); }
+    .param-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .param-table th, .param-table td { padding: 8px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .param-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+    .required { color: #ff6b6b; font-size: 11px; font-weight: 600; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(108,92,231,0.15); color: #a29bfe; margin-left: 8px; }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 24px; } }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar">
+    <h2>Voice<span>Core</span> API</h2>
+    <h4>Getting Started</h4>
+    <a href="#auth" class="active">Authentication</a>
+    <a href="#quickstart">Quick Start</a>
+    <h4>Core</h4>
+    <a href="#assistants">Assistants</a>
+    <a href="#calls">Calls</a>
+    <a href="#voices">Voices</a>
+    <h4>Advanced</h4>
+    <a href="#squads">Squads</a>
+    <a href="#knowledge">Knowledge Base</a>
+    <a href="#analytics">Analytics</a>
+    <h4>Billing</h4>
+    <a href="#billing">Plans & Usage</a>
+    <a href="#webhooks">Webhooks</a>
+  </div>
+  <div class="main">
+    <h1>VoiceCore API Reference</h1>
+    <p>Base URL: <code>https://api.voicecore.dev</code> — Version: <code>v2.0.0</code></p>
+
+    <h2 id="auth">Authentication</h2>
+    <p>All API requests require an API key. Include it in one of these ways:</p>
+    <pre>// Header (recommended)
+x-api-key: vc_your_api_key
+
+// Bearer token
+Authorization: Bearer vc_your_api_key
+
+// Query param (webhooks)
+?apiKey=vc_your_api_key</pre>
+
+    <h2 id="quickstart">Quick Start</h2>
+    <p>Create your first voice assistant in 30 seconds:</p>
+    <pre>curl -X POST https://api.voicecore.dev/api/assistants \
+  -H "x-api-key: vc_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Assistant",
+    "voice": "nova",
+    "model": "gpt-4o-mini",
+    "firstMessage": "Hello! How can I help you?",
+    "language": "es"
+  }'</pre>
+
+    <h2 id="assistants">Assistants</h2>
+
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/assistants</span><span class="desc">List all assistants</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/assistants/:id</span><span class="desc">Get assistant details</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/assistants</span><span class="desc">Create assistant</span></div>
+    <div class="endpoint"><span class="method method-put">PUT</span><span class="path">/api/assistants/:id</span><span class="desc">Update assistant</span></div>
+    <div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/api/assistants/:id</span><span class="desc">Delete assistant</span></div>
+
+    <h3>Create Assistant Body</h3>
+    <table class="param-table">
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>name</code> <span class="required">required</span></td><td>string</td><td>Display name</td></tr>
+      <tr><td><code>voice</code></td><td>string</td><td>Voice ID (default: <code>nova</code>)</td></tr>
+      <tr><td><code>model</code></td><td>string</td><td>LLM model (default: <code>gpt-4o-mini</code>). Use <code>groq/llama-3.3-70b</code> for ultra-low latency</td></tr>
+      <tr><td><code>language</code></td><td>string</td><td>ISO language code (default: <code>es</code>)</td></tr>
+      <tr><td><code>systemPrompt</code></td><td>string</td><td>System instructions</td></tr>
+      <tr><td><code>firstMessage</code></td><td>string</td><td>Greeting message spoken on call start</td></tr>
+      <tr><td><code>ttsProvider</code></td><td>string</td><td><code>openai</code> | <code>cartesia</code> | <code>elevenlabs</code> | <code>google</code></td></tr>
+      <tr><td><code>tools</code></td><td>array</td><td>Function tools array (OpenAI format)</td></tr>
+    </table>
+
+    <h2 id="calls">Calls</h2>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/calls/active</span><span class="desc">List active calls</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/calls/history</span><span class="desc">Call history</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/calls/:id</span><span class="desc">Call details + transcript</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/calls/outbound</span><span class="desc">Start outbound call</span></div>
+
+    <h2 id="voices">Voices</h2>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/voices</span><span class="desc">List all voices</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/voices/:id/preview</span><span class="desc">Preview voice audio</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/providers</span><span class="desc">Provider metrics</span></div>
+
+    <h2 id="squads">Squads</h2>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/squads</span><span class="desc">List squads</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/squads</span><span class="desc">Create squad</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/squads/:id</span><span class="desc">Squad details</span></div>
+
+    <h2 id="knowledge">Knowledge Base</h2>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/knowledge/:assistantId/ingest</span><span class="desc">Ingest documents</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/knowledge/:assistantId/query</span><span class="desc">Query knowledge</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/knowledge/:assistantId/stats</span><span class="desc">KB stats</span></div>
+    <div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/api/knowledge/:assistantId</span><span class="desc">Delete KB</span></div>
+
+    <h2 id="analytics">Analytics</h2>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/analytics/dashboard</span><span class="desc">Dashboard summary</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/analytics/heatmap</span><span class="desc">Hourly call heatmap</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/analytics/funnel</span><span class="desc">Conversion funnel</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/analytics/assistants</span><span class="desc">Per-assistant KPIs</span></div>
+
+    <h2 id="billing">Billing</h2>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/billing/plans</span><span class="desc">Available plans</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/billing/usage</span><span class="desc">Current usage</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/billing/checkout</span><span class="desc">Create checkout</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/billing/portal</span><span class="desc">Billing portal</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="path">/api/billing/invoices</span><span class="desc">Invoice history</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="path">/api/billing/calculate</span><span class="desc">Cost calculator</span></div>
+
+    <h2 id="webhooks">Webhooks</h2>
+    <p>VoiceCore sends webhook events for call lifecycle events:</p>
+    <pre>// Webhook payload
+{
+  "event": "call.ended",
+  "timestamp": "2026-05-18T02:00:00Z",
+  "data": {
+    "callId": "uuid",
+    "duration": 180000,
+    "turnCount": 12,
+    "transcript": [...],
+    "cost": { "total": 0.1149 }
+  }
+}</pre>
+    <p>Events: <code>call.started</code>, <code>call.ended</code>, <code>call.failed</code>, <code>assistant.created</code></p>
+  </div>
+</div>
+</body>
+</html>

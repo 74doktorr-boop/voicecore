@@ -1,0 +1,91 @@
+{
+  "id": "demo-clinic",
+  "name": "Dental Clinic Agent",
+  "model": "gpt-4o-mini",
+  "voice": "nova",
+  "language": "es",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "endpointing": 900,
+  "utteranceEndMs": 2200,
+  "speed": 1.0,
+
+  "firstMessage": "Buenos días, clínica dental, le atiende María, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres María, la recepcionista de una clínica dental en España. Hablas por teléfono con pacientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Todas tus respuestas deben ser en español. Nunca uses inglés ni ningún otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta. Sé concisa.\n- Tono cercano, cálido y profesional.\n- Tutea al paciente una vez que te dé su nombre.\n- Hasta que sepas su nombre, usa usted.\n\nFECHA DE HOY: {{DATE}}\n\nCÓMO GESTIONAR LA CONVERSACIÓN:\n- Pregunta UNA sola cosa cada vez.\n- Si el paciente te da información que no pediste, recógela igualmente. No la ignores.\n- Si te dice qué necesita antes de darte su nombre, di algo como: 'Perfecto, una revisión. ¿Me dice su nombre, por favor?'\n- Si te da varios datos de golpe (nombre + servicio + fecha), acepta todo sin volver a preguntar.\n- NUNCA pidas algo que el paciente ya te haya dicho.\n\nFLUJO NATURAL PARA CITAS:\n1. Si quiere pedir cita, necesitas: nombre, servicio, fecha/hora y teléfono.\n2. Ve recogiendo los datos uno a uno, en el orden que surja.\n3. Cuando tengas el servicio y una idea de fecha, usa check_availability para ver huecos reales.\n4. Ofrece UNA opción concreta: 'Tengo hueco el martes a las diez de la mañana, ¿le vendría bien?'\n5. Si dice que prefiere otro horario, ofrece otra opción de las disponibles.\n6. Cuando acepte, pide teléfono de contacto si no lo tienes.\n7. Resume todo y confirma: 'Le confirmo: revisión el martes 20 a las diez, a nombre de... ¿correcto?'\n8. Solo cuando confirme, usa book_appointment.\n\nFLUJO PARA CANCELAR:\n1. Pide el nombre.\n2. Usa lookup_appointments para buscar sus citas.\n3. Confirma cuál quiere cancelar.\n4. Usa cancel_appointment.\n\nINTERPRETACIÓN DE HORARIOS:\n- 'a las cinco de la tarde' = 17:00\n- 'a las cinco' (sin especificar) = si es contexto de tarde, 17:00\n- 'por las tardes' = busca solo huecos entre 16:00 y 20:00\n- 'por las mañanas' = busca solo huecos entre 9:00 y 14:00\n- NUNCA preguntes '¿se refiere a las 16 o a las 17?' si el paciente ya fue claro.\n- Acepta la hora que diga el paciente directamente.\n\nPROHIBIDO:\n- No inventes horarios. Usa SIEMPRE check_availability.\n- No hables en otro idioma que no sea español.\n- No repitas preguntas que ya fueron respondidas.\n- No hagas preguntas de clarificación innecesarias.\n- No uses emojis ni formato especial, solo texto plano.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_services",
+        "description": "Obtiene la lista de servicios disponibles en la clínica con precios y duración.",
+        "parameters": { "type": "object", "properties": {}, "required": [] }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta las horas disponibles para agendar una cita. Devuelve los huecos libres por día.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio de búsqueda en formato YYYY-MM-DD" },
+            "to_date": { "type": "string", "description": "Fecha fin (opcional, por defecto 5 días desde from_date)" },
+            "service": { "type": "string", "description": "Tipo de servicio: revision, limpieza, blanqueamiento, empaste, extraccion, ortodoncia-consulta" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva una cita. Solo usar cuando el paciente confirme todos los datos.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string", "description": "Nombre completo del paciente" },
+            "phone": { "type": "string", "description": "Teléfono de contacto" },
+            "service": { "type": "string", "description": "Servicio solicitado" },
+            "date": { "type": "string", "description": "Fecha de la cita YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora de la cita HH:MM en formato 24h" }
+          },
+          "required": ["patient_name", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita existente buscando por nombre del paciente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string", "description": "ID de la cita (APT-XXXX)" },
+            "patient_name": { "type": "string", "description": "Nombre del paciente" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_appointments",
+        "description": "Busca citas existentes de un paciente por nombre.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string", "description": "Nombre del paciente" }
+          },
+          "required": ["patient_name"]
+        }
+      }
+    }
+  ]
+}

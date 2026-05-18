@@ -1,0 +1,23 @@
+{
+  "name": "voicecore",
+  "version": "2.0.0",
+  "description": "VoiceCore — Multi-Provider Voice AI Platform (Vapi alternative) by NodeFlow",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^3.9.0",
+    "@supabase/supabase-js": "^2.105.4",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "openai": "^4.77.0",
+    "twilio": "^5.4.3",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
