@@ -175,6 +175,44 @@ app.get('/api/voices/:id/preview', async (req, res) => {
   }
 });
 
+// ─── Simple TTS Preview (direct OpenAI) ───
+app.get('/api/tts/preview', async (req, res) => {
+  try {
+    const voice = req.query.voice || 'nova';
+    const text = req.query.text || 'Hola, soy tu asistente virtual de NodeFlow. ¿En qué puedo ayudarte hoy?';
+    const provider = req.query.provider || 'openai';
+
+    // Use OpenAI TTS directly for previews
+    if (provider === 'openai' && process.env.OPENAI_API_KEY) {
+      const OpenAI = require('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const mp3 = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice: voice,
+        input: text,
+        response_format: 'mp3',
+      });
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+      res.set('Content-Type', 'audio/mpeg');
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.send(buffer);
+    }
+
+    // Fallback to TTS router
+    const audio = await ttsRouter.synthesize({
+      callId: 'preview',
+      text,
+      provider,
+      voice,
+    });
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(audio);
+  } catch (e) {
+    log.error('TTS Preview error', { error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Provider Metrics API ───
 app.get('/api/providers', (req, res) => {
   res.json({
