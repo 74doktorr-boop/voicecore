@@ -1,15 +1,20 @@
 // VoiceCore Dashboard — App Logic v2
 const API_BASE = window.location.origin;
-let apiKey = localStorage.getItem('voicecore_api_key') || 'voicecore-dev';
+const DEFAULT_KEY = 'vc_nodeflow_prod_2026';
+let apiKey = localStorage.getItem('voicecore_api_key') || DEFAULT_KEY;
 let refreshInterval = null;
 let allAssistants = [];
 let selectedAssistantId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Auto-save default key if not set
-  if (!localStorage.getItem('voicecore_api_key')) {
-    localStorage.setItem('voicecore_api_key', 'voicecore-dev');
+  // Auto-save production key if not set or if using old default
+  if (!localStorage.getItem('voicecore_api_key') || localStorage.getItem('voicecore_api_key') === 'voicecore-dev') {
+    apiKey = DEFAULT_KEY;
+    localStorage.setItem('voicecore_api_key', DEFAULT_KEY);
   }
+  // Pre-fill the API key input in settings
+  const keyInput = document.getElementById('apiKeyInput');
+  if (keyInput) keyInput.value = apiKey;
   refreshAll(); startAutoRefresh();
 });
 
