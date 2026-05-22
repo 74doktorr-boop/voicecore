@@ -1,0 +1,28 @@
+{
+  "_comment": "Voice profiles for F5-TTS zero-shot cloning. ref_text MUST match exactly what is spoken in the .wav file. Empty ref_text triggers Whisper auto-transcription (adds ~3s latency — avoid in production). Recommended reference audio: 10-30s, clear speech, no background noise, WAV 44.1kHz mono.",
+
+  "ane": {
+    "wav": "voices/ane.wav",
+    "ref_text": "",
+    "language": "eu",
+    "description": "Female Basque voice — Ane",
+    "speaker_gender": "female",
+    "recording_notes": "Fill ref_text with the exact words spoken in ane.wav after recording"
+  },
+
+  "mikel": {
+    "wav": "voices/mikel.wav",
+    "ref_text": "",
+    "language": "eu",
+    "description": "Male Basque voice — Mikel",
+    "speaker_gender": "male",
+    "recording_notes": "Fill ref_text with the exact words spoken in mikel.wav after recording"
+  },
+
+  "_example_with_ref_text": {
+    "wav": "voices/example.wav",
+    "ref_text": "Kaixo, nire izena Ane da. Klinika dentalean laguntzeko prest nago.",
+    "language": "eu",
+    "description": "Example showing how ref_text should look"
+  }
+}

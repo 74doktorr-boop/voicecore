@@ -3,214 +3,301 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VoiceCore — Voice AI Platform for Business | NodeFlow</title>
-  <meta name="description" content="Plataforma de voz AI todo-en-uno para negocios. Crea asistentes telefónicos inteligentes en minutos. La alternativa a Vapi con mejor latencia y precios.">
+  <title>NodeFlow — Asistente de Voz IA para Negocios | Euskera Nativo</title>
+  <meta name="description" content="El asistente telefónico con IA que atiende el 100% de tus llamadas, reserva citas y habla euskera nativo. Para restaurantes, clínicas, peluquerías y más.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --bg-card: #1a1a2e;
-      --bg-card-hover: #22223a;
+      --bg: #09090f;
+      --bg2: #111118;
+      --card: #16161f;
+      --card-hover: #1e1e2a;
       --accent: #6c5ce7;
-      --accent-light: #a29bfe;
-      --accent-glow: rgba(108, 92, 231, 0.3);
-      --green: #00d2d3;
-      --green-glow: rgba(0, 210, 211, 0.2);
-      --orange: #ff6b6b;
+      --accent-l: #a29bfe;
+      --glow: rgba(108,92,231,0.25);
+      --green: #00cec9;
+      --green-glow: rgba(0,206,201,0.2);
+      --red: #ff6b6b;
       --yellow: #feca57;
       --text: #e8e8f0;
-      --text-dim: #8888a8;
-      --text-muted: #55556a;
-      --border: rgba(255,255,255,0.06);
-      --radius: 16px;
+      --dim: #8888a8;
+      --muted: #44445a;
+      --border: rgba(255,255,255,0.07);
+      --r: 14px;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family:'Inter',-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; overflow-x:hidden; }
+    .container { max-width:1160px; margin:0 auto; padding:0 24px; }
+    a { text-decoration:none; }
+    img { display:block; }
 
-    /* ─── Nav ─── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding: 16px 0;
-      background: rgba(10,10,15,0.8);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-    nav .container { display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-    .logo span { color: var(--accent-light); }
-    .nav-links { display: flex; gap: 32px; align-items: center; }
-    .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
-    .nav-links a:hover { color: var(--text); }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
-    .btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 24px var(--accent-glow); }
-    .btn-primary:hover { background: #7c6cf7; transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
-    .btn-outline { background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,0.15); }
-    .btn-outline:hover { border-color: var(--accent-light); background: rgba(108,92,231,0.1); }
-    .btn-large { padding: 14px 32px; font-size: 16px; border-radius: 12px; }
+    /* ── Buttons ── */
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 26px; border-radius:10px; font-size:14px; font-weight:600; transition:all .25s; cursor:pointer; border:none; white-space:nowrap; }
+    .btn-primary { background:var(--accent); color:#fff; box-shadow:0 4px 20px var(--glow); }
+    .btn-primary:hover { background:#7c6cf7; transform:translateY(-2px); box-shadow:0 8px 28px var(--glow); }
+    .btn-outline { background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.14); }
+    .btn-outline:hover { border-color:var(--accent-l); background:rgba(108,92,231,0.08); }
+    .btn-lg { padding:14px 32px; font-size:16px; border-radius:12px; }
+    .btn-ghost { background:transparent; color:var(--dim); border:none; padding:8px 16px; font-size:14px; font-weight:500; }
+    .btn-ghost:hover { color:var(--text); }
 
-    /* ─── Hero ─── */
-    .hero {
-      padding: 160px 0 100px;
-      text-align: center;
-      position: relative;
+    /* ── Nav ── */
+    nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:14px 0; background:rgba(9,9,15,0.85); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); }
+    nav .container { display:flex; justify-content:space-between; align-items:center; gap:24px; }
+    .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; color:var(--text); }
+    .logo em { color:var(--accent-l); font-style:normal; }
+    .nav-links { display:flex; gap:8px; align-items:center; }
+    .nav-links a.link { color:var(--dim); font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:color .2s; }
+    .nav-links a.link:hover { color:var(--text); }
+    .nav-ctas { display:flex; gap:10px; align-items:center; }
+
+    /* Mobile nav */
+    .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:8px; }
+    .hamburger span { width:22px; height:2px; background:var(--text); border-radius:2px; transition:all .3s; }
+    .mobile-menu { display:none; position:fixed; top:57px; left:0; right:0; background:var(--bg2); border-bottom:1px solid var(--border); padding:16px 24px; flex-direction:column; gap:4px; z-index:99; }
+    .mobile-menu a { color:var(--dim); font-size:15px; font-weight:500; padding:12px 0; border-bottom:1px solid var(--border); }
+    .mobile-menu a:last-child { border-bottom:none; }
+    .mobile-menu.open { display:flex; }
+
+    @media (max-width:768px) {
+      .nav-links, .nav-ctas { display:none; }
+      .hamburger { display:flex; }
     }
+
+    /* ── Shared section styles ── */
+    .label { font-size:12px; text-transform:uppercase; letter-spacing:2px; color:var(--accent-l); font-weight:600; margin-bottom:10px; }
+    .title { font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-1px; line-height:1.15; margin-bottom:12px; }
+    .subtitle { color:var(--dim); font-size:16px; line-height:1.7; max-width:540px; }
+
+    /* ── Hero ── */
+    .hero { padding:148px 0 96px; text-align:center; position:relative; overflow:hidden; }
     .hero::before {
-      content: '';
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 800px; height: 600px;
-      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
-      opacity: 0.4; pointer-events: none;
+      content:''; position:absolute; top:-100px; left:50%; transform:translateX(-50%);
+      width:900px; height:700px;
+      background:radial-gradient(ellipse at 50% 30%, rgba(108,92,231,0.18) 0%, transparent 65%);
+      pointer-events:none;
     }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 16px; border-radius: 20px;
-      background: rgba(108,92,231,0.15); border: 1px solid rgba(108,92,231,0.3);
-      font-size: 13px; font-weight: 500; color: var(--accent-light);
-      margin-bottom: 24px;
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:8px; padding:6px 16px 6px 10px;
+      border-radius:100px; border:1px solid rgba(108,92,231,0.35);
+      background:rgba(108,92,231,0.1); font-size:13px; font-weight:500;
+      color:var(--accent-l); margin-bottom:28px;
     }
-    .badge::before { content: '✦'; }
-    h1 {
-      font-size: clamp(40px, 6vw, 72px); font-weight: 900;
-      letter-spacing: -2px; line-height: 1.05;
-      margin-bottom: 24px;
-      background: linear-gradient(135deg, #fff 30%, var(--accent-light) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    .hero-badge .dot { width:8px; height:8px; border-radius:50%; background:#00cec9; animation:pulse 2s infinite; }
+    .hero h1 {
+      font-size:clamp(38px,6vw,72px); font-weight:900; letter-spacing:-2.5px; line-height:1.04;
+      margin-bottom:20px;
+      background:linear-gradient(150deg,#fff 40%,var(--accent-l) 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     }
-    .hero p {
-      font-size: 18px; color: var(--text-dim); max-width: 620px; margin: 0 auto 40px;
-      line-height: 1.7;
-    }
-    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-    .hero-metric {
-      display: flex; gap: 48px; justify-content: center; margin-top: 60px;
-      padding-top: 40px; border-top: 1px solid var(--border);
-    }
-    .hero-metric div { text-align: center; }
-    .hero-metric strong { display: block; font-size: 32px; font-weight: 800; color: var(--green); }
-    .hero-metric span { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .hero-sub { font-size:18px; color:var(--dim); max-width:580px; margin:0 auto 36px; line-height:1.75; }
+    .hero-ctas { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+    .hero-trust { margin-top:20px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+    .hero-trust span { color:var(--green); }
 
-    /* ─── Pipeline Visual ─── */
-    .pipeline-section { padding: 80px 0; }
+    /* Stats bar */
+    .stats { display:flex; gap:0; justify-content:center; margin-top:64px; padding-top:48px; border-top:1px solid var(--border); flex-wrap:wrap; }
+    .stat { flex:1; min-width:140px; text-align:center; padding:0 24px; border-right:1px solid var(--border); }
+    .stat:last-child { border-right:none; }
+    .stat strong { display:block; font-size:36px; font-weight:900; color:var(--green); letter-spacing:-1px; }
+    .stat small { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px; display:block; }
+
+    /* ── Euskera section ── */
+    .euskera-section { padding:80px 0; }
+    .euskera-card {
+      border-radius:20px; overflow:hidden;
+      border:1px solid rgba(108,92,231,0.3);
+      background:linear-gradient(135deg, rgba(108,92,231,0.08) 0%, rgba(0,206,201,0.05) 100%);
+      padding:56px 48px;
+      display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center;
+      position:relative;
+    }
+    .euskera-card::before {
+      content:''; position:absolute; top:0; right:0; width:400px; height:400px;
+      background:radial-gradient(ellipse at 80% 20%, rgba(108,92,231,0.12) 0%, transparent 60%);
+      pointer-events:none;
+    }
+    .euskera-badge {
+      display:inline-flex; align-items:center; gap:8px; padding:5px 14px;
+      border-radius:100px; background:rgba(108,92,231,0.2); border:1px solid rgba(108,92,231,0.4);
+      font-size:12px; font-weight:700; color:var(--accent-l); text-transform:uppercase;
+      letter-spacing:1px; margin-bottom:20px;
+    }
+    .euskera-card h2 { font-size:clamp(26px,3vw,36px); font-weight:800; letter-spacing:-1px; line-height:1.2; margin-bottom:16px; }
+    .euskera-card p { color:var(--dim); font-size:15px; line-height:1.75; margin-bottom:28px; }
+    .eu-points { list-style:none; display:flex; flex-direction:column; gap:12px; }
+    .eu-points li { display:flex; align-items:flex-start; gap:12px; font-size:14px; color:var(--dim); }
+    .eu-points li::before { content:'✓'; color:var(--green); font-weight:700; flex-shrink:0; margin-top:1px; }
+    .eu-demo {
+      background:var(--card); border-radius:var(--r); padding:24px;
+      border:1px solid var(--border); position:relative; z-index:1;
+    }
+    .eu-demo-header { display:flex; align-items:center; gap:10px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .eu-demo-dot { width:10px; height:10px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+    .eu-demo-label { font-size:13px; font-weight:600; color:var(--green); }
+    .eu-demo-time { font-size:12px; color:var(--muted); margin-left:auto; }
+    .chat-msg { margin-bottom:14px; }
+    .chat-msg .who { font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:5px; }
+    .chat-msg .who.ai { color:var(--accent-l); }
+    .chat-msg .who.user { color:var(--dim); }
+    .chat-bubble { display:inline-block; padding:10px 16px; border-radius:12px; font-size:14px; line-height:1.5; max-width:100%; }
+    .bubble-ai { background:rgba(108,92,231,0.15); border:1px solid rgba(108,92,231,0.2); color:var(--text); }
+    .bubble-user { background:var(--bg2); border:1px solid var(--border); color:var(--dim); }
+    @media(max-width:768px) { .euskera-card { grid-template-columns:1fr; padding:32px 24px; } }
+
+    /* ── Features ── */
+    .features { padding:80px 0; }
+    .features-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px; gap:24px; flex-wrap:wrap; }
+    .feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+    .feat-card {
+      padding:28px; border-radius:var(--r);
+      background:var(--card); border:1px solid var(--border);
+      transition:all .25s;
+    }
+    .feat-card:hover { background:var(--card-hover); border-color:rgba(108,92,231,0.25); transform:translateY(-3px); }
+    .feat-icon { font-size:26px; margin-bottom:14px; }
+    .feat-card h3 { font-size:17px; font-weight:700; margin-bottom:8px; }
+    .feat-card p { color:var(--dim); font-size:14px; line-height:1.65; }
+
+    /* ── Sectors ── */
+    .sectors { padding:80px 0; }
+    .sector-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:40px; }
+    .sector-card {
+      padding:24px 20px; border-radius:var(--r); background:var(--card); border:1px solid var(--border);
+      text-align:center; transition:all .25s; cursor:default;
+    }
+    .sector-card:hover { border-color:rgba(108,92,231,0.3); background:var(--card-hover); transform:translateY(-3px); }
+    .sector-card .icon { font-size:32px; margin-bottom:10px; }
+    .sector-card h4 { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .sector-card p { font-size:12px; color:var(--muted); }
+
+    /* ── Pipeline visual ── */
+    .pipeline-section { padding:40px 0 80px; }
     .pipeline {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      padding: 32px; border-radius: var(--radius);
-      background: var(--bg-secondary); border: 1px solid var(--border);
-      flex-wrap: wrap;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      padding:28px 32px; border-radius:var(--r);
+      background:var(--bg2); border:1px solid var(--border); flex-wrap:wrap;
     }
     .pipe-node {
-      padding: 16px 28px; border-radius: 12px;
-      font-weight: 600; font-size: 14px; text-align: center; min-width: 140px;
-      position: relative;
+      padding:14px 24px; border-radius:10px; font-weight:600; font-size:13px;
+      text-align:center; min-width:130px;
     }
-    .pipe-stt { background: linear-gradient(135deg, #ff6b6b22, #ff6b6b08); border: 1px solid #ff6b6b33; color: #ff6b6b; }
-    .pipe-llm { background: linear-gradient(135deg, #00d2d322, #00d2d308); border: 1px solid #00d2d333; color: #00d2d3; }
-    .pipe-tts { background: linear-gradient(135deg, #6c5ce722, #6c5ce708); border: 1px solid #6c5ce733; color: #a29bfe; }
-    .pipe-node small { display: block; font-weight: 400; font-size: 11px; opacity: 0.7; margin-top: 4px; }
-    .pipe-arrow { color: var(--text-muted); font-size: 20px; }
+    .pipe-node small { display:block; font-weight:400; font-size:11px; opacity:0.65; margin-top:3px; }
+    .pipe-stt { background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.25); color:#ff6b6b; }
+    .pipe-llm { background:rgba(0,206,201,0.1); border:1px solid rgba(0,206,201,0.25); color:var(--green); }
+    .pipe-tts { background:rgba(108,92,231,0.1); border:1px solid rgba(108,92,231,0.25); color:var(--accent-l); }
+    .pipe-tel { background:rgba(254,202,87,0.1); border:1px solid rgba(254,202,87,0.25); color:var(--yellow); }
+    .pipe-arrow { color:var(--muted); font-size:18px; }
 
-    /* ─── Features ─── */
-    .features { padding: 80px 0; }
-    .section-label { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-light); font-weight: 600; margin-bottom: 12px; }
-    .section-title { font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
-    .section-desc { color: var(--text-dim); max-width: 560px; margin-bottom: 48px; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
-    .feature-card {
-      padding: 32px; border-radius: var(--radius);
-      background: var(--bg-card); border: 1px solid var(--border);
-      transition: all 0.3s;
-    }
-    .feature-card:hover { background: var(--bg-card-hover); border-color: rgba(108,92,231,0.3); transform: translateY(-4px); }
-    .feature-icon { font-size: 28px; margin-bottom: 16px; display: block; }
-    .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+    /* ── Comparison ── */
+    .comparison { padding:80px 0; }
+    .comp-wrap { overflow-x:auto; }
+    .comp-table { width:100%; border-collapse:collapse; border-radius:var(--r); overflow:hidden; min-width:480px; }
+    .comp-table th, .comp-table td { padding:13px 20px; text-align:left; border-bottom:1px solid var(--border); font-size:14px; }
+    .comp-table th { background:var(--card); font-weight:600; color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+    .comp-table td { background:var(--bg2); }
+    .comp-table tr:hover td { background:var(--card); }
+    .yes { color:var(--green); font-weight:700; }
+    .no { color:var(--muted); }
+    .hl { color:var(--accent-l); font-weight:600; }
 
-    /* ─── Pricing ─── */
-    .pricing { padding: 80px 0; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    /* ── Pricing ── */
+    .pricing { padding:80px 0; }
+    .pricing-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:48px; }
     .price-card {
-      padding: 32px; border-radius: var(--radius);
-      background: var(--bg-card); border: 1px solid var(--border);
-      transition: all 0.3s; position: relative;
+      padding:28px; border-radius:var(--r);
+      background:var(--card); border:1px solid var(--border);
+      transition:all .25s; position:relative;
     }
-    .price-card.popular { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-glow); }
-    .price-card.popular::after {
-      content: 'MÁS POPULAR'; position: absolute; top: -12px; right: 24px;
-      padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
-      background: var(--accent); color: white; letter-spacing: 0.5px;
+    .price-card.pop { border-color:var(--accent); box-shadow:0 0 40px var(--glow); }
+    .price-card.pop::after {
+      content:'MÁS POPULAR'; position:absolute; top:-11px; right:20px;
+      padding:3px 12px; border-radius:6px; font-size:10px; font-weight:700;
+      background:var(--accent); color:#fff; letter-spacing:1px;
     }
-    .price-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .price-card .price { font-size: 40px; font-weight: 900; margin: 16px 0 4px; }
-    .price-card .price span { font-size: 16px; font-weight: 400; color: var(--text-dim); }
-    .price-card .price-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
-    .price-card ul { list-style: none; margin-bottom: 24px; }
-    .price-card li { padding: 6px 0; font-size: 14px; color: var(--text-dim); }
-    .price-card li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+    .price-card h3 { font-size:18px; font-weight:700; margin-bottom:4px; }
+    .price-card .desc { font-size:13px; color:var(--muted); margin-bottom:16px; }
+    .price-card .amount { font-size:42px; font-weight:900; letter-spacing:-1px; }
+    .price-card .amount em { font-size:16px; font-weight:400; color:var(--dim); font-style:normal; }
+    .price-card .note { font-size:12px; color:var(--muted); margin-bottom:24px; margin-top:2px; }
+    .price-card ul { list-style:none; margin-bottom:28px; display:flex; flex-direction:column; gap:8px; }
+    .price-card li { font-size:13px; color:var(--dim); display:flex; align-items:flex-start; gap:8px; }
+    .price-card li::before { content:'✓'; color:var(--green); font-weight:700; flex-shrink:0; }
+    .price-euskera { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--accent-l); background:rgba(108,92,231,0.12); border:1px solid rgba(108,92,231,0.25); padding:3px 10px; border-radius:6px; margin-top:-2px; margin-bottom:4px; }
 
-    /* ─── Comparison ─── */
-    .comparison { padding: 80px 0; }
-    .comp-table { width: 100%; border-collapse: collapse; border-radius: var(--radius); overflow: hidden; }
-    .comp-table th, .comp-table td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
-    .comp-table th { background: var(--bg-card); font-weight: 600; color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-    .comp-table td { background: var(--bg-secondary); }
-    .comp-table tr:hover td { background: var(--bg-card); }
-    .comp-table .check { color: var(--green); font-weight: 700; }
-    .comp-table .cross { color: var(--text-muted); }
-    .comp-table .highlight { color: var(--accent-light); font-weight: 600; }
-
-    /* ─── CTA ─── */
-    .cta {
-      padding: 100px 0; text-align: center;
-      position: relative;
+    /* ── CTA ── */
+    .cta-section { padding:100px 0; text-align:center; position:relative; overflow:hidden; }
+    .cta-section::before {
+      content:''; position:absolute; bottom:-100px; left:50%; transform:translateX(-50%);
+      width:700px; height:500px;
+      background:radial-gradient(ellipse, var(--green-glow) 0%, transparent 65%);
+      pointer-events:none;
     }
-    .cta::before {
-      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 600px; height: 400px;
-      background: radial-gradient(ellipse, var(--green-glow) 0%, transparent 70%);
-      opacity: 0.3; pointer-events: none;
-    }
-    .cta h2 { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 16px; }
-    .cta p { color: var(--text-dim); max-width: 500px; margin: 0 auto 32px; }
+    .cta-section h2 { font-size:clamp(32px,5vw,52px); font-weight:900; letter-spacing:-1.5px; margin-bottom:16px; }
+    .cta-section p { color:var(--dim); max-width:460px; margin:0 auto 32px; font-size:16px; }
 
-    /* ─── Footer ─── */
-    footer {
-      padding: 40px 0; border-top: 1px solid var(--border);
-      text-align: center; color: var(--text-muted); font-size: 13px;
-    }
-    footer a { color: var(--accent-light); text-decoration: none; }
+    /* ── Footer ── */
+    footer { padding:40px 0; border-top:1px solid var(--border); }
+    footer .container { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+    footer p { font-size:13px; color:var(--muted); }
+    footer p a { color:var(--accent-l); }
+    .footer-links { display:flex; gap:20px; }
+    .footer-links a { font-size:13px; color:var(--muted); transition:color .2s; }
+    .footer-links a:hover { color:var(--text); }
 
-    /* ─── Code Block ─── */
-    .code-block {
-      background: var(--bg-secondary); border: 1px solid var(--border);
-      border-radius: 12px; padding: 24px; margin: 40px auto;
-      max-width: 700px; text-align: left; font-family: 'SF Mono', monospace;
-      font-size: 13px; line-height: 1.8; overflow-x: auto;
-    }
-    .code-block .comment { color: var(--text-muted); }
-    .code-block .keyword { color: var(--accent-light); }
-    .code-block .string { color: var(--green); }
-    .code-block .method { color: var(--yellow); }
+    /* ── Animations ── */
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .float { animation:float 4s ease-in-out infinite; }
 
-    /* ─── Animations ─── */
-    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .float { animation: float 4s ease-in-out infinite; }
-    .pulse { animation: pulse 2s ease-in-out infinite; }
-
-    @media (max-width: 768px) {
-      .nav-links { display: none; }
-      .hero-metric { flex-direction: column; gap: 24px; }
-      .pipeline { flex-direction: column; }
-      h1 { font-size: 36px; }
+    /* ── Registro form ── */
+    .registro-section { padding:80px 0 100px; }
+    .registro-grid { display:grid; grid-template-columns:1fr 1.6fr; gap:56px; align-items:start; }
+    @media(max-width:860px){ .registro-grid { grid-template-columns:1fr; gap:36px; } }
+    .registro-left h2 { font-size:clamp(26px,3.5vw,38px); font-weight:800; letter-spacing:-1px; line-height:1.2; margin-bottom:14px; }
+    .registro-left p { color:var(--dim); font-size:15px; line-height:1.7; margin-bottom:24px; }
+    .registro-perks { list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
+    .registro-perks li { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--dim); }
+    .registro-perks li::before { content:'✓'; color:var(--green); font-weight:700; font-size:15px; }
+    .pago-duda { padding:16px 20px; border-radius:var(--r); background:var(--card); border:1px solid var(--border); }
+    .pago-duda p { font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .pago-duda a { font-size:13px; font-weight:600; color:var(--accent-l); text-decoration:none; }
+    .pago-duda a:hover { text-decoration:underline; }
+    .registro-box { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; }
+    .form-title { font-size:18px; font-weight:700; margin-bottom:6px; }
+    .form-sub { font-size:13px; color:var(--muted); margin-bottom:24px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    .form-group label { font-size:12px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+    .form-group input, .form-group select, .form-group textarea {
+      background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); font-size:14px; padding:10px 14px;
+      transition:border-color .2s; outline:none; width:100%; box-sizing:border-box;
     }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent-l); }
+    .form-group select option { background:var(--bg2); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media(max-width:500px){ .form-row { grid-template-columns:1fr; } }
+    .schedule-grid { display:flex; flex-direction:column; gap:6px; }
+    .schedule-day { display:grid; grid-template-columns:80px 36px 1fr; gap:8px; align-items:center; font-size:13px; }
+    .schedule-day .day-name { color:var(--dim); font-weight:600; }
+    .schedule-day input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; justify-self:center; }
+    .schedule-day .day-hours { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; }
+    .schedule-day .day-hours input[type="time"] { background:var(--bg2); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:4px 8px; font-size:12px; width:80px; }
+    .schedule-day .day-hours span { color:var(--muted); }
+    .schedule-day .day-closed { font-size:12px; color:var(--muted); font-style:italic; }
+    .form-divider { height:1px; background:var(--border); margin:20px 0; }
+    .btn-submit { width:100%; padding:14px; font-size:16px; font-weight:700; border-radius:10px; border:none; cursor:pointer; background:var(--accent); color:#fff; box-shadow:0 4px 20px var(--glow); transition:all .25s; margin-top:8px; }
+    .btn-submit:hover { background:#7c6cf7; transform:translateY(-2px); }
+    .btn-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .form-legal { font-size:11px; color:var(--muted); text-align:center; margin-top:10px; line-height:1.5; }
+    .form-legal a { color:var(--accent-l); }
+    .form-error { font-size:12px; color:#ff6b6b; margin-top:4px; display:none; }
+    .registro-success { display:none; text-align:center; padding:40px 20px; }
+    .registro-success .success-icon { font-size:48px; margin-bottom:16px; }
+    .registro-success h3 { font-size:22px; font-weight:700; margin-bottom:10px; }
+    .registro-success p { color:var(--dim); font-size:14px; line-height:1.7; }
   </style>
 </head>
 <body>
@@ -218,32 +305,51 @@
 <!-- Nav -->
 <nav>
   <div class="container">
-    <div class="logo">Voice<span>Core</span></div>
+    <a href="/" class="logo">Node<em>Flow</em></a>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#compare">vs VAPI</a>
+      <a href="#features" class="link">Funciones</a>
+      <a href="#sectores" class="link">Sectores</a>
+      <a href="#pricing" class="link">Precios</a>
+      <a href="#euskera" class="link">Euskera</a>
+    </div>
+    <div class="nav-ctas">
       <a href="/dashboard" class="btn btn-outline">Dashboard</a>
-      <a href="#cta" class="btn btn-primary">Empezar Gratis</a>
+      <a href="#contacto" class="btn btn-primary">Hablar con ventas</a>
+    </div>
+    <div class="hamburger" onclick="toggleMenu()" id="hamburger">
+      <span></span><span></span><span></span>
     </div>
   </div>
 </nav>
 
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="toggleMenu()">Funciones</a>
+  <a href="#sectores" onclick="toggleMenu()">Sectores</a>
+  <a href="#pricing" onclick="toggleMenu()">Precios</a>
+  <a href="#euskera" onclick="toggleMenu()">Euskera</a>
+  <a href="/dashboard" onclick="toggleMenu()">Dashboard</a>
+  <a href="#contacto" onclick="toggleMenu()" style="color:var(--accent-l);font-weight:600;">Hablar con ventas →</a>
+</div>
+
 <!-- Hero -->
 <section class="hero">
   <div class="container">
-    <div class="badge">Lanzamiento v2.0 — Multi-Provider Engine</div>
-    <h1>Voice AI para<br>negocios reales</h1>
-    <p>Crea asistentes telefónicos inteligentes que reservan citas, responden preguntas y convierten llamadas en clientes. Todo-en-uno. Sin código.</p>
-    <div class="hero-buttons">
-      <a href="#cta" class="btn btn-primary btn-large">Empezar Gratis →</a>
-      <a href="#features" class="btn btn-outline btn-large">Ver Demo</a>
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Disponible ahora · Único con euskera nativo
     </div>
-    <div class="hero-metric">
-      <div><strong>&lt;100ms</strong><span>Latencia STT</span></div>
-      <div><strong>10+</strong><span>Providers IA</span></div>
-      <div><strong>11</strong><span>Voces Premium</span></div>
-      <div><strong>€0</strong><span>Coste Plataforma</span></div>
+    <h1>Tu negocio atiende<br>el 100% de las llamadas</h1>
+    <p class="hero-sub">Un asistente de voz con IA que reserva citas, responde preguntas y convierte llamadas en clientes. 24 horas. 7 días. En castellano y en euskera.</p>
+    <div class="hero-ctas">
+      <a href="#contacto" class="btn btn-primary btn-lg">Pedir demo gratuita →</a>
+      <a href="#features" class="btn btn-outline btn-lg">Cómo funciona</a>
+    </div>
+    <p class="hero-trust">Sin tarjeta de crédito · <span>✓</span> Configurado en 24h · <span>✓</span> Cancela cuando quieras</p>
+    <div class="stats">
+      <div class="stat"><strong>100%</strong><small>Llamadas atendidas</small></div>
+      <div class="stat"><strong>24/7</strong><small>Sin descanso</small></div>
+      <div class="stat"><strong>&lt;1s</strong><small>Tiempo de respuesta</small></div>
+      <div class="stat"><strong>€0</strong><small>Coste por llamada perdida</small></div>
     </div>
   </div>
 </section>
@@ -252,13 +358,60 @@
 <section class="pipeline-section">
   <div class="container">
     <div class="pipeline">
-      <div class="pipe-node pipe-stt float">🎙️ STT<small>Deepgram · AssemblyAI · Google</small></div>
+      <div class="pipe-node pipe-stt float">🎙️ Escucha<small>STT en tiempo real</small></div>
       <span class="pipe-arrow">→</span>
-      <div class="pipe-node pipe-llm float" style="animation-delay: 0.5s">🧠 LLM<small>OpenAI · Groq · Claude</small></div>
+      <div class="pipe-node pipe-llm float" style="animation-delay:.5s">🧠 Entiende<small>GPT-4o · Llama 3.3</small></div>
       <span class="pipe-arrow">→</span>
-      <div class="pipe-node pipe-tts float" style="animation-delay: 1s">🔊 TTS<small>Cartesia · ElevenLabs · Google</small></div>
+      <div class="pipe-node pipe-tts float" style="animation-delay:1s">🗣️ Responde<small>Voz clonada nativa</small></div>
       <span class="pipe-arrow">→</span>
-      <div class="pipe-node" style="background: rgba(254,202,87,0.1); border: 1px solid rgba(254,202,87,0.3); color: #feca57; animation: float 4s ease-in-out infinite; animation-delay: 1.5s">📞 Twilio<small>Llamadas reales</small></div>
+      <div class="pipe-node pipe-tel float" style="animation-delay:1.5s">📞 Twilio<small>Tu número actual</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- Euskera — Sección destacada -->
+<section class="euskera-section" id="euskera">
+  <div class="container">
+    <div class="euskera-card">
+      <div>
+        <div class="euskera-badge">⭐ Exclusivo NodeFlow</div>
+        <h2>El único asistente de voz con euskera 100% nativo</h2>
+        <p>No es traducción automática ni síntesis genérica. Son voces reales de hablantes vascos nativos, clonadas con IA. Tu asistente suena como alguien del barrio, no como un robot.</p>
+        <ul class="eu-points">
+          <li>Voz clonada de locutores vascos reales — fonología nativa</li>
+          <li>Detecta automáticamente si el cliente habla euskera o castellano</li>
+          <li>Cumple la Ley de Normalización del Uso del Euskera</li>
+          <li>Nombres vascos, municipios, expresiones naturales</li>
+          <li>Disponible para cualquier sector: hostelería, clínicas, talleres...</li>
+        </ul>
+      </div>
+      <div class="eu-demo">
+        <div class="eu-demo-header">
+          <span class="eu-demo-dot"></span>
+          <span class="eu-demo-label">Llamada en directo</span>
+          <span class="eu-demo-time">Klinika Dentala · Donostia</span>
+        </div>
+        <div class="chat-msg">
+          <div class="who ai">Ane · Asistente NodeFlow</div>
+          <div class="chat-bubble bubble-ai">Kaixo, egun on. Klinika dentala, Ane naiz. Nola lagundu dezaket?</div>
+        </div>
+        <div class="chat-msg">
+          <div class="who user">Cliente</div>
+          <div class="chat-bubble bubble-user">Kaixo, hitzordu bat eskatu nahi nuke.</div>
+        </div>
+        <div class="chat-msg">
+          <div class="who ai">Ane · Asistente NodeFlow</div>
+          <div class="chat-bubble bubble-ai">Perfektua. Zure izena esan al didazu? Eta zer zerbitzu nahi zenuke — garbiketa edo kontsulta?</div>
+        </div>
+        <div class="chat-msg">
+          <div class="who user">Cliente</div>
+          <div class="chat-bubble bubble-user">Mikel Etxeberria. Garbiketa bat.</div>
+        </div>
+        <div class="chat-msg">
+          <div class="who ai">Ane · Asistente NodeFlow</div>
+          <div class="chat-bubble bubble-ai">Oso ondo, Mikel. Asteartean hamarrak ditut libre. Ondo al dago?</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -266,63 +419,91 @@
 <!-- Features -->
 <section class="features" id="features">
   <div class="container">
-    <div class="section-label">Plataforma</div>
-    <div class="section-title">Todo lo que necesitas</div>
-    <p class="section-desc">Una plataforma completa para crear, gestionar y escalar asistentes de voz inteligentes.</p>
-    <div class="feature-grid">
-      <div class="feature-card">
-        <span class="feature-icon">⚡</span>
-        <h3>Ultra-Low Latency</h3>
-        <p>Cartesia Sonic con 40-90ms TTFA. Conversaciones que se sienten naturales, no robóticas.</p>
+    <div class="features-head">
+      <div>
+        <div class="label">Funcionalidades</div>
+        <div class="title">Hace todo lo que haría<br>una recepcionista</div>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">🔄</span>
-        <h3>Multi-Provider Router</h3>
-        <p>10+ providers de STT, LLM y TTS con fallback automático. Sin dependencia de ningún vendor.</p>
+      <p class="subtitle" style="text-align:right">Sin turnos, sin bajas, sin formación. Tu asistente aprende el negocio en minutos y trabaja 24/7 desde el primer día.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">📅</div>
+        <h3>Reservas automáticas</h3>
+        <p>Pregunta disponibilidad, ofrece huecos y confirma la cita directamente en tu Google Calendar. Sin que toques nada.</p>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">👥</span>
-        <h3>Squads (Multi-Agent)</h3>
-        <p>Equipos de agentes con transferencia inteligente. Recepcionista → Enfermera → Facturación.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🧠</div>
+        <h3>Memoria de cliente</h3>
+        <p>Recuerda el nombre, historial y preferencias de cada persona que llama. "La última vez pediste mesa para cuatro..."</p>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">📚</span>
-        <h3>Knowledge Base (RAG)</h3>
-        <p>Sube documentos de tu negocio y el asistente responde con información precisa y actualizada.</p>
+      <div class="feat-card">
+        <div class="feat-icon">📚</div>
+        <h3>Conoce tu negocio</h3>
+        <p>Sube tu carta, tarifas, FAQs o cualquier documento. El asistente responde con tu información exacta, no con inventos.</p>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">📊</span>
-        <h3>Analytics en Real-Time</h3>
-        <p>Dashboard con métricas de llamadas, embudo de conversión, heatmap y rendimiento por provider.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🌐</div>
+        <h3>Bilingüe automático</h3>
+        <p>Detecta en la primera frase si el cliente habla castellano o euskera y cambia de idioma al instante. Sin configurar nada.</p>
       </div>
-      <div class="feature-card">
-        <span class="feature-icon">🔐</span>
-        <h3>Multi-Tenant Enterprise</h3>
-        <p>API keys por organización, rate limiting, planes de uso y facturación automática con Stripe.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🔀</div>
+        <h3>Transfiere llamadas</h3>
+        <p>Cuando detecta una situación que necesita persona humana, avisa por WhatsApp con el resumen de la conversación.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <h3>Informes semanales</h3>
+        <p>Resumen automático de llamadas, citas agendadas, temas frecuentes y clientes interesados. Llega al correo cada lunes.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Code Example -->
-<section style="padding: 40px 0;">
-  <div class="container" style="text-align: center;">
-    <div class="section-label">Integración</div>
-    <div class="section-title">3 líneas para empezar</div>
-    <div class="code-block">
-      <span class="comment">// Crear un asistente con VoiceCore API</span><br>
-      <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="method">fetch</span>(<span class="string">'https://api.voicecore.dev/api/assistants'</span>, {<br>
-      &nbsp;&nbsp;method: <span class="string">'POST'</span>,<br>
-      &nbsp;&nbsp;headers: { <span class="string">'x-api-key'</span>: <span class="string">'vc_tu_api_key'</span> },<br>
-      &nbsp;&nbsp;body: JSON.stringify({<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;name: <span class="string">'Recepcionista Clínica'</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;voice: <span class="string">'sofia-es'</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;model: <span class="string">'groq/llama-3.3-70b'</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;ttsProvider: <span class="string">'cartesia'</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;firstMessage: <span class="string">'Hola, clínica dental. ¿En qué puedo ayudarle?'</span><br>
-      &nbsp;&nbsp;})<br>
-      });<br>
-      <span class="comment">// ✅ Assistant creado — conecta tu número Twilio y listo</span>
+<!-- Sectores -->
+<section class="sectors" id="sectores">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:0">
+      <div class="label">Sectores</div>
+      <div class="title">Para cualquier negocio<br>que reciba llamadas</div>
+    </div>
+    <div class="sector-grid">
+      <div class="sector-card"><div class="icon">🍽️</div><h4>Restaurantes</h4><p>Reservas y menús</p></div>
+      <div class="sector-card"><div class="icon">🦷</div><h4>Clínicas dentales</h4><p>Citas y seguimiento</p></div>
+      <div class="sector-card"><div class="icon">✂️</div><h4>Peluquerías</h4><p>Agenda y servicios</p></div>
+      <div class="sector-card"><div class="icon">🐾</div><h4>Veterinarias</h4><p>Urgencias y citas</p></div>
+      <div class="sector-card"><div class="icon">🔧</div><h4>Talleres</h4><p>Revisiones y presupuestos</p></div>
+      <div class="sector-card"><div class="icon">🏠</div><h4>Inmobiliarias</h4><p>Visitas y consultas</p></div>
+      <div class="sector-card"><div class="icon">💆</div><h4>Centros estética</h4><p>Tratamientos y bonos</p></div>
+      <div class="sector-card"><div class="icon">🏋️</div><h4>Gimnasios</h4><p>Altas y clases</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Comparación -->
+<section class="comparison" id="compare" style="padding:80px 0">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:48px">
+      <div class="label">Comparación</div>
+      <div class="title">NodeFlow vs recepcionista humana</div>
+    </div>
+    <div class="comp-wrap">
+      <table class="comp-table">
+        <thead>
+          <tr><th>¿Qué necesitas?</th><th>Recepcionista</th><th class="hl">NodeFlow</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Atiende llamadas fuera de horario</td><td class="no">✗ No</td><td class="yes hl">✓ 24/7</td></tr>
+          <tr><td>Coste mensual</td><td class="no">€1.400–2.000</td><td class="hl">desde €49/mes</td></tr>
+          <tr><td>Habla euskera nativo</td><td class="no">No siempre</td><td class="yes hl">✓ Siempre</td></tr>
+          <tr><td>Gestiona bajas, vacaciones, turnos</td><td class="no">✗ Sí, tú</td><td class="hl">✓ No existe ese problema</td></tr>
+          <tr><td>Recuerda a cada cliente</td><td class="no">A veces</td><td class="yes hl">✓ Siempre</td></tr>
+          <tr><td>Reserva en Google Calendar</td><td class="no">Manual</td><td class="yes hl">✓ Automático</td></tr>
+          <tr><td>Informe de llamadas semanal</td><td class="no">✗</td><td class="yes hl">✓ Automático</td></tr>
+          <tr><td>Alta y configuración</td><td class="no">Semanas</td><td class="hl">✓ 24 horas</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
@@ -330,91 +511,206 @@
 <!-- Pricing -->
 <section class="pricing" id="pricing">
   <div class="container">
-    <div style="text-align: center; margin-bottom: 48px;">
-      <div class="section-label">Pricing</div>
-      <div class="section-title">Simple y transparente</div>
-      <p class="section-desc" style="margin: 12px auto 0;">Sin coste de plataforma. Solo pagas por lo que usas.</p>
+    <div style="text-align:center">
+      <div class="label">Precios</div>
+      <div class="title">Sin letra pequeña</div>
+      <p class="subtitle" style="margin:12px auto 0; text-align:center">Sin permanencia. Cancela cuando quieras. Minutos extra: €0,05/min.</p>
     </div>
     <div class="pricing-grid">
+
       <div class="price-card">
         <h3>Starter</h3>
-        <div class="price">Gratis</div>
-        <div class="price-desc">Para probar la plataforma</div>
+        <p class="desc">Para probar sin riesgo</p>
+        <div class="amount">Gratis</div>
+        <p class="note">50 min/mes incluidos</p>
         <ul>
-          <li>50 minutos/mes</li>
           <li>1 asistente</li>
-          <li>STT + LLM + TTS incluido</li>
-          <li>Browser Talk demo</li>
+          <li>Castellano</li>
+          <li>Reservas automáticas</li>
+          <li>Dashboard de llamadas</li>
         </ul>
-        <a href="#cta" class="btn btn-outline" style="width: 100%; justify-content: center;">Empezar</a>
+        <a href="#contacto" class="btn btn-outline" style="width:100%;justify-content:center">Empezar gratis</a>
       </div>
-      <div class="price-card popular">
-        <h3>Pro</h3>
-        <div class="price">€49<span>/mes</span></div>
-        <div class="price-desc">Para negocios en crecimiento</div>
+
+      <div class="price-card pop">
+        <h3>Negocio</h3>
+        <p class="desc">Para cualquier negocio local</p>
+        <div class="amount">€49<em>/mes</em></div>
+        <p class="note">500 min/mes incluidos · 1 asistente</p>
         <ul>
-          <li>500 minutos/mes</li>
-          <li>5 asistentes</li>
-          <li>Multi-provider routing</li>
-          <li>Analytics dashboard</li>
-          <li>Knowledge Base (RAG)</li>
-          <li>Webhook integrations</li>
+          <li><span class="price-euskera">★ Euskera nativo</span></li>
+          <li>Reservas y citas automáticas</li>
+          <li>Memoria de cliente</li>
+          <li>Base de conocimiento del negocio</li>
+          <li>Dashboard de llamadas</li>
+          <li>Informes semanales por email</li>
         </ul>
-        <a href="#cta" class="btn btn-primary" style="width: 100%; justify-content: center;">Elegir Pro</a>
+        <a href="#contacto" class="btn btn-primary" style="width:100%;justify-content:center">Empezar ahora →</a>
       </div>
+
       <div class="price-card">
-        <h3>Business</h3>
-        <div class="price">€149<span>/mes</span></div>
-        <div class="price-desc">Para equipos y agencias</div>
+        <h3>Pro</h3>
+        <p class="desc">Para cadenas y agencias</p>
+        <div class="amount">€99<em>/mes</em></div>
+        <p class="note">2.000 min/mes · asistentes ilimitados</p>
         <ul>
-          <li>2.000 minutos/mes</li>
-          <li>20 asistentes</li>
-          <li>Squads (multi-agent)</li>
-          <li>Outbound campaigns</li>
-          <li>Voice cloning</li>
-          <li>Priority support</li>
+          <li><span class="price-euskera">★ Euskera nativo</span></li>
+          <li>Todo lo del plan Negocio</li>
+          <li>Múltiples líneas y ubicaciones</li>
+          <li>Campañas de llamada saliente</li>
+          <li>WhatsApp + Instagram DM</li>
+          <li>Account manager dedicado</li>
         </ul>
-        <a href="#cta" class="btn btn-outline" style="width: 100%; justify-content: center;">Elegir Business</a>
+        <a href="#contacto" class="btn btn-outline" style="width:100%;justify-content:center">Contactar</a>
       </div>
+
     </div>
   </div>
 </section>
 
-<!-- Comparison -->
-<section class="comparison" id="compare">
+<!-- Registro / Contratación -->
+<section class="registro-section" id="contacto">
   <div class="container">
-    <div style="text-align: center; margin-bottom: 48px;">
-      <div class="section-label">Comparación</div>
-      <div class="section-title">VoiceCore vs VAPI</div>
-    </div>
-    <table class="comp-table">
-      <thead>
-        <tr><th>Feature</th><th>VAPI</th><th class="highlight">VoiceCore</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Coste de plataforma</td><td>$0.05/min</td><td class="highlight">€0/min ✦</td></tr>
-        <tr><td>Coste real (3 min call)</td><td>~$0.29</td><td class="highlight">~€0.11</td></tr>
-        <tr><td>Latencia TTS (Cartesia)</td><td class="check">✓</td><td class="check">✓ 40-90ms</td></tr>
-        <tr><td>Multi-provider LLM</td><td class="check">✓</td><td class="check">✓ OpenAI, Groq, Claude</td></tr>
-        <tr><td>Squads (multi-agent)</td><td class="check">✓</td><td class="check">✓</td></tr>
-        <tr><td>Knowledge Base (RAG)</td><td class="check">✓</td><td class="check">✓</td></tr>
-        <tr><td>Self-hosted option</td><td class="cross">✗</td><td class="check">✓ Full control</td></tr>
-        <tr><td>Español nativo</td><td class="cross">Limitado</td><td class="check">✓ Optimizado</td></tr>
-        <tr><td>Voice Cloning</td><td class="check">Via providers</td><td class="check">✓ Cartesia + Fish</td></tr>
-        <tr><td>Open-Source</td><td class="cross">✗</td><td class="check">✓ MIT License</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
+    <div class="registro-grid">
 
-<!-- CTA -->
-<section class="cta" id="cta">
-  <div class="container">
-    <h2>Empieza hoy. Gratis.</h2>
-    <p>Crea tu primer asistente de voz en menos de 5 minutos. Sin tarjeta de crédito.</p>
-    <div class="hero-buttons">
-      <a href="/dashboard" class="btn btn-primary btn-large">Abrir Dashboard →</a>
-      <a href="https://github.com/nodeflow/voicecore" class="btn btn-outline btn-large">⭐ GitHub</a>
+      <!-- Columna izquierda -->
+      <div class="registro-left">
+        <div class="label">Contratación</div>
+        <h2>Empieza hoy.<br>Tu asistente listo<br>en 24 horas.</h2>
+        <p>Rellena el formulario, paga de forma segura con Stripe y en 24 horas tienes tu asistente configurado con tu voz, tu negocio y tu horario.</p>
+        <ul class="registro-perks">
+          <li>Sin contrato de permanencia</li>
+          <li>Cancela cuando quieras</li>
+          <li>Configuración incluida</li>
+          <li>Soporte por WhatsApp</li>
+        </ul>
+        <div class="pago-duda">
+          <p>¿Dudas sobre el pago o el plan?</p>
+          <a href="https://wa.me/34666351319?text=Hola%2C%20tengo%20una%20duda%20sobre%20la%20contrataci%C3%B3n%20de%20NodeFlow" target="_blank">Escríbenos por WhatsApp →</a>
+        </div>
+      </div>
+
+      <!-- Columna derecha: formulario -->
+      <div class="registro-box">
+        <div id="registroFormWrap">
+          <div class="form-title">Datos de tu negocio</div>
+          <div class="form-sub">Tardas menos de 2 minutos. Después te redirigimos al pago seguro.</div>
+
+          <form id="registroForm" novalidate>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sector *</label>
+                <select id="f-sector" required>
+                  <option value="">Elige tu sector…</option>
+                  <option>Peluquería / Barbería</option>
+                  <option>Clínica Dental</option>
+                  <option>Restaurante / Bar</option>
+                  <option>Veterinaria</option>
+                  <option>Taller Mecánico</option>
+                  <option>Inmobiliaria</option>
+                  <option>Hotel / Hostal</option>
+                  <option>Estética / Spa</option>
+                  <option>Fisioterapia / Clínica</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Nombre del negocio *</label>
+                <input type="text" id="f-negocio" placeholder="Ej: Pelox Barbershop" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Tu nombre *</label>
+                <input type="text" id="f-contacto" placeholder="Nombre y apellidos" required>
+              </div>
+              <div class="form-group">
+                <label>Ciudad *</label>
+                <input type="text" id="f-ciudad" placeholder="Ej: Donostia" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Teléfono *</label>
+                <input type="tel" id="f-telefono" placeholder="+34 600 000 000" required>
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="f-email" placeholder="tu@negocio.com" required>
+              </div>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Plan *</label>
+                <select id="f-plan" required>
+                  <option value="">Elige un plan…</option>
+                  <option value="negocio">Negocio — 49€/mes</option>
+                  <option value="pro">Pro — 99€/mes</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Voz del asistente *</label>
+                <select id="f-voz" required>
+                  <option value="">Elige una voz…</option>
+                  <option value="Sofia">Sofía (femenina · castellano)</option>
+                  <option value="Lucia">Lucía (femenina · castellano)</option>
+                  <option value="Elena">Elena (femenina · castellano)</option>
+                  <option value="Carlos">Carlos (masculina · castellano)</option>
+                  <option value="Pablo">Pablo (masculina · castellano)</option>
+                  <option value="Ane">Ane (femenina · euskera nativo)</option>
+                  <option value="Mikel">Mikel (masculina · euskera nativo)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Idioma de atención *</label>
+              <select id="f-idioma" required>
+                <option value="">Elige el idioma…</option>
+                <option value="Castellano">Castellano</option>
+                <option value="Euskera">Euskera</option>
+                <option value="Castellano + Euskera">Castellano + Euskera</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Saludo inicial del asistente *</label>
+              <input type="text" id="f-saludo" placeholder="Ej: Egun on, klinika dentala, Ane naiz, nola lagundu dezaket?" required>
+              <span style="font-size:11px;color:var(--muted);margin-top:3px;">Lo primero que dice tu asistente al contestar una llamada.</span>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-group">
+              <label>Horario de atención</label>
+              <div class="schedule-grid" id="scheduleGrid"></div>
+            </div>
+
+            <div id="form-error-msg" style="font-size:13px;color:#ff6b6b;margin-bottom:12px;display:none;"></div>
+
+            <button type="submit" class="btn-submit" id="btnSubmit">
+              Continuar al pago seguro →
+            </button>
+            <p class="form-legal">Al continuar aceptas nuestros <a href="/terminos">Términos de servicio</a> y <a href="/privacidad">Política de privacidad</a>. El pago se procesa de forma segura a través de Stripe.</p>
+
+          </form>
+        </div>
+
+        <!-- Estado de éxito (oculto hasta recibir confirmación de Stripe) -->
+        <div class="registro-success" id="registroSuccess">
+          <div class="success-icon">🎉</div>
+          <h3>¡Pago confirmado!</h3>
+          <p>Te hemos enviado un email de confirmación.<br>En menos de 24 horas tu asistente estará listo.<br><br>Si tienes alguna duda escríbenos por WhatsApp.</p>
+          <a href="https://wa.me/34666351319?text=Hola%2C%20acabo%20de%20contratar%20NodeFlow" class="btn btn-primary" style="margin-top:20px;" target="_blank">Abrir WhatsApp →</a>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -422,9 +718,239 @@
 <!-- Footer -->
 <footer>
   <div class="container">
-    <p>© 2026 VoiceCore by <a href="https://nodeflow.es">NodeFlow Agency</a>. Hecho en Bilbao 🇪🇸</p>
+    <p>© 2026 <a href="/">NodeFlow</a> · Hecho en Bilbao 🏔️</p>
+    <div class="footer-links">
+      <a href="/privacidad">Privacidad</a>
+      <a href="/terminos">Términos</a>
+      <a href="/aviso-legal">Aviso legal</a>
+      <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+    </div>
   </div>
 </footer>
+
+<script>
+  // ── Configuración — rellena estos valores ──────────────────────────────────
+  const WA_NUMBER   = '34666351319';           // tu número sin + ni espacios
+  const STRIPE_URLS = {
+    negocio: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002', // Negocio €49/mes
+    pro:     'https://buy.stripe.com/9B6aEY2m4aRLeJgdfu24003', // Pro €99/mes
+  };
+  // El success_url en Stripe debe ser: https://nodeflow.es/?pago=ok
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /* ── Menú móvil ── */
+  function toggleMenu() {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobileMenu');
+    const ham  = document.getElementById('hamburger');
+    if (!menu.contains(e.target) && !ham.contains(e.target)) menu.classList.remove('open');
+  });
+
+  /* ── Horario: construir grid ── */
+  const DAYS = [
+    { key:'lun', label:'Lunes' },
+    { key:'mar', label:'Martes' },
+    { key:'mie', label:'Miércoles' },
+    { key:'jue', label:'Jueves' },
+    { key:'vie', label:'Viernes' },
+    { key:'sab', label:'Sábado' },
+    { key:'dom', label:'Domingo' },
+  ];
+
+  function buildScheduleGrid() {
+    const grid = document.getElementById('scheduleGrid');
+    if (!grid) return;
+    DAYS.forEach(({ key, label }) => {
+      const isWeekday = !['sab','dom'].includes(key);
+      const row = document.createElement('div');
+      row.className = 'schedule-day';
+      row.innerHTML = `
+        <span class="day-name">${label}</span>
+        <input type="checkbox" id="chk-${key}" ${isWeekday ? 'checked' : ''}
+               onchange="toggleDay('${key}')">
+        <div class="day-hours" id="hours-${key}" style="${isWeekday ? '' : 'display:none'}">
+          <input type="time" id="from-${key}" value="09:00">
+          <span>–</span>
+          <input type="time" id="to-${key}" value="18:00">
+        </div>
+        <span class="day-closed" id="closed-${key}" style="${isWeekday ? 'display:none' : ''}">cerrado</span>
+      `;
+      grid.appendChild(row);
+    });
+  }
+
+  function toggleDay(key) {
+    const on = document.getElementById('chk-' + key).checked;
+    document.getElementById('hours-'  + key).style.display = on ? 'flex'  : 'none';
+    document.getElementById('closed-' + key).style.display = on ? 'none'  : '';
+  }
+
+  function getSchedule() {
+    const sched = {};
+    DAYS.forEach(({ key }) => {
+      sched[key] = {
+        on:   document.getElementById('chk-'  + key).checked,
+        from: document.getElementById('from-' + key)?.value || '09:00',
+        to:   document.getElementById('to-'   + key)?.value || '18:00',
+      };
+    });
+    return sched;
+  }
+
+  /* ── Horario → texto legible para WhatsApp ── */
+  function formatSchedule(sched) {
+    const dayNames = { lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie', sab:'Sáb', dom:'Dom' };
+    // Agrupa días consecutivos con el mismo horario
+    const lines = [];
+    let group = null;
+    DAYS.forEach(({ key }, i) => {
+      const d = sched[key];
+      const slot = d.on ? `${d.from}-${d.to}` : 'cerrado';
+      if (!group) {
+        group = { start: key, end: key, slot };
+      } else if (group.slot === slot) {
+        group.end = key;
+      } else {
+        lines.push(group);
+        group = { start: key, end: key, slot };
+      }
+      if (i === DAYS.length - 1) lines.push(group);
+    });
+    return lines.map(g => {
+      const range = g.start === g.end
+        ? dayNames[g.start]
+        : `${dayNames[g.start]}-${dayNames[g.end]}`;
+      return `${range}: ${g.slot}`;
+    }).join(' | ');
+  }
+
+  /* ── Construir mensaje WhatsApp ── */
+  function buildWhatsAppMsg(d) {
+    const horarioTexto = formatSchedule(d.horario);
+    const planLabel = d.plan === 'negocio' ? 'Negocio — 49€/mes' : 'Pro — 99€/mes';
+    const tel = d.telefono.replace(/\s/g, '');
+
+    const msg = [
+      '🎉 Nuevo registro en NodeFlow',
+      '',
+      `🏢 Sector: ${d.sector}`,
+      `🏪 Negocio: ${d.negocio}`,
+      `👤 Contacto: ${d.contacto}`,
+      `📱 Teléfono: ${tel}`,
+      `📧 Email: ${d.email}`,
+      `📍 Ciudad: ${d.ciudad}`,
+      '',
+      `💳 Plan: ${planLabel}`,
+      `🎙 Voz: ${d.voz}`,
+      `🌐 Idioma: ${d.idioma}`,
+      '',
+      `💬 Saludo: ${d.saludo}`,
+      `🕐 Horario: ${horarioTexto}`,
+    ].join('\n');
+
+    return msg;
+  }
+
+  /* ── Validación y envío ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    buildScheduleGrid();
+
+    // ¿Vuelve de Stripe con ?pago=ok?
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('pago') === 'ok') {
+      const saved = localStorage.getItem('nf_registro');
+      if (saved) {
+        const data = JSON.parse(saved);
+        // Mostrar estado de éxito
+        document.getElementById('registroFormWrap').style.display = 'none';
+        document.getElementById('registroSuccess').style.display  = 'block';
+        // Abrir WhatsApp automáticamente con el mensaje formateado
+        const msg = buildWhatsAppMsg(data);
+        const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
+        setTimeout(() => window.open(url, '_blank'), 800);
+        localStorage.removeItem('nf_registro');
+        // Limpiar URL sin recargar
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+
+    document.getElementById('registroForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const errEl = document.getElementById('form-error-msg');
+      errEl.style.display = 'none';
+
+      const fields = [
+        { id: 'f-sector',   label: 'Sector' },
+        { id: 'f-negocio',  label: 'Nombre del negocio' },
+        { id: 'f-contacto', label: 'Tu nombre' },
+        { id: 'f-ciudad',   label: 'Ciudad' },
+        { id: 'f-telefono', label: 'Teléfono' },
+        { id: 'f-email',    label: 'Email' },
+        { id: 'f-plan',     label: 'Plan' },
+        { id: 'f-voz',      label: 'Voz' },
+        { id: 'f-idioma',   label: 'Idioma' },
+        { id: 'f-saludo',   label: 'Saludo' },
+      ];
+
+      for (const f of fields) {
+        const val = document.getElementById(f.id).value.trim();
+        if (!val) {
+          errEl.textContent = `Por favor, rellena el campo: ${f.label}.`;
+          errEl.style.display = 'block';
+          document.getElementById(f.id).focus();
+          return;
+        }
+      }
+
+      const emailVal = document.getElementById('f-email').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        errEl.textContent = 'El email no es válido.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const plan = document.getElementById('f-plan').value;
+      if (!STRIPE_URLS[plan] || STRIPE_URLS[plan].includes('XXXX')) {
+        // Stripe aún no configurado: enviar directo por WhatsApp (modo desarrollo)
+        const data = collectData();
+        const msg  = buildWhatsAppMsg(data);
+        window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+        return;
+      }
+
+      // Guardar en localStorage antes de salir a Stripe
+      const data = collectData();
+      localStorage.setItem('nf_registro', JSON.stringify(data));
+
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled    = true;
+      btn.textContent = 'Redirigiendo al pago…';
+
+      // Pequeña pausa visual antes de salir
+      setTimeout(() => {
+        window.location.href = STRIPE_URLS[plan];
+      }, 400);
+    });
+  });
+
+  function collectData() {
+    return {
+      sector:   document.getElementById('f-sector').value.trim(),
+      negocio:  document.getElementById('f-negocio').value.trim(),
+      contacto: document.getElementById('f-contacto').value.trim(),
+      ciudad:   document.getElementById('f-ciudad').value.trim(),
+      telefono: document.getElementById('f-telefono').value.trim(),
+      email:    document.getElementById('f-email').value.trim(),
+      plan:     document.getElementById('f-plan').value,
+      voz:      document.getElementById('f-voz').value,
+      idioma:   document.getElementById('f-idioma').value,
+      saludo:   document.getElementById('f-saludo').value.trim(),
+      horario:  getSchedule(),
+    };
+  }
+</script>
 
 </body>
 </html>

@@ -78,6 +78,7 @@ const ttsRouter = new TTSRouter({
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY,
   googleApiKey: process.env.GOOGLE_TTS_API_KEY,
+  localTtsUrl: process.env.LOCAL_TTS_URL,
 });
 
 const llmRouter = new LLMRouter({

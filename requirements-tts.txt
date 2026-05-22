@@ -1,0 +1,28 @@
+# Python dependencies for tts_server.py (RTX 4090 — F5-TTS backend)
+# ===================================================================
+# IMPORTANT: Install PyTorch with CUDA *before* this file.
+#
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# Then:
+#   pip install -r requirements-tts.txt
+#
+# F5-TTS downloads ~1.2 GB of model weights on first run.
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.0
+
+# F5-TTS — zero-shot voice cloning, no hardcoded language list
+# GitHub: https://github.com/SWivid/F5-TTS
+f5-tts>=0.3.0
+
+numpy>=1.24.0
+
+# Audio resampling (used if F5-TTS returns different sample rate)
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Whisper-based auto-transcription of reference audio (used when ref_text is empty)
+# Already pulled in by f5-tts, listed explicitly for clarity
+openai-whisper>=20231117

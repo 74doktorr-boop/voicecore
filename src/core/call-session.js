@@ -14,6 +14,9 @@ const COST_RATES = {
   openai_llm: 0.005,
   openai_tts: 0.02,
   elevenlabs_tts: 0.10,
+  cartesia_tts: 0.015,
+  google_tts: 0.016,
+  local_tts: 0,        // XTTS v2 on own hardware — electricity only
 };
 
 class CallSession {
@@ -126,9 +129,29 @@ class CallSession {
 
   getCost() {
     const mins = this.getDuration() / 60000;
-    const ttsRate = (this.assistant?.ttsProvider === 'elevenlabs') ? COST_RATES.elevenlabs_tts : COST_RATES.openai_tts;
-    const total = mins * (COST_RATES.twilio + COST_RATES.deepgram + COST_RATES.openai_llm + ttsRate);
-    return { twilio: mins * COST_RATES.twilio, deepgram: mins * COST_RATES.deepgram, llm: mins * COST_RATES.openai_llm, tts: mins * ttsRate, total, durationMinutes: Math.round(mins * 100) / 100 };
+    const ttsProvider = this.assistant?.ttsProvider;
+    const ttsRate = {
+      elevenlabs: COST_RATES.elevenlabs_tts,
+      cartesia:   COST_RATES.cartesia_tts,
+      google:     COST_RATES.google_tts,
+      local:      COST_RATES.local_tts,
+    }[ttsProvider] ?? COST_RATES.openai_tts;
+
+    const twilio  = mins * COST_RATES.twilio;
+    const stt     = mins * COST_RATES.deepgram;
+    const llm     = mins * COST_RATES.openai_llm;
+    const tts     = mins * ttsRate;
+    const total   = twilio + stt + llm + tts;
+
+    return {
+      twilio,
+      deepgram: stt,
+      llm,
+      tts,
+      ttsProvider: ttsProvider || 'openai',
+      total,
+      durationMinutes: Math.round(mins * 100) / 100,
+    };
   }
 
   getDuration() { return (this.endTime || Date.now()) - this.startTime; }
