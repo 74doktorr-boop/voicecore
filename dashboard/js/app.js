@@ -1,16 +1,16 @@
-// VoiceCore Dashboard — App Logic v2
+// NodeFlow IA — Dashboard Logic v2
 const API_BASE = window.location.origin;
 const DEFAULT_KEY = 'vc_nodeflow_prod_2026';
-let apiKey = localStorage.getItem('voicecore_api_key') || DEFAULT_KEY;
+let apiKey = localStorage.getItem('nodeflow_api_key') || DEFAULT_KEY;
 let refreshInterval = null;
 let allAssistants = [];
 let selectedAssistantId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   // Auto-save production key if not set or if using old default
-  if (!localStorage.getItem('voicecore_api_key') || localStorage.getItem('voicecore_api_key') === 'voicecore-dev') {
+  if (!localStorage.getItem('nodeflow_api_key') || localStorage.getItem('nodeflow_api_key') === 'voicecore-dev') {
     apiKey = DEFAULT_KEY;
-    localStorage.setItem('voicecore_api_key', DEFAULT_KEY);
+    localStorage.setItem('nodeflow_api_key', DEFAULT_KEY);
   }
   // Pre-fill the API key input in settings
   const keyInput = document.getElementById('apiKeyInput');
@@ -36,7 +36,7 @@ async function api(endpoint, opts={}) {
   try { const r = await fetch(`${API_BASE}${endpoint}`,{...opts,headers}); if(r.status===401){showPage('settings');return null;} return await r.json(); }
   catch(e) { console.error(`API:${endpoint}`,e); return null; }
 }
-function saveApiKey() { apiKey=document.getElementById('apiKeyInput').value.trim(); localStorage.setItem('voicecore_api_key',apiKey); refreshAll(); startAutoRefresh(); showPage('dashboard'); }
+function saveApiKey() { apiKey=document.getElementById('apiKeyInput').value.trim(); localStorage.setItem('nodeflow_api_key',apiKey); refreshAll(); startAutoRefresh(); showPage('dashboard'); }
 
 // ─── Refresh ───
 async function refreshAll() { await Promise.all([loadMetrics(),loadRecentCalls(),loadAssistantsSummary()]); }

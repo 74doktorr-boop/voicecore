@@ -27,6 +27,7 @@ const { setupBillingRoutes } = require('./src/api/routes-billing');
 const { setupRegistroRoutes } = require('./src/api/routes-registro');
 const { getBilling } = require('./src/billing/stripe');
 const BrowserCallHandler = require('./src/browser/browser-call');
+const { startMonitor } = require('./src/monitoring/health-check');
 
 const log = new Logger('SERVER');
 const PORT = process.env.PORT || 3001;
@@ -270,6 +271,11 @@ server.listen(PORT, () => {
 ╚══════════════════════════════════════════════════╝
   `);
 });
+
+// ─── Health Monitor (alertas por email si el servidor cae) ───
+if (process.env.NODE_ENV === 'production') {
+  startMonitor(config.publicUrl);
+}
 
 // ─── Graceful Shutdown ───
 process.on('SIGTERM', () => {

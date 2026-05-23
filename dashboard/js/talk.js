@@ -1,4 +1,4 @@
-// VoiceCore — Browser Talk Client
+// NodeFlow IA — Browser Talk Client
 // Captures microphone, sends to server via WebSocket, plays TTS audio back
 
 class TalkClient {
