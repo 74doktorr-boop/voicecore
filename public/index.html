@@ -353,8 +353,8 @@
     .footer-links a { font-size:13px; color:var(--muted); transition:color .2s; }
     .footer-links a:hover { color:var(--text); }
 
-    /* ── Scroll reveal base ── */
-    .reveal { opacity:0; transform:translateY(40px); }
+    /* ── Scroll reveal base — initial state set by JS so page is readable if CDN fails ── */
+    .reveal { }
 
     /* ── Animations ── */
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.9)} }
@@ -458,15 +458,15 @@
       Disponible ahora · Único con euskera nativo
     </div>
     <h1 id="heroTitle">
-      <span class="word">Tu negocio</span> <span class="word">atiende</span><br>
-      <span class="word">el 100%</span> <span class="word">de las</span> <span class="word">llamadas</span>
+      <span class="word">NodeFlow</span> <span class="word">atiende</span><br>
+      <span class="word">el 100%</span> <span class="word">de tus</span> <span class="word">llamadas</span>
     </h1>
     <p class="hero-sub" id="heroSub">Un asistente de voz con IA que reserva citas, responde preguntas y convierte llamadas en clientes. 24 horas. 7 días. En castellano y en euskera.</p>
     <div class="hero-ctas" id="heroCtas">
       <a href="#contacto" class="btn btn-primary btn-lg">Pedir demo gratuita →</a>
       <a href="#features" class="btn btn-outline btn-lg">Cómo funciona</a>
     </div>
-    <p class="hero-trust" id="heroTrust">Sin tarjeta de crédito · <span>✓</span> Configurado en 24h · <span>✓</span> Cancela cuando quieras</p>
+    <p class="hero-trust" id="heroTrust"><span>✓</span> Configurado en 24h · <span>✓</span> Sin permanencia · <span>✓</span> Cancela cuando quieras</p>
 
     <!-- Waveform -->
     <div class="waveform" id="waveform" aria-hidden="true"></div>
@@ -559,14 +559,14 @@
       <div class="title reveal">Para cualquier negocio<br>que reciba llamadas</div>
     </div>
     <div class="sector-grid">
-      <div class="sector-card reveal"><span class="icon">🍽️</span><h4>Restaurantes</h4><p>Reservas y menús</p></div>
-      <div class="sector-card reveal"><span class="icon">🦷</span><h4>Clínicas dentales</h4><p>Citas y seguimiento</p></div>
-      <div class="sector-card reveal"><span class="icon">✂️</span><h4>Peluquerías</h4><p>Agenda y servicios</p></div>
-      <div class="sector-card reveal"><span class="icon">🐾</span><h4>Veterinarias</h4><p>Urgencias y citas</p></div>
-      <div class="sector-card reveal"><span class="icon">🔧</span><h4>Talleres</h4><p>Revisiones y presupuestos</p></div>
-      <div class="sector-card reveal"><span class="icon">🏠</span><h4>Inmobiliarias</h4><p>Visitas y consultas</p></div>
-      <div class="sector-card reveal"><span class="icon">💆</span><h4>Centros estética</h4><p>Tratamientos y bonos</p></div>
-      <div class="sector-card reveal"><span class="icon">🏋️</span><h4>Gimnasios</h4><p>Altas y clases</p></div>
+      <div class="sector-card"><span class="icon">🍽️</span><h4>Restaurantes</h4><p>Reservas y menús</p></div>
+      <div class="sector-card"><span class="icon">🦷</span><h4>Clínicas dentales</h4><p>Citas y seguimiento</p></div>
+      <div class="sector-card"><span class="icon">✂️</span><h4>Peluquerías</h4><p>Agenda y servicios</p></div>
+      <div class="sector-card"><span class="icon">🐾</span><h4>Veterinarias</h4><p>Urgencias y citas</p></div>
+      <div class="sector-card"><span class="icon">🔧</span><h4>Talleres</h4><p>Revisiones y presupuestos</p></div>
+      <div class="sector-card"><span class="icon">🏠</span><h4>Inmobiliarias</h4><p>Visitas y consultas</p></div>
+      <div class="sector-card"><span class="icon">💆</span><h4>Centros estética</h4><p>Tratamientos y bonos</p></div>
+      <div class="sector-card"><span class="icon">🏋️</span><h4>Gimnasios</h4><p>Altas y clases</p></div>
     </div>
   </div>
 </section>
@@ -605,7 +605,7 @@
       <p class="subtitle reveal" style="margin:12px auto 0;text-align:center">Sin permanencia. Cancela cuando quieras. Minutos extra: €0,05/min.</p>
     </div>
     <div class="pricing-grid">
-      <div class="price-card reveal">
+      <div class="price-card">
         <h3>Starter</h3>
         <p class="desc">Para probar sin riesgo</p>
         <div class="amount">Gratis</div>
@@ -618,7 +618,7 @@
         </ul>
         <a href="#contacto" class="btn btn-outline" style="width:100%;justify-content:center">Empezar gratis</a>
       </div>
-      <div class="price-card pop reveal">
+      <div class="price-card pop">
         <h3>Negocio</h3>
         <p class="desc">Para cualquier negocio local</p>
         <div class="amount">€49<em>/mes</em></div>
@@ -633,7 +633,7 @@
         </ul>
         <a href="#contacto" class="btn btn-primary" style="width:100%;justify-content:center">Empezar ahora →</a>
       </div>
-      <div class="price-card reveal">
+      <div class="price-card">
         <h3>Pro</h3>
         <p class="desc">Para cadenas y agencias</p>
         <div class="amount">€99<em>/mes</em></div>
@@ -832,7 +832,10 @@
   })();
 
   // ── GSAP Animations ─────────────────────────────────────────────
+  try {
   gsap.registerPlugin(ScrollTrigger);
+  // Set reveal elements hidden via JS — if GSAP CDN fails, elements stay visible (safe fallback)
+  gsap.set('.reveal', { opacity: 0, y: 48 });
 
   // Hero entrance timeline
   const heroTL = gsap.timeline({ delay: 0.2 });
@@ -1010,6 +1013,11 @@
     once: true,
     onEnter: () => runChatAnimation()
   });
+
+  } catch(e) {
+    // GSAP CDN failed — make all reveal elements visible
+    document.querySelectorAll('.reveal').forEach(el => { el.style.opacity='1'; el.style.transform='none'; });
+  }
 
   // ── Mobile menu ──────────────────────────────────────────────────
   function toggleMenu() {
