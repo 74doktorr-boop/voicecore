@@ -64,24 +64,51 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve landing page & dashboard
-// HTML files: no cache so deploys are instant. Assets (JS/CSS): cache 1h
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) {
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    } else {
-      res.set('Cache-Control', 'public, max-age=3600');
+// Landing page — served from GitHub raw so deploys are instant without Docker rebuild
+const GITHUB_RAW_INDEX = 'https://raw.githubusercontent.com/74doktorr-boop/voicecore/master/public/index.html';
+let landingCache = { html: null, fetchedAt: 0 };
+const LANDING_TTL = 60 * 1000; // refresh every 60s
+
+async function getLanding() {
+  const now = Date.now();
+  if (landingCache.html && now - landingCache.fetchedAt < LANDING_TTL) return landingCache.html;
+  try {
+    const resp = await fetch(GITHUB_RAW_INDEX);
+    if (resp.ok) {
+      landingCache = { html: await resp.text(), fetchedAt: now };
     }
+  } catch (e) { /* network error — use cache or fallback */ }
+  return landingCache.html; // may be null on very first boot if GitHub unreachable
+}
+
+// Warm cache on boot
+getLanding().catch(() => {});
+
+app.get('/', async (req, res) => {
+  const html = await getLanding();
+  if (html) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  }
+  // fallback to bundled file if GitHub unreachable
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Other static assets (CSS, JS, images, robots.txt, etc.)
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false, // root handled above
+  setHeaders(res, filePath) {
+    res.set('Cache-Control', filePath.endsWith('.html')
+      ? 'no-cache, no-store, must-revalidate'
+      : 'public, max-age=3600');
   }
 }));
 app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'), {
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) {
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    } else {
-      res.set('Cache-Control', 'public, max-age=3600');
-    }
+    res.set('Cache-Control', filePath.endsWith('.html')
+      ? 'no-cache, no-store, must-revalidate'
+      : 'public, max-age=3600');
   }
 }));
 
