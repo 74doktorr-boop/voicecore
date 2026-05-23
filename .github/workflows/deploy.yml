@@ -1,0 +1,48 @@
+name: Build & Deploy to EasyPanel
+
+on:
+  push:
+    branches: [master]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/74doktorr-boop/voicecore
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/74doktorr-boop/voicecore:latest
+            ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}
+
+      - name: Deploy to EasyPanel
+        run: |
+          curl -s -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.updateSourceImage" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
+            -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}\"}}"
+          sleep 2
+          curl -s -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.deployService" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
+            -d '{"json":{"projectName":"voicecore","serviceName":"voicecore-api"}}'
+          echo "Deploy triggered."
