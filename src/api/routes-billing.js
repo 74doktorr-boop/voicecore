@@ -7,6 +7,8 @@ const { Logger } = require('../utils/logger');
 const { requireAuth } = require('../auth/middleware');
 const { getBilling } = require('../billing/stripe');
 const { getDatabase } = require('../db/database');
+const { getRegistro, updateRegistro } = require('./routes-registro');
+const { notifyNuevoCliente, sendBienvenida } = require('../notifications/email');
 
 const log = new Logger('API:BILLING');
 
@@ -153,6 +155,7 @@ function setupBillingRoutes(app, config) {
   });
 
   // ─── Stripe Webhook ───
+  // Stripe envía el body como raw bytes — DEBE ir antes de express.json()
   app.post('/api/billing/webhook',
     require('express').raw({ type: 'application/json' }),
     async (req, res) => {
@@ -160,8 +163,49 @@ function setupBillingRoutes(app, config) {
         const sig = req.headers['stripe-signature'];
         const result = await billing.handleWebhook(req.body, sig);
 
-        // Process webhook actions
-        if (result.action === 'subscription_created' && db.enabled) {
+        // ── Payment Link completado (nuevo cliente desde la landing) ──
+        if (result.action === 'payment_link_completed') {
+          const { registroId, stripeCustomerId, subscriptionId, email } = result;
+
+          log.info(`Pago confirmado — registroId: ${registroId}, cliente: ${email}`);
+
+          // Recuperar datos del registro
+          const registro = await getRegistro(registroId);
+
+          if (registro) {
+            // Marcar como pagado
+            await updateRegistro(registroId, {
+              status: 'active',
+              stripe_customer_id: stripeCustomerId,
+              stripe_subscription_id: subscriptionId,
+              paid_at: new Date().toISOString(),
+            });
+
+            // Notificar a Unai
+            await notifyNuevoCliente({ ...registro, stripe_customer_id: stripeCustomerId });
+
+            // Email de bienvenida al cliente
+            await sendBienvenida(registro);
+
+            log.info(`Cliente activado: ${registro.negocio} (${registro.plan})`);
+          } else {
+            // No hay registro (usuario llegó directo al payment link sin pasar por el formulario)
+            // Notificamos igual con los datos que tenemos de Stripe
+            log.warn(`No se encontró registro para registroId: ${registroId} — email: ${email}`);
+            await notifyNuevoCliente({
+              id: registroId || 'sin-registro',
+              negocio: '(sin datos de formulario)',
+              sector: '—', contacto: '—', telefono: '—',
+              email: email || '—', ciudad: '—', plan: result.planKey || '—',
+              voz: '—', idioma: '—', saludo: '—', horario: {},
+              stripe_customer_id: stripeCustomerId,
+              created_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        // ── Flujo legacy (checkout sessions con orgId) ──
+        if (result.action === 'subscription_created' && db.enabled && result.orgId) {
           await db.updateOrg(result.orgId, {
             plan: result.plan,
             stripe_subscription_id: result.subscriptionId,
@@ -169,9 +213,14 @@ function setupBillingRoutes(app, config) {
           log.info(`Org ${result.orgId} upgraded to ${result.plan}`);
         }
 
-        if (result.action === 'subscription_cancelled' && db.enabled) {
+        if (result.action === 'subscription_cancelled' && db.enabled && result.orgId) {
           await db.updateOrg(result.orgId, { plan: 'starter' });
           log.warn(`Org ${result.orgId} downgraded to starter`);
+        }
+
+        if (result.action === 'payment_failed') {
+          log.warn(`Pago fallido — customer: ${result.customerId}`);
+          // TODO: enviar email de aviso al cliente
         }
 
         res.json({ received: true });

@@ -912,26 +912,48 @@
       }
 
       const plan = document.getElementById('f-plan').value;
-      if (!STRIPE_URLS[plan] || STRIPE_URLS[plan].includes('XXXX')) {
-        // Stripe aún no configurado: enviar directo por WhatsApp (modo desarrollo)
-        const data = collectData();
-        const msg  = buildWhatsAppMsg(data);
-        window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
-        return;
-      }
-
-      // Guardar en localStorage antes de salir a Stripe
       const data = collectData();
-      localStorage.setItem('nf_registro', JSON.stringify(data));
 
       const btn = document.getElementById('btnSubmit');
       btn.disabled    = true;
-      btn.textContent = 'Redirigiendo al pago…';
+      btn.textContent = 'Guardando datos…';
 
-      // Pequeña pausa visual antes de salir
-      setTimeout(() => {
-        window.location.href = STRIPE_URLS[plan];
-      }, 400);
+      try {
+        // 1. Guardar datos en el servidor — devuelve un ID único
+        const resp = await fetch('/api/registro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || 'Error al guardar los datos');
+        }
+
+        const { id: registroId } = await resp.json();
+
+        // 2. Si Stripe no está configurado (desarrollo): WhatsApp directo
+        if (!STRIPE_URLS[plan] || STRIPE_URLS[plan].includes('XXXX')) {
+          const msg = buildWhatsAppMsg(data);
+          window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+          return;
+        }
+
+        btn.textContent = 'Redirigiendo al pago…';
+
+        // 3. Redirigir a Stripe con el ID como client_reference_id
+        //    Stripe lo devuelve en el webhook → el servidor sabe qué registro activar
+        setTimeout(() => {
+          window.location.href = `${STRIPE_URLS[plan]}?client_reference_id=${registroId}`;
+        }, 300);
+
+      } catch (err) {
+        errEl.textContent = err.message || 'Error de conexión. Inténtalo de nuevo.';
+        errEl.style.display = 'block';
+        btn.disabled    = false;
+        btn.textContent = 'Continuar al pago seguro →';
+      }
     });
   });
 

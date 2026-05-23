@@ -24,6 +24,7 @@ const { getAnalytics } = require('./src/analytics/engine');
 const { getKnowledgeBase } = require('./src/knowledge/base');
 const { setupExtendedRoutes } = require('./src/api/routes-extended');
 const { setupBillingRoutes } = require('./src/api/routes-billing');
+const { setupRegistroRoutes } = require('./src/api/routes-registro');
 const { getBilling } = require('./src/billing/stripe');
 const BrowserCallHandler = require('./src/browser/browser-call');
 
@@ -139,6 +140,9 @@ setupExtendedRoutes(app, config, squadManager);
 // Setup Billing routes (Stripe)
 const billing = getBilling({ stripeSecretKey: process.env.STRIPE_SECRET_KEY });
 setupBillingRoutes(app, config);
+
+// Setup Registro routes (formulario landing → Stripe)
+setupRegistroRoutes(app);
 
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {

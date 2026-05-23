@@ -1,0 +1,199 @@
+// ============================================
+// NodeFlow — Email notifications (nodemailer)
+// Usa Gmail con App Password o cualquier SMTP
+// ============================================
+//
+// Configurar en .env:
+//   SMTP_HOST=smtp.gmail.com
+//   SMTP_PORT=465
+//   SMTP_USER=tu@gmail.com
+//   SMTP_PASS=xxxx xxxx xxxx xxxx   ← Google App Password
+//   NOTIFY_EMAIL=unai@nodeflow.es
+
+const { Logger } = require('../utils/logger');
+const log = new Logger('EMAIL');
+
+let _transporter = null;
+
+function getTransporter() {
+  if (_transporter) return _transporter;
+
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    log.warn('SMTP no configurado — los emails solo se loguearán');
+    return null;
+  }
+
+  try {
+    const nodemailer = require('nodemailer');
+    _transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: (process.env.SMTP_PORT || '465') === '465',
+      auth: { user, pass },
+    });
+    log.info(`SMTP configurado: ${host}`);
+    return _transporter;
+  } catch (e) {
+    log.warn(`nodemailer no disponible: ${e.message}`);
+    return null;
+  }
+}
+
+async function sendEmail({ to, subject, html, text }) {
+  const t = getTransporter();
+
+  if (!t) {
+    // Sin SMTP: logueamos el contenido para no perder la info
+    log.info(`[EMAIL NO ENVIADO] To: ${to} | Subject: ${subject}`);
+    log.info(`[EMAIL CONTENT]\n${text || html}`);
+    return false;
+  }
+
+  try {
+    await t.sendMail({
+      from: `NodeFlow <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+      text,
+    });
+    log.info(`Email enviado a ${to}: ${subject}`);
+    return true;
+  } catch (e) {
+    log.error(`Error enviando email a ${to}`, { error: e.message });
+    return false;
+  }
+}
+
+// ── Templates ──────────────────────────────────────────────────────────────
+
+function formatHorario(horario = {}) {
+  const days = { lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie', sab:'Sáb', dom:'Dom' };
+  const order = ['lun','mar','mie','jue','vie','sab','dom'];
+  const lines = [];
+  let group = null;
+
+  for (const key of order) {
+    const d = horario[key] || { on: false };
+    const slot = d.on ? `${d.from || '09:00'}-${d.to || '18:00'}` : 'cerrado';
+    if (!group) {
+      group = { start: key, end: key, slot };
+    } else if (group.slot === slot) {
+      group.end = key;
+    } else {
+      lines.push(group); group = { start: key, end: key, slot };
+    }
+  }
+  if (group) lines.push(group);
+
+  return lines.map(g =>
+    g.start === g.end
+      ? `${days[g.start]}: ${g.slot}`
+      : `${days[g.start]}-${days[g.end]}: ${g.slot}`
+  ).join(' | ');
+}
+
+/**
+ * Notificación interna a Unai cuando llega un nuevo cliente
+ */
+async function notifyNuevoCliente(registro) {
+  const to      = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
+  const plan    = registro.plan === 'negocio' ? 'Negocio — 49€/mes' : 'Pro — 99€/mes';
+  const horario = formatHorario(registro.horario);
+
+  const subject = `🎉 Nuevo cliente NodeFlow — ${registro.negocio}`;
+
+  const text = [
+    `NUEVO CLIENTE NODEFLOW`,
+    ``,
+    `Negocio:   ${registro.negocio}`,
+    `Sector:    ${registro.sector}`,
+    `Contacto:  ${registro.contacto}`,
+    `Teléfono:  ${registro.telefono}`,
+    `Email:     ${registro.email}`,
+    `Ciudad:    ${registro.ciudad}`,
+    ``,
+    `Plan:      ${plan}`,
+    `Voz:       ${registro.voz}`,
+    `Idioma:    ${registro.idioma}`,
+    ``,
+    `Saludo:    ${registro.saludo}`,
+    `Horario:   ${horario}`,
+    ``,
+    `ID registro: ${registro.id}`,
+    `Fecha:       ${registro.created_at}`,
+  ].join('\n');
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f9f9f9;border-radius:12px;">
+      <h2 style="color:#6c5ce7;margin-bottom:4px;">🎉 Nuevo cliente</h2>
+      <p style="color:#666;margin-top:0;font-size:14px;">Acaba de pagar su suscripción a NodeFlow</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:14px;">
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;width:120px;">Negocio</td><td style="padding:8px 12px;font-weight:600;">${registro.negocio}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Sector</td><td style="padding:8px 12px;">${registro.sector}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Contacto</td><td style="padding:8px 12px;">${registro.contacto}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Teléfono</td><td style="padding:8px 12px;">${registro.telefono}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Email</td><td style="padding:8px 12px;">${registro.email}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Ciudad</td><td style="padding:8px 12px;">${registro.ciudad}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;font-weight:600;color:#6c5ce7;">Plan</td><td style="padding:8px 12px;font-weight:700;color:#6c5ce7;">${plan}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Voz</td><td style="padding:8px 12px;">${registro.voz}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Idioma</td><td style="padding:8px 12px;">${registro.idioma}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Saludo</td><td style="padding:8px 12px;font-style:italic;">"${registro.saludo}"</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Horario</td><td style="padding:8px 12px;font-size:13px;">${horario}</td></tr>
+      </table>
+      <p style="margin-top:20px;font-size:12px;color:#999;">ID: ${registro.id} · ${registro.created_at}</p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html, text });
+}
+
+/**
+ * Email de bienvenida al cliente tras el pago
+ */
+async function sendBienvenida(registro) {
+  const plan = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
+
+  const subject = `¡Bienvenido a NodeFlow, ${registro.contacto.split(' ')[0]}! 🎉`;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
+      <h1 style="color:#a29bfe;font-size:28px;margin-bottom:8px;">¡Bienvenido a NodeFlow!</h1>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Hola <strong style="color:#f0f0f5;">${registro.contacto.split(' ')[0]}</strong>, tu pago se ha confirmado. En menos de 24 horas tu asistente estará listo.</p>
+
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumen de tu contratación</p>
+        <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${plan}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${registro.voz}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🌐 Idioma: <strong>${registro.idioma}</strong></p>
+      </div>
+
+      <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">¿Qué pasa ahora?</strong></p>
+      <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
+        <li>Te contactamos en las próximas horas para terminar de configurar tu asistente</li>
+        <li>Te proporcionamos el número de teléfono que recibirá las llamadas</li>
+        <li>Hacemos una llamada de prueba contigo antes de activar el servicio en producción</li>
+      </ol>
+
+      <div style="margin-top:28px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
+        <p style="color:#666680;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
+        <a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Escríbenos por WhatsApp →</a>
+      </div>
+
+      <p style="margin-top:24px;font-size:12px;color:#666680;text-align:center;">
+        NodeFlow · unai@nodeflow.es · <a href="https://nodeflow.es" style="color:#a29bfe;">nodeflow.es</a>
+      </p>
+    </div>
+  `;
+
+  const text = `¡Bienvenido a NodeFlow, ${registro.contacto.split(' ')[0]}!\n\nTu pago se ha confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nVoz: ${registro.voz}\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
+module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida };

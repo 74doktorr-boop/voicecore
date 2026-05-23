@@ -175,10 +175,30 @@ class StripeBilling {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+
+        // ── Viene de un Payment Link (landing de nodeflow.es) ──
+        if (session.payment_link || session.client_reference_id?.startsWith('reg_')) {
+          // Mapear price ID → plan key
+          const priceId = session.line_items?.data?.[0]?.price?.id
+            || session.amount_total === 4900 ? 'negocio'
+            : session.amount_total === 9900 ? 'pro' : 'negocio';
+
+          return {
+            action: 'payment_link_completed',
+            registroId: session.client_reference_id || null,
+            stripeCustomerId: session.customer,
+            subscriptionId: session.subscription,
+            email: session.customer_details?.email || session.customer_email,
+            planKey: priceId,
+            amountTotal: session.amount_total,
+          };
+        }
+
+        // ── Viene del checkout clásico (dashboard interno) ──
         return {
           action: 'subscription_created',
-          orgId: session.metadata.orgId,
-          plan: session.metadata.plan,
+          orgId: session.metadata?.orgId,
+          plan: session.metadata?.plan,
           customerId: session.customer,
           subscriptionId: session.subscription,
         };
