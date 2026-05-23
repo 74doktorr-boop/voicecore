@@ -168,6 +168,13 @@ async function sendBienvenida(registro) {
         <li>Hacemos una llamada de prueba contigo antes de activar el servicio en producción</li>
       </ol>
 
+      ${registro.api_key ? `
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #6c5ce7;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Tu API Key</p>
+        <p style="font-family:monospace;font-size:13px;color:#a29bfe;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Guárdala en un lugar seguro. La necesitarás para acceder al panel de control.</p>
+      </div>` : ''}
+
       <div style="margin-top:28px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
         <p style="color:#666680;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
         <a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Escríbenos por WhatsApp →</a>

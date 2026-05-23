@@ -76,6 +76,99 @@ class ToolExecutor {
     if (!config) return { error: 'Business not configured' };
     return { services: config.services.map(s => ({ name: s.name, duration: `${s.duration} min`, price: s.price > 0 ? `${s.price}EUR` : 'Gratuita' })) };
   }
+
+  /**
+   * Convert assistant tool names to OpenAI function-calling format
+   * Called as ToolExecutor.toOpenAITools(assistant.tools)
+   */
+  static toOpenAITools(tools) {
+    if (!tools || !Array.isArray(tools) || tools.length === 0) return [];
+
+    const DEFINITIONS = {
+      check_availability: {
+        type: 'function',
+        function: {
+          name: 'check_availability',
+          description: 'Consulta los horarios disponibles para citas en los próximos días',
+          parameters: {
+            type: 'object',
+            properties: {
+              service:   { type: 'string', description: 'Tipo de servicio o tratamiento solicitado' },
+              from_date: { type: 'string', description: 'Fecha inicio búsqueda (YYYY-MM-DD)' },
+              to_date:   { type: 'string', description: 'Fecha fin búsqueda (YYYY-MM-DD)' },
+            },
+            required: [],
+          },
+        },
+      },
+      book_appointment: {
+        type: 'function',
+        function: {
+          name: 'book_appointment',
+          description: 'Reserva una cita para el paciente en el horario indicado',
+          parameters: {
+            type: 'object',
+            properties: {
+              patient_name: { type: 'string', description: 'Nombre completo del paciente' },
+              phone:        { type: 'string', description: 'Teléfono de contacto del paciente' },
+              service:      { type: 'string', description: 'Tipo de servicio a reservar' },
+              date:         { type: 'string', description: 'Fecha de la cita (YYYY-MM-DD)' },
+              time:         { type: 'string', description: 'Hora de la cita (HH:MM)' },
+            },
+            required: ['patient_name', 'service', 'date', 'time'],
+          },
+        },
+      },
+      cancel_appointment: {
+        type: 'function',
+        function: {
+          name: 'cancel_appointment',
+          description: 'Cancela una cita existente del paciente',
+          parameters: {
+            type: 'object',
+            properties: {
+              appointment_id: { type: 'string', description: 'ID de la cita a cancelar' },
+              patient_name:   { type: 'string', description: 'Nombre del paciente' },
+            },
+            required: [],
+          },
+        },
+      },
+      lookup_appointments: {
+        type: 'function',
+        function: {
+          name: 'lookup_appointments',
+          description: 'Busca las citas existentes de un paciente',
+          parameters: {
+            type: 'object',
+            properties: {
+              patient_name: { type: 'string', description: 'Nombre del paciente a buscar' },
+            },
+            required: ['patient_name'],
+          },
+        },
+      },
+      get_services: {
+        type: 'function',
+        function: {
+          name: 'get_services',
+          description: 'Obtiene la lista de servicios disponibles con precios y duración',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: [],
+          },
+        },
+      },
+    };
+
+    return tools
+      .map(tool => {
+        const name = typeof tool === 'string' ? tool : tool?.name;
+        return DEFINITIONS[name] || null;
+      })
+      .filter(Boolean);
+  }
 }
 
 module.exports = { ToolExecutor };

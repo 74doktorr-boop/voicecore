@@ -178,10 +178,9 @@ class StripeBilling {
 
         // ── Viene de un Payment Link (landing de nodeflow.es) ──
         if (session.payment_link || session.client_reference_id?.startsWith('reg_')) {
-          // Mapear price ID → plan key
-          const priceId = session.line_items?.data?.[0]?.price?.id
-            || session.amount_total === 4900 ? 'negocio'
-            : session.amount_total === 9900 ? 'pro' : 'negocio';
+          // Mapear amount → plan key (4900 = €49 negocio, 9900 = €99 pro)
+          const amount = session.amount_total || 0;
+          const planKey = amount <= 5000 ? 'negocio' : 'pro';
 
           return {
             action: 'payment_link_completed',
@@ -189,8 +188,8 @@ class StripeBilling {
             stripeCustomerId: session.customer,
             subscriptionId: session.subscription,
             email: session.customer_details?.email || session.customer_email,
-            planKey: priceId,
-            amountTotal: session.amount_total,
+            planKey,
+            amountTotal: amount,
           };
         }
 

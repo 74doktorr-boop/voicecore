@@ -41,6 +41,25 @@ for (const envVar of requiredEnvVars) {
 
 // ─── Express App ───
 const app = express();
+
+// CORS — permitir llamadas desde cualquier origen (la API key es la seguridad)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+// Redirect www → apex (SEO canonical)
+app.use((req, res, next) => {
+  if (req.headers.host?.startsWith('www.')) {
+    const apex = req.headers.host.slice(4);
+    return res.redirect(301, `https://${apex}${req.url}`);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -71,7 +90,7 @@ server.on('upgrade', (request, socket, head) => {
 const sttRouter = new STTRouter({
   deepgramApiKey: process.env.DEEPGRAM_API_KEY,
   assemblyaiApiKey: process.env.ASSEMBLYAI_API_KEY,
-  googleSttApiKey: process.env.GOOGLE_TTS_API_KEY,
+  googleSttApiKey: process.env.GOOGLE_STT_API_KEY || process.env.GOOGLE_TTS_API_KEY,
 });
 
 const ttsRouter = new TTSRouter({

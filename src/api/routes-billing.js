@@ -8,7 +8,7 @@ const { requireAuth } = require('../auth/middleware');
 const { getBilling } = require('../billing/stripe');
 const { getDatabase } = require('../db/database');
 const { getRegistro, updateRegistro } = require('./routes-registro');
-const { notifyNuevoCliente, sendBienvenida } = require('../notifications/email');
+const { sendEmail, notifyNuevoCliente, sendBienvenida } = require('../notifications/email');
 
 const log = new Logger('API:BILLING');
 
@@ -165,7 +165,7 @@ function setupBillingRoutes(app, config) {
 
         // ── Payment Link completado (nuevo cliente desde la landing) ──
         if (result.action === 'payment_link_completed') {
-          const { registroId, stripeCustomerId, subscriptionId, email } = result;
+          const { registroId, stripeCustomerId, subscriptionId, email, planKey } = result;
 
           log.info(`Pago confirmado — registroId: ${registroId}, cliente: ${email}`);
 
@@ -173,7 +173,52 @@ function setupBillingRoutes(app, config) {
           const registro = await getRegistro(registroId);
 
           if (registro) {
-            // Marcar como pagado
+            // Mapear plan del formulario → plan interno
+            const orgPlan = registro.plan === 'pro' ? 'business' : 'pro';
+
+            // ── Crear org + asistente automáticamente ──
+            let apiKey = null;
+            if (db.enabled) {
+              try {
+                const slug = registro.negocio.toLowerCase()
+                  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+                const org = await db.createOrg({
+                  name: registro.negocio,
+                  slug,
+                  ownerEmail: registro.email,
+                  ownerName: registro.contacto,
+                  plan: orgPlan,
+                  phone: registro.telefono,
+                });
+
+                apiKey = org.api_key;
+
+                // Actualizar org con datos de Stripe
+                await db.updateOrg(org.id, {
+                  stripe_customer_id: stripeCustomerId,
+                  stripe_subscription_id: subscriptionId,
+                });
+
+                // Crear asistente por defecto
+                await db.createAssistant(org.id, {
+                  name: `Asistente de ${registro.negocio}`,
+                  voice: registro.voz || 'nova',
+                  language: registro.idioma || 'es',
+                  firstMessage: registro.saludo || `Gracias por llamar a ${registro.negocio}, ¿en qué puedo ayudarte?`,
+                  systemPrompt: `Eres el asistente virtual de ${registro.negocio}. Atiendes llamadas de clientes de forma amable y profesional. Responde siempre en ${registro.idioma === 'es' ? 'español' : registro.idioma}. Sé conciso y útil.`,
+                  model: 'gpt-4o-mini',
+                  tools: [],
+                });
+
+                log.info(`Org creada automáticamente: ${org.id} — ${registro.negocio} (${orgPlan})`);
+              } catch (e) {
+                log.error(`Error creando org para ${registro.negocio}: ${e.message}`);
+              }
+            }
+
+            // Marcar registro como pagado
             await updateRegistro(registroId, {
               status: 'active',
               stripe_customer_id: stripeCustomerId,
@@ -182,21 +227,20 @@ function setupBillingRoutes(app, config) {
             });
 
             // Notificar a Unai
-            await notifyNuevoCliente({ ...registro, stripe_customer_id: stripeCustomerId });
+            await notifyNuevoCliente({ ...registro, stripe_customer_id: stripeCustomerId, api_key: apiKey });
 
-            // Email de bienvenida al cliente
-            await sendBienvenida(registro);
+            // Email de bienvenida al cliente con su API key
+            await sendBienvenida({ ...registro, api_key: apiKey });
 
             log.info(`Cliente activado: ${registro.negocio} (${registro.plan})`);
           } else {
-            // No hay registro (usuario llegó directo al payment link sin pasar por el formulario)
-            // Notificamos igual con los datos que tenemos de Stripe
+            // No hay registro — notificar a Unai con datos de Stripe
             log.warn(`No se encontró registro para registroId: ${registroId} — email: ${email}`);
             await notifyNuevoCliente({
               id: registroId || 'sin-registro',
               negocio: '(sin datos de formulario)',
               sector: '—', contacto: '—', telefono: '—',
-              email: email || '—', ciudad: '—', plan: result.planKey || '—',
+              email: email || '—', ciudad: '—', plan: planKey || '—',
               voz: '—', idioma: '—', saludo: '—', horario: {},
               stripe_customer_id: stripeCustomerId,
               created_at: new Date().toISOString(),
@@ -220,7 +264,37 @@ function setupBillingRoutes(app, config) {
 
         if (result.action === 'payment_failed') {
           log.warn(`Pago fallido — customer: ${result.customerId}`);
-          // TODO: enviar email de aviso al cliente
+          // Intentar encontrar el cliente por stripe_customer_id y avisarle
+          if (db.enabled && result.customerId) {
+            try {
+              const { data: registro } = await db.client
+                .from('registros')
+                .select('*')
+                .eq('stripe_customer_id', result.customerId)
+                .single();
+
+              if (registro?.email) {
+                await sendEmail({
+                  to: registro.email,
+                  subject: '⚠️ Problema con tu pago en NodeFlow',
+                  html: `
+                    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+                      <h2 style="color:#e17055;">Problema con tu pago</h2>
+                      <p>Hola ${registro.contacto?.split(' ')[0] || ''},</p>
+                      <p>No hemos podido procesar el pago de tu suscripción a NodeFlow. Tu servicio puede verse interrumpido.</p>
+                      <p>Por favor, actualiza tu método de pago o contacta con nosotros.</p>
+                      <a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px;">Contactar por WhatsApp →</a>
+                      <p style="margin-top:24px;font-size:12px;color:#999;">NodeFlow · unai@nodeflow.es</p>
+                    </div>
+                  `,
+                  text: `Hola, no hemos podido procesar tu pago en NodeFlow. Contacta con nosotros en WhatsApp: +34 666 351 319`,
+                });
+                log.info(`Email pago fallido enviado a ${registro.email}`);
+              }
+            } catch (e) {
+              log.warn(`No se pudo notificar pago fallido: ${e.message}`);
+            }
+          }
         }
 
         res.json({ received: true });
