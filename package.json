@@ -1,6 +1,6 @@
 {
   "name": "voicecore",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "VoiceCore — Multi-Provider Voice AI Platform (Vapi alternative) by NodeFlow",
   "main": "server.js",
   "scripts": {
