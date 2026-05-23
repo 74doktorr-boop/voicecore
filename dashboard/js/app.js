@@ -7,16 +7,62 @@ let allAssistants = [];
 let selectedAssistantId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Auto-save production key if not set or if using old default
-  if (!localStorage.getItem('nodeflow_api_key') || localStorage.getItem('nodeflow_api_key') === 'voicecore-dev') {
-    apiKey = DEFAULT_KEY;
-    localStorage.setItem('nodeflow_api_key', DEFAULT_KEY);
+  const stored = localStorage.getItem('nodeflow_api_key');
+  if (stored && stored !== 'voicecore-dev') {
+    apiKey = stored;
+    hidLoginScreen();
+  } else {
+    showLoginScreen();
   }
-  // Pre-fill the API key input in settings
   const keyInput = document.getElementById('apiKeyInput');
   if (keyInput) keyInput.value = apiKey;
   refreshAll(); startAutoRefresh();
 });
+
+// ─── Login ───
+function showLoginScreen() {
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.display = 'flex';
+}
+function hidLoginScreen() {
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.display = 'none';
+}
+
+async function loginWithKey() {
+  const input = document.getElementById('loginKeyInput');
+  const key = input?.value?.trim();
+  const errEl = document.getElementById('loginError');
+
+  if (!key) { showLoginError('Introduce tu API key'); return; }
+
+  // Validate key against server
+  try {
+    const res = await fetch('/api/org', { headers: { 'x-api-key': key } });
+    if (res.status === 401) { showLoginError('API key incorrecta. Revisa el email de bienvenida.'); return; }
+    if (!res.ok) { showLoginError('Error de conexión. Inténtalo de nuevo.'); return; }
+
+    // Valid!
+    apiKey = key;
+    localStorage.setItem('nodeflow_api_key', key);
+    const keyInput = document.getElementById('apiKeyInput');
+    if (keyInput) keyInput.value = key;
+    hidLoginScreen();
+    refreshAll(); startAutoRefresh();
+  } catch (e) {
+    showLoginError('No se pudo conectar al servidor.');
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function logout() {
+  localStorage.removeItem('nodeflow_api_key');
+  location.reload();
+}
 
 // ─── Navigation ───
 function showPage(page) {
