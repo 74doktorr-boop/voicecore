@@ -18,16 +18,13 @@ class Database {
         const { createClient } = require('@supabase/supabase-js');
         this.client = createClient(this.supabaseUrl, this.supabaseKey);
         this.enabled = true;
-        this._initError = null;
-        log.info(`Database connected (Supabase) — ${this.supabaseUrl}`);
+        log.info('Database connected (Supabase)');
       } catch (e) {
-        this._initError = `${e.message} [url=${this.supabaseUrl?.substring(0,30)}]`;
-        log.error(`Supabase init failed: ${this._initError}`);
-        log.warn('Running in memory mode');
+        log.error(`Supabase init failed: ${e.message}`);
+        log.warn('Supabase client not available, running in memory mode');
       }
     } else {
-      this._initError = `Missing env: url=${!!this.supabaseUrl} key=${!!this.supabaseKey}`;
-      log.warn(`No database configured — ${this._initError} — running in memory mode`);
+      log.warn('No database configured — running in memory mode');
     }
   }
 

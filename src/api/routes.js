@@ -203,13 +203,6 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       activeCalls: pipeline.getActiveCalls().length,
       assistants: assistantManager.list().length,
       database: db.enabled ? 'connected' : 'memory',
-      dbError: db._initError || null,
-      env: {
-        supabase: !!process.env.SUPABASE_URL,
-        stripe: !!process.env.STRIPE_SECRET_KEY,
-        resend: !!process.env.RESEND_API_KEY,
-        deepgram: !!process.env.DEEPGRAM_API_KEY,
-      },
     });
   });
 
