@@ -65,8 +65,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve landing page & dashboard
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/dashboard', express.static(path.join(__dirname, 'dashboard')));
+// HTML files: no cache so deploys are instant. Assets (JS/CSS): cache 1h
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.set('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
+app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.set('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
 
 // ─── HTTP Server + WebSocket ───
 const server = http.createServer(app);
