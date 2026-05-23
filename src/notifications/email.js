@@ -1,67 +1,55 @@
 // ============================================
-// NodeFlow — Email notifications (nodemailer)
-// Usa Gmail con App Password o cualquier SMTP
+// NodeFlow — Email notifications via Resend
+// https://resend.com  —  RESEND_API_KEY en .env
 // ============================================
-//
-// Configurar en .env:
-//   SMTP_HOST=smtp.gmail.com
-//   SMTP_PORT=465
-//   SMTP_USER=tu@gmail.com
-//   SMTP_PASS=xxxx xxxx xxxx xxxx   ← Google App Password
-//   NOTIFY_EMAIL=unai@nodeflow.es
 
 const { Logger } = require('../utils/logger');
 const log = new Logger('EMAIL');
 
-let _transporter = null;
+let _resend = null;
 
-function getTransporter() {
-  if (_transporter) return _transporter;
-
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (!host || !user || !pass) {
-    log.warn('SMTP no configurado — los emails solo se loguearán');
+function getResend() {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    log.warn('RESEND_API_KEY no configurado — emails solo se loguearán');
     return null;
   }
-
   try {
-    const nodemailer = require('nodemailer');
-    _transporter = nodemailer.createTransport({
-      host,
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: (process.env.SMTP_PORT || '465') === '465',
-      auth: { user, pass },
-    });
-    log.info(`SMTP configurado: ${host}`);
-    return _transporter;
+    const { Resend } = require('resend');
+    _resend = new Resend(key);
+    log.info('Resend email inicializado');
+    return _resend;
   } catch (e) {
-    log.warn(`nodemailer no disponible: ${e.message}`);
+    log.warn(`resend SDK no disponible: ${e.message}`);
     return null;
   }
 }
 
 async function sendEmail({ to, subject, html, text }) {
-  const t = getTransporter();
+  const resend = getResend();
 
-  if (!t) {
-    // Sin SMTP: logueamos el contenido para no perder la info
+  if (!resend) {
     log.info(`[EMAIL NO ENVIADO] To: ${to} | Subject: ${subject}`);
     log.info(`[EMAIL CONTENT]\n${text || html}`);
     return false;
   }
 
   try {
-    await t.sendMail({
-      from: `NodeFlow <${process.env.SMTP_USER}>`,
-      to,
+    const { data, error } = await resend.emails.send({
+      from: 'NodeFlow <unai@nodeflow.es>',
+      to: Array.isArray(to) ? to : [to],
       subject,
       html,
       text,
     });
-    log.info(`Email enviado a ${to}: ${subject}`);
+
+    if (error) {
+      log.error(`Resend error a ${to}: ${error.message}`);
+      return false;
+    }
+
+    log.info(`Email enviado a ${to}: ${subject} (id: ${data?.id})`);
     return true;
   } catch (e) {
     log.error(`Error enviando email a ${to}`, { error: e.message });
