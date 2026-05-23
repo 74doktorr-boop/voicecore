@@ -73,8 +73,8 @@ class BrowserCallHandler {
         sample_rate: 16000,
         channels: 1,
         interim_results: true,
-        utterance_end_ms: 2200,
-        endpointing: 900,
+        utterance_end_ms: 800,   // was 2200 — faster fallback trigger
+        endpointing: 300,         // was 900 — detect silence 3x faster
         vad_events: true
       });
 
@@ -86,6 +86,19 @@ class BrowserCallHandler {
       let pendingTranscript = '';
       let processTimer = null;
 
+      // Fire LLM immediately — called from speech_final or fallback timer
+      const triggerLLM = () => {
+        if (processTimer) { clearTimeout(processTimer); processTimer = null; }
+        if (!pendingTranscript || session.isProcessing) return;
+        const userText = pendingTranscript.trim();
+        pendingTranscript = '';
+        if (userText.length > 1) {
+          ws.send(JSON.stringify({ type: 'transcript', role: 'user', content: userText, final: true }));
+          session.conversation.push({ role: 'user', content: userText });
+          this.processWithLLM(ws, session);
+        }
+      };
+
       connection.on('Results', (data) => {
         const transcript = data.channel?.alternatives?.[0]?.transcript;
         if (!transcript) return;
@@ -94,22 +107,23 @@ class BrowserCallHandler {
           pendingTranscript += (pendingTranscript ? ' ' : '') + transcript;
           ws.send(JSON.stringify({ type: 'interim', content: pendingTranscript }));
 
-          if (processTimer) clearTimeout(processTimer);
-          processTimer = setTimeout(async () => {
-            if (pendingTranscript && !session.isProcessing) {
-              const userText = pendingTranscript.trim();
-              pendingTranscript = '';
-              if (userText.length > 1) {
-                ws.send(JSON.stringify({ type: 'transcript', role: 'user', content: userText, final: true }));
-                session.conversation.push({ role: 'user', content: userText });
-                await this.processWithLLM(ws, session);
-              }
-            }
-          }, 1800); // 1.8s debounce — lets user finish complete thoughts
+          if (data.speech_final) {
+            // Deepgram is confident user has finished — trigger immediately, no debounce
+            triggerLLM();
+          } else {
+            // Fallback: short timer in case speech_final never comes
+            if (processTimer) clearTimeout(processTimer);
+            processTimer = setTimeout(triggerLLM, 400);
+          }
         } else {
           const display = pendingTranscript ? pendingTranscript + ' ' + transcript : transcript;
           ws.send(JSON.stringify({ type: 'interim', content: display }));
         }
+      });
+
+      // UtteranceEnd as extra safety net
+      connection.on('UtteranceEnd', () => {
+        if (pendingTranscript && !session.isProcessing) triggerLLM();
       });
 
       session.deepgramConnection = connection;
@@ -130,38 +144,37 @@ class BrowserCallHandler {
         .filter(t => t.type === 'function')
         .map(t => ({ type: 'function', function: t.function }));
 
-      // First check: does LLM want to call tools? (non-streaming probe)
-      const probeParams = {
-        model: session.assistant.model || 'gpt-4o-mini',
-        messages: session.conversation,
-        temperature: session.assistant.temperature || 0.7,
-        max_tokens: session.assistant.maxTokens || 200,
-      };
-      if (tools.length > 0) probeParams.tools = tools;
+      if (tools.length === 0) {
+        // No tools → stream directly, TTS starts on first sentence (~300ms faster)
+        await this.streamResponse(ws, session, []);
+      } else {
+        // Has tools → probe first to detect tool calls vs content
+        const probe = await this.openai.chat.completions.create({
+          model: session.assistant.model || 'gpt-4o-mini',
+          messages: session.conversation,
+          temperature: session.assistant.temperature || 0.7,
+          max_tokens: session.assistant.maxTokens || 500,
+          tools,
+        });
+        const probeMsg = probe.choices[0].message;
 
-      const probe = await this.openai.chat.completions.create(probeParams);
-      const probeMsg = probe.choices[0].message;
-
-      // Handle tool calls (may need multiple rounds)
-      if (probeMsg.tool_calls && probeMsg.tool_calls.length > 0) {
-        session.conversation.push(probeMsg);
-        for (const tc of probeMsg.tool_calls) {
-          let args = {};
-          try { args = JSON.parse(tc.function.arguments || '{}'); } catch (e) {}
-          logger.info(`Tool: ${tc.function.name}`, args);
-          const result = await this.toolExecutor.execute(tc.function.name, args, session.assistantId);
-          session.conversation.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+        if (probeMsg.tool_calls && probeMsg.tool_calls.length > 0) {
+          session.conversation.push(probeMsg);
+          for (const tc of probeMsg.tool_calls) {
+            let args = {};
+            try { args = JSON.parse(tc.function.arguments || '{}'); } catch (e) {}
+            logger.info(`Tool: ${tc.function.name}`, args);
+            const result = await this.toolExecutor.execute(tc.function.name, args, session.assistantId);
+            session.conversation.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+          }
+          await this.streamResponse(ws, session, []);
+        } else if (probeMsg.content) {
+          session.conversation.push({ role: 'assistant', content: probeMsg.content });
+          ws.send(JSON.stringify({ type: 'transcript', role: 'assistant', content: probeMsg.content, final: true }));
+          ws.send(JSON.stringify({ type: 'speaking' }));
+          await this.synthesizeAndSend(ws, probeMsg.content, session.assistant);
+          ws.send(JSON.stringify({ type: 'listening' }));
         }
-
-        // Now get the response after tool results — STREAM this for speed
-        await this.streamResponse(ws, session, tools);
-      } else if (probeMsg.content) {
-        // No tools — we already have the response from probe
-        session.conversation.push({ role: 'assistant', content: probeMsg.content });
-        ws.send(JSON.stringify({ type: 'transcript', role: 'assistant', content: probeMsg.content, final: true }));
-        ws.send(JSON.stringify({ type: 'speaking' }));
-        await this.synthesizeAndSend(ws, probeMsg.content, session.assistant);
-        ws.send(JSON.stringify({ type: 'listening' }));
       }
     } catch (err) {
       logger.error(`LLM error: ${err.message}`);
@@ -176,14 +189,26 @@ class BrowserCallHandler {
       model: session.assistant.model || 'gpt-4o-mini',
       messages: session.conversation,
       temperature: session.assistant.temperature || 0.7,
-      max_tokens: session.assistant.maxTokens || 200,
+      max_tokens: session.assistant.maxTokens || 500,  // was 200 — prevents mid-sentence cutoffs
       stream: true
     };
+    if (tools.length > 0) params.tools = tools;
 
     const stream = await this.openai.chat.completions.create(params);
     let fullResponse = '';
     let sentenceBuffer = '';
+    // Serial TTS chain: each sentence waits for the previous to finish → guaranteed audio order
+    let ttsChain = Promise.resolve();
     let firstSent = false;
+
+    const enqueueTTS = (text) => {
+      if (!firstSent) {
+        ws.send(JSON.stringify({ type: 'speaking' }));
+        firstSent = true;
+      }
+      // Chain so each TTS starts only after the previous audio packet is sent
+      ttsChain = ttsChain.then(() => this.synthesizeAndSend(ws, text, session.assistant));
+    };
 
     for await (const chunk of stream) {
       const content = chunk.choices?.[0]?.delta?.content;
@@ -192,28 +217,23 @@ class BrowserCallHandler {
       fullResponse += content;
       sentenceBuffer += content;
 
-      // Check for sentence boundary
-      const match = sentenceBuffer.match(/[.!?¿¡]\s/);
-      if (match) {
-        const sentence = sentenceBuffer.substring(0, match.index + 1).trim();
-        sentenceBuffer = sentenceBuffer.substring(match.index + 2);
-
-        if (sentence.length > 3) {
-          if (!firstSent) {
-            ws.send(JSON.stringify({ type: 'speaking' }));
-            firstSent = true;
-          }
-          // Fire TTS immediately — don't await, let it stream
-          this.synthesizeAndSend(ws, sentence, session.assistant);
-        }
+      // Extract complete sentences from buffer.
+      // Only [.!?] are sentence-enders — ¿¡ are Spanish openers, not enders.
+      // Require 4+ char word before punctuation to avoid splitting on abbreviations (Dr., Sr.)
+      let match;
+      while ((match = sentenceBuffer.match(/^(.*?\b\w{4,}[.!?])\s+/s)) !== null) {
+        const sentence = match[1].trim();
+        sentenceBuffer = sentenceBuffer.slice(match[0].length);
+        if (sentence.length > 3) enqueueTTS(sentence);
       }
     }
 
-    // Send remaining text
-    if (sentenceBuffer.trim().length > 3) {
-      if (!firstSent) ws.send(JSON.stringify({ type: 'speaking' }));
-      await this.synthesizeAndSend(ws, sentenceBuffer.trim(), session.assistant);
-    }
+    // Flush remaining buffer (final sentence with no trailing space)
+    const remaining = sentenceBuffer.trim();
+    if (remaining.length > 1) enqueueTTS(remaining);
+
+    // Wait for all audio packets to be sent before signaling ready-to-listen
+    await ttsChain;
 
     if (fullResponse) {
       session.conversation.push({ role: 'assistant', content: fullResponse });
