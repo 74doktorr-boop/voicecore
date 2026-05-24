@@ -10,6 +10,8 @@ const { LLMRouter } = require('../llm/router');
 const { TTSRouter } = require('../tts/router');
 const { ToolExecutor } = require('../tools/executor');
 const { CallSession } = require('./call-session');
+const { mulawToPcm, pcm8kToPcm16k } = require('../utils/audio');
+const { sendAudioToVonage } = require('../telephony/vonage-handler');
 
 const log = new Logger('PIPELINE');
 
@@ -45,12 +47,17 @@ class VoicePipeline {
   /**
    * Start a new call session
    */
-  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid }) {
+  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio' }) {
     const session = new CallSession({ callId, assistant, callerNumber, calledNumber, direction });
-    session.twilioWs = twilioWs;
+    session.twilioWs  = twilioWs;
+    session.vonageWs  = vonageWs;
     session.streamSid = streamSid;
-    session.status = 'active';
+    session.provider  = provider;
+    session.status    = 'active';
     this.activeCalls.set(callId, session);
+
+    // Vonage sends L16 PCM 16kHz; Twilio sends mulaw 8kHz
+    const isVonage = provider === 'vonage';
 
     // Create STT session via router
     const sttProvider = this.sttRouter.getProvider(assistant.sttProvider);
@@ -59,8 +66,8 @@ class VoicePipeline {
       model: assistant.sttModel || 'nova-3',
       utteranceEndMs: assistant.utteranceEndMs || 1000,
       endpointing: assistant.endpointing || 300,
-      encoding: 'mulaw',
-      sample_rate: 8000,
+      encoding: isVonage ? 'linear16' : 'mulaw',
+      sample_rate: isVonage ? 16000 : 8000,
       sttProvider: assistant.sttProvider,
     });
 
@@ -93,11 +100,18 @@ class VoicePipeline {
   }
 
   /**
-   * Handle incoming audio from Twilio
+   * Handle incoming audio from Twilio (base64-encoded mulaw)
    */
   handleAudio(callId, audioPayload) {
     const audioBuffer = Buffer.from(audioPayload, 'base64');
     this.sttRouter.sendAudio(callId, audioBuffer);
+  }
+
+  /**
+   * Handle incoming raw PCM audio from Vonage (L16 binary buffer)
+   */
+  handleAudioPCM(callId, pcmBuffer, sampleRate) {
+    this.sttRouter.sendAudio(callId, pcmBuffer);
   }
 
   /**
@@ -267,7 +281,13 @@ class VoicePipeline {
       });
 
       if (mulaw.length > 0 && !session.interrupted) {
-        session.sendAudioToTwilio(mulaw);
+        if (session.provider === 'vonage' && session.vonageWs) {
+          // Vonage expects L16 PCM 16kHz — convert mulaw 8kHz → PCM 8kHz → PCM 16kHz
+          const pcm16k = pcm8kToPcm16k(mulawToPcm(mulaw));
+          sendAudioToVonage(session.vonageWs, pcm16k);
+        } else {
+          session.sendAudioToTwilio(mulaw);
+        }
       }
 
       const ttsTime = Date.now() - ttsStart;

@@ -50,8 +50,12 @@ class Database {
     const apiKey = `vc_${this._generateKey(32)}`;
     if (!this.enabled) return { id: this._uuid(), name, slug, api_key: apiKey, plan };
 
+    // Ensure slug uniqueness: append a short random suffix if needed
+    const baseSlug = slug || 'org';
+    const uniqueSlug = `${baseSlug}-${this._generateKey(4)}`;
+
     const { data, error } = await this.client.from('organizations').insert({
-      name, slug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, api_key: apiKey,
+      name, slug: uniqueSlug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, api_key: apiKey,
       monthly_minutes_limit: plan === 'pro' ? 500 : plan === 'business' ? 2000 : 50,
     }).select().single();
 

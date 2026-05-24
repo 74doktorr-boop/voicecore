@@ -195,23 +195,21 @@ function setupRoutes(app, pipeline, assistantManager, config) {
         (provider === 'auto' && config.vonageApiKey && config.vonageApplicationId);
 
       if (useVonage) {
-        const Vonage = require('@vonage/server-sdk');
+        const { Vonage } = require('@vonage/server-sdk');
         const vonage = new Vonage({
           apiKey: config.vonageApiKey,
           apiSecret: config.vonageApiSecret,
           applicationId: config.vonageApplicationId,
           privateKey: config.vonagePrivateKeyPath || './vonage_private.key',
         });
-        vonage.calls.create({
+        const result = await vonage.voice.createOutboundCall({
           to: [{ type: 'phone', number: to }],
           from: { type: 'phone', number: from || config.vonagePhoneNumber },
           answer_url: [`${publicUrl}/vonage/answer/${assistantId}`],
           event_url: [`${publicUrl}/vonage/event`],
-        }, (err, result) => {
-          if (err) { log.error('Vonage outbound failed', { error: err.message }); return res.status(500).json({ error: err.message }); }
-          log.call(`[Vonage] Outbound call started → ${to}`);
-          res.json({ success: true, callUUID: result.uuid, provider: 'vonage' });
         });
+        log.call(`[Vonage] Outbound call started → ${to}`);
+        res.json({ success: true, callUUID: result.uuid, provider: 'vonage' });
       } else {
         const twilio = require('twilio')(config.twilioAccountSid, config.twilioAuthToken);
         const call = await twilio.calls.create({

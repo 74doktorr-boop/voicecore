@@ -27,8 +27,10 @@ class CallSession {
     this.calledNumber = calledNumber;
     this.direction = direction;
     this.status = 'initializing';
+    this.provider = 'twilio'; // 'twilio' | 'vonage' | 'browser'
     this.streamSid = null;
     this.twilioWs = null;
+    this.vonageWs = null;
     this.messages = [];
     this.turnCount = 0;
     this.isProcessing = false;

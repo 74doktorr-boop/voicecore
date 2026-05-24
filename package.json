@@ -10,6 +10,7 @@
   "dependencies": {
     "@deepgram/sdk": "^3.9.0",
     "@supabase/supabase-js": "^2.105.4",
+    "@vonage/server-sdk": "^3.13.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "openai": "^4.77.0",

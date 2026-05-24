@@ -155,11 +155,30 @@ function createWavHeader(dataSize, sampleRate = 8000, channels = 1) {
   return header;
 }
 
+/**
+ * Upsample PCM 16-bit 8kHz → PCM 16-bit 16kHz (for Vonage WebSocket)
+ * Uses linear interpolation between adjacent samples.
+ * @param {Buffer} pcm8k - PCM 16-bit LE at 8kHz
+ * @returns {Buffer} PCM 16-bit LE at 16kHz
+ */
+function pcm8kToPcm16k(pcm8k) {
+  const samples8k = pcm8k.length / 2;
+  const pcm16k = Buffer.alloc(samples8k * 4); // 2× samples, 2 bytes each
+  for (let i = 0; i < samples8k; i++) {
+    const s0 = pcm8k.readInt16LE(i * 2);
+    const s1 = (i + 1 < samples8k) ? pcm8k.readInt16LE((i + 1) * 2) : s0;
+    pcm16k.writeInt16LE(s0, i * 4);
+    pcm16k.writeInt16LE(Math.round((s0 + s1) / 2), i * 4 + 2);
+  }
+  return pcm16k;
+}
+
 module.exports = {
   mulawToPcm,
   pcmToMulaw,
   pcm24kToMulaw8k,
   resampleToMulaw8k,
+  pcm8kToPcm16k,
   createWavHeader,
   linearToMulaw
 };
