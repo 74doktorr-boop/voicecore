@@ -24,9 +24,7 @@
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow","description":"Asistente telefónico con inteligencia artificial para negocios.","url":"https://nodeflow.es","applicationCategory":"BusinessApplication","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"},{"@type":"Offer","name":"Plan Pro","price":"99","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","email":"unai@nodeflow.es"}}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Tengo que cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. NodeFlow se conecta a tu línea actual sin cambiar nada. Tus clientes siguen llamando al mismo número."}},{"@type":"Question","name":"¿Cuánto tiempo tarda en estar listo el asistente?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que rellenas el formulario. Solo necesitamos el nombre del negocio, el saludo inicial y el tipo de servicio."}},{"@type":"Question","name":"¿Habla euskera el asistente de NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Sí. NodeFlow usa voces clonadas de locutores vascos reales — no es traducción automática ni síntesis genérica. Suena como alguien del barrio."}},{"@type":"Question","name":"¿Cuánto cuesta NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Desde 49€/mes para el plan Negocio con 500 min/mes incluidos. También hay un plan gratuito con 50 min/mes."}},{"@type":"Question","name":"¿Puedo cancelar cuando quiera?","acceptedAnswer":{"@type":"Answer","text":"Sí. Sin permanencia ni penalización. Si decides cancelar, lo haces con un email y listo."}},{"@type":"Question","name":"¿Funciona con Google Calendar?","acceptedAnswer":{"@type":"Answer","text":"Sí. El asistente se conecta a tu Google Calendar y agenda citas directamente según tu disponibilidad real."}},{"@type":"Question","name":"¿Qué pasa si se acaban los minutos del plan?","acceptedAnswer":{"@type":"Answer","text":"Las llamadas siguen funcionando. Los minutos extra se facturan a 0,05€/min sin sorpresas. Recibirás un aviso al 80% del límite."}},{"@type":"Question","name":"¿Necesito instalar algo?","acceptedAnswer":{"@type":"Answer","text":"Nada. NodeFlow funciona en la nube. No hay apps que descargar ni hardware que instalar."}}]}</script>
 
-  <!-- Plausible Analytics — privacy-first, no cookies, GDPR compliant -->
-  <!-- script.tagged-events.outbound-links: tracks data-event-name clicks + outbound links automatically -->
-  <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.tagged-events.outbound-links.js"></script>
+  <!-- Google Analytics 4 — pendiente de añadir ID cuando el usuario lo proporcione -->
   <!-- Google Search Console verification -->
   <meta name="google-site-verification" content="pkoSbKNG6r73K_TRJnh1nbpeNjAnUvThUf6kp2vgLNk">
 
@@ -1340,9 +1338,9 @@
         // Guardar en localStorage para mostrar confirmación al volver de Stripe
         try { localStorage.setItem('nf_registro', JSON.stringify({ ...data, id: registroId })); } catch(_) {}
 
-        // Track form submission in Plausible
-        if (typeof window.plausible === 'function') {
-          window.plausible('Form Submit', { props: { plan } });
+        // Track form submission in GA4
+        if (typeof gtag === 'function') {
+          gtag('event', 'form_submit', { plan });
         }
 
         if (!STRIPE_URLS[plan] || STRIPE_URLS[plan].includes('XXXX')) {
@@ -1352,8 +1350,8 @@
         }
         btn.textContent = 'Redirigiendo al pago…';
         setTimeout(() => {
-          // Track Stripe redirect
-          if (typeof window.plausible === 'function') window.plausible('Stripe Redirect', { props: { plan } });
+          // Track Stripe redirect in GA4
+          if (typeof gtag === 'function') gtag('event', 'begin_checkout', { plan });
           window.location.href = `${STRIPE_URLS[plan]}?client_reference_id=${registroId}`;
         }, 300);
       } catch (err) {
