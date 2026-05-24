@@ -97,6 +97,14 @@ app.get('/', async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Sector SEO landing pages
+['peluquerias', 'clinicas', 'restaurantes', 'talleres'].forEach(sector => {
+  app.get(`/${sector}`, (req, res) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', sector, 'index.html'));
+  });
+});
+
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false, // root handled above
