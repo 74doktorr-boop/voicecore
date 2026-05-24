@@ -298,6 +298,15 @@ app.get('/api/providers', (req, res) => {
   });
 });
 
+// ─── 404 handler ───
+app.use((req, res) => {
+  // API routes → JSON
+  if (req.path.startsWith('/api/') || req.path.startsWith('/voice/') || req.path.startsWith('/vonage/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
 // ─── Start Server ───
 const ttsProviders = ttsRouter.listAvailableVoices().map(v => v.provider).join(', ') || 'none';
 const llmProviders = Object.keys(llmRouter.getMetrics()).join(', ') || 'none';
