@@ -519,7 +519,9 @@
       .pipeline { padding:20px 8px; gap:2px; flex-wrap:wrap; justify-content:center; }
       .pipe-connector { display:none; }
       .cases-grid { grid-template-columns:1fr; }
-      .trust-strip-grid { gap:20px; }
+      .trust-strip-grid { flex-direction:column; align-items:flex-start; gap:0; padding:0 8px; }
+      .trust-item { border-right:none; border-bottom:1px solid var(--border); padding:12px 8px; width:100%; }
+      .trust-item:last-child { border-bottom:none; }
     }
   </style>
 </head>
@@ -592,7 +594,7 @@
       <div class="stat"><strong data-target="100" data-suffix="%">0%</strong><small>Llamadas atendidas</small></div>
       <div class="stat"><strong data-target="24" data-suffix="/7">0/7</strong><small>Sin descanso</small></div>
       <div class="stat"><strong data-prefix="&lt;" data-target="1" data-suffix="s">&lt;0s</strong><small>Tiempo de respuesta</small></div>
-      <div class="stat"><strong data-prefix="€" data-target="0">€0</strong><small>Coste por llamada perdida</small></div>
+      <div class="stat"><strong data-target="15" data-suffix="+">0+</strong><small>Sectores compatibles</small></div>
     </div>
   </div>
 </section>
@@ -852,7 +854,7 @@
           <li>Dashboard de llamadas</li>
           <li>Informes semanales por email</li>
         </ul>
-        <a href="#contacto" class="btn btn-primary" style="width:100%;justify-content:center">Empezar ahora →</a>
+        <a href="#contacto" class="btn btn-primary" onclick="preselectPlan('negocio')" style="width:100%;justify-content:center">Empezar ahora →</a>
       </div>
       <div class="price-card">
         <h3>Pro</h3>
@@ -867,7 +869,7 @@
           <li>WhatsApp + Instagram DM</li>
           <li>Account manager dedicado</li>
         </ul>
-        <a href="#contacto" class="btn btn-outline" style="width:100%;justify-content:center">Contactar</a>
+        <a href="#contacto" class="btn btn-outline" onclick="preselectPlan('pro')" style="width:100%;justify-content:center">Contactar</a>
       </div>
     </div>
   </div>
@@ -1399,6 +1401,14 @@
         return;
       }
 
+      const telVal = document.getElementById('f-telefono').value.replace(/\s/g,'');
+      if (!/^(\+?[0-9]{8,15})$/.test(telVal)) {
+        errEl.textContent = 'El teléfono no es válido. Incluye el prefijo, ej: +34 600 000 000';
+        errEl.style.display = 'block';
+        document.getElementById('f-telefono').focus();
+        return;
+      }
+
       const plan = document.getElementById('f-plan').value;
       const data = collectData();
       const btn = document.getElementById('btnSubmit');
@@ -1444,6 +1454,21 @@
       }
     });
   });
+
+  // ── Plan preselect from pricing cards ──────────────────────────
+  function preselectPlan(plan) {
+    setTimeout(() => {
+      const el = document.getElementById('f-plan');
+      if (el) {
+        el.value = plan;
+        el.dispatchEvent(new Event('change'));
+        // Brief highlight so user notices it changed
+        el.style.borderColor = 'var(--accent)';
+        el.style.boxShadow = '0 0 0 3px var(--glow-s)';
+        setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1800);
+      }
+    }, 550);
+  }
 
   // ── FAQ accordion ────────────────────────────────────────────────
   function toggleFaq(btn) {
