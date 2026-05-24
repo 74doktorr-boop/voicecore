@@ -440,6 +440,26 @@
     .registro-success h3 { font-size:22px; font-weight:700; margin-bottom:10px; }
     .registro-success p { color:var(--dim); font-size:14px; line-height:1.7; }
 
+    /* ── Case studies ── */
+    .cases-section { padding:80px 0; position:relative; z-index:2; }
+    .cases-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:48px; }
+    .case-card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:28px; transition:border-color .25s,transform .3s; overflow:hidden; position:relative; }
+    .case-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(108,92,231,0.04),transparent); pointer-events:none; }
+    .case-card:hover { border-color:var(--border-accent); transform:translateY(-5px); }
+    .case-sector-tag { display:inline-flex; align-items:center; gap:7px; background:rgba(108,92,231,0.1); border:1px solid rgba(108,92,231,0.22); border-radius:100px; padding:4px 13px; font-size:11px; color:var(--accent-l); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:18px; }
+    .case-scenario { font-size:15px; font-weight:600; color:var(--text); margin-bottom:10px; line-height:1.45; }
+    .case-detail { font-size:13.5px; color:var(--dim); line-height:1.72; margin-bottom:20px; }
+    .case-result { border-top:1px solid var(--border); padding-top:16px; }
+    .case-result-num { font-size:30px; font-weight:900; color:var(--green); letter-spacing:-1.5px; line-height:1; }
+    .case-result-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:5px; }
+
+    /* ── Trust strip ── */
+    .trust-strip { padding:28px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,0.018); position:relative; z-index:2; }
+    .trust-strip-grid { display:flex; gap:0; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .trust-item { display:flex; align-items:center; gap:9px; font-size:13px; color:var(--dim); padding:8px 24px; border-right:1px solid var(--border); white-space:nowrap; }
+    .trust-item:last-child { border-right:none; }
+    .trust-item-icon { font-size:16px; }
+
     /* Scroll progress bar */
     #progress-bar { position:fixed; top:0; left:0; height:2px; background:linear-gradient(90deg,var(--accent),var(--green)); z-index:10000; width:0%; transition:width .1s linear; }
 
@@ -498,6 +518,8 @@
       .registro-box { padding:24px 16px; }
       .pipeline { padding:20px 8px; gap:2px; flex-wrap:wrap; justify-content:center; }
       .pipe-connector { display:none; }
+      .cases-grid { grid-template-columns:1fr; }
+      .trust-strip-grid { gap:20px; }
     }
   </style>
 </head>
@@ -698,6 +720,46 @@
   </div>
 </section>
 
+<!-- Casos de uso -->
+<section class="cases-section">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="label reveal">Resultados reales</div>
+      <div class="title reveal">Cuánto recuperas cada mes</div>
+      <p class="subtitle reveal" style="margin:12px auto 0;text-align:center">Basado en el volumen medio de llamadas por sector en el País Vasco</p>
+    </div>
+    <div class="cases-grid">
+      <div class="case-card reveal">
+        <div class="case-sector-tag">🍽️ Restaurante</div>
+        <div class="case-scenario">50 llamadas/semana · 30% fuera de horario</div>
+        <div class="case-detail">Sin NodeFlow, 15 llamadas semanales se pierden cuando el local está cerrado. Un cliente que no consigue reservar mesa raramente vuelve a intentarlo.</div>
+        <div class="case-result">
+          <div class="case-result-num">+€540</div>
+          <div class="case-result-label">En reservas recuperadas al mes · ticket €18</div>
+        </div>
+      </div>
+      <div class="case-card reveal">
+        <div class="case-sector-tag">✂️ Peluquería</div>
+        <div class="case-scenario">30 llamadas/día · propietario al teléfono</div>
+        <div class="case-detail">El dueño interrumpe 8–10 veces al día para coger el teléfono mientras atiende a un cliente. Con NodeFlow, ninguna llamada corta la atención presencial.</div>
+        <div class="case-result">
+          <div class="case-result-num">3h/día</div>
+          <div class="case-result-label">Devueltas al propietario · 3 citas más a la semana</div>
+        </div>
+      </div>
+      <div class="case-card reveal">
+        <div class="case-sector-tag">🦷 Clínica dental</div>
+        <div class="case-scenario">80 llamadas/semana · 40% son consultas</div>
+        <div class="case-detail">El asistente responde preguntas frecuentes (precios, seguros, tiempos de espera) y filtra las llamadas que de verdad necesitan llegar a la consulta.</div>
+        <div class="case-result">
+          <div class="case-result-num">−60%</div>
+          <div class="case-result-label">Llamadas que interrumpen al profesional</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section class="faq-section" id="faq">
   <div class="container">
@@ -741,6 +803,19 @@
     </div>
   </div>
 </section>
+
+<!-- Trust strip -->
+<div class="trust-strip">
+  <div class="container">
+    <div class="trust-strip-grid">
+      <div class="trust-item"><span class="trust-item-icon">🔒</span><span>Pago seguro con Stripe</span></div>
+      <div class="trust-item"><span class="trust-item-icon">🇪🇺</span><span>RGPD · Datos en Europa</span></div>
+      <div class="trust-item"><span class="trust-item-icon">⚡</span><span>Alta en menos de 24 horas</span></div>
+      <div class="trust-item"><span class="trust-item-icon">🔄</span><span>Sin permanencia · Cancela cuando quieras</span></div>
+      <div class="trust-item"><span class="trust-item-icon">🎁</span><span>Configuración inicial incluida</span></div>
+    </div>
+  </div>
+</div>
 
 <!-- Pricing -->
 <section class="pricing" id="pricing">
