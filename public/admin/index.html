@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeFlow — Panel de Administración</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <!-- No external CSS/JS dependencies — fully self-contained -->
+  <style>
+    /* ── Design tokens (same as main site) ── */
+    :root {
+      --bg:      #07070e;
+      --bg2:     #0f0f18;
+      --card:    #14141e;
+      --card-hv: #1c1c28;
+      --accent:  #6c5ce7;
+      --accent-l:#a29bfe;
+      --glow:    rgba(108,92,231,0.3);
+      --glow-s:  rgba(108,92,231,0.10);
+      --green:   #00cec9;
+      --red:     #ff6b6b;
+      --yellow:  #feca57;
+      --text:    #e8e8f0;
+      --dim:     #8888a8;
+      --muted:   #3a3a52;
+      --border:  rgba(255,255,255,0.07);
+      --border-a:rgba(108,92,231,0.30);
+      --r:       12px;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Login screen ── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border-a);
+      border-radius: var(--r);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 60px var(--glow-s);
+      text-align: center;
+    }
+    .login-logo {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--accent-l);
+      margin-bottom: 6px;
+    }
+    .login-sub {
+      font-size: 0.82rem;
+      color: var(--dim);
+      margin-bottom: 36px;
+    }
+    .login-card label {
+      display: block;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .login-card input[type="password"] {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color .2s;
+      margin-bottom: 20px;
+    }
+    .login-card input[type="password"]:focus {
+      border-color: var(--accent);
+    }
+    #login-error {
+      font-size: 0.82rem;
+      color: var(--red);
+      min-height: 20px;
+      margin-bottom: 12px;
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 13px;
+      cursor: pointer;
+      transition: background .2s, box-shadow .2s;
+    }
+    .btn-primary:hover { background: #7c6cf0; box-shadow: 0 0 24px var(--glow); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Main panel ── */
+    #admin-panel { display: none; min-height: 100vh; }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--accent-l);
+      letter-spacing: -0.3px;
+    }
+    .topbar-logo span {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--dim);
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--muted);
+      color: var(--dim);
+      border-radius: 7px;
+      padding: 7px 14px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Tabs ── */
+    .tabs-bar {
+      display: flex;
+      gap: 4px;
+      padding: 20px 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent-l);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── Tab content ── */
+    .tab-panel { display: none; padding: 28px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section heading ── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .section-title small {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--dim);
+      margin-left: 8px;
+    }
+
+    /* ── Loading / empty states ── */
+    .state-msg {
+      text-align: center;
+      color: var(--dim);
+      font-size: 0.88rem;
+      padding: 48px 0;
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid var(--muted);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tables ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    thead tr {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+    }
+    thead th {
+      text-align: left;
+      padding: 12px 14px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--card-hv); }
+    tbody td {
+      padding: 13px 14px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .mono {
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 0.82rem;
+      color: var(--dim);
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .badge-pending {
+      background: rgba(254,202,87,0.15);
+      color: var(--yellow);
+      border: 1px solid rgba(254,202,87,0.25);
+    }
+    .badge-active {
+      background: rgba(0,206,201,0.12);
+      color: var(--green);
+      border: 1px solid rgba(0,206,201,0.25);
+    }
+    .badge-negocio {
+      background: rgba(108,92,231,0.15);
+      color: var(--accent-l);
+      border: 1px solid rgba(108,92,231,0.3);
+    }
+    .badge-pro {
+      background: rgba(255,107,107,0.12);
+      color: #ff8787;
+      border: 1px solid rgba(255,107,107,0.25);
+    }
+    .badge-free {
+      background: rgba(136,136,168,0.12);
+      color: var(--dim);
+      border: 1px solid var(--border);
+    }
+
+    /* ── WhatsApp button ── */
+    .btn-wa {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(37,211,102,0.10);
+      border: 1px solid rgba(37,211,102,0.25);
+      color: #25d366;
+      border-radius: 7px;
+      padding: 5px 11px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .2s, box-shadow .2s;
+    }
+    .btn-wa:hover {
+      background: rgba(37,211,102,0.18);
+      box-shadow: 0 0 12px rgba(37,211,102,0.2);
+    }
+
+    /* ── Copy button ── */
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+    .btn-copy:hover { border-color: var(--accent); color: var(--accent-l); }
+    .btn-copy.copied { color: var(--green); border-color: var(--green); }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px 22px;
+      transition: border-color .2s;
+    }
+    .stat-card:hover { border-color: var(--border-a); }
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--dim);
+      margin-bottom: 10px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .stat-value.accent { color: var(--accent-l); }
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--dim);
+      margin-top: 6px;
+    }
+
+    /* ── Progress bar (minutos) ── */
+    .min-bar-wrap { min-width: 100px; }
+    .min-label {
+      font-size: 0.78rem;
+      color: var(--dim);
+      margin-bottom: 4px;
+    }
+    .min-bar {
+      height: 5px;
+      background: var(--muted);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .min-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width .4s;
+    }
+    .min-fill.warn { background: var(--yellow); }
+    .min-fill.danger { background: var(--red); }
+
+    /* ── Resumen extras ── */
+    .resumen-section { margin-top: 32px; }
+    .resumen-section .section-title { font-size: 0.95rem; margin-bottom: 14px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .topbar { padding: 14px 16px; }
+      .tabs-bar { padding: 16px 16px 0; gap: 2px; }
+      .tab-btn { padding: 10px 14px; font-size: 0.82rem; }
+      .tab-panel { padding: 20px 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-value { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       LOGIN SCREEN
+  ══════════════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">NodeFlow</div>
+      <div class="login-sub">Panel de administración — solo para Unai</div>
+
+      <label for="pwd-input">Contraseña</label>
+      <input type="password" id="pwd-input" placeholder="••••••••••••" autocomplete="current-password">
+      <div id="login-error"></div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       MAIN ADMIN PANEL
+  ══════════════════════════════════════════════ -->
+  <div id="admin-panel">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-logo">
+        NodeFlow <span>Admin</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('registros', this)">Registros</button>
+      <button class="tab-btn"        onclick="switchTab('clientes',  this)">Clientes</button>
+      <button class="tab-btn"        onclick="switchTab('resumen',   this)">Resumen</button>
+    </div>
+
+    <!-- ── Tab: Registros ── -->
+    <div id="tab-registros" class="tab-panel active">
+      <div class="section-title">Registros (leads) <small id="reg-count"></small></div>
+      <div id="registros-body"><div class="state-msg"><span class="spinner"></span>Cargando registros…</div></div>
+    </div>
+
+    <!-- ── Tab: Clientes ── -->
+    <div id="tab-clientes" class="tab-panel">
+      <div class="section-title">Clientes activos <small id="cli-count"></small></div>
+      <div id="clientes-body"><div class="state-msg"><span class="spinner"></span>Cargando clientes…</div></div>
+    </div>
+
+    <!-- ── Tab: Resumen ── -->
+    <div id="tab-resumen" class="tab-panel">
+      <div class="section-title">Resumen</div>
+      <div id="resumen-body"><div class="state-msg"><span class="spinner"></span>Cargando estadísticas…</div></div>
+    </div>
+
+  </div><!-- /admin-panel -->
+
+
+  <script>
+    /* ══════════════════════════════════════════════
+       CONSTANTS & HELPERS
+    ══════════════════════════════════════════════ */
+    const LS_KEY = 'nf_admin_token';
+
+    function token() { return localStorage.getItem(LS_KEY) || ''; }
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() };
+    }
+
+    /** Fetch wrapper that handles 401 globally */
+    async function apiFetch(url, opts = {}) {
+      const res = await fetch(url, { headers: authHeaders(), ...opts });
+      if (res.status === 401) { logout(); return null; }
+      return res;
+    }
+
+    /** Format ISO date string to locale */
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' });
+      } catch { return iso; }
+    }
+
+    /** Escape HTML entities to prevent XSS */
+    function esc(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+
+    /** Clamp a percentage 0-100 */
+    function pct(used, limit) {
+      if (!limit || limit === 0) return 0;
+      return Math.min(100, Math.round((used / limit) * 100));
+    }
+
+    /* ══════════════════════════════════════════════
+       AUTH FLOW
+    ══════════════════════════════════════════════ */
+
+    /** Called on page load — restore session if token exists */
+    function init() {
+      if (token()) {
+        showPanel();
+      }
+      // Allow Enter key on password field
+      document.getElementById('pwd-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+      });
+    }
+
+    async function doLogin() {
+      const pwd = document.getElementById('pwd-input').value.trim();
+      const errEl = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+
+      if (!pwd) { errEl.textContent = 'Introduce la contraseña.'; return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Verificando…';
+      errEl.textContent = '';
+
+      try {
+        const res = await fetch('/api/admin/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // Accept token from response body, or fall back to the password itself as bearer
+          const tok = (data && data.token) ? data.token : pwd;
+          localStorage.setItem(LS_KEY, tok);
+          showPanel();
+        } else {
+          errEl.textContent = 'Contraseña incorrecta.';
+          document.getElementById('pwd-input').value = '';
+        }
+      } catch (err) {
+        errEl.textContent = 'Error de red. ¿Está el servidor activo?';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem(LS_KEY);
+      document.getElementById('admin-panel').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('pwd-input').value = '';
+    }
+
+    function showPanel() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      // Load the default tab data
+      loadRegistros();
+    }
+
+    /* ══════════════════════════════════════════════
+       TAB NAVIGATION
+    ══════════════════════════════════════════════ */
+
+    // Track which tabs have already been fetched
+    const _loaded = { registros: false, clientes: false, resumen: false };
+
+    function switchTab(name, btn) {
+      // Update button styles
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Show/hide panels
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+
+      // Lazy-load data the first time each tab is opened
+      if (name === 'registros' && !_loaded.registros) loadRegistros();
+      if (name === 'clientes'  && !_loaded.clientes)  loadClientes();
+      if (name === 'resumen'   && !_loaded.resumen)   loadResumen();
+    }
+
+    /* ══════════════════════════════════════════════
+       TAB: REGISTROS
+    ══════════════════════════════════════════════ */
+
+    async function loadRegistros() {
+      _loaded.registros = true;
+      const container = document.getElementById('registros-body');
+
+      const res = await apiFetch('/api/admin/registros');
+      if (!res) return;
+
+      let items = [];
+      try { items = await res.json(); } catch { /* empty */ }
+
+      document.getElementById('reg-count').textContent = items.length ? `${items.length} registros` : '';
+
+      if (!items.length) {
+        container.innerHTML = '<div class="state-msg">No hay registros todavía.</div>';
+        return;
+      }
+
+      /* Build table rows */
+      const rows = items.map(r => {
+        const id     = esc((r.id || r._id || '').toString().slice(0, 8));
+        const biz    = esc(r.negocio || r.business_name || r.businessName || '—');
+        const sector = esc(r.sector || '—');
+        const plan   = esc(r.plan || '—');
+        const ciudad = esc(r.ciudad || r.city || '—');
+        const email  = esc(r.email || '—');
+        const tel    = esc(r.telefono || r.phone || '');
+        const estado = r.estado || r.status || 'pending_payment';
+        const fecha  = fmtDate(r.createdAt || r.fecha || r.created_at);
+
+        const estadoBadge = estado === 'active'
+          ? `<span class="badge badge-active">Activo</span>`
+          : `<span class="badge badge-pending">Pendiente pago</span>`;
+
+        const waTel = tel.replace(/\D/g, ''); // strip non-digits
+        const waMsg = encodeURIComponent(`Hola ${r.negocio || ''}, te escribo desde NodeFlow para completar tu alta.`);
+        const waBtn = waTel
+          ? `<a class="btn-wa" href="https://wa.me/34${waTel}?text=${waMsg}" target="_blank" rel="noopener">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.533 5.854L.057 23.57a.75.75 0 0 0 .922.922l5.764-1.499A11.952 11.952 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75c-1.96 0-3.792-.563-5.338-1.536l-.384-.232-3.981 1.035 1.062-3.867-.252-.399A9.708 9.708 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+               WhatsApp
+             </a>`
+          : '—';
+
+        return `<tr>
+          <td class="mono">${id || '—'}</td>
+          <td>${biz}</td>
+          <td>${sector}</td>
+          <td>${plan}</td>
+          <td>${ciudad}</td>
+          <td><a href="mailto:${email}" style="color:var(--accent-l);text-decoration:none">${email}</a></td>
+          <td>${tel || '—'}</td>
+          <td>${estadoBadge}</td>
+          <td style="color:var(--dim);white-space:nowrap">${fecha}</td>
+          <td>${waBtn}</td>
+        </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Negocio</th>
+                <th>Sector</th>
+                <th>Plan</th>
+                <th>Ciudad</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    /* ══════════════════════════════════════════════
+       TAB: CLIENTES
+    ══════════════════════════════════════════════ */
+
+    async function loadClientes() {
+      _loaded.clientes = true;
+      const container = document.getElementById('clientes-body');
+
+      const res = await apiFetch('/api/admin/orgs');
+      if (!res) return;
+
+      let items = [];
+      try { items = await res.json(); } catch { /* empty */ }
+
+      document.getElementById('cli-count').textContent = items.length ? `${items.length} clientes` : '';
+
+      if (!items.length) {
+        container.innerHTML = '<div class="state-msg">No hay clientes activos todavía.</div>';
+        return;
+      }
+
+      const rows = items.map(org => {
+        const biz    = esc(org.name || org.negocio || org.business_name || '—');
+        const plan   = (org.plan || '').toUpperCase();
+        const email  = esc(org.email || org.ownerEmail || '—');
+
+        // API key: show last 8 chars + copy button
+        const apiKey = org.apiKey || org.api_key || '';
+        const keyShort = apiKey ? '••••' + esc(apiKey.slice(-8)) : '—';
+        const copyBtn = apiKey
+          ? `<button class="btn-copy" onclick="copyKey(this, '${esc(apiKey)}')" title="Copiar API key">Copiar</button>`
+          : '';
+
+        // Minutes
+        const used    = org.minutesUsed   ?? org.minutes_used   ?? 0;
+        const limit   = org.minutesLimit  ?? org.minutes_limit  ?? 0;
+        const p       = pct(used, limit);
+        const fillCls = p >= 90 ? 'danger' : p >= 75 ? 'warn' : '';
+        const minBar  = limit > 0
+          ? `<div class="min-bar-wrap">
+               <div class="min-label">${used} / ${limit} min (${p}%)</div>
+               <div class="min-bar"><div class="min-fill ${fillCls}" style="width:${p}%"></div></div>
+             </div>`
+          : `<span style="color:var(--dim)">${used} min</span>`;
+
+        const fechaAlta = fmtDate(org.createdAt || org.fecha_alta || org.created_at);
+
+        // Plan badge
+        let planBadge = '';
+        if (plan === 'PRO')      planBadge = `<span class="badge badge-pro">PRO</span>`;
+        else if (plan === 'NEGOCIO') planBadge = `<span class="badge badge-negocio">NEGOCIO</span>`;
+        else if (plan === 'FREE')    planBadge = `<span class="badge badge-free">FREE</span>`;
+        else planBadge = `<span class="badge badge-free">${plan || '—'}</span>`;
+
+        return `<tr>
+          <td>${biz}</td>
+          <td>${planBadge}</td>
+          <td><a href="mailto:${email}" style="color:var(--accent-l);text-decoration:none">${email}</a></td>
+          <td><span class="mono">${keyShort}</span>${copyBtn}</td>
+          <td>${minBar}</td>
+          <td style="color:var(--dim);white-space:nowrap">${fechaAlta}</td>
+        </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Negocio</th>
+                <th>Plan</th>
+                <th>Email</th>
+                <th>API Key</th>
+                <th>Minutos usados / límite</th>
+                <th>Fecha alta</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    /** Copy API key to clipboard */
+    function copyKey(btn, key) {
+      navigator.clipboard.writeText(key).then(() => {
+        btn.textContent = '¡Copiado!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('copied');
+        }, 1800);
+      }).catch(() => {
+        // Fallback for non-secure contexts
+        const el = document.createElement('textarea');
+        el.value = key;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        btn.textContent = '¡Copiado!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+
+    /* ══════════════════════════════════════════════
+       TAB: RESUMEN
+    ══════════════════════════════════════════════ */
+
+    async function loadResumen() {
+      _loaded.resumen = true;
+      const container = document.getElementById('resumen-body');
+
+      const res = await apiFetch('/api/admin/stats');
+      if (!res) return;
+
+      let s = {};
+      try { s = await res.json(); } catch { /* empty */ }
+
+      // Extract stats with safe fallbacks
+      const totalLeads    = s.totalLeads    ?? s.total_leads    ?? s.leads       ?? 0;
+      const activeClients = s.activeClients ?? s.active_clients ?? s.clients     ?? 0;
+      const mrr           = s.mrr           ?? s.MRR            ?? 0;
+      const totalMinutes  = s.totalMinutes  ?? s.total_minutes  ?? s.minutes     ?? 0;
+
+      // Optional breakdown fields
+      const convRate  = totalLeads > 0 ? ((activeClients / totalLeads) * 100).toFixed(1) : '0.0';
+      const negocioC  = s.planBreakdown?.negocio ?? s.plan_negocio ?? '—';
+      const proC      = s.planBreakdown?.pro      ?? s.plan_pro      ?? '—';
+
+      container.innerHTML = `
+        <!-- ── Stat cards ── -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total leads</div>
+            <div class="stat-value">${totalLeads}</div>
+            <div class="stat-sub">Formularios recibidos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Clientes activos</div>
+            <div class="stat-value accent">${activeClients}</div>
+            <div class="stat-sub">Tasa conv. ${convRate}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">MRR</div>
+            <div class="stat-value accent">${formatEur(mrr)}</div>
+            <div class="stat-sub">Ingresos mensuales recurrentes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Minutos totales</div>
+            <div class="stat-value">${fmtNum(totalMinutes)}</div>
+            <div class="stat-sub">Acumulados este mes</div>
+          </div>
+        </div>
+
+        <!-- ── Plan breakdown ── -->
+        <div class="resumen-section">
+          <div class="section-title">Distribución de planes</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <div class="stat-card" style="flex:1;min-width:140px">
+              <div class="stat-label">Plan Negocio</div>
+              <div class="stat-value">${negocioC}</div>
+              <div class="stat-sub">€49 / mes</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px">
+              <div class="stat-label">Plan Pro</div>
+              <div class="stat-value">${proC}</div>
+              <div class="stat-sub">€99 / mes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Recent activity (if returned by API) ── -->
+        ${renderRecentActivity(s)}
+      `;
+    }
+
+    /** Render a recent-activity section if the API returns it */
+    function renderRecentActivity(s) {
+      const recent = s.recentActivity || s.recent_activity;
+      if (!recent || !recent.length) return '';
+
+      const items = recent.slice(0, 10).map(ev => {
+        const fecha = fmtDate(ev.date || ev.createdAt);
+        return `<tr>
+          <td style="color:var(--dim);white-space:nowrap">${fecha}</td>
+          <td>${esc(ev.type || ev.evento || '—')}</td>
+          <td>${esc(ev.description || ev.descripcion || ev.detail || '—')}</td>
+        </tr>`;
+      }).join('');
+
+      return `
+        <div class="resumen-section">
+          <div class="section-title">Actividad reciente</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th></tr></thead>
+              <tbody>${items}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    /** Format number with EUR symbol */
+    function formatEur(n) {
+      const num = parseFloat(n) || 0;
+      return '€' + num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    /** Format large number with thousands sep */
+    function fmtNum(n) {
+      return (parseInt(n, 10) || 0).toLocaleString('es-ES');
+    }
+
+    /* ══════════════════════════════════════════════
+       BOOT
+    ══════════════════════════════════════════════ */
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
