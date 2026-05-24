@@ -133,6 +133,31 @@ CREATE TABLE IF NOT EXISTS webhooks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Registros (leads from landing page form, pre-payment)
+CREATE TABLE IF NOT EXISTS registros (
+  id TEXT PRIMARY KEY,                          -- reg_XXXXXXXXXXXXXXXX
+  status TEXT NOT NULL DEFAULT 'pending_payment', -- pending_payment, active, cancelled
+  sector TEXT NOT NULL,
+  negocio TEXT NOT NULL,
+  contacto TEXT NOT NULL,
+  ciudad TEXT NOT NULL,
+  telefono TEXT NOT NULL,
+  email TEXT NOT NULL,
+  plan TEXT NOT NULL,                           -- negocio, pro
+  voz TEXT NOT NULL,
+  idioma TEXT NOT NULL,
+  saludo TEXT NOT NULL,
+  horario JSONB DEFAULT '{}',
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_registros_email ON registros(email);
+CREATE INDEX IF NOT EXISTS idx_registros_status ON registros(status);
+CREATE INDEX IF NOT EXISTS idx_registros_stripe_customer ON registros(stripe_customer_id);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assistants_org ON assistants(org_id);
 CREATE INDEX IF NOT EXISTS idx_calls_org ON calls(org_id);
