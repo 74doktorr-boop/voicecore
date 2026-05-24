@@ -5,6 +5,7 @@
 
 const { Logger } = require('../utils/logger');
 const { generateTwiML } = require('../telephony/twilio-streams');
+const { generateNCCO } = require('../telephony/vonage-handler');
 const { requireAuth, rateLimit, checkUsageLimits, PLAN_LIMITS } = require('../auth/middleware');
 const { getDatabase } = require('../db/database');
 
@@ -15,18 +16,44 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   const limit = rateLimit();
   const db = getDatabase();
 
-  // ─── Twilio Webhook (no auth - Twilio validates) ───
+  // ─── Twilio Webhooks (no auth - Twilio validates) ───
   app.post('/voice/inbound', (req, res) => {
     const assistantId = req.query.assistantId || null;
     const wsUrl = `wss://${req.headers.host}/media-stream`;
-    log.call(`Inbound call webhook → assistant: ${assistantId || 'default'}`);
+    log.call(`[Twilio] Inbound call → assistant: ${assistantId || 'default'}`);
     res.type('text/xml').send(generateTwiML(wsUrl, assistantId));
   });
 
   app.post('/voice/inbound/:assistantId', (req, res) => {
     const wsUrl = `wss://${req.headers.host}/media-stream`;
-    log.call(`Inbound call webhook → assistant: ${req.params.assistantId}`);
+    log.call(`[Twilio] Inbound call → assistant: ${req.params.assistantId}`);
     res.type('text/xml').send(generateTwiML(wsUrl, req.params.assistantId));
+  });
+
+  // ─── Vonage Webhooks (no auth - Vonage signed) ───
+  // Answer URL: Vonage calls this when a call is received → return NCCO
+  app.get('/vonage/answer', (req, res) => {
+    const assistantId = req.query.assistantId || null;
+    const callerNumber = req.query.from || null;
+    const wsUrl = `wss://${req.headers.host}/vonage-stream`;
+    log.call(`[Vonage] Inbound call from ${callerNumber} → assistant: ${assistantId || 'default'}`);
+    res.type('application/json').send(generateNCCO(wsUrl, assistantId, callerNumber));
+  });
+
+  app.get('/vonage/answer/:assistantId', (req, res) => {
+    const callerNumber = req.query.from || null;
+    const wsUrl = `wss://${req.headers.host}/vonage-stream`;
+    log.call(`[Vonage] Inbound call → assistant: ${req.params.assistantId}`);
+    res.type('application/json').send(generateNCCO(wsUrl, req.params.assistantId, callerNumber));
+  });
+
+  // Event URL: Vonage posts call state changes here (ringing, answered, completed...)
+  app.post('/vonage/event', (req, res) => {
+    log.call(`[Vonage] Event: ${req.body?.status || 'unknown'}`, {
+      uuid: req.body?.uuid,
+      duration: req.body?.duration,
+    });
+    res.status(200).end();
   });
 
   // ─── Organization ───

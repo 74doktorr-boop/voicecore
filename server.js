@@ -14,6 +14,7 @@ const { Logger } = require('./src/utils/logger');
 const { VoicePipeline } = require('./src/core/voice-pipeline');
 const { AssistantManager } = require('./src/assistants/manager');
 const { setupTwilioStreams } = require('./src/telephony/twilio-streams');
+const { setupVonageStreams } = require('./src/telephony/vonage-handler');
 const { setupRoutes } = require('./src/api/routes');
 const { TTSRouter } = require('./src/tts/router');
 const { LLMRouter } = require('./src/llm/router');
@@ -114,8 +115,9 @@ app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'), {
 
 // ─── HTTP Server + WebSocket ───
 const server = http.createServer(app);
-const wss = new WebSocketServer({ noServer: true });
-const wssBrowser = new WebSocketServer({ noServer: true });
+const wss = new WebSocketServer({ noServer: true });        // Twilio
+const wssVonage = new WebSocketServer({ noServer: true });   // Vonage
+const wssBrowser = new WebSocketServer({ noServer: true });  // Browser demo
 
 // Manual upgrade to support query params in paths
 server.on('upgrade', (request, socket, head) => {
@@ -124,6 +126,8 @@ server.on('upgrade', (request, socket, head) => {
 
   if (pathname === '/media-stream') {
     wss.handleUpgrade(request, socket, head, (ws) => { wss.emit('connection', ws, request); });
+  } else if (pathname === '/vonage-stream') {
+    wssVonage.handleUpgrade(request, socket, head, (ws) => { wssVonage.emit('connection', ws, request); });
   } else if (pathname === '/ws/talk') {
     wssBrowser.handleUpgrade(request, socket, head, (ws) => { wssBrowser.emit('connection', ws, request); });
   } else {
@@ -185,6 +189,9 @@ assistantManager.enableHotReload();
 
 // Setup Twilio WebSocket handler
 setupTwilioStreams(wss, pipeline, assistantManager);
+
+// Setup Vonage Voice API WebSocket handler
+setupVonageStreams(wssVonage, pipeline, assistantManager);
 
 // Setup Browser Talk handler
 const browserHandler = new BrowserCallHandler(assistantManager);
