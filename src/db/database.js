@@ -19,12 +19,28 @@ class Database {
         this.client = createClient(this.supabaseUrl, this.supabaseKey);
         this.enabled = true;
         log.info('Database connected (Supabase)');
+        // Auto-create registros table if missing (critical for first client onboarding)
+        this._ensureRegistrosTable().catch(e =>
+          log.warn(`registros table check failed: ${e.message}`)
+        );
       } catch (e) {
         log.error(`Supabase init failed: ${e.message}`);
         log.warn('Supabase client not available, running in memory mode');
       }
     } else {
       log.warn('No database configured — running in memory mode');
+    }
+  }
+
+  async _ensureRegistrosTable() {
+    // Supabase doesn't support raw DDL via the JS client — we just do a SELECT
+    // to detect if the table exists. If it doesn't, log a clear warning.
+    const { error } = await this.client.from('registros').select('id').limit(1);
+    if (error?.code === '42P01') {
+      log.error('⚠️  registros table does NOT exist in Supabase! Run db/schema.sql to create it.');
+      log.error('   Without this table, new client registrations will only persist in memory.');
+    } else if (!error) {
+      log.info('registros table OK');
     }
   }
 
