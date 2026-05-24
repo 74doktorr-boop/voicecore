@@ -63,6 +63,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// ⚠️  Stripe webhook MUST receive the raw body (Buffer) for HMAC verification.
+// express.raw() here runs BEFORE express.json() so body-parser skips the
+// already-consumed stream for this path when the route handler runs.
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
