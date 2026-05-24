@@ -26,6 +26,7 @@ const { getKnowledgeBase } = require('./src/knowledge/base');
 const { setupExtendedRoutes } = require('./src/api/routes-extended');
 const { setupBillingRoutes } = require('./src/api/routes-billing');
 const { setupRegistroRoutes } = require('./src/api/routes-registro');
+const { setupAdminRoutes }   = require('./src/api/routes-admin');
 const { getBilling } = require('./src/billing/stripe');
 const BrowserCallHandler = require('./src/browser/browser-call');
 const { startMonitor } = require('./src/monitoring/health-check');
@@ -214,6 +215,9 @@ setupBillingRoutes(app, config);
 
 // Setup Registro routes (formulario landing → Stripe)
 setupRegistroRoutes(app);
+
+// Setup Admin routes (panel privado de Unai)
+setupAdminRoutes(app, config);
 
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
