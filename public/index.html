@@ -206,6 +206,40 @@
     @keyframes pulse-dot { 0%{left:-4px;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:calc(100% - 6px);opacity:0} }
 
     /* ── Euskera ── */
+    /* ── Demo audio player ── */
+    .demo-section { padding:60px 0 80px; position:relative; z-index:2; }
+    .demo-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:40px 48px; display:flex; align-items:center; gap:56px; position:relative; overflow:hidden; }
+    .demo-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(108,92,231,0.06) 0%,transparent 60%); pointer-events:none; }
+    .demo-left { flex:1; min-width:0; position:relative; z-index:1; }
+    .demo-right { flex-shrink:0; position:relative; z-index:1; }
+    .demo-phone { width:220px; background:#111118; border:1.5px solid rgba(255,255,255,0.1); border-radius:28px; padding:16px; box-shadow:0 24px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(108,92,231,0.15); }
+    .demo-phone-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding:0 4px; }
+    .demo-phone-call { display:flex; align-items:center; gap:8px; }
+    .demo-phone-dot { width:8px; height:8px; border-radius:50%; background:#00cec9; box-shadow:0 0 8px #00cec9; animation:pulse 2s infinite; }
+    .demo-phone-label { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:1px; }
+    .demo-phone-time { font-size:11px; color:var(--muted); font-family:monospace; }
+    .demo-phone-msgs { display:flex; flex-direction:column; gap:8px; }
+    .demo-msg { font-size:12px; line-height:1.5; padding:8px 11px; border-radius:10px; }
+    .demo-msg.ai { background:rgba(108,92,231,0.15); border:1px solid rgba(108,92,231,0.2); color:var(--text); border-radius:10px 10px 10px 2px; }
+    .demo-msg.caller { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--dim); border-radius:10px 10px 2px 10px; align-self:flex-end; }
+    .demo-msg.typing { display:flex; gap:4px; align-items:center; padding:10px 14px; }
+    .demo-msg.typing span { width:6px; height:6px; border-radius:50%; background:var(--accent-l); animation:waveBar .8s ease-in-out infinite alternate; }
+    .demo-msg.typing span:nth-child(2) { animation-delay:.2s; }
+    .demo-msg.typing span:nth-child(3) { animation-delay:.4s; }
+    /* Player */
+    .demo-player { display:flex; align-items:center; gap:16px; margin-top:28px; flex-wrap:wrap; }
+    .demo-play-btn { width:54px; height:54px; border-radius:50%; background:var(--accent); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .25s; box-shadow:0 4px 20px var(--glow); }
+    .demo-play-btn:hover { background:#7c6cf7; transform:scale(1.08); box-shadow:0 8px 32px var(--glow); }
+    .demo-play-btn svg { width:20px; height:20px; }
+    .demo-progress-wrap { flex:1; min-width:140px; }
+    .demo-progress { width:100%; height:4px; background:rgba(255,255,255,0.08); border-radius:4px; cursor:pointer; position:relative; }
+    .demo-progress-fill { height:4px; background:linear-gradient(90deg,var(--accent),var(--accent-l)); border-radius:4px; width:0%; transition:width .1s linear; pointer-events:none; }
+    .demo-time { font-size:12px; color:var(--muted); font-family:monospace; margin-top:6px; }
+    .demo-waveform { display:flex; gap:2px; align-items:center; height:32px; margin-top:16px; }
+    .demo-wbar { width:2px; background:var(--accent); border-radius:2px; opacity:0.3; transition:opacity .1s; }
+    .demo-wbar.active { opacity:1; animation:waveBar var(--d) ease-in-out infinite alternate; }
+    @media(max-width:900px) { .demo-card { flex-direction:column; gap:32px; padding:28px 24px; } .demo-right { display:none; } }
+
     .euskera-section { padding:80px 0; position:relative; z-index:2; }
     .euskera-card {
       border-radius:24px; overflow:hidden;
@@ -610,6 +644,65 @@
       <div class="pipe-node pipe-tts">🗣️ Responde<small>Voz clonada nativa</small></div>
       <div class="pipe-connector"></div>
       <div class="pipe-node pipe-tel">📞 Telefonía<small>Tu número actual</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo audio -->
+<section class="demo-section">
+  <div class="container">
+    <div class="demo-card reveal">
+      <div class="demo-left">
+        <div class="label" style="margin-bottom:10px">Escucha la voz</div>
+        <h2 style="font-size:clamp(22px,3vw,34px);font-weight:800;letter-spacing:-1px;line-height:1.15;margin-bottom:12px">
+          Así suena NodeFlow<br>en una llamada real
+        </h2>
+        <p style="font-size:14.5px;color:var(--dim);line-height:1.75;max-width:420px;margin-bottom:24px">
+          Una peluquería de Bilbao. Un cliente llama fuera de horario.
+          El asistente atiende, informa y agenda — en 30 segundos.
+        </p>
+
+        <!-- Audio player -->
+        <div class="demo-player">
+          <button class="demo-play-btn" id="demoPlayBtn" onclick="toggleDemoAudio()" title="Reproducir demo">
+            <!-- Play icon -->
+            <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <!-- Pause icon -->
+            <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <div class="demo-progress-wrap">
+            <div class="demo-progress" id="demoProgress" onclick="seekDemoAudio(event)">
+              <div class="demo-progress-fill" id="demoProgressFill"></div>
+            </div>
+            <div class="demo-time" id="demoTime">0:00 / 0:00</div>
+          </div>
+        </div>
+
+        <!-- Waveform bars -->
+        <div class="demo-waveform" id="demoWaveform" aria-hidden="true"></div>
+      </div>
+
+      <!-- Phone mockup -->
+      <div class="demo-right">
+        <div class="demo-phone">
+          <div class="demo-phone-bar">
+            <div class="demo-phone-call">
+              <div class="demo-phone-dot"></div>
+              <span class="demo-phone-label">Llamada activa</span>
+            </div>
+            <span class="demo-phone-time" id="demoCallTime">0:00</span>
+          </div>
+          <div class="demo-phone-msgs">
+            <div class="demo-msg caller">Hola, ¿estáis abiertos el sábado por la tarde?</div>
+            <div class="demo-msg ai">¡Buenas! Sí, los sábados atendemos de 10:00 a 18:00. ¿Quieres que te reserve una cita?</div>
+            <div class="demo-msg caller">Sí, para las 16:00 si puede ser.</div>
+            <div class="demo-msg ai">Perfecto, ¿para qué servicio? Tenemos corte, tinte, barba…</div>
+            <div class="demo-msg typing" id="demoTyping" style="display:none">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1454,6 +1547,87 @@
       }
     });
   });
+
+  // ── Demo audio player ──────────────────────────────────────────
+  (function initDemoPlayer() {
+    const audio = new Audio('/demo.mp3');
+    audio.preload = 'metadata';
+    let rafId = null;
+
+    // Build waveform bars
+    const wf = document.getElementById('demoWaveform');
+    const barCount = 48;
+    const barHeights = [];
+    for (let i = 0; i < barCount; i++) {
+      barHeights.push(4 + Math.abs(Math.sin(i * 0.42) * 24) + Math.random() * 8);
+    }
+    barHeights.forEach((h, i) => {
+      const b = document.createElement('div');
+      b.className = 'demo-wbar';
+      b.style.setProperty('--h', h + 'px');
+      b.style.setProperty('--d', (0.4 + Math.random() * 0.4) + 's');
+      b.style.height = h + 'px';
+      wf.appendChild(b);
+    });
+
+    function fmt(s) {
+      const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+      return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    function tick() {
+      if (!audio.duration) return;
+      const pct = (audio.currentTime / audio.duration) * 100;
+      document.getElementById('demoProgressFill').style.width = pct + '%';
+      document.getElementById('demoTime').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+      document.getElementById('demoCallTime').textContent = fmt(audio.currentTime);
+      // Animate waveform bars as audio plays
+      const activeBars = Math.floor((audio.currentTime / audio.duration) * barCount);
+      wf.querySelectorAll('.demo-wbar').forEach((b, i) => {
+        b.classList.toggle('active', i <= activeBars && !audio.paused);
+      });
+      rafId = requestAnimationFrame(tick);
+    }
+
+    audio.addEventListener('loadedmetadata', () => {
+      document.getElementById('demoTime').textContent = '0:00 / ' + fmt(audio.duration);
+    });
+
+    audio.addEventListener('ended', () => {
+      cancelAnimationFrame(rafId);
+      document.getElementById('iconPlay').style.display = '';
+      document.getElementById('iconPause').style.display = 'none';
+      document.getElementById('demoProgressFill').style.width = '0%';
+      document.getElementById('demoTime').textContent = '0:00 / ' + fmt(audio.duration);
+      document.getElementById('demoTyping').style.display = 'none';
+      wf.querySelectorAll('.demo-wbar').forEach(b => b.classList.remove('active'));
+    });
+
+    window.toggleDemoAudio = function() {
+      if (audio.paused) {
+        audio.play();
+        document.getElementById('iconPlay').style.display = 'none';
+        document.getElementById('iconPause').style.display = '';
+        document.getElementById('demoTyping').style.display = 'flex';
+        tick();
+        // GA4 event
+        if (typeof gtag === 'function') gtag('event', 'demo_play', { medium: 'audio_widget' });
+      } else {
+        audio.pause();
+        cancelAnimationFrame(rafId);
+        document.getElementById('iconPlay').style.display = '';
+        document.getElementById('iconPause').style.display = 'none';
+        document.getElementById('demoTyping').style.display = 'none';
+        wf.querySelectorAll('.demo-wbar').forEach(b => b.classList.remove('active'));
+      }
+    };
+
+    window.seekDemoAudio = function(e) {
+      const rect = document.getElementById('demoProgress').getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      if (audio.duration) audio.currentTime = pct * audio.duration;
+    };
+  })();
 
   // ── Plan preselect from pricing cards ──────────────────────────
   function preselectPlan(plan) {

@@ -85,31 +85,75 @@ async function api(endpoint, opts={}) {
 function saveApiKey() { apiKey=document.getElementById('apiKeyInput').value.trim(); localStorage.setItem('nodeflow_api_key',apiKey); refreshAll(); startAutoRefresh(); showPage('dashboard'); }
 
 // ─── Refresh ───
-async function refreshAll() { await Promise.all([loadMetrics(),loadRecentCalls(),loadAssistantsSummary()]); }
+async function refreshAll() { await Promise.all([loadMetrics(),loadRecentCalls(),loadAssistantsSummary(),loadOrgInfo()]); }
 function startAutoRefresh() { if(refreshInterval) clearInterval(refreshInterval); refreshInterval=setInterval(refreshAll,5000); }
+
+// ─── Org info + plan usage ───
+async function loadOrgInfo() {
+  const d = await api('/api/org'); if(!d?.org) return;
+  const org = d.org;
+
+  // Sidebar plan badge
+  const planLabel = { starter:'STARTER', pro:'NEGOCIO', business:'PRO', enterprise:'ENTERPRISE' }[org.plan] || org.plan?.toUpperCase() || '—';
+  const el = document.getElementById('planName'); if(el) el.textContent = planLabel;
+  const lbl = document.getElementById('planLabel'); if(lbl) lbl.textContent = 'Plan';
+
+  // Dashboard greeting
+  const gr = document.getElementById('dashGreeting'); if(gr) gr.textContent = org.name || 'Panel de control';
+  const sub = document.getElementById('dashSubtitle'); if(sub) sub.textContent = `${planLabel} · ${org.owner_email || ''}`;
+
+  // Dashboard plan card
+  const pd = document.getElementById('planDisplay'); if(pd) pd.textContent = planLabel;
+  const limitMin = org.monthly_minutes_limit || 50;
+  const usedMin  = parseFloat(org.monthly_minutes_used || 0);
+  const pct = limitMin > 0 ? Math.min(100, (usedMin / limitMin) * 100) : 0;
+  const minDisp = document.getElementById('minDisplay'); if(minDisp) minDisp.textContent = `${usedMin.toFixed(1)} / ${limitMin} min`;
+  const minBar  = document.getElementById('minBar');
+  if(minBar) {
+    minBar.style.width = pct + '%';
+    minBar.style.background = pct > 90 ? 'linear-gradient(90deg,#e74c3c,#ff6b6b)' : pct > 70 ? 'linear-gradient(90deg,#f0a500,#feca57)' : 'linear-gradient(90deg,#6c5ce7,#a29bfe)';
+  }
+  const minExtra = document.getElementById('minExtra');
+  if(minExtra) {
+    const remaining = Math.max(0, limitMin - usedMin);
+    minExtra.textContent = `${remaining.toFixed(1)} min restantes · Extra: €0,05/min`;
+  }
+
+  // Metrics page
+  const mPlan = document.getElementById('m-plan'); if(mPlan) mPlan.textContent = planLabel;
+  const mLimit = document.getElementById('m-limit'); if(mLimit) mLimit.textContent = limitMin + ' min';
+  const mUsed = document.getElementById('m-used'); if(mUsed) mUsed.textContent = usedMin.toFixed(1) + ' min';
+  const mRem = document.getElementById('m-remaining'); if(mRem) mRem.textContent = Math.max(0, limitMin - usedMin).toFixed(1) + ' min';
+  const mBar = document.getElementById('m-bar'); if(mBar) { mBar.style.width = pct + '%'; }
+  const mPct = document.getElementById('m-pct'); if(mPct) mPct.textContent = pct.toFixed(1) + '%';
+  const mPeriod = document.getElementById('m-period');
+  if(mPeriod) { const now = new Date(); mPeriod.textContent = now.toLocaleString('es-ES', {month:'long', year:'numeric'}); }
+}
 
 // ─── Metrics ───
 async function loadMetrics() {
   const d = await api('/api/metrics'); if(!d?.metrics) return; const m=d.metrics;
   document.getElementById('stat-activeCalls').textContent=m.activeCalls;
   document.getElementById('stat-totalCalls').textContent=m.totalCalls;
-  document.getElementById('stat-totalCost').textContent=`$${m.totalCost.toFixed(2)}`;
+  document.getElementById('stat-totalCost').textContent=`€${(m.totalCost||0).toFixed(2).replace('.',',')}`;
   document.getElementById('stat-totalMinutes').textContent=m.totalDurationMinutes.toFixed(1);
   const b=document.getElementById('activeCallsBadge');
   if(m.activeCalls>0){b.style.display='inline';b.textContent=m.activeCalls;}else{b.style.display='none';}
-  const sv=document.getElementById('stat-savings');
-  if(sv) sv.textContent=`$${(m.totalDurationMinutes*0.13).toFixed(2)}`;
+  // Metrics page monthly activity
+  const mCalls = document.getElementById('m-calls'); if(mCalls) mCalls.textContent = m.totalCalls || 0;
+  const mMins = document.getElementById('m-minutes'); if(mMins) mMins.textContent = (m.totalDurationMinutes||0).toFixed(1);
+  const mCost = document.getElementById('m-cost'); if(mCost) mCost.textContent = `€${(m.totalCost||0).toFixed(2).replace('.',',')}`;
 }
 
 // ─── Recent Calls ───
 async function loadRecentCalls() {
   const d = await api('/api/calls/history?limit=5'); if(!d?.calls) return;
   const c=document.getElementById('recentCallsContainer');
-  if(!d.calls.length){c.innerHTML='<div class="empty-state"><div class="icon">◎</div><h3>No calls yet</h3><p>Calls appear here when received</p></div>';return;}
+  if(!d.calls.length){c.innerHTML='<div class="empty-state"><div class="icon">◎</div><h3>Sin llamadas aún</h3><p>Aquí aparecerán tus llamadas</p></div>';return;}
   c.innerHTML=d.calls.map(call=>`<div class="call-row" onclick='showCallDetail(${JSON.stringify(call).replace(/'/g,"&#39;")})'>
     <div class="badge-status ${call.status}"><span class="dot"></span></div>
-    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text-bright)">${call.assistantName||call.assistantId||'Default'}</div><div style="font-size:11px;color:var(--text-muted)">${call.callerNumber||'Unknown'}</div></div>
-    <div style="text-align:right"><div style="font-size:13px;font-weight:600">${call.durationFormatted||'0:00'}</div><div style="font-size:11px;color:var(--accent)">$${(call.cost?.total||0).toFixed(4)}</div></div>
+    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text-bright)">${call.assistantName||call.assistantId||'Mi asistente'}</div><div style="font-size:11px;color:var(--text-muted)">${call.callerNumber||'Número oculto'}</div></div>
+    <div style="text-align:right"><div style="font-size:13px;font-weight:600">${call.durationFormatted||'0:00'}</div><div style="font-size:11px;color:var(--accent)">€${(call.cost?.total||0).toFixed(4)}</div></div>
   </div>`).join('');
 }
 
@@ -118,12 +162,12 @@ async function loadCalls() {
   const [ad,hd] = await Promise.all([api('/api/calls/active'),api('/api/calls/history?limit=50')]);
   const ac=document.getElementById('activeCallsContainer');
   if(ad?.calls?.length>0){ac.innerHTML=ad.calls.map(c=>`<div style="padding:14px;background:var(--bg-elevated);border-radius:8px;margin-bottom:8px;border:1px solid rgba(34,197,94,0.15)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><span class="badge-status active"><span class="dot"></span> Active</span> <span style="margin-left:8px;font-weight:600;font-size:13px">${c.assistantName||'Default'}</span></div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace">${c.durationFormatted}</div></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;color:var(--text-secondary)"><div>Caller: <span style="color:var(--text-primary)">${c.callerNumber||'-'}</span></div><div>Turns: <span style="color:var(--text-primary)">${c.turnCount}</span></div><div>Cost: <span style="color:var(--accent)">$${(c.cost?.total||0).toFixed(4)}</span></div></div></div>`).join('');}
-  else{ac.innerHTML='<div class="empty-state"><div class="icon">◎</div><h3>No active calls</h3></div>';}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><span class="badge-status active"><span class="dot"></span> En curso</span> <span style="margin-left:8px;font-weight:600;font-size:13px">${c.assistantName||'Mi asistente'}</span></div><div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace">${c.durationFormatted}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;color:var(--text-secondary)"><div>Llamante: <span style="color:var(--text-primary)">${c.callerNumber||'Oculto'}</span></div><div>Turnos: <span style="color:var(--text-primary)">${c.turnCount}</span></div><div>Coste: <span style="color:var(--accent)">€${(c.cost?.total||0).toFixed(4)}</span></div></div></div>`).join('');}
+  else{ac.innerHTML='<div class="empty-state"><div class="icon">◎</div><h3>Sin llamadas activas</h3></div>';}
   const tb=document.getElementById('callHistoryTable');
-  if(hd?.calls?.length>0){tb.innerHTML=hd.calls.map(c=>`<tr><td><span class="badge-status ${c.status}"><span class="dot"></span> ${c.status==='active'?'Active':'End'}</span></td><td style="font-weight:500">${c.assistantName||c.assistantId||'-'}</td><td>${c.callerNumber||'-'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${c.durationFormatted||'0:00'}</td><td>${c.turnCount||0}</td><td style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px">$${(c.cost?.total||0).toFixed(4)}</td><td style="font-size:12px;color:var(--text-secondary)">${c.startTime?new Date(c.startTime).toLocaleString('es-ES',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-'}</td><td><button class="btn btn-secondary btn-sm" onclick='showCallDetail(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Details</button></td></tr>`).join('');}
-  else{tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No call history</td></tr>';}
+  if(hd?.calls?.length>0){tb.innerHTML=hd.calls.map(c=>`<tr><td><span class="badge-status ${c.status}"><span class="dot"></span> ${c.status==='active'?'En curso':'Fin'}</span></td><td style="font-weight:500">${c.assistantName||c.assistantId||'—'}</td><td>${c.callerNumber||'Oculto'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${c.durationFormatted||'0:00'}</td><td>${c.turnCount||0}</td><td style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px">€${(c.cost?.total||0).toFixed(4)}</td><td style="font-size:12px;color:var(--text-secondary)">${c.startTime?new Date(c.startTime).toLocaleString('es-ES',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-'}</td><td><button class="btn btn-secondary btn-sm" onclick='showCallDetail(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Ver</button></td></tr>`).join('');}
+  else{tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Sin historial de llamadas</td></tr>';}
 }
 
 function showCallDetail(call) {
@@ -277,8 +321,8 @@ async function deleteAssistant(id) {
 // ─── System Status ───
 async function loadSystemStatus() {
   try { const r=await fetch(`${API_BASE}/health`);const d=await r.json();
-    document.getElementById('systemStatus').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Status</div><span class="badge-status active"><span class="dot"></span> ${d.status}</span></div><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Uptime</div><span style="font-family:'JetBrains Mono',monospace;font-size:14px">${Math.round(d.uptime/60)}m</span></div><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Version</div><span style="font-size:14px">${d.version}</span></div></div>`;
-  } catch(e) { document.getElementById('systemStatus').innerHTML='<span style="color:var(--danger)">Server unreachable</span>'; }
+    document.getElementById('systemStatus').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Estado</div><span class="badge-status active"><span class="dot"></span> Operativo</span></div><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Uptime</div><span style="font-family:'JetBrains Mono',monospace;font-size:14px">${Math.round(d.uptime/60)}m</span></div><div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Versión</div><span style="font-size:14px">${d.version}</span></div></div>`;
+  } catch(e) { document.getElementById('systemStatus').innerHTML='<span style="color:var(--danger)">Servidor no disponible</span>'; }
 }
 
 // ─── Modals ───
