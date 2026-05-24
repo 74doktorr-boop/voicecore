@@ -184,18 +184,44 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   });
 
   app.post('/api/calls/outbound', auth, limit, checkUsageLimits(), async (req, res) => {
-    const { to, assistantId, from } = req.body;
+    const { to, assistantId, from, provider = 'auto' } = req.body;
     if (!to || !assistantId) return res.status(400).json({ error: 'Missing to or assistantId' });
 
+    const publicUrl = config.publicUrl;
+
     try {
-      const twilio = require('twilio')(config.twilioAccountSid, config.twilioAuthToken);
-      const publicUrl = config.publicUrl;
-      const call = await twilio.calls.create({
-        to,
-        from: from || config.twilioPhoneNumber,
-        url: `${publicUrl}/voice/inbound/${assistantId}`,
-      });
-      res.json({ success: true, callSid: call.sid });
+      // Auto-detect provider: use Vonage if configured, else Twilio
+      const useVonage = (provider === 'vonage') ||
+        (provider === 'auto' && config.vonageApiKey && config.vonageApplicationId);
+
+      if (useVonage) {
+        const Vonage = require('@vonage/server-sdk');
+        const vonage = new Vonage({
+          apiKey: config.vonageApiKey,
+          apiSecret: config.vonageApiSecret,
+          applicationId: config.vonageApplicationId,
+          privateKey: config.vonagePrivateKeyPath || './vonage_private.key',
+        });
+        vonage.calls.create({
+          to: [{ type: 'phone', number: to }],
+          from: { type: 'phone', number: from || config.vonagePhoneNumber },
+          answer_url: [`${publicUrl}/vonage/answer/${assistantId}`],
+          event_url: [`${publicUrl}/vonage/event`],
+        }, (err, result) => {
+          if (err) { log.error('Vonage outbound failed', { error: err.message }); return res.status(500).json({ error: err.message }); }
+          log.call(`[Vonage] Outbound call started → ${to}`);
+          res.json({ success: true, callUUID: result.uuid, provider: 'vonage' });
+        });
+      } else {
+        const twilio = require('twilio')(config.twilioAccountSid, config.twilioAuthToken);
+        const call = await twilio.calls.create({
+          to,
+          from: from || config.twilioPhoneNumber,
+          url: `${publicUrl}/voice/inbound/${assistantId}`,
+        });
+        log.call(`[Twilio] Outbound call started → ${to}`);
+        res.json({ success: true, callSid: call.sid, provider: 'twilio' });
+      }
     } catch (error) {
       log.error('Outbound call failed', { error: error.message });
       res.status(500).json({ error: error.message });
