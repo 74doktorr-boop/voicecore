@@ -1272,16 +1272,22 @@
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('pago') === 'ok') {
+      // Always show success (payment confirmed by Stripe redirect)
+      document.getElementById('registroFormWrap').style.display = 'none';
+      document.getElementById('registroSuccess').style.display  = 'block';
+      // Scroll to the confirmation section
+      setTimeout(() => document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' }), 100);
+      // If we have localStorage data, open WhatsApp with pre-filled message
       const saved = localStorage.getItem('nf_registro');
       if (saved) {
-        const data = JSON.parse(saved);
-        document.getElementById('registroFormWrap').style.display = 'none';
-        document.getElementById('registroSuccess').style.display  = 'block';
-        const msg = buildWhatsAppMsg(data);
-        setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank'), 800);
+        try {
+          const data = JSON.parse(saved);
+          const msg = buildWhatsAppMsg(data);
+          setTimeout(() => window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank'), 900);
+        } catch(_) {}
         localStorage.removeItem('nf_registro');
-        window.history.replaceState({}, '', window.location.pathname);
       }
+      window.history.replaceState({}, '', window.location.pathname);
     }
 
     document.getElementById('registroForm').addEventListener('submit', async function (e) {
@@ -1329,6 +1335,9 @@
           throw new Error(err.error || 'Error al guardar los datos');
         }
         const { id: registroId } = await resp.json();
+
+        // Guardar en localStorage para mostrar confirmación al volver de Stripe
+        try { localStorage.setItem('nf_registro', JSON.stringify({ ...data, id: registroId })); } catch(_) {}
 
         if (!STRIPE_URLS[plan] || STRIPE_URLS[plan].includes('XXXX')) {
           const msg = buildWhatsAppMsg(data);
