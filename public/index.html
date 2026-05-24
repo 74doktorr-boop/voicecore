@@ -22,7 +22,7 @@
   <meta name="twitter:description" content="IA que atiende el 100% de tus llamadas y habla euskera nativo. Desde 49€/mes.">
   <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow","description":"Asistente telefónico con inteligencia artificial para negocios.","url":"https://nodeflow.es","applicationCategory":"BusinessApplication","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"},{"@type":"Offer","name":"Plan Pro","price":"99","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","email":"unai@nodeflow.es"}}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Habla euskera el asistente de NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Sí. NodeFlow es el único asistente de voz IA con euskera nativo."}},{"@type":"Question","name":"¿Cuánto cuesta NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Desde 49€/mes para el plan Negocio."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Tengo que cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. NodeFlow se conecta a tu línea actual sin cambiar nada. Tus clientes siguen llamando al mismo número."}},{"@type":"Question","name":"¿Cuánto tiempo tarda en estar listo el asistente?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que rellenas el formulario. Solo necesitamos el nombre del negocio, el saludo inicial y el tipo de servicio."}},{"@type":"Question","name":"¿Habla euskera el asistente de NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Sí. NodeFlow usa voces clonadas de locutores vascos reales — no es traducción automática ni síntesis genérica. Suena como alguien del barrio."}},{"@type":"Question","name":"¿Cuánto cuesta NodeFlow?","acceptedAnswer":{"@type":"Answer","text":"Desde 49€/mes para el plan Negocio con 500 min/mes incluidos. También hay un plan gratuito con 50 min/mes."}},{"@type":"Question","name":"¿Puedo cancelar cuando quiera?","acceptedAnswer":{"@type":"Answer","text":"Sí. Sin permanencia ni penalización. Si decides cancelar, lo haces con un email y listo."}},{"@type":"Question","name":"¿Funciona con Google Calendar?","acceptedAnswer":{"@type":"Answer","text":"Sí. El asistente se conecta a tu Google Calendar y agenda citas directamente según tu disponibilidad real."}},{"@type":"Question","name":"¿Qué pasa si se acaban los minutos del plan?","acceptedAnswer":{"@type":"Answer","text":"Las llamadas siguen funcionando. Los minutos extra se facturan a 0,05€/min sin sorpresas. Recibirás un aviso al 80% del límite."}},{"@type":"Question","name":"¿Necesito instalar algo?","acceptedAnswer":{"@type":"Answer","text":"Nada. NodeFlow funciona en la nube. No hay apps que descargar ni hardware que instalar."}}]}</script>
 
   <!-- Plausible Analytics — privacy-first, no cookies, GDPR compliant -->
   <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
@@ -342,6 +342,25 @@
     .price-card li::before { content:'✓'; color:var(--green); font-weight:700; flex-shrink:0; }
     .price-euskera { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--accent-l); background:rgba(108,92,231,0.12); border:1px solid rgba(108,92,231,0.25); padding:3px 10px; border-radius:6px; }
 
+    /* ── FAQ ── */
+    .faq-section { padding:80px 0; position:relative; z-index:2; }
+    .faq-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:48px; }
+    @media(max-width:768px){ .faq-grid { grid-template-columns:1fr; } }
+    .faq-item { background:var(--card); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; transition:border-color .25s; }
+    .faq-item:hover { border-color:var(--border-accent); }
+    .faq-q { width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; background:none; border:none; color:var(--text); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; text-align:left; line-height:1.45; }
+    .faq-icon { flex-shrink:0; width:22px; height:22px; border-radius:6px; background:rgba(108,92,231,0.1); border:1px solid rgba(108,92,231,0.25); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--accent-l); transition:transform .3s; line-height:1; }
+    .faq-item.open .faq-icon { transform:rotate(45deg); }
+    .faq-a { max-height:0; overflow:hidden; transition:max-height .35s ease; }
+    .faq-a-inner { padding:0 22px 18px; font-size:13.5px; color:var(--dim); line-height:1.75; }
+    .faq-item.open .faq-a { max-height:220px; }
+
+    /* ── WhatsApp floating button ── */
+    .wa-float { position:fixed; bottom:28px; right:28px; z-index:9998; width:56px; height:56px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 24px rgba(37,211,102,0.45); transition:all .3s; cursor:pointer; }
+    .wa-float:hover { transform:scale(1.12); box-shadow:0 8px 36px rgba(37,211,102,0.55); }
+    .wa-float svg { width:28px; height:28px; }
+    @media(max-width:768px){ .wa-float { bottom:20px; right:16px; width:50px; height:50px; } .wa-float svg { width:24px; height:24px; } }
+
     /* ── CTA ── */
     .cta-section { padding:120px 0; text-align:center; position:relative; overflow:hidden; z-index:2; }
     .cta-section::before {
@@ -497,6 +516,7 @@
       <a href="#features" class="link">Funciones</a>
       <a href="#sectores" class="link">Sectores</a>
       <a href="#pricing" class="link">Precios</a>
+      <a href="#faq" class="link">FAQ</a>
       <a href="#euskera" class="link">Euskera</a>
     </div>
     <div class="nav-ctas">
@@ -513,6 +533,7 @@
   <a href="#features" onclick="toggleMenu()">Funciones</a>
   <a href="#sectores" onclick="toggleMenu()">Sectores</a>
   <a href="#pricing" onclick="toggleMenu()">Precios</a>
+  <a href="#faq" onclick="toggleMenu()">FAQ</a>
   <a href="#euskera" onclick="toggleMenu()">Euskera</a>
   <a href="/dashboard" onclick="toggleMenu()">Dashboard</a>
   <a href="#contacto" onclick="toggleMenu()" style="color:var(--accent-l);font-weight:600;">Hablar con ventas →</a>
@@ -558,7 +579,7 @@
       <div class="pipe-connector"></div>
       <div class="pipe-node pipe-tts">🗣️ Responde<small>Voz clonada nativa</small></div>
       <div class="pipe-connector"></div>
-      <div class="pipe-node pipe-tel">📞 Twilio<small>Tu número actual</small></div>
+      <div class="pipe-node pipe-tel">📞 Telefonía<small>Tu número actual</small></div>
     </div>
   </div>
 </section>
@@ -667,6 +688,50 @@
           <tr><td>Alta y configuración</td><td class="no">Semanas</td><td class="hl">✓ 24 horas</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="label reveal">Preguntas frecuentes</div>
+      <div class="title reveal">Todo lo que quieres saber<br>antes de empezar</div>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Tengo que cambiar mi número de teléfono?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">No. NodeFlow se conecta a tu línea actual sin cambiar nada. Tus clientes siguen llamando al mismo número y el asistente responde desde él.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Cuánto tiempo tarda en estar listo?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Menos de 24 horas desde que rellenas el formulario. Solo necesitamos el nombre del negocio, el saludo inicial y el tipo de servicio. El resto lo configuramos nosotros.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Qué pasa si el cliente quiere hablar con una persona?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">El asistente detecta cuándo la situación lo requiere y te avisa por WhatsApp con el resumen de la conversación. También puede transferir la llamada directamente a tu móvil si lo configuras así.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Es realmente euskera nativo o es una traducción?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Es euskera nativo. Las voces están clonadas de locutores vascos reales con fonología auténtica — no es síntesis genérica ni traducción automática. Suena como alguien del barrio, no como un robot.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Puedo cancelar cuando quiera?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Sí. Sin permanencia y sin penalización. Si en algún momento decides que no es para ti, cancelas con un email y listo. No hay contratos de 12 meses ni costes de baja.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Funciona con mi Google Calendar o sistema de citas?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Sí. El asistente se conecta a tu Google Calendar y agenda citas directamente según tu disponibilidad real. También integramos Calendly, Acuity y otros sistemas bajo solicitud.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Qué pasa si se me acaban los minutos del plan?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Las llamadas siguen funcionando con normalidad. Los minutos extra se facturan a €0,05/min sin sorpresas. Recibirás un aviso cuando estés al 80% del límite mensual.</div></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">¿Necesito instalar algo en mi teléfono o negocio?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Nada. NodeFlow funciona en la nube. No hay apps que descargar, no hay hardware que instalar. Nosotros nos encargamos de todo — tú solo recibes las llamadas ya gestionadas.</div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -846,6 +911,11 @@
     </div>
   </div>
 </section>
+
+<!-- WhatsApp floating button -->
+<a class="wa-float" href="https://wa.me/34666351319?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20NodeFlow" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
 
 <!-- Footer -->
 <footer>
@@ -1277,6 +1347,14 @@
       }
     });
   });
+
+  // ── FAQ accordion ────────────────────────────────────────────────
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
 </script>
 
 </body>
