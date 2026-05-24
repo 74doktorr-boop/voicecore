@@ -136,11 +136,13 @@
     .hero-badge .dot { width:8px; height:8px; border-radius:50%; background:#00cec9; box-shadow:0 0 8px #00cec9; animation:pulse 2s infinite; }
     .hero h1 {
       font-size:clamp(42px,7vw,80px); font-weight:900; letter-spacing:-3px; line-height:1.02;
-      margin-bottom:24px;
+      margin-bottom:24px; color:#fff;
+    }
+    .hero h1 .word {
+      display:inline-block;
       background:linear-gradient(150deg,#fff 30%,rgba(255,255,255,0.75) 60%,var(--accent-l) 100%);
       -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
     }
-    .hero h1 .word { display:inline-block; }
     .hero-sub { font-size:19px; color:var(--dim); max-width:600px; margin:0 auto 40px; line-height:1.75; }
     .hero-ctas { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
     .hero-trust { margin-top:22px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:13px; color:var(--muted); flex-wrap:wrap; }
@@ -848,10 +850,10 @@
   const heroTL = gsap.timeline({ delay: 0.2 });
   heroTL
     .from('#heroBadge', { y: 24, opacity: 0, duration: 0.7, ease: 'power3.out' })
-    .from('#heroTitle .word', {
-      y: 60, opacity: 0, duration: 0.8,
-      stagger: 0.08, ease: 'power3.out'
-    }, '-=0.3')
+    .fromTo('#heroTitle .word',
+      { y: 60, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, stagger: 0.08, ease: 'power3.out', clearProps: 'opacity,y,transform' },
+      '-=0.3')
     .from('#heroSub', { y: 24, opacity: 0, duration: 0.7, ease: 'power2.out' }, '-=0.5')
     .from('#heroCtas', { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out' }, '-=0.4')
     .from('#heroTrust', { opacity: 0, duration: 0.5 }, '-=0.3')
