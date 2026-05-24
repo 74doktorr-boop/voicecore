@@ -9,8 +9,16 @@ const logger = new Logger('BROWSER');
 class BrowserCallHandler {
   constructor(assistantManager) {
     this.assistantManager = assistantManager;
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    this._openai = null; // lazy-init to avoid crash if OPENAI_API_KEY missing at startup
     this.toolExecutor = new ToolExecutor();
+  }
+
+  get openai() {
+    if (!this._openai) {
+      if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+      this._openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    }
+    return this._openai;
   }
 
   handleConnection(ws, req) {
