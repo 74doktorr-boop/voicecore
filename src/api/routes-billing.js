@@ -174,6 +174,7 @@ function setupBillingRoutes(app, config) {
 
           if (registro) {
             // Mapear plan del formulario → plan interno
+            // 'negocio' (€49) → 'pro' (500 min) | 'pro' (€99) → 'business' (2000 min)
             const orgPlan = registro.plan === 'pro' ? 'business' : 'pro';
 
             // ── Crear org + asistente automáticamente ──

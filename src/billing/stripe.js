@@ -26,22 +26,26 @@ class StripeBilling {
     }
 
     // Plan → Stripe Price ID mapping
+    // Internal plan names vs landing form names:
+    //   starter  → Starter  (gratis, 50 min)
+    //   pro      → Negocio  (€49/mes, 500 min)   — form sends 'negocio'
+    //   business → Pro      (€99/mes, 2000 min)  — form sends 'pro'
     this.plans = {
       starter: {
         name: 'Starter', price: 0, priceId: config.starterPriceId || null,
-        minutes: 50, assistants: 1, overagePerMinute: 0.10,
+        minutes: 50, assistants: 1, overagePerMinute: 0.05,
       },
       pro: {
-        name: 'Pro', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
-        minutes: 500, assistants: 5, overagePerMinute: 0.08,
+        name: 'Negocio', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
+        minutes: 500, assistants: 1, overagePerMinute: 0.05,
       },
       business: {
-        name: 'Business', price: 14900, priceId: config.businessPriceId || process.env.STRIPE_BUSINESS_PRICE_ID,
-        minutes: 2000, assistants: 20, overagePerMinute: 0.06,
+        name: 'Pro', price: 9900, priceId: config.businessPriceId || process.env.STRIPE_BUSINESS_PRICE_ID,
+        minutes: 2000, assistants: 999, overagePerMinute: 0.05,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,
-        minutes: 99999, assistants: 999, overagePerMinute: 0.04,
+        minutes: 99999, assistants: 999, overagePerMinute: 0.03,
       },
     };
   }
