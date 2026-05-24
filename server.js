@@ -97,17 +97,22 @@ app.get('/', async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Sector SEO landing pages
-['peluquerias', 'clinicas', 'restaurantes', 'talleres'].forEach(sector => {
-  app.get(`/${sector}`, (req, res) => {
+// Sector SEO landing pages (with and without trailing slash)
+const SECTOR_PAGES = [
+  'peluquerias', 'clinicas', 'restaurantes', 'talleres',
+  'veterinarias', 'estetica', 'gimnasios', 'inmobiliarias',
+  'academias', 'asesorias', 'farmacias', 'hoteles',
+];
+SECTOR_PAGES.forEach(sector => {
+  app.get([`/${sector}`, `/${sector}/`], (req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', sector, 'index.html'));
   });
 });
 
-// Legal pages
+// Legal pages (with and without trailing slash)
 ['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
-  app.get(`/${page}`, (req, res) => {
+  app.get([`/${page}`, `/${page}/`], (req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', page, 'index.html'));
   });
