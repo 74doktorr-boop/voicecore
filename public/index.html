@@ -383,6 +383,7 @@
       padding:26px 18px; border-radius:16px; background:var(--card); border:1px solid var(--border);
       text-align:center; transition:all .3s; cursor:default; position:relative; overflow:hidden;
       opacity:1; /* fallback: never invisible if GSAP fails */
+      text-decoration:none; color:inherit; display:block;
     }
     .sector-card::after { content:''; position:absolute; inset:0; border-radius:16px; background:radial-gradient(circle at 50% 50%,rgba(108,92,231,0.12),transparent 70%); opacity:0; transition:opacity .3s; }
     .sector-card:hover { border-color:rgba(108,92,231,0.35); transform:translateY(-6px) scale(1.03); box-shadow:0 20px 40px rgba(0,0,0,0.25); }
@@ -828,11 +829,11 @@
       <div class="title reveal">Para cualquier negocio<br>que reciba llamadas</div>
     </div>
     <div class="sector-grid">
-      <div class="sector-card"><span class="icon">🍽️</span><h4>Restaurantes</h4><p>Reservas y menús</p></div>
-      <div class="sector-card"><span class="icon">🦷</span><h4>Clínicas dentales</h4><p>Citas y seguimiento</p></div>
-      <div class="sector-card"><span class="icon">✂️</span><h4>Peluquerías</h4><p>Agenda y servicios</p></div>
+      <a href="/restaurantes" class="sector-card"><span class="icon">🍽️</span><h4>Restaurantes</h4><p>Reservas y menús</p></a>
+      <a href="/clinicas" class="sector-card"><span class="icon">🦷</span><h4>Clínicas dentales</h4><p>Citas y seguimiento</p></a>
+      <a href="/peluquerias" class="sector-card"><span class="icon">✂️</span><h4>Peluquerías</h4><p>Agenda y servicios</p></a>
       <div class="sector-card"><span class="icon">🐾</span><h4>Veterinarias</h4><p>Urgencias y citas</p></div>
-      <div class="sector-card"><span class="icon">🔧</span><h4>Talleres</h4><p>Revisiones y presupuestos</p></div>
+      <a href="/talleres" class="sector-card"><span class="icon">🔧</span><h4>Talleres</h4><p>Revisiones y presupuestos</p></a>
       <div class="sector-card"><span class="icon">🏠</span><h4>Inmobiliarias</h4><p>Visitas y consultas</p></div>
       <div class="sector-card"><span class="icon">💆</span><h4>Centros estética</h4><p>Tratamientos y bonos</p></div>
       <div class="sector-card"><span class="icon">🏋️</span><h4>Gimnasios</h4><p>Altas y clases</p></div>

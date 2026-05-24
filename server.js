@@ -105,6 +105,14 @@ app.get('/', async (req, res) => {
   });
 });
 
+// Legal pages
+['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
+  app.get(`/${page}`, (req, res) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', page, 'index.html'));
+  });
+});
+
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false, // root handled above
