@@ -39,8 +39,58 @@ class SchedulingSystem {
       slotInterval: 10, // minutes between slot starts
     });
 
+    // ─── Lumina Centro de Estética ───
+    this.setBusinessConfig('lumina-estetica', {
+      name: 'Lumina Centro de Estética',
+      timezone: 'Europe/Madrid',
+      services: [
+        // Depilación láser
+        { id: 'laser-piernas',       name: 'Depilación láser piernas completas',    duration: 90,  price: 89  },
+        { id: 'laser-piernas-medias',name: 'Depilación láser piernas medias',       duration: 45,  price: 55  },
+        { id: 'laser-axilas',        name: 'Depilación láser axilas',               duration: 20,  price: 29  },
+        { id: 'laser-bikini',        name: 'Depilación láser bikini clásica',       duration: 25,  price: 35  },
+        { id: 'laser-bikini-full',   name: 'Depilación láser bikini completa',      duration: 35,  price: 55  },
+        { id: 'laser-labio',         name: 'Depilación láser labio superior',       duration: 15,  price: 19  },
+        { id: 'laser-combo',         name: 'Combo láser piernas+axilas+bikini',     duration: 115, price: 169 },
+        // Faciales
+        { id: 'facial-limpieza',     name: 'Limpieza facial profunda',              duration: 60,  price: 45  },
+        { id: 'facial-hidratacion',  name: 'Hidratación profunda',                  duration: 60,  price: 65  },
+        { id: 'facial-antiedad',     name: 'Tratamiento anti-edad radiofrecuencia', duration: 75,  price: 95  },
+        { id: 'facial-peeling',      name: 'Peeling químico',                       duration: 45,  price: 55  },
+        { id: 'facial-mesoterapia',  name: 'Mesoterapia facial sin agujas',         duration: 60,  price: 75  },
+        // Corporales
+        { id: 'masaje-relajante',    name: 'Masaje relajante aromaterapia',         duration: 60,  price: 55  },
+        { id: 'masaje-deportivo',    name: 'Masaje deportivo descontracturante',    duration: 60,  price: 65  },
+        { id: 'drenaje',             name: 'Drenaje linfático manual',              duration: 60,  price: 60  },
+        { id: 'reductor',            name: 'Tratamiento reductor ultrasonidos',     duration: 60,  price: 75  },
+        { id: 'envoltura',           name: 'Envoltura reafirmante algas',           duration: 60,  price: 70  },
+        // Manos y pies
+        { id: 'manicura',            name: 'Manicura clásica',                      duration: 30,  price: 18  },
+        { id: 'manicura-semi',       name: 'Manicura semipermanente',               duration: 45,  price: 28  },
+        { id: 'pedicura',            name: 'Pedicura completa',                     duration: 60,  price: 30  },
+        { id: 'unas-gel',            name: 'Uñas de gel construcción',              duration: 75,  price: 45  },
+        { id: 'combo-mani-pedi',     name: 'Combo manicura semi + pedicura',        duration: 90,  price: 50  },
+        // Pestañas y cejas
+        { id: 'lifting-pestanas',    name: 'Lifting de pestañas + tinte',           duration: 60,  price: 45  },
+        { id: 'extensiones',         name: 'Extensiones pestañas pelo a pelo',      duration: 120, price: 85  },
+        { id: 'extensiones-relleno', name: 'Relleno extensiones pestañas',          duration: 45,  price: 45  },
+        { id: 'laminado-cejas',      name: 'Laminado de cejas + tinte',             duration: 50,  price: 38  },
+        { id: 'cejas-hilo',          name: 'Depilación cejas con hilo',             duration: 15,  price: 12  },
+      ],
+      schedule: {
+        1: { open: '09:00', close: '14:00' }, // Lunes: solo mañana
+        2: { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' },
+        3: { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' },
+        4: { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' },
+        5: { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' },
+        6: { open: '09:00', close: '14:00' }, // Sábado: solo mañana
+      },
+      slotInterval: 15,
+    });
+
     // Seed some demo appointments
     this._seedDemoAppointments();
+    this._seedLuminaAppointments();
   }
 
   setBusinessConfig(businessId, config) {
@@ -247,6 +297,52 @@ class SchedulingSystem {
     this.bookAppointment('demo-clinic', { patientName: 'Elena Martín', phone: '666555666', service: 'empaste', date: dayAfterStr, time: '09:30' });
 
     log.info(`Seeded ${this.appointments.size} demo appointments`);
+  }
+
+  // ─── Lumina: Citas pre-sembradas para el demo ───
+  // Simula una semana real con muchos huecos ocupados
+  _seedLuminaAppointments() {
+    const d = (offset) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return date.toISOString().split('T')[0];
+    };
+
+    const book = (offset, time, service, name, phone = '666000000') => {
+      this.bookAppointment('lumina-estetica', {
+        patientName: name, phone, service, date: d(offset), time
+      });
+    };
+
+    // Mañana
+    book(1, '09:00', 'facial-antiedad',     'Marta Álvarez',     '666100200');
+    book(1, '10:30', 'laser-piernas',       'Laura Moreno',      '666300400');
+    book(1, '13:00', 'manicura-semi',       'Isabel Ruiz',       '666500600');
+    book(1, '15:30', 'reductor',            'Carmen Díez',       '666700800');
+    book(1, '18:00', 'masaje-relajante',    'Ana Etxebarria',    '666900100');
+
+    // Pasado mañana
+    book(2, '09:00', 'facial-limpieza',     'Patricia González', '666111222');
+    book(2, '10:00', 'extensiones',         'Nerea Iturriaga',   '666333444');
+    book(2, '12:00', 'laminado-cejas',      'Ainhoa Martínez',   '666555666');
+    book(2, '15:30', 'laser-piernas',       'Amaia Uriarte',     '666777888');
+    book(2, '17:30', 'masaje-deportivo',    'Sofía Castillo',    '666999000');
+
+    // En 3 días
+    book(3, '09:30', 'lifting-pestanas',    'Julia López',       '666121314');
+    book(3, '10:30', 'facial-hidratacion',  'Ingrid Sanz',       '666151617');
+    book(3, '11:30', 'laser-combo',         'Lucía Fernández',   '666181920');
+    book(3, '15:30', 'masaje-relajante',    'Elena Vega',        '666212223');
+    book(3, '17:00', 'pedicura',            'Rosa Martín',       '666242526');
+
+    // En 4 días
+    book(4, '09:00', 'drenaje',             'Julia Herrera',     '666272829');
+    book(4, '10:30', 'extensiones-relleno', 'Marina Soto',       '666303132');
+    book(4, '12:00', 'combo-mani-pedi',     'Cristina Pérez',    '666333435');
+    book(4, '15:30', 'facial-antiedad',     'Beatriz Iglesias',  '666363738');
+    book(4, '17:30', 'reductor',            'Silvia Romero',     '666394041');
+
+    log.info(`Lumina: ${[...this.appointments.values()].filter(a => a.businessId === 'lumina-estetica').length} citas de demo sembradas`);
   }
 }
 
