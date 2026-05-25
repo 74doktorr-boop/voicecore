@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NodeFlow — Oferta exclusiva lectores de Hementxe</title>
-<meta name="description" content="Lectores de Hementxe: 10% de descuento permanente en tu asistente IA vocal. Código HEMENTXE10.">
+<title>NodeFlow — Oferta exclusiva lectores de Hementxe · Andoain</title>
+<meta name="description" content="Lectores de Hementxe en Andoain: 10% de descuento permanente en tu asistente IA vocal. Código HEMENTXE10.">
 <meta name="robots" content="noindex">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --purple:#6c5ce7;--purple-light:#a29bfe;
-  --gold:#f9ca24;--green:#00b894;
+  --gold:#f9ca24;--green:#00b894;--wa:#25d366;
   --bg:#0d0d1a;--border:rgba(255,255,255,0.1);
-  --muted:#636e72;
+  --surface:rgba(255,255,255,0.04);--muted:#636e72;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:#dfe6e9;min-height:100vh}
 
+/* ── NAV ── */
 nav{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 24px;border-bottom:1px solid var(--border);
@@ -28,147 +29,163 @@ nav{
 .nav-logo span{color:var(--purple)}
 .nav-badge{background:linear-gradient(135deg,var(--gold),#e17055);color:#000;font-size:11px;font-weight:800;padding:5px 12px;border-radius:20px;letter-spacing:.5px}
 
-/* HERO */
+/* ── HERO ── */
 .hero{
-  padding:56px 20px 52px;
-  text-align:center;
+  padding:56px 20px 52px;text-align:center;
   background:linear-gradient(160deg,#1a0a3e 0%,#0d0d1a 55%,#001a2e 100%);
   position:relative;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;gap:0;
+  display:flex;flex-direction:column;align-items:center;
 }
 .hero::before{content:'';position:absolute;top:-80px;right:-80px;width:360px;height:360px;background:radial-gradient(circle,rgba(108,92,231,.18) 0%,transparent 70%);border-radius:50%;pointer-events:none}
 .hero::after{content:'';position:absolute;bottom:-60px;left:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(0,184,148,.1) 0%,transparent 70%);border-radius:50%;pointer-events:none}
 
-.from-badge{
-  display:inline-flex;align-items:center;gap:8px;
-  background:rgba(249,202,36,.1);border:1px solid rgba(249,202,36,.3);
-  border-radius:20px;padding:6px 16px;
-  font-size:13px;color:var(--gold);font-weight:600;
-  margin-bottom:28px;position:relative;z-index:1;
-}
-.hero h1{
-  font-size:clamp(36px,7vw,58px);font-weight:900;
-  line-height:1.08;letter-spacing:-2px;
-  color:#fff;margin-bottom:20px;
-  position:relative;z-index:1;
-}
-.hero h1 em{
-  font-style:normal;
-  background:linear-gradient(90deg,var(--purple-light),var(--purple));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-sub{
-  font-size:clamp(15px,2.5vw,18px);color:#b2bec3;
-  line-height:1.65;max-width:520px;
-  margin-bottom:32px;position:relative;z-index:1;
-}
-.euskera-tag{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:13px;font-weight:700;color:var(--green);
-  margin-bottom:32px;position:relative;z-index:1;
-}
-.dot{width:8px;height:8px;background:var(--green);border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+.from-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(249,202,36,.1);border:1px solid rgba(249,202,36,.3);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--gold);font-weight:600;margin-bottom:28px;position:relative;z-index:1}
+.hero h1{font-size:clamp(36px,7vw,58px);font-weight:900;line-height:1.08;letter-spacing:-2px;color:#fff;margin-bottom:20px;position:relative;z-index:1}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--purple-light),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(15px,2.5vw,18px);color:#b2bec3;line-height:1.65;max-width:520px;margin-bottom:32px;position:relative;z-index:1}
+.euskera-tag{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;color:var(--green);margin-bottom:32px;position:relative;z-index:1}
+.dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* COUPON BLOCK */
-.coupon-block{
-  width:100%;max-width:420px;
-  background:linear-gradient(135deg,rgba(249,202,36,.1),rgba(225,112,85,.08));
-  border:1.5px dashed rgba(249,202,36,.55);
-  border-radius:16px;padding:22px 28px;
-  margin-bottom:32px;position:relative;z-index:1;
-}
+.coupon-block{width:100%;max-width:420px;background:linear-gradient(135deg,rgba(249,202,36,.1),rgba(225,112,85,.08));border:1.5px dashed rgba(249,202,36,.55);border-radius:16px;padding:22px 28px;margin-bottom:32px;position:relative;z-index:1}
 .coupon-block-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
 .coupon-block-code{font-size:36px;font-weight:900;color:var(--gold);letter-spacing:4px;line-height:1;margin-bottom:6px}
 .coupon-block-desc{font-size:13px;color:#b2bec3}
 
-.cta-btn{
-  display:inline-block;
-  background:linear-gradient(135deg,#6c5ce7,#5a4fcf);
-  color:#fff;padding:17px 36px;border-radius:14px;
-  font-size:17px;font-weight:700;text-decoration:none;
-  position:relative;z-index:1;
-  box-shadow:0 8px 32px rgba(108,92,231,.35);
-  transition:transform .15s,box-shadow .15s;
-}
-.cta-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(108,92,231,.45)}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#6c5ce7,#5a4fcf);color:#fff;padding:17px 36px;border-radius:14px;font-size:17px;font-weight:700;text-decoration:none;position:relative;z-index:1;box-shadow:0 8px 32px rgba(108,92,231,.35);transition:transform .15s}
+.cta-btn:hover{transform:translateY(-2px)}
 
-/* VALUE PROPS */
+/* ── VALUE PROPS ── */
 .props{max-width:600px;margin:48px auto 0;padding:0 20px}
 .props-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.prop{
-  background:rgba(255,255,255,0.04);border:1px solid var(--border);
-  border-radius:14px;padding:20px 16px;
-}
+.prop{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 16px}
 .prop-icon{font-size:26px;margin-bottom:10px}
 .prop-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:5px}
 .prop-desc{font-size:12px;color:var(--muted);line-height:1.55}
 
-/* FORM */
-.form-wrap{max-width:520px;margin:40px auto 0;padding:0 20px 80px}
-.form-card{
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:20px;padding:32px 28px;
+/* ── DEMO ── */
+.demo-wrap{max-width:560px;margin:48px auto 0;padding:0 20px}
+.demo-heading{text-align:center;margin-bottom:20px}
+.demo-heading h2{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}
+.demo-heading p{font-size:14px;color:var(--muted)}
+
+.demo-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.demo-phonebar{
+  background:rgba(255,255,255,.06);padding:14px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
 }
+.demo-phonebar-left{display:flex;align-items:center;gap:12px}
+.demo-avt{
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,var(--purple),#5a4fcf);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.demo-dname{font-size:14px;font-weight:700;color:#fff}
+.demo-dstatus{font-size:12px;color:var(--green);display:flex;align-items:center;gap:5px}
+.sdot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;flex-shrink:0}
+.demo-duration{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.demo-messages{padding:18px;display:flex;flex-direction:column;gap:10px;min-height:220px;max-height:300px;overflow-y:auto}
+.dmsg{display:flex;gap:8px;opacity:0;transition:opacity .4s}
+.dmsg.show{opacity:1}
+.dmsg.user{flex-direction:row-reverse}
+.davt{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px}
+.dmsg.bot .davt{background:linear-gradient(135deg,var(--purple),#5a4fcf)}
+.dmsg.user .davt{background:rgba(255,255,255,.1)}
+.dbubble{max-width:78%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.55}
+.dmsg.bot .dbubble{background:rgba(108,92,231,.18);border:1px solid rgba(108,92,231,.3);color:#e2e8f0;border-radius:4px 14px 14px 14px}
+.dmsg.user .dbubble{background:rgba(255,255,255,.08);color:#e2e8f0;border-radius:14px 4px 14px 14px}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--purple-light);animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+/* Live call overlay — same container, different content */
+.live-transcript{padding:18px;display:flex;flex-direction:column;gap:10px;min-height:220px;max-height:300px;overflow-y:auto}
+
+.demo-bar{
+  padding:14px 18px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.demo-bar-hint{flex:1;font-size:13px;color:var(--muted)}
+.demo-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--green);color:#fff;border:none;
+  padding:11px 18px;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;white-space:nowrap;transition:background .2s;
+}
+.demo-btn:hover{background:#1dac55}
+.demo-btn.live{background:#e17055}
+.demo-btn.live:hover{background:#c0392b}
+.demo-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.live-status{font-size:12px;color:var(--green);display:none;align-items:center;gap:6px;flex:1}
+.live-status.show{display:flex}
+.live-bars{display:flex;align-items:center;gap:2px;height:16px}
+.lb{width:3px;border-radius:2px;background:var(--green)}
+.lb:nth-child(1){animation:lbar 1s .0s infinite}
+.lb:nth-child(2){animation:lbar 1s .1s infinite}
+.lb:nth-child(3){animation:lbar 1s .2s infinite}
+.lb:nth-child(4){animation:lbar 1s .3s infinite}
+.lb:nth-child(5){animation:lbar 1s .4s infinite}
+@keyframes lbar{0%,100%{height:4px}50%{height:14px}}
+
+/* ── FORM ── */
+.form-wrap{max-width:520px;margin:40px auto 0;padding:0 20px}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px}
 .form-card h2{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}
 .form-card>p{font-size:14px;color:var(--muted);margin-bottom:24px}
-
 .field{margin-bottom:15px}
 label{display:block;font-size:13px;font-weight:600;color:#b2bec3;margin-bottom:6px}
 label .r{color:var(--purple-light)}
-input,select{
-  width:100%;padding:12px 14px;
-  background:rgba(255,255,255,.06);border:1px solid var(--border);
-  border-radius:10px;color:#fff;font-size:14px;font-family:inherit;
-  outline:none;transition:border-color .2s;-webkit-appearance:none;
-}
+input,select{width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none}
 input:focus,select:focus{border-color:var(--purple)}
 input::placeholder{color:var(--muted)}
 select option{background:#1a1a2e;color:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-/* Plan selector */
 .plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .plan-lbl{position:relative;cursor:pointer}
 .plan-lbl input{position:absolute;opacity:0;width:0;height:0}
-.plan-card{
-  background:rgba(255,255,255,.05);border:1.5px solid var(--border);
-  border-radius:12px;padding:14px 10px;text-align:center;transition:all .2s;
-}
+.plan-card{background:rgba(255,255,255,.05);border:1.5px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;transition:all .2s}
 .plan-lbl input:checked+.plan-card{border-color:var(--purple);background:rgba(108,92,231,.15)}
 .pname{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple-light);margin-bottom:4px}
 .pold{font-size:11px;color:var(--muted);text-decoration:line-through}
 .pprice{font-size:24px;font-weight:900;color:#fff;line-height:1.1}
 .pprice small{font-size:12px;font-weight:500;color:#b2bec3}
 .pmins{font-size:11px;color:#74b9ff;margin-top:2px}
-
-/* Coupon applied */
-.coupon-applied-bar{
-  display:flex;align-items:center;gap:10px;
-  background:rgba(249,202,36,.08);border:1px solid rgba(249,202,36,.3);
-  border-radius:10px;padding:12px 14px;margin-bottom:18px;
-}
+.coupon-applied-bar{display:flex;align-items:center;gap:10px;background:rgba(249,202,36,.08);border:1px solid rgba(249,202,36,.3);border-radius:10px;padding:12px 14px;margin-bottom:18px}
 .ca-code{flex:1;font-size:15px;font-weight:800;color:var(--gold);letter-spacing:1.5px}
 .ca-badge{background:rgba(0,184,148,.15);border:1px solid rgba(0,184,148,.4);color:var(--green);font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap}
-
-.btn-submit{
-  width:100%;padding:16px;
-  background:linear-gradient(135deg,var(--purple),#5a4fcf);
-  color:#fff;border:none;border-radius:12px;
-  font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;
-  transition:opacity .2s;
-}
+.btn-submit{width:100%;padding:16px;background:linear-gradient(135deg,var(--purple),#5a4fcf);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s}
 .btn-submit:hover{opacity:.9}
 .btn-submit:disabled{opacity:.55;cursor:not-allowed}
 .form-legal{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.55}
 .form-legal a{color:var(--purple-light);text-decoration:none}
 .form-error{display:none;background:rgba(225,112,85,.15);border:1px solid rgba(225,112,85,.4);border-radius:10px;padding:12px 14px;font-size:13px;color:#e17055;margin-top:12px}
 
-footer{text-align:center;padding:24px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+/* ── WHATSAPP ── */
+.wa-wrap{max-width:520px;margin:24px auto 60px;padding:0 20px}
+.wa-card{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:20px;padding:24px}
+.wa-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
+.wa-ico{font-size:36px;flex-shrink:0}
+.wa-card h3{font-size:18px;font-weight:800;color:#fff;margin-bottom:5px}
+.wa-card p{font-size:14px;color:#b2bec3;line-height:1.55}
+.wa-btn{display:inline-flex;align-items:center;gap:8px;background:var(--wa);color:#fff;padding:13px 22px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;transition:background .2s}
+.wa-btn:hover{background:#1dac55}
+
+.wa-float{position:fixed;bottom:24px;right:24px;z-index:200;width:58px;height:58px;border-radius:50%;background:var(--wa);display:flex;align-items:center;justify-content:center;font-size:30px;text-decoration:none;box-shadow:0 4px 24px rgba(37,211,102,.5);transition:transform .2s}
+.wa-float:hover{transform:scale(1.1)}
+
+footer{text-align:center;padding:20px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
 footer a{color:var(--purple-light);text-decoration:none}
 
 @media(max-width:480px){
   .row,.props-grid,.plans{grid-template-columns:1fr}
+  .wa-top{flex-direction:column;gap:10px}
 }
 </style>
 </head>
@@ -179,70 +196,82 @@ footer a{color:var(--purple-light);text-decoration:none}
   <div class="nav-badge">HEMENTXE − 10%</div>
 </nav>
 
+<!-- HERO -->
 <section class="hero">
-  <div class="from-badge">📰 Lector de Hementxe — Has llegado al lugar correcto</div>
-
+  <div class="from-badge">📰 Lector de Hementxe · Andoain — Has llegado al lugar correcto</div>
   <h1>Tu negocio nunca más<br><em>pierde una llamada.</em></h1>
-
-  <p class="hero-sub">Inteligencia Artificial que atiende a tus clientes las 24 horas, gestiona reservas y responde preguntas — aunque estés trabajando, comiendo o durmiendo.</p>
-
+  <p class="hero-sub">Cuántas veces ha llamado un cliente y no has podido coger el teléfono. Con NodeFlow, tu asistente IA atiende 24 horas — también fuera de tu horario y cuando el negocio está cerrado.</p>
   <div class="euskera-tag">
     <div class="dot"></div>
     Muy pronto disponible en EUSKERA NATIVO &nbsp;·&nbsp; Laster euskaraz!
   </div>
-
   <div class="coupon-block">
-    <div class="coupon-block-label">✂ Código exclusivo lectores de Hementxe</div>
+    <div class="coupon-block-label">✂ Código exclusivo lectores de Hementxe · Andoain</div>
     <div class="coupon-block-code">HEMENTXE10</div>
     <div class="coupon-block-desc">10% de descuento permanente · Solo este trimestre</div>
   </div>
-
   <a href="#registro" class="cta-btn">Quiero mi asistente IA →</a>
 </section>
 
+<!-- VALUE PROPS -->
 <section style="padding:48px 0 0">
   <div class="props">
     <div class="props-grid">
-      <div class="prop">
-        <div class="prop-icon">📞</div>
-        <div class="prop-title">24/7, nunca da señal de ocupado</div>
-        <div class="prop-desc">Tu asistente atiende mientras tú trabajas, comes o descansas.</div>
+      <div class="prop"><div class="prop-icon">🌙</div><div class="prop-title">Fuera de horario, sin problema</div><div class="prop-desc">Atiende tardes, fines de semana y festivos. Ni un cliente se va sin respuesta.</div></div>
+      <div class="prop"><div class="prop-icon">📅</div><div class="prop-title">Reservas automáticas</div><div class="prop-desc">Consulta disponibilidad, reserva citas y las anota sin que toques nada.</div></div>
+      <div class="prop"><div class="prop-icon">⚡</div><div class="prop-title">Listo en menos de 24h</div><div class="prop-desc">Configuramos tu asistente con tu voz, horarios y servicios de Andoain.</div></div>
+      <div class="prop"><div class="prop-icon">🔓</div><div class="prop-title">Sin permanencias</div><div class="prop-desc">Cancela cuando quieras. Sin letra pequeña ni penalizaciones.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO EN VIVO -->
+<section style="padding:48px 0 0">
+  <div class="demo-wrap">
+    <div class="demo-heading">
+      <h2>Pruébala tú mismo, ahora</h2>
+      <p>Así suena cuando un cliente llama a una peluquería de Andoain un sábado por la tarde</p>
+    </div>
+    <div class="demo-card">
+      <div class="demo-phonebar">
+        <div class="demo-phonebar-left">
+          <div class="demo-avt">🎙️</div>
+          <div>
+            <div class="demo-dname">Valentina · Asistente IA NodeFlow</div>
+            <div class="demo-dstatus"><div class="sdot"></div>En línea · Demo Andoain</div>
+          </div>
+        </div>
+        <div class="demo-duration" id="demoDuration"></div>
       </div>
-      <div class="prop">
-        <div class="prop-icon">📅</div>
-        <div class="prop-title">Reservas automáticas</div>
-        <div class="prop-desc">Consulta disponibilidad, reserva citas y las anota sin que toques nada.</div>
-      </div>
-      <div class="prop">
-        <div class="prop-icon">⚡</div>
-        <div class="prop-title">Listo en menos de 24h</div>
-        <div class="prop-desc">Configuramos tu asistente con tu voz, horarios y servicios.</div>
-      </div>
-      <div class="prop">
-        <div class="prop-icon">🔓</div>
-        <div class="prop-title">Sin permanencias</div>
-        <div class="prop-desc">Cancela cuando quieras. Sin letra pequeña.</div>
+
+      <!-- Conversación simulada (visible por defecto) -->
+      <div class="demo-messages" id="demoMessages"></div>
+
+      <!-- Conversación en vivo (oculta hasta que se conecta) -->
+      <div class="live-transcript" id="liveTranscript" style="display:none"></div>
+
+      <div class="demo-bar">
+        <div class="live-status" id="liveStatus">
+          <div class="live-bars"><div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div></div>
+          <span id="liveStatusText">Escuchando…</span>
+        </div>
+        <div class="demo-bar-hint" id="demoHint">Escucha la simulación o llama en directo con tu micrófono</div>
+        <button class="demo-btn" id="demoCallBtn" onclick="toggleCall()">🎙️ Llamar en directo</button>
       </div>
     </div>
   </div>
 </section>
 
+<!-- FORM -->
 <section id="registro" style="padding:40px 0 0">
   <div class="form-wrap">
     <div class="form-card">
       <h2>Activa tu asistente IA</h2>
-      <p>Rellena el formulario y reserva tu plan con el descuento ya aplicado.</p>
-
+      <p>Rellena el formulario y reserva con el descuento ya aplicado.</p>
       <form id="regForm">
         <div class="row">
-          <div class="field">
-            <label>Tu nombre <span class="r">*</span></label>
-            <input name="contacto" placeholder="Miren Etxeberria" required>
-          </div>
-          <div class="field">
-            <label>Nombre del negocio <span class="r">*</span></label>
-            <input name="negocio" placeholder="Clínica Salud Andoain" required>
-          </div>
+          <div class="field"><label>Tu nombre <span class="r">*</span></label><input name="contacto" placeholder="Miren Etxeberria" required></div>
+          <div class="field"><label>Nombre del negocio <span class="r">*</span></label><input name="negocio" placeholder="Clínica Salud Andoain" required></div>
         </div>
         <div class="field">
           <label>Sector <span class="r">*</span></label>
@@ -262,64 +291,244 @@ footer a{color:var(--purple-light);text-decoration:none}
           </select>
         </div>
         <div class="row">
-          <div class="field">
-            <label>Teléfono <span class="r">*</span></label>
-            <input type="tel" name="telefono" placeholder="+34 666 000 000" required>
-          </div>
-          <div class="field">
-            <label>Email <span class="r">*</span></label>
-            <input type="email" name="email" placeholder="tu@email.com" required>
-          </div>
+          <div class="field"><label>Teléfono <span class="r">*</span></label><input type="tel" name="telefono" placeholder="+34 666 000 000" required></div>
+          <div class="field"><label>Email <span class="r">*</span></label><input type="email" name="email" placeholder="tu@email.com" required></div>
         </div>
         <div class="field">
           <label>Elige tu plan <span class="r">*</span></label>
           <div class="plans">
-            <label class="plan-lbl">
-              <input type="radio" name="plan" value="negocio" required>
-              <div class="plan-card">
-                <div class="pname">Negocio</div>
-                <div class="pold">€49/mes</div>
-                <div class="pprice">€44<small>/mes</small></div>
-                <div class="pmins">500 min · 1 asistente</div>
-              </div>
-            </label>
-            <label class="plan-lbl">
-              <input type="radio" name="plan" value="pro">
-              <div class="plan-card">
-                <div class="pname">Pro</div>
-                <div class="pold">€99/mes</div>
-                <div class="pprice">€89<small>/mes</small></div>
-                <div class="pmins">2.000 min · Ilimitados</div>
-              </div>
-            </label>
+            <label class="plan-lbl"><input type="radio" name="plan" value="negocio" required><div class="plan-card"><div class="pname">Negocio</div><div class="pold">€49/mes</div><div class="pprice">€44<small>/mes</small></div><div class="pmins">500 min · 1 asistente</div></div></label>
+            <label class="plan-lbl"><input type="radio" name="plan" value="pro"><div class="plan-card"><div class="pname">Pro</div><div class="pold">€99/mes</div><div class="pprice">€89<small>/mes</small></div><div class="pmins">2.000 min · Ilimitados</div></div></label>
           </div>
         </div>
-
         <div class="coupon-applied-bar">
           <span>🏷️</span>
           <span class="ca-code">HEMENTXE10</span>
           <span class="ca-badge">✓ −10% aplicado</span>
         </div>
-
         <button type="submit" class="btn-submit" id="submitBtn">Continuar al pago →</button>
         <div class="form-error" id="formError"></div>
-        <p class="form-legal">Serás redirigido a Stripe para el pago seguro · Sin permanencias · <a href="https://nodeflow.es/privacidad" target="_blank">Privacidad</a></p>
+        <p class="form-legal">Redirigido a Stripe para el pago seguro · Sin permanencias · <a href="https://nodeflow.es/privacidad" target="_blank">Privacidad</a></p>
       </form>
     </div>
   </div>
 </section>
 
+<!-- WHATSAPP CONTACT -->
+<div class="wa-wrap">
+  <div class="wa-card">
+    <div class="wa-top">
+      <div class="wa-ico">💬</div>
+      <div>
+        <h3>¿Tienes dudas? Escríbeme directamente</h3>
+        <p>Soy Unai, de Andoain. Cuéntame cómo es tu negocio y te explico en 5 minutos qué puede hacer la IA por ti — sin ningún compromiso.</p>
+      </div>
+    </div>
+    <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20el%20anuncio%20de%20NodeFlow%20en%20Hementxe%20y%20tengo%20una%20pregunta" class="wa-btn" target="_blank">
+      💬 Escribir por WhatsApp →
+    </a>
+  </div>
+</div>
+
 <footer>
-  <p>⚡ <strong style="color:#a29bfe">NodeFlow</strong> · Tecnología de voz IA para negocios locales · Hecho en Euskal Herria</p>
+  <p>⚡ <strong style="color:#a29bfe">NodeFlow</strong> · IA de voz para negocios de Andoain y Gipuzkoa · Hecho en Euskal Herria</p>
   <p style="margin-top:6px"><a href="https://nodeflow.es">nodeflow.es</a> · unai@nodeflow.es · +34 666 351 319</p>
 </footer>
 
+<!-- Botón flotante WhatsApp -->
+<a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20NodeFlow%20en%20Hementxe" class="wa-float" target="_blank" title="WhatsApp">💬</a>
+
 <script>
+// ══ STRIPE ════════════════════════════════════════════════════════════════════
 const STRIPE_URLS = {
   negocio: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
   pro:     'https://buy.stripe.com/9B6aEY2m4aRLeJgdfu24003',
 };
 
+// ══ DEMO SIMULADA ════════════════════════════════════════════════════════════
+const DEMO = [
+  { role:'bot',  text:'¡Hola buenas! Gracias por llamar a Peluquería Karmele de Andoain, soy Valentina. ¿En qué te puedo ayudar?' },
+  { role:'user', text:'Hola, quería pedir cita para el sábado, si es posible' },
+  { role:'bot',  text:'¡Claro que sí! El sábado tenemos disponibles las 10:00, las 11:30 y las 16:00. ¿Cuál te viene mejor?' },
+  { role:'user', text:'Las 11:30 estaría genial' },
+  { role:'bot',  text:'Perfecto 😊 ¿Me dices tu nombre para anotar la reserva?' },
+  { role:'user', text:'Mikel Garmendia' },
+  { role:'bot',  text:'Listo Mikel, quedas apuntado el sábado a las 11:30. ¡Te esperamos en Karmele! ¿Algo más?' },
+];
+
+function addDemoMsg(role, text, container) {
+  const div = document.createElement('div');
+  div.className = `dmsg ${role}`;
+  div.innerHTML = `<div class="davt">${role==='bot'?'🎙️':'👤'}</div><div class="dbubble">${text}</div>`;
+  container.appendChild(div);
+  requestAnimationFrame(() => div.classList.add('show'));
+  container.scrollTop = container.scrollHeight;
+}
+
+function addTyping(container) {
+  const div = document.createElement('div');
+  div.className = 'dmsg bot show';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="davt">🎙️</div><div class="dbubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+async function runDemo() {
+  const container = document.getElementById('demoMessages');
+  container.innerHTML = '';
+  for (let i = 0; i < DEMO.length; i++) {
+    const msg = DEMO[i];
+    if (msg.role === 'bot' && i > 0) {
+      const t = addTyping(container);
+      await delay(900);
+      t.remove();
+    } else {
+      await delay(i === 0 ? 400 : 1200);
+    }
+    addDemoMsg(msg.role, msg.text, container);
+    await delay(msg.role === 'bot' ? 200 : 600);
+  }
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+runDemo();
+
+// ══ LLAMADA EN VIVO ══════════════════════════════════════════════════════════
+let ws = null, audioCtx = null, mediaStream = null, processor = null;
+let callActive = false, audioQueue = Promise.resolve(), durationTimer = null, seconds = 0;
+
+function floatTo16(input) {
+  const buf = new ArrayBuffer(input.length * 2);
+  const view = new DataView(buf);
+  for (let i = 0; i < input.length; i++) {
+    const s = Math.max(-1, Math.min(1, input[i]));
+    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return buf;
+}
+
+function fmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` }
+
+function setLiveStatus(text, show) {
+  const st = document.getElementById('liveStatus');
+  const stTxt = document.getElementById('liveStatusText');
+  const hint = document.getElementById('demoHint');
+  st.classList.toggle('show', show);
+  if (hint) hint.style.display = show ? 'none' : '';
+  if (text) stTxt.textContent = text;
+}
+
+function addLiveMsg(role, text) {
+  const c = document.getElementById('liveTranscript');
+  const div = document.createElement('div');
+  div.className = `dmsg ${role} show`;
+  div.innerHTML = `<div class="davt">${role==='bot'?'🎙️':'👤'}</div><div class="dbubble">${text}</div>`;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+
+async function toggleCall() {
+  if (callActive) { stopCall(); return; }
+  await startCall();
+}
+
+async function startCall() {
+  const btn = document.getElementById('demoCallBtn');
+  btn.disabled = true;
+  btn.textContent = 'Conectando…';
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    alert('Necesitas permitir el acceso al micrófono para la llamada en directo.');
+    btn.disabled = false;
+    btn.textContent = '🎙️ Llamar en directo';
+    return;
+  }
+
+  // Ocultar demo simulada, mostrar transcript en vivo
+  document.getElementById('demoMessages').style.display = 'none';
+  document.getElementById('liveTranscript').style.display = 'flex';
+  document.getElementById('liveTranscript').innerHTML = '';
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/talk?assistant=lumina-estetica`);
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    callActive = true;
+    btn.className = 'demo-btn live';
+    btn.textContent = '📵 Colgar';
+    btn.disabled = false;
+    setLiveStatus('Conectando con Valentina…', true);
+
+    // Audio capture → PCM16 → WS
+    audioCtx = new AudioContext({ sampleRate: 16000 });
+    const source = audioCtx.createMediaStreamSource(mediaStream);
+    processor = audioCtx.createScriptProcessor(2048, 1, 1);
+    processor.onaudioprocess = e => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(floatTo16(e.inputBuffer.getChannelData(0)));
+    };
+    source.connect(processor);
+    processor.connect(audioCtx.destination);
+
+    // Duration timer
+    seconds = 0;
+    durationTimer = setInterval(() => {
+      seconds++;
+      document.getElementById('demoDuration').textContent = fmtTime(seconds);
+    }, 1000);
+  };
+
+  ws.onmessage = async e => {
+    if (e.data instanceof ArrayBuffer) {
+      const data = new Uint8Array(e.data);
+      if (data[0] === 0x01) {
+        const mp3 = data.slice(1);
+        const blob = new Blob([mp3], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        audioQueue = audioQueue.then(() => new Promise(res => {
+          const audio = new Audio(url);
+          audio.onended = () => { URL.revokeObjectURL(url); res(); };
+          audio.onerror = res;
+          audio.play().catch(res);
+        }));
+      }
+    } else {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'ready' || msg.type === 'listening') setLiveStatus('Escuchando…', true);
+        if (msg.type === 'thinking') setLiveStatus('Pensando…', true);
+        if (msg.type === 'speaking') setLiveStatus('Hablando…', true);
+        if (msg.type === 'transcript' && msg.final) addLiveMsg(msg.role === 'assistant' ? 'bot' : 'user', msg.content);
+        if (msg.type === 'error') addLiveMsg('bot', '⚠️ ' + (msg.message || 'Error de conexión'));
+      } catch(_) {}
+    }
+  };
+
+  ws.onclose = () => stopCall();
+  ws.onerror = () => stopCall();
+}
+
+function stopCall() {
+  callActive = false;
+  if (ws) { try { ws.send(JSON.stringify({ type:'stop' })); ws.close(); } catch(_){} ws = null; }
+  if (processor) { try { processor.disconnect(); } catch(_){} processor = null; }
+  if (audioCtx) { try { audioCtx.close(); } catch(_){} audioCtx = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (durationTimer) { clearInterval(durationTimer); durationTimer = null; }
+
+  const btn = document.getElementById('demoCallBtn');
+  btn.className = 'demo-btn';
+  btn.textContent = '🎙️ Llamar de nuevo';
+  btn.disabled = false;
+  document.getElementById('demoDuration').textContent = '';
+  setLiveStatus('', false);
+}
+
+// ══ FORM ══════════════════════════════════════════════════════════════════════
 document.getElementById('regForm').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
@@ -339,7 +548,7 @@ document.getElementById('regForm').addEventListener('submit', async e => {
   };
   try {
     const resp = await fetch('/api/registro', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error||`Error ${resp.status}`); }
+    if (!resp.ok) { const er = await resp.json().catch(()=>({})); throw new Error(er.error||`Error ${resp.status}`); }
     const { id, stripeCode } = await resp.json();
     const base = STRIPE_URLS[plan];
     if (!base) {
