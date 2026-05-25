@@ -397,35 +397,35 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 runDemo();
 
 // ══ DEMO CON AUDIO REAL (TTS) ════════════════════════════════════════════════
-// Precarga todos los clips de Valentina en paralelo al cargar la página.
-// Cuando el usuario pulsa el botón la reproducción es instantánea.
+// • Precarga ArrayBuffers en paralelo al cargar la página
+// • Web Audio API (AudioContext + BufferSource) en vez de HTMLAudioElement
+//   → el contexto se desbloquea en el primer clic y nunca vuelve a bloquearse
+//   → corrige el bug donde solo sonaba el primer mensaje (autoplay policy)
 
 let demoRunning = false, _autoDemoActive = true;
 let demoAudio = null, demoTimer = null, demoSecs = 0;
-const _audioCache = new Map();  // text → blob URL
+const _audioCache = new Map(); // text → ArrayBuffer
+let   _audioCtx   = null;
 
-// ── Precarga silenciosa al cargar la página ──────────────────────────────────
+// ── Precarga silenciosa en paralelo al cargar la página ───────────────────────
 (async () => {
   const bots = DEMO.filter(m => m.role === 'bot');
   await Promise.allSettled(bots.map(async m => {
     try {
       const r = await fetch(`/api/tts/preview?voice=shimmer&text=${encodeURIComponent(m.text)}`);
-      if (!r.ok) return;
-      const blob = await r.blob();
-      _audioCache.set(m.text, URL.createObjectURL(blob));
+      if (r.ok) _audioCache.set(m.text, await r.arrayBuffer());
     } catch (_) {}
   }));
 })();
 
-async function getBotAudio(text) {
+async function getBotBuffer(text) {
   if (_audioCache.has(text)) return _audioCache.get(text);
-  // Fallback: fetch en tiempo real si la precarga no llegó a tiempo
   try {
     const r = await fetch(`/api/tts/preview?voice=shimmer&text=${encodeURIComponent(text)}`);
     if (!r.ok) return null;
-    const url = URL.createObjectURL(await r.blob());
-    _audioCache.set(text, url);
-    return url;
+    const buf = await r.arrayBuffer();
+    _audioCache.set(text, buf);
+    return buf;
   } catch (_) { return null; }
 }
 
@@ -443,7 +443,7 @@ function setLiveStatus(text, show) {
 async function playDemo() {
   if (demoRunning) { stopDemo(); return; }
   demoRunning = true;
-  _autoDemoActive = false;  // cancela la animación automática
+  _autoDemoActive = false;
 
   const btn = document.getElementById('demoCallBtn');
   const dur = document.getElementById('demoDuration');
@@ -453,12 +453,18 @@ async function playDemo() {
   setLiveStatus('', false);
   dur.textContent = '';
 
-  // Si el primer clip todavía no está listo, esperar (máx 6s)
+  // ── Desbloquear AudioContext EN el gesto del usuario (mismo call stack) ────
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') await _audioCtx.resume();
+
+  // Si el primer clip aún no está listo, esperar hasta 6s
   const firstBot = DEMO.find(m => m.role === 'bot');
   if (firstBot && !_audioCache.has(firstBot.text)) {
     btn.disabled = true;
     btn.textContent = 'Preparando audio…';
-    await Promise.race([getBotAudio(firstBot.text), delay(6000)]);
+    await Promise.race([getBotBuffer(firstBot.text), delay(6000)]);
   }
 
   btn.disabled = true;
@@ -466,7 +472,6 @@ async function playDemo() {
   await delay(1500);
   if (!demoRunning) return;
 
-  // ── Llamada conectada ──
   btn.className = 'demo-btn live';
   btn.textContent = '📵 Cortar';
   btn.disabled = false;
@@ -481,31 +486,35 @@ async function playDemo() {
       const typing = addTyping(box);
       setLiveStatus('Valentina está hablando…', true);
 
-      const blobUrl = await getBotAudio(msg.text);
+      const buf = await getBotBuffer(msg.text);
 
-      if (blobUrl) {
-        const audio = new Audio(blobUrl);
-        demoAudio = audio;
-        let shown = false;
-        const showBubble = () => {
-          if (shown) return; shown = true;
-          try { typing.remove(); } catch (_) {}
+      if (buf) {
+        try {
+          // slice() necesario: decodeAudioData transfiere el ArrayBuffer (lo consume)
+          const decoded = await _audioCtx.decodeAudioData(buf.slice(0));
+
+          typing.remove();
           addDemoMsg('bot', msg.text, box);
-        };
-        await new Promise(res => {
-          audio.onplay  = showBubble;
-          audio.onended = () => res();
-          audio.onerror = () => { showBubble(); res(); };
-          audio.play().then(showBubble).catch(() => { showBubble(); res(); });
-          setTimeout(() => { showBubble(); res(); }, 14000);
-        });
-        demoAudio = null;
+
+          await new Promise(resolve => {
+            const src = _audioCtx.createBufferSource();
+            src.buffer  = decoded;
+            src.connect(_audioCtx.destination);
+            src.onended = resolve;
+            demoAudio   = { stop: () => { try { src.stop(); } catch (_) {} } };
+            src.start(0);
+          });
+          demoAudio = null;
+        } catch (_) {
+          typing.remove();
+          addDemoMsg('bot', msg.text, box);
+          await delay(1300);
+        }
       } else {
-        // Sin audio: solo texto con pausa natural
         await delay(600);
         typing.remove();
         addDemoMsg('bot', msg.text, box);
-        await delay(1200);
+        await delay(1300);
       }
 
       setLiveStatus('Escuchando…', true);
@@ -528,7 +537,7 @@ async function playDemo() {
 
 function stopDemo(ended = false) {
   demoRunning = false;
-  if (demoAudio) { try { demoAudio.pause(); demoAudio.src = ''; } catch (_) {} demoAudio = null; }
+  if (demoAudio) { try { demoAudio.stop(); } catch (_) {} demoAudio = null; }
   if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
   const btn = document.getElementById('demoCallBtn');
   btn.className = 'demo-btn';
