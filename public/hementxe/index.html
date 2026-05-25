@@ -379,6 +379,7 @@ async function runDemo() {
   const container = document.getElementById('demoMessages');
   container.innerHTML = '';
   for (let i = 0; i < DEMO.length; i++) {
+    if (!_autoDemoActive) return;   // parar si el usuario inicia el demo manual
     const msg = DEMO[i];
     if (msg.role === 'bot' && i > 0) {
       const t = addTyping(container);
@@ -396,10 +397,37 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 runDemo();
 
 // ══ DEMO CON AUDIO REAL (TTS) ════════════════════════════════════════════════
-// No requiere micrófono ni WebSocket. Usa /api/tts/preview para audio real
-// de Valentina. Siempre funciona, experiencia controlada y convincente.
+// Precarga todos los clips de Valentina en paralelo al cargar la página.
+// Cuando el usuario pulsa el botón la reproducción es instantánea.
 
-let demoRunning = false, demoAudio = null, demoTimer = null, demoSecs = 0;
+let demoRunning = false, _autoDemoActive = true;
+let demoAudio = null, demoTimer = null, demoSecs = 0;
+const _audioCache = new Map();  // text → blob URL
+
+// ── Precarga silenciosa al cargar la página ──────────────────────────────────
+(async () => {
+  const bots = DEMO.filter(m => m.role === 'bot');
+  await Promise.allSettled(bots.map(async m => {
+    try {
+      const r = await fetch(`/api/tts/preview?voice=shimmer&text=${encodeURIComponent(m.text)}`);
+      if (!r.ok) return;
+      const blob = await r.blob();
+      _audioCache.set(m.text, URL.createObjectURL(blob));
+    } catch (_) {}
+  }));
+})();
+
+async function getBotAudio(text) {
+  if (_audioCache.has(text)) return _audioCache.get(text);
+  // Fallback: fetch en tiempo real si la precarga no llegó a tiempo
+  try {
+    const r = await fetch(`/api/tts/preview?voice=shimmer&text=${encodeURIComponent(text)}`);
+    if (!r.ok) return null;
+    const url = URL.createObjectURL(await r.blob());
+    _audioCache.set(text, url);
+    return url;
+  } catch (_) { return null; }
+}
 
 function fmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` }
 
@@ -415,22 +443,30 @@ function setLiveStatus(text, show) {
 async function playDemo() {
   if (demoRunning) { stopDemo(); return; }
   demoRunning = true;
+  _autoDemoActive = false;  // cancela la animación automática
 
   const btn = document.getElementById('demoCallBtn');
   const dur = document.getElementById('demoDuration');
   const box = document.getElementById('demoMessages');
 
-  btn.disabled = true;
-  btn.textContent = 'Marcando…';
   box.innerHTML = '';
   setLiveStatus('', false);
   dur.textContent = '';
 
-  // Simular marcado (~1.8s)
-  await delay(1800);
+  // Si el primer clip todavía no está listo, esperar (máx 6s)
+  const firstBot = DEMO.find(m => m.role === 'bot');
+  if (firstBot && !_audioCache.has(firstBot.text)) {
+    btn.disabled = true;
+    btn.textContent = 'Preparando audio…';
+    await Promise.race([getBotAudio(firstBot.text), delay(6000)]);
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Marcando…';
+  await delay(1500);
   if (!demoRunning) return;
 
-  // Llamada conectada
+  // ── Llamada conectada ──
   btn.className = 'demo-btn live';
   btn.textContent = '📵 Cortar';
   btn.disabled = false;
@@ -445,49 +481,48 @@ async function playDemo() {
       const typing = addTyping(box);
       setLiveStatus('Valentina está hablando…', true);
 
-      // Pedir audio real a nuestro endpoint TTS (voz shimmer = Valentina)
-      try {
-        const audioUrl = `/api/tts/preview?voice=shimmer&text=${encodeURIComponent(msg.text)}`;
-        const audio = new Audio(audioUrl);
-        demoAudio = audio;
+      const blobUrl = await getBotAudio(msg.text);
 
+      if (blobUrl) {
+        const audio = new Audio(blobUrl);
+        demoAudio = audio;
+        let shown = false;
+        const showBubble = () => {
+          if (shown) return; shown = true;
+          try { typing.remove(); } catch (_) {}
+          addDemoMsg('bot', msg.text, box);
+        };
         await new Promise(res => {
-          let shown = false;
-          const showBubble = () => {
-            if (shown) return; shown = true;
-            typing.remove();
-            addDemoMsg('bot', msg.text, box);
-          };
-          audio.onplay  = showBubble;   // mostrar burbuja cuando empieza a sonar
+          audio.onplay  = showBubble;
           audio.onended = () => res();
           audio.onerror = () => { showBubble(); res(); };
           audio.play().then(showBubble).catch(() => { showBubble(); res(); });
-          setTimeout(() => { showBubble(); res(); }, 13000); // timeout de seguridad
+          setTimeout(() => { showBubble(); res(); }, 14000);
         });
-
         demoAudio = null;
-      } catch (_) {
+      } else {
+        // Sin audio: solo texto con pausa natural
+        await delay(600);
         typing.remove();
         addDemoMsg('bot', msg.text, box);
-        await delay(1400);
+        await delay(1200);
       }
 
       setLiveStatus('Escuchando…', true);
-      await delay(350);
+      await delay(300);
 
     } else {
-      // Turno del usuario: aparece texto simulado tras pausa
-      await delay(1700);
+      await delay(1600);
       if (!demoRunning) break;
       setLiveStatus('', false);
       addDemoMsg('user', msg.text, box);
       await delay(500);
       setLiveStatus('Pensando…', true);
-      await delay(650);
+      await delay(600);
     }
   }
 
-  await delay(1500);
+  await delay(1200);
   stopDemo(true);
 }
 
@@ -495,7 +530,6 @@ function stopDemo(ended = false) {
   demoRunning = false;
   if (demoAudio) { try { demoAudio.pause(); demoAudio.src = ''; } catch (_) {} demoAudio = null; }
   if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
-
   const btn = document.getElementById('demoCallBtn');
   btn.className = 'demo-btn';
   btn.textContent = ended ? '🔄 Repetir demo' : '▶ Escuchar demo';
