@@ -243,7 +243,7 @@ setupBillingRoutes(app, config);
 setupRegistroRoutes(app);
 
 // Setup Admin routes (panel privado de Unai)
-setupAdminRoutes(app, config);
+setupAdminRoutes(app, config, assistantManager);
 
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {

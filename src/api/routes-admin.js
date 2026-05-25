@@ -21,7 +21,7 @@ function adminAuth(req, res, next) {
   next();
 }
 
-function setupAdminRoutes(app, config) {
+function setupAdminRoutes(app, config, assistantManager) {
   const PASS = config.dashboardPassword || process.env.DASHBOARD_PASSWORD || 'admin';
 
   // ─── Auth ───
@@ -120,6 +120,40 @@ function setupAdminRoutes(app, config) {
       if (!data) return res.status(404).json({ error: 'No encontrado' });
       res.json({ org: data });
     } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Reload assistants en caliente (sin redeploy) ───
+  // Acepta: token de admin (dashboard) o x-api-key legacy
+  app.post('/api/admin/reload', async (req, res) => {
+    // Auth: admin token o API key legacy
+    const header   = req.headers['authorization'] || '';
+    const token    = header.replace('Bearer ', '').trim();
+    const apiKey   = req.headers['x-api-key'] || req.query.apiKey || '';
+    const legacyKey = config.apiKey || process.env.API_KEY || 'voicecore-dev';
+
+    const isAdminToken = token && _validTokens.has(token);
+    const isLegacyKey  = apiKey && apiKey === legacyKey;
+
+    if (!isAdminToken && !isLegacyKey) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    if (!assistantManager) {
+      return res.status(500).json({ error: 'AssistantManager no disponible' });
+    }
+
+    try {
+      const before = assistantManager.list().length;
+      assistantManager.loadAll();
+      const after  = assistantManager.list().length;
+      const list   = assistantManager.list().map(a => ({ id: a.id, name: a.name }));
+
+      log.info(`Reload: ${before} → ${after} asistentes`);
+      res.json({ success: true, before, after, assistants: list });
+    } catch (e) {
+      log.error('Reload error', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });
