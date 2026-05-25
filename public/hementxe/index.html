@@ -255,8 +255,8 @@ footer a{color:var(--purple-light);text-decoration:none}
           <div class="live-bars"><div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div><div class="lb"></div></div>
           <span id="liveStatusText">Escuchando…</span>
         </div>
-        <div class="demo-bar-hint" id="demoHint">Escucha la simulación o llama en directo con tu micrófono</div>
-        <button class="demo-btn" id="demoCallBtn" onclick="toggleCall()">🎙️ Llamar en directo</button>
+        <div class="demo-bar-hint" id="demoHint">Escucha cómo Valentina atiende una llamada real en Andoain</div>
+        <button class="demo-btn" id="demoCallBtn" onclick="playDemo()">▶ Escuchar demo</button>
       </div>
     </div>
   </div>
@@ -395,134 +395,110 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 runDemo();
 
-// ══ LLAMADA EN VIVO ══════════════════════════════════════════════════════════
-let ws = null, audioCtx = null, mediaStream = null, processor = null;
-let callActive = false, audioQueue = Promise.resolve(), durationTimer = null, seconds = 0;
+// ══ DEMO CON AUDIO REAL (TTS) ════════════════════════════════════════════════
+// No requiere micrófono ni WebSocket. Usa /api/tts/preview para audio real
+// de Valentina. Siempre funciona, experiencia controlada y convincente.
 
-function floatTo16(input) {
-  const buf = new ArrayBuffer(input.length * 2);
-  const view = new DataView(buf);
-  for (let i = 0; i < input.length; i++) {
-    const s = Math.max(-1, Math.min(1, input[i]));
-    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-  }
-  return buf;
-}
+let demoRunning = false, demoAudio = null, demoTimer = null, demoSecs = 0;
 
 function fmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` }
 
 function setLiveStatus(text, show) {
-  const st = document.getElementById('liveStatus');
+  const st    = document.getElementById('liveStatus');
   const stTxt = document.getElementById('liveStatusText');
-  const hint = document.getElementById('demoHint');
+  const hint  = document.getElementById('demoHint');
   st.classList.toggle('show', show);
   if (hint) hint.style.display = show ? 'none' : '';
   if (text) stTxt.textContent = text;
 }
 
-function addLiveMsg(role, text) {
-  const c = document.getElementById('liveTranscript');
-  const div = document.createElement('div');
-  div.className = `dmsg ${role} show`;
-  div.innerHTML = `<div class="davt">${role==='bot'?'🎙️':'👤'}</div><div class="dbubble">${text}</div>`;
-  c.appendChild(div);
-  c.scrollTop = c.scrollHeight;
-}
+async function playDemo() {
+  if (demoRunning) { stopDemo(); return; }
+  demoRunning = true;
 
-async function toggleCall() {
-  if (callActive) { stopCall(); return; }
-  await startCall();
-}
-
-async function startCall() {
   const btn = document.getElementById('demoCallBtn');
-  btn.disabled = true;
-  btn.textContent = 'Conectando…';
+  const dur = document.getElementById('demoDuration');
+  const box = document.getElementById('demoMessages');
 
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch(e) {
-    alert('Necesitas permitir el acceso al micrófono para la llamada en directo.');
-    btn.disabled = false;
-    btn.textContent = '🎙️ Llamar en directo';
-    return;
+  btn.disabled = true;
+  btn.textContent = 'Marcando…';
+  box.innerHTML = '';
+  setLiveStatus('', false);
+  dur.textContent = '';
+
+  // Simular marcado (~1.8s)
+  await delay(1800);
+  if (!demoRunning) return;
+
+  // Llamada conectada
+  btn.className = 'demo-btn live';
+  btn.textContent = '📵 Cortar';
+  btn.disabled = false;
+
+  demoSecs = 0;
+  demoTimer = setInterval(() => { demoSecs++; dur.textContent = fmtTime(demoSecs); }, 1000);
+
+  for (const msg of DEMO) {
+    if (!demoRunning) break;
+
+    if (msg.role === 'bot') {
+      const typing = addTyping(box);
+      setLiveStatus('Valentina está hablando…', true);
+
+      // Pedir audio real a nuestro endpoint TTS (voz shimmer = Valentina)
+      try {
+        const audioUrl = `/api/tts/preview?voice=shimmer&text=${encodeURIComponent(msg.text)}`;
+        const audio = new Audio(audioUrl);
+        demoAudio = audio;
+
+        await new Promise(res => {
+          let shown = false;
+          const showBubble = () => {
+            if (shown) return; shown = true;
+            typing.remove();
+            addDemoMsg('bot', msg.text, box);
+          };
+          audio.onplay  = showBubble;   // mostrar burbuja cuando empieza a sonar
+          audio.onended = () => res();
+          audio.onerror = () => { showBubble(); res(); };
+          audio.play().then(showBubble).catch(() => { showBubble(); res(); });
+          setTimeout(() => { showBubble(); res(); }, 13000); // timeout de seguridad
+        });
+
+        demoAudio = null;
+      } catch (_) {
+        typing.remove();
+        addDemoMsg('bot', msg.text, box);
+        await delay(1400);
+      }
+
+      setLiveStatus('Escuchando…', true);
+      await delay(350);
+
+    } else {
+      // Turno del usuario: aparece texto simulado tras pausa
+      await delay(1700);
+      if (!demoRunning) break;
+      setLiveStatus('', false);
+      addDemoMsg('user', msg.text, box);
+      await delay(500);
+      setLiveStatus('Pensando…', true);
+      await delay(650);
+    }
   }
 
-  // Ocultar demo simulada, mostrar transcript en vivo
-  document.getElementById('demoMessages').style.display = 'none';
-  document.getElementById('liveTranscript').style.display = 'flex';
-  document.getElementById('liveTranscript').innerHTML = '';
-
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws/talk?assistant=lumina-estetica`);
-  ws.binaryType = 'arraybuffer';
-
-  ws.onopen = () => {
-    callActive = true;
-    btn.className = 'demo-btn live';
-    btn.textContent = '📵 Colgar';
-    btn.disabled = false;
-    setLiveStatus('Conectando con Valentina…', true);
-
-    // Audio capture → PCM16 → WS
-    audioCtx = new AudioContext({ sampleRate: 16000 });
-    const source = audioCtx.createMediaStreamSource(mediaStream);
-    processor = audioCtx.createScriptProcessor(2048, 1, 1);
-    processor.onaudioprocess = e => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(floatTo16(e.inputBuffer.getChannelData(0)));
-    };
-    source.connect(processor);
-    processor.connect(audioCtx.destination);
-
-    // Duration timer
-    seconds = 0;
-    durationTimer = setInterval(() => {
-      seconds++;
-      document.getElementById('demoDuration').textContent = fmtTime(seconds);
-    }, 1000);
-  };
-
-  ws.onmessage = async e => {
-    if (e.data instanceof ArrayBuffer) {
-      const data = new Uint8Array(e.data);
-      if (data[0] === 0x01) {
-        const mp3 = data.slice(1);
-        const blob = new Blob([mp3], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-        audioQueue = audioQueue.then(() => new Promise(res => {
-          const audio = new Audio(url);
-          audio.onended = () => { URL.revokeObjectURL(url); res(); };
-          audio.onerror = res;
-          audio.play().catch(res);
-        }));
-      }
-    } else {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'ready' || msg.type === 'listening') setLiveStatus('Escuchando…', true);
-        if (msg.type === 'thinking') setLiveStatus('Pensando…', true);
-        if (msg.type === 'speaking') setLiveStatus('Hablando…', true);
-        if (msg.type === 'transcript' && msg.final) addLiveMsg(msg.role === 'assistant' ? 'bot' : 'user', msg.content);
-        if (msg.type === 'error') addLiveMsg('bot', '⚠️ ' + (msg.message || 'Error de conexión'));
-      } catch(_) {}
-    }
-  };
-
-  ws.onclose = () => stopCall();
-  ws.onerror = () => stopCall();
+  await delay(1500);
+  stopDemo(true);
 }
 
-function stopCall() {
-  callActive = false;
-  if (ws) { try { ws.send(JSON.stringify({ type:'stop' })); ws.close(); } catch(_){} ws = null; }
-  if (processor) { try { processor.disconnect(); } catch(_){} processor = null; }
-  if (audioCtx) { try { audioCtx.close(); } catch(_){} audioCtx = null; }
-  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-  if (durationTimer) { clearInterval(durationTimer); durationTimer = null; }
+function stopDemo(ended = false) {
+  demoRunning = false;
+  if (demoAudio) { try { demoAudio.pause(); demoAudio.src = ''; } catch (_) {} demoAudio = null; }
+  if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
 
   const btn = document.getElementById('demoCallBtn');
   btn.className = 'demo-btn';
-  btn.textContent = '🎙️ Llamar de nuevo';
+  btn.textContent = ended ? '🔄 Repetir demo' : '▶ Escuchar demo';
   btn.disabled = false;
   document.getElementById('demoDuration').textContent = '';
   setLiveStatus('', false);
