@@ -102,6 +102,12 @@ app.get('/', async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Hementxe campaign landing page
+app.get(['/hementxe', '/hementxe/'], (req, res) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'hementxe', 'index.html'));
+});
+
 // Sector SEO landing pages (with and without trailing slash)
 const SECTOR_PAGES = [
   'peluquerias', 'clinicas', 'restaurantes', 'talleres',

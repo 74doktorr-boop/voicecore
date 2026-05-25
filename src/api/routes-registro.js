@@ -9,6 +9,23 @@ const crypto = require('crypto');
 
 const log = new Logger('REGISTRO');
 
+// ─── Cupones válidos ───────────────────────────────────────────────────────────
+const COUPONS = {
+  'HEMENTXE10': {
+    discount: 10,
+    source:   'hementxe',
+    stripeCode: 'HEMENTXE10',   // Stripe Promotion Code ID a pre-rellenar
+    active: true,
+    description: 'Revista Hementxe – Q2 2026',
+  },
+};
+
+function validateCoupon(code) {
+  if (!code) return null;
+  const c = COUPONS[code.toUpperCase().trim()];
+  return (c && c.active) ? { code: code.toUpperCase().trim(), ...c } : null;
+}
+
 // Fallback en memoria si Supabase no está configurado
 const _memStore = new Map();
 
@@ -65,7 +82,8 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon } = req.body;
+      const couponData = validateCoupon(coupon);
 
       // Validación básica
       const required = { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo };
@@ -83,15 +101,20 @@ function setupRegistroRoutes(app) {
         sector, negocio, contacto, ciudad,
         telefono: telefono.trim(),
         email: email.trim().toLowerCase(),
-        plan,
-        voz,
-        idioma,
-        saludo,
+        plan, voz, idioma, saludo,
         horario: typeof horario === 'object' ? horario : {},
+        ...(couponData ? {
+          coupon_code:      couponData.code,
+          source:           couponData.source,
+          discount_percent: couponData.discount,
+        } : {}),
       });
 
-      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan})`);
-      res.json({ id: row.id });
+      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan})${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
+      res.json({
+        id: row.id,
+        ...(couponData ? { stripeCode: couponData.stripeCode, discount: couponData.discount } : {}),
+      });
 
     } catch (e) {
       log.error('Error en /api/registro', { error: e.message });

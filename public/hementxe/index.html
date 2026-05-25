@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow — Oferta exclusiva lectores de Hementxe</title>
+<meta name="description" content="Lectores de Hementxe: 10% de descuento permanente en tu asistente IA vocal para tu negocio. Código HEMENTXE10.">
+<meta name="robots" content="noindex">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --purple:#6c5ce7;
+    --purple-light:#a29bfe;
+    --gold:#f9ca24;
+    --green:#00b894;
+    --bg:#0d0d1a;
+    --surface:rgba(255,255,255,0.05);
+    --border:rgba(255,255,255,0.1);
+    --text:#dfe6e9;
+    --muted:#636e72;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+  }
+
+  /* ── NAV ── */
+  nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 24px;
+    border-bottom:1px solid var(--border);
+    background:rgba(13,13,26,0.9);
+    backdrop-filter:blur(12px);
+    position:sticky;top:0;z-index:100;
+  }
+  .nav-logo{font-size:20px;font-weight:900;color:#fff;}
+  .nav-logo span{color:var(--purple);}
+  .nav-badge{
+    background:linear-gradient(135deg,var(--gold),#e17055);
+    color:#000;font-size:11px;font-weight:800;
+    padding:4px 10px;border-radius:20px;letter-spacing:.5px;
+  }
+
+  /* ── HERO ── */
+  .hero{
+    padding:60px 24px 48px;
+    text-align:center;
+    background:linear-gradient(160deg,#1a0a3e 0%,#0d0d1a 50%,#001a2e 100%);
+    position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:'';position:absolute;top:-100px;right:-100px;
+    width:400px;height:400px;
+    background:radial-gradient(circle,rgba(108,92,231,.2) 0%,transparent 70%);
+    border-radius:50%;
+  }
+  .hero::after{
+    content:'';position:absolute;bottom:-60px;left:-80px;
+    width:300px;height:300px;
+    background:radial-gradient(circle,rgba(0,184,148,.12) 0%,transparent 70%);
+    border-radius:50%;
+  }
+
+  .from-hementxe{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(249,202,36,.12);
+    border:1px solid rgba(249,202,36,.35);
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:13px;color:var(--gold);font-weight:600;
+    margin-bottom:24px;
+  }
+
+  .hero h1{
+    font-size:clamp(32px,6vw,52px);
+    font-weight:900;line-height:1.1;
+    letter-spacing:-1.5px;
+    margin-bottom:16px;
+    color:#fff;
+  }
+  .hero h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg,var(--purple-light),var(--purple));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .hero-sub{
+    font-size:clamp(15px,2.5vw,18px);
+    color:#b2bec3;line-height:1.6;
+    max-width:560px;margin:0 auto 28px;
+  }
+
+  .euskera-pill{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(0,184,148,.12);
+    border:1px solid rgba(0,184,148,.4);
+    border-radius:20px;padding:6px 16px;
+    font-size:13px;font-weight:700;color:var(--green);
+    margin-bottom:40px;
+  }
+  .dot{width:7px;height:7px;background:var(--green);border-radius:50%;flex-shrink:0;}
+
+  /* ── COUPON HERO DISPLAY ── */
+  .coupon-hero{
+    display:inline-flex;flex-direction:column;align-items:center;
+    background:linear-gradient(135deg,rgba(249,202,36,.1),rgba(225,112,85,.08));
+    border:1.5px dashed rgba(249,202,36,.6);
+    border-radius:16px;
+    padding:20px 32px;
+    margin-bottom:40px;
+    position:relative;z-index:1;
+  }
+  .coupon-hero-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+  .coupon-hero-code{font-size:32px;font-weight:900;color:var(--gold);letter-spacing:4px;line-height:1;}
+  .coupon-hero-detail{font-size:12px;color:#b2bec3;margin-top:6px;}
+
+  /* ── FORM SECTION ── */
+  .form-section{
+    max-width:560px;margin:0 auto;
+    padding:0 20px 80px;
+  }
+  .form-card{
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:32px 28px;
+    margin-bottom:32px;
+  }
+  .form-card h2{
+    font-size:20px;font-weight:800;color:#fff;
+    margin-bottom:6px;
+  }
+  .form-card p{font-size:14px;color:var(--muted);margin-bottom:24px;}
+
+  .field{margin-bottom:16px;}
+  label{
+    display:block;font-size:13px;font-weight:600;
+    color:#b2bec3;margin-bottom:6px;
+  }
+  label .req{color:var(--purple-light);}
+  input,select{
+    width:100%;padding:12px 14px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:#fff;font-size:14px;font-family:inherit;
+    outline:none;transition:border-color .2s;
+    -webkit-appearance:none;
+  }
+  input:focus,select:focus{border-color:var(--purple);}
+  input::placeholder{color:var(--muted);}
+  select option{background:#1a1a2e;color:#fff;}
+
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  /* Plan selector */
+  .plan-selector{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .plan-opt{
+    position:relative;cursor:pointer;
+  }
+  .plan-opt input[type=radio]{
+    position:absolute;opacity:0;width:0;height:0;
+  }
+  .plan-card{
+    background:rgba(255,255,255,0.05);
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:14px 12px;
+    text-align:center;
+    transition:all .2s;
+    cursor:pointer;
+  }
+  .plan-opt input:checked + .plan-card{
+    border-color:var(--purple);
+    background:rgba(108,92,231,.15);
+  }
+  .plan-card-name{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple-light);margin-bottom:4px;}
+  .plan-card-price-old{font-size:11px;color:var(--muted);text-decoration:line-through;}
+  .plan-card-price{font-size:22px;font-weight:900;color:#fff;line-height:1.1;}
+  .plan-card-price small{font-size:12px;font-weight:500;color:#b2bec3;}
+  .plan-card-mins{font-size:11px;color:#74b9ff;margin-top:2px;}
+
+  /* Coupon field */
+  .coupon-field{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(249,202,36,.08);
+    border:1px solid rgba(249,202,36,.3);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:20px;
+  }
+  .coupon-icon{font-size:18px;}
+  .coupon-applied{
+    flex:1;
+    font-size:14px;font-weight:700;color:var(--gold);letter-spacing:1px;
+  }
+  .coupon-check{
+    background:rgba(0,184,148,.15);
+    border:1px solid rgba(0,184,148,.4);
+    color:var(--green);
+    font-size:11px;font-weight:700;
+    padding:3px 8px;border-radius:6px;
+    white-space:nowrap;
+  }
+
+  /* Submit */
+  .btn-submit{
+    width:100%;padding:16px;
+    background:linear-gradient(135deg,var(--purple),#5a4fcf);
+    color:#fff;border:none;
+    border-radius:12px;
+    font-size:16px;font-weight:700;
+    cursor:pointer;font-family:inherit;
+    transition:opacity .2s,transform .1s;
+    position:relative;overflow:hidden;
+  }
+  .btn-submit:hover{opacity:.9;}
+  .btn-submit:active{transform:scale(.99);}
+  .btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+
+  .form-legal{
+    font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5;
+  }
+
+  /* Error */
+  .form-error{
+    display:none;background:rgba(225,112,85,.15);
+    border:1px solid rgba(225,112,85,.4);
+    border-radius:10px;padding:12px 14px;
+    font-size:13px;color:#e17055;margin-top:12px;
+  }
+
+  /* ── VALUE PROPS ── */
+  .value-props{
+    max-width:560px;margin:0 auto 48px;padding:0 20px;
+  }
+  .vp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .vp-item{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:16px;
+  }
+  .vp-icon{font-size:24px;margin-bottom:8px;}
+  .vp-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;}
+  .vp-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+
+  /* ── FOOTER ── */
+  footer{
+    text-align:center;padding:24px;
+    border-top:1px solid var(--border);
+    font-size:12px;color:var(--muted);
+  }
+  footer a{color:var(--purple-light);text-decoration:none;}
+
+  @media(max-width:480px){
+    .field-row{grid-template-columns:1fr;}
+    .vp-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">⚡ Node<span>Flow</span></div>
+  <div class="nav-badge">OFERTA HEMENTXE −10%</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="from-hementxe">
+    📰 Lector de Hementxe — Has llegado al lugar correcto
+  </div>
+
+  <h1>Tu negocio nunca más<br><em>pierde una llamada.</em></h1>
+
+  <p class="hero-sub">
+    Inteligencia Artificial que atiende a tus clientes las 24 horas, gestiona reservas y responde preguntas — aunque estés trabajando, comiendo o durmiendo.
+  </p>
+
+  <div class="euskera-pill">
+    <div class="dot"></div>
+    Muy pronto disponible en EUSKERA NATIVO &nbsp;·&nbsp; Laster euskaraz!
+  </div>
+
+  <div class="coupon-hero">
+    <div class="coupon-hero-label">✂ Código exclusivo lectores de Hementxe</div>
+    <div class="coupon-hero-code">HEMENTXE10</div>
+    <div class="coupon-hero-detail">10% de descuento permanente · Solo este trimestre</div>
+  </div>
+
+  <a href="#registro" style="display:inline-block;background:linear-gradient(135deg,#6c5ce7,#5a4fcf);color:#fff;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;position:relative;z-index:1;">
+    Quiero mi asistente IA →
+  </a>
+</section>
+
+<!-- VALUE PROPS -->
+<section style="padding:40px 0 0;">
+  <div class="value-props">
+    <div class="vp-grid">
+      <div class="vp-item">
+        <div class="vp-icon">📞</div>
+        <div class="vp-title">24/7, nunca da señal de ocupado</div>
+        <div class="vp-desc">Tu asistente atiende llamadas mientras tú trabajas, comes o descansas.</div>
+      </div>
+      <div class="vp-item">
+        <div class="vp-icon">📅</div>
+        <div class="vp-title">Reservas automáticas</div>
+        <div class="vp-desc">Consulta disponibilidad, reserva citas y las anota sin que toques nada.</div>
+      </div>
+      <div class="vp-item">
+        <div class="vp-icon">⚡</div>
+        <div class="vp-title">Listo en menos de 24h</div>
+        <div class="vp-desc">Configuramos tu asistente con la voz, horarios y servicios de tu negocio.</div>
+      </div>
+      <div class="vp-item">
+        <div class="vp-icon">🔓</div>
+        <div class="vp-title">Sin permanencias</div>
+        <div class="vp-desc">Cancela cuando quieras. Sin letra pequeña ni penalizaciones.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section id="registro" style="padding:40px 0 0;">
+  <div class="form-section">
+    <div class="form-card">
+      <h2>Activa tu asistente IA</h2>
+      <p>Rellena el formulario y reserva tu plan con el descuento ya aplicado.</p>
+
+      <form id="regForm">
+        <div class="field-row">
+          <div class="field">
+            <label>Tu nombre <span class="req">*</span></label>
+            <input type="text" name="contacto" placeholder="Ej: Miren Etxeberria" required>
+          </div>
+          <div class="field">
+            <label>Nombre del negocio <span class="req">*</span></label>
+            <input type="text" name="negocio" placeholder="Ej: Clínica Salud Andoain" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Sector <span class="req">*</span></label>
+          <select name="sector" required>
+            <option value="" disabled selected>— Selecciona tu sector —</option>
+            <option value="peluqueria">Peluquería / Estética</option>
+            <option value="clinica">Clínica / Fisioterapia</option>
+            <option value="restaurante">Restaurante / Bar</option>
+            <option value="taller">Taller / Automoción</option>
+            <option value="veterinaria">Veterinaria</option>
+            <option value="farmacia">Farmacia</option>
+            <option value="gimnasio">Gimnasio / Deporte</option>
+            <option value="inmobiliaria">Inmobiliaria</option>
+            <option value="academia">Academia / Formación</option>
+            <option value="asesoria">Asesoría / Gestoría</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Teléfono <span class="req">*</span></label>
+            <input type="tel" name="telefono" placeholder="+34 666 000 000" required>
+          </div>
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" name="email" placeholder="tu@email.com" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Elige tu plan <span class="req">*</span></label>
+          <div class="plan-selector">
+            <label class="plan-opt">
+              <input type="radio" name="plan" value="negocio" required>
+              <div class="plan-card">
+                <div class="plan-card-name">Negocio</div>
+                <div class="plan-card-price-old">€49/mes</div>
+                <div class="plan-card-price">€44<small>/mes</small></div>
+                <div class="plan-card-mins">500 min · 1 asistente</div>
+              </div>
+            </label>
+            <label class="plan-opt">
+              <input type="radio" name="plan" value="pro">
+              <div class="plan-card">
+                <div class="plan-card-name">Pro</div>
+                <div class="plan-card-price-old">€99/mes</div>
+                <div class="plan-card-price">€89<small>/mes</small></div>
+                <div class="plan-card-mins">2.000 min · Ilimitados</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Coupon: auto-aplicado, visible -->
+        <div class="coupon-field">
+          <span class="coupon-icon">🏷️</span>
+          <span class="coupon-applied">HEMENTXE10</span>
+          <span class="coupon-check">✓ −10% aplicado</span>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          Continuar al pago →
+        </button>
+
+        <div class="form-error" id="formError"></div>
+
+        <p class="form-legal">
+          Al continuar serás redirigido a Stripe para completar el pago de forma segura.<br>
+          Sin permanencias · Cancela cuando quieras · <a href="https://nodeflow.es/privacidad" target="_blank">Privacidad</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>⚡ <strong style="color:#a29bfe;">NodeFlow</strong> · Tecnología de voz IA para negocios locales · Hecho en Euskal Herria</p>
+  <p style="margin-top:6px;"><a href="https://nodeflow.es">nodeflow.es</a> · unai@nodeflow.es · +34 666 351 319</p>
+</footer>
+
+<script>
+  // ── Stripe payment links ──────────────────────────────────────────────────
+  const STRIPE_URLS = {
+    negocio: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
+    pro:     'https://buy.stripe.com/9B6aEY2m4aRLeJgdfu24003',
+  };
+  const COUPON_CODE = 'HEMENTXE10';
+  const CIUDAD_DEFAULT = 'Andoain';
+
+  // ── Form submit ───────────────────────────────────────────────────────────
+  document.getElementById('regForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const errEl = document.getElementById('formError');
+    errEl.style.display = 'none';
+
+    const fd = new FormData(e.target);
+    const plan = fd.get('plan');
+
+    if (!plan) {
+      errEl.textContent = 'Por favor selecciona un plan.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Procesando…';
+
+    const negocio = fd.get('negocio') || '';
+    const data = {
+      sector:   fd.get('sector'),
+      negocio,
+      contacto: fd.get('contacto'),
+      ciudad:   CIUDAD_DEFAULT,
+      telefono: fd.get('telefono'),
+      email:    fd.get('email'),
+      plan,
+      voz:      'nova',
+      idioma:   'es',
+      saludo:   `Gracias por llamar a ${negocio}, ¿en qué puedo ayudarte?`,
+      horario:  {},
+      coupon:   COUPON_CODE,
+    };
+
+    try {
+      const resp = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      const { id: registroId, stripeCode } = await resp.json();
+
+      // Save locally
+      try { localStorage.setItem('nf_registro', JSON.stringify({ ...data, id: registroId })); } catch(_) {}
+
+      const stripeBase = STRIPE_URLS[plan];
+      if (!stripeBase || stripeBase.includes('XXXX')) {
+        // Fallback: WhatsApp
+        const msg = `Hola Unai, soy ${data.contacto} de ${negocio}. Vi el anuncio en Hementxe y quiero contratar el plan ${plan} con el código ${COUPON_CODE}. Email: ${data.email}`;
+        window.open(`https://wa.me/34666351319?text=${encodeURIComponent(msg)}`, '_blank');
+        btn.textContent = 'Continuar al pago →';
+        btn.disabled = false;
+        return;
+      }
+
+      btn.textContent = 'Redirigiendo al pago…';
+      const promoParam = stripeCode ? `&prefilled_promo_code=${stripeCode}` : '';
+      setTimeout(() => {
+        window.location.href = `${stripeBase}?client_reference_id=${registroId}${promoParam}`;
+      }, 300);
+
+    } catch (err) {
+      errEl.textContent = err.message || 'Error de conexión. Inténtalo de nuevo.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Continuar al pago →';
+    }
+  });
+</script>
+
+</body>
+</html>
