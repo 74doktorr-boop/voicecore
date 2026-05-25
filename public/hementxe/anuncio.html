@@ -2,580 +2,360 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NodeFlow — Anuncio Hementxe A4</title>
+<title>NodeFlow × Hementxe — Anuncio A4</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+*{margin:0;padding:0;box-sizing:border-box}
 
-  /* ── Print: A4 sin márgenes ── */
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
+@page{size:A4 portrait;margin:0}
 
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #0d0d1a;
-    color: #ffffff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#111;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
 
-  /* ── Contenedor A4 210×297mm ── */
-  .page {
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-    background: linear-gradient(160deg, #1a0a3e 0%, #0d0d1a 45%, #001a2e 100%);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 10mm 11mm 8mm 11mm;
-  }
+/* ══ PÁGINA A4 ══ */
+.page{
+  width:210mm;
+  min-height:297mm;
+  margin:0 auto;
+  background:#0b0b18;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
 
-  /* ── Fondo decorativo ── */
-  .page::before {
-    content: '';
-    position: absolute;
-    top: -40mm;
-    right: -30mm;
-    width: 120mm;
-    height: 120mm;
-    background: radial-gradient(circle, rgba(108,92,231,0.25) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .page::after {
-    content: '';
-    position: absolute;
-    bottom: 20mm;
-    left: -20mm;
-    width: 80mm;
-    height: 80mm;
-    background: radial-gradient(circle, rgba(0,184,148,0.12) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
+/* Fondo decorativo */
+.bg-orb-1{
+  position:absolute;top:-30mm;right:-20mm;
+  width:110mm;height:110mm;
+  background:radial-gradient(circle,rgba(108,92,231,.3) 0%,transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.bg-orb-2{
+  position:absolute;bottom:30mm;left:-25mm;
+  width:90mm;height:90mm;
+  background:radial-gradient(circle,rgba(0,184,148,.15) 0%,transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.bg-orb-3{
+  position:absolute;top:80mm;left:50%;transform:translateX(-50%);
+  width:150mm;height:60mm;
+  background:radial-gradient(ellipse,rgba(108,92,231,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
 
-  /* ── HEADER ── */
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 7mm;
-  }
+/* ══ BANDA SUPERIOR ══ */
+.top-band{
+  background:linear-gradient(90deg,#6c5ce7,#5a4fcf);
+  padding:3.5mm 10mm;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.top-band-text{
+  font-size:8pt;font-weight:700;color:rgba(255,255,255,.85);
+  letter-spacing:1.5px;text-transform:uppercase;
+}
+.top-band-right{
+  font-size:8pt;font-weight:800;color:#fff;letter-spacing:.5px;
+}
 
-  .logo {
-    font-size: 22pt;
-    font-weight: 900;
-    letter-spacing: -0.5px;
-    color: #ffffff;
-  }
-  .logo span { color: #6c5ce7; }
+/* ══ CONTENIDO PRINCIPAL ══ */
+.main{
+  flex:1;
+  padding:9mm 11mm 0;
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;
+}
 
-  .badge {
-    background: linear-gradient(135deg, #f9ca24, #e17055);
-    color: #000;
-    font-size: 8pt;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3mm 4mm;
-    border-radius: 2mm;
-    text-align: center;
-    line-height: 1.4;
-    transform: rotate(2deg);
-    box-shadow: 0 2mm 8mm rgba(249,202,36,0.4);
-  }
+/* Header */
+.header{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:8mm;
+}
+.logo{
+  font-size:20pt;font-weight:900;color:#fff;letter-spacing:-.5px;
+}
+.logo em{font-style:normal;color:#6c5ce7}
+.badge-oferta{
+  background:linear-gradient(135deg,#f9ca24,#e17055);
+  color:#000;font-size:8pt;font-weight:900;
+  padding:2.5mm 4mm;border-radius:2mm;
+  text-align:center;line-height:1.3;
+  letter-spacing:.5px;text-transform:uppercase;
+}
 
-  /* ── WAVE VISUAL ── */
-  .wave-container {
-    display: flex;
-    align-items: center;
-    gap: 4mm;
-    margin-bottom: 6mm;
-  }
+/* Onda de voz */
+.wave-row{
+  display:flex;align-items:center;gap:3mm;
+  margin-bottom:7mm;
+}
+.bars{display:flex;align-items:flex-end;gap:1.2mm;height:12mm}
+.b{width:2.2mm;border-radius:1.5mm;background:linear-gradient(180deg,#a29bfe,#6c5ce7)}
+.b:nth-child(1){height:25%}.b:nth-child(2){height:50%}.b:nth-child(3){height:80%}
+.b:nth-child(4){height:100%}.b:nth-child(5){height:70%}.b:nth-child(6){height:45%}
+.b:nth-child(7){height:88%}.b:nth-child(8){height:60%}.b:nth-child(9){height:38%}
+.b:nth-child(10){height:72%}.b:nth-child(11){height:95%}.b:nth-child(12){height:55%}
+.b:nth-child(13){height:78%}.b:nth-child(14){height:35%}.b:nth-child(15){height:22%}
+.wave-tag{font-size:8.5pt;font-weight:700;color:#a29bfe;letter-spacing:1.5px;text-transform:uppercase}
 
-  .wave-bars {
-    display: flex;
-    align-items: center;
-    gap: 1.5mm;
-    height: 14mm;
-  }
-  .bar {
-    width: 2.5mm;
-    border-radius: 1.5mm;
-    background: linear-gradient(180deg, #6c5ce7, #a29bfe);
-  }
-  .bar:nth-child(1)  { height: 35%; }
-  .bar:nth-child(2)  { height: 60%; }
-  .bar:nth-child(3)  { height: 85%; }
-  .bar:nth-child(4)  { height: 100%; }
-  .bar:nth-child(5)  { height: 75%; }
-  .bar:nth-child(6)  { height: 55%; }
-  .bar:nth-child(7)  { height: 90%; }
-  .bar:nth-child(8)  { height: 65%; }
-  .bar:nth-child(9)  { height: 45%; }
-  .bar:nth-child(10) { height: 70%; }
-  .bar:nth-child(11) { height: 95%; }
-  .bar:nth-child(12) { height: 50%; }
-  .bar:nth-child(13) { height: 80%; }
-  .bar:nth-child(14) { height: 40%; }
-  .bar:nth-child(15) { height: 30%; }
+/* TITULAR */
+h1{
+  font-size:40pt;font-weight:900;line-height:1.05;
+  letter-spacing:-1.5px;color:#fff;
+  margin-bottom:4mm;
+}
+h1 span{
+  background:linear-gradient(90deg,#a29bfe,#6c5ce7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
 
-  .wave-label {
-    font-size: 9pt;
-    color: #a29bfe;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-  }
+.subtitle{
+  font-size:11pt;color:#b2bec3;line-height:1.6;
+  margin-bottom:4mm;max-width:168mm;
+}
 
-  /* ── TITULAR ── */
-  h1 {
-    font-size: 38pt;
-    font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: -1px;
-    margin-bottom: 4mm;
-    color: #ffffff;
-  }
-  h1 em {
-    font-style: normal;
-    background: linear-gradient(90deg, #a29bfe, #6c5ce7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+/* Euskera pill */
+.eu-pill{
+  display:inline-flex;align-items:center;gap:2.5mm;
+  background:rgba(0,184,148,.12);
+  border:0.4mm solid rgba(0,184,148,.45);
+  border-radius:20mm;padding:2mm 4mm;
+  font-size:9pt;font-weight:700;color:#00b894;
+  margin-bottom:7mm;
+}
+.eu-dot{width:2mm;height:2mm;background:#00b894;border-radius:50%}
 
-  .subtitle {
-    font-size: 11.5pt;
-    color: #b2bec3;
-    line-height: 1.55;
-    margin-bottom: 4mm;
-    max-width: 165mm;
-  }
+/* Divider */
+.divider{height:.2mm;background:linear-gradient(90deg,rgba(108,92,231,.5),transparent);margin-bottom:6mm}
 
-  /* ── EUSKERA CALLOUT ── */
-  .euskera-box {
-    display: inline-flex;
-    align-items: center;
-    gap: 2.5mm;
-    background: rgba(0,184,148,0.15);
-    border: 0.5mm solid rgba(0,184,148,0.5);
-    border-radius: 2mm;
-    padding: 2.5mm 4mm;
-    margin-bottom: 7mm;
-    font-size: 9.5pt;
-    color: #00b894;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-  }
-  .dot-green {
-    width: 2mm;
-    height: 2mm;
-    background: #00b894;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+/* PRICING */
+.pricing{display:flex;gap:4mm;margin-bottom:6mm}
+.plan{
+  flex:1;border-radius:3mm;padding:5mm 5mm 4.5mm;text-align:center;
+  position:relative;
+  border:.3mm solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+}
+.plan.featured{
+  background:rgba(108,92,231,.16);
+  border-color:rgba(108,92,231,.5);
+}
+.plan.featured::before{
+  content:'MÁS POPULAR';
+  position:absolute;top:-3mm;left:50%;transform:translateX(-50%);
+  background:#6c5ce7;color:#fff;
+  font-size:6pt;font-weight:900;letter-spacing:1px;
+  padding:.8mm 3mm;border-radius:1mm;white-space:nowrap;
+}
+.plan-name{font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a29bfe;margin-bottom:2mm}
+.plan-was{font-size:9pt;color:#636e72;text-decoration:line-through;margin-bottom:.5mm}
+.plan-price{font-size:31pt;font-weight:900;color:#fff;line-height:1;margin-bottom:1.5mm}
+.plan-price small{font-size:11pt;font-weight:500;color:#b2bec3}
+.plan-min{font-size:8pt;color:#74b9ff;font-weight:600;margin-bottom:3mm}
+.plan-li{list-style:none;text-align:left;font-size:7.5pt;color:#b2bec3;line-height:1.8}
+.plan-li li::before{content:'✓ ';color:#00b894;font-weight:700}
 
-  /* ── DIVIDER ── */
-  .divider {
-    height: 0.2mm;
-    background: linear-gradient(90deg, rgba(108,92,231,0.6), transparent);
-    margin-bottom: 6mm;
-  }
+/* FEATURES */
+.feats{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:2mm 5mm;margin-bottom:6mm;
+}
+.feat{display:flex;align-items:flex-start;gap:2mm;font-size:8.5pt;color:#dfe6e9;line-height:1.4}
+.feat-check{color:#00b894;font-weight:900;font-size:10pt;flex-shrink:0;margin-top:.2mm}
 
-  /* ── PRICING ── */
-  .pricing {
-    display: flex;
-    gap: 4mm;
-    margin-bottom: 6mm;
-  }
+/* ══ CUPÓN ══ */
+.coupon{
+  background:linear-gradient(135deg,rgba(249,202,36,.1),rgba(225,112,85,.08));
+  border:.4mm dashed rgba(249,202,36,.65);
+  border-radius:3mm;
+  padding:4mm 5mm;
+  margin-bottom:6mm;
+  display:flex;align-items:center;gap:5mm;
+}
+.coupon-left{flex:1}
+.coup-tag{font-size:7pt;font-weight:700;color:#f9ca24;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:1.5mm}
+.coup-code{font-size:24pt;font-weight:900;color:#f9ca24;letter-spacing:3px;line-height:1;margin-bottom:1.5mm}
+.coup-detail{font-size:8pt;color:#b2bec3;line-height:1.5}
+.coupon-right{text-align:center;flex-shrink:0}
+.coup-pct{font-size:38pt;font-weight:900;color:#f9ca24;line-height:1}
+.coup-pct-lbl{font-size:7.5pt;color:rgba(249,202,36,.8);font-weight:600}
 
-  .plan {
-    flex: 1;
-    background: rgba(255,255,255,0.05);
-    border: 0.3mm solid rgba(255,255,255,0.12);
-    border-radius: 3mm;
-    padding: 5mm 5mm 4mm;
-    text-align: center;
-    position: relative;
-  }
-  .plan.featured {
-    background: rgba(108,92,231,0.18);
-    border-color: rgba(108,92,231,0.55);
-  }
-  .plan.featured::before {
-    content: 'MÁS POPULAR';
-    position: absolute;
-    top: -2.5mm;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #6c5ce7;
-    color: #fff;
-    font-size: 6.5pt;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    padding: 0.8mm 3mm;
-    border-radius: 1mm;
-    white-space: nowrap;
-  }
+/* ══ FOOTER ══ */
+.footer{
+  background:rgba(0,0,0,.3);
+  border-top:.2mm solid rgba(255,255,255,.08);
+  padding:5mm 11mm;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:5mm;
+  flex-shrink:0;
+}
+.footer-qr-block{display:flex;align-items:center;gap:3.5mm}
+.qr-box{
+  background:#fff;
+  padding:2mm;border-radius:1.5mm;
+  flex-shrink:0;
+}
+.qr-box img{display:block;width:22mm;height:22mm}
+.qr-caption{font-size:7pt;color:#636e72;margin-top:1.5mm;text-align:center}
+.footer-contact{}
+.contact-url{font-size:14pt;font-weight:900;color:#a29bfe;letter-spacing:-.3px}
+.contact-line{font-size:8.5pt;color:#74b9ff;margin-top:1mm}
+.footer-hementxe{text-align:right;font-size:7.5pt;color:#636e72;line-height:1.7}
+.footer-hementxe strong{display:block;color:#a29bfe;font-size:9pt;font-weight:700;margin-bottom:1mm}
 
-  .plan-name {
-    font-size: 9pt;
-    font-weight: 800;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #a29bfe;
-    margin-bottom: 2mm;
+/* ══ BOTÓN IMPRIMIR (solo pantalla) ══ */
+@media screen{
+  body{background:#1a1a2e;padding:24px 0}
+  .page{box-shadow:0 20px 80px rgba(0,0,0,.7);border-radius:2px}
+  .print-btn{
+    position:fixed;top:20px;right:20px;z-index:999;
+    background:#6c5ce7;color:#fff;border:none;
+    padding:13px 22px;border-radius:10px;
+    font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+    box-shadow:0 4px 20px rgba(108,92,231,.4);
   }
-  .plan-original {
-    font-size: 9pt;
-    color: #636e72;
-    text-decoration: line-through;
-    margin-bottom: 1mm;
-  }
-  .plan-price {
-    font-size: 30pt;
-    font-weight: 900;
-    color: #ffffff;
-    line-height: 1;
-    margin-bottom: 1.5mm;
-  }
-  .plan-price sup {
-    font-size: 14pt;
-    vertical-align: super;
-    font-weight: 700;
-  }
-  .plan-price small {
-    font-size: 11pt;
-    font-weight: 500;
-    color: #b2bec3;
-  }
-  .plan-minutes {
-    font-size: 8pt;
-    color: #74b9ff;
-    font-weight: 600;
-    margin-bottom: 3mm;
-  }
-  .plan-features-mini {
-    list-style: none;
-    text-align: left;
-    font-size: 8pt;
-    color: #b2bec3;
-    line-height: 1.7;
-  }
-  .plan-features-mini li::before {
-    content: '✓ ';
-    color: #00b894;
-    font-weight: 700;
-  }
-
-  /* ── FEATURES ── */
-  .features-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2mm 5mm;
-    margin-bottom: 6mm;
-  }
-  .feature-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 2mm;
-    font-size: 9pt;
-    color: #dfe6e9;
-    line-height: 1.4;
-  }
-  .feature-check {
-    color: #00b894;
-    font-weight: 800;
-    font-size: 10pt;
-    flex-shrink: 0;
-    margin-top: 0.3mm;
-  }
-
-  /* ── COUPON BOX ── */
-  .coupon-box {
-    background: linear-gradient(135deg, rgba(249,202,36,0.12), rgba(225,112,85,0.1));
-    border: 0.4mm dashed rgba(249,202,36,0.7);
-    border-radius: 3mm;
-    padding: 4mm 5mm;
-    margin-bottom: 6mm;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4mm;
-  }
-  .coupon-left { flex: 1; }
-  .coupon-tag {
-    font-size: 7.5pt;
-    font-weight: 700;
-    color: #f9ca24;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 1.5mm;
-  }
-  .coupon-code {
-    font-size: 22pt;
-    font-weight: 900;
-    color: #f9ca24;
-    letter-spacing: 3px;
-    line-height: 1;
-    margin-bottom: 1.5mm;
-  }
-  .coupon-detail {
-    font-size: 8pt;
-    color: #b2bec3;
-    line-height: 1.5;
-  }
-  .coupon-right {
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .coupon-percent {
-    font-size: 36pt;
-    font-weight: 900;
-    color: #f9ca24;
-    line-height: 1;
-  }
-  .coupon-percent-label {
-    font-size: 8pt;
-    color: #f9ca24;
-    font-weight: 600;
-    opacity: 0.8;
-  }
-
-  /* ── FOOTER ── */
-  .footer {
-    margin-top: auto;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding-top: 4mm;
-    border-top: 0.2mm solid rgba(255,255,255,0.1);
-    gap: 4mm;
-  }
-
-  .footer-left {
-    display: flex;
-    align-items: center;
-    gap: 4mm;
-  }
-
-  .qr-wrap {
-    background: #1a1a2e;
-    padding: 2.5mm;
-    border-radius: 2mm;
-    border: 0.3mm solid rgba(255,255,255,0.1);
-    flex-shrink: 0;
-  }
-  .qr-wrap img {
-    width: 22mm;
-    height: 22mm;
-    display: block;
-  }
-
-  .qr-label {
-    font-size: 7pt;
-    color: #636e72;
-    text-align: center;
-    margin-top: 1mm;
-  }
-
-  .footer-contact {
-    line-height: 1.8;
-  }
-  .footer-url {
-    font-size: 13pt;
-    font-weight: 800;
-    color: #a29bfe;
-    letter-spacing: -0.3px;
-  }
-  .footer-detail {
-    font-size: 8.5pt;
-    color: #74b9ff;
-  }
-
-  .footer-tagline {
-    text-align: right;
-    font-size: 8pt;
-    color: #636e72;
-    max-width: 50mm;
-    line-height: 1.5;
-  }
-  .footer-tagline strong {
-    display: block;
-    font-size: 9pt;
-    color: #a29bfe;
-    font-weight: 700;
-    margin-bottom: 1mm;
-  }
-
-  /* ── SCREEN PREVIEW ── */
-  @media screen {
-    body {
-      background: #111;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 20px 0;
-    }
-    .page {
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-    }
-    .print-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #6c5ce7;
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      z-index: 1000;
-    }
-    .print-btn:hover { background: #5a4fcf; }
-  }
-  @media print {
-    .print-btn { display: none; }
-    body { background: #0d0d1a; }
-  }
+  .print-btn:hover{background:#5a4fcf}
+}
+@media print{
+  .print-btn{display:none}
+  body{background:#0b0b18;padding:0}
+}
 </style>
 </head>
 <body>
 
-<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+<button class="print-btn" onclick="window.print()">🖨️ Exportar PDF</button>
 
 <div class="page">
+  <div class="bg-orb-1"></div>
+  <div class="bg-orb-2"></div>
+  <div class="bg-orb-3"></div>
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo">⚡ Node<span>Flow</span></div>
-    <div class="badge">OFERTA<br>EXCLUSIVA<br>−10%</div>
+  <!-- Banda superior -->
+  <div class="top-band">
+    <div class="top-band-text">⚡ Inteligencia Artificial para negocios locales</div>
+    <div class="top-band-right">nodeflow.es · Hecho en Euskal Herria</div>
   </div>
 
-  <!-- WAVE VISUAL -->
-  <div class="wave-container">
-    <div class="wave-bars">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    </div>
-    <div class="wave-label">Asistente Vocal con IA</div>
-  </div>
+  <!-- Contenido -->
+  <div class="main">
 
-  <!-- TITULAR -->
-  <h1>Tu negocio nunca más<br><em>pierde una llamada.</em></h1>
-
-  <p class="subtitle">
-    Inteligencia Artificial que atiende a tus clientes las 24 horas, reserva citas y responde preguntas — aunque estés trabajando, comiendo o durmiendo.
-  </p>
-
-  <div class="euskera-box">
-    <div class="dot-green"></div>
-    Muy pronto disponible: IA EN EUSKERA NATIVO &nbsp;·&nbsp; Laster euskaraz!
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- PRICING -->
-  <div class="pricing">
-    <div class="plan">
-      <div class="plan-name">Negocio</div>
-      <div class="plan-original">€49/mes</div>
-      <div class="plan-price"><sup>€</sup>44<small>/mes</small></div>
-      <div class="plan-minutes">500 minutos de llamadas</div>
-      <ul class="plan-features-mini">
-        <li>1 asistente IA configurado</li>
-        <li>Reserva y gestión de citas</li>
-        <li>Panel de control propio</li>
-        <li>Sin permanencias</li>
-      </ul>
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">⚡ Node<em>Flow</em></div>
+      <div class="badge-oferta">Oferta<br>exclusiva<br>−10%</div>
     </div>
-    <div class="plan featured">
-      <div class="plan-name">Pro</div>
-      <div class="plan-original">€99/mes</div>
-      <div class="plan-price"><sup>€</sup>89<small>/mes</small></div>
-      <div class="plan-minutes">2.000 minutos · Asistentes ilimitados</div>
-      <ul class="plan-features-mini">
-        <li>Asistentes ilimitados</li>
-        <li>Multilingüe (ES + EU pronto)</li>
-        <li>Llamadas entrantes y salientes</li>
-        <li>Soporte prioritario</li>
-      </ul>
-    </div>
-  </div>
 
-  <!-- FEATURES -->
-  <div class="features-grid">
-    <div class="feature-item">
-      <span class="feature-check">✓</span>
-      <span>Nunca más un cliente que cuelga por no obtener respuesta</span>
+    <!-- Onda -->
+    <div class="wave-row">
+      <div class="bars">
+        <div class="b"></div><div class="b"></div><div class="b"></div>
+        <div class="b"></div><div class="b"></div><div class="b"></div>
+        <div class="b"></div><div class="b"></div><div class="b"></div>
+        <div class="b"></div><div class="b"></div><div class="b"></div>
+        <div class="b"></div><div class="b"></div><div class="b"></div>
+      </div>
+      <div class="wave-tag">Asistente Vocal con IA</div>
     </div>
-    <div class="feature-item">
-      <span class="feature-check">✓</span>
-      <span>Configurado para tu negocio en menos de 24 horas</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-check">✓</span>
-      <span>Compatible con Vonage, Twilio y cualquier número +34</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-check">✓</span>
-      <span>Sin permanencias — cancela cuando quieras, sin coste</span>
-    </div>
-  </div>
 
-  <!-- COUPON -->
-  <div class="coupon-box">
-    <div class="coupon-left">
-      <div class="coupon-tag">✂ Código exclusivo para lectores de Hementxe</div>
-      <div class="coupon-code">HEMENTXE10</div>
-      <div class="coupon-detail">
-        Aplica este código al contratar · 10% de descuento permanente en tu suscripción<br>
-        <strong style="color:#f9ca24;">Solo válido este trimestre · nodeflow.es/hementxe</strong>
+    <!-- Titular -->
+    <h1>Tu negocio nunca más<br><span>pierde una llamada.</span></h1>
+
+    <p class="subtitle">
+      Inteligencia Artificial que atiende a tus clientes las 24 horas del día, reserva citas y responde preguntas — aunque estés trabajando, comiendo o durmiendo.
+    </p>
+
+    <div class="eu-pill">
+      <div class="eu-dot"></div>
+      Muy pronto: IA EN EUSKERA NATIVO &nbsp;·&nbsp; Laster euskaraz!
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Pricing -->
+    <div class="pricing">
+      <div class="plan">
+        <div class="plan-name">Negocio</div>
+        <div class="plan-was">€49/mes</div>
+        <div class="plan-price">€44<small>/mes</small></div>
+        <div class="plan-min">500 minutos · 1 asistente</div>
+        <ul class="plan-li">
+          <li>Reserva y gestión de citas</li>
+          <li>Panel de control propio</li>
+          <li>Sin permanencias</li>
+          <li>Soporte incluido</li>
+        </ul>
+      </div>
+      <div class="plan featured">
+        <div class="plan-name">Pro</div>
+        <div class="plan-was">€99/mes</div>
+        <div class="plan-price">€89<small>/mes</small></div>
+        <div class="plan-min">2.000 minutos · Asistentes ilimitados</div>
+        <ul class="plan-li">
+          <li>Asistentes ilimitados</li>
+          <li>Multilingüe (ES + EU pronto)</li>
+          <li>Llamadas entrantes y salientes</li>
+          <li>Soporte prioritario</li>
+        </ul>
       </div>
     </div>
-    <div class="coupon-right">
-      <div class="coupon-percent">−10%</div>
-      <div class="coupon-percent-label">para siempre</div>
-    </div>
-  </div>
 
-  <!-- FOOTER -->
-  <div class="footer">
-    <div class="footer-left">
-      <div>
-        <div class="qr-wrap">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https%3A%2F%2Fnodeflow.es%2Fhementxe&color=ffffff&bgcolor=1a1a2e" alt="QR nodeflow.es/hementxe">
+    <!-- Features -->
+    <div class="feats">
+      <div class="feat"><span class="feat-check">✓</span><span>Nunca más un cliente que cuelga por no obtener respuesta</span></div>
+      <div class="feat"><span class="feat-check">✓</span><span>Configurado para tu negocio en menos de 24 horas</span></div>
+      <div class="feat"><span class="feat-check">✓</span><span>Compatible con cualquier número de teléfono +34</span></div>
+      <div class="feat"><span class="feat-check">✓</span><span>Sin permanencias — cancela cuando quieras, sin coste</span></div>
+    </div>
+
+    <!-- Cupón -->
+    <div class="coupon">
+      <div class="coupon-left">
+        <div class="coup-tag">✂ Código exclusivo para lectores de Hementxe</div>
+        <div class="coup-code">HEMENTXE10</div>
+        <div class="coup-detail">
+          Aplica este código al contratar &nbsp;·&nbsp; Descuento permanente en tu suscripción<br>
+          <strong style="color:#f9ca24">Solo válido este trimestre &nbsp;·&nbsp; nodeflow.es/hementxe</strong>
         </div>
-        <div class="qr-label">Escanea y aplica<br>el código</div>
+      </div>
+      <div class="coupon-right">
+        <div class="coup-pct">−10%</div>
+        <div class="coup-pct-lbl">para siempre</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-qr-block">
+      <div>
+        <div class="qr-box">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=https%3A%2F%2Fnodeflow.es%2Fhementxe&color=000000&bgcolor=ffffff" alt="QR">
+        </div>
+        <div class="qr-caption">Escanea y aplica<br>el código</div>
       </div>
       <div class="footer-contact">
-        <div class="footer-url">nodeflow.es/hementxe</div>
-        <div class="footer-detail">unai@nodeflow.es</div>
-        <div class="footer-detail">+34 666 351 319</div>
+        <div class="contact-url">nodeflow.es/hementxe</div>
+        <div class="contact-line">unai@nodeflow.es</div>
+        <div class="contact-line">+34 666 351 319</div>
       </div>
     </div>
-    <div class="footer-tagline">
+    <div class="footer-hementxe">
       <strong>⚡ NodeFlow</strong>
-      Tecnología de voz IA para negocios locales.<br>
+      Tecnología de voz IA<br>para negocios locales.<br>
       Hecho en Euskal Herria.
     </div>
   </div>
 
-</div>
+</div><!-- /page -->
 
 </body>
 </html>
