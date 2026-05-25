@@ -71,62 +71,66 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Landing page — served from GitHub raw so deploys are instant without Docker rebuild
-const GITHUB_RAW_INDEX = 'https://raw.githubusercontent.com/74doktorr-boop/voicecore/master/public/index.html';
-let landingCache = { html: null, fetchedAt: 0 };
-const LANDING_TTL = 60 * 1000; // refresh every 60s
+// ─── GitHub Raw Page Server ───────────────────────────────────────────────────
+// Todas las páginas HTML se sirven desde GitHub raw con TTL 60s.
+// Esto significa que un git push pone cualquier página en vivo en <60s,
+// sin necesidad de rebuilding Docker ni redeploy manual.
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/74doktorr-boop/voicecore/master/public';
+const PAGE_TTL = 60 * 1000;
+const _pageCache = new Map(); // publicPath → { html, fetchedAt }
 
-async function getLanding() {
+async function getPage(publicPath) {
   const now = Date.now();
-  if (landingCache.html && now - landingCache.fetchedAt < LANDING_TTL) return landingCache.html;
+  const cached = _pageCache.get(publicPath);
+  if (cached?.html && now - cached.fetchedAt < PAGE_TTL) return cached.html;
   try {
-    const resp = await fetch(GITHUB_RAW_INDEX);
+    const resp = await fetch(`${GITHUB_RAW_BASE}${publicPath}`);
     if (resp.ok) {
-      landingCache = { html: await resp.text(), fetchedAt: now };
+      const html = await resp.text();
+      _pageCache.set(publicPath, { html, fetchedAt: now });
+      return html;
     }
-  } catch (e) { /* network error — use cache or fallback */ }
-  return landingCache.html; // may be null on very first boot if GitHub unreachable
+  } catch (_) { /* red caída — usar caché antiguo */ }
+  return cached?.html || null;
 }
 
-// Warm cache on boot
-getLanding().catch(() => {});
-
-app.get('/', async (req, res) => {
-  const html = await getLanding();
-  if (html) {
+function serveGitHubPage(publicPath, fallbackFile) {
+  return async (req, res) => {
+    const html = await getPage(publicPath);
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Content-Type', 'text/html; charset=utf-8');
-    return res.send(html);
-  }
-  // fallback to bundled file if GitHub unreachable
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+    if (html) return res.send(html);
+    // Fallback al archivo bundled en el contenedor (siempre existe index.html)
+    const fb = fallbackFile || path.join(__dirname, 'public', publicPath);
+    res.sendFile(fb);
+  };
+}
 
-// Hementxe campaign landing page
-app.get(['/hementxe', '/hementxe/'], (req, res) => {
-  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'hementxe', 'index.html'));
-});
+// Warm-up de las páginas más visitadas al arrancar
+['/index.html', '/hementxe/index.html', '/hementxe/anuncio.html'].forEach(p => getPage(p).catch(() => {}));
 
-// Sector SEO landing pages (with and without trailing slash)
+// ─── Landing principal ───
+app.get('/', serveGitHubPage('/index.html', path.join(__dirname, 'public', 'index.html')));
+
+// ─── Hementxe (campaign) ───
+app.get(['/hementxe', '/hementxe/'],        serveGitHubPage('/hementxe/index.html',   path.join(__dirname, 'public', 'hementxe', 'index.html')));
+app.get('/hementxe/anuncio.html',           serveGitHubPage('/hementxe/anuncio.html', path.join(__dirname, 'public', 'hementxe', 'anuncio.html')));
+
+// ─── Sector SEO landing pages ───
 const SECTOR_PAGES = [
   'peluquerias', 'clinicas', 'restaurantes', 'talleres',
   'veterinarias', 'estetica', 'gimnasios', 'inmobiliarias',
   'academias', 'asesorias', 'farmacias', 'hoteles',
 ];
 SECTOR_PAGES.forEach(sector => {
-  app.get([`/${sector}`, `/${sector}/`], (req, res) => {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', sector, 'index.html'));
-  });
+  const file = path.join(__dirname, 'public', sector, 'index.html');
+  app.get([`/${sector}`, `/${sector}/`], serveGitHubPage(`/${sector}/index.html`, file));
 });
 
-// Legal pages (with and without trailing slash)
+// ─── Páginas legales ───
 ['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
-  app.get([`/${page}`, `/${page}/`], (req, res) => {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', page, 'index.html'));
-  });
+  const file = path.join(__dirname, 'public', page, 'index.html');
+  app.get([`/${page}`, `/${page}/`], serveGitHubPage(`/${page}/index.html`, file));
 });
 
 // Other static assets (CSS, JS, images, robots.txt, etc.)
