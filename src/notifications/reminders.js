@@ -31,6 +31,15 @@ function formatDateGl(dateStr) {
   return `${days[date.getDay()]} ${d} de ${months[m - 1]}`;
 }
 
+// Basque date formatter — uses standard euskera day/month names
+function formatDateEu(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const days   = ['igandea','astelehena','asteartea','asteazkena','osteguna','ostirala','larunbata'];
+  const months = ['urtarrilak','otsailak','martxoak','apirilak','maiatzak','ekainak','uztailak','abuztuak','irailak','urriak','azaroak','abenduak'];
+  return `${days[date.getDay()]} ${d}, ${months[m - 1]}`;
+}
+
 function firstName(fullName = '') {
   return fullName.split(' ')[0];
 }
@@ -81,6 +90,43 @@ async function sendAppointmentReminder(appointment, businessConfig) {
 
     const ok = await sendEmail({ to: appointment.email, subject, html, text });
     if (ok) log.info(`Reminder [gl] sent → ${appointment.id} (${appointment.email})`);
+    return ok;
+  }
+
+  // ── Basque template ────────────────────────────────────────────────────────
+  if (lang === 'eu') {
+    const dateStr = formatDateEu(appointment.date);
+    const subject = `⏰ Bihar hitzordua duzu — ${businessName}`;
+
+    const html = `
+      <div style="font-family:'Inter',sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
+        <div style="margin-bottom:24px;">
+          <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Hitzordu-gogorarazlea</p>
+          <h2 style="color:#e74c3c;margin:0;font-size:22px;">⏰ Bihar hitzordua duzu!</h2>
+        </div>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${name}</strong>, biharko hitzordua gogora ekartzeko idazten dizugu.</p>
+
+        <div style="background:#1a1a24;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid rgba(231,76,60,0.15);">
+          <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">Zure hitzordua</p>
+          <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}etan</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${businessName}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${appointment.service}</p>
+          ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
+        </div>
+
+        <p style="color:#a0a0b8;font-size:14px;line-height:1.6;">Hitzordua bertan behera utzi edo aldatu nahi baduzu, erantzun mezu honi edo deitu iezaguzu zuzenean.</p>
+        <p style="color:#a0a0b8;font-size:14px;margin-bottom:0;">Bihar arte! 👋</p>
+
+        <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
+          ${businessName} · Gogorarazle automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
+        </p>
+      </div>
+    `;
+
+    const text = `Kaixo ${name},\n\nGogorarazlea: bihar hitzordua duzu ${dateStr} ${appointment.time}etan.\nZerbitzua: ${appointment.service}\nNegozioa: ${businessName}\n\nBertan behera utzi nahi baduzu, erantzun mezu honi.\n\nBihar arte!`;
+
+    const ok = await sendEmail({ to: appointment.email, subject, html, text });
+    if (ok) log.info(`Reminder [eu] sent → ${appointment.id} (${appointment.email})`);
     return ok;
   }
 
@@ -171,6 +217,45 @@ async function sendReviewRequest(appointment, businessConfig) {
     return ok;
   }
 
+  // ── Basque review template ─────────────────────────────────────────────────
+  if (lang === 'eu') {
+    const subject = `⭐ Nola joan zen ${businessName}-ko bisita?`;
+
+    const html = `
+      <div style="font-family:'Inter',sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
+        <div style="margin-bottom:24px;">
+          <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Zure iritzia garrantzitsua da</p>
+          <h2 style="color:#f9ca24;margin:0;font-size:22px;">⭐ Nola joan zen hitzordua?</h2>
+        </div>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${name}</strong>, espero dugu <strong style="color:#fff;">${businessName}</strong>-n egon zinela ondo.</p>
+
+        <div style="background:#1a1a24;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;border:1px solid rgba(249,202,36,0.12);">
+          <p style="color:#a0a0b8;font-size:14px;line-height:1.7;margin:0 0 20px 0;">
+            Esperientzia gustatu bazaizu, Google-n iritzi bat uzteak asko laguntzen digu jende gehiagora iristeko.<br>
+            <strong style="color:#f9ca24;">30 segundu bakarrik behar dituzu.</strong>
+          </p>
+          <a href="${reviewUrl}"
+             style="display:inline-block;background:#f9ca24;color:#1a1a24;padding:14px 36px;border-radius:10px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:-.2px;">
+            ⭐ Google-n iritzia utzi
+          </a>
+          <p style="margin:16px 0 0 0;font-size:12px;color:#444460;">Egin klik botoian eta aukeratu zure esperientziarentzako izarrak.</p>
+        </div>
+
+        <p style="color:#666680;font-size:13px;text-align:center;">Hobetu daitekeen zerbait? Esan iezaguzu mezu honi erantzunda.</p>
+
+        <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
+          ${businessName} · Mezu automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
+        </p>
+      </div>
+    `;
+
+    const text = `Kaixo ${name},\n\nEspero dugu ${businessName}-n egon zinela ondo.\n\nGustatu bazaizu, Google-n iritzi bat uzteak asko lagunduko liguke (30 segundo):\n${reviewUrl}\n\nHobetu daitekeen zerbait? Erantzun mezu honi.\n\nEskerrik asko!`;
+
+    const ok = await sendEmail({ to: appointment.email, subject, html, text });
+    if (ok) log.info(`Review request [eu] sent → ${appointment.id} (${appointment.email})`);
+    return ok;
+  }
+
   // ── Spanish template (default) ─────────────────────────────────────────────
   const subject = `⭐ ¿Cómo fue tu visita a ${businessName}?`;
 
@@ -230,6 +315,19 @@ function generateWhatsAppConfirmation(appointment, businessConfig, ownerPhone) {
       appointment.price ? `💶 ${appointment.price}€` : null,
       ``,
       `Se necesitas cancelar ou cambiar a hora, responde a esta mensaxe. Ata pronto!`,
+    ].filter(l => l !== null).join('\n');
+  } else if (lang === 'eu') {
+    const dateStr = formatDateEu(appointment.date);
+    msg = [
+      `Kaixo ${name} 👋`,
+      ``,
+      `*${businessName}*-n duzun hitzordua baieztatzen dizut:`,
+      ``,
+      `📅 *${dateStr}* ${appointment.time}etan`,
+      `✂️ ${appointment.service}`,
+      appointment.price ? `💶 ${appointment.price}€` : null,
+      ``,
+      `Bertan behera utzi edo aldatu nahi baduzu, erantzun mezu honi. Laster arte!`,
     ].filter(l => l !== null).join('\n');
   } else {
     const dateStr = formatDate(appointment.date);

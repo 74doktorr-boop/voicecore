@@ -2,6 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /docs/
 Disallow: /health
+Disallow: /portal/
 
 Sitemap: https://nodeflow.es/sitemap.xml

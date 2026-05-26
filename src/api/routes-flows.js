@@ -15,24 +15,25 @@ const {
   sendAppointmentReminder,
   sendReviewRequest,
 } = require('../notifications/reminders');
+const { adminAuth }   = require('./routes-admin');
 
 const log = new Logger('FLOWS-API');
 
 function setupFlowRoutes(app) {
 
   // ── List all flows ─────────────────────────────────────────────────────────
-  app.get('/api/flows', (req, res) => {
+  app.get('/api/flows', adminAuth, (req, res) => {
     const flows = flowManager.list().map(sanitize);
     res.json({ count: flows.length, flows });
   });
 
   // ── Aggregated stats ───────────────────────────────────────────────────────
-  app.get('/api/flows/stats', (req, res) => {
+  app.get('/api/flows/stats', adminAuth, (req, res) => {
     res.json(flowManager.stats());
   });
 
   // ── Get one flow ───────────────────────────────────────────────────────────
-  app.get('/api/flows/:id', (req, res) => {
+  app.get('/api/flows/:id', adminAuth, (req, res) => {
     const flow = flowManager.get(req.params.id);
     if (!flow) return res.status(404).json({ error: 'Flow not found' });
     res.json(sanitize(flow));
@@ -41,7 +42,7 @@ function setupFlowRoutes(app) {
   // ── Update flow config ─────────────────────────────────────────────────────
   // Accepts any subset of: googlePlaceId, reviewUrl, automations.reminders.enabled,
   // automations.reviews.enabled, automations.reminders.hoursBefore, etc.
-  app.patch('/api/flows/:id', async (req, res) => {
+  app.patch('/api/flows/:id', adminAuth, async (req, res) => {
     const flow = flowManager.get(req.params.id);
     if (!flow) return res.status(404).json({ error: 'Flow not found' });
 
@@ -59,7 +60,7 @@ function setupFlowRoutes(app) {
   });
 
   // ── Toggle automation on/off (shortcut) ────────────────────────────────────
-  app.post('/api/flows/:id/toggle/:type', (req, res) => {
+  app.post('/api/flows/:id/toggle/:type', adminAuth, (req, res) => {
     const { id, type } = req.params;
     if (!['reminders', 'reviews', 'waConfirm'].includes(type)) {
       return res.status(400).json({ error: 'Invalid type' });
@@ -74,7 +75,7 @@ function setupFlowRoutes(app) {
   });
 
   // ── Test: send reminder to a specific appointment ──────────────────────────
-  app.post('/api/flows/:id/test/reminder', async (req, res) => {
+  app.post('/api/flows/:id/test/reminder', adminAuth, async (req, res) => {
     const { appointmentId, email } = req.body;
     const flow = flowManager.get(req.params.id);
     if (!flow) return res.status(404).json({ error: 'Flow not found' });
@@ -106,7 +107,7 @@ function setupFlowRoutes(app) {
   });
 
   // ── Test: send review request ──────────────────────────────────────────────
-  app.post('/api/flows/:id/test/review', async (req, res) => {
+  app.post('/api/flows/:id/test/review', adminAuth, async (req, res) => {
     const { appointmentId, email } = req.body;
     const flow = flowManager.get(req.params.id);
     if (!flow) return res.status(404).json({ error: 'Flow not found' });

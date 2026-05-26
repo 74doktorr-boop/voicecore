@@ -12,6 +12,20 @@ const log = new Logger('ADMIN');
 // Token simple en memoria (se reinicia con el servidor — suficiente para admin privado)
 const _validTokens = new Set();
 
+// Brute-force protection: max 10 failed attempts per IP per 15 min
+const _loginAttempts = new Map();
+function isLoginBlocked(ip) {
+  const entry = _loginAttempts.get(ip);
+  if (!entry) return false;
+  if (Date.now() - entry.start > 15 * 60 * 1000) { _loginAttempts.delete(ip); return false; }
+  return entry.count >= 10;
+}
+function recordFailedLogin(ip) {
+  const entry = _loginAttempts.get(ip) || { start: Date.now(), count: 0 };
+  entry.count++;
+  _loginAttempts.set(ip, entry);
+}
+
 function adminAuth(req, res, next) {
   const header = req.headers['authorization'] || '';
   const token  = header.replace('Bearer ', '').trim();
@@ -24,18 +38,25 @@ function adminAuth(req, res, next) {
 function setupAdminRoutes(app, config, assistantManager) {
   const PASS = config.dashboardPassword || process.env.DASHBOARD_PASSWORD || 'admin';
 
-  // ─── Auth ───
+  // ─── Auth (with brute-force protection) ───
   app.post('/api/admin/auth', (req, res) => {
+    const ip = req.ip;
+    if (isLoginBlocked(ip)) {
+      log.warn(`Admin login bloqueado por brute-force: ${ip}`);
+      return res.status(429).json({ error: 'Demasiados intentos fallidos. Espera 15 minutos.' });
+    }
     const { password } = req.body;
     if (!password || password !== PASS) {
-      log.warn(`Admin login fallido desde ${req.ip}`);
+      recordFailedLogin(ip);
+      log.warn(`Admin login fallido desde ${ip} (intento ${(_loginAttempts.get(ip)||{count:1}).count})`);
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
+    _loginAttempts.delete(ip); // Reset on success
     const token = require('crypto').randomBytes(32).toString('hex');
     _validTokens.add(token);
     // Token expira en 24h
     setTimeout(() => _validTokens.delete(token), 24 * 60 * 60 * 1000);
-    log.info(`Admin login OK desde ${req.ip}`);
+    log.info(`Admin login OK desde ${ip}`);
     res.json({ token });
   });
 
@@ -200,4 +221,6 @@ function setupAdminRoutes(app, config, assistantManager) {
   log.info('Admin routes configured → /api/admin/*');
 }
 
-module.exports = { setupAdminRoutes };
+// Export adminAuth so routes-flows and routes-automations can reuse it
+// (they share the same _validTokens set — admin login activates all protected routes)
+module.exports = { setupAdminRoutes, adminAuth };

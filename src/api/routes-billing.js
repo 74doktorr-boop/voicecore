@@ -155,10 +155,8 @@ function setupBillingRoutes(app, config) {
   });
 
   // ─── Stripe Webhook ───
-  // Stripe envía el body como raw bytes — DEBE ir antes de express.json()
-  app.post('/api/billing/webhook',
-    require('express').raw({ type: 'application/json' }),
-    async (req, res) => {
+  // express.raw() ya fue aplicado globalmente en server.js para este path
+  app.post('/api/billing/webhook', async (req, res) => {
       try {
         const sig = req.headers['stripe-signature'];
         const result = await billing.handleWebhook(req.body, sig);

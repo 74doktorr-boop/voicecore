@@ -11,13 +11,14 @@ const { Logger } = require('../utils/logger');
 const { scheduler } = require('../scheduling/scheduler');
 const { runAutomations, getCronStats } = require('../scheduling/cron');
 const { generateWhatsAppConfirmation, sendAppointmentReminder, sendReviewRequest } = require('../notifications/reminders');
+const { adminAuth } = require('./routes-admin');
 
 const log = new Logger('AUTO');
 
 function setupAutomationRoutes(app) {
 
-  // ── Stats dashboard ────────────────────────────────────────────────────────
-  app.get('/api/automations/stats', (req, res) => {
+  // ── Stats dashboard (admin only) ──────────────────────────────────────────
+  app.get('/api/automations/stats', adminAuth, (req, res) => {
     const all  = [...scheduler.appointments.values()];
     const now  = Date.now();
 
@@ -48,8 +49,8 @@ function setupAutomationRoutes(app) {
     });
   });
 
-  // ── Manual trigger ─────────────────────────────────────────────────────────
-  app.post('/api/automations/run', async (req, res) => {
+  // ── Manual trigger (admin only) ────────────────────────────────────────────
+  app.post('/api/automations/run', adminAuth, async (req, res) => {
     try {
       await runAutomations();
       res.json({ ok: true, stats: getCronStats() });
@@ -59,8 +60,8 @@ function setupAutomationRoutes(app) {
     }
   });
 
-  // ── Send reminder for specific appointment ─────────────────────────────────
-  app.post('/api/automations/reminder/:aptId', async (req, res) => {
+  // ── Send reminder for specific appointment (admin only) ───────────────────
+  app.post('/api/automations/reminder/:aptId', adminAuth, async (req, res) => {
     const apt = scheduler.appointments.get(req.params.aptId);
     if (!apt) return res.status(404).json({ error: 'Appointment not found' });
     const config = scheduler.getBusinessConfig(apt.businessId);
@@ -69,8 +70,8 @@ function setupAutomationRoutes(app) {
     res.json({ ok, appointment: req.params.aptId });
   });
 
-  // ── Send review request for specific appointment ───────────────────────────
-  app.post('/api/automations/review/:aptId', async (req, res) => {
+  // ── Send review request for specific appointment (admin only) ─────────────
+  app.post('/api/automations/review/:aptId', adminAuth, async (req, res) => {
     const apt = scheduler.appointments.get(req.params.aptId);
     if (!apt) return res.status(404).json({ error: 'Appointment not found' });
     const config = scheduler.getBusinessConfig(apt.businessId);
@@ -79,8 +80,8 @@ function setupAutomationRoutes(app) {
     res.json({ ok, appointment: req.params.aptId });
   });
 
-  // ── List appointments for a business ──────────────────────────────────────
-  app.get('/api/citas/:businessId', (req, res) => {
+  // ── List appointments for a business (admin only) ─────────────────────────
+  app.get('/api/citas/:businessId', adminAuth, (req, res) => {
     const { businessId } = req.params;
     const { date, status, upcoming } = req.query;
     const now = Date.now();
@@ -117,15 +118,15 @@ function setupAutomationRoutes(app) {
     });
   });
 
-  // ── Get appointment by ID ──────────────────────────────────────────────────
-  app.get('/api/citas/_/:aptId', (req, res) => {
+  // ── Get appointment by ID (admin only) ────────────────────────────────────
+  app.get('/api/citas/_/:aptId', adminAuth, (req, res) => {
     const apt = scheduler.appointments.get(req.params.aptId);
     if (!apt) return res.status(404).json({ error: 'Not found' });
     res.json(apt);
   });
 
-  // ── WhatsApp confirmation link ─────────────────────────────────────────────
-  app.get('/api/citas/:businessId/:aptId/wa-confirm', (req, res) => {
+  // ── WhatsApp confirmation link (admin only) ────────────────────────────────
+  app.get('/api/citas/:businessId/:aptId/wa-confirm', adminAuth, (req, res) => {
     const apt = scheduler.appointments.get(req.params.aptId);
     if (!apt || apt.businessId !== req.params.businessId) {
       return res.status(404).json({ error: 'Appointment not found' });
@@ -144,8 +145,9 @@ function setupAutomationRoutes(app) {
     });
   });
 
-  // ── External booking (e.g. from web form or third-party) ──────────────────
-  app.post('/api/citas/book', async (req, res) => {
+  // ── External booking — requires valid API key (via x-api-key header) ────────
+  // Light check: must provide the master API key or an admin token
+  app.post('/api/citas/book', adminAuth, async (req, res) => {
     try {
       const { businessId, patientName, phone, email, service, date, time } = req.body;
 

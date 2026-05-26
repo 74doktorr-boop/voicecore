@@ -51,13 +51,45 @@ for (const envVar of requiredEnvVars) {
 const app = express();
 
 // CORS — permitir llamadas desde cualquier origen (la API key es la seguridad)
+// ─── Security headers (helmet-lite, no extra dep) ───
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('X-XSS-Protection', '1; mode=block');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+// ─── Simple in-memory rate limiter factory (no external dep) ───
+function makeRateLimit({ windowMs = 60000, max = 20, keyFn = (req) => req.ip } = {}) {
+  const store = new Map();
+  return (req, res, next) => {
+    const key = keyFn(req);
+    const now = Date.now();
+    let bucket = store.get(key);
+    if (!bucket || now - bucket.start > windowMs) {
+      bucket = { start: now, count: 0 };
+      store.set(key, bucket);
+    }
+    bucket.count++;
+    if (bucket.count > max) {
+      return res.status(429).json({ error: 'Too many requests', retryAfter: Math.ceil((bucket.start + windowMs - now) / 1000) });
+    }
+    next();
+  };
+}
 
 // Redirect www → apex (SEO canonical)
 app.use((req, res, next) => {
@@ -112,7 +144,13 @@ function serveGitHubPage(publicPath, fallbackFile) {
 }
 
 // Warm-up de las páginas más visitadas al arrancar
-['/index.html', '/hementxe/index.html', '/hementxe/anuncio.html', '/gracias/index.html', '/portal/index.html', '/galiza/index.html'].forEach(p => getPage(p).catch(() => {}));
+[
+  '/index.html',
+  '/hementxe/index.html', '/hementxe/anuncio.html',
+  '/gracias/index.html', '/portal/index.html',
+  '/galiza/index.html',
+  '/andoain/index.html', '/donostia/index.html',
+].forEach(p => getPage(p).catch(() => {}));
 
 // ─── Landing principal ───
 app.get('/', serveGitHubPage('/index.html', path.join(__dirname, 'public', 'index.html')));
@@ -146,6 +184,10 @@ app.get(['/portal', '/portal/'], serveGitHubPage('/portal/index.html', path.join
 
 // ─── NodeFlow Galicia ───
 app.get(['/galiza', '/galiza/'], serveGitHubPage('/galiza/index.html', path.join(__dirname, 'public', 'galiza', 'index.html')));
+
+// ─── City SEO pages ───
+app.get(['/andoain', '/andoain/'], serveGitHubPage('/andoain/index.html', path.join(__dirname, 'public', 'andoain', 'index.html')));
+app.get(['/donostia', '/donostia/'], serveGitHubPage('/donostia/index.html', path.join(__dirname, 'public', 'donostia', 'index.html')));
 
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -317,8 +359,9 @@ app.get('/api/voices/:id/preview', async (req, res) => {
   }
 });
 
-// ─── Simple TTS Preview (direct OpenAI) ───
-app.get('/api/tts/preview', async (req, res) => {
+// ─── Simple TTS Preview (direct OpenAI) — rate limited ───
+const _ttsPreviewLimit = makeRateLimit({ windowMs: 60000, max: 10 });
+app.get('/api/tts/preview', _ttsPreviewLimit, async (req, res) => {
   try {
     const voice = req.query.voice || 'nova';
     const text = req.query.text || 'Hola, soy tu asistente virtual de NodeFlow. ¿En qué puedo ayudarte hoy?';

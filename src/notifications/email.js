@@ -197,13 +197,73 @@ async function sendBienvenidaGl(registro) {
 }
 
 /**
+ * Email de ongi etorri en euskera — enviado cuando idioma === 'eu' o source === 'hementxe'
+ */
+async function sendBienvenidaEu(registro) {
+  const plan  = registro.plan === 'negocio' ? 'Negocio (49€/hil)' : 'Pro (99€/hil)';
+  const izena = registro.contacto.split(' ')[0];
+  const subject = `Ongi etorri NodeFlow-era, ${izena}! 🎉`;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
+      <h1 style="color:#e74c3c;font-size:28px;margin-bottom:8px;">Ongi etorri NodeFlow-era!</h1>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Kaixo <strong style="color:#f0f0f5;">${izena}</strong>, zure ordainketa baieztatuta dago. 24 ordutan zure asistentea prest egongo da.</p>
+
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Kontratuaren laburpena</p>
+        <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">💳 <strong>${plan}</strong> plana</p>
+        <p style="margin:6px 0;font-size:14px;">🎙 Ahotsa: <strong>${registro.voz}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🔵 Hizkuntza: <strong>Euskera</strong></p>
+      </div>
+
+      <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">Zer gertatuko da orain?</strong></p>
+      <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
+        <li>Hurrengo orduetan harremanetan jarriko gara zurekin asistentea konfiguratzeko</li>
+        <li>Deiak jasoko dituen telefono-zenbakia emango dizugu</li>
+        <li>Zerbitzua aktibatu aurretik proba-dei bat egingo dugu</li>
+      </ol>
+
+      ${registro.api_key ? `
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #e74c3c;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Zure API Gakoa</p>
+        <p style="font-family:monospace;font-size:13px;color:#e74c3c;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Leku seguru batean gorde. Kontrol-panelera sartzeko beharko duzu.</p>
+      </div>` : ''}
+
+      ${registro.api_key ? `
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#e74c3c;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Nire atarira sartu →</a>
+      </div>` : ''}
+
+      <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
+        <p style="color:#666680;font-size:13px;margin-bottom:10px;">Zalantzaren bat?</p>
+        <a href="https://wa.me/34666351319" style="background:#25d366;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">💬 WhatsApp →</a>
+      </div>
+
+      <p style="margin-top:24px;font-size:12px;color:#666680;text-align:center;">
+        NodeFlow · unai@nodeflow.es · <a href="https://nodeflow.es" style="color:#e74c3c;">nodeflow.es</a>
+      </p>
+    </div>
+  `;
+
+  const text = `Ongi etorri NodeFlow-era, ${izena}!\n\nZure ordainketa baieztatuta dago. 24 ordutan prest egongo da zure asistentea.\n\nNegozioa: ${registro.negocio}\nPlana: ${plan}\nAhotsa: ${registro.voz}\n\nZalantzak? WhatsApp: +34 666 351 319`;
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
+/**
  * Email de bienvenida al cliente tras el pago
- * Detecta idioma: si es 'gl' o source 'galiza' → sendBienvenidaGl
+ * Detecta idioma: gl → galego, eu → euskera, default → español
  */
 async function sendBienvenida(registro) {
-  // Route to Galician welcome email when appropriate
+  // Route to Galician welcome email
   if (registro.idioma === 'gl' || registro.source === 'galiza' || registro.language === 'gl') {
     return sendBienvenidaGl(registro);
+  }
+  // Route to Basque welcome email
+  if (registro.idioma === 'eu' || registro.source === 'hementxe' || registro.language === 'eu') {
+    return sendBienvenidaEu(registro);
   }
 
   const plan = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
@@ -258,4 +318,4 @@ async function sendBienvenida(registro) {
   return sendEmail({ to: registro.email, subject, html, text });
 }
 
-module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida, sendBienvenidaGl };
+module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida, sendBienvenidaGl, sendBienvenidaEu };

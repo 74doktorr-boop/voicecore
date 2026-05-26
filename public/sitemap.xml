@@ -15,15 +15,19 @@
   <!-- ── Páginas de ciudad (SEO local) ── -->
   <url>
     <loc>https://nodeflow.es/andoain</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/andoain"/>
+    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/andoain"/>
   </url>
   <url>
     <loc>https://nodeflow.es/donostia</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/donostia"/>
+    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/donostia"/>
   </url>
 
   <!-- ── Páginas de sector ── -->

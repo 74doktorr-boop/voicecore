@@ -46,16 +46,16 @@ class Database {
 
   // ─── Organizations ───
 
-  async createOrg({ name, slug, ownerEmail, ownerName, plan = 'starter', phone }) {
+  async createOrg({ name, slug, ownerEmail, ownerName, plan = 'starter', phone, language = 'es' }) {
     const apiKey = `vc_${this._generateKey(32)}`;
-    if (!this.enabled) return { id: this._uuid(), name, slug, api_key: apiKey, plan };
+    if (!this.enabled) return { id: this._uuid(), name, slug, api_key: apiKey, plan, language };
 
     // Ensure slug uniqueness: append a short random suffix if needed
     const baseSlug = slug || 'org';
     const uniqueSlug = `${baseSlug}-${this._generateKey(4)}`;
 
     const { data, error } = await this.client.from('organizations').insert({
-      name, slug: uniqueSlug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, api_key: apiKey,
+      name, slug: uniqueSlug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, language, api_key: apiKey,
       monthly_minutes_limit: plan === 'pro' ? 500 : plan === 'business' ? 2000 : 50,
     }).select().single();
 
