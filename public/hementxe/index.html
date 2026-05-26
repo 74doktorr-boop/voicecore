@@ -575,6 +575,9 @@ document.getElementById('regForm').addEventListener('submit', async e => {
       window.open(`https://wa.me/34666351319?text=${encodeURIComponent(msg)}`, '_blank');
       btn.disabled=false; btn.textContent='Continuar al pago →'; return;
     }
+    localStorage.setItem('nf_reg_id', id);
+    localStorage.setItem('nf_reg_negocio', data.negocio);
+    localStorage.setItem('nf_reg_plan', plan);
     btn.textContent = 'Redirigiendo…';
     setTimeout(() => {
       window.location.href = `${base}?client_reference_id=${id}${stripeCode?`&prefilled_promo_code=${stripeCode}`:''}`;

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeFlow Galicia — O primeiro asistente de IA en galego para o teu negocio</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="Recepcionista virtual con IA que atende o 100% das túas chamadas en galego nativo. Reserva citas, responde preguntas e traballa 24h. Para peluquerías, clínicas, restaurantes e talleres de Galicia. Desde 49€/mes.">
+  <meta name="keywords" content="asistente IA galego, recepcionista virtual Galicia, intelixencia artificial galego, automatizar chamadas negocio Galicia, reserva citas automática, Vigo, Santiago, A Coruña, Pontevedra">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="NodeFlow Galicia — IA en galego para o teu negocio">
+  <meta property="og:description" content="O primeiro asistente de voz con IA que fala galego nativo. Atende as túas chamadas 24h, reserva citas e nunca pon o negocio en espera.">
+  <meta property="og:url" content="https://nodeflow.es/galiza">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+  <style>
+    :root {
+      --bg:#07070e; --card:#0f0f18; --card2:#14141e;
+      --accent:#1e8a5e; --accent-l:#2ecc8a; --accent-d:#166a48;
+      --glow:rgba(46,204,138,0.28);
+      --green:#00cec9; --green2:#00b894;
+      --text:#e8f0ea; --dim:#8898a0; --muted:#2a3a32;
+      --border:rgba(255,255,255,0.07);
+      --border-accent:rgba(46,204,138,0.25);
+      --r:14px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;font-size:15px}
+
+    /* Background */
+    .noise{position:fixed;inset:0;z-index:9999;pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size:180px;opacity:0.025;animation:grain .4s steps(1) infinite}
+    @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,-2%)}40%{transform:translate(2%,3%)}60%{transform:translate(-1%,2%)}80%{transform:translate(3%,-1%)}}
+    .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:radial-gradient(rgba(46,204,138,0.035) 1px,transparent 1px);
+      background-size:32px 32px;
+      mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,black 40%,transparent 100%)}
+    .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+    .orb-1{width:700px;height:700px;top:-250px;left:-200px;background:radial-gradient(circle,rgba(30,138,94,0.3) 0%,transparent 70%);animation:drift1 22s ease-in-out infinite}
+    .orb-2{width:500px;height:500px;bottom:100px;right:-150px;background:radial-gradient(circle,rgba(0,180,148,0.2) 0%,transparent 70%);animation:drift2 28s ease-in-out infinite}
+    @keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,60px)}}
+    @keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-40px)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* Nav */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,7,14,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:17px;font-weight:900;color:var(--text)}
+    .nav-logo em{color:var(--accent-l);font-style:normal}
+    .nav-logo .gl-badge{font-size:10px;background:rgba(46,204,138,0.15);color:var(--accent-l);border:1px solid rgba(46,204,138,0.3);border-radius:4px;padding:2px 6px;font-weight:700;margin-left:6px;letter-spacing:.5px}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;text-decoration:none;transition:all .25s;font-family:inherit}
+    .btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 20px var(--glow)}
+    .btn-primary:hover{background:var(--accent-d);transform:translateY(-2px);box-shadow:0 8px 32px var(--glow)}
+    .btn-outline{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.14)}
+    .btn-outline:hover{border-color:var(--accent-l);background:rgba(46,204,138,0.06)}
+    @media(max-width:600px){.btn-outline{display:none}}
+
+    /* Container */
+    .container{max-width:1080px;margin:0 auto;padding:0 24px;position:relative;z-index:2}
+
+    /* Hero */
+    .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px}
+    .hero-inner{max-width:820px;margin:0 auto}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(46,204,138,0.08);border:1px solid var(--border-accent);border-radius:100px;padding:7px 16px;font-size:13px;font-weight:600;color:var(--accent-l);margin-bottom:32px;box-shadow:0 0 24px rgba(46,204,138,0.1)}
+    .hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-l);box-shadow:0 0 8px var(--accent-l);animation:pulse 2s infinite}
+    .hero h1{font-size:clamp(38px,6.5vw,76px);font-weight:900;letter-spacing:-2.5px;line-height:1.04;margin-bottom:24px;color:#fff}
+    .hero h1 .word{display:inline-block;background:linear-gradient(140deg,#fff 30%,var(--accent-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-sub{font-size:18px;color:var(--dim);max-width:580px;margin:0 auto 40px;line-height:1.75}
+    .hero-sub strong{color:var(--accent-l)}
+    .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+    .hero-trust{display:flex;align-items:center;gap:20px;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--dim)}
+    .hero-trust span::before{content:'✓ ';color:var(--accent-l)}
+
+    /* Stats */
+    .stats-section{padding:0 0 80px;position:relative;z-index:2}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;border:1px solid var(--border)}
+    @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+    .stat-item{background:var(--card);padding:28px 20px;text-align:center}
+    .stat-num{font-size:36px;font-weight:900;letter-spacing:-2px;color:var(--accent-l);line-height:1}
+    .stat-label{font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--dim);text-transform:uppercase;margin-top:6px}
+
+    /* Idioma section */
+    .idioma-section{padding:80px 0;position:relative;z-index:2}
+    .idioma-card{background:var(--card);border:1px solid var(--border-accent);border-radius:24px;padding:56px 52px;display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;position:relative;overflow:hidden}
+    .idioma-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-l),transparent)}
+    @media(max-width:768px){.idioma-card{grid-template-columns:1fr;padding:32px 24px;gap:32px}}
+    .idioma-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(46,204,138,0.08);border:1px solid var(--border-accent);border-radius:100px;padding:5px 14px;font-size:12px;font-weight:700;color:var(--accent-l);margin-bottom:20px;text-transform:uppercase;letter-spacing:.5px}
+    .idioma-card h2{font-size:clamp(26px,3.5vw,38px);font-weight:900;letter-spacing:-1.2px;line-height:1.12;margin-bottom:16px}
+    .idioma-card p{color:var(--dim);font-size:15px;line-height:1.8;margin-bottom:24px}
+    .idioma-points{list-style:none;display:flex;flex-direction:column;gap:10px}
+    .idioma-points li{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--dim)}
+    .icheck{width:20px;height:20px;border-radius:50%;background:rgba(46,204,138,0.15);border:1px solid rgba(46,204,138,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:var(--accent-l);margin-top:1px}
+    .idioma-demo{background:var(--card2);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .idioma-demo-header{padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);display:flex;align-items:center;gap:10px}
+    .demo-live-dot{width:8px;height:8px;border-radius:50%;background:var(--accent-l);box-shadow:0 0 8px var(--accent-l);animation:pulse 2s infinite}
+    .demo-live-label{font-size:11px;font-weight:700;color:var(--accent-l);text-transform:uppercase;letter-spacing:1px}
+    .demo-chat{padding:18px;display:flex;flex-direction:column;gap:12px;min-height:200px}
+    .dmsg{opacity:0;transform:translateY(8px)}
+    .dmsg .who{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:5px}
+    .who-ai{color:var(--accent-l)}
+    .who-user{color:var(--dim)}
+    .dbubble{display:inline-block;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;max-width:90%}
+    .bai{background:rgba(46,204,138,0.1);border:1px solid rgba(46,204,138,0.2);color:var(--text);border-radius:12px 12px 12px 3px}
+    .buser{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--dim);border-radius:12px 12px 3px 12px}
+
+    /* How it works */
+    .how-section{padding:80px 0;position:relative;z-index:2}
+    .section-label{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent-l);margin-bottom:14px;text-align:center}
+    .section-title{font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-1.5px;text-align:center;line-height:1.1;margin-bottom:14px}
+    .section-sub{text-align:center;color:var(--dim);font-size:16px;line-height:1.7;max-width:520px;margin:0 auto 56px}
+    .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    @media(max-width:700px){.steps-grid{grid-template-columns:1fr}}
+    .step-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;position:relative;transition:border-color .3s}
+    .step-card:hover{border-color:var(--border-accent)}
+    .step-num{font-size:48px;font-weight:900;color:rgba(46,204,138,0.12);letter-spacing:-2px;line-height:1;margin-bottom:16px}
+    .step-card h3{font-size:16px;font-weight:800;margin-bottom:8px}
+    .step-card p{color:var(--dim);font-size:14px;line-height:1.7}
+
+    /* Features */
+    .feat-section{padding:80px 0;position:relative;z-index:2}
+    .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    @media(max-width:768px){.feat-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:500px){.feat-grid{grid-template-columns:1fr}}
+    .feat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px;position:relative;overflow:hidden;transition:border-color .3s}
+    .feat-card:hover{border-color:var(--border-accent)}
+    .feat-icon{font-size:28px;margin-bottom:14px;display:block}
+    .feat-card h3{font-size:15px;font-weight:700;margin-bottom:8px}
+    .feat-card p{color:var(--dim);font-size:13px;line-height:1.7}
+    .feat-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-bottom:10px;letter-spacing:.5px;text-transform:uppercase}
+    .badge-live{background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.25)}
+    .badge-new{background:rgba(46,204,138,0.12);color:var(--accent-l);border:1px solid rgba(46,204,138,0.25)}
+    .badge-gl{background:rgba(46,204,138,0.08);color:var(--accent-l);border:1px solid rgba(46,204,138,0.2)}
+
+    /* Sectors */
+    .sectors-section{padding:80px 0;position:relative;z-index:2}
+    .sectors-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    @media(max-width:700px){.sectors-grid{grid-template-columns:repeat(2,1fr)}}
+    .sector-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px 18px;text-align:center;transition:all .25s;cursor:default}
+    .sector-card:hover{border-color:var(--border-accent);transform:translateY(-4px)}
+    .sector-icon{font-size:32px;margin-bottom:10px;display:block}
+    .sector-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+    .sector-card p{font-size:12px;color:var(--dim)}
+
+    /* Pricing */
+    .pricing-section{padding:80px 0;position:relative;z-index:2}
+    .pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:680px;margin:0 auto}
+    @media(max-width:600px){.pricing-grid{grid-template-columns:1fr}}
+    .price-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;position:relative;transition:all .3s}
+    .price-card:hover{transform:translateY(-6px)}
+    .price-card.pop{border-color:var(--accent-l);background:linear-gradient(160deg,rgba(46,204,138,0.07) 0%,var(--card) 100%);box-shadow:0 0 40px rgba(46,204,138,0.12)}
+    .price-card.pop::after{content:'MÁIS POPULAR';position:absolute;top:-1px;right:22px;padding:4px 12px;border-radius:0 0 8px 8px;font-size:10px;font-weight:800;background:var(--accent);color:#fff;letter-spacing:.5px}
+    .price-name{font-size:13px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+    .price-amount{font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:4px}
+    .price-amount span{font-size:18px;font-weight:400;color:var(--dim)}
+    .price-sub{font-size:13px;color:var(--dim);margin-bottom:24px}
+    .price-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:28px}
+    .price-features li{font-size:13px;color:var(--dim);display:flex;align-items:flex-start;gap:8px}
+    .price-features li::before{content:'✓';color:var(--accent-l);font-weight:700;flex-shrink:0;margin-top:1px}
+
+    /* Form / CTA */
+    .cta-section{padding:80px 0 120px;position:relative;z-index:2}
+    .cta-card{background:var(--card);border:1px solid var(--border-accent);border-radius:24px;padding:52px;max-width:680px;margin:0 auto;position:relative;overflow:hidden}
+    .cta-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-l),transparent)}
+    .cta-card h2{font-size:clamp(26px,3.5vw,36px);font-weight:900;letter-spacing:-1.2px;margin-bottom:10px;text-align:center}
+    .cta-card .cta-sub{text-align:center;color:var(--dim);font-size:15px;line-height:1.7;margin-bottom:36px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    @media(max-width:560px){.form-grid{grid-template-columns:1fr}}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group.full{grid-column:1/-1}
+    label{font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+    input,select,textarea{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent-l)}
+    select option{background:#1a1a24;color:#e8f0ea}
+    textarea{resize:vertical;min-height:80px}
+    .submit-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .25s;margin-top:8px;box-shadow:0 4px 24px var(--glow)}
+    .submit-btn:hover{background:var(--accent-d);transform:translateY(-2px)}
+    .submit-btn:disabled{opacity:.6;cursor:default;transform:none}
+    #formStatus{text-align:center;margin-top:16px;font-size:14px;font-weight:600;display:none}
+    .form-note{text-align:center;font-size:12px;color:var(--muted);margin-top:12px}
+    .form-note a{color:var(--accent-l);text-decoration:none}
+
+    /* Footer */
+    footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center;position:relative;z-index:2}
+    .footer-logo{font-size:16px;font-weight:900;margin-bottom:8px}
+    .footer-logo em{color:var(--accent-l);font-style:normal}
+    footer p{color:var(--dim);font-size:13px}
+    footer a{color:var(--accent-l);text-decoration:none}
+
+    /* WhatsApp float */
+    .wa-float{position:fixed;bottom:28px;right:28px;z-index:9998;width:56px;height:56px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(37,211,102,0.45);transition:all .3s;cursor:pointer;text-decoration:none}
+    .wa-float:hover{transform:scale(1.1)}
+    .wa-float svg{width:28px;height:28px}
+
+    /* Reveal */
+    .reveal{will-change:transform,opacity}
+  </style>
+  <!-- Plausible Analytics -->
+  <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
+</head>
+<body>
+<div class="noise"></div>
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- WhatsApp -->
+<a class="wa-float" href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vin%20desde%20a%20páxina%20de%20Galicia%20e%20quero%20saber%20máis%20de%20NodeFlow" target="_blank" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<!-- Nav -->
+<nav>
+  <a href="/" class="nav-logo">⚡ Node<em>Flow</em> <span class="gl-badge">GALICIA</span></a>
+  <div class="nav-right">
+    <a href="/galiza#prezos" class="btn btn-outline">Ver prezos</a>
+    <a href="/galiza#rexistro" class="btn btn-primary">Empezar gratis →</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge" id="heroBadge">
+      <span class="dot"></span>
+      Por fin, unha IA que fala coma nós
+    </div>
+    <h1 id="heroTitle">
+      O teu negocio <span class="word">nunca máis</span><br>
+      perde unha chamada
+    </h1>
+    <p class="hero-sub">
+      Asistente de voz con IA que atende en <strong>galego nativo</strong>, reserva citas, responde preguntas e traballa 24 horas. Para peluquerías, clínicas, restaurantes e talleres de Galicia.
+    </p>
+    <div class="hero-btns">
+      <a href="/galiza#rexistro" class="btn btn-primary" style="font-size:16px;padding:14px 32px">Quero probalo — é gratis →</a>
+      <a href="/galiza#como-funciona" class="btn btn-outline">Como funciona</a>
+    </div>
+    <div class="hero-trust">
+      <span>Alta en 24 horas</span>
+      <span>Sen permanencia</span>
+      <span>Fala galego nativo</span>
+      <span>Desde 49€/mes</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── STATS ─────────────────────────────────────────────────────────────── -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid" id="heroStats">
+      <div class="stat-item">
+        <div class="stat-num" data-target="100" data-suffix="%">0%</div>
+        <div class="stat-label">Chamadas atendidas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="24" data-suffix="/7">0/7</div>
+        <div class="stat-label">Sen descanso</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-prefix="&lt;" data-target="2" data-suffix="s">&lt;0s</div>
+        <div class="stat-label">Tempo de resposta</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="12" data-suffix="+">0+</div>
+        <div class="stat-label">Sectores compatibles</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── IDIOMA ─────────────────────────────────────────────────────────────── -->
+<section class="idioma-section">
+  <div class="container">
+    <div class="idioma-card reveal">
+      <div>
+        <div class="idioma-badge">🌊 Galego nativo</div>
+        <h2>A IA que<br><span style="color:var(--accent-l)">fala coma ti</span></h2>
+        <p>
+          7 de cada 10 galegos comunícanse en galego. Os teus clientes merecen ser atendidos no seu idioma — non nun castelán robótico nin nun inglés de película.
+        </p>
+        <ul class="idioma-points">
+          <li><span class="icheck">✓</span>Acento e entoación galega real, non sintética</li>
+          <li><span class="icheck">✓</span>Entende galego, castelán e a mestura dos dous</li>
+          <li><span class="icheck">✓</span>Responde sempre no idioma no que che falan</li>
+          <li><span class="icheck">✓</span>Formado con voces de Vigo, Santiago, A Coruña e zona rural</li>
+        </ul>
+      </div>
+      <div class="idioma-demo">
+        <div class="idioma-demo-header">
+          <div class="demo-live-dot"></div>
+          <span class="demo-live-label">En directo</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto">Peluquería Manola · Vigo</span>
+        </div>
+        <div class="demo-chat" id="demoChat">
+          <div class="dmsg" id="dm1">
+            <div class="who who-ai">NodeFlow IA</div>
+            <div class="dbubble bai">Bos días, grazas por chamar á Peluquería Manola. En que lle podo axudar?</div>
+          </div>
+          <div class="dmsg" id="dm2">
+            <div class="who who-user">Cliente</div>
+            <div class="dbubble buser">Hola, quería pedir cita para o xoves pola tarde</div>
+          </div>
+          <div class="dmsg" id="dm3">
+            <div class="who who-ai">NodeFlow IA</div>
+            <div class="dbubble bai">Con moito gusto! O xoves temos ás 16:30 e ás 18:00 dispoñibles. Cal lle vai mellor?</div>
+          </div>
+          <div class="dmsg" id="dm4">
+            <div class="who who-user">Cliente</div>
+            <div class="dbubble buser">As 16:30 perfecto</div>
+          </div>
+          <div class="dmsg" id="dm5">
+            <div class="who who-ai">NodeFlow IA</div>
+            <div class="dbubble bai">Perfecto! Quedou apuntada para o xoves ás 16:30. Recibirá un recordatorio o día anterior. Ata logo! 😊</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── COMO FUNCIONA ─────────────────────────────────────────────────────── -->
+<section class="how-section" id="como-funciona">
+  <div class="container">
+    <div class="section-label">Como funciona</div>
+    <h2 class="section-title">Listo en <span style="color:var(--accent-l)">24 horas</span></h2>
+    <p class="section-sub">Sen instalacións. Sen técnicos. Sen aprender nada novo. Só o teu teléfono redirixido.</p>
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">01</div>
+        <h3>Rexístrate en 5 minutos</h3>
+        <p>Cóntanos o teu negocio: horario, servizos, saludo. Nós configuramos todo.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">02</div>
+        <h3>Redirixe o teu teléfono</h3>
+        <p>Un simple código de desvío de chamadas. Tardas 30 segundos. Podes desactivalo cando queiras.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">03</div>
+        <h3>A IA traballa por ti</h3>
+        <p>Atende chamadas, reserva citas, envía recordatorios e pide reseñas en Google. 24h, sen parar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ─────────────────────────────────────────────────────────── -->
+<section class="feat-section">
+  <div class="container">
+    <div class="section-label">O que inclúe</div>
+    <h2 class="section-title">Non é só un contestador</h2>
+    <p class="section-sub">Fai todo o que fai un recepcionista humano, pero sen sueldo, sen vacacións e sen erros.</p>
+    <div class="feat-grid">
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-live">Activo</span>
+        <span class="feat-icon">📞</span>
+        <h3>Recepción 24h en galego</h3>
+        <p>Atende todas as chamadas en galego nativo. Nin buzón de voz, nin espera, nin clientes perdidos.</p>
+      </div>
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-live">Activo</span>
+        <span class="feat-icon">📅</span>
+        <h3>Reserva de citas automática</h3>
+        <p>Consulta a túa axenda e reserva no momento. O cliente recibe confirmación por WhatsApp ou email.</p>
+      </div>
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-new">Novo</span>
+        <span class="feat-icon">🔔</span>
+        <h3>Recordatorios automáticos</h3>
+        <p>Email ou WhatsApp ao cliente 24h antes da cita. Reduce as non-presentacións sen facer nada.</p>
+      </div>
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-new">Novo</span>
+        <span class="feat-icon">⭐</span>
+        <h3>Reseñas en Google</h3>
+        <p>Despois de cada cita envía un email pedindo reseña en Google. Máis reseñas, máis visibilidade.</p>
+      </div>
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-gl">Galego</span>
+        <span class="feat-icon">🌊</span>
+        <h3>Acento galego real</h3>
+        <p>Non é texto a voz robótica. É galego natural, con acento e entoación da nosa terra.</p>
+      </div>
+      <div class="feat-card reveal">
+        <span class="feat-badge badge-live">Activo</span>
+        <span class="feat-icon">📊</span>
+        <h3>Portal do cliente</h3>
+        <p>Consulta as túas citas, activa ou pausa automatizacións e conecta Google Calendar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SECTORES ─────────────────────────────────────────────────────────── -->
+<section class="sectors-section">
+  <div class="container">
+    <div class="section-label">Para quen é</div>
+    <h2 class="section-title" style="margin-bottom:40px">Feito para os negocios de Galicia</h2>
+    <div class="sectors-grid">
+      <div class="sector-card reveal"><span class="sector-icon">✂️</span><h3>Peluquerías</h3><p>Reservas e recordatorios automáticos</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🦷</span><h3>Clínicas e consultas</h3><p>Xestión de citas sen recepcionista</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🍽️</span><h3>Restaurantes</h3><p>Reservas de mesa 24 horas</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🔧</span><h3>Talleres</h3><p>Recepciona orzamentos e citas</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">💆</span><h3>Centros de estética</h3><p>Agenda completa automatizada</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🐾</span><h3>Veterinarias</h3><p>Atención e emerxencias</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🏋️</span><h3>Ximnasios</h3><p>Información e reservas de clases</p></div>
+      <div class="sector-card reveal"><span class="sector-icon">🏥</span><h3>Fisioterapia</h3><p>Primeira cita e seguimento</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PREZOS ─────────────────────────────────────────────────────────────── -->
+<section class="pricing-section" id="prezos">
+  <div class="container">
+    <div class="section-label">Prezos</div>
+    <h2 class="section-title">Simple e <span style="color:var(--accent-l)">sen sorpresas</span></h2>
+    <p class="section-sub">Menos do que che custa un día de traballo dun empregado. Sen permanencia. Cancela cando queiras.</p>
+    <div class="pricing-grid">
+      <div class="price-card reveal">
+        <div class="price-name">Negocio</div>
+        <div class="price-amount">49<span>€/mes</span></div>
+        <div class="price-sub">500 minutos de voz incluídos</div>
+        <ul class="price-features">
+          <li>Recepción 24h en galego e castelán</li>
+          <li>Reserva de citas automática</li>
+          <li>Recordatorios por email</li>
+          <li>Solicitude de reseñas Google</li>
+          <li>Portal do cliente</li>
+          <li>Soporte por WhatsApp</li>
+        </ul>
+        <a href="/galiza#rexistro" class="btn btn-outline" style="width:100%;justify-content:center">Empezar →</a>
+      </div>
+      <div class="price-card pop reveal">
+        <div class="price-name">Pro</div>
+        <div class="price-amount">99<span>€/mes</span></div>
+        <div class="price-sub">2.000 minutos de voz incluídos</div>
+        <ul class="price-features">
+          <li>Todo o do plan Negocio</li>
+          <li>2.000 min/mes (4× máis)</li>
+          <li>Integración Google Calendar</li>
+          <li>Confirmacións por WhatsApp</li>
+          <li>Prioridade en soporte</li>
+          <li>Personalización avanzada</li>
+        </ul>
+        <a href="/galiza#rexistro" class="btn btn-primary" style="width:100%;justify-content:center">Empezar →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── REXISTRO ─────────────────────────────────────────────────────────── -->
+<section class="cta-section" id="rexistro">
+  <div class="container">
+    <div class="cta-card">
+      <h2>Comeza hoxe,<br><span style="color:var(--accent-l)">sen riscos</span></h2>
+      <p class="cta-sub">Cóntanos o teu negocio e poñémonos en contacto contigo en menos de 24 horas para configurar o teu asistente.</p>
+
+      <form id="regForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nome do negocio *</label>
+            <input type="text" name="negocio" placeholder="Ex: Peluquería Manola" required>
+          </div>
+          <div class="form-group">
+            <label>Sector *</label>
+            <select name="sector" required>
+              <option value="">Seleccionar…</option>
+              <option value="peluqueria">Peluquería / Estética</option>
+              <option value="clinica">Clínica / Consulta médica</option>
+              <option value="restaurante">Restaurante / Bar</option>
+              <option value="taller">Taller mecánico</option>
+              <option value="veterinaria">Veterinaria</option>
+              <option value="fisioterapia">Fisioterapia</option>
+              <option value="xinnasio">Ximnasio</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>O teu nome *</label>
+            <input type="text" name="contacto" placeholder="Nome e apelidos" required>
+          </div>
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input type="tel" name="telefono" placeholder="6XX XXX XXX" required>
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" name="email" placeholder="ti@negocio.com" required>
+          </div>
+          <div class="form-group">
+            <label>Cidade / Localidade *</label>
+            <input type="text" name="ciudad" placeholder="Vigo, Pontevedra…" required>
+          </div>
+          <div class="form-group full">
+            <label>Plan</label>
+            <select name="plan">
+              <option value="negocio">Negocio — 49€/mes (500 min)</option>
+              <option value="pro">Pro — 99€/mes (2.000 min)</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Saludo da IA (como queres que responda?)</label>
+            <input type="text" name="saludo" placeholder="Ex: Bos días, grazas por chamar a Peluquería Manola…">
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Quero o meu asistente en galego →
+        </button>
+        <div id="formStatus"></div>
+        <p class="form-note">
+          Sen tarxeta de crédito. Sen permanencia. Configurado en 24h.<br>
+          <a href="/privacidad">Política de privacidade</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">⚡ Node<em>Flow</em> Galicia</div>
+  <p style="margin-top:6px">A IA de voz para os negocios de Galicia · Feito con 💚 dende Euskal Herria</p>
+  <p style="margin-top:8px">
+    <a href="/">nodeflow.es</a> ·
+    <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a> ·
+    <a href="https://wa.me/34666351319">WhatsApp</a>
+  </p>
+</footer>
+
+<script>
+// ── GSAP Animations ────────────────────────────────────────────────────────
+try {
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.set('.reveal', { opacity: 0, y: 40 });
+
+  gsap.from('#heroBadge', { y: 20, opacity: 0, duration: 0.7, delay: 0.2, ease: 'power3.out' });
+  gsap.from('#heroTitle',  { y: 40, opacity: 0, duration: 0.8, delay: 0.4, ease: 'power3.out' });
+  gsap.from('.hero-sub',   { y: 30, opacity: 0, duration: 0.7, delay: 0.6, ease: 'power3.out' });
+  gsap.from('.hero-btns',  { y: 20, opacity: 0, duration: 0.6, delay: 0.8, ease: 'power3.out' });
+  gsap.from('.hero-trust', { y: 20, opacity: 0, duration: 0.6, delay: 1.0, ease: 'power3.out' });
+
+  // Counters
+  function animateCounter(el) {
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    if (isNaN(target)) return;
+    gsap.to({ val: 0 }, {
+      val: target, duration: 2, ease: 'power2.out',
+      onUpdate() { el.innerHTML = prefix + Math.round(this.targets()[0].val) + suffix; }
+    });
+  }
+  ScrollTrigger.create({
+    trigger: '#heroStats', start: 'top 85%', once: true,
+    onEnter: () => document.querySelectorAll('#heroStats [data-target]').forEach(animateCounter)
+  });
+
+  // Reveals
+  gsap.utils.toArray('.reveal').forEach((el) => {
+    ScrollTrigger.create({
+      trigger: el, start: 'top 88%', once: true,
+      onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out' })
+    });
+  });
+} catch(e) {
+  document.querySelectorAll('.reveal').forEach(el => el.style.opacity = 1);
+}
+
+// ── Chat demo animation ─────────────────────────────────────────────────────
+ScrollTrigger?.create({
+  trigger: '.idioma-demo', start: 'top 80%', once: true,
+  onEnter: () => {
+    const msgs = [1,2,3,4,5];
+    msgs.forEach((n, i) => {
+      setTimeout(() => {
+        const el = document.getElementById('dm'+n);
+        if (el) gsap.to(el, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+      }, i * 800);
+    });
+  }
+});
+
+// ── Form submit ─────────────────────────────────────────────────────────────
+document.getElementById('regForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn    = document.getElementById('submitBtn');
+  const status = document.getElementById('formStatus');
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  const data = Object.fromEntries(new FormData(this));
+  // Mark as galicia campaign
+  data.idioma  = 'gl';
+  data.voz     = 'nova';
+  data.horario = {};
+  data.source  = 'galiza';
+
+  try {
+    const res = await fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+
+    if (res.ok) {
+      status.style.display  = 'block';
+      status.style.color    = 'var(--accent-l)';
+      status.textContent    = '✓ Rexistro recibido! Poñémonos en contacto contigo en menos de 24 horas.';
+      this.reset();
+    } else {
+      throw new Error(json.error || 'Erro');
+    }
+  } catch (err) {
+    status.style.display = 'block';
+    status.style.color   = '#e74c3c';
+    status.textContent   = 'Algo foi mal. Escríbenos por WhatsApp e o solucionamos.';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Quero o meu asistente en galego →';
+  }
+});
+</script>
+</body>
+</html>

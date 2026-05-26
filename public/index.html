@@ -614,8 +614,84 @@
       .trust-strip-grid { flex-direction:column; align-items:flex-start; gap:0; padding:0 8px; }
       .trust-item { border-right:none; border-bottom:1px solid var(--border); padding:12px 8px; width:100%; }
       .trust-item:last-child { border-bottom:none; }
+      .roi-body { grid-template-columns:1fr; }
+      .roi-result { flex-direction:column; }
+      .auto-grid { grid-template-columns:1fr; }
     }
   </style>
+
+  <style>
+  /* ── ROI Calculator ── */
+  .roi-section { padding:96px 0; position:relative; z-index:2; }
+  .roi-body {
+    display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;
+    background:var(--card); border:1px solid var(--border); border-radius:24px; padding:48px;
+    margin-top:48px;
+  }
+  .roi-inputs { display:flex; flex-direction:column; gap:28px; }
+  .roi-slider-group label {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:14px; color:var(--dim); font-weight:500; margin-bottom:10px;
+  }
+  .roi-slider-group label .rv {
+    font-size:15px; font-weight:800; color:var(--text);
+    background:rgba(108,92,231,0.12); border:1px solid rgba(108,92,231,0.25);
+    padding:2px 10px; border-radius:6px; min-width:56px; text-align:center;
+  }
+  input[type=range].roi-range {
+    -webkit-appearance:none; width:100%; height:6px;
+    background:var(--muted); border-radius:3px; outline:none;
+  }
+  input[type=range].roi-range::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+    background:var(--accent); cursor:pointer; box-shadow:0 0 0 4px rgba(108,92,231,0.25);
+  }
+  .roi-result {
+    display:flex; flex-direction:column; gap:20px; align-items:stretch;
+  }
+  .roi-losing {
+    background:linear-gradient(135deg,rgba(231,76,60,0.12),rgba(192,57,43,0.06));
+    border:1px solid rgba(231,76,60,0.25); border-radius:18px; padding:28px; text-align:center;
+  }
+  .roi-losing-label { font-size:13px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .roi-losing-amount { font-size:clamp(36px,5vw,56px); font-weight:900; color:#e74c3c; letter-spacing:-2px; line-height:1; }
+  .roi-losing-sub { font-size:13px; color:var(--dim); margin-top:8px; }
+  .roi-recovery {
+    background:linear-gradient(135deg,rgba(0,184,148,0.1),rgba(0,206,201,0.06));
+    border:1px solid rgba(0,184,148,0.25); border-radius:18px; padding:24px; text-align:center;
+  }
+  .roi-recovery-label { font-size:13px; color:var(--dim); margin-bottom:6px; }
+  .roi-recovery-row { display:flex; justify-content:center; align-items:baseline; gap:12px; }
+  .roi-recovery-cost { font-size:22px; font-weight:900; color:var(--green2); }
+  .roi-recovery-sep { font-size:20px; color:var(--dim); }
+  .roi-recovery-ratio { font-size:20px; font-weight:800; color:var(--green); }
+  .roi-recovery-ratio-label { font-size:12px; color:var(--dim); margin-top:4px; }
+  .roi-cta { display:block; text-align:center; background:var(--accent); color:#fff; border-radius:12px; padding:14px; font-weight:700; font-size:15px; text-decoration:none; transition:background .2s,transform .15s; }
+  .roi-cta:hover { background:#5a4bd1; transform:translateY(-2px); }
+
+  /* ── Automations showcase ── */
+  .auto-section { padding:96px 0; position:relative; z-index:2; }
+  .auto-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:48px; }
+  .auto-card {
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:28px; transition:border-color .3s, transform .3s;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .auto-card:hover { border-color:var(--accent-l); transform:translateY(-4px); }
+  .auto-icon { font-size:28px; }
+  .auto-card h3 { font-size:16px; font-weight:800; color:var(--text); }
+  .auto-card p { font-size:13px; color:var(--dim); line-height:1.65; flex:1; }
+  .auto-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+    padding:3px 10px; border-radius:6px;
+  }
+  .badge-live { background:rgba(0,184,148,0.12); color:var(--green2); border:1px solid rgba(0,184,148,0.25); }
+  .badge-new { background:rgba(108,92,231,0.12); color:var(--accent-l); border:1px solid rgba(108,92,231,0.25); }
+  .badge-pro { background:rgba(249,202,36,0.1); color:#f9ca24; border:1px solid rgba(249,202,36,0.25); }
+  </style>
+  <!-- Plausible Analytics -->
+  <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
 </head>
 <body>
 
@@ -817,6 +893,9 @@
       <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">🌐</span><h3>Bilingüe automático</h3><p>Detecta en la primera frase si el cliente habla castellano o euskera y cambia de idioma al instante. Sin configurar nada.</p></div>
       <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">🔀</span><h3>Transfiere llamadas</h3><p>Cuando detecta una situación que necesita persona humana, avisa por WhatsApp con el resumen de la conversación.</p></div>
       <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">📊</span><h3>Informes semanales</h3><p>Resumen automático de llamadas, citas agendadas, temas frecuentes y clientes interesados. Llega al correo cada lunes.</p></div>
+      <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">📞</span><h3>Recordatorios de cita</h3><p>El asistente llama o manda WhatsApp automáticamente 24h antes de cada cita. Reduce los no-shows hasta un 40%.</p></div>
+      <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">⭐</span><h3>Pide reseñas en Google</h3><p>24h después de cada servicio, el sistema contacta al cliente y le invita a dejar una reseña. Sin que tú hagas nada.</p></div>
+      <div class="feat-card reveal"><div class="feat-shimmer"></div><span class="feat-icon">💬</span><h3>Confirmaciones por WhatsApp</h3><p>Tras cada reserva, el cliente recibe automáticamente la confirmación con dirección, hora y lo que necesita saber.</p></div>
     </div>
   </div>
 </section>
@@ -848,16 +927,66 @@
   </div>
 </section>
 
+<!-- Automaciones -->
+<section class="auto-section" id="automatizaciones">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:0">
+      <div class="label reveal">Todo en uno</div>
+      <div class="title reveal">No es solo un contestador.<br>Es el sistema nervioso de tu negocio.</div>
+      <p class="subtitle reveal" style="margin:12px auto 0;text-align:center">Mientras tú atiendes al cliente de delante, NodeFlow trabaja en paralelo: recibe llamadas, agenda, recuerda, pide reseñas y te alerta si algo urgente llega.</p>
+    </div>
+    <div class="auto-grid" style="margin-top:48px">
+      <div class="auto-card reveal">
+        <span class="auto-icon">📞</span>
+        <div><span class="auto-badge badge-live">● Activo</span></div>
+        <h3>Recepción de llamadas 24/7</h3>
+        <p>Atiende el 100% de tus llamadas en castellano y euskera nativo. Reserva citas, responde preguntas y filtra lo urgente — sin que tú tengas que colgar a nadie.</p>
+      </div>
+      <div class="auto-card reveal">
+        <span class="auto-icon">🔔</span>
+        <div><span class="auto-badge badge-new">✦ Nuevo</span></div>
+        <h3>Recordatorios de cita salientes</h3>
+        <p>24h antes de cada cita, el asistente llama o manda WhatsApp al cliente. Los no-shows caen hasta un 40%. Tus huecos vacíos desaparecen.</p>
+      </div>
+      <div class="auto-card reveal">
+        <span class="auto-icon">⭐</span>
+        <div><span class="auto-badge badge-new">✦ Nuevo</span></div>
+        <h3>Reseñas en Google automáticas</h3>
+        <p>Después de cada servicio, el sistema contacta al cliente y le guía para que deje una reseña en Google Maps. Más reseñas = más visibilidad local.</p>
+      </div>
+      <div class="auto-card reveal">
+        <span class="auto-icon">💬</span>
+        <div><span class="auto-badge badge-new">✦ Nuevo</span></div>
+        <h3>Confirmaciones por WhatsApp</h3>
+        <p>Cada reserva genera automáticamente un mensaje al cliente con la dirección, la hora, lo que debe traer y un enlace para cancelar si necesita. Cero llamadas de confirmación manual.</p>
+      </div>
+      <div class="auto-card reveal">
+        <span class="auto-icon">📋</span>
+        <div><span class="auto-badge badge-live">● Activo</span></div>
+        <h3>CRM de llamadas</h3>
+        <p>Cada persona que llama tiene su ficha: historial de conversaciones, servicios solicitados, si fue puntual, si volvió. Conoces a tus clientes mejor que nunca.</p>
+      </div>
+      <div class="auto-card reveal">
+        <span class="auto-icon">🚨</span>
+        <div><span class="auto-badge badge-pro">Pro</span></div>
+        <h3>Alertas urgentes en tiempo real</h3>
+        <p>Si el asistente detecta una queja grave, una urgencia o un cliente VIP, te manda WhatsApp inmediatamente con el resumen de la llamada. Nunca te pierdes lo importante.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Comparación -->
 <section class="comparison" id="compare">
   <div class="container">
     <div style="text-align:center;margin-bottom:52px">
       <div class="label reveal">Comparación</div>
-      <div class="title reveal">NodeFlow vs recepcionista humana</div>
+      <div class="title reveal">NodeFlow vs todo lo demás</div>
+      <p class="subtitle reveal" style="margin:12px auto 0;text-align:center">Una recepcionista cuesta €1.400/mes y no llega a hacer la mitad de lo que hace NodeFlow.</p>
     </div>
     <div class="comp-wrap reveal">
       <table class="comp-table">
-        <thead><tr><th>¿Qué necesitas?</th><th>Recepcionista</th><th class="hl">NodeFlow</th></tr></thead>
+        <thead><tr><th>¿Qué necesitas?</th><th>Recepcionista humana</th><th class="hl">NodeFlow</th></tr></thead>
         <tbody>
           <tr><td>Atiende llamadas fuera de horario</td><td class="no">✗ No</td><td class="yes hl">✓ 24/7</td></tr>
           <tr><td>Coste mensual</td><td class="no">€1.400–2.000</td><td class="hl">desde €49/mes</td></tr>
@@ -866,6 +995,10 @@
           <tr><td>Recuerda a cada cliente</td><td class="no">A veces</td><td class="yes hl">✓ Siempre</td></tr>
           <tr><td>Reserva en Google Calendar</td><td class="no">Manual</td><td class="yes hl">✓ Automático</td></tr>
           <tr><td>Informe de llamadas semanal</td><td class="no">✗</td><td class="yes hl">✓ Automático</td></tr>
+          <tr><td>Recordatorios de cita automáticos</td><td class="no">✗ Manual</td><td class="yes hl">✓ Salientes automáticos</td></tr>
+          <tr><td>Pide reseñas en Google automáticamente</td><td class="no">✗</td><td class="yes hl">✓ Sin que hagas nada</td></tr>
+          <tr><td>Confirma reservas por WhatsApp</td><td class="no">✗ Manual</td><td class="yes hl">✓ Instantáneo</td></tr>
+          <tr><td>Alertas urgentes en tiempo real</td><td class="no">✗</td><td class="yes hl">✓ WhatsApp inmediato</td></tr>
           <tr><td>Alta y configuración</td><td class="no">Semanas</td><td class="hl">✓ 24 horas</td></tr>
         </tbody>
       </table>
@@ -908,6 +1041,51 @@
           <div class="case-result-num">−60%</div>
           <div class="case-result-label">Llamadas que interrumpen al profesional</div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROI Calculator -->
+<section class="roi-section" id="calculadora">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="label reveal">Calculadora de ahorro</div>
+      <div class="title reveal">¿Cuánto dinero estás<br>dejando escapar cada mes?</div>
+      <p class="subtitle reveal" style="margin:12px auto 0;text-align:center">Mueve los sliders con los datos de tu negocio y verás el número exacto.</p>
+    </div>
+    <div class="roi-body reveal">
+      <div class="roi-inputs">
+        <div class="roi-slider-group">
+          <label>Llamadas que recibes por semana <span class="rv" id="rvCalls">30</span></label>
+          <input type="range" class="roi-range" min="5" max="200" value="30" id="rCalls" oninput="calcROI()">
+        </div>
+        <div class="roi-slider-group">
+          <label>Llamadas que no puedes coger <span class="rv" id="rvMissed">30%</span></label>
+          <input type="range" class="roi-range" min="5" max="70" value="30" id="rMissed" oninput="calcROI()">
+        </div>
+        <div class="roi-slider-group">
+          <label>Ticket medio de tu negocio <span class="rv" id="rvTicket">50€</span></label>
+          <input type="range" class="roi-range" min="10" max="300" value="50" step="5" id="rTicket" oninput="calcROI()">
+        </div>
+        <p style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.6">* Calculado sobre el % de llamadas perdidas que representan una oportunidad de venta o cita. Solo el 60% de las llamadas perdidas son clientes nuevos — el resto son ya conocidos.</p>
+      </div>
+      <div class="roi-result">
+        <div class="roi-losing">
+          <div class="roi-losing-label">Estás perdiendo al mes</div>
+          <div class="roi-losing-amount" id="roiAmount">€540</div>
+          <div class="roi-losing-sub">en clientes que no consigues atender</div>
+        </div>
+        <div class="roi-recovery">
+          <div class="roi-recovery-label">NodeFlow cuesta 49€/mes y recupera todo eso</div>
+          <div class="roi-recovery-row">
+            <span class="roi-recovery-cost">49€</span>
+            <span class="roi-recovery-sep">→</span>
+            <span class="roi-recovery-ratio" id="roiRatio">×11 retorno</span>
+          </div>
+          <div class="roi-recovery-ratio-label" id="roiRatioLabel">por cada euro invertido</div>
+        </div>
+        <a href="#contacto" class="roi-cta">Quiero recuperar ese dinero →</a>
       </div>
     </div>
   </div>
@@ -1241,7 +1419,7 @@
     const prefix = el.dataset.prefix || '';
     const suffix = el.dataset.suffix || '';
     if (isNaN(target)) return;
-    gsap.from({ val: 0 }, {
+    gsap.to({ val: 0 }, {
       val: target, duration: 2, ease: 'power2.out',
       onUpdate() { el.innerHTML = prefix + Math.round(this.targets()[0].val) + suffix; }
     });
@@ -1709,6 +1887,27 @@
     document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
     if (!wasOpen) item.classList.add('open');
   }
+
+  function calcROI() {
+    const calls  = parseInt(document.getElementById('rCalls').value);
+    const missed = parseInt(document.getElementById('rMissed').value);
+    const ticket = parseInt(document.getElementById('rTicket').value);
+
+    document.getElementById('rvCalls').textContent  = calls;
+    document.getElementById('rvMissed').textContent = missed + '%';
+    document.getElementById('rvTicket').textContent = ticket + '€';
+
+    const missedPerMonth = Math.round(calls * (missed / 100) * 4.33);
+    const lostRevenue    = Math.round(missedPerMonth * ticket * 0.6);
+    const ratio          = lostRevenue > 0 ? Math.round(lostRevenue / 49) : 0;
+
+    document.getElementById('roiAmount').textContent  = '€' + lostRevenue.toLocaleString('es-ES');
+    document.getElementById('roiRatio').textContent   = ratio > 0 ? '×' + ratio + ' retorno' : '—';
+    document.getElementById('roiRatioLabel').textContent = ratio > 1
+      ? 'por cada euro invertido en NodeFlow'
+      : 'empieza a recuperarlo desde el primer mes';
+  }
+  calcROI();
 </script>
 
 </body>

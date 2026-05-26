@@ -186,12 +186,13 @@ function setupBillingRoutes(app, config) {
                   .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
                 const org = await db.createOrg({
-                  name: registro.negocio,
+                  name:     registro.negocio,
                   slug,
                   ownerEmail: registro.email,
-                  ownerName: registro.contacto,
-                  plan: orgPlan,
-                  phone: registro.telefono,
+                  ownerName:  registro.contacto,
+                  plan:     orgPlan,
+                  phone:    registro.telefono,
+                  language: registro.idioma || 'es',
                 });
 
                 apiKey = org.api_key;
@@ -203,17 +204,55 @@ function setupBillingRoutes(app, config) {
                 });
 
                 // Crear asistente por defecto
+                const lang      = registro.idioma || 'es';
+                const langName  = lang === 'gl' ? 'galego' : lang === 'eu' ? 'euskera' : 'español';
+                const defaultGreeting = lang === 'gl'
+                  ? `Grazas por chamar a ${registro.negocio}, en que podo axudarche?`
+                  : lang === 'eu'
+                  ? `Eskerrik asko ${registro.negocio}-ra deitu izanagatik, nola lagundu dezaket?`
+                  : `Gracias por llamar a ${registro.negocio}, ¿en qué puedo ayudarte?`;
+
                 await db.createAssistant(org.id, {
-                  name: `Asistente de ${registro.negocio}`,
-                  voice: registro.voz || 'nova',
-                  language: registro.idioma || 'es',
-                  firstMessage: registro.saludo || `Gracias por llamar a ${registro.negocio}, ¿en qué puedo ayudarte?`,
-                  systemPrompt: `Eres el asistente virtual de ${registro.negocio}. Atiendes llamadas de clientes de forma amable y profesional. Responde siempre en ${registro.idioma === 'es' ? 'español' : registro.idioma}. Sé conciso y útil.`,
-                  model: 'gpt-4o-mini',
-                  tools: [],
+                  name:         `Asistente de ${registro.negocio}`,
+                  voice:        registro.voz || 'nova',
+                  language:     lang,
+                  firstMessage: registro.saludo || defaultGreeting,
+                  systemPrompt: `Eres el asistente virtual de ${registro.negocio}. Atiendes llamadas de clientes de forma amable y profesional. Responde siempre en ${langName}. Sé conciso y útil.`,
+                  model:        'gpt-4o-mini',
+                  tools:        [],
                 });
 
                 log.info(`Org creada automáticamente: ${org.id} — ${registro.negocio} (${orgPlan})`);
+
+                // Auto-registrar flujo de automatizaciones para este negocio
+                const { flowManager } = require('../automations/flow-manager');
+                const { scheduler }   = require('../scheduling/scheduler');
+
+                flowManager.register(org.id, {
+                  name:       registro.negocio,
+                  ownerEmail: registro.email,
+                  ownerPhone: registro.telefono,
+                  plan:       orgPlan,
+                  sector:     registro.sector,
+                  language:   registro.idioma || 'es',  // 'es' | 'eu' | 'gl'
+                });
+
+                // Registrar en el scheduler con horario por defecto
+                scheduler.setBusinessConfig(org.id, {
+                  name:        registro.negocio,
+                  timezone:    'Europe/Madrid',
+                  services:    [],
+                  schedule: {
+                    1: { open:'09:00', close:'14:00', afternoon_open:'15:30', afternoon_close:'19:30' },
+                    2: { open:'09:00', close:'14:00', afternoon_open:'15:30', afternoon_close:'19:30' },
+                    3: { open:'09:00', close:'14:00', afternoon_open:'15:30', afternoon_close:'19:30' },
+                    4: { open:'09:00', close:'14:00', afternoon_open:'15:30', afternoon_close:'19:30' },
+                    5: { open:'09:00', close:'14:00' },
+                  },
+                  slotInterval: 15,
+                });
+
+                log.info(`Flow registrado para: ${org.id} — ${registro.negocio}`);
               } catch (e) {
                 log.error(`Error creando org para ${registro.negocio}: ${e.message}`);
               }

@@ -26,7 +26,12 @@ const { getKnowledgeBase } = require('./src/knowledge/base');
 const { setupExtendedRoutes } = require('./src/api/routes-extended');
 const { setupBillingRoutes } = require('./src/api/routes-billing');
 const { setupRegistroRoutes } = require('./src/api/routes-registro');
-const { setupAdminRoutes }   = require('./src/api/routes-admin');
+const { setupAdminRoutes }        = require('./src/api/routes-admin');
+const { setupAutomationRoutes }   = require('./src/api/routes-automations');
+const { setupFlowRoutes }         = require('./src/api/routes-flows');
+const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
+const { startCron }               = require('./src/scheduling/cron');
+const { flowManager }             = require('./src/automations/flow-manager');
 const { getBilling } = require('./src/billing/stripe');
 const BrowserCallHandler = require('./src/browser/browser-call');
 const { startMonitor } = require('./src/monitoring/health-check');
@@ -107,7 +112,7 @@ function serveGitHubPage(publicPath, fallbackFile) {
 }
 
 // Warm-up de las páginas más visitadas al arrancar
-['/index.html', '/hementxe/index.html', '/hementxe/anuncio.html'].forEach(p => getPage(p).catch(() => {}));
+['/index.html', '/hementxe/index.html', '/hementxe/anuncio.html', '/gracias/index.html', '/portal/index.html', '/galiza/index.html'].forEach(p => getPage(p).catch(() => {}));
 
 // ─── Landing principal ───
 app.get('/', serveGitHubPage('/index.html', path.join(__dirname, 'public', 'index.html')));
@@ -132,6 +137,15 @@ SECTOR_PAGES.forEach(sector => {
   const file = path.join(__dirname, 'public', page, 'index.html');
   app.get([`/${page}`, `/${page}/`], serveGitHubPage(`/${page}/index.html`, file));
 });
+
+// ─── Post-pago ───
+app.get(['/gracias', '/gracias/'], serveGitHubPage('/gracias/index.html', path.join(__dirname, 'public', 'gracias', 'index.html')));
+
+// ─── Portal del cliente ───
+app.get(['/portal', '/portal/'], serveGitHubPage('/portal/index.html', path.join(__dirname, 'public', 'portal', 'index.html')));
+
+// ─── NodeFlow Galicia ───
+app.get(['/galiza', '/galiza/'], serveGitHubPage('/galiza/index.html', path.join(__dirname, 'public', 'galiza', 'index.html')));
 
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -180,11 +194,12 @@ const sttRouter = new STTRouter({
 });
 
 const ttsRouter = new TTSRouter({
-  cartesiaApiKey: process.env.CARTESIA_API_KEY,
+  cartesiaApiKey:  process.env.CARTESIA_API_KEY,
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
-  openaiApiKey: process.env.OPENAI_API_KEY,
-  googleApiKey: process.env.GOOGLE_TTS_API_KEY,
-  localTtsUrl: process.env.LOCAL_TTS_URL,
+  openaiApiKey:    process.env.OPENAI_API_KEY,
+  googleApiKey:    process.env.GOOGLE_TTS_API_KEY,
+  localTtsUrl:     process.env.LOCAL_TTS_URL,      // Basque TTS (eu)
+  localTtsUrlGl:   process.env.LOCAL_TTS_URL_GL,   // Galician TTS (gl)
 });
 
 const llmRouter = new LLMRouter({
@@ -254,6 +269,17 @@ setupRegistroRoutes(app);
 
 // Setup Admin routes (panel privado de Unai)
 setupAdminRoutes(app, config, assistantManager);
+
+// Setup Automation routes + start cron (reminders, reviews, WA confirmations)
+setupAutomationRoutes(app);
+setupFlowRoutes(app);
+setupCalendarRoutes(app, config);
+
+// Load per-business flows from DB, then start cron
+flowManager.loadFromDB()
+  .then(n => { if (n > 0) log.info(`${n} flows cargados desde DB`); })
+  .catch(() => {})
+  .finally(() => startCron(30));
 
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {

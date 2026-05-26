@@ -1,0 +1,245 @@
+const fs = require('fs'), path = require('path');
+const BASE = path.resolve(__dirname, 'public');
+
+const CSS = `
+    :root{--bg:#07070e;--card:#14141e;--card-hover:#1c1c28;--accent:#6c5ce7;--accent-l:#a29bfe;--glow:rgba(108,92,231,0.3);--green:#00cec9;--red:#ff6b6b;--text:#e8e8f0;--dim:#8888a8;--muted:#3a3a52;--border:rgba(255,255,255,0.07);--border-accent:rgba(108,92,231,0.3);}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
+    .container{max-width:1100px;margin:0 auto;padding:0 24px;}a{text-decoration:none;color:inherit;}
+    .noise{position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;opacity:0.025;animation:grain .4s steps(1) infinite;}
+    @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,-2%)}40%{transform:translate(2%,3%)}60%{transform:translate(-1%,2%)}80%{transform:translate(3%,-1%)}}
+    .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;}
+    .orb-1{width:600px;height:600px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(108,92,231,0.3) 0%,transparent 70%);animation:drift1 22s ease-in-out infinite;}
+    .orb-2{width:400px;height:400px;bottom:50px;right:-100px;background:radial-gradient(circle,rgba(0,206,201,0.2) 0%,transparent 70%);animation:drift2 28s ease-in-out infinite;}
+    @keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,80px)}}@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-40px)}}
+    .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.035) 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 40%,transparent 100%);}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;transition:all .25s;cursor:pointer;border:none;white-space:nowrap;position:relative;overflow:hidden;}
+    .btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 24px var(--glow);}
+    .btn-primary:hover{background:#7c6cf7;transform:translateY(-2px);box-shadow:0 10px 36px var(--glow);}
+    .btn-outline{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.15);}
+    .btn-outline:hover{border-color:var(--accent-l);background:rgba(108,92,231,0.08);transform:translateY(-2px);}
+    .btn-lg{padding:16px 36px;font-size:16px;border-radius:12px;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;transition:all .4s;}
+    nav::before{content:'';position:absolute;inset:0;background:rgba(7,7,14,0);backdrop-filter:blur(0px);border-bottom:1px solid transparent;transition:all .4s;}
+    nav.scrolled::before{background:rgba(7,7,14,0.9);backdrop-filter:blur(24px);border-bottom-color:var(--border);}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;}
+    .logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text);}.logo em{color:var(--accent-l);font-style:normal;}
+    .nav-links{display:flex;gap:4px;align-items:center;}.nav-links a{color:var(--dim);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;transition:all .2s;}
+    .nav-links a:hover{color:var(--text);background:rgba(255,255,255,0.05);}
+    .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none;}.hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;display:block;}
+    .mobile-menu{display:none;position:fixed;top:57px;left:0;right:0;background:rgba(7,7,14,0.97);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:16px 24px;flex-direction:column;gap:4px;z-index:99;}
+    .mobile-menu a{color:var(--dim);font-size:15px;font-weight:500;padding:12px 0;border-bottom:1px solid var(--border);display:block;}.mobile-menu a:last-child{border-bottom:none;}.mobile-menu.open{display:flex;}
+    @media(max-width:768px){.nav-links{display:none;}.nav-cta{display:none;}.hamburger{display:flex;}}
+    .hero{padding:150px 0 90px;text-align:center;position:relative;z-index:2;min-height:92vh;display:flex;align-items:center;}
+    .hero .container{position:relative;z-index:2;width:100%;}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px 6px 10px;border-radius:100px;border:1px solid rgba(108,92,231,0.4);background:rgba(108,92,231,0.12);font-size:13px;font-weight:500;color:var(--accent-l);margin-bottom:28px;}
+    .badge-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
+    .hero h1{font-size:clamp(38px,6.5vw,76px);font-weight:900;letter-spacing:-3px;line-height:1.03;margin-bottom:22px;color:#fff;}
+    .grad-text{background:linear-gradient(140deg,#fff 30%,rgba(255,255,255,0.7) 60%,var(--accent-l) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-sub{font-size:18px;color:var(--dim);max-width:580px;margin:0 auto 36px;line-height:1.75;}
+    .hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+    .hero-trust{margin-top:20px;font-size:13px;color:var(--muted);display:flex;gap:20px;justify-content:center;flex-wrap:wrap;}
+    .hero-trust span{display:flex;align-items:center;gap:5px;}.hero-trust .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+    .stats-bar{display:flex;gap:0;justify-content:center;margin-top:60px;padding-top:48px;border-top:1px solid var(--border);flex-wrap:wrap;}
+    .stat{flex:1;min-width:120px;text-align:center;padding:0 20px;border-right:1px solid var(--border);}.stat:last-child{border-right:none;}
+    .stat strong{display:block;font-size:36px;font-weight:900;color:var(--green);letter-spacing:-1.5px;}.stat small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;display:block;}
+    section{position:relative;z-index:2;}.section-label{font-size:11px;text-transform:uppercase;letter-spacing:2.5px;color:var(--accent-l);font-weight:700;margin-bottom:12px;}
+    .section-title{font-size:clamp(26px,3.5vw,40px);font-weight:800;letter-spacing:-1.2px;line-height:1.15;margin-bottom:14px;}
+    .section-sub{color:var(--dim);font-size:16px;line-height:1.75;max-width:560px;}.section-pad{padding:80px 0;}.section-pad-sm{padding:60px 0;}
+    .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;}@media(max-width:768px){.problem-grid{grid-template-columns:1fr;}}
+    .problem-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;overflow:hidden;transition:all .3s;}
+    .problem-card:hover{border-color:rgba(255,107,107,0.3);transform:translateY(-4px);}
+    .problem-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff6b6b,transparent);}
+    .problem-icon{font-size:28px;margin-bottom:14px;}.problem-card h3{font-size:16px;font-weight:700;margin-bottom:10px;}.problem-card p{font-size:14px;color:var(--dim);line-height:1.7;}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:48px;position:relative;}
+    .steps::before{content:'';position:absolute;top:28px;left:16.6%;right:16.6%;height:1px;background:linear-gradient(90deg,transparent,var(--border-accent),transparent);}
+    @media(max-width:768px){.steps{grid-template-columns:1fr;}.steps::before{display:none;}}
+    .step{text-align:center;padding:28px 20px;}.step-num{width:56px;height:56px;border-radius:50%;background:rgba(108,92,231,0.15);border:1px solid var(--border-accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--accent-l);margin:0 auto 18px;}
+    .step h3{font-size:16px;font-weight:700;margin-bottom:10px;}.step p{font-size:14px;color:var(--dim);line-height:1.7;}
+    .benefits-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:48px;}@media(max-width:768px){.benefits-grid{grid-template-columns:1fr;}}
+    .benefit-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 30px;display:flex;gap:18px;align-items:flex-start;transition:all .3s;}
+    .benefit-card:hover{border-color:var(--border-accent);transform:translateY(-3px);background:var(--card-hover);}
+    .benefit-icon{width:44px;height:44px;border-radius:12px;background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .benefit-card h3{font-size:15px;font-weight:700;margin-bottom:7px;}.benefit-card p{font-size:13px;color:var(--dim);line-height:1.65;}
+    .roi-section{background:linear-gradient(135deg,rgba(108,92,231,0.07),rgba(0,206,201,0.04));border:1px solid var(--border-accent);border-radius:24px;padding:56px 52px;}
+    @media(max-width:768px){.roi-section{padding:36px 24px;}}
+    .roi-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;}@media(max-width:768px){.roi-grid{grid-template-columns:1fr;}}
+    .roi-numbers{display:flex;flex-direction:column;gap:20px;margin-top:28px;}
+    .roi-item{display:flex;align-items:center;gap:16px;padding:18px 22px;background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid var(--border);}
+    .roi-val{font-size:28px;font-weight:900;color:var(--green);letter-spacing:-1px;flex-shrink:0;min-width:80px;}.roi-desc{font-size:13px;color:var(--dim);line-height:1.6;}
+    .roi-desc strong{color:var(--text);display:block;font-size:14px;margin-bottom:2px;}
+    .roi-chart{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;}
+    .roi-chart h4{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px;}
+    .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}.bar-label{font-size:13px;color:var(--dim);width:130px;flex-shrink:0;}
+    .bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:4px;height:10px;overflow:hidden;}.bar-fill{height:100%;border-radius:4px;animation:barGrow 1.2s ease forwards;}
+    .bar-fill-accent{background:linear-gradient(90deg,var(--accent),var(--accent-l));}.bar-fill-green{background:linear-gradient(90deg,var(--green),#55efc4);}.bar-fill-red{background:linear-gradient(90deg,#ff6b6b,#fd79a8);}
+    @keyframes barGrow{from{width:0}}.bar-val{font-size:13px;font-weight:700;color:var(--text);width:36px;flex-shrink:0;text-align:right;}
+    .testimonial{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 40px;position:relative;margin-top:20px;}
+    .testimonial::before{content:'"';position:absolute;top:16px;left:28px;font-size:80px;color:var(--accent);opacity:0.3;font-family:Georgia,serif;line-height:1;}
+    .testimonial blockquote{font-size:16px;line-height:1.75;color:var(--text);font-style:italic;padding-top:16px;margin-bottom:20px;}
+    .testimonial-author{display:flex;align-items:center;gap:14px;}
+    .author-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-l));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;}
+    .author-name{font-weight:700;font-size:14px;}.author-meta{font-size:12px;color:var(--dim);}
+    .early-badge{display:inline-block;padding:2px 10px;border-radius:20px;background:rgba(0,206,201,0.15);border:1px solid rgba(0,206,201,0.3);color:var(--green);font-size:11px;font-weight:600;margin-left:8px;}
+    .faq-list{display:flex;flex-direction:column;gap:12px;margin-top:40px;}
+    .faq-item{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .3s;}.faq-item:hover{border-color:var(--border-accent);}
+    .faq-q{padding:20px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;font-weight:600;font-size:15px;user-select:none;}
+    .faq-icon{width:24px;height:24px;border-radius:50%;background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-l);font-size:16px;transition:transform .3s;}
+    .faq-item.open .faq-icon{transform:rotate(45deg);}.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease;}.faq-item.open .faq-a{max-height:400px;}
+    .faq-a-inner{padding:0 24px 20px;font-size:14px;color:var(--dim);line-height:1.75;}
+    .cta-section{text-align:center;padding:80px 0 100px;}
+    .cta-card{background:linear-gradient(135deg,rgba(108,92,231,0.12),rgba(0,206,201,0.06));border:1px solid var(--border-accent);border-radius:28px;padding:60px 40px;position:relative;overflow:hidden;}
+    .cta-card::before{content:'';position:absolute;top:-60%;left:-10%;width:80%;height:200%;background:radial-gradient(ellipse,rgba(108,92,231,0.12) 0%,transparent 70%);pointer-events:none;}
+    .cta-card h2{font-size:clamp(26px,4vw,44px);font-weight:900;letter-spacing:-1.5px;margin-bottom:16px;}
+    .cta-card p{color:var(--dim);font-size:17px;margin-bottom:32px;max-width:520px;margin-left:auto;margin-right:auto;}.cta-price{font-size:13px;color:var(--muted);margin-top:14px;}
+    footer{border-top:1px solid var(--border);padding:40px 0;}.footer-inner{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center;}
+    .footer-brand{font-weight:700;font-size:16px;}.footer-brand span{color:var(--accent-l);}
+    .footer-links{display:flex;gap:20px;flex-wrap:wrap;}.footer-links a{font-size:13px;color:var(--dim);transition:color .2s;}.footer-links a:hover{color:var(--text);}
+    .footer-copy{font-size:12px;color:var(--muted);}
+`;
+
+const sectors = require('./sectors_data.json');
+
+function barClass(c){return c==='green'?'bar-fill-green':c==='red'?'bar-fill-red':'bar-fill-accent';}
+
+function buildPage(s){
+  const faqSchema=s.faqs.map(f=>`{"@type":"Question","name":${JSON.stringify(f[0])},"acceptedAnswer":{"@type":"Answer","text":${JSON.stringify(f[1])}}}`).join(',');
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${s.title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="${s.desc}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nodeflow.es/${s.slug}">
+  <meta property="og:type" content="website"><meta property="og:url" content="https://nodeflow.es/${s.slug}">
+  <meta property="og:title" content="${s.title}"><meta property="og:description" content="${s.desc}">
+  <meta property="og:image" content="https://nodeflow.es/og-image.png">
+  <meta property="og:locale" content="es_ES"><meta property="og:site_name" content="NodeFlow">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${s.title}">
+  <meta name="twitter:description" content="${s.desc}"><meta name="twitter:image" content="https://nodeflow.es/og-image.png">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZPKHPG2BLC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"${s.schemaName}","description":"${s.desc}","url":"https://nodeflow.es/${s.slug}","applicationCategory":"BusinessApplication","operatingSystem":"Cloud","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"},{"@type":"Offer","name":"Plan Pro","price":"99","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","areaServed":["Bilbao","Donostia","Vitoria-Gasteiz","País Vasco"]}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[${faqSchema}]}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>${CSS}</style>
+</head>
+<body>
+<div class="noise"></div><div class="grid-bg"></div><div class="orb orb-1"></div><div class="orb orb-2"></div>
+<nav id="navbar"><div class="container"><div class="nav-inner">
+  <a href="https://nodeflow.es" class="logo">Node<em>Flow</em></a>
+  <div class="nav-links"><a href="#problema">El problema</a><a href="#como-funciona">Cómo funciona</a><a href="#beneficios">Beneficios</a><a href="#faq">FAQ</a><a href="https://nodeflow.es" style="color:var(--dim)">← Inicio</a></div>
+  <a href="https://nodeflow.es/#contacto" class="btn btn-primary nav-cta" style="padding:9px 20px;font-size:13px;">Empezar gratis</a>
+  <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+</div></div></nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#problema">El problema</a><a href="#como-funciona">Cómo funciona</a><a href="#beneficios">Beneficios</a><a href="#faq">FAQ</a>
+  <a href="https://nodeflow.es">← Volver a NodeFlow</a>
+  <a href="https://nodeflow.es/#contacto" style="color:var(--accent-l);font-weight:700;">Empezar gratis →</a>
+</div>
+<section class="hero"><div class="container">
+  <div class="badge"><span class="badge-dot"></span>${s.badge}</div>
+  <h1>${s.h1a}<br><span class="grad-text">${s.h1b}</span><br>${s.h1c}</h1>
+  <p class="hero-sub">${s.sub}</p>
+  <div class="hero-ctas">
+    <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Empezar gratis 14 días →</a>
+    <a href="https://nodeflow.es" class="btn btn-outline btn-lg">Ver cómo funciona</a>
+  </div>
+  <div class="hero-trust">${s.trust.map(t=>`<span><span class="dot"></span> ${t}</span>`).join('')}</div>
+  <div class="stats-bar">${s.stats.map(st=>`<div class="stat"><strong>${st[0]}</strong><small>${st[1]}</small></div>`).join('')}</div>
+</div></section>
+<section class="section-pad" id="problema"><div class="container">
+  <div class="section-label">El problema</div>
+  <h2 class="section-title">Los retos reales de tu negocio<br>en el País Vasco</h2>
+  <p class="section-sub">En Bizkaia y Gipuzkoa, cada llamada sin respuesta es un cliente que va a la competencia.</p>
+  <div class="problem-grid">${s.problems.map(p=>`<div class="problem-card"><div class="problem-icon">${p[0]}</div><h3>${p[1]}</h3><p>${p[2]}</p></div>`).join('')}</div>
+</div></section>
+<section class="section-pad" id="como-funciona" style="background:rgba(255,255,255,0.015);border-top:1px solid var(--border);border-bottom:1px solid var(--border);"><div class="container">
+  <div style="text-align:center;margin-bottom:16px;">
+    <div class="section-label">Cómo funciona</div>
+    <h2 class="section-title">Tres pasos. Sin instalar nada.</h2>
+    <p class="section-sub" style="margin:0 auto;">Conectamos NodeFlow a tu línea actual en menos de 24 horas.</p>
+  </div>
+  <div class="steps">${s.how.map((h,i)=>`<div class="step"><div class="step-num">${i+1}</div><h3>${h[0]}</h3><p>${h[1]}</p></div>`).join('')}</div>
+</div></section>
+<section class="section-pad" id="beneficios"><div class="container">
+  <div class="section-label">Beneficios específicos</div>
+  <h2 class="section-title">Diseñado para tu sector<br>en el País Vasco</h2>
+  <p class="section-sub">No es un bot genérico. Se configura con los detalles de tu negocio.</p>
+  <div class="benefits-grid">${s.benefits.map(b=>`<div class="benefit-card"><div class="benefit-icon">${b[0]}</div><div><h3>${b[1]}</h3><p>${b[2]}</p></div></div>`).join('')}</div>
+</div></section>
+<section class="section-pad-sm" id="roi"><div class="container"><div class="roi-section"><div class="roi-grid">
+  <div>
+    <div class="section-label">Retorno real</div>
+    <h2 class="section-title">${s.roiTitle}</h2>
+    <p class="section-sub">${s.roiSub}</p>
+    <div class="roi-numbers">${s.rois.map(r=>`<div class="roi-item"><div class="roi-val">${r[0]}</div><div class="roi-desc"><strong>${r[1]}</strong>${r[2]}</div></div>`).join('')}</div>
+  </div>
+  <div>
+    <div class="roi-chart">
+      <h4>${s.chartTitle}</h4>
+      ${s.bars.map(b=>`<div class="bar-row"><span class="bar-label">${b[0]}</span><div class="bar-wrap"><div class="bar-fill ${barClass(b[3])}" style="width:${b[2]}%"></div></div><span class="bar-val">${b[1]}</span></div>`).join('')}
+      <p style="font-size:12px;color:var(--muted);margin-top:16px;">${s.chartNote}</p>
+    </div>
+    <div class="testimonial">
+      <blockquote>${s.quote}</blockquote>
+      <div class="testimonial-author">
+        <div class="author-avatar">${s.quoteInit}</div>
+        <div><div class="author-name">${s.quoteName} <span class="early-badge">Early Access</span></div><div class="author-meta">${s.quoteMeta}</div></div>
+      </div>
+    </div>
+  </div>
+</div></div></div></section>
+<section class="section-pad" id="faq" style="background:rgba(255,255,255,0.015);border-top:1px solid var(--border);border-bottom:1px solid var(--border);"><div class="container"><div style="max-width:720px;margin:0 auto;">
+  <div class="section-label">Preguntas frecuentes</div>
+  <h2 class="section-title">Todo lo que necesitas saber<br>antes de empezar</h2>
+  <div class="faq-list">${s.faqs.map(f=>`<div class="faq-item"><div class="faq-q">${f[0]}<div class="faq-icon">+</div></div><div class="faq-a"><div class="faq-a-inner">${f[1]}</div></div></div>`).join('')}</div>
+</div></div></section>
+<section class="cta-section"><div class="container"><div class="cta-card">
+  <div class="section-label">Empieza hoy</div>
+  <h2>${s.ctaLine1}<br>${s.ctaLine2}<br><span class="grad-text">${s.ctaGrad}</span></h2>
+  <p>14 días gratis. Sin tarjeta de crédito. Configuración en menos de 24 horas. Cancela cuando quieras.</p>
+  <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Probar NodeFlow gratis →</a>
+  <div class="cta-price">Después, desde 49€/mes · Sin permanencia · Sin instalación</div>
+</div></div></section>
+<footer><div class="container"><div class="footer-inner">
+  <div><div class="footer-brand">Node<span>Flow</span></div><div style="font-size:12px;color:var(--muted);margin-top:4px;">${s.footerDesc}</div></div>
+  <div class="footer-links">
+    <a href="https://nodeflow.es">Inicio</a><a href="https://nodeflow.es/#contacto">Contacto</a>
+    <a href="https://nodeflow.es/peluquerias">Peluquerías</a><a href="https://nodeflow.es/clinicas">Clínicas</a>
+    <a href="https://nodeflow.es/restaurantes">Restaurantes</a><a href="https://nodeflow.es/talleres">Talleres</a>
+    <a href="https://nodeflow.es/veterinarias">Veterinarias</a><a href="https://nodeflow.es/estetica">Estética</a>
+    <a href="https://nodeflow.es/gimnasios">Gimnasios</a><a href="https://nodeflow.es/inmobiliarias">Inmobiliarias</a>
+    <a href="https://nodeflow.es/academias">Academias</a><a href="https://nodeflow.es/asesorias">Asesorías</a>
+    <a href="https://nodeflow.es/farmacias">Farmacias</a><a href="https://nodeflow.es/hoteles">Hoteles</a>
+    <a href="https://nodeflow.es/privacidad">Privacidad</a><a href="https://nodeflow.es/terminos">Términos</a>
+  </div>
+  <div class="footer-copy">© 2026 NodeFlow · unai@nodeflow.es</div>
+</div></div></footer>
+<script>
+  const nb=document.getElementById('navbar');
+  window.addEventListener('scroll',()=>nb.classList.toggle('scrolled',window.scrollY>40));
+  document.getElementById('hamburger').addEventListener('click',()=>document.getElementById('mobileMenu').classList.toggle('open'));
+  document.querySelectorAll('.faq-item').forEach(item=>{
+    item.querySelector('.faq-q').addEventListener('click',()=>{
+      const open=item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+      if(!open)item.classList.add('open');
+    });
+  });
+</script>
+</body></html>`;
+}
+
+sectors.forEach(s=>{
+  const dir=path.join(BASE,s.slug);
+  if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});
+  const html=buildPage(s);
+  fs.writeFileSync(path.join(dir,'index.html'),html,'utf8');
+  console.log(`✓ ${s.slug}: ${Math.round(html.length/1024)}KB`);
+});
+console.log('Done! Generated '+sectors.length+' sector pages.');

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Portal — NodeFlow</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#07070e; --card:#0f0f18; --card2:#14141e;
+      --accent:#6c5ce7; --accent-l:#a29bfe;
+      --green:#00cec9; --green2:#00b894;
+      --red:#e74c3c; --yellow:#f9ca24;
+      --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
+      --border:rgba(255,255,255,0.07);
+      --radius:14px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+    /* Login */
+    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+    .login-card{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px;text-align:center}
+    .login-logo{font-size:22px;font-weight:900;margin-bottom:8px}
+    .login-logo em{color:var(--accent-l);font-style:normal}
+    .login-sub{font-size:13px;color:var(--dim);margin-bottom:28px}
+    .login-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:14px;font-family:inherit;margin-bottom:10px;outline:none;transition:border-color .2s}
+    .login-input:focus{border-color:var(--accent)}
+    .login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
+    .login-btn:hover{background:#5a4bd1}
+    #loginError{color:#e74c3c;font-size:13px;margin-top:10px;display:none}
+    .login-help{font-size:12px;color:var(--muted);margin-top:16px}
+    .login-help a{color:var(--accent-l);text-decoration:none}
+
+    /* App */
+    #app{display:none}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+    .header-logo{font-size:16px;font-weight:900}
+    .header-logo em{color:var(--accent-l);font-style:normal}
+    .header-org{font-size:13px;color:var(--dim);font-weight:500}
+    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s}
+    .logout-btn:hover{color:var(--text);border-color:var(--muted)}
+
+    nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;overflow-x:auto}
+    .nav-tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+    .nav-tab.active{color:var(--accent-l);border-bottom-color:var(--accent)}
+    .nav-tab:hover:not(.active){color:var(--text)}
+
+    main{max-width:960px;margin:0 auto;padding:32px 24px}
+
+    /* Cards */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+    .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
+    .kpi-label{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--dim);text-transform:uppercase;margin-bottom:8px}
+    .kpi-val{font-size:28px;font-weight:900;letter-spacing:-1px;color:var(--text)}
+    .kpi-sub{font-size:12px;color:var(--dim);margin-top:4px}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+    .card-title{font-size:15px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+    /* Table */
+    .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:var(--card2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--dim);text-transform:uppercase}
+    tbody tr:hover{background:rgba(255,255,255,0.025)}
+    tbody td{padding:12px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+    .empty-row td{text-align:center;color:var(--dim);padding:32px;font-style:italic}
+
+    /* Badges */
+    .badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px}
+    .bg{background:rgba(0,206,201,0.12);color:var(--green);border:1px solid rgba(0,206,201,0.25)}
+    .br{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
+    .by{background:rgba(249,202,36,0.12);color:var(--yellow);border:1px solid rgba(249,202,36,0.2)}
+    .bp{background:rgba(108,92,231,0.15);color:var(--accent-l);border:1px solid rgba(108,92,231,0.3)}
+    .bd{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}
+
+    /* Buttons */
+    .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+    .btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:#5a4bd1}
+    .btn-g{background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.25)}.btn-g:hover{background:rgba(0,184,148,0.2)}
+    .btn-r{background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}.btn-r:hover{background:rgba(231,76,60,0.18)}
+    .btn-d{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}.btn-d:hover{color:var(--text);border-color:var(--muted)}
+    .btn:disabled{opacity:.5;cursor:default}
+
+    /* Toggle switch */
+    .toggle{position:relative;display:inline-block;width:40px;height:22px}
+    .toggle input{opacity:0;width:0;height:0}
+    .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.1);border-radius:22px;transition:.2s}
+    .slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--dim);border-radius:50%;transition:.2s}
+    input:checked+.slider{background:var(--green2)}
+    input:checked+.slider:before{transform:translateX(18px);background:#fff}
+
+    /* Cal connect box */
+    .cal-box{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:18px 20px;margin-bottom:20px}
+    .cal-info{display:flex;align-items:center;gap:12px}
+    .cal-icon{font-size:28px}
+    .cal-title{font-size:14px;font-weight:700}
+    .cal-sub{font-size:12px;color:var(--dim);margin-top:2px}
+    .cal-connected{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green2)}
+    .cal-dot{width:8px;height:8px;border-radius:50%;background:var(--green2)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999}
+    #toast.show{transform:translateY(0);opacity:1}
+    #toast.ok{border-color:rgba(0,184,148,.4);color:var(--green2)}
+    #toast.err{border-color:rgba(231,76,60,.4);color:#e74c3c}
+
+    /* Tab panels */
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+
+    .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+    .section-title{font-size:17px;font-weight:800}
+
+    /* Automations grid */
+    .auto-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+    @media(max-width:600px){.auto-grid{grid-template-columns:1fr}}
+    .auto-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px}
+    .auto-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .auto-name{font-size:14px;font-weight:700}
+    .auto-desc{font-size:12px;color:var(--dim);margin-top:4px}
+    .auto-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .auto-label{font-size:12px;color:var(--dim)}
+    .auto-hours input{width:48px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;text-align:center;font-family:inherit}
+
+    /* Plan box */
+    .plan-box{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:18px 20px}
+    .plan-info{}
+    .plan-name{font-size:15px;font-weight:800;color:var(--accent-l)}
+    .plan-sub{font-size:12px;color:var(--dim);margin-top:4px}
+    .plan-progress{flex:1;max-width:280px}
+    .prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
+    .prog-bar{height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+    .prog-fill{height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:3px;transition:width .4s}
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ─── Login ─────────────────────────────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">⚡ Node<em>Flow</em></div>
+    <p class="login-sub">Portal de cliente · Accede con tu API Key</p>
+    <input id="apiKeyInput" class="login-input" type="password" placeholder="vc_xxxxxxxxxxxxx" autocomplete="off">
+    <button class="login-btn" onclick="login()">Entrar al portal →</button>
+    <div id="loginError">API Key incorrecta</div>
+    <p class="login-help">¿Perdiste tu API Key? <a href="https://wa.me/34666351319">Escríbenos por WhatsApp</a></p>
+  </div>
+</div>
+
+<!-- ─── App ───────────────────────────────────────────────────────────────── -->
+<div id="app">
+  <header>
+    <div class="header-logo">⚡ Node<em>Flow</em></div>
+    <div class="header-org" id="orgName">—</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="planBadge" class="badge bp" style="font-size:11px"></span>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-tab active" onclick="switchTab('resumen',this)">📊 Resumen</button>
+    <button class="nav-tab" onclick="switchTab('citas',this)">📅 Citas</button>
+    <button class="nav-tab" onclick="switchTab('automatizaciones',this)">🤖 Automatizaciones</button>
+    <button class="nav-tab" onclick="switchTab('cuenta',this)">⚙️ Mi cuenta</button>
+  </nav>
+
+  <main>
+
+    <!-- ── Resumen ── -->
+    <div id="tab-resumen" class="tab-panel active">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Citas este mes</div>
+          <div class="kpi-val" id="kCitas">—</div>
+          <div class="kpi-sub">total confirmadas</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Próxima cita</div>
+          <div class="kpi-val" id="kNext" style="font-size:18px">—</div>
+          <div class="kpi-sub" id="kNextSub">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Minutos usados</div>
+          <div class="kpi-val" id="kMins">—</div>
+          <div class="kpi-sub" id="kMinsLimit">de — incluidos</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Reminders enviados</div>
+          <div class="kpi-val" id="kReminders">—</div>
+          <div class="kpi-sub">este mes</div>
+        </div>
+      </div>
+
+      <!-- Plan + usage -->
+      <div class="plan-box">
+        <div class="plan-info">
+          <div class="plan-name" id="planName">Plan —</div>
+          <div class="plan-sub" id="planSub">—</div>
+        </div>
+        <div class="plan-progress">
+          <div class="prog-label">
+            <span>Minutos de voz</span>
+            <span id="progText">0 / 0</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        </div>
+        <a href="https://wa.me/34666351319?text=Quiero%20cambiar%20mi%20plan%20de%20NodeFlow" target="_blank" class="btn btn-accent" style="white-space:nowrap">Cambiar plan →</a>
+      </div>
+
+      <!-- Próximas citas -->
+      <div class="card">
+        <div class="card-title">📅 Próximas citas</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Estado</th></tr></thead>
+            <tbody id="upcomingBody"><tr class="empty-row"><td colspan="5">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Citas ── -->
+    <div id="tab-citas" class="tab-panel">
+      <div class="section-head">
+        <div class="section-title">Agenda</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="filterDate" type="date" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit" oninput="loadCitas()">
+          <button class="btn btn-d" onclick="document.getElementById('filterDate').value='';loadCitas()">Todas</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="citasBody"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Automatizaciones ── -->
+    <div id="tab-automatizaciones" class="tab-panel">
+      <!-- Google Calendar -->
+      <div id="calBox" class="cal-box">
+        <div class="cal-info">
+          <div class="cal-icon">📅</div>
+          <div>
+            <div class="cal-title">Google Calendar</div>
+            <div class="cal-sub" id="calSubText">Sincroniza tus citas con Google Calendar automáticamente</div>
+          </div>
+        </div>
+        <div id="calActions">
+          <button class="btn btn-accent" onclick="connectCalendar()" id="calBtn">Conectar →</button>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="auto-grid">
+        <div class="auto-card">
+          <div class="auto-row">
+            <div>
+              <div class="auto-name">🔔 Recordatorios de cita</div>
+              <div class="auto-desc">Email automático al cliente antes de su cita</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleReminders" onchange="updateFlow('reminders',this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="auto-footer">
+            <span class="auto-label">Horas antes:</span>
+            <div class="auto-hours">
+              <input type="number" id="hoursReminders" value="24" min="1" max="72" onchange="updateFlowHours('reminders',this.value)">
+            </div>
+          </div>
+        </div>
+
+        <div class="auto-card">
+          <div class="auto-row">
+            <div>
+              <div class="auto-name">⭐ Solicitud de reseña</div>
+              <div class="auto-desc">Email pidiendo reseña Google tras la cita</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleReviews" onchange="updateFlow('reviews',this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="auto-footer">
+            <span class="auto-label">Horas después:</span>
+            <div class="auto-hours">
+              <input type="number" id="hoursReviews" value="24" min="1" max="72" onchange="updateFlowHours('reviews',this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Place ID -->
+      <div class="card">
+        <div class="card-title">🗺️ Google Place ID</div>
+        <p style="font-size:13px;color:var(--dim);margin-bottom:16px">
+          Necesario para que los emails de reseña incluyan el link directo a tu ficha de Google.
+          <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" style="color:var(--accent-l)">¿Cómo encontrarlo?</a>
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input id="placeIdInput" type="text" placeholder="ChIJ…" style="flex:1;min-width:200px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none">
+          <button class="btn btn-g" onclick="savePlaceId()">Guardar Place ID</button>
+        </div>
+        <div id="reviewUrlWrap" style="margin-top:12px;display:none">
+          <p style="font-size:12px;color:var(--dim);margin-bottom:6px">Link de reseña generado:</p>
+          <a id="reviewUrlLink" href="#" target="_blank" style="font-size:12px;color:var(--accent-l);word-break:break-all">—</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Cuenta ── -->
+    <div id="tab-cuenta" class="tab-panel">
+      <div class="card">
+        <div class="card-title">🔑 API Key</div>
+        <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Tu clave de acceso al portal y a la API de NodeFlow.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <code id="apiKeyDisplay" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;flex:1;min-width:200px;word-break:break-all;color:var(--accent-l)">—</code>
+          <button class="btn btn-d" onclick="copyApiKey()">Copiar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📬 Información de contacto</div>
+        <div style="display:grid;gap:10px">
+          <div style="font-size:13px"><span style="color:var(--dim)">Negocio: </span><strong id="infoNegocio">—</strong></div>
+          <div style="font-size:13px"><span style="color:var(--dim)">Email: </span><strong id="infoEmail">—</strong></div>
+          <div style="font-size:13px"><span style="color:var(--dim)">Plan: </span><strong id="infoPlan">—</strong></div>
+        </div>
+        <div style="margin-top:18px">
+          <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20necesito%20ayuda%20con%20mi%20NodeFlow" target="_blank" class="btn btn-accent">💬 Contactar soporte</a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API_KEY_STORE = 'nf_portal_key';
+const ORG_STORE     = 'nf_portal_org';
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+async function login() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return;
+
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/portal/me', {
+      headers: { 'Authorization': `Bearer ${key}` }
+    });
+    if (!res.ok) { err.style.display = 'block'; return; }
+    const org = await res.json();
+    localStorage.setItem(API_KEY_STORE, key);
+    localStorage.setItem(ORG_STORE, JSON.stringify(org));
+    showApp(org, key);
+  } catch (e) {
+    err.textContent = 'Error de conexión';
+    err.style.display = 'block';
+  }
+}
+
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+function logout() {
+  localStorage.removeItem(API_KEY_STORE);
+  localStorage.removeItem(ORG_STORE);
+  location.reload();
+}
+
+// ── API helper ───────────────────────────────────────────────────────────────
+function getKey() { return localStorage.getItem(API_KEY_STORE); }
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getKey()}`,
+      ...(opts.headers || {}),
+    },
+  });
+  if (res.status === 401) { logout(); throw new Error('401'); }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ── Show app ─────────────────────────────────────────────────────────────────
+function showApp(org, key) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('orgName').textContent = org.name || '';
+  document.getElementById('planBadge').textContent = org.plan || 'starter';
+
+  // Cuenta tab
+  document.getElementById('apiKeyDisplay').textContent = key;
+  document.getElementById('infoNegocio').textContent = org.name || '—';
+  document.getElementById('infoEmail').textContent = org.owner_email || '—';
+  document.getElementById('infoPlan').textContent = org.plan || '—';
+
+  // Plan display
+  const planLabels = { starter:'Starter', pro:'Negocio (500 min)', business:'Pro (2000 min)' };
+  document.getElementById('planName').textContent = planLabels[org.plan] || org.plan || 'Starter';
+  document.getElementById('planSub').textContent = org.owner_email || '';
+
+  loadAll(org);
+  checkCalendarCallback();
+}
+
+function loadAll(org) {
+  loadUsage();
+  loadUpcoming();
+  loadFlow();
+  loadCalStatus();
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'citas') loadCitas();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(_tt); _tt = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ── Usage ─────────────────────────────────────────────────────────────────────
+async function loadUsage() {
+  try {
+    const data = await api('/api/billing/usage');
+    document.getElementById('kMins').textContent    = Math.round(data.minutesUsed);
+    document.getElementById('kMinsLimit').textContent = `de ${data.minutesLimit} incluidos`;
+    document.getElementById('planSub').textContent  = `${data.percentUsed}% usado este mes`;
+    document.getElementById('progText').textContent = `${Math.round(data.minutesUsed)} / ${data.minutesLimit}`;
+    document.getElementById('progFill').style.width = Math.min(data.percentUsed, 100) + '%';
+    if (data.percentUsed > 80) document.getElementById('progFill').style.background = '#e17055';
+  } catch {}
+}
+
+// ── Upcoming appointments ─────────────────────────────────────────────────────
+async function loadUpcoming() {
+  try {
+    const org = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
+    const data = await api(`/api/citas/${org.id || org.slug}?upcoming=1`);
+    const apts = data.appointments || [];
+    document.getElementById('kCitas').textContent = apts.length;
+
+    const next = apts[0];
+    if (next) {
+      document.getElementById('kNext').textContent    = next.time;
+      document.getElementById('kNextSub').textContent = `${next.date} · ${next.patientName}`;
+    }
+
+    const body = document.getElementById('upcomingBody');
+    if (!apts.length) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="5">Sin citas próximas</td></tr>';
+      return;
+    }
+    body.innerHTML = apts.slice(0, 8).map(a => `<tr>
+      <td>${a.date}</td>
+      <td><strong>${a.time}</strong></td>
+      <td>${a.patientName || '—'}</td>
+      <td>${a.service || '—'}</td>
+      <td><span class="badge ${a.status==='confirmed'?'bg':'bd'}">${a.status || 'pendiente'}</span></td>
+    </tr>`).join('');
+  } catch {}
+}
+
+// ── Citas (full list) ─────────────────────────────────────────────────────────
+async function loadCitas() {
+  const org   = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
+  const date  = document.getElementById('filterDate')?.value;
+  let url     = `/api/citas/${org.id || org.slug}`;
+  if (date) url += `?date=${date}`;
+
+  const body = document.getElementById('citasBody');
+  body.innerHTML = '<tr class="empty-row"><td colspan="7">Cargando…</td></tr>';
+
+  try {
+    const data = await api(url);
+    const apts = data.appointments || [];
+    if (!apts.length) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="7">Sin citas para los filtros seleccionados</td></tr>';
+      return;
+    }
+    body.innerHTML = apts.map(a => `<tr>
+      <td>${a.date}</td>
+      <td><strong>${a.time}</strong></td>
+      <td>${a.patientName || '—'}</td>
+      <td>${a.phone || '—'}</td>
+      <td>${a.service || '—'}</td>
+      <td><span class="badge ${a.status==='confirmed'?'bg':'bd'}">${a.status||'—'}</span></td>
+      <td>
+        <button class="btn btn-d" style="padding:4px 8px;font-size:11px" onclick="sendReminder('${a.id}')">Reminder</button>
+      </td>
+    </tr>`).join('');
+  } catch (e) { body.innerHTML = '<tr class="empty-row"><td colspan="7">Error cargando citas</td></tr>'; }
+}
+
+async function sendReminder(aptId) {
+  try {
+    await api(`/api/automations/reminder/${aptId}`, { method: 'POST' });
+    toast('✓ Reminder enviado');
+  } catch { toast('Error al enviar', 'err'); }
+}
+
+// ── Flow settings ──────────────────────────────────────────────────────────────
+let _flowId = null;
+
+async function loadFlow() {
+  try {
+    const org = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
+    _flowId   = org.id || org.slug;
+    const data = await api(`/api/flows/${_flowId}`);
+
+    document.getElementById('toggleReminders').checked = data.automations?.reminders?.enabled ?? true;
+    document.getElementById('toggleReviews').checked   = data.automations?.reviews?.enabled   ?? true;
+    document.getElementById('hoursReminders').value    = data.automations?.reminders?.hoursBefore ?? 24;
+    document.getElementById('hoursReviews').value      = data.automations?.reviews?.hoursAfter   ?? 24;
+
+    if (data.googlePlaceId) {
+      document.getElementById('placeIdInput').value = data.googlePlaceId;
+      const url = `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`;
+      const wrap = document.getElementById('reviewUrlWrap');
+      wrap.style.display = 'block';
+      document.getElementById('reviewUrlLink').href        = url;
+      document.getElementById('reviewUrlLink').textContent = url;
+    }
+    document.getElementById('kReminders').textContent = data.automations?.reminders?.enabled ? 'Activos' : 'Pausados';
+  } catch {}
+}
+
+async function updateFlow(type, enabled) {
+  if (!_flowId) return;
+  try {
+    await api(`/api/flows/${_flowId}/toggle/${type}`, { method: 'POST' });
+    toast(`${type === 'reminders' ? 'Recordatorios' : 'Reseñas'}: ${enabled ? 'activados' : 'pausados'}`);
+  } catch { toast('Error', 'err'); }
+}
+
+async function updateFlowHours(type, hours) {
+  if (!_flowId) return;
+  try {
+    const key = type === 'reminders' ? 'hoursBefore' : 'hoursAfter';
+    await api(`/api/flows/${_flowId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ automations: { [type]: { [key]: parseInt(hours) } } })
+    });
+    toast('✓ Guardado');
+  } catch { toast('Error', 'err'); }
+}
+
+async function savePlaceId() {
+  const val = document.getElementById('placeIdInput').value.trim();
+  try {
+    await api(`/api/flows/${_flowId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ googlePlaceId: val || null })
+    });
+    toast('✓ Google Place ID guardado');
+    if (val) {
+      const url = `https://search.google.com/local/writereview?placeid=${val}`;
+      const wrap = document.getElementById('reviewUrlWrap');
+      wrap.style.display = 'block';
+      document.getElementById('reviewUrlLink').href        = url;
+      document.getElementById('reviewUrlLink').textContent = url;
+    }
+  } catch { toast('Error al guardar', 'err'); }
+}
+
+// ── Google Calendar ────────────────────────────────────────────────────────────
+async function loadCalStatus() {
+  try {
+    const data = await api('/api/calendar/status');
+    renderCalStatus(data.connected, data.enabled);
+  } catch {}
+}
+
+function renderCalStatus(connected, enabled) {
+  const sub     = document.getElementById('calSubText');
+  const actions = document.getElementById('calActions');
+
+  if (!enabled) {
+    sub.textContent = 'Integración con Google Calendar disponible próximamente';
+    actions.innerHTML = '<span class="badge bd">No disponible</span>';
+    return;
+  }
+  if (connected) {
+    sub.textContent = 'Tu Google Calendar está conectado. Las citas se sincronizan automáticamente.';
+    actions.innerHTML = `
+      <div class="cal-connected"><div class="cal-dot"></div> Conectado</div>
+      <button class="btn btn-r" style="margin-top:8px;font-size:11px;padding:5px 10px" onclick="disconnectCalendar()">Desconectar</button>
+    `;
+  } else {
+    sub.textContent = 'Sincroniza tus citas con Google Calendar automáticamente';
+    actions.innerHTML = '<button class="btn btn-accent" onclick="connectCalendar()" id="calBtn">Conectar →</button>';
+  }
+}
+
+async function connectCalendar() {
+  try {
+    const data = await api('/api/calendar/auth');
+    if (data.url) window.location.href = data.url;
+  } catch (e) { toast('Error al conectar con Google', 'err'); }
+}
+
+async function disconnectCalendar() {
+  try {
+    await api('/api/calendar/disconnect', { method: 'POST' });
+    renderCalStatus(false, true);
+    toast('Google Calendar desconectado');
+  } catch { toast('Error', 'err'); }
+}
+
+function checkCalendarCallback() {
+  const params = new URLSearchParams(location.search);
+  const cal    = params.get('cal');
+  if (cal === 'connected') { toast('✓ Google Calendar conectado'); loadCalStatus(); }
+  if (cal === 'error')     toast('Error conectando Google Calendar', 'err');
+  if (cal === 'denied')    toast('Conexión cancelada', 'err');
+  // Clean URL
+  if (cal) history.replaceState({}, '', '/portal/');
+}
+
+function copyApiKey() {
+  const key = getKey();
+  if (!key) return;
+  navigator.clipboard.writeText(key).then(() => toast('✓ API Key copiada'));
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  const key = localStorage.getItem(API_KEY_STORE);
+  const org = localStorage.getItem(ORG_STORE);
+  if (key && org) {
+    try { showApp(JSON.parse(org), key); return; } catch {}
+  }
+  // Auto-fill from URL param (from bienvenida email)
+  const params = new URLSearchParams(location.search);
+  const k = params.get('key');
+  if (k) document.getElementById('apiKeyInput').value = k;
+})();
+</script>
+</body>
+</html>

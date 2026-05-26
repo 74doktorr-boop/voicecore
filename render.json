@@ -1,0 +1,14 @@
+{
+  "name": "voicecore",
+  "env": "node",
+  "region": "frankfurt",
+  "plan": "free",
+  "buildCommand": "npm ci --omit=dev",
+  "startCommand": "node server.js",
+  "envVars": [
+    { "key": "NODE_ENV", "value": "production" },
+    { "key": "PORT", "value": "3001" }
+  ],
+  "healthCheckPath": "/health",
+  "autoDeploy": "yes"
+}

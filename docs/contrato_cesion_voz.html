@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrato de Cesión de Derechos sobre Voz — NodeFlow Voice</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+@page{size:A4 portrait;margin:20mm 18mm 20mm 22mm}
+
+body{
+  font-family:'Source Serif 4','Georgia',serif;
+  font-size:10.5pt;
+  color:#1a1a1a;
+  background:#fff;
+  line-height:1.65;
+}
+
+@media screen{
+  body{background:#f0ece4;padding:32px 0 60px}
+  .page{
+    width:210mm;min-height:297mm;
+    margin:0 auto;background:#fff;
+    box-shadow:0 8px 60px rgba(0,0,0,.18);
+    padding:20mm 18mm 20mm 22mm;
+    position:relative;
+  }
+  .print-btn{
+    position:fixed;top:20px;right:20px;z-index:999;
+    background:#1a1a2e;color:#fff;border:none;
+    padding:12px 22px;border-radius:10px;
+    font-size:14px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;
+    box-shadow:0 4px 16px rgba(0,0,0,.25);
+  }
+  .print-btn:hover{background:#2d2d4e}
+}
+@media print{
+  .print-btn{display:none}
+  body{background:#fff;padding:0}
+  .page{box-shadow:none;padding:0}
+}
+
+/* ── CABECERA ── */
+.doc-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  border-bottom:2.5pt solid #1a1a2e;
+  padding-bottom:6mm;margin-bottom:8mm;
+}
+.doc-logo{
+  font-family:'Inter',sans-serif;
+  font-size:20pt;font-weight:700;color:#1a1a2e;letter-spacing:-.5px;
+}
+.doc-logo span{color:#6c5ce7}
+.doc-ref{
+  font-family:'Inter',sans-serif;
+  font-size:8pt;color:#666;text-align:right;line-height:1.8;
+}
+.doc-ref strong{display:block;font-size:9pt;color:#1a1a2e;margin-bottom:2pt}
+
+/* ── TÍTULO ── */
+.doc-title{
+  text-align:center;
+  margin-bottom:8mm;
+}
+.doc-title h1{
+  font-size:13pt;font-weight:600;color:#1a1a2e;
+  letter-spacing:.5px;text-transform:uppercase;
+  margin-bottom:3pt;
+}
+.doc-title .sub{font-size:9pt;color:#666;font-style:italic}
+
+/* ── PARTES ── */
+.partes-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:5mm;
+  margin-bottom:7mm;
+}
+.parte-box{
+  border:1pt solid #d0ccc4;border-radius:3pt;
+  padding:4mm 5mm;background:#fafaf8;
+}
+.parte-label{
+  font-family:'Inter',sans-serif;
+  font-size:7pt;font-weight:700;color:#6c5ce7;
+  letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:3pt;
+}
+.parte-field{
+  display:flex;gap:4pt;align-items:baseline;
+  font-size:9.5pt;margin-bottom:2pt;
+}
+.parte-field .lbl{
+  font-family:'Inter',sans-serif;
+  font-size:8pt;font-weight:600;color:#555;
+  min-width:55pt;flex-shrink:0;
+}
+.parte-field .val{
+  border-bottom:1pt solid #bbb;
+  flex:1;min-height:11pt;
+  font-size:9pt;
+}
+.parte-field .val.filled{
+  border-bottom:1pt solid #1a1a2e;
+  color:#1a1a2e;font-weight:500;
+}
+
+/* ── EXPONEN ── */
+.exponen{
+  background:#f5f3ee;border-left:3pt solid #6c5ce7;
+  padding:4mm 5mm;margin-bottom:7mm;border-radius:0 3pt 3pt 0;
+}
+.exponen-title{
+  font-family:'Inter',sans-serif;
+  font-size:8pt;font-weight:700;color:#6c5ce7;
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:4pt;
+}
+.exponen p{font-size:9.5pt;margin-bottom:4pt;line-height:1.6}
+.exponen p:last-child{margin-bottom:0}
+.exponen strong{color:#1a1a2e}
+
+/* ── CLÁUSULAS ── */
+.clause{margin-bottom:6mm}
+.clause-title{
+  font-family:'Inter',sans-serif;
+  font-size:9pt;font-weight:700;color:#1a1a2e;
+  text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1pt solid #e0ddd6;
+  padding-bottom:2pt;margin-bottom:3mm;
+}
+.clause p{font-size:9.5pt;margin-bottom:3pt;line-height:1.65}
+.clause ul{margin:3pt 0 3pt 14pt;list-style:none}
+.clause ul li{
+  font-size:9.5pt;line-height:1.6;margin-bottom:2pt;
+  padding-left:8pt;position:relative;
+}
+.clause ul li::before{
+  content:'—';position:absolute;left:0;color:#6c5ce7;font-weight:700;
+}
+.clause ol{margin:3pt 0 3pt 14pt}
+.clause ol li{font-size:9.5pt;line-height:1.6;margin-bottom:2pt}
+
+/* Revenue share box */
+.revenue-box{
+  background:linear-gradient(135deg,rgba(108,92,231,.06),rgba(108,92,231,.02));
+  border:1.5pt solid rgba(108,92,231,.3);
+  border-radius:3pt;padding:4mm 5mm;margin:4pt 0;
+}
+.revenue-pct{
+  display:flex;align-items:center;gap:8pt;margin-bottom:4pt;
+}
+.pct-label{
+  font-family:'Inter',sans-serif;
+  font-size:8pt;font-weight:600;color:#6c5ce7;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.pct-val{
+  font-family:'Inter',sans-serif;
+  font-size:24pt;font-weight:700;color:#1a1a2e;letter-spacing:-1px;line-height:1;
+}
+.pct-unit{font-size:11pt;font-weight:500;color:#555;margin-left:2pt}
+.pct-blank{
+  font-family:'Inter',sans-serif;
+  font-size:24pt;font-weight:700;color:#bbb;letter-spacing:-1px;line-height:1;
+  border-bottom:2pt solid #bbb;min-width:60pt;display:inline-block;
+}
+.revenue-detail{font-size:9pt;color:#444;line-height:1.6}
+
+/* Campos para rellenar a mano */
+.fill-line{
+  display:inline-block;
+  border-bottom:1pt solid #bbb;
+  min-width:80pt;height:12pt;
+  vertical-align:bottom;
+  margin:0 2pt;
+}
+.fill-line.wide{min-width:140pt}
+.fill-line.narrow{min-width:50pt}
+.fill-line.medium{min-width:100pt}
+
+/* Aviso RGPD */
+.rgpd-box{
+  background:#fff8e6;border:1pt solid #f0c04a;
+  border-radius:3pt;padding:3mm 4mm;margin-top:4pt;
+}
+.rgpd-title{
+  font-family:'Inter',sans-serif;
+  font-size:7.5pt;font-weight:700;color:#b8860b;
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:2pt;
+}
+.rgpd-box p{font-size:8.5pt;color:#555;line-height:1.6}
+
+/* ── FIRMA ── */
+.firma-section{
+  margin-top:8mm;border-top:1.5pt solid #1a1a2e;padding-top:6mm;
+}
+.firma-title{
+  font-family:'Inter',sans-serif;
+  font-size:8pt;font-weight:700;color:#1a1a2e;
+  text-transform:uppercase;letter-spacing:1px;
+  text-align:center;margin-bottom:6mm;
+}
+.firma-place{
+  font-size:9.5pt;margin-bottom:6mm;text-align:center;
+}
+.firma-grid{display:grid;grid-template-columns:1fr 1fr;gap:12mm}
+.firma-col{text-align:center}
+.firma-box{
+  border:1pt solid #d0ccc4;border-radius:3pt;
+  padding:3mm 4mm;margin-bottom:4pt;min-height:25mm;
+  background:#fafaf8;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.firma-label{
+  font-family:'Inter',sans-serif;
+  font-size:7.5pt;font-weight:700;color:#6c5ce7;
+  letter-spacing:1px;text-transform:uppercase;
+  display:block;margin-bottom:3pt;text-align:left;
+}
+.firma-name{
+  font-size:9pt;border-bottom:1pt solid #bbb;
+  padding-bottom:2pt;text-align:left;min-height:11pt;color:#555;
+}
+.firma-id{
+  font-size:8.5pt;color:#888;margin-top:2pt;text-align:left;
+}
+.firma-role{
+  font-family:'Inter',sans-serif;
+  font-size:7pt;color:#999;text-transform:uppercase;
+  letter-spacing:.5px;margin-top:4pt;text-align:left;
+}
+
+/* ── PIE ── */
+.doc-footer{
+  margin-top:8mm;border-top:1pt solid #e0ddd6;
+  padding-top:3mm;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.footer-legal{font-size:7pt;color:#999;line-height:1.6;max-width:130mm}
+.footer-page{
+  font-family:'Inter',sans-serif;
+  font-size:7pt;color:#bbb;text-align:right;
+}
+
+/* ── PAGE BREAK ── */
+.pagebreak{page-break-before:always;margin-top:0}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Exportar PDF</button>
+
+<div class="page">
+
+  <!-- CABECERA -->
+  <div class="doc-header">
+    <div class="doc-logo">⚡ Node<span>Flow</span></div>
+    <div class="doc-ref">
+      <strong>Documento: NF-VOZ-001</strong>
+      Versión 1.0 · Mayo 2026<br>
+      Referencia interna: <span class="fill-line narrow"></span>
+    </div>
+  </div>
+
+  <!-- TÍTULO -->
+  <div class="doc-title">
+    <h1>Contrato de Cesión de Derechos sobre Voz</h1>
+    <div class="sub">NodeFlow Voice · Colaboración con remuneración variable (revenue share)</div>
+  </div>
+
+  <!-- PARTES -->
+  <div class="partes-grid">
+    <div class="parte-box">
+      <div class="parte-label">El Cedente (locutor/a)</div>
+      <div class="parte-field">
+        <span class="lbl">Nombre:</span>
+        <span class="val"></span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">DNI/NIE:</span>
+        <span class="val"></span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">Domicilio:</span>
+        <span class="val"></span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">Email:</span>
+        <span class="val"></span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">IBAN:</span>
+        <span class="val"></span>
+      </div>
+    </div>
+    <div class="parte-box">
+      <div class="parte-label">La Cesionaria (NodeFlow)</div>
+      <div class="parte-field">
+        <span class="lbl">Nombre:</span>
+        <span class="val filled">Unai Sánchez</span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">DNI:</span>
+        <span class="val filled">49575893Z</span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">Domicilio:</span>
+        <span class="val filled">Andoain, Gipuzkoa</span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">Email:</span>
+        <span class="val filled">unai@nodeflow.es</span>
+      </div>
+      <div class="parte-field">
+        <span class="lbl">Web:</span>
+        <span class="val filled">nodeflow.es</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPONEN -->
+  <div class="exponen">
+    <div class="exponen-title">Exponen</div>
+    <p><strong>I.</strong> Que el CEDENTE es hablante nativo de euskera y ha grabado voluntariamente una muestra de su voz para el proyecto de síntesis NodeFlow Voice.</p>
+    <p><strong>II.</strong> Que NodeFlow desarrolla un sistema de asistente telefónico con inteligencia artificial para negocios del País Vasco y Navarra, y desea utilizar dicha muestra para generar, mediante modelos de síntesis, una voz sintética basada en el timbre y prosodia del CEDENTE (en adelante, <strong>"Voz Sintética"</strong>).</p>
+    <p><strong>III.</strong> Que ambas partes formalizan la cesión al amparo de la <strong>Ley Orgánica 1/1982, de 5 de mayo</strong> (protección del derecho a la propia imagen), el <strong>Reglamento (UE) 2016/679 (RGPD)</strong> y la legislación española vigente.</p>
+  </div>
+
+  <!-- CLÁUSULA 1 -->
+  <div class="clause">
+    <div class="clause-title">1. Objeto de la cesión</div>
+    <p>El CEDENTE cede a NodeFlow el derecho exclusivo a:</p>
+    <ul>
+      <li>Usar, reproducir y comunicar públicamente la Voz Sintética generada a partir de su muestra de voz.</li>
+      <li>Integrar dicha Voz Sintética en sistemas de atención telefónica automatizada comercializados a terceros.</li>
+      <li>Sublicenciar el uso de la Voz Sintética a los clientes finales de NodeFlow dentro del ámbito del servicio.</li>
+    </ul>
+  </div>
+
+  <!-- CLÁUSULA 2 -->
+  <div class="clause">
+    <div class="clause-title">2. Ámbito territorial y duración</div>
+    <p>La cesión es <strong>mundial</strong> y tiene una duración de <strong>3 años</strong> desde la fecha de firma, prorrogable automáticamente por períodos anuales salvo denuncia de cualquiera de las partes con <strong>30 días naturales</strong> de preaviso por escrito.</p>
+  </div>
+
+  <!-- CLÁUSULA 3 -->
+  <div class="clause">
+    <div class="clause-title">3. Remuneración — Revenue Share</div>
+    <p>A cambio de la cesión, NodeFlow abonará al CEDENTE la siguiente participación sobre los ingresos generados:</p>
+
+    <div class="revenue-box">
+      <div class="revenue-pct">
+        <div class="pct-label">Porcentaje acordado</div>
+        <div>
+          <span class="pct-val">5</span>
+          <span class="pct-unit">%</span>
+        </div>
+      </div>
+      <div class="revenue-detail">
+        Sobre los <strong>ingresos brutos mensuales facturados</strong> a los clientes finales que utilicen específicamente la Voz Sintética del CEDENTE, calculados en proporción a los minutos de llamada registrados bajo el identificador de voz del CEDENTE en la base de datos de NodeFlow.
+      </div>
+    </div>
+
+    <p style="margin-top:4pt"><strong>Pagos mensuales:</strong> Transferencia bancaria al IBAN del CEDENTE dentro de los <strong>15 días naturales</strong> siguientes al cierre de cada mes. El umbral mínimo de pago es <strong>€10,00</strong> — importes inferiores se acumulan al mes siguiente.</p>
+    <p><strong>Extracto:</strong> El CEDENTE puede solicitar en cualquier momento un extracto mensual con el volumen de llamadas y el importe calculado.</p>
+
+    <div class="revenue-box" style="margin-top:8pt;background:linear-gradient(135deg,rgba(0,206,201,.06),rgba(0,206,201,.02));border-color:rgba(0,206,201,.35);">
+      <div class="revenue-pct">
+        <div class="pct-label" style="color:#00cec9">Pago único por grabación</div>
+        <div><span class="pct-val" style="color:#1a1a2e">5</span><span class="pct-unit"> €</span></div>
+      </div>
+      <div class="revenue-detail">
+        Compensación única y no reembolsable por la sesión de grabación de la muestra de voz. NodeFlow abonará este importe al IBAN del CEDENTE en un plazo máximo de <strong>30 días</strong> desde la firma del presente contrato, independientemente del uso posterior de la Voz Sintética.
+      </div>
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 4 -->
+  <div class="clause">
+    <div class="clause-title">4. Obligaciones de NodeFlow</div>
+    <ol>
+      <li>No ceder ni vender la muestra de voz original del CEDENTE a terceros bajo ningún concepto.</li>
+      <li>Informar al CEDENTE, a petición, del número de clientes activos que utilizan su Voz Sintética.</li>
+      <li>Retirar la Voz Sintética de producción en un plazo máximo de <strong>30 días</strong> desde que el CEDENTE ejerza su derecho de revocación (cláusula 6).</li>
+      <li>Mantener la muestra de voz original cifrada y protegida conforme al RGPD, con acceso restringido al equipo técnico estrictamente necesario.</li>
+    </ol>
+  </div>
+
+  <!-- PIE PÁGINA 1 -->
+  <div class="doc-footer">
+    <div class="footer-legal">Este documento es confidencial. Uso exclusivo de las partes firmantes. NodeFlow · nodeflow.es · unai@nodeflow.es</div>
+    <div class="footer-page">Página 1 de 2</div>
+  </div>
+
+</div><!-- /page 1 -->
+
+<!-- ══ PÁGINA 2 ══ -->
+<div class="page pagebreak">
+
+  <!-- CABECERA -->
+  <div class="doc-header">
+    <div class="doc-logo">⚡ Node<span>Flow</span></div>
+    <div class="doc-ref">
+      <strong>Contrato NF-VOZ-001</strong>
+      Continuación · Página 2 de 2
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 5 -->
+  <div class="clause">
+    <div class="clause-title">5. Tratamiento de datos personales (RGPD)</div>
+    <p>La muestra de voz constituye un <strong>dato biométrico</strong> en los términos del Reglamento (UE) 2016/679, art. 9. El CEDENTE presta consentimiento explícito e informado para su tratamiento con la finalidad exclusiva descrita en este contrato.</p>
+    <div class="rgpd-box">
+      <div class="rgpd-title">Información básica de tratamiento</div>
+      <p><strong>Responsable:</strong> NodeFlow (Unai Saralegui) · <strong>Finalidad:</strong> Síntesis de voz para asistente telefónico · <strong>Base jurídica:</strong> Consentimiento explícito (art. 9.2.a RGPD) · <strong>Conservación:</strong> Duración del contrato + 1 año · <strong>Derechos ARCO:</strong> unai@nodeflow.es · <strong>Autoridad de control:</strong> AEPD (aepd.es)</p>
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 6 -->
+  <div class="clause">
+    <div class="clause-title">6. Revocación</div>
+    <p>El CEDENTE puede revocar su consentimiento en cualquier momento comunicándolo por escrito a NodeFlow. La revocación implica:</p>
+    <ul>
+      <li>Retirada de la Voz Sintética de la oferta de NodeFlow en un plazo máximo de <strong>30 días</strong>.</li>
+      <li>Los clientes finales que ya hayan contratado el servicio con dicha voz dispondrán de un período de transición de <strong>90 días</strong> para migrar a otra voz, sin que ello afecte a los derechos adquiridos por el CEDENTE hasta la fecha de revocación.</li>
+      <li>La muestra de voz original será eliminada de los sistemas de NodeFlow en un plazo de <strong>30 días</strong> desde la revocación.</li>
+    </ul>
+  </div>
+
+  <!-- CLÁUSULA 7 -->
+  <div class="clause">
+    <div class="clause-title">7. Confidencialidad</div>
+    <p>Ambas partes se comprometen a mantener en estricta confidencialidad los términos económicos de este contrato (porcentaje de revenue share) y cualquier información técnica o comercial a la que accedan con motivo del mismo. Esta obligación se extiende por un período de <strong>2 años</strong> tras la extinción del contrato.</p>
+  </div>
+
+  <!-- CLÁUSULA 8 -->
+  <div class="clause">
+    <div class="clause-title">8. Naturaleza de la relación</div>
+    <p>Este contrato <strong>no constituye</strong> relación laboral, mercantil de prestación de servicios ni de agencia entre las partes. El CEDENTE no queda obligado a realizar grabaciones adicionales salvo acuerdo expreso escrito. La remuneración variable no tiene carácter de salario ni de honorario profesional fijo.</p>
+  </div>
+
+  <!-- CLÁUSULA 9 -->
+  <div class="clause">
+    <div class="clause-title">9. Legislación aplicable y jurisdicción</div>
+    <p>Este contrato se rige por la legislación española, en particular la Ley Orgánica 1/1982, el RGPD y la Ley Orgánica 3/2018 (LOPDGDD). Para cualquier controversia derivada de su interpretación o cumplimiento, las partes se someten expresamente a los Juzgados y Tribunales de <span class="fill-line medium"></span>, con renuncia a cualquier otro fuero que pudiera corresponderles.</p>
+  </div>
+
+  <!-- CLÁUSULA 10 -->
+  <div class="clause">
+    <div class="clause-title">10. Integración y modificaciones</div>
+    <p>Este documento constituye el acuerdo completo entre las partes sobre la materia que regula y reemplaza cualquier comunicación o acuerdo previo, oral o escrito. Cualquier modificación deberá formalizarse por escrito y ser firmada por ambas partes.</p>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="firma-section">
+    <div class="firma-title">Firma de las partes</div>
+    <div class="firma-place">
+      En <span class="fill-line medium"></span>, a <span class="fill-line narrow"></span> de <span class="fill-line medium"></span> de 20<span class="fill-line" style="min-width:20pt"></span>
+    </div>
+    <div class="firma-grid">
+      <div class="firma-col">
+        <div class="firma-box">
+          <span class="firma-label">El Cedente</span>
+          <div class="firma-name"></div>
+          <div class="firma-id">DNI/NIE: ___________________________</div>
+        </div>
+        <div class="firma-role">Locutor/a · NodeFlow Voice</div>
+      </div>
+      <div class="firma-col">
+        <div class="firma-box">
+          <span class="firma-label">NodeFlow — La Cesionaria</span>
+          <div class="firma-name">Unai Sánchez</div>
+          <div class="firma-id">unai@nodeflow.es · nodeflow.es</div>
+        </div>
+        <div class="firma-role">Representante NodeFlow</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIE PÁGINA 2 -->
+  <div class="doc-footer">
+    <div class="footer-legal">
+      Ley Orgánica 1/1982 · RGPD (UE) 2016/679 · LOPDGDD 3/2018 · Legislación española aplicable.<br>
+      Este contrato no constituye relación laboral. NodeFlow · nodeflow.es · unai@nodeflow.es
+    </div>
+    <div class="footer-page">Página 2 de 2</div>
+  </div>
+
+</div><!-- /page 2 -->
+
+</body>
+</html>

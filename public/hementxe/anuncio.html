@@ -7,7 +7,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
 *{margin:0;padding:0;box-sizing:border-box}
-
 @page{size:A4 portrait;margin:0}
 
 body{
@@ -17,7 +16,6 @@ body{
   print-color-adjust:exact;
 }
 
-/* ══ PÁGINA A4 ══ */
 .page{
   width:210mm;
   min-height:297mm;
@@ -30,130 +28,142 @@ body{
 }
 
 /* Fondo decorativo */
-.bg-orb-1{
-  position:absolute;top:-30mm;right:-20mm;
-  width:110mm;height:110mm;
-  background:radial-gradient(circle,rgba(108,92,231,.3) 0%,transparent 70%);
-  border-radius:50%;pointer-events:none;
-}
-.bg-orb-2{
-  position:absolute;bottom:30mm;left:-25mm;
-  width:90mm;height:90mm;
-  background:radial-gradient(circle,rgba(0,184,148,.15) 0%,transparent 70%);
-  border-radius:50%;pointer-events:none;
-}
-.bg-orb-3{
-  position:absolute;top:80mm;left:50%;transform:translateX(-50%);
-  width:150mm;height:60mm;
-  background:radial-gradient(ellipse,rgba(108,92,231,.08) 0%,transparent 70%);
-  pointer-events:none;
-}
+.bg-orb-1{position:absolute;top:-20mm;right:-15mm;width:100mm;height:100mm;background:radial-gradient(circle,rgba(108,92,231,.28) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.bg-orb-2{position:absolute;bottom:25mm;left:-20mm;width:80mm;height:80mm;background:radial-gradient(circle,rgba(0,184,148,.12) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.bg-orb-3{position:absolute;top:70mm;left:50%;transform:translateX(-50%);width:140mm;height:55mm;background:radial-gradient(ellipse,rgba(108,92,231,.06) 0%,transparent 70%);pointer-events:none}
 
 /* ══ BANDA SUPERIOR ══ */
 .top-band{
   background:linear-gradient(90deg,#6c5ce7,#5a4fcf);
-  padding:3.5mm 10mm;
+  padding:3mm 10mm;
   display:flex;align-items:center;justify-content:space-between;
   flex-shrink:0;
 }
-.top-band-text{
-  font-size:8pt;font-weight:700;color:rgba(255,255,255,.85);
-  letter-spacing:1.5px;text-transform:uppercase;
-}
-.top-band-right{
-  font-size:8pt;font-weight:800;color:#fff;letter-spacing:.5px;
-}
+.top-band-text{font-size:7.5pt;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:1.2px;text-transform:uppercase}
+.top-band-right{font-size:7.5pt;font-weight:800;color:#fff;letter-spacing:.5px}
 
-/* ══ CONTENIDO PRINCIPAL ══ */
-.main{
-  flex:1;
-  padding:9mm 11mm 0;
-  position:relative;z-index:1;
-  display:flex;flex-direction:column;
-}
+/* ══ MAIN ══ */
+.main{flex:1;padding:8mm 11mm 0;position:relative;z-index:1;display:flex;flex-direction:column}
 
 /* Header */
-.header{
-  display:flex;align-items:flex-start;
-  justify-content:space-between;
-  margin-bottom:8mm;
-}
-.logo{
-  font-size:20pt;font-weight:900;color:#fff;letter-spacing:-.5px;
-}
+.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6mm}
+.logo{font-size:19pt;font-weight:900;color:#fff;letter-spacing:-.5px}
 .logo em{font-style:normal;color:#6c5ce7}
 .badge-oferta{
   background:linear-gradient(135deg,#f9ca24,#e17055);
-  color:#000;font-size:8pt;font-weight:900;
-  padding:2.5mm 4mm;border-radius:2mm;
+  color:#000;font-size:7.5pt;font-weight:900;
+  padding:2.5mm 3.5mm;border-radius:2mm;
   text-align:center;line-height:1.3;
   letter-spacing:.5px;text-transform:uppercase;
 }
 
-/* Onda de voz */
-.wave-row{
-  display:flex;align-items:center;gap:3mm;
-  margin-bottom:7mm;
+/* Localización */
+.location-row{
+  display:flex;align-items:center;gap:2.5mm;
+  margin-bottom:5mm;
 }
-.bars{display:flex;align-items:flex-end;gap:1.2mm;height:12mm}
+.location-pill{
+  display:inline-flex;align-items:center;gap:2mm;
+  background:rgba(249,202,36,.1);
+  border:.3mm solid rgba(249,202,36,.4);
+  border-radius:20mm;padding:1.8mm 3.5mm;
+  font-size:8.5pt;font-weight:700;color:#f9ca24;
+  letter-spacing:.5px;
+}
+.location-sub{font-size:7.5pt;color:#636e72;font-weight:500}
+
+/* Onda */
+.wave-row{display:flex;align-items:center;gap:3mm;margin-bottom:5mm}
+.bars{display:flex;align-items:flex-end;gap:1.2mm;height:11mm}
 .b{width:2.2mm;border-radius:1.5mm;background:linear-gradient(180deg,#a29bfe,#6c5ce7)}
 .b:nth-child(1){height:25%}.b:nth-child(2){height:50%}.b:nth-child(3){height:80%}
 .b:nth-child(4){height:100%}.b:nth-child(5){height:70%}.b:nth-child(6){height:45%}
 .b:nth-child(7){height:88%}.b:nth-child(8){height:60%}.b:nth-child(9){height:38%}
 .b:nth-child(10){height:72%}.b:nth-child(11){height:95%}.b:nth-child(12){height:55%}
 .b:nth-child(13){height:78%}.b:nth-child(14){height:35%}.b:nth-child(15){height:22%}
-.wave-tag{font-size:8.5pt;font-weight:700;color:#a29bfe;letter-spacing:1.5px;text-transform:uppercase}
-
-/* ANDOAIN grande */
-.andoain-hero{
-  font-size:52pt;font-weight:900;
-  letter-spacing:8px;text-transform:uppercase;
-  line-height:1;margin-bottom:3mm;
-  background:linear-gradient(90deg,#f9ca24 0%,#e17055 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-  display:flex;align-items:center;gap:3mm;
-}
-.andoain-pin{
-  -webkit-text-fill-color:#f9ca24;
-  font-size:28pt;
-}
+.wave-tag{font-size:8pt;font-weight:700;color:#a29bfe;letter-spacing:1.5px;text-transform:uppercase}
 
 /* TITULAR */
 h1{
-  font-size:34pt;font-weight:900;line-height:1.08;
+  font-size:30pt;font-weight:900;line-height:1.08;
   letter-spacing:-1px;color:#fff;
-  margin-bottom:4mm;
+  margin-bottom:3mm;
 }
-h1 span{
+h1 .accent{
   background:linear-gradient(90deg,#a29bfe,#6c5ce7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+h1 .gold{
+  background:linear-gradient(90deg,#f9ca24,#e17055);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
 }
 
 .subtitle{
-  font-size:11pt;color:#b2bec3;line-height:1.6;
-  margin-bottom:4mm;max-width:168mm;
+  font-size:10.5pt;color:#b2bec3;line-height:1.58;
+  margin-bottom:5mm;max-width:168mm;
 }
+.subtitle strong{color:#fff}
 
-/* Euskera pill */
-.eu-pill{
-  display:inline-flex;align-items:center;gap:2.5mm;
-  background:rgba(0,184,148,.12);
-  border:0.4mm solid rgba(0,184,148,.45);
-  border-radius:20mm;padding:2mm 4mm;
-  font-size:9pt;font-weight:700;color:#00b894;
-  margin-bottom:7mm;
+/* ══ BLOQUE EUSKERA ══ */
+.eu-block{
+  background:linear-gradient(135deg,rgba(0,184,148,.12),rgba(0,184,148,.04));
+  border:.4mm solid rgba(0,184,148,.4);
+  border-radius:3mm;
+  padding:3.5mm 5mm;
+  margin-bottom:5mm;
+  display:flex;align-items:center;gap:4mm;
 }
-.eu-dot{width:2mm;height:2mm;background:#00b894;border-radius:50%}
+.eu-flag{font-size:16pt;flex-shrink:0}
+.eu-text-block{}
+.eu-label{font-size:7pt;font-weight:700;color:rgba(0,184,148,.7);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.5mm}
+.eu-title{font-size:11pt;font-weight:800;color:#00b894;line-height:1.2}
+.eu-sub{font-size:8pt;color:#74b9ff;margin-top:.8mm}
+.eu-soon{
+  margin-left:auto;flex-shrink:0;
+  background:rgba(0,184,148,.15);
+  border:.3mm solid rgba(0,184,148,.4);
+  border-radius:1.5mm;
+  padding:1.5mm 3mm;
+  font-size:7pt;font-weight:800;color:#00b894;
+  letter-spacing:.5px;text-transform:uppercase;
+  text-align:center;line-height:1.4;
+}
 
 /* Divider */
-.divider{height:.2mm;background:linear-gradient(90deg,rgba(108,92,231,.5),transparent);margin-bottom:6mm}
+.divider{height:.2mm;background:linear-gradient(90deg,rgba(108,92,231,.5),transparent);margin-bottom:5mm}
+
+/* ══ CÓMO FUNCIONA ══ */
+.how-label{font-size:7.5pt;font-weight:700;color:#636e72;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3mm}
+.steps{display:flex;gap:0;margin-bottom:5mm;align-items:stretch}
+.step{
+  flex:1;padding:3.5mm 4mm;
+  background:rgba(255,255,255,.03);
+  border:.25mm solid rgba(255,255,255,.08);
+  border-radius:0;
+  position:relative;
+}
+.step:first-child{border-radius:2mm 0 0 2mm}
+.step:last-child{border-radius:0 2mm 2mm 0}
+.step-arrow{
+  position:absolute;right:-3mm;top:50%;transform:translateY(-50%);
+  width:0;height:0;
+  border-top:2.5mm solid transparent;
+  border-bottom:2.5mm solid transparent;
+  border-left:3mm solid rgba(108,92,231,.4);
+  z-index:2;
+}
+.step:last-child .step-arrow{display:none}
+.step-num{font-size:7pt;font-weight:800;color:#6c5ce7;letter-spacing:1px;margin-bottom:1mm}
+.step-ico{font-size:14pt;margin-bottom:1.5mm;display:block}
+.step-title{font-size:8.5pt;font-weight:700;color:#fff;margin-bottom:.8mm}
+.step-desc{font-size:7.5pt;color:#74b9ff;line-height:1.45}
 
 /* PRICING */
-.pricing{display:flex;gap:4mm;margin-bottom:6mm}
+.pricing{display:flex;gap:3.5mm;margin-bottom:4.5mm}
 .plan{
-  flex:1;border-radius:3mm;padding:5mm 5mm 4.5mm;text-align:center;
+  flex:1;border-radius:2.5mm;padding:4mm 4.5mm 4mm;text-align:center;
   position:relative;
   border:.3mm solid rgba(255,255,255,.1);
   background:rgba(255,255,255,.04);
@@ -164,68 +174,67 @@ h1 span{
 }
 .plan.featured::before{
   content:'MÁS POPULAR';
-  position:absolute;top:-3mm;left:50%;transform:translateX(-50%);
+  position:absolute;top:-2.5mm;left:50%;transform:translateX(-50%);
   background:#6c5ce7;color:#fff;
-  font-size:6pt;font-weight:900;letter-spacing:1px;
-  padding:.8mm 3mm;border-radius:1mm;white-space:nowrap;
+  font-size:5.5pt;font-weight:900;letter-spacing:1px;
+  padding:.7mm 2.5mm;border-radius:.8mm;white-space:nowrap;
 }
-.plan-name{font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a29bfe;margin-bottom:2mm}
-.plan-was{font-size:9pt;color:#636e72;text-decoration:line-through;margin-bottom:.5mm}
-.plan-price{font-size:31pt;font-weight:900;color:#fff;line-height:1;margin-bottom:1.5mm}
-.plan-price small{font-size:11pt;font-weight:500;color:#b2bec3}
-.plan-min{font-size:8pt;color:#74b9ff;font-weight:600;margin-bottom:3mm}
-.plan-li{list-style:none;text-align:left;font-size:7.5pt;color:#b2bec3;line-height:1.8}
+.plan-name{font-size:8pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a29bfe;margin-bottom:1.5mm}
+.plan-was{font-size:8.5pt;color:#636e72;text-decoration:line-through;margin-bottom:.5mm}
+.plan-price{font-size:28pt;font-weight:900;color:#fff;line-height:1;margin-bottom:1.5mm}
+.plan-price small{font-size:10pt;font-weight:500;color:#b2bec3}
+.plan-min{font-size:7.5pt;color:#74b9ff;font-weight:600;margin-bottom:2.5mm}
+.plan-li{list-style:none;text-align:left;font-size:7pt;color:#b2bec3;line-height:1.75}
 .plan-li li::before{content:'✓ ';color:#00b894;font-weight:700}
 
-/* FEATURES */
-.feats{
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:2mm 5mm;margin-bottom:6mm;
-}
-.feat{display:flex;align-items:flex-start;gap:2mm;font-size:8.5pt;color:#dfe6e9;line-height:1.4}
-.feat-check{color:#00b894;font-weight:900;font-size:10pt;flex-shrink:0;margin-top:.2mm}
-
-/* ══ CUPÓN ══ */
+/* CUPÓN */
 .coupon{
-  background:linear-gradient(135deg,rgba(249,202,36,.1),rgba(225,112,85,.08));
+  background:linear-gradient(135deg,rgba(249,202,36,.12),rgba(225,112,85,.08));
   border:.4mm dashed rgba(249,202,36,.65);
   border-radius:3mm;
   padding:4mm 5mm;
-  margin-bottom:6mm;
+  margin-bottom:0;
   display:flex;align-items:center;gap:5mm;
 }
 .coupon-left{flex:1}
 .coup-tag{font-size:7pt;font-weight:700;color:#f9ca24;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:1.5mm}
-.coup-code{font-size:24pt;font-weight:900;color:#f9ca24;letter-spacing:3px;line-height:1;margin-bottom:1.5mm}
-.coup-detail{font-size:8pt;color:#b2bec3;line-height:1.5}
+.coup-code{font-size:22pt;font-weight:900;color:#f9ca24;letter-spacing:3px;line-height:1;margin-bottom:1.5mm}
+.coup-detail{font-size:7.5pt;color:#b2bec3;line-height:1.55}
+.coup-detail strong{color:#f9ca24}
 .coupon-right{text-align:center;flex-shrink:0}
-.coup-pct{font-size:38pt;font-weight:900;color:#f9ca24;line-height:1}
-.coup-pct-lbl{font-size:7.5pt;color:rgba(249,202,36,.8);font-weight:600}
+.coup-pct{font-size:36pt;font-weight:900;color:#f9ca24;line-height:1}
+.coup-pct-lbl{font-size:7pt;color:rgba(249,202,36,.8);font-weight:600}
+.coup-cta{
+  margin-top:2mm;
+  font-size:7.5pt;font-weight:800;
+  color:#fff;
+  background:#6c5ce7;
+  padding:1.5mm 3mm;border-radius:1.5mm;
+  display:inline-block;letter-spacing:.3px;
+}
 
 /* ══ FOOTER ══ */
 .footer{
   background:rgba(0,0,0,.3);
   border-top:.2mm solid rgba(255,255,255,.08);
-  padding:5mm 11mm;
+  padding:4.5mm 11mm;
   display:flex;align-items:center;justify-content:space-between;
   gap:5mm;
   flex-shrink:0;
+  margin-top:auto;
 }
 .footer-qr-block{display:flex;align-items:center;gap:3.5mm}
-.qr-box{
-  background:#fff;
-  padding:2mm;border-radius:1.5mm;
-  flex-shrink:0;
-}
-.qr-box img{display:block;width:22mm;height:22mm}
-.qr-caption{font-size:7pt;color:#636e72;margin-top:1.5mm;text-align:center}
-.footer-contact{}
-.contact-url{font-size:14pt;font-weight:900;color:#a29bfe;letter-spacing:-.3px}
-.contact-line{font-size:8.5pt;color:#74b9ff;margin-top:1mm}
-.footer-hementxe{text-align:right;font-size:7.5pt;color:#636e72;line-height:1.7}
-.footer-hementxe strong{display:block;color:#a29bfe;font-size:9pt;font-weight:700;margin-bottom:1mm}
+.qr-box{background:#fff;padding:1.8mm;border-radius:1.5mm;flex-shrink:0}
+.qr-box img{display:block;width:20mm;height:20mm}
+.qr-caption{font-size:6.5pt;color:#636e72;margin-top:1.5mm;text-align:center}
+.contact-url{font-size:13pt;font-weight:900;color:#a29bfe;letter-spacing:-.3px}
+.contact-line{font-size:8pt;color:#74b9ff;margin-top:.8mm}
+.footer-right{text-align:right}
+.footer-brand{font-size:9pt;font-weight:800;color:#a29bfe;margin-bottom:1.5mm}
+.footer-tagline{font-size:7.5pt;color:#636e72;line-height:1.65}
+.footer-hecho{font-size:7pt;color:#00b894;font-weight:600;margin-top:1mm}
 
-/* ══ BOTÓN IMPRIMIR (solo pantalla) ══ */
+/* BOTÓN IMPRIMIR */
 @media screen{
   body{background:#1a1a2e;padding:24px 0}
   .page{box-shadow:0 20px 80px rgba(0,0,0,.7);border-radius:2px}
@@ -255,17 +264,22 @@ h1 span{
 
   <!-- Banda superior -->
   <div class="top-band">
-    <div class="top-band-text">📍 Oferta exclusiva para los negocios de Andoain</div>
+    <div class="top-band-text">📍 Oferta exclusiva para los negocios de Andoain · Lectores de Hementxe</div>
     <div class="top-band-right">nodeflow.es · Hecho en Euskal Herria</div>
   </div>
 
-  <!-- Contenido -->
   <div class="main">
 
     <!-- Header -->
     <div class="header">
       <div class="logo">⚡ Node<em>Flow</em></div>
       <div class="badge-oferta">Oferta<br>exclusiva<br>−10%</div>
+    </div>
+
+    <!-- Localización -->
+    <div class="location-row">
+      <div class="location-pill">📍 Andoain</div>
+      <div class="location-sub">Gipuzkoa · Euskal Herria</div>
     </div>
 
     <!-- Onda -->
@@ -280,26 +294,59 @@ h1 span{
       <div class="wave-tag">Asistente Vocal con IA</div>
     </div>
 
-    <!-- ANDOAIN grande -->
-    <div class="andoain-hero">
-      <span class="andoain-pin">📍</span>ANDOAIN
-    </div>
-
-    <!-- Titular -->
-    <h1>Tu negocio nunca más<br><span>pierde una llamada.</span></h1>
+    <!-- TITULAR -->
+    <h1>¿Cuántas llamadas pierde<br>tu negocio <span class="gold">cada semana?</span></h1>
 
     <p class="subtitle">
-      Cuántas veces ha llamado un cliente y no has podido coger el teléfono. Cuántas veces ha llamado fuera de horario y no ha encontrado respuesta. <strong style="color:#fff">Con NodeFlow, eso se acabó.</strong> Tu asistente IA atiende, reserva citas y responde preguntas las 24 horas — también cuando tu negocio está cerrado.
+      Cada llamada sin respuesta es un cliente que llama a la competencia. <strong>NodeFlow atiende, reserva y responde por ti las 24 horas</strong> — tardes, fines de semana, festivos. Sin que toques el teléfono.
     </p>
 
-    <div class="eu-pill">
-      <div class="eu-dot"></div>
-      Muy pronto: IA EN EUSKERA NATIVO &nbsp;·&nbsp; Laster euskaraz!
+    <!-- BLOQUE EUSKERA -->
+    <div class="eu-block">
+      <div class="eu-flag">🏔️</div>
+      <div class="eu-text-block">
+        <div class="eu-label">Diferencial único en el mercado</div>
+        <div class="eu-title">Próximamente: IA en EUSKERA NATIVO</div>
+        <div class="eu-sub">Voces reales de locutores vascos · Laster euskaraz! · Solo en NodeFlow</div>
+      </div>
+      <div class="eu-soon">LASTER<br>EUSKARAZ</div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- Pricing -->
+    <!-- CÓMO FUNCIONA -->
+    <div class="how-label">Así funciona</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-arrow"></div>
+        <div class="step-num">01</div>
+        <span class="step-ico">📞</span>
+        <div class="step-title">Llama tu cliente</div>
+        <div class="step-desc">Entra la llamada, tú estás ocupado — no pasa nada</div>
+      </div>
+      <div class="step">
+        <div class="step-arrow"></div>
+        <div class="step-num">02</div>
+        <span class="step-ico">🤖</span>
+        <div class="step-title">La IA atiende</div>
+        <div class="step-desc">Valentina coge la llamada en tu nombre en menos de 1 segundo</div>
+      </div>
+      <div class="step">
+        <div class="step-arrow"></div>
+        <div class="step-num">03</div>
+        <span class="step-ico">📅</span>
+        <div class="step-title">Reserva anotada</div>
+        <div class="step-desc">La cita queda registrada. Tú recibes el resumen al momento</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <span class="step-ico">😊</span>
+        <div class="step-title">Cliente contento</div>
+        <div class="step-desc">No se ha ido a la competencia. Vuelve.</div>
+      </div>
+    </div>
+
+    <!-- PRICING -->
     <div class="pricing">
       <div class="plan">
         <div class="plan-name">Negocio</div>
@@ -307,7 +354,7 @@ h1 span{
         <div class="plan-price">€44<small>/mes</small></div>
         <div class="plan-min">500 minutos · 1 asistente</div>
         <ul class="plan-li">
-          <li>Reserva y gestión de citas</li>
+          <li>Reserva de citas automática</li>
           <li>Panel de control propio</li>
           <li>Sin permanencias</li>
           <li>Soporte incluido</li>
@@ -320,30 +367,23 @@ h1 span{
         <div class="plan-min">2.000 minutos · Asistentes ilimitados</div>
         <ul class="plan-li">
           <li>Asistentes ilimitados</li>
-          <li>Multilingüe (ES + EU pronto)</li>
+          <li>ES + EU próximamente</li>
           <li>Llamadas entrantes y salientes</li>
-          <li>Soporte prioritario</li>
+          <li>Soporte prioritario 24h</li>
         </ul>
       </div>
     </div>
 
-    <!-- Features -->
-    <div class="feats">
-      <div class="feat"><span class="feat-check">✓</span><span>Atiende llamadas <strong style="color:#fff">fuera de tu horario</strong> — tardes, fines de semana y festivos</span></div>
-      <div class="feat"><span class="feat-check">✓</span><span>Nunca más un cliente que cuelga porque estás con otro</span></div>
-      <div class="feat"><span class="feat-check">✓</span><span>Configurado para tu negocio de Andoain en menos de 24h</span></div>
-      <div class="feat"><span class="feat-check">✓</span><span>Sin permanencias — cancela cuando quieras, sin coste</span></div>
-    </div>
-
-    <!-- Cupón -->
+    <!-- CUPÓN -->
     <div class="coupon">
       <div class="coupon-left">
-        <div class="coup-tag">✂ Código exclusivo para lectores de Hementxe</div>
+        <div class="coup-tag">✂ Código exclusivo · Solo lectores de Hementxe</div>
         <div class="coup-code">HEMENTXE10</div>
         <div class="coup-detail">
-          Exclusivo para negocios de Andoain · Descuento permanente en tu suscripción<br>
-          <strong style="color:#f9ca24">Solo válido este trimestre &nbsp;·&nbsp; nodeflow.es/hementxe</strong>
+          Descuento permanente en tu suscripción · Sin fecha de caducidad<br>
+          <strong>nodeflow.es/hementxe &nbsp;·&nbsp; Solo este trimestre</strong>
         </div>
+        <div class="coup-cta">→ Actívalo en nodeflow.es/hementxe</div>
       </div>
       <div class="coupon-right">
         <div class="coup-pct">−10%</div>
@@ -360,18 +400,19 @@ h1 span{
         <div class="qr-box">
           <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=https%3A%2F%2Fnodeflow.es%2Fhementxe&color=000000&bgcolor=ffffff" alt="QR">
         </div>
-        <div class="qr-caption">Escanea y aplica<br>el código</div>
+        <div class="qr-caption">Escanea para<br>activar el código</div>
       </div>
-      <div class="footer-contact">
+      <div>
         <div class="contact-url">nodeflow.es/hementxe</div>
-        <div class="contact-line">unai@nodeflow.es</div>
-        <div class="contact-line">+34 666 351 319</div>
+        <div class="contact-line">✉ unai@nodeflow.es</div>
+        <div class="contact-line">📱 +34 666 351 319</div>
+        <div class="contact-line" style="color:#25d366;font-weight:700">💬 WhatsApp disponible</div>
       </div>
     </div>
-    <div class="footer-hementxe">
-      <strong>⚡ NodeFlow</strong>
-      IA para los negocios<br>de Andoain y Gipuzkoa.<br>
-      Hecho en Euskal Herria.
+    <div class="footer-right">
+      <div class="footer-brand">⚡ NodeFlow</div>
+      <div class="footer-tagline">IA de voz para negocios<br>de Andoain y Gipuzkoa.</div>
+      <div class="footer-hecho">🏔️ Hecho en Euskal Herria</div>
     </div>
   </div>
 

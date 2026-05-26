@@ -3,901 +3,579 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NodeFlow — Panel de Administración</title>
+  <title>NodeFlow Admin</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <!-- No external CSS/JS dependencies — fully self-contained -->
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    /* ── Design tokens (same as main site) ── */
     :root {
-      --bg:      #07070e;
-      --bg2:     #0f0f18;
-      --card:    #14141e;
-      --card-hv: #1c1c28;
-      --accent:  #6c5ce7;
-      --accent-l:#a29bfe;
-      --glow:    rgba(108,92,231,0.3);
-      --glow-s:  rgba(108,92,231,0.10);
-      --green:   #00cec9;
-      --red:     #ff6b6b;
-      --yellow:  #feca57;
-      --text:    #e8e8f0;
-      --dim:     #8888a8;
-      --muted:   #3a3a52;
-      --border:  rgba(255,255,255,0.07);
-      --border-a:rgba(108,92,231,0.30);
-      --r:       12px;
+      --bg:#07070e; --card:#0f0f18; --card2:#14141e;
+      --accent:#6c5ce7; --accent-l:#a29bfe;
+      --green:#00cec9; --green2:#00b894;
+      --red:#e74c3c; --yellow:#f9ca24;
+      --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
+      --border:rgba(255,255,255,0.07);
+      --radius:14px;
     }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-    /* ── Reset ── */
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    html { scroll-behavior:smooth; }
-    body {
-      font-family: -apple-system, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
+    /* Login */
+    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+    .login-card{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:380px;text-align:center}
+    .login-logo{font-size:20px;font-weight:900;margin-bottom:24px}
+    .login-logo em{color:var(--accent-l);font-style:normal}
+    .login-card h2{font-size:22px;font-weight:800;margin-bottom:6px}
+    .login-card p{color:var(--dim);font-size:13px;margin-bottom:28px}
+    .login-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:12px;outline:none;transition:border-color .2s}
+    .login-input:focus{border-color:var(--accent)}
+    .login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
+    .login-btn:hover{background:#5a4bd1}
+    #loginError{color:#e74c3c;font-size:13px;margin-top:10px;display:none}
 
-    /* ── Login screen ── */
-    #login-screen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-    .login-card {
-      background: var(--card);
-      border: 1px solid var(--border-a);
-      border-radius: var(--r);
-      padding: 48px 40px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 0 60px var(--glow-s);
-      text-align: center;
-    }
-    .login-logo {
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--accent-l);
-      margin-bottom: 6px;
-    }
-    .login-sub {
-      font-size: 0.82rem;
-      color: var(--dim);
-      margin-bottom: 36px;
-    }
-    .login-card label {
-      display: block;
-      text-align: left;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--dim);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    .login-card input[type="password"] {
-      width: 100%;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 1rem;
-      padding: 12px 14px;
-      outline: none;
-      transition: border-color .2s;
-      margin-bottom: 20px;
-    }
-    .login-card input[type="password"]:focus {
-      border-color: var(--accent);
-    }
-    #login-error {
-      font-size: 0.82rem;
-      color: var(--red);
-      min-height: 20px;
-      margin-bottom: 12px;
-    }
-    .btn-primary {
-      width: 100%;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      padding: 13px;
-      cursor: pointer;
-      transition: background .2s, box-shadow .2s;
-    }
-    .btn-primary:hover { background: #7c6cf0; box-shadow: 0 0 24px var(--glow); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Layout */
+    #app{display:none}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+    .header-logo{font-size:16px;font-weight:900}
+    .header-logo em{color:var(--accent-l);font-style:normal}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .header-badge{font-size:11px;background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.25);border-radius:6px;padding:3px 10px;font-weight:600}
+    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s}
+    .logout-btn:hover{color:var(--text);border-color:var(--muted)}
 
-    /* ── Main panel ── */
-    #admin-panel { display: none; min-height: 100vh; }
+    nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;overflow-x:auto}
+    .nav-tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+    .nav-tab.active{color:var(--accent-l);border-bottom-color:var(--accent)}
+    .nav-tab:hover:not(.active){color:var(--text)}
 
-    /* ── Top bar ── */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 28px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .topbar-logo {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--accent-l);
-      letter-spacing: -0.3px;
-    }
-    .topbar-logo span {
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--dim);
-      margin-left: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .btn-logout {
-      background: transparent;
-      border: 1px solid var(--muted);
-      color: var(--dim);
-      border-radius: 7px;
-      padding: 7px 14px;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
-    }
-    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+    main{padding:28px 24px;max-width:1200px;margin:0 auto}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
 
-    /* ── Tabs ── */
-    .tabs-bar {
-      display: flex;
-      gap: 4px;
-      padding: 20px 28px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .tab-btn {
-      background: transparent;
-      border: none;
-      color: var(--dim);
-      font-size: 0.9rem;
-      font-weight: 500;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: color .2s, border-color .2s;
-      margin-bottom: -1px;
-    }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active {
-      color: var(--accent-l);
-      border-bottom-color: var(--accent);
-    }
+    /* KPI */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+    .kpi-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+    .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--accent))}
+    .kpi-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .kpi-value{font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;color:var(--kpi-color,var(--text))}
+    .kpi-sub{font-size:11px;color:var(--dim);margin-top:6px}
 
-    /* ── Tab content ── */
-    .tab-panel { display: none; padding: 28px; }
-    .tab-panel.active { display: block; }
+    /* Section */
+    .section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .section-hd h2{font-size:16px;font-weight:800}
+    .section-hd p{font-size:12px;color:var(--dim)}
 
-    /* ── Section heading ── */
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 20px;
-    }
-    .section-title small {
-      font-size: 0.78rem;
-      font-weight: 400;
-      color: var(--dim);
-      margin-left: 8px;
-    }
+    /* Table */
+    .table-wrap{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:600px}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:12px 16px;text-align:left;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);white-space:nowrap}
+    td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,0.015)}
+    .empty-row td{text-align:center;color:var(--dim);padding:32px}
 
-    /* ── Loading / empty states ── */
-    .state-msg {
-      text-align: center;
-      color: var(--dim);
-      font-size: 0.88rem;
-      padding: 48px 0;
-    }
-    .spinner {
-      display: inline-block;
-      width: 20px; height: 20px;
-      border: 2px solid var(--muted);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Badges */
+    .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:.3px}
+    .bg{background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.2)}
+    .br{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
+    .by{background:rgba(249,202,36,0.1);color:var(--yellow);border:1px solid rgba(249,202,36,0.2)}
+    .bd{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}
+    .bp{background:rgba(108,92,231,0.12);color:var(--accent-l);border:1px solid rgba(108,92,231,0.2)}
+    /* Language badges */
+    .bl-eu{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-size:10px;padding:1px 6px}
+    .bl-gl{background:rgba(30,138,94,0.15);color:#2ecc8a;border:1px solid rgba(30,138,94,0.35);font-size:10px;padding:1px 6px}
+    .bl-es{background:rgba(249,202,36,0.08);color:#f0b429;border:1px solid rgba(249,202,36,0.2);font-size:10px;padding:1px 6px}
 
-    /* ── Tables ── */
-    .table-wrap {
-      overflow-x: auto;
-      border-radius: var(--r);
-      border: 1px solid var(--border);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.84rem;
-    }
-    thead tr {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-    }
-    thead th {
-      text-align: left;
-      padding: 12px 14px;
-      font-size: 0.73rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--dim);
-      white-space: nowrap;
-    }
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background .15s;
-    }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--card-hv); }
-    tbody td {
-      padding: 13px 14px;
-      color: var(--text);
-      vertical-align: middle;
-    }
-    .mono {
-      font-family: 'Menlo', 'Consolas', monospace;
-      font-size: 0.82rem;
-      color: var(--dim);
-    }
+    /* Buttons */
+    .btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .btn-p{background:var(--accent);color:#fff}
+    .btn-p:hover{background:#5a4bd1}
+    .btn-g{background:rgba(0,184,148,0.15);color:var(--green2);border:1px solid rgba(0,184,148,0.3)}
+    .btn-g:hover{background:rgba(0,184,148,0.25)}
+    .btn-y{background:rgba(249,202,36,0.12);color:var(--yellow);border:1px solid rgba(249,202,36,0.25)}
+    .btn-y:hover{background:rgba(249,202,36,0.2)}
+    .btn-wa{background:rgba(37,211,102,0.12);color:#25d366;border:1px solid rgba(37,211,102,0.25)}
+    .btn-wa:hover{background:rgba(37,211,102,0.22)}
+    .btn-d{background:rgba(255,255,255,0.04);color:var(--dim);border:1px solid var(--border)}
+    .btn-d:hover{color:var(--text)}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .refresh-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s}
+    .refresh-btn:hover{color:var(--text)}
 
-    /* ── Badges ── */
-    .badge {
-      display: inline-block;
-      padding: 3px 9px;
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      white-space: nowrap;
-    }
-    .badge-pending {
-      background: rgba(254,202,87,0.15);
-      color: var(--yellow);
-      border: 1px solid rgba(254,202,87,0.25);
-    }
-    .badge-active {
-      background: rgba(0,206,201,0.12);
-      color: var(--green);
-      border: 1px solid rgba(0,206,201,0.25);
-    }
-    .badge-negocio {
-      background: rgba(108,92,231,0.15);
-      color: var(--accent-l);
-      border: 1px solid rgba(108,92,231,0.3);
-    }
-    .badge-pro {
-      background: rgba(255,107,107,0.12);
-      color: #ff8787;
-      border: 1px solid rgba(255,107,107,0.25);
-    }
-    .badge-free {
-      background: rgba(136,136,168,0.12);
-      color: var(--dim);
-      border: 1px solid var(--border);
-    }
+    /* Automations */
+    .auto-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+    .auto-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+    .auto-card h3{font-size:14px;font-weight:800;margin-bottom:4px}
+    .auto-card p{font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.6}
+    .auto-stat{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px}
+    .auto-stat span:first-child{color:var(--dim)}
+    .auto-stat span:last-child{font-weight:700}
 
-    /* ── WhatsApp button ── */
-    .btn-wa {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: rgba(37,211,102,0.10);
-      border: 1px solid rgba(37,211,102,0.25);
-      color: #25d366;
-      border-radius: 7px;
-      padding: 5px 11px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      white-space: nowrap;
-      transition: background .2s, box-shadow .2s;
-    }
-    .btn-wa:hover {
-      background: rgba(37,211,102,0.18);
-      box-shadow: 0 0 12px rgba(37,211,102,0.2);
-    }
+    /* Citas */
+    .filter-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+    .filter-bar select,.filter-bar input{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+    .filter-bar select:focus,.filter-bar input:focus{border-color:var(--accent)}
 
-    /* ── Copy button ── */
-    .btn-copy {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--dim);
-      border-radius: 6px;
-      padding: 4px 9px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
-      margin-left: 6px;
-      white-space: nowrap;
-    }
-    .btn-copy:hover { border-color: var(--accent); color: var(--accent-l); }
-    .btn-copy.copied { color: var(--green); border-color: var(--green); }
+    /* Cron box */
+    .cron-box{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .cron-info h3{font-size:14px;font-weight:800;margin-bottom:4px}
+    .cron-info p{font-size:12px;color:var(--dim)}
+    .cron-actions{display:flex;gap:8px}
 
-    /* ── Stat cards ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 24px 22px;
-      transition: border-color .2s;
-    }
-    .stat-card:hover { border-color: var(--border-a); }
-    .stat-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      color: var(--dim);
-      margin-bottom: 10px;
-    }
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      color: var(--text);
-      line-height: 1.1;
-    }
-    .stat-value.accent { color: var(--accent-l); }
-    .stat-sub {
-      font-size: 0.75rem;
-      color: var(--dim);
-      margin-top: 6px;
-    }
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px;pointer-events:none}
+    #toast.show{transform:translateY(0);opacity:1}
+    #toast.ok{border-color:rgba(0,184,148,0.4);color:var(--green2)}
+    #toast.err{border-color:rgba(231,76,60,0.4);color:#e74c3c}
 
-    /* ── Progress bar (minutos) ── */
-    .min-bar-wrap { min-width: 100px; }
-    .min-label {
-      font-size: 0.78rem;
-      color: var(--dim);
-      margin-bottom: 4px;
-    }
-    .min-bar {
-      height: 5px;
-      background: var(--muted);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .min-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 99px;
-      transition: width .4s;
-    }
-    .min-fill.warn { background: var(--yellow); }
-    .min-fill.danger { background: var(--red); }
-
-    /* ── Resumen extras ── */
-    .resumen-section { margin-top: 32px; }
-    .resumen-section .section-title { font-size: 0.95rem; margin-bottom: 14px; }
-
-    /* ── Responsive ── */
-    @media (max-width: 640px) {
-      .topbar { padding: 14px 16px; }
-      .tabs-bar { padding: 16px 16px 0; gap: 2px; }
-      .tab-btn { padding: 10px 14px; font-size: 0.82rem; }
-      .tab-panel { padding: 20px 16px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      .stat-value { font-size: 1.6rem; }
+    @media(max-width:640px){
+      .auto-row{grid-template-columns:1fr}
+      .kpi-grid{grid-template-columns:repeat(2,1fr)}
     }
   </style>
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════════
-       LOGIN SCREEN
-  ══════════════════════════════════════════════ -->
-  <div id="login-screen">
-    <div class="login-card">
-      <div class="login-logo">NodeFlow</div>
-      <div class="login-sub">Panel de administración — solo para Unai</div>
-
-      <label for="pwd-input">Contraseña</label>
-      <input type="password" id="pwd-input" placeholder="••••••••••••" autocomplete="current-password">
-      <div id="login-error"></div>
-      <button class="btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
-    </div>
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">⚡ Node<em>Flow</em></div>
+    <h2>Panel de administración</h2>
+    <p>Solo para uso interno · Unai Sánchez</p>
+    <input type="password" class="login-input" id="passInput" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar →</button>
+    <p id="loginError">Contraseña incorrecta</p>
   </div>
+</div>
 
-  <!-- ══════════════════════════════════════════════
-       MAIN ADMIN PANEL
-  ══════════════════════════════════════════════ -->
-  <div id="admin-panel">
+<div id="app">
+  <header>
+    <div class="header-logo">⚡ Node<em>Flow</em> <span style="font-size:11px;color:var(--dim);font-weight:500">Admin</span></div>
+    <div class="header-right">
+      <span class="header-badge" id="mrrBadge">MRR: cargando…</span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
 
-    <!-- Top bar -->
-    <div class="topbar">
-      <div class="topbar-logo">
-        NodeFlow <span>Admin</span>
+  <nav>
+    <button class="nav-tab active" onclick="switchTab('resumen',this)">📊 Resumen</button>
+    <button class="nav-tab" onclick="switchTab('leads',this)">🎯 Leads</button>
+    <button class="nav-tab" onclick="switchTab('clientes',this)">✅ Clientes</button>
+    <button class="nav-tab" onclick="switchTab('citas',this)">📅 Citas</button>
+    <button class="nav-tab" onclick="switchTab('automatizaciones',this)">🤖 Automatizaciones</button>
+    <button class="nav-tab" onclick="switchTab('flujos',this)">⚡ Flujos</button>
+  </nav>
+
+  <main>
+
+    <!-- Resumen -->
+    <div class="tab-panel active" id="tab-resumen">
+      <div class="kpi-grid">
+        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">MRR</div><div class="kpi-value" id="kMrr">—</div><div class="kpi-sub">ingresos recurrentes</div></div>
+        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Clientes activos</div><div class="kpi-value" id="kOrgs">—</div><div class="kpi-sub">organizaciones</div></div>
+        <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Leads totales</div><div class="kpi-value" id="kLeads">—</div><div class="kpi-sub">registros</div></div>
+        <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Citas próximas</div><div class="kpi-value" id="kCitas">—</div><div class="kpi-sub">confirmadas</div></div>
+        <div class="kpi-card" style="--kpi-color:#e17055"><div class="kpi-label">Reminders</div><div class="kpi-value" id="kReminders">—</div><div class="kpi-sub">pendientes de enviar</div></div>
+        <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Reseñas</div><div class="kpi-value" id="kReviews">—</div><div class="kpi-sub">por solicitar</div></div>
       </div>
-      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+      <div class="section-hd">
+        <h2>Últimos leads</h2>
+        <button class="refresh-btn" onclick="loadAll()">↻ Actualizar todo</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Negocio</th><th>Plan</th><th>Ciudad</th><th>Estado</th><th>Fecha</th></tr></thead>
+          <tbody id="recentLeads"><tr class="empty-row"><td colspan="5">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Tab bar -->
-    <div class="tabs-bar">
-      <button class="tab-btn active" onclick="switchTab('registros', this)">Registros</button>
-      <button class="tab-btn"        onclick="switchTab('clientes',  this)">Clientes</button>
-      <button class="tab-btn"        onclick="switchTab('resumen',   this)">Resumen</button>
+    <!-- Leads -->
+    <div class="tab-panel" id="tab-leads">
+      <div class="section-hd">
+        <div><h2>Leads / Registros</h2><p id="leadsCount"></p></div>
+        <button class="refresh-btn" onclick="loadLeads()">↻ Actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Negocio</th><th>Sector</th><th>Contacto</th><th>Email</th><th>Teléfono</th><th>Plan</th><th>Cupón</th><th>Estado</th><th>Fecha</th></tr></thead>
+          <tbody id="leadsBody"><tr class="empty-row"><td colspan="9">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- ── Tab: Registros ── -->
-    <div id="tab-registros" class="tab-panel active">
-      <div class="section-title">Registros (leads) <small id="reg-count"></small></div>
-      <div id="registros-body"><div class="state-msg"><span class="spinner"></span>Cargando registros…</div></div>
+    <!-- Clientes -->
+    <div class="tab-panel" id="tab-clientes">
+      <div class="section-hd">
+        <div><h2>Clientes activos</h2><p id="orgsCount"></p></div>
+        <button class="refresh-btn" onclick="loadOrgs()">↻ Actualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Negocio</th><th>Email</th><th>Teléfono</th><th>Plan</th><th>Minutos</th><th>Activo</th><th>Desde</th></tr></thead>
+          <tbody id="orgsBody"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- ── Tab: Clientes ── -->
-    <div id="tab-clientes" class="tab-panel">
-      <div class="section-title">Clientes activos <small id="cli-count"></small></div>
-      <div id="clientes-body"><div class="state-msg"><span class="spinner"></span>Cargando clientes…</div></div>
+    <!-- Citas -->
+    <div class="tab-panel" id="tab-citas">
+      <div class="section-hd">
+        <div><h2>Citas</h2><p>Gestiona citas, reminders y confirmaciones WhatsApp</p></div>
+        <button class="refresh-btn" onclick="loadCitas()">↻ Actualizar</button>
+      </div>
+      <div class="filter-bar">
+        <select id="citasBusiness" onchange="loadCitas()">
+          <option value="demo-clinic">Clínica Dental Demo</option>
+          <option value="lumina-estetica">Lumina Estética</option>
+        </select>
+        <select id="citasFilter" onchange="loadCitas()">
+          <option value="">Todas las citas</option>
+          <option value="1">Solo próximas</option>
+        </select>
+        <input type="date" id="citasDate" onchange="loadCitas()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Servicio</th><th>Estado</th><th>Reminder</th><th>Reseña</th><th>Acciones</th></tr></thead>
+          <tbody id="citasBody"><tr class="empty-row"><td colspan="8">Selecciona negocio</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- ── Tab: Resumen ── -->
-    <div id="tab-resumen" class="tab-panel">
-      <div class="section-title">Resumen</div>
-      <div id="resumen-body"><div class="state-msg"><span class="spinner"></span>Cargando estadísticas…</div></div>
+    <!-- Flujos por negocio -->
+    <div class="tab-panel" id="tab-flujos">
+      <div class="section-hd">
+        <div><h2>Flujos por negocio</h2><p>Cada cliente tiene su propio pipeline de automatizaciones</p></div>
+        <button class="refresh-btn" onclick="loadFlows()">↻ Actualizar</button>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="flowKpis">
+        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">Negocios</div><div class="kpi-value" id="fTotal">—</div><div class="kpi-sub">flujos registrados</div></div>
+        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Reminders activos</div><div class="kpi-value" id="fRem">—</div><div class="kpi-sub">negocios con reminders</div></div>
+        <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Reseñas activas</div><div class="kpi-value" id="fRev">—</div><div class="kpi-sub">negocios con reviews</div></div>
+        <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Google Place ID</div><div class="kpi-value" id="fPlace">—</div><div class="kpi-sub">configurados</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Negocio</th><th>Plan</th><th>Sector</th><th>Reminders</th><th>Reseñas</th><th>Google Place ID</th><th>Acciones</th></tr></thead>
+          <tbody id="flowsBody"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-  </div><!-- /admin-panel -->
-
-
-  <script>
-    /* ══════════════════════════════════════════════
-       CONSTANTS & HELPERS
-    ══════════════════════════════════════════════ */
-    const LS_KEY = 'nf_admin_token';
-
-    function token() { return localStorage.getItem(LS_KEY) || ''; }
-
-    function authHeaders() {
-      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() };
-    }
-
-    /** Fetch wrapper that handles 401 globally */
-    async function apiFetch(url, opts = {}) {
-      const res = await fetch(url, { headers: authHeaders(), ...opts });
-      if (res.status === 401) { logout(); return null; }
-      return res;
-    }
-
-    /** Format ISO date string to locale */
-    function fmtDate(iso) {
-      if (!iso) return '—';
-      try {
-        return new Date(iso).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' });
-      } catch { return iso; }
-    }
-
-    /** Escape HTML entities to prevent XSS */
-    function esc(s) {
-      if (s == null) return '';
-      return String(s)
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#39;');
-    }
-
-    /** Clamp a percentage 0-100 */
-    function pct(used, limit) {
-      if (!limit || limit === 0) return 0;
-      return Math.min(100, Math.round((used / limit) * 100));
-    }
-
-    /* ══════════════════════════════════════════════
-       AUTH FLOW
-    ══════════════════════════════════════════════ */
-
-    /** Called on page load — restore session if token exists */
-    function init() {
-      if (token()) {
-        showPanel();
-      }
-      // Allow Enter key on password field
-      document.getElementById('pwd-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') doLogin();
-      });
-    }
-
-    async function doLogin() {
-      const pwd = document.getElementById('pwd-input').value.trim();
-      const errEl = document.getElementById('login-error');
-      const btn = document.getElementById('login-btn');
-
-      if (!pwd) { errEl.textContent = 'Introduce la contraseña.'; return; }
-
-      btn.disabled = true;
-      btn.textContent = 'Verificando…';
-      errEl.textContent = '';
-
-      try {
-        const res = await fetch('/api/admin/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pwd })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          // Accept token from response body, or fall back to the password itself as bearer
-          const tok = (data && data.token) ? data.token : pwd;
-          localStorage.setItem(LS_KEY, tok);
-          showPanel();
-        } else {
-          errEl.textContent = 'Contraseña incorrecta.';
-          document.getElementById('pwd-input').value = '';
-        }
-      } catch (err) {
-        errEl.textContent = 'Error de red. ¿Está el servidor activo?';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem(LS_KEY);
-      document.getElementById('admin-panel').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('pwd-input').value = '';
-    }
-
-    function showPanel() {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('admin-panel').style.display = 'block';
-      // Load the default tab data
-      loadRegistros();
-    }
-
-    /* ══════════════════════════════════════════════
-       TAB NAVIGATION
-    ══════════════════════════════════════════════ */
-
-    // Track which tabs have already been fetched
-    const _loaded = { registros: false, clientes: false, resumen: false };
-
-    function switchTab(name, btn) {
-      // Update button styles
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Show/hide panels
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('tab-' + name).classList.add('active');
-
-      // Lazy-load data the first time each tab is opened
-      if (name === 'registros' && !_loaded.registros) loadRegistros();
-      if (name === 'clientes'  && !_loaded.clientes)  loadClientes();
-      if (name === 'resumen'   && !_loaded.resumen)   loadResumen();
-    }
-
-    /* ══════════════════════════════════════════════
-       TAB: REGISTROS
-    ══════════════════════════════════════════════ */
-
-    async function loadRegistros() {
-      _loaded.registros = true;
-      const container = document.getElementById('registros-body');
-
-      const res = await apiFetch('/api/admin/registros');
-      if (!res) return;
-
-      let items = [];
-      try { items = await res.json(); } catch { /* empty */ }
-
-      document.getElementById('reg-count').textContent = items.length ? `${items.length} registros` : '';
-
-      if (!items.length) {
-        container.innerHTML = '<div class="state-msg">No hay registros todavía.</div>';
-        return;
-      }
-
-      /* Build table rows */
-      const rows = items.map(r => {
-        const id     = esc((r.id || r._id || '').toString().slice(0, 8));
-        const biz    = esc(r.negocio || r.business_name || r.businessName || '—');
-        const sector = esc(r.sector || '—');
-        const plan   = esc(r.plan || '—');
-        const ciudad = esc(r.ciudad || r.city || '—');
-        const email  = esc(r.email || '—');
-        const tel    = esc(r.telefono || r.phone || '');
-        const estado = r.estado || r.status || 'pending_payment';
-        const fecha  = fmtDate(r.createdAt || r.fecha || r.created_at);
-
-        const estadoBadge = estado === 'active'
-          ? `<span class="badge badge-active">Activo</span>`
-          : `<span class="badge badge-pending">Pendiente pago</span>`;
-
-        const waTel = tel.replace(/\D/g, ''); // strip non-digits
-        const waMsg = encodeURIComponent(`Hola ${r.negocio || ''}, te escribo desde NodeFlow para completar tu alta.`);
-        const waBtn = waTel
-          ? `<a class="btn-wa" href="https://wa.me/34${waTel}?text=${waMsg}" target="_blank" rel="noopener">
-               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.533 5.854L.057 23.57a.75.75 0 0 0 .922.922l5.764-1.499A11.952 11.952 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75c-1.96 0-3.792-.563-5.338-1.536l-.384-.232-3.981 1.035 1.062-3.867-.252-.399A9.708 9.708 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
-               WhatsApp
-             </a>`
-          : '—';
-
-        return `<tr>
-          <td class="mono">${id || '—'}</td>
-          <td>${biz}</td>
-          <td>${sector}</td>
-          <td>${plan}</td>
-          <td>${ciudad}</td>
-          <td><a href="mailto:${email}" style="color:var(--accent-l);text-decoration:none">${email}</a></td>
-          <td>${tel || '—'}</td>
-          <td>${estadoBadge}</td>
-          <td style="color:var(--dim);white-space:nowrap">${fecha}</td>
-          <td>${waBtn}</td>
-        </tr>`;
-      }).join('');
-
-      container.innerHTML = `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Negocio</th>
-                <th>Sector</th>
-                <th>Plan</th>
-                <th>Ciudad</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>`;
-    }
-
-    /* ══════════════════════════════════════════════
-       TAB: CLIENTES
-    ══════════════════════════════════════════════ */
-
-    async function loadClientes() {
-      _loaded.clientes = true;
-      const container = document.getElementById('clientes-body');
-
-      const res = await apiFetch('/api/admin/orgs');
-      if (!res) return;
-
-      let items = [];
-      try { items = await res.json(); } catch { /* empty */ }
-
-      document.getElementById('cli-count').textContent = items.length ? `${items.length} clientes` : '';
-
-      if (!items.length) {
-        container.innerHTML = '<div class="state-msg">No hay clientes activos todavía.</div>';
-        return;
-      }
-
-      const rows = items.map(org => {
-        const biz    = esc(org.name || org.negocio || org.business_name || '—');
-        const plan   = (org.plan || '').toUpperCase();
-        const email  = esc(org.email || org.ownerEmail || '—');
-
-        // API key: show last 8 chars + copy button
-        const apiKey = org.apiKey || org.api_key || '';
-        const keyShort = apiKey ? '••••' + esc(apiKey.slice(-8)) : '—';
-        const copyBtn = apiKey
-          ? `<button class="btn-copy" onclick="copyKey(this, '${esc(apiKey)}')" title="Copiar API key">Copiar</button>`
-          : '';
-
-        // Minutes
-        const used    = org.minutesUsed   ?? org.minutes_used   ?? 0;
-        const limit   = org.minutesLimit  ?? org.minutes_limit  ?? 0;
-        const p       = pct(used, limit);
-        const fillCls = p >= 90 ? 'danger' : p >= 75 ? 'warn' : '';
-        const minBar  = limit > 0
-          ? `<div class="min-bar-wrap">
-               <div class="min-label">${used} / ${limit} min (${p}%)</div>
-               <div class="min-bar"><div class="min-fill ${fillCls}" style="width:${p}%"></div></div>
-             </div>`
-          : `<span style="color:var(--dim)">${used} min</span>`;
-
-        const fechaAlta = fmtDate(org.createdAt || org.fecha_alta || org.created_at);
-
-        // Plan badge
-        let planBadge = '';
-        if (plan === 'PRO')      planBadge = `<span class="badge badge-pro">PRO</span>`;
-        else if (plan === 'NEGOCIO') planBadge = `<span class="badge badge-negocio">NEGOCIO</span>`;
-        else if (plan === 'FREE')    planBadge = `<span class="badge badge-free">FREE</span>`;
-        else planBadge = `<span class="badge badge-free">${plan || '—'}</span>`;
-
-        return `<tr>
-          <td>${biz}</td>
-          <td>${planBadge}</td>
-          <td><a href="mailto:${email}" style="color:var(--accent-l);text-decoration:none">${email}</a></td>
-          <td><span class="mono">${keyShort}</span>${copyBtn}</td>
-          <td>${minBar}</td>
-          <td style="color:var(--dim);white-space:nowrap">${fechaAlta}</td>
-        </tr>`;
-      }).join('');
-
-      container.innerHTML = `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Negocio</th>
-                <th>Plan</th>
-                <th>Email</th>
-                <th>API Key</th>
-                <th>Minutos usados / límite</th>
-                <th>Fecha alta</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>`;
-    }
-
-    /** Copy API key to clipboard */
-    function copyKey(btn, key) {
-      navigator.clipboard.writeText(key).then(() => {
-        btn.textContent = '¡Copiado!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = 'Copiar';
-          btn.classList.remove('copied');
-        }, 1800);
-      }).catch(() => {
-        // Fallback for non-secure contexts
-        const el = document.createElement('textarea');
-        el.value = key;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        btn.textContent = '¡Copiado!';
-        btn.classList.add('copied');
-        setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1800);
-      });
-    }
-
-    /* ══════════════════════════════════════════════
-       TAB: RESUMEN
-    ══════════════════════════════════════════════ */
-
-    async function loadResumen() {
-      _loaded.resumen = true;
-      const container = document.getElementById('resumen-body');
-
-      const res = await apiFetch('/api/admin/stats');
-      if (!res) return;
-
-      let s = {};
-      try { s = await res.json(); } catch { /* empty */ }
-
-      // Extract stats with safe fallbacks
-      const totalLeads    = s.totalLeads    ?? s.total_leads    ?? s.leads       ?? 0;
-      const activeClients = s.activeClients ?? s.active_clients ?? s.clients     ?? 0;
-      const mrr           = s.mrr           ?? s.MRR            ?? 0;
-      const totalMinutes  = s.totalMinutes  ?? s.total_minutes  ?? s.minutes     ?? 0;
-
-      // Optional breakdown fields
-      const convRate  = totalLeads > 0 ? ((activeClients / totalLeads) * 100).toFixed(1) : '0.0';
-      const negocioC  = s.planBreakdown?.negocio ?? s.plan_negocio ?? '—';
-      const proC      = s.planBreakdown?.pro      ?? s.plan_pro      ?? '—';
-
-      container.innerHTML = `
-        <!-- ── Stat cards ── -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total leads</div>
-            <div class="stat-value">${totalLeads}</div>
-            <div class="stat-sub">Formularios recibidos</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Clientes activos</div>
-            <div class="stat-value accent">${activeClients}</div>
-            <div class="stat-sub">Tasa conv. ${convRate}%</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">MRR</div>
-            <div class="stat-value accent">${formatEur(mrr)}</div>
-            <div class="stat-sub">Ingresos mensuales recurrentes</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Minutos totales</div>
-            <div class="stat-value">${fmtNum(totalMinutes)}</div>
-            <div class="stat-sub">Acumulados este mes</div>
-          </div>
+    <!-- Automatizaciones -->
+    <div class="tab-panel" id="tab-automatizaciones">
+      <div class="cron-box">
+        <div class="cron-info">
+          <h3>🤖 Motor de automatizaciones</h3>
+          <p id="cronStatus">Cargando…</p>
         </div>
-
-        <!-- ── Plan breakdown ── -->
-        <div class="resumen-section">
-          <div class="section-title">Distribución de planes</div>
-          <div style="display:flex;gap:14px;flex-wrap:wrap">
-            <div class="stat-card" style="flex:1;min-width:140px">
-              <div class="stat-label">Plan Negocio</div>
-              <div class="stat-value">${negocioC}</div>
-              <div class="stat-sub">€49 / mes</div>
-            </div>
-            <div class="stat-card" style="flex:1;min-width:140px">
-              <div class="stat-label">Plan Pro</div>
-              <div class="stat-value">${proC}</div>
-              <div class="stat-sub">€99 / mes</div>
-            </div>
-          </div>
+        <div class="cron-actions">
+          <button class="btn btn-p" onclick="runAutomations()" id="runBtn">▶ Ejecutar ahora</button>
+          <button class="refresh-btn" onclick="loadAutoStats()">↻ Actualizar</button>
         </div>
+      </div>
+      <div class="auto-row">
+        <div class="auto-card">
+          <h3>📨 Recordatorios de cita</h3>
+          <p>Email automático 24h antes de la cita. Reduce no-shows hasta el 40%.</p>
+          <div class="auto-stat"><span>Enviados (total sesión)</span><span id="aRemindersSent">—</span></div>
+          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aRemindersPending" style="color:var(--yellow)">—</span></div>
+        </div>
+        <div class="auto-card">
+          <h3>⭐ Solicitudes de reseña</h3>
+          <p>Email pidiendo reseña en Google 24h después del servicio.</p>
+          <div class="auto-stat"><span>Enviados (total sesión)</span><span id="aReviewsSent">—</span></div>
+          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aReviewsPending" style="color:var(--yellow)">—</span></div>
+        </div>
+      </div>
+      <div class="section-hd"><h2>Estadísticas globales</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
+          <tbody id="autoHistory"><tr class="empty-row"><td colspan="2">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
-        <!-- ── Recent activity (if returned by API) ── -->
-        ${renderRecentActivity(s)}
-      `;
-    }
+  </main>
+</div>
 
-    /** Render a recent-activity section if the API returns it */
-    function renderRecentActivity(s) {
-      const recent = s.recentActivity || s.recent_activity;
-      if (!recent || !recent.length) return '';
+<div id="toast"></div>
 
-      const items = recent.slice(0, 10).map(ev => {
-        const fecha = fmtDate(ev.date || ev.createdAt);
-        return `<tr>
-          <td style="color:var(--dim);white-space:nowrap">${fecha}</td>
-          <td>${esc(ev.type || ev.evento || '—')}</td>
-          <td>${esc(ev.description || ev.descripcion || ev.detail || '—')}</td>
-        </tr>`;
-      }).join('');
+<script>
+const API = '';
+let TOKEN = localStorage.getItem('nf_admin_token') || '';
 
-      return `
-        <div class="resumen-section">
-          <div class="section-title">Actividad reciente</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th></tr></thead>
-              <tbody>${items}</tbody>
-            </table>
-          </div>
-        </div>`;
-    }
+function h() { return {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}; }
 
-    /** Format number with EUR symbol */
-    function formatEur(n) {
-      const num = parseFloat(n) || 0;
-      return '€' + num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    }
+async function doLogin() {
+  const pass = document.getElementById('passInput').value;
+  if (!pass) return;
+  try {
+    const r = await fetch(API+'/api/admin/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    if (!r.ok) throw new Error();
+    const {token} = await r.json();
+    TOKEN = token;
+    localStorage.setItem('nf_admin_token',token);
+    boot();
+  } catch { document.getElementById('loginError').style.display='block'; }
+}
 
-    /** Format large number with thousands sep */
-    function fmtNum(n) {
-      return (parseInt(n, 10) || 0).toLocaleString('es-ES');
-    }
+function doLogout() {
+  localStorage.removeItem('nf_admin_token'); TOKEN='';
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('passInput').value='';
+}
 
-    /* ══════════════════════════════════════════════
-       BOOT
-    ══════════════════════════════════════════════ */
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
+async function api(url,opts={}) {
+  const r = await fetch(API+url,{...opts,headers:{...h(),...(opts.headers||{})}});
+  if (r.status===401) { doLogout(); throw new Error('401'); }
+  return r.json();
+}
+
+window.addEventListener('DOMContentLoaded',()=>{ if(TOKEN) boot(); });
+
+function boot() {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  loadAll();
+}
+
+function loadAll() { loadStats(); loadLeads(); loadOrgs(); loadAutoStats(); }
+
+function switchTab(name,btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='citas') loadCitas();
+  if(name==='automatizaciones') loadAutoStats();
+  if(name==='flujos') loadFlows();
+}
+
+let _tt;
+function toast(msg,type='ok') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>{t.className='';},3000);
+}
+
+// Stats
+async function loadStats() {
+  try {
+    const [adm,aut] = await Promise.all([api('/api/admin/stats'),api('/api/automations/stats')]);
+    const mrr='€'+(adm.mrr||0).toLocaleString('es-ES');
+    document.getElementById('kMrr').textContent     = mrr;
+    document.getElementById('kOrgs').textContent    = adm.activeOrgs??'—';
+    document.getElementById('kLeads').textContent   = adm.totalLeads??'—';
+    document.getElementById('kCitas').textContent   = aut.appointments?.upcoming??'—';
+    document.getElementById('kReminders').textContent = aut.automations?.reminders_pending??'—';
+    document.getElementById('kReviews').textContent   = aut.automations?.reviews_pending??'—';
+    document.getElementById('mrrBadge').textContent   = 'MRR: '+mrr;
+  } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+// Leads
+async function loadLeads() {
+  try {
+    const data=await api('/api/admin/registros');
+    const rows=data.registros||[];
+    document.getElementById('leadsCount').textContent=rows.length+' registros';
+    render(rows,'leadsBody',false); render(rows.slice(0,5),'recentLeads',true);
+  } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+function langBadge(lang) {
+  if(lang==='gl') return '<span class="badge bl-gl" title="Galego">🌊 GL</span>';
+  if(lang==='eu') return '<span class="badge bl-eu" title="Euskera">🔵 EU</span>';
+  if(lang==='es') return '<span class="badge bl-es" title="Español">🇪🇸 ES</span>';
+  return '';
+}
+
+function render(rows,id,mini) {
+  const b=document.getElementById(id);
+  if(!rows.length){b.innerHTML=`<tr class="empty-row"><td colspan="${mini?5:9}">Sin datos</td></tr>`;return;}
+  b.innerHTML=rows.map(r=>{
+    const plan=r.plan==='pro'?'<span class="badge bp">Pro</span>':r.plan==='negocio'?'<span class="badge bg">Negocio</span>':`<span class="badge bd">${r.plan||'—'}</span>`;
+    const st=r.status==='active'?'<span class="badge bg">Activo</span>':r.status==='pending_payment'?'<span class="badge by">Pendiente</span>':`<span class="badge bd">${r.status||'—'}</span>`;
+    const lang=langBadge(r.idioma||r.language||'es');
+    const src=r.source==='galiza'?'<span class="badge bl-gl" style="margin-left:4px">galiza</span>':r.source==='hementxe'?'<span class="badge by" style="margin-left:4px">hementxe</span>':'';
+    const d=(r.created_at||'').split('T')[0];
+    if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}</td><td>${d}</td></tr>`;
+    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td style="color:var(--dim)">${r.email||'—'}</td><td style="color:var(--dim)">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}</td><td>${d}</td></tr>`;
+  }).join('');
+}
+
+// Orgs
+async function loadOrgs() {
+  try {
+    const data=await api('/api/admin/orgs');
+    const rows=data.orgs||[];
+    document.getElementById('orgsCount').textContent=rows.length+' organizaciones';
+    const b=document.getElementById('orgsBody');
+    if(!rows.length){b.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes aún</td></tr>';return;}
+    b.innerHTML=rows.map(o=>{
+      const plan=o.plan==='pro'?'<span class="badge bp">Pro 99€</span>':'<span class="badge bg">Negocio 49€</span>';
+      const active=o.is_active?'<span class="badge bg">✓ Activo</span>':'<span class="badge br">Inactivo</span>';
+      const mins=o.monthly_minutes_used!=null?`${parseFloat(o.monthly_minutes_used).toFixed(0)} / ${o.monthly_minutes_limit}`:'—';
+      return `<tr><td><strong>${o.name||'—'}</strong></td><td style="color:var(--dim)">${o.owner_email||'—'}</td><td style="color:var(--dim)">${o.phone||'—'}</td><td>${plan}</td><td>${mins} min</td><td>${active}</td><td>${(o.created_at||'').split('T')[0]}</td></tr>`;
+    }).join('');
+  } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+// Citas
+async function loadCitas() {
+  const biz=document.getElementById('citasBusiness').value;
+  const upcoming=document.getElementById('citasFilter').value;
+  const date=document.getElementById('citasDate').value;
+  let url=`/api/citas/${biz}?`;
+  if(upcoming) url+=`upcoming=${upcoming}&`;
+  if(date)     url+=`date=${date}&`;
+  const b=document.getElementById('citasBody');
+  b.innerHTML='<tr class="empty-row"><td colspan="8">Cargando…</td></tr>';
+  try {
+    const data=await api(url);
+    const apts=data.appointments||[];
+    if(!apts.length){b.innerHTML='<tr class="empty-row"><td colspan="8">Sin citas con estos filtros</td></tr>';return;}
+    b.innerHTML=apts.map(a=>{
+      const st=a.status==='confirmed'?'<span class="badge bg">Confirmada</span>':'<span class="badge br">Cancelada</span>';
+      const rem=a.reminder_sent?'<span class="badge bg">✓ Enviado</span>':a.email?`<button class="btn btn-g" onclick="sendReminder('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
+      const rev=a.review_requested?'<span class="badge by">✓ Enviado</span>':a.email?`<button class="btn btn-y" onclick="sendReview('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
+      return `<tr>
+        <td><strong>${a.patientName}</strong><br><span style="color:var(--dim);font-size:11px">${a.phone||''}</span></td>
+        <td>${a.date}</td><td>${a.time}h</td>
+        <td style="font-size:12px">${a.service}</td>
+        <td>${st}</td><td>${rem}</td><td>${rev}</td>
+        <td><button class="btn btn-wa" onclick="openWA(event,'${biz}','${a.id}')">💬 WA</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e){if(e.message!=='401')b.innerHTML='<tr class="empty-row"><td colspan="8">Error</td></tr>';}
+}
+
+async function sendReminder(id,btn){
+  btn.disabled=true;btn.textContent='…';
+  try{const r=await api(`/api/automations/reminder/${id}`,{method:'POST'});if(r.ok){toast('✓ Reminder enviado');btn.outerHTML='<span class="badge bg">✓ Enviado</span>';}else{toast('Error','err');btn.disabled=false;btn.textContent='Enviar';}}
+  catch{btn.disabled=false;btn.textContent='Enviar';}
+}
+
+async function sendReview(id,btn){
+  btn.disabled=true;btn.textContent='…';
+  try{const r=await api(`/api/automations/review/${id}`,{method:'POST'});if(r.ok){toast('⭐ Solicitud enviada');btn.outerHTML='<span class="badge by">✓ Enviado</span>';}else{toast('Error','err');btn.disabled=false;btn.textContent='Enviar';}}
+  catch{btn.disabled=false;btn.textContent='Enviar';}
+}
+
+async function openWA(e,biz,id){
+  e.preventDefault();
+  try{const d=await api(`/api/citas/${biz}/${id}/wa-confirm`);window.open(d.link,'_blank');}
+  catch{toast('Error al generar enlace','err');}
+}
+
+// Auto stats
+async function loadAutoStats(){
+  try{
+    const data=await api('/api/automations/stats');
+    const {cron,automations,appointments}=data;
+    const up=cron?.uptime==='active'?'<span class="badge bg">● Activo</span>':'<span class="badge br">Detenido</span>';
+    const lr=cron?.lastRun?new Date(cron.lastRun).toLocaleString('es-ES'):'Nunca';
+    document.getElementById('cronStatus').innerHTML=`${up} &nbsp;· Última ejecución: ${lr} &nbsp;· Ejecuciones: ${cron?.totals?.runs??0}`;
+    document.getElementById('aRemindersSent').textContent=automations?.reminders_sent??0;
+    document.getElementById('aRemindersPending').textContent=automations?.reminders_pending??0;
+    document.getElementById('aReviewsSent').textContent=automations?.reviews_sent??0;
+    document.getElementById('aReviewsPending').textContent=automations?.reviews_pending??0;
+    const hist=[
+      ['Citas totales',appointments?.total??0],
+      ['Citas confirmadas',appointments?.confirmed??0],
+      ['Citas canceladas',appointments?.cancelled??0],
+      ['Citas próximas',appointments?.upcoming??0],
+      ['Reminders enviados (sesión)',(cron?.totals?.reminders??0)],
+      ['Reseñas enviadas (sesión)',(cron?.totals?.reviews??0)],
+    ];
+    document.getElementById('autoHistory').innerHTML=hist.map(([k,v])=>`<tr><td>${k}</td><td><strong>${v}</strong></td></tr>`).join('');
+  } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+// Flujos
+async function loadFlows(){
+  try{
+    const [data,stats]=await Promise.all([api('/api/flows'),api('/api/flows/stats')]);
+    document.getElementById('fTotal').textContent=stats.total??'—';
+    document.getElementById('fRem').textContent=stats.remindersEnabled??'—';
+    document.getElementById('fRev').textContent=stats.reviewsEnabled??'—';
+    document.getElementById('fPlace').textContent=stats.withPlaceId??'—';
+    const b=document.getElementById('flowsBody');
+    const flows=data.flows||[];
+    if(!flows.length){b.innerHTML='<tr class="empty-row"><td colspan="7">Sin flujos registrados aún. Se crean automáticamente al pagar un cliente.</td></tr>';return;}
+    b.innerHTML=flows.map(f=>{
+      const plan=f.plan==='business'?'<span class="badge bp">Pro</span>':f.plan?`<span class="badge bg">${f.plan}</span>`:'<span class="badge bd">—</span>';
+      const remOn=f.automations.reminders.enabled;
+      const revOn=f.automations.reviews.enabled;
+      const remBadge=remOn?'<span class="badge bg">✓ Activo</span>':'<span class="badge br">Pausado</span>';
+      const revBadge=revOn?'<span class="badge by">✓ Activo</span>':'<span class="badge br">Pausado</span>';
+      const placeId=f.googlePlaceId?`<span style="font-size:11px;color:var(--green2)">${f.googlePlaceId}</span>`:'<span class="badge bd">Sin configurar</span>';
+      const langBadgeF=langBadge(f.language||'es');
+      return `<tr>
+        <td><strong>${f.name}</strong> ${langBadgeF}<br><span style="font-size:11px;color:var(--dim)">${f.ownerEmail||''}</span></td>
+        <td>${plan}</td><td style="color:var(--dim);font-size:12px">${f.sector||'—'}</td>
+        <td>
+          ${remBadge}
+          <button class="btn btn-d" style="margin-left:6px;padding:3px 8px;font-size:11px" onclick="toggleFlow('${f.businessId}','reminders',${remOn},this)">
+            ${remOn?'Pausar':'Activar'}
+          </button>
+        </td>
+        <td>
+          ${revBadge}
+          <button class="btn btn-d" style="margin-left:6px;padding:3px 8px;font-size:11px" onclick="toggleFlow('${f.businessId}','reviews',${revOn},this)">
+            ${revOn?'Pausar':'Activar'}
+          </button>
+        </td>
+        <td>
+          <input type="text" id="pid-${f.businessId}" value="${f.googlePlaceId||''}" placeholder="ChIJ…" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;width:140px">
+          <button class="btn btn-d" style="padding:3px 8px;font-size:11px;margin-left:4px" onclick="savePlaceId('${f.businessId}')">Guardar</button>
+        </td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="testFlow('${f.businessId}','reminder')">Test reminder</button>
+          <button class="btn btn-y" style="padding:4px 8px;font-size:11px" onclick="testFlow('${f.businessId}','review')">Test reseña</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }catch(e){if(e.message!=='401')console.error(e);}
+}
+
+async function toggleFlow(id,type,current,btn){
+  btn.disabled=true;
+  try{
+    const r=await api(`/api/flows/${id}/toggle/${type}`,{method:'POST'});
+    toast(`${type}: ${r[type].enabled?'activado':'pausado'}`);
+    await loadFlows();
+  }catch{toast('Error','err');}
+  finally{btn.disabled=false;}
+}
+
+async function savePlaceId(id){
+  const val=document.getElementById('pid-'+id).value.trim();
+  try{
+    await api(`/api/flows/${id}`,{method:'PATCH',body:JSON.stringify({googlePlaceId:val||null})});
+    toast('✓ Google Place ID guardado');
+  }catch{toast('Error al guardar','err');}
+}
+
+async function testFlow(id,type){
+  const email=prompt('Email donde enviar el test:');
+  if(!email) return;
+  try{
+    const r=await api(`/api/flows/${id}/test/${type}`,{method:'POST',body:JSON.stringify({email})});
+    toast(r.ok?`✓ Test enviado a ${r.sentTo}`:'Error al enviar',r.ok?'ok':'err');
+  }catch{toast('Error','err');}
+}
+
+async function runAutomations(){
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;btn.textContent='Ejecutando…';
+  try{await api('/api/automations/run',{method:'POST'});toast('✓ Automatizaciones ejecutadas');await loadAutoStats();await loadStats();}
+  catch{toast('Error al ejecutar','err');}
+  finally{btn.disabled=false;btn.textContent='▶ Ejecutar ahora';}
+}
+</script>
 </body>
 </html>

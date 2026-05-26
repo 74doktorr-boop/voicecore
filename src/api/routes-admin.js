@@ -158,6 +158,45 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Portal: GET /api/portal/me (auth by org API key) ───────────────────────
+  app.get('/api/portal/me', async (req, res) => {
+    const header = req.headers['authorization'] || '';
+    const key    = header.replace('Bearer ', '').trim();
+    if (!key) return res.status(401).json({ error: 'API Key requerida' });
+
+    const db = getDatabase();
+    if (!db.enabled) {
+      // Dev fallback — return fake org if key matches config
+      if (key === (config.apiKey || 'voicecore-dev')) {
+        return res.json({ id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'dev@nodeflow.es' });
+      }
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    try {
+      const org = await db.getOrgByApiKey(key);
+      if (!org) return res.status(401).json({ error: 'API Key inválida' });
+      // Return safe public fields (no private keys)
+      res.json({
+        id:              org.id,
+        name:            org.name,
+        slug:            org.slug,
+        plan:            org.plan,
+        owner_email:     org.owner_email,
+        owner_name:      org.owner_name,
+        phone:           org.phone,
+        monthly_minutes_limit: org.monthly_minutes_limit,
+        monthly_minutes_used:  org.monthly_minutes_used,
+        google_calendar_id:    org.google_calendar_id,
+        google_refresh_token:  !!org.google_refresh_token, // boolean only
+        created_at:      org.created_at,
+      });
+    } catch (e) {
+      log.error('Portal /me error', { error: e.message });
+      res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 

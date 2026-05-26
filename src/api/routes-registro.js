@@ -82,7 +82,7 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
       const couponData = validateCoupon(coupon);
 
       // Validación básica
@@ -97,20 +97,25 @@ function setupRegistroRoutes(app) {
         return res.status(400).json({ error: 'Plan inválido' });
       }
 
+      // Derive source and language — Galician landing sends source:'galiza', idioma:'gl'
+      const effectiveSource   = couponData?.source || formSource || null;
+      const effectiveLanguage = formLanguage || idioma || 'es';
+
       const row = await saveRegistro({
         sector, negocio, contacto, ciudad,
         telefono: telefono.trim(),
-        email: email.trim().toLowerCase(),
+        email:    email.trim().toLowerCase(),
         plan, voz, idioma, saludo,
-        horario: typeof horario === 'object' ? horario : {},
+        horario:  typeof horario === 'object' ? horario : {},
+        language: effectiveLanguage,
+        ...(effectiveSource ? { source: effectiveSource } : {}),
         ...(couponData ? {
           coupon_code:      couponData.code,
-          source:           couponData.source,
           discount_percent: couponData.discount,
         } : {}),
       });
 
-      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan})${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
+      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
       res.json({
         id: row.id,
         ...(couponData ? { stripeCode: couponData.stripeCode, discount: couponData.discount } : {}),
@@ -119,6 +124,17 @@ function setupRegistroRoutes(app) {
     } catch (e) {
       log.error('Error en /api/registro', { error: e.message });
       res.status(500).json({ error: 'Error interno. Inténtalo de nuevo.' });
+    }
+  });
+
+  // GET /api/registro/:id — datos públicos para la página /gracias
+  app.get('/api/registro/:id', async (req, res) => {
+    try {
+      const registro = await getRegistro(req.params.id);
+      if (!registro) return res.status(404).json({ error: 'Not found' });
+      res.json({ negocio: registro.negocio, sector: registro.sector, plan: registro.plan });
+    } catch (e) {
+      res.status(500).json({ error: 'Error interno' });
     }
   });
 

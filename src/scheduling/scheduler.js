@@ -184,7 +184,7 @@ class SchedulingSystem {
   }
 
   // ─── Book an appointment ───
-  bookAppointment(businessId, { patientName, phone, service, date, time }) {
+  bookAppointment(businessId, { patientName, phone, email, service, date, time }) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -196,6 +196,7 @@ class SchedulingSystem {
       businessId,
       patientName,
       phone: phone || '',
+      email: email || null,
       service: serviceObj ? serviceObj.name : service,
       serviceId: serviceObj ? serviceObj.id : service,
       date,

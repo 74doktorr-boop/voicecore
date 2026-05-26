@@ -141,9 +141,71 @@ async function notifyNuevoCliente(registro) {
 }
 
 /**
+ * Email de benvida en galego — enviado cando idioma === 'gl' ou source === 'galiza'
+ */
+async function sendBienvenidaGl(registro) {
+  const plan    = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
+  const nome    = registro.contacto.split(' ')[0];
+  const subject = `Benvido a NodeFlow, ${nome}! 🎉`;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
+      <h1 style="color:#2ecc8a;font-size:28px;margin-bottom:8px;">Benvido a NodeFlow!</h1>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Ola <strong style="color:#f0f0f5;">${nome}</strong>, o teu pagamento confirmouse. En menos de 24 horas o teu asistente estará listo.</p>
+
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumo da túa contratación</p>
+        <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${plan}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${registro.voz}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🌊 Idioma: <strong>Galego</strong></p>
+      </div>
+
+      <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">Que pasa agora?</strong></p>
+      <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
+        <li>Poñémonos en contacto contigo nas próximas horas para rematar de configurar o teu asistente</li>
+        <li>Proporcionámosche o número de teléfono que recibirá as chamadas</li>
+        <li>Facemos unha chamada de proba contigo antes de activar o servizo en produción</li>
+      </ol>
+
+      ${registro.api_key ? `
+      <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #1e8a5e;">
+        <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">A túa API Key</p>
+        <p style="font-family:monospace;font-size:13px;color:#2ecc8a;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Gárdaa nun lugar seguro. Necesitarala para acceder ao panel de control.</p>
+      </div>` : ''}
+
+      ${registro.api_key ? `
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#1e8a5e;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder ao meu portal →</a>
+      </div>` : ''}
+
+      <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
+        <p style="color:#666680;font-size:13px;margin-bottom:10px;">Tes algunha dúbida?</p>
+        <a href="https://wa.me/34666351319" style="background:#25d366;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">💬 WhatsApp →</a>
+      </div>
+
+      <p style="margin-top:24px;font-size:12px;color:#666680;text-align:center;">
+        NodeFlow · unai@nodeflow.es · <a href="https://nodeflow.es/galiza" style="color:#2ecc8a;">nodeflow.es/galiza</a>
+      </p>
+    </div>
+  `;
+
+  const text = `Benvido a NodeFlow, ${nome}!\n\nO teu pagamento confirmouse. En menos de 24h o teu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nIdioma: Galego\n\nDúbidas? WhatsApp: +34 666 351 319`;
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
+/**
  * Email de bienvenida al cliente tras el pago
+ * Detecta idioma: si es 'gl' o source 'galiza' → sendBienvenidaGl
  */
 async function sendBienvenida(registro) {
+  // Route to Galician welcome email when appropriate
+  if (registro.idioma === 'gl' || registro.source === 'galiza' || registro.language === 'gl') {
+    return sendBienvenidaGl(registro);
+  }
+
   const plan = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
 
   const subject = `¡Bienvenido a NodeFlow, ${registro.contacto.split(' ')[0]}! 🎉`;
@@ -175,9 +237,14 @@ async function sendBienvenida(registro) {
         <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Guárdala en un lugar seguro. La necesitarás para acceder al panel de control.</p>
       </div>` : ''}
 
-      <div style="margin-top:28px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
+      ${registro.api_key ? `
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#6c5ce7;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder a mi portal →</a>
+      </div>` : ''}
+
+      <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
         <p style="color:#666680;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
-        <a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Escríbenos por WhatsApp →</a>
+        <a href="https://wa.me/34666351319" style="background:#25d366;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">💬 WhatsApp →</a>
       </div>
 
       <p style="margin-top:24px;font-size:12px;color:#666680;text-align:center;">
@@ -191,4 +258,4 @@ async function sendBienvenida(registro) {
   return sendEmail({ to: registro.email, subject, html, text });
 }
 
-module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida };
+module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida, sendBienvenidaGl };

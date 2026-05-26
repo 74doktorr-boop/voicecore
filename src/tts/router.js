@@ -108,6 +108,24 @@ class TTSRouter {
       log.info(`Provider registered: Local TTS (${config.localTtsUrl})`);
     }
 
+    // Local TTS (Galician) — Proyecto Nós / F5-TTS cross-lingual on RTX 4090.
+    // Has language affinity for 'gl': only provider with a native Galician voice.
+    // URL configured separately via LOCAL_TTS_URL_GL env var so it can point to
+    // a different model endpoint than the Basque one.
+    if (config.localTtsUrlGl) {
+      const { LocalTTS } = require('./local-tts');
+      this.providers.set('local-gl', {
+        instance: new LocalTTS(config.localTtsUrlGl),
+        priority: 0,
+        avgLatency: 600,
+        costPerMinute: 0,
+        features: ['cloning', 'galego'],
+        languages: ['gl', 'es', 'pt'],
+        languageAffinity: ['gl'],  // Always preferred for Galician
+      });
+      log.info(`Provider registered: Local TTS GL (${config.localTtsUrlGl})`);
+    }
+
     log.info(`TTS Router initialized with ${this.providers.size} provider(s)`);
   }
 
@@ -237,6 +255,10 @@ class TTSRouter {
         break;
       case 'local':
         params.voice = voice ?? 'ane';
+        params.language = language;
+        break;
+      case 'local-gl':
+        params.voice = voice ?? 'default';  // Will be updated when GL voices are cloned
         params.language = language;
         break;
       default:
