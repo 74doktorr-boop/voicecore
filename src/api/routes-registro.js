@@ -6,6 +6,7 @@
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
 const { sendEmail, sendAcknowledgement, notifyNuevoLead } = require('../notifications/email');
+const { notifyLeadWhatsApp } = require('../notifications/whatsapp');
 const crypto = require('crypto');
 
 const log = new Logger('REGISTRO');
@@ -140,12 +141,15 @@ function setupRegistroRoutes(app) {
 
       log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
 
-      // ── Emails automáticos — fire & forget (no bloquean la respuesta) ──────
+      // ── Notificaciones — fire & forget (no bloquean la respuesta) ───────────
       // 1. Auto-responder al lead: "Recibido, te contactamos en <24h"
       sendAcknowledgement(row).catch(e => log.warn(`Acknowledgement email fallido: ${e.message}`));
 
-      // 2. Notificación interna a Unai con teléfono + links directos WA/llamada
+      // 2. Email interno a Unai con teléfono + links directos WA/llamada
       notifyNuevoLead(row).catch(e => log.warn(`Lead notification fallida: ${e.message}`));
+
+      // 3. WhatsApp a Unai vía Callmebot (requiere CALLMEBOT_PHONE + CALLMEBOT_API_KEY)
+      notifyLeadWhatsApp(row).catch(e => log.warn(`WhatsApp notification fallida: ${e.message}`));
 
       res.json({
         id: row.id,
