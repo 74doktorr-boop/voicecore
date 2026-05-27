@@ -1,147 +1,101 @@
 // ============================================
 // NodeFlow — Google Sheets sync helper
-// Usa Service Account para escribir sin OAuth
+// Usa Google Apps Script (sin service account)
+// ============================================
+// Setup (5 min, solo una vez):
+//   1. Abre tu Google Sheet → Extensions → Apps Script
+//   2. Pega el contenido de scripts/sheets-appscript.gs
+//   3. Deploy → New deployment → Web App
+//      · Execute as: Me
+//      · Who has access: Anyone
+//   4. Copia la URL del deployment
+//   5. Añade al .env: GOOGLE_APPS_SCRIPT_URL=https://script.google.com/...
 // ============================================
 
-const { google } = require('googleapis');
-const path       = require('path');
-const fs         = require('fs');
+const https  = require('https');
+const http   = require('http');
+const { URL } = require('url');
 
-const SHEET_HEADERS = [
-  'nombre', 'sector', 'ciudad', 'telefono', 'address', 'rating', 'reviews',
-  'website', 'maps_url', 'wa_link', 'wa_mensaje', 'estado', 'notas', 'fecha_contacto', 'fecha_añadido',
-];
+/**
+ * Appends leads to Google Sheets via Apps Script webhook.
+ * Handles duplicates server-side (nombre+ciudad).
+ * Returns { ok, added, skipped } or { ok: false, reason }
+ */
+async function appendLeadsToSheet(leads) {
+  const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
 
-function getAuth() {
-  const keyPath    = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const keyInline  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-
-  let credentials;
-
-  if (keyInline) {
-    try {
-      credentials = JSON.parse(
-        Buffer.from(keyInline, 'base64').toString('utf-8')
-      );
-    } catch {
-      credentials = JSON.parse(keyInline);
-    }
-  } else if (keyPath) {
-    const fullPath = path.isAbsolute(keyPath)
-      ? keyPath
-      : path.join(process.cwd(), keyPath);
-    credentials = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
-  } else {
-    return null;
+  if (!webhookUrl) {
+    return { ok: false, reason: 'GOOGLE_APPS_SCRIPT_URL not set' };
   }
 
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  // Apps Script webhooks redirect to a follow-up URL — need to follow redirects
+  return postWithRedirects(webhookUrl, { leads });
+}
+
+function postWithRedirects(urlStr, body, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirectCount > 5) return reject(new Error('Too many redirects'));
+
+    const parsed   = new URL(urlStr);
+    const isHttps  = parsed.protocol === 'https:';
+    const lib      = isHttps ? https : http;
+    const bodyStr  = JSON.stringify(body);
+
+    const opts = {
+      hostname: parsed.hostname,
+      path:     parsed.pathname + parsed.search,
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(bodyStr),
+      },
+    };
+
+    const req = lib.request(opts, (res) => {
+      // Follow redirects (Apps Script always redirects POST→GET, handle gracefully)
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        // For 303, follow as GET
+        if (res.statusCode === 303) {
+          return getJson(res.headers.location).then(resolve).catch(reject);
+        }
+        return postWithRedirects(res.headers.location, body, redirectCount + 1)
+          .then(resolve).catch(reject);
+      }
+
+      let data = '';
+      res.on('data', d => data += d);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve({ ok: true, raw: data });
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(bodyStr);
+    req.end();
   });
 }
 
-/**
- * Appends rows to the sheet, skipping duplicates (by nombre+ciudad).
- * Creates the header row if the sheet is empty.
- * Returns { added, skipped }.
- */
-async function appendLeadsToSheet(leads) {
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  const auth = getAuth();
+function getJson(urlStr) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(urlStr);
+    const lib    = parsed.protocol === 'https:' ? https : http;
 
-  if (!spreadsheetId || !auth) {
-    return { ok: false, reason: 'not_configured' };
-  }
-
-  const sheets = google.sheets({ version: 'v4', auth });
-  const range  = 'Leads!A1:Z';
-
-  // ── Leer filas existentes ──────────────────────────────────────────────────
-  let existingKeys = new Set();
-  let hasHeader    = false;
-
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    const rows = res.data.values || [];
-
-    if (rows.length > 0) {
-      // Primera fila = cabeceras
-      const hdr = rows[0];
-      const iNombre = hdr.indexOf('nombre');
-      const iCiudad = hdr.indexOf('ciudad');
-
-      if (iNombre !== -1) {
-        hasHeader = true;
-        for (const row of rows.slice(1)) {
-          const key = `${(row[iNombre] || '').toLowerCase()}|${(row[iCiudad] || '').toLowerCase()}`;
-          existingKeys.add(key);
-        }
+    lib.get({ hostname: parsed.hostname, path: parsed.pathname + parsed.search }, (res) => {
+      if ([301,302,303,307,308].includes(res.statusCode) && res.headers.location) {
+        return getJson(res.headers.location).then(resolve).catch(reject);
       }
-    }
-  } catch (e) {
-    // Sheet vacío o sin permisos — continuamos
-  }
-
-  // ── Preparar filas nuevas ──────────────────────────────────────────────────
-  const now    = new Date().toLocaleDateString('es-ES');
-  const toAdd  = [];
-
-  for (const lead of leads) {
-    const key = `${lead.nombre.toLowerCase()}|${lead.ciudad.toLowerCase()}`;
-    if (existingKeys.has(key)) continue;
-    existingKeys.add(key); // evitar duplicados dentro del mismo batch
-
-    toAdd.push([
-      lead.nombre, lead.sector, lead.ciudad, lead.telefono, lead.address,
-      lead.rating, lead.reviews, lead.website, lead.maps_url,
-      lead.wa_link, lead.wa_mensaje, '', '', '', now,
-    ]);
-  }
-
-  if (toAdd.length === 0) {
-    return { ok: true, added: 0, skipped: leads.length };
-  }
-
-  // ── Escribir cabeceras si la hoja está vacía ───────────────────────────────
-  if (!hasHeader) {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range:          'Leads!A1',
-      valueInputOption: 'RAW',
-      requestBody: { values: [SHEET_HEADERS] },
-    });
-
-    // Formato bold en cabeceras
-    try {
-      const meta = await sheets.spreadsheets.get({ spreadsheetId });
-      const sheetId = meta.data.sheets.find(s => s.properties.title === 'Leads')?.properties?.sheetId ?? 0;
-
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [{
-            repeatCell: {
-              range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
-              cell: { userEnteredFormat: { textFormat: { bold: true }, backgroundColor: { red: 0.2, green: 0.2, blue: 0.6 } } },
-              fields: 'userEnteredFormat(textFormat,backgroundColor)',
-            },
-          }],
-        },
+      let data = '';
+      res.on('data', d => data += d);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch { resolve({ ok: true, raw: data }); }
       });
-    } catch (_) { /* cosmético, no crítico */ }
-  }
-
-  // ── Append ─────────────────────────────────────────────────────────────────
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range:            'Leads!A1',
-    valueInputOption: 'RAW',
-    insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: toAdd },
+    }).on('error', reject);
   });
-
-  return { ok: true, added: toAdd.length, skipped: leads.length - toAdd.length };
 }
 
 module.exports = { appendLeadsToSheet };
