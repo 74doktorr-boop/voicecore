@@ -1757,7 +1757,15 @@
         const { id: registroId } = await resp.json();
 
         // Guardar en localStorage para mostrar confirmación al volver de Stripe
-        try { localStorage.setItem('nf_registro', JSON.stringify({ ...data, id: registroId })); } catch(_) {}
+        try {
+          localStorage.setItem('nf_registro', JSON.stringify({ ...data, id: registroId }));
+          // Language for /gracias page i18n
+          localStorage.setItem('nf_reg_lang', data.idioma || 'es');
+          // Legacy keys for /gracias page
+          localStorage.setItem('nf_reg_id', registroId);
+          localStorage.setItem('nf_reg_negocio', data.negocio || '');
+          localStorage.setItem('nf_reg_plan', data.plan || '');
+        } catch(_) {}
 
         // Track form submission in GA4
         if (typeof gtag === 'function') {

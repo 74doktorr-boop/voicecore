@@ -47,10 +47,14 @@ class CallSession {
 
   _initConversation() {
     const systemMsg = this.assistant.systemPrompt || this.assistant.system_prompt || 'You are a helpful assistant.';
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    this.messages.push({ role: 'system', content: `${systemMsg}\n\n[Fecha y hora actual: ${dateStr}, ${timeStr}]` });
+    const lang      = this.assistant.language || 'es';
+    // Use locale matching the business language so day/month names are correct
+    const locale    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es-ES';
+    const now       = new Date();
+    const dateStr   = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr   = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const label     = lang === 'eu' ? 'Uneko data eta ordua' : lang === 'gl' ? 'Data e hora actual' : 'Fecha y hora actual';
+    this.messages.push({ role: 'system', content: `${systemMsg}\n\n[${label}: ${dateStr}, ${timeStr}]` });
   }
 
   addUserMessage(text) {

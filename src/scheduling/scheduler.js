@@ -98,13 +98,22 @@ class SchedulingSystem {
   }
 
   getBusinessConfig(businessId) {
-    return this.businessConfigs.get(businessId) || this.businessConfigs.values().next().value;
+    // Return exact match, or null in production — never silently fall back to
+    // a random business config. Demo IDs fall through to the first demo config.
+    const exact = this.businessConfigs.get(businessId);
+    if (exact) return exact;
+    // Allow demo fallback only for known demo/test IDs
+    const isDemoId = !businessId || businessId.startsWith('demo') || businessId === 'lumina-estetica';
+    return isDemoId ? this.businessConfigs.values().next().value : null;
   }
 
   // ─── Get available slots for a date range ───
   getAvailableSlots(businessId, fromDate, toDate, serviceId) {
     const config = this.getBusinessConfig(businessId);
     if (!config) return { error: 'Business not configured' };
+    // Never show slots in the past — clamp fromDate to today
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (fromDate < todayStr) fromDate = todayStr;
 
     const service = config.services.find(s => s.id === serviceId || s.name.toLowerCase().includes((serviceId || '').toLowerCase()));
     const duration = service ? service.duration : 30;
@@ -133,8 +142,17 @@ class SchedulingSystem {
         daySlots.push(...afternoonSlots);
       }
 
-      if (daySlots.length > 0) {
-        slots.push({ date: dateStr, dayName: this._getDayName(dayOfWeek), slots: daySlots });
+      // Filter out past time slots for today
+      const filteredSlots = dateStr === todayStr
+        ? daySlots.filter(s => {
+            const [sh, sm] = s.time.split(':').map(Number);
+            const now = new Date();
+            return sh * 60 + sm > now.getHours() * 60 + now.getMinutes() + 30; // 30 min buffer
+          })
+        : daySlots;
+
+      if (filteredSlots.length > 0) {
+        slots.push({ date: dateStr, dayName: this._getDayName(dayOfWeek), slots: filteredSlots });
       }
     }
 

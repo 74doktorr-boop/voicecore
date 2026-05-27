@@ -83,6 +83,24 @@ function setupCalendarRoutes(app, config) {
     }
   });
 
+  // ── Helper: get fresh tokens (refreshes + persists if needed) ───────────────
+  async function getFreshTokens(org) {
+    const raw = {
+      access_token:  org.google_access_token,
+      refresh_token: org.google_refresh_token,
+      expiry_date:   org.google_token_expiry,
+    };
+    const fresh = await cal.refreshIfNeeded(raw);
+    // Persist only if the access_token actually changed (avoid unnecessary writes)
+    if (fresh.access_token !== raw.access_token && db.enabled) {
+      await db.updateOrg(org.id, {
+        google_access_token: fresh.access_token,
+        google_token_expiry: fresh.expiry_date,
+      }).catch(() => {});
+    }
+    return fresh;
+  }
+
   // ── List events for a date ───────────────────────────────────────────────────
   app.get('/api/calendar/events', auth, async (req, res) => {
     const { date } = req.query;
@@ -92,13 +110,46 @@ function setupCalendarRoutes(app, config) {
     if (!org.google_refresh_token) return res.json({ events: [], connected: false });
 
     try {
-      const tokens = await cal.refreshIfNeeded({
-        access_token:  org.google_access_token,
-        refresh_token: org.google_refresh_token,
-        expiry_date:   org.google_token_expiry,
-      });
+      const tokens = await getFreshTokens(org);
       const events = await cal.listEvents(tokens, date, org.google_calendar_id || 'primary');
       res.json({ events, connected: true });
+    } catch (e) {
+      log.error(`listEvents error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Create calendar event manually from portal ───────────────────────────────
+  app.post('/api/calendar/events', auth, async (req, res) => {
+    const org = req.org;
+    if (!org.google_refresh_token) return res.status(400).json({ error: 'Google Calendar not connected', connected: false });
+
+    const { patientName, phone, email, service, date, time, duration, notes } = req.body;
+    if (!patientName || !date || !time) return res.status(400).json({ error: 'patientName, date, time required' });
+
+    try {
+      const tokens = await getFreshTokens(org);
+      const event  = await cal.createEvent(tokens, { patientName, phone, email, service, date, time, duration, notes }, {
+        calendarId: org.google_calendar_id || 'primary',
+        timezone:   'Europe/Madrid',
+      });
+      if (!event) return res.status(500).json({ error: 'Event creation failed' });
+      res.json({ ok: true, event: { id: event.id, htmlLink: event.htmlLink, summary: event.summary } });
+    } catch (e) {
+      log.error(`createEvent error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Delete calendar event ────────────────────────────────────────────────────
+  app.delete('/api/calendar/events/:eventId', auth, async (req, res) => {
+    const org = req.org;
+    if (!org.google_refresh_token) return res.status(400).json({ error: 'Google Calendar not connected' });
+
+    try {
+      const tokens = await getFreshTokens(org);
+      const ok = await cal.deleteEvent(tokens, req.params.eventId, org.google_calendar_id || 'primary');
+      res.json({ ok });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }

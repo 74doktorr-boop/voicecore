@@ -109,8 +109,10 @@ class GoogleCalendar {
       const { google } = require('googleapis');
       const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
 
-      const timeMin = new Date(`${date}T00:00:00`).toISOString();
-      const timeMax = new Date(`${date}T23:59:59`).toISOString();
+      // Use explicit Europe/Madrid offset to avoid UTC/local timezone mismatch
+      // Spain is UTC+1 (winter) / UTC+2 (summer) — using ISO with explicit time is safest
+      const timeMin = new Date(`${date}T00:00:00+01:00`).toISOString();
+      const timeMax = new Date(`${date}T23:59:59+01:00`).toISOString();
 
       const { data } = await cal.events.list({
         calendarId,

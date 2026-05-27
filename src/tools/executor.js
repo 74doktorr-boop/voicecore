@@ -4,9 +4,45 @@
 // to scheduling system and external services
 // ============================================
 
-const { scheduler } = require('../scheduling/scheduler');
-const { Logger } = require('../utils/logger');
+const { scheduler }          = require('../scheduling/scheduler');
+const { Logger }             = require('../utils/logger');
+const { getGoogleCalendar }  = require('../integrations/google-calendar');
+const { getDatabase }        = require('../db/database');
 const log = new Logger('TOOLS');
+
+// Push a calendar event after a successful booking (non-blocking, best-effort)
+async function _syncToCalendar(businessId, appointment) {
+  try {
+    const db  = getDatabase();
+    const cal = getGoogleCalendar();
+    if (!db.enabled || !cal.enabled) return;
+
+    const org = await db.getOrg(businessId);
+    if (!org?.google_refresh_token) return; // org hasn't connected Calendar
+
+    const freshTokens = await cal.refreshIfNeeded({
+      access_token:  org.google_access_token,
+      refresh_token: org.google_refresh_token,
+      expiry_date:   org.google_token_expiry,
+    });
+
+    // Persist refreshed token if it changed
+    if (freshTokens.access_token !== org.google_access_token) {
+      await db.updateOrg(businessId, {
+        google_access_token: freshTokens.access_token,
+        google_token_expiry: freshTokens.expiry_date,
+      }).catch(() => {});
+    }
+
+    const config = scheduler.getBusinessConfig(businessId);
+    await cal.createEvent(freshTokens, appointment, {
+      calendarId: org.google_calendar_id || 'primary',
+      timezone:   config?.timezone || 'Europe/Madrid',
+    });
+  } catch (e) {
+    log.warn(`_syncToCalendar failed for ${businessId}: ${e.message}`);
+  }
+}
 
 class ToolExecutor {
   constructor() {
@@ -38,18 +74,27 @@ class ToolExecutor {
 
   checkAvailability(args, assistantId) {
     const businessId = assistantId || 'demo-clinic';
-    const fromDate = args.from_date || new Date().toISOString().split('T')[0];
-    const toDate = args.to_date || (() => { const d = new Date(fromDate); d.setDate(d.getDate() + 5); return d.toISOString().split('T')[0]; })();
-    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null);
+    const fromDate   = args.from_date || new Date().toISOString().split('T')[0];
+    const toDate     = args.to_date || (() => { const d = new Date(fromDate); d.setDate(d.getDate() + 5); return d.toISOString().split('T')[0]; })();
+    const result     = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null);
+
     if (result.availableDays) {
+      // Determine language for morning/afternoon labels
+      let lang = 'es';
+      try { const { flowManager } = require('../automations/flow-manager'); lang = flowManager.getLanguage(businessId); } catch(_) {}
+      const lbl = {
+        morning:   lang === 'eu' ? 'Goizean'   : lang === 'gl' ? 'Mañá'  : 'Mañana',
+        afternoon: lang === 'eu' ? 'Arratsaldean' : lang === 'gl' ? 'Tarde' : 'Tarde',
+        first:     lang === 'eu' ? 'Lehenak'   : lang === 'gl' ? 'Primeiras' : 'Primeras',
+      };
+
       const summary = result.availableDays.map(day => {
-        const morning = day.slots.filter(s => parseInt(s.time) < 14);
+        const morning   = day.slots.filter(s => parseInt(s.time) < 14);
         const afternoon = day.slots.filter(s => parseInt(s.time) >= 14);
         let desc = `${day.dayName} ${day.date}:`;
-        if (morning.length > 0) desc += ` Manana ${morning[0].time}-${morning[morning.length-1].endTime} (${morning.length} huecos)`;
-        if (afternoon.length > 0) desc += ` Tarde ${afternoon[0].time}-${afternoon[afternoon.length-1].endTime} (${afternoon.length} huecos)`;
-        const best = day.slots.slice(0,4).map(s => s.time);
-        desc += ` Primeras: ${best.join(', ')}`;
+        if (morning.length   > 0) desc += ` ${lbl.morning} ${morning[0].time}-${morning[morning.length-1].endTime} (${morning.length} huecos)`;
+        if (afternoon.length > 0) desc += ` ${lbl.afternoon} ${afternoon[0].time}-${afternoon[afternoon.length-1].endTime} (${afternoon.length} huecos)`;
+        desc += ` ${lbl.first}: ${day.slots.slice(0, 4).map(s => s.time).join(', ')}`;
         return desc;
       });
       return { available: result.totalSlots > 0, service: result.service, duration: result.duration, totalSlots: result.totalSlots, days: summary };
@@ -58,9 +103,20 @@ class ToolExecutor {
   }
 
   bookAppointment(args, assistantId) {
-    return scheduler.bookAppointment(assistantId || 'demo-clinic', {
-      patientName: args.patient_name, phone: args.phone || '', service: args.service, date: args.date, time: args.time
+    const businessId = assistantId || 'demo-clinic';
+    const result = scheduler.bookAppointment(businessId, {
+      patientName: args.patient_name,
+      phone:       args.phone  || '',
+      email:       args.email  || null,
+      service:     args.service,
+      date:        args.date,
+      time:        args.time,
     });
+    // Best-effort Google Calendar sync (non-blocking)
+    if (result.success && result.appointment) {
+      _syncToCalendar(businessId, result.appointment).catch(() => {});
+    }
+    return result;
   }
 
   cancelAppointment(args) {
@@ -111,6 +167,7 @@ class ToolExecutor {
             properties: {
               patient_name: { type: 'string', description: 'Nombre completo del paciente' },
               phone:        { type: 'string', description: 'Teléfono de contacto del paciente' },
+              email:        { type: 'string', description: 'Email del paciente para enviarle recordatorio (opcional)' },
               service:      { type: 'string', description: 'Tipo de servicio a reservar' },
               date:         { type: 'string', description: 'Fecha de la cita (YYYY-MM-DD)' },
               time:         { type: 'string', description: 'Hora de la cita (HH:MM)' },

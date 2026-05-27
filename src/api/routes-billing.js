@@ -295,9 +295,22 @@ function setupBillingRoutes(app, config) {
           log.info(`Org ${result.orgId} upgraded to ${result.plan}`);
         }
 
-        if (result.action === 'subscription_cancelled' && db.enabled && result.orgId) {
-          await db.updateOrg(result.orgId, { plan: 'starter' });
-          log.warn(`Org ${result.orgId} downgraded to starter`);
+        if (result.action === 'subscription_cancelled' && db.enabled) {
+          if (result.orgId) {
+            await db.updateOrg(result.orgId, { plan: 'starter', is_active: true });
+            log.warn(`Org ${result.orgId} downgraded to starter (sub cancelled)`);
+          } else if (result.subscriptionId) {
+            // Payment Link customers — look up by stripe_subscription_id
+            const { data: orgRow } = await db.client
+              .from('organizations')
+              .select('id')
+              .eq('stripe_subscription_id', result.subscriptionId)
+              .single().catch(() => ({ data: null }));
+            if (orgRow) {
+              await db.updateOrg(orgRow.id, { plan: 'starter' });
+              log.warn(`Org ${orgRow.id} downgraded to starter (Payment Link cancellation)`);
+            }
+          }
         }
 
         if (result.action === 'payment_failed') {

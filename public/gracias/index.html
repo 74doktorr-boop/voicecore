@@ -256,9 +256,21 @@
     nombre.textContent = regNegocio;
     badge.style.display = 'inline-flex';
 
+    const regLang = localStorage.getItem('nf_reg_lang') || 'es';
     const plan = regPlan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
-    document.getElementById('subText').textContent =
-      `Tu suscripción ${plan} para ${regNegocio} está activa. En las próximas horas te contactamos para terminar la configuración.`;
+
+    const i18n = {
+      es: { title: '¡Pago confirmado!', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En las próximas horas te contactamos para terminar la configuración.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
+      gl: { title: 'Pagamento confirmado!', sub: `A túa subscrición ${plan} para ${regNegocio} está activa. Nas próximas horas poñémonos en contacto contigo para rematar a configuración.`, tagline: 'IA de voz para negocios · Feito en Galicia' },
+      eu: { title: 'Ordainketa baieztatuta!', sub: `Zure ${plan} harpidetza ${regNegocio}-rentzat aktibo dago. Hurrengo orduetan harremanetan jarriko gara konfigurazioa amaitzeko.`, tagline: 'Ahots IA negozioentzat · Euskal Herrian egina' },
+    };
+    const t = i18n[regLang] || i18n.es;
+
+    document.querySelector('h1').innerHTML = `${t.title}<br><span class="grad">Bienvenido a NodeFlow</span>`;
+    document.getElementById('subText').textContent = t.sub;
+    document.querySelector('.logo-sub').textContent = t.tagline;
+    if (regLang === 'gl') document.documentElement.lang = 'gl';
+    if (regLang === 'eu') document.documentElement.lang = 'eu';
   }
 
   // Intentar enriquecer con datos del servidor
