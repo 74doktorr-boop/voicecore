@@ -1,13 +1,621 @@
 {
   "published": [
-    "cuanto-cuesta-recepcionista-virtual-ia"
+    "cuanto-cuesta-recepcionista-virtual-ia",
+    "recepcionista-ia-peluqueria-bilbao",
+    "asistente-voz-clinica-dental-pais-vasco",
+    "como-no-perder-llamadas-negocio-euskadi",
+    "recepcionista-virtual-euskera-nativo",
+    "automatizar-reservas-restaurante-donostia",
+    "ia-atencion-telefonica-pymes-espana",
+    "recepcionista-ia-taller-mecanico-bilbao",
+    "google-calendar-citas-automaticas-negocio",
+    "asistente-ia-estetica-vitoria-gasteiz",
+    "recepcionista-virtual-galicia-galego",
+    "cuanto-ahorra-negocio-recepcionista-ia",
+    "recepcionista-ia-clinica-dental-bilbao",
+    "asistente-ia-gimnasio-bilbao",
+    "recepcionista-ia-veterinaria-donostia",
+    "asistente-ia-academia-vitoria",
+    "recepcionista-ia-peluqueria-donostia",
+    "recepcionista-ia-restaurante-bilbao",
+    "asistente-ia-clinica-estetica-donostia",
+    "recepcionista-ia-taller-vitoria",
+    "como-no-perder-clientes-llamadas-sin-contestar",
+    "asistente-ia-negocio-24-horas-festivos",
+    "automatizar-recordatorios-citas-reducir-no-shows",
+    "recepcionista-virtual-vs-telefonista-comparativa",
+    "ia-atiende-llamadas-fuera-horario-negocio",
+    "recepcionista-virtual-para-veterinarias-espana",
+    "asistente-ia-para-gimnasios-centros-deportivos",
+    "ia-para-academias-clases-particulares",
+    "recepcionista-ia-farmacias-espana",
+    "asistente-virtual-hoteles-rurales-espana",
+    "ia-para-inmobiliarias-gestion-llamadas",
+    "recepcionista-virtual-clinica-fisioterapia",
+    "integracion-whatsapp-business-ia-negocio",
+    "recepcionista-ia-multiidioma-euskera-galego",
+    "ia-telefonica-rgpd-cumplimiento-espana",
+    "como-elegir-asistente-ia-telefono-pyme",
+    "estadisticas-llamadas-perdidas-pymes-espana",
+    "recepcionista-ia-asesorias-gestoras-espana",
+    "asistente-ia-restaurante-vitoria"
   ],
   "posts": [
     {
+      "slug": "asistente-ia-restaurante-vitoria",
+      "title": "Asistente IA para Restaurantes en Vitoria: Reservas y Más",
+      "metaTitle": "Asistente IA Restaurante Vitoria: Automatiza Reservas",
+      "description": "Descubre cómo un asistente IA puede revolucionar tu restaurante en Vitoria-Gasteiz. Automatiza reservas y mejora el servicio. ¡Conoce más!",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA restaurante Vitoria",
+        "reservas automáticas restaurante Gasteiz",
+        "recepcionista virtual bar Álava"
+      ],
+      "sector": "restaurantes",
+      "city": "vitoria",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-asesorias-gestoras-espana",
+      "title": "Recepcionista IA para Asesorías en España: Filtra Llamadas y Agenda Citas",
+      "metaTitle": "Recepcionista IA para asesorías en España",
+      "description": "Optimiza tu asesoría con un recepcionista IA. Filtra llamadas y agenda citas automáticamente. Descubre más en NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA asesoría España",
+        "asistente virtual gestoría fiscal",
+        "automatizar llamadas asesoría laboral"
+      ],
+      "sector": "asesorias",
+      "city": null,
+      "readingMinutes": 5
+    },
+    {
+      "slug": "estadisticas-llamadas-perdidas-pymes-espana",
+      "title": "Estadísticas de llamadas perdidas en pymes españolas: el coste oculto",
+      "metaTitle": "Estadísticas de llamadas perdidas en pymes españolas",
+      "description": "Descubre el coste de las llamadas perdidas en pymes de España y cómo NodeFlow puede ayudarte a no perder clientes.",
+      "date": "2026-05-27",
+      "keywords": [
+        "estadísticas llamadas perdidas pymes España",
+        "coste llamadas perdidas negocio",
+        "datos pérdida llamadas pequeño negocio"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "como-elegir-asistente-ia-telefono-pyme",
+      "title": "Cómo elegir el mejor asistente IA telefónico para tu pyme en 2026",
+      "metaTitle": "Elige el mejor asistente IA telefónico para tu pyme",
+      "description": "Descubre cómo elegir asistente IA telefónico pyme en 2026. Mejora tu negocio con NodeFlow. ¡Conoce más!",
+      "date": "2026-05-27",
+      "keywords": [
+        "elegir asistente IA telefónico pyme",
+        "mejor recepcionista virtual España 2026",
+        "comparativa asistentes IA telefónico"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "ia-telefonica-rgpd-cumplimiento-espana",
+      "title": "IA telefónica y RGPD: Cumple con la Ley en España",
+      "metaTitle": "IA telefónica y RGPD en España: Cumple la Ley",
+      "description": "Descubre cómo cumplir con la RGPD usando IA telefónica. Protege tus datos y mejora la atención. Visita nodeflow.es",
+      "date": "2026-05-27",
+      "keywords": [
+        "IA telefónica RGPD España",
+        "asistente virtual protección de datos",
+        "cumplimiento RGPD recepcionista IA"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "recepcionista-ia-multiidioma-euskera-galego",
+      "title": "Recepcionista IA Multiidioma en España: Castellano, Euskera y Galego",
+      "metaTitle": "Recepcionista IA Multiidioma: Castellano, Euskera y Galego",
+      "description": "Descubre cómo una recepcionista IA multiidioma en España puede transformar tu negocio. Visita nodeflow.es para más información.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA multiidioma España",
+        "asistente virtual euskera castellano galego",
+        "IA varios idiomas negocio"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "integracion-whatsapp-business-ia-negocio",
+      "title": "WhatsApp Business e IA: El Dúo Perfecto para tu Negocio",
+      "metaTitle": "WhatsApp Business + IA: Revoluciona tu negocio en 2026",
+      "description": "Descubre cómo integrar WhatsApp Business con IA para transformar tu negocio en España. ¡Empieza con NodeFlow!",
+      "date": "2026-05-27",
+      "keywords": [
+        "WhatsApp Business IA negocio",
+        "integrar WhatsApp asistente IA",
+        "WhatsApp automatizado negocio España"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 8
+    },
+    {
+      "slug": "recepcionista-virtual-clinica-fisioterapia",
+      "title": "Recepcionista Virtual IA para Clínicas de Fisioterapia",
+      "metaTitle": "Recepcionista Virtual IA para Clínicas de Fisioterapia",
+      "description": "Descubre cómo automatizar citas de fisioterapia con una recepcionista virtual IA. Mejora tu clínica. Conoce más en NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista virtual fisioterapia",
+        "asistente IA clínica rehabilitación",
+        "automatizar citas fisioterapia IA"
+      ],
+      "sector": "clinicas",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "ia-para-inmobiliarias-gestion-llamadas",
+      "title": "IA Inmobiliaria: Gestión de Llamadas 24/7 con NodeFlow",
+      "metaTitle": "IA Inmobiliaria: Gestión de Llamadas 24/7 con NodeFlow",
+      "description": "Descubre cómo la IA inmobiliaria facilita la gestión de llamadas 24/7. Optimiza tu agencia con NodeFlow. ¡Infórmate ya!",
+      "date": "2026-05-27",
+      "keywords": [
+        "IA inmobiliaria gestión llamadas",
+        "recepcionista virtual agencia inmobiliaria",
+        "asistente IA inmobiliaria España"
+      ],
+      "sector": "inmobiliarias",
+      "city": null,
+      "readingMinutes": 8
+    },
+    {
+      "slug": "asistente-virtual-hoteles-rurales-espana",
+      "title": "Asistente IA para Hoteles Rurales en España",
+      "metaTitle": "Asistente IA hotel rural España: automatiza tu alojamiento",
+      "description": "Descubre cómo un asistente IA hotel rural España mejora reservas y check-in. Visita nodeflow.es y optimiza tu negocio hoy.",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA hotel rural España",
+        "recepcionista virtual alojamiento turístico",
+        "automatizar reservas hotel rural IA"
+      ],
+      "sector": "hoteles",
+      "city": null,
+      "readingMinutes": 8
+    },
+    {
+      "slug": "recepcionista-ia-farmacias-espana",
+      "title": "Optimiza tu Farmacia con una Recepcionista IA en España",
+      "metaTitle": "Recepcionista IA para Farmacias en España | NodeFlow",
+      "description": "Descubre cómo una recepcionista IA puede transformar tu farmacia en España. Automatiza turnos y llamadas con NodeFlow. ¡Infórmate ahora!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA farmacia España",
+        "asistente virtual farmacia",
+        "automatizar llamadas farmacia IA"
+      ],
+      "sector": "farmacias",
+      "city": null,
+      "readingMinutes": 8
+    },
+    {
+      "slug": "ia-para-academias-clases-particulares",
+      "title": "IA para Academias y Clases Particulares: Tu Recepcionista Virtual",
+      "metaTitle": "IA para Academias: Automatiza Matrículas y Consultas",
+      "description": "Descubre cómo la IA en academias y clases particulares puede automatizar matrículas y consultas. Mejora tu eficiencia con NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "IA academia clases particulares",
+        "recepcionista virtual academia idiomas",
+        "automatizar consultas academia IA"
+      ],
+      "sector": "academias",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-ia-para-gimnasios-centros-deportivos",
+      "title": "Asistente IA para Gimnasios: Automatiza Todo",
+      "metaTitle": "Asistente IA Gimnasio: Automatiza Todo Fácilmente",
+      "description": "Descubre cómo un asistente IA gimnasio optimiza inscripciones y consultas. Automatiza con NodeFlow y ahorra tiempo. ¡Infórmate ahora!",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA gimnasio",
+        "recepcionista virtual centro deportivo España",
+        "automatizar inscripciones gimnasio IA"
+      ],
+      "sector": "gimnasios",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-virtual-para-veterinarias-espana",
+      "title": "Recepcionista Virtual IA para Clínicas Veterinarias: Guía Completa",
+      "metaTitle": "Recepcionista Virtual Veterinaria IA: Guía Completa",
+      "description": "Descubre cómo un recepcionista virtual IA mejora la gestión en clínicas veterinarias. Automatiza citas efectivamente. ¡Conoce más!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista virtual veterinaria",
+        "asistente IA clínica veterinaria España",
+        "automatizar citas veterinario"
+      ],
+      "sector": "veterinarias",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "ia-atiende-llamadas-fuera-horario-negocio",
+      "title": "IA que Atiende Llamadas Fuera de Horario: Guía para Negocios",
+      "metaTitle": "IA atiende llamadas fuera horario: Guía completa",
+      "description": "Descubre cómo la IA atiende llamadas fuera de horario y mejora tu negocio. Configura tu recepcionista virtual hoy. Visita NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "IA atiende llamadas fuera horario",
+        "asistente virtual horario no laboral",
+        "recepcionista virtual noche fines de semana"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-virtual-vs-telefonista-comparativa",
+      "title": "Recepcionista Virtual IA vs Telefonista Humano: Comparativa Honesta 2026",
+      "metaTitle": "Recepcionista virtual vs telefonista: comparativa 2026",
+      "description": "Descubre quién gana en 2026: recepcionista virtual vs telefonista. Analiza coste, calidad y más. ¡Visita NodeFlow ahora!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista virtual vs telefonista",
+        "IA vs humano atención telefónica",
+        "comparativa recepcionista IA humano"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "automatizar-recordatorios-citas-reducir-no-shows",
+      "title": "Cómo Reducir No-Shows en Tu Negocio con Recordatorios IA Automáticos",
+      "metaTitle": "Reduce No-Shows en Tu Negocio con IA Eficaz",
+      "description": "Descubre cómo reducir no-shows citas negocio con recordatorios IA automáticos. Mejora tu eficiencia. Visita NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "reducir no-shows citas negocio",
+        "recordatorios automáticos citas IA",
+        "evitar cancelaciones last minute negocio"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-ia-negocio-24-horas-festivos",
+      "title": "Mantén Tu Negocio Abierto 24 Horas con IA",
+      "metaTitle": "Negocio Abierto 24h con IA: Tu Asistente Virtual",
+      "description": "Descubre cómo mantener tu negocio abierto 24 horas con IA. Aumenta tus ventas y mejora el servicio al cliente. ¡Conoce NodeFlow!",
+      "date": "2026-05-27",
+      "keywords": [
+        "negocio abierto 24 horas IA",
+        "asistente virtual fuera de horario negocio",
+        "atender llamadas festivos IA"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "como-no-perder-clientes-llamadas-sin-contestar",
+      "title": "Cada llamada no contestada es un cliente perdido: evítalo con IA",
+      "metaTitle": "Cada llamada no contestada es un cliente perdido: solución IA",
+      "description": "Evita perder clientes por teléfono. Descubre cómo la IA soluciona las llamadas no contestadas. Visita nodeflow.es.",
+      "date": "2026-05-27",
+      "keywords": [
+        "llamada no contestada cliente perdido",
+        "perder clientes por teléfono negocio",
+        "cómo no perder clientes llamadas"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-taller-vitoria",
+      "title": "Revoluciona tu Taller Mecánico en Vitoria con una Recepcionista IA",
+      "metaTitle": "Recepcionista IA para Taller Mecánico en Vitoria - NodeFlow",
+      "description": "Descubre cómo una recepcionista IA en Vitoria puede transformar tu taller. Mejora gestión de citas y más con NodeFlow. ¡Visítanos!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA taller mecánico Vitoria",
+        "automatizar citas taller Gasteiz",
+        "asistente virtual taller Álava"
+      ],
+      "sector": "talleres",
+      "city": "vitoria",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-ia-clinica-estetica-donostia",
+      "title": "Asistente IA para Clínicas Estéticas en Donostia",
+      "metaTitle": "Asistente IA para clínicas estéticas en Donostia",
+      "description": "Descubre cómo un asistente IA en Donostia puede revolucionar tu clínica estética. ¡Automatiza citas y consultas ahora!",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA clínica estética Donostia",
+        "recepcionista virtual estética San Sebastián",
+        "automatizar citas estética Gipuzkoa"
+      ],
+      "sector": "estetica",
+      "city": "donostia",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-restaurante-bilbao",
+      "title": "Automatiza las Reservas de tu Restaurante en Bilbao con un Recepcionista IA",
+      "metaTitle": "Recepcionista IA para Restaurantes en Bilbao",
+      "description": "Automatiza las reservas de tu restaurante en Bilbao con un recepcionista IA. Descubre NodeFlow y mejora la gestión de tu negocio.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA restaurante Bilbao",
+        "reservas automáticas restaurante Bilbao",
+        "asistente virtual bar Bizkaia"
+      ],
+      "sector": "restaurantes",
+      "city": "bilbao",
+      "readingMinutes": 6
+    },
+    {
+      "slug": "recepcionista-ia-peluqueria-donostia",
+      "title": "Recepcionista IA para Peluquería en Donostia: Revoluciona tu Negocio",
+      "metaTitle": "Recepcionista IA Peluquería Donostia: Automatiza Tu Negocio",
+      "description": "Descubre cómo un recepcionista IA para peluquería en Donostia puede automatizar citas y gestionar clientes. ¡Mejora tu negocio con NodeFlow!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA peluquería Donostia",
+        "automatizar citas peluquería San Sebastián",
+        "asistente virtual peluquería Gipuzkoa"
+      ],
+      "sector": "peluquerias",
+      "city": "donostia",
+      "readingMinutes": 6
+    },
+    {
+      "slug": "asistente-ia-academia-vitoria",
+      "title": "Asistente IA Academia Vitoria: Revoluciona Tu Centro de Formación",
+      "metaTitle": "Asistente IA para Academias en Vitoria: Automatiza ya",
+      "description": "Descubre cómo automatizar tu academia en Vitoria con un asistente IA. Mejora matrículas y atención al cliente. Visita nodeflow.es.",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA academia Vitoria",
+        "recepcionista virtual centro formación Gasteiz",
+        "automatizar matrículas academia Álava"
+      ],
+      "sector": "academias",
+      "city": "vitoria",
+      "readingMinutes": 5
+    },
+    {
+      "slug": "recepcionista-ia-veterinaria-donostia",
+      "title": "Recepcionista IA para Clínicas Veterinarias en Donostia",
+      "metaTitle": "Recepcionista IA para veterinarias en Donostia",
+      "description": "Optimiza tu clínica veterinaria en Donostia con una recepcionista IA. Mejora gestión de citas y urgencias. Descúbrelo en NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA veterinaria Donostia",
+        "asistente virtual clínica veterinaria San Sebastián",
+        "automatizar citas veterinario Gipuzkoa"
+      ],
+      "sector": "veterinarias",
+      "city": "donostia",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-ia-gimnasio-bilbao",
+      "title": "Asistente IA para Gimnasios en Bilbao: Optimiza tu Recepción",
+      "metaTitle": "Asistente IA Gimnasio Bilbao: Automatiza Inscripciones",
+      "description": "Descubre cómo los gimnasios en Bilbao pueden automatizar inscripciones y llamadas con un asistente IA. Mejora tu negocio ahora.",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA gimnasio Bilbao",
+        "recepcionista virtual gimnasio Bizkaia",
+        "automatizar llamadas gimnasio Bilbao"
+      ],
+      "sector": "gimnasios",
+      "city": "bilbao",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-clinica-dental-bilbao",
+      "title": "Recepcionista IA para Clínicas Dentales en Bilbao: Menos Llamadas Perdidas",
+      "metaTitle": "Recepcionista IA Clínica Dental Bilbao: Menos Llamadas Perdidas",
+      "description": "Descubre cómo una recepcionista IA puede reducir llamadas perdidas en clínicas dentales de Bilbao. Automatiza citas ahora. Visita nodeflow.es",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA clínica dental Bilbao",
+        "automatizar citas dentista Bilbao",
+        "asistente virtual odontología Bizkaia"
+      ],
+      "sector": "clinicas",
+      "city": "bilbao",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "cuanto-ahorra-negocio-recepcionista-ia",
+      "title": "¿Cuánto ahorra un negocio con un recepcionista IA?",
+      "metaTitle": "Ahorro con un recepcionista IA: análisis real",
+      "description": "Descubre el ahorro real de un recepcionista IA en tu negocio. Análisis económico y ROI. ¡Visita NodeFlow para más info!",
+      "date": "2026-05-27",
+      "keywords": [
+        "ahorro recepcionista IA negocio",
+        "ROI asistente virtual telefónico",
+        "rentabilidad IA atención llamadas"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-virtual-galicia-galego",
+      "title": "Recepcionista Virtual Galego: La IA que Revoluciona Negocios en Galicia",
+      "metaTitle": "Recepcionista virtual galego: IA para negocios en Galicia",
+      "description": "Descubre cómo un recepcionista virtual galego puede transformar tu negocio en Galicia. Mejora la atención al cliente hoy con NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista virtual galego",
+        "asistente IA galego negocio",
+        "IA fala galego Galicia"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-ia-estetica-vitoria-gasteiz",
+      "title": "Asistente IA Estética Vitoria: Automatiza y Crece",
+      "metaTitle": "Asistente IA Estética Vitoria: Revoluciona tu Centro",
+      "description": "Optimiza tu centro de belleza en Vitoria con un asistente IA. Automatiza citas y más. Descubre NodeFlow y transforma tu negocio.",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA estética Vitoria",
+        "recepcionista virtual centro belleza Gasteiz",
+        "automatizar citas estética Álava"
+      ],
+      "sector": "estetica",
+      "city": "vitoria",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "google-calendar-citas-automaticas-negocio",
+      "title": "Google Calendar + IA: Citas Automáticas para tu Negocio en 2026",
+      "metaTitle": "Google Calendar + IA: Revoluciona tus Citas en 2026",
+      "description": "Descubre cómo integrar IA en Google Calendar para citas automáticas y mejora tu negocio. Visita NodeFlow para más detalles.",
+      "date": "2026-05-27",
+      "keywords": [
+        "Google Calendar IA citas automáticas",
+        "integrar IA Google Calendar negocio",
+        "reservas automáticas Google Calendar"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-taller-mecanico-bilbao",
+      "title": "Recepcionista IA para Taller Mecánico en Bilbao: La Revolución Digital",
+      "metaTitle": "Recepcionista IA para talleres mecánicos en Bilbao",
+      "description": "Optimiza tu taller mecánico en Bilbao con una recepcionista IA. Automatiza citas y presupuestos. Descubre NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA taller mecánico Bilbao",
+        "automatizar citas taller Bizkaia",
+        "asistente virtual taller mecánico"
+      ],
+      "sector": "talleres",
+      "city": "bilbao",
+      "readingMinutes": 7
+    },
+    {
+      "slug": "ia-atencion-telefonica-pymes-espana",
+      "title": "IA para atención telefónica en pymes españolas: todo lo que necesitas saber",
+      "metaTitle": "IA para atención telefónica en pymes: soluciones y beneficios",
+      "description": "Descubre cómo la IA en atención telefónica puede transformar tu pyme. Automatiza llamadas y mejora la eficiencia. Visita NodeFlow para más info.",
+      "date": "2026-05-27",
+      "keywords": [
+        "IA atención telefónica pymes",
+        "asistente telefónico inteligente pyme",
+        "automatizar llamadas pequeño negocio España"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "automatizar-reservas-restaurante-donostia",
+      "title": "Automatizar Reservas en tu Restaurante en Donostia",
+      "metaTitle": "Automatizar Reservas Restaurante Donostia con IA",
+      "description": "Descubre cómo automatizar reservas en tu restaurante en Donostia con IA. Mejora la gestión y atrae más clientes. ¡Descúbrelo ya!",
+      "date": "2026-05-27",
+      "keywords": [
+        "automatizar reservas restaurante Donostia",
+        "recepcionista IA restaurante San Sebastián",
+        "reservas automáticas bar Gipuzkoa"
+      ],
+      "sector": "restaurantes",
+      "city": "donostia",
+      "readingMinutes": 8
+    },
+    {
+      "slug": "recepcionista-virtual-euskera-nativo",
+      "title": "Recepcionista Virtual en Euskera: ¿Futuro o Realidad en 2026?",
+      "metaTitle": "Recepcionista virtual euskera: futuro en 2026",
+      "description": "Descubre cómo un recepcionista virtual que habla euskera nativo puede transformar tu negocio en 2026. ¡Infórmate en NodeFlow!",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista virtual euskera",
+        "asistente IA euskera nativo",
+        "IA habla euskera negocio"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "como-no-perder-llamadas-negocio-euskadi",
+      "title": "Cómo dejar de perder llamadas en tu negocio del País Vasco",
+      "metaTitle": "Cómo dejar de perder llamadas en tu negocio",
+      "description": "Descubre cómo evitar perder llamadas en tu negocio del País Vasco con IA. Solución eficaz y rentable. ¡Mejora tu atención al cliente ahora!",
+      "date": "2026-05-27",
+      "keywords": [
+        "perder llamadas negocio",
+        "solución llamadas perdidas negocio",
+        "IA atiende llamadas negocio"
+      ],
+      "sector": null,
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "asistente-voz-clinica-dental-pais-vasco",
+      "title": "Asistente IA para Clínicas Dentales en el País Vasco: La Revolución Digital",
+      "metaTitle": "Asistente IA para Clínicas Dentales en País Vasco",
+      "description": "Descubre cómo un asistente IA puede transformar tu clínica dental en el País Vasco. Reduce llamadas perdidas y automatiza citas hoy.",
+      "date": "2026-05-27",
+      "keywords": [
+        "asistente IA clínica dental País Vasco",
+        "recepcionista virtual odontología",
+        "automatizar citas dental Bilbao"
+      ],
+      "sector": "clinicas",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "recepcionista-ia-peluqueria-bilbao",
+      "title": "Recepcionista IA para Peluquería en Bilbao: Guía Completa 2026",
+      "metaTitle": "Recepcionista IA para Peluquería en Bilbao: Guía 2026",
+      "description": "Descubre cómo una recepcionista IA puede automatizar citas en tu peluquería de Bilbao. Mejora tu negocio hoy con NodeFlow.",
+      "date": "2026-05-27",
+      "keywords": [
+        "recepcionista IA peluquería Bilbao",
+        "automatizar citas peluquería Bilbao",
+        "asistente virtual peluquería Bizkaia"
+      ],
+      "sector": "peluquerias",
+      "city": "bilbao",
+      "readingMinutes": 5
+    },
+    {
       "slug": "cuanto-cuesta-recepcionista-virtual-ia",
-      "title": "¿Cuánto cuesta un recepcionista virtual con IA en 2026?",
-      "metaTitle": "Recepcionista Virtual IA: ¿Cuánto Costará en 2026?",
-      "description": "Descubre el precio de un recepcionista virtual IA en 2026 y cómo puede beneficiar a tu negocio en España.",
+      "title": "Recepcionista Virtual IA Precio: ¿Cuánto Costará en 2026?",
+      "metaTitle": "Recepcionista Virtual IA Precio: ¿Cuánto Costará en 2026?",
+      "description": "Descubre el precio de un recepcionista virtual con IA en 2026. Compara costes y ahorra con NodeFlow. ¡Infórmate ahora!",
       "date": "2026-05-27",
       "keywords": [
         "recepcionista virtual IA precio",
@@ -16,7 +624,7 @@
       ],
       "sector": null,
       "city": null,
-      "readingMinutes": 5
+      "readingMinutes": 6
     }
   ]
 }

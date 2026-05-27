@@ -12,6 +12,16 @@
   <meta property="og:description" content="Guías sobre recepcionistas virtuales, automatización de llamadas y IA para pymes.">
   <meta property="og:url" content="https://nodeflow.es/blog">
   <meta property="og:image" content="https://nodeflow.es/og-image.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "Blog NodeFlow",
+    "url": "https://nodeflow.es/blog",
+    "description": "Guías sobre IA para negocios: recepcionistas virtuales, automatización de llamadas y atención al cliente.",
+    "publisher": {"@type": "Organization", "name": "NodeFlow", "url": "https://nodeflow.es"}
+  }
+  </script>
   <!-- GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZPKHPG2BLC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
@@ -35,21 +45,22 @@
     .nav-inner{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
     .logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text)}
     .logo em{color:var(--accent-l);font-style:normal}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:all .25s;border:none}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:all .25s;border:none;cursor:pointer}
     .btn-primary{background:var(--accent);color:#fff}
     .btn-primary:hover{background:#7c6cf7;transform:translateY(-1px)}
-    .hero{padding:110px 0 60px;position:relative;z-index:2;text-align:center}
-    .hero h1{font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:-2px;margin-bottom:14px}
-    .hero p{color:var(--dim);font-size:17px;max-width:520px;margin:0 auto}
-    .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:40px 0 80px;position:relative;z-index:2}
+    .hero{padding:110px 0 48px;position:relative;z-index:2;text-align:center}
+    .hero h1{font-size:clamp(30px,5vw,54px);font-weight:900;letter-spacing:-2px;margin-bottom:14px}
+    .hero p{color:var(--dim);font-size:17px;max-width:540px;margin:0 auto 20px}
+    .hero-count{display:inline-block;font-size:13px;color:var(--accent-l);background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);padding:6px 14px;border-radius:100px}
+    .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 0 80px;position:relative;z-index:2}
     @media(max-width:600px){.posts-grid{grid-template-columns:1fr}}
     .post-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:12px;transition:all .3s;color:var(--text)}
-    .post-card:hover{border-color:var(--border-accent);transform:translateY(-4px);background:var(--card-hover)}
+    .post-card:hover{border-color:var(--border-accent);transform:translateY(-4px);background:var(--card-hover);box-shadow:0 16px 48px rgba(0,0,0,0.4)}
     .post-card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .tag{font-size:11px;padding:3px 9px;border-radius:100px;background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);color:var(--accent-l);font-weight:500}
     .post-card h2{font-size:18px;font-weight:700;letter-spacing:-0.4px;line-height:1.3}
     .post-card p{font-size:14px;color:var(--dim);line-height:1.65;flex:1}
-    .read-more{font-size:13px;font-weight:600;color:var(--accent-l)}
+    .read-more{font-size:13px;font-weight:600;color:var(--text)}
     footer{border-top:1px solid var(--border);padding:32px 0}
     .footer-inner{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
     .footer-links{display:flex;gap:16px;flex-wrap:wrap}
@@ -72,22 +83,403 @@
 <section class="hero">
   <div class="container">
     <h1>Blog <span style="color:var(--accent-l)">NodeFlow</span></h1>
-    <p>Guías prácticas sobre IA para negocios: recepcionistas virtuales, automatización de llamadas y más.</p>
+    <p>Guías prácticas sobre IA para negocios: recepcionistas virtuales, automatización de llamadas y mucho más.</p>
+    <span class="hero-count">39 artículos publicados</span>
   </div>
 </section>
 <main>
   <div class="container">
     <div class="posts-grid">
       
+      <a href="/blog/asistente-ia-restaurante-vitoria" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">vitoria</span>
+          <span class="tag">restaurantes</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Restaurantes en Vitoria: Reservas y Más</h2>
+        <p>Descubre cómo un asistente IA puede revolucionar tu restaurante en Vitoria-Gasteiz. Automatiza reservas y mejora el servicio. ¡Conoce más!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-asesorias-gestoras-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">asesorias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Asesorías en España: Filtra Llamadas y Agenda Citas</h2>
+        <p>Optimiza tu asesoría con un recepcionista IA. Filtra llamadas y agenda citas automáticamente. Descubre más en NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">5 min</span></span>
+      </a>
+      <a href="/blog/estadisticas-llamadas-perdidas-pymes-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Estadísticas de llamadas perdidas en pymes españolas: el coste oculto</h2>
+        <p>Descubre el coste de las llamadas perdidas en pymes de España y cómo NodeFlow puede ayudarte a no perder clientes.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/como-elegir-asistente-ia-telefono-pyme" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Cómo elegir el mejor asistente IA telefónico para tu pyme en 2026</h2>
+        <p>Descubre cómo elegir asistente IA telefónico pyme en 2026. Mejora tu negocio con NodeFlow. ¡Conoce más!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/ia-telefonica-rgpd-cumplimiento-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>IA telefónica y RGPD: Cumple con la Ley en España</h2>
+        <p>Descubre cómo cumplir con la RGPD usando IA telefónica. Protege tus datos y mejora la atención. Visita nodeflow.es</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-multiidioma-euskera-galego" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA Multiidioma en España: Castellano, Euskera y Galego</h2>
+        <p>Descubre cómo una recepcionista IA multiidioma en España puede transformar tu negocio. Visita nodeflow.es para más información.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/integracion-whatsapp-business-ia-negocio" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>WhatsApp Business e IA: El Dúo Perfecto para tu Negocio</h2>
+        <p>Descubre cómo integrar WhatsApp Business con IA para transformar tu negocio en España. ¡Empieza con NodeFlow!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-virtual-clinica-fisioterapia" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">clinicas</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista Virtual IA para Clínicas de Fisioterapia</h2>
+        <p>Descubre cómo automatizar citas de fisioterapia con una recepcionista virtual IA. Mejora tu clínica. Conoce más en NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/ia-para-inmobiliarias-gestion-llamadas" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">inmobiliarias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>IA Inmobiliaria: Gestión de Llamadas 24/7 con NodeFlow</h2>
+        <p>Descubre cómo la IA inmobiliaria facilita la gestión de llamadas 24/7. Optimiza tu agencia con NodeFlow. ¡Infórmate ya!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
+      </a>
+      <a href="/blog/asistente-virtual-hoteles-rurales-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">hoteles</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Hoteles Rurales en España</h2>
+        <p>Descubre cómo un asistente IA hotel rural España mejora reservas y check-in. Visita nodeflow.es y optimiza tu negocio hoy.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-farmacias-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">farmacias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Optimiza tu Farmacia con una Recepcionista IA en España</h2>
+        <p>Descubre cómo una recepcionista IA puede transformar tu farmacia en España. Automatiza turnos y llamadas con NodeFlow. ¡Infórmate ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
+      </a>
+      <a href="/blog/ia-para-academias-clases-particulares" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">academias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>IA para Academias y Clases Particulares: Tu Recepcionista Virtual</h2>
+        <p>Descubre cómo la IA en academias y clases particulares puede automatizar matrículas y consultas. Mejora tu eficiencia con NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-para-gimnasios-centros-deportivos" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">gimnasios</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Gimnasios: Automatiza Todo</h2>
+        <p>Descubre cómo un asistente IA gimnasio optimiza inscripciones y consultas. Automatiza con NodeFlow y ahorra tiempo. ¡Infórmate ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-virtual-para-veterinarias-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">veterinarias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista Virtual IA para Clínicas Veterinarias: Guía Completa</h2>
+        <p>Descubre cómo un recepcionista virtual IA mejora la gestión en clínicas veterinarias. Automatiza citas efectivamente. ¡Conoce más!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/ia-atiende-llamadas-fuera-horario-negocio" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>IA que Atiende Llamadas Fuera de Horario: Guía para Negocios</h2>
+        <p>Descubre cómo la IA atiende llamadas fuera de horario y mejora tu negocio. Configura tu recepcionista virtual hoy. Visita NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-virtual-vs-telefonista-comparativa" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista Virtual IA vs Telefonista Humano: Comparativa Honesta 2026</h2>
+        <p>Descubre quién gana en 2026: recepcionista virtual vs telefonista. Analiza coste, calidad y más. ¡Visita NodeFlow ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/automatizar-recordatorios-citas-reducir-no-shows" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Cómo Reducir No-Shows en Tu Negocio con Recordatorios IA Automáticos</h2>
+        <p>Descubre cómo reducir no-shows citas negocio con recordatorios IA automáticos. Mejora tu eficiencia. Visita NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-negocio-24-horas-festivos" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Mantén Tu Negocio Abierto 24 Horas con IA</h2>
+        <p>Descubre cómo mantener tu negocio abierto 24 horas con IA. Aumenta tus ventas y mejora el servicio al cliente. ¡Conoce NodeFlow!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/como-no-perder-clientes-llamadas-sin-contestar" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Cada llamada no contestada es un cliente perdido: evítalo con IA</h2>
+        <p>Evita perder clientes por teléfono. Descubre cómo la IA soluciona las llamadas no contestadas. Visita nodeflow.es.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-taller-vitoria" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">vitoria</span>
+          <span class="tag">talleres</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Revoluciona tu Taller Mecánico en Vitoria con una Recepcionista IA</h2>
+        <p>Descubre cómo una recepcionista IA en Vitoria puede transformar tu taller. Mejora gestión de citas y más con NodeFlow. ¡Visítanos!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-clinica-estetica-donostia" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">donostia</span>
+          <span class="tag">estetica</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Clínicas Estéticas en Donostia</h2>
+        <p>Descubre cómo un asistente IA en Donostia puede revolucionar tu clínica estética. ¡Automatiza citas y consultas ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-restaurante-bilbao" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">bilbao</span>
+          <span class="tag">restaurantes</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Automatiza las Reservas de tu Restaurante en Bilbao con un Recepcionista IA</h2>
+        <p>Automatiza las reservas de tu restaurante en Bilbao con un recepcionista IA. Descubre NodeFlow y mejora la gestión de tu negocio.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-peluqueria-donostia" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">donostia</span>
+          <span class="tag">peluquerias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Peluquería en Donostia: Revoluciona tu Negocio</h2>
+        <p>Descubre cómo un recepcionista IA para peluquería en Donostia puede automatizar citas y gestionar clientes. ¡Mejora tu negocio con NodeFlow!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-academia-vitoria" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">vitoria</span>
+          <span class="tag">academias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA Academia Vitoria: Revoluciona Tu Centro de Formación</h2>
+        <p>Descubre cómo automatizar tu academia en Vitoria con un asistente IA. Mejora matrículas y atención al cliente. Visita nodeflow.es.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">5 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-veterinaria-donostia" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">donostia</span>
+          <span class="tag">veterinarias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Clínicas Veterinarias en Donostia</h2>
+        <p>Optimiza tu clínica veterinaria en Donostia con una recepcionista IA. Mejora gestión de citas y urgencias. Descúbrelo en NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-gimnasio-bilbao" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">bilbao</span>
+          <span class="tag">gimnasios</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Gimnasios en Bilbao: Optimiza tu Recepción</h2>
+        <p>Descubre cómo los gimnasios en Bilbao pueden automatizar inscripciones y llamadas con un asistente IA. Mejora tu negocio ahora.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-clinica-dental-bilbao" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">bilbao</span>
+          <span class="tag">clinicas</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Clínicas Dentales en Bilbao: Menos Llamadas Perdidas</h2>
+        <p>Descubre cómo una recepcionista IA puede reducir llamadas perdidas en clínicas dentales de Bilbao. Automatiza citas ahora. Visita nodeflow.es</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/cuanto-ahorra-negocio-recepcionista-ia" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>¿Cuánto ahorra un negocio con un recepcionista IA?</h2>
+        <p>Descubre el ahorro real de un recepcionista IA en tu negocio. Análisis económico y ROI. ¡Visita NodeFlow para más info!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-virtual-galicia-galego" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista Virtual Galego: La IA que Revoluciona Negocios en Galicia</h2>
+        <p>Descubre cómo un recepcionista virtual galego puede transformar tu negocio en Galicia. Mejora la atención al cliente hoy con NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-ia-estetica-vitoria-gasteiz" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">vitoria</span>
+          <span class="tag">estetica</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA Estética Vitoria: Automatiza y Crece</h2>
+        <p>Optimiza tu centro de belleza en Vitoria con un asistente IA. Automatiza citas y más. Descubre NodeFlow y transforma tu negocio.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/google-calendar-citas-automaticas-negocio" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Google Calendar + IA: Citas Automáticas para tu Negocio en 2026</h2>
+        <p>Descubre cómo integrar IA en Google Calendar para citas automáticas y mejora tu negocio. Visita NodeFlow para más detalles.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-taller-mecanico-bilbao" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">bilbao</span>
+          <span class="tag">talleres</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Taller Mecánico en Bilbao: La Revolución Digital</h2>
+        <p>Optimiza tu taller mecánico en Bilbao con una recepcionista IA. Automatiza citas y presupuestos. Descubre NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/ia-atencion-telefonica-pymes-espana" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>IA para atención telefónica en pymes españolas: todo lo que necesitas saber</h2>
+        <p>Descubre cómo la IA en atención telefónica puede transformar tu pyme. Automatiza llamadas y mejora la eficiencia. Visita NodeFlow para más info.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
+      </a>
+      <a href="/blog/automatizar-reservas-restaurante-donostia" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">donostia</span>
+          <span class="tag">restaurantes</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Automatizar Reservas en tu Restaurante en Donostia</h2>
+        <p>Descubre cómo automatizar reservas en tu restaurante en Donostia con IA. Mejora la gestión y atrae más clientes. ¡Descúbrelo ya!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-virtual-euskera-nativo" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista Virtual en Euskera: ¿Futuro o Realidad en 2026?</h2>
+        <p>Descubre cómo un recepcionista virtual que habla euskera nativo puede transformar tu negocio en 2026. ¡Infórmate en NodeFlow!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/como-no-perder-llamadas-negocio-euskadi" class="post-card">
+        <div class="post-card-meta">
+          
+          
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Cómo dejar de perder llamadas en tu negocio del País Vasco</h2>
+        <p>Descubre cómo evitar perder llamadas en tu negocio del País Vasco con IA. Solución eficaz y rentable. ¡Mejora tu atención al cliente ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/asistente-voz-clinica-dental-pais-vasco" class="post-card">
+        <div class="post-card-meta">
+          
+          <span class="tag">clinicas</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Asistente IA para Clínicas Dentales en el País Vasco: La Revolución Digital</h2>
+        <p>Descubre cómo un asistente IA puede transformar tu clínica dental en el País Vasco. Reduce llamadas perdidas y automatiza citas hoy.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
+      </a>
+      <a href="/blog/recepcionista-ia-peluqueria-bilbao" class="post-card">
+        <div class="post-card-meta">
+          <span class="tag">bilbao</span>
+          <span class="tag">peluquerias</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
+        </div>
+        <h2>Recepcionista IA para Peluquería en Bilbao: Guía Completa 2026</h2>
+        <p>Descubre cómo una recepcionista IA puede automatizar citas en tu peluquería de Bilbao. Mejora tu negocio hoy con NodeFlow.</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">5 min</span></span>
+      </a>
       <a href="/blog/cuanto-cuesta-recepcionista-virtual-ia" class="post-card">
         <div class="post-card-meta">
           
           
-          <span style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</span>
+          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
         </div>
-        <h2>¿Cuánto cuesta un recepcionista virtual con IA en 2026?</h2>
-        <p>Descubre el precio de un recepcionista virtual IA en 2026 y cómo puede beneficiar a tu negocio en España.</p>
-        <span class="read-more">Leer artículo → <span style="color:var(--muted);font-size:12px">5 min</span></span>
+        <h2>Recepcionista Virtual IA Precio: ¿Cuánto Costará en 2026?</h2>
+        <p>Descubre el precio de un recepcionista virtual con IA en 2026. Compara costes y ahorra con NodeFlow. ¡Infórmate ahora!</p>
+        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
       </a>
     </div>
   </div>
@@ -100,6 +492,7 @@
         <a href="https://nodeflow.es">Inicio</a>
         <a href="https://nodeflow.es/bilbao">Bilbao</a>
         <a href="https://nodeflow.es/donostia">Donostia</a>
+        <a href="https://nodeflow.es/vitoria">Vitoria</a>
         <a href="https://nodeflow.es/privacidad">Privacidad</a>
       </div>
       <div class="footer-copy">© 2026 NodeFlow · unai@nodeflow.es</div>

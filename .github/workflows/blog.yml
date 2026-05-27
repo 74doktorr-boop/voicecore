@@ -49,6 +49,17 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
+          # Check remaining topics and warn if pool is low
+          PENDING=$(node -e "
+            const t=require('./public/blog/topics.json');
+            const m=require('./public/blog/manifest.json');
+            console.log(t.filter(x=>!m.published.includes(x.slug)).length);
+          " 2>/dev/null || echo "?")
+          echo "📊 Topics pendientes en el pool: $PENDING"
+          if [ "$PENDING" = "0" ]; then
+            echo "⚠️  Pool vacío — añade más topics a public/blog/topics.json"
+            exit 0
+          fi
           node scripts/blog-gen.js $ARGS
 
       - name: Check for new files
