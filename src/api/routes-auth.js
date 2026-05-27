@@ -183,4 +183,4 @@ function setupAuthRoutes(app) {
   });
 }
 
-module.exports = { setupAuthRoutes, generateMagicToken };
+module.exports = { setupAuthRoutes, generateMagicToken, verifySessionToken };

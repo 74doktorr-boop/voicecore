@@ -6,6 +6,7 @@
 
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
+const { verifySessionToken } = require('./routes-auth');
 
 const log = new Logger('ADMIN');
 
@@ -190,25 +191,49 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
-  // ─── Portal: GET /api/portal/me (auth by org API key) ───────────────────────
+  // ─── Portal: GET /api/portal/me (auth by API key or session JWT) ─────────────
   app.get('/api/portal/me', async (req, res) => {
     const header = req.headers['authorization'] || '';
-    const key    = header.replace('Bearer ', '').trim();
-    if (!key) return res.status(401).json({ error: 'API Key requerida' });
+    const token  = header.replace('Bearer ', '').trim();
+    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
 
     const db = getDatabase();
+
+    // Try session JWT first (magic link auth)
+    let sessionEmail = null;
+    try {
+      const payload = verifySessionToken(token);
+      sessionEmail = payload.email;
+    } catch (_) {
+      // Not a JWT — fall through to API key check
+    }
+
     if (!db.enabled) {
-      // Dev fallback — return fake org if key matches config
-      if (key === (config.apiKey || 'voicecore-dev')) {
+      if (token === (config.apiKey || 'voicecore-dev') || sessionEmail === 'dev@nodeflow.es') {
         return res.json({ id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'dev@nodeflow.es' });
       }
       return res.status(401).json({ error: 'No autorizado' });
     }
 
     try {
-      const org = await db.getOrgByApiKey(key);
-      if (!org) return res.status(401).json({ error: 'API Key inválida' });
-      // Return safe public fields (no private keys)
+      let org = null;
+      if (sessionEmail) {
+        // Look up org by owner email (magic link session)
+        const { data } = await db.client
+          .from('organizations')
+          .select('*')
+          .eq('owner_email', sessionEmail.trim().toLowerCase())
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        org = data;
+      } else {
+        org = await db.getOrgByApiKey(token);
+      }
+
+      if (!org) return res.status(401).json({ error: sessionEmail ? 'Cuenta no encontrada' : 'API Key inválida' });
+
       res.json({
         id:              org.id,
         name:            org.name,
@@ -220,7 +245,7 @@ function setupAdminRoutes(app, config, assistantManager) {
         monthly_minutes_limit: org.monthly_minutes_limit,
         monthly_minutes_used:  org.monthly_minutes_used,
         google_calendar_id:    org.google_calendar_id,
-        google_refresh_token:  !!org.google_refresh_token, // boolean only
+        google_refresh_token:  !!org.google_refresh_token,
         created_at:      org.created_at,
       });
     } catch (e) {

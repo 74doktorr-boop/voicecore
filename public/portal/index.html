@@ -142,12 +142,13 @@
 <!-- ─── Login ─────────────────────────────────────────────────────────────── -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="login-logo">⚡ Node<em>Flow</em></div>
-    <p class="login-sub">Portal de cliente · Accede con tu API Key</p>
-    <input id="apiKeyInput" class="login-input" type="password" placeholder="vc_xxxxxxxxxxxxx" autocomplete="off">
-    <button class="login-btn" onclick="login()">Entrar al portal →</button>
-    <div id="loginError">API Key incorrecta</div>
-    <p class="login-help">¿Perdiste tu API Key? <a href="https://wa.me/34666351319">Escríbenos por WhatsApp</a></p>
+    <div class="login-logo">node<em>flow</em></div>
+    <div class="login-sub">Portal de clientes</div>
+    <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">Introduce tu email y te enviamos un enlace de acceso instantáneo.</p>
+    <input type="email" class="login-input" id="accessEmail" placeholder="tu@email.com" autocomplete="email">
+    <button class="login-btn" onclick="requestAccess()">Enviar enlace de acceso</button>
+    <div id="accessMsg" style="margin-top:12px;font-size:13px;display:none;"></div>
+    <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
   </div>
 </div>
 
@@ -344,37 +345,119 @@
 </div>
 
 <script>
-const API_KEY_STORE = 'nf_portal_key';
+const SESSION_KEY   = 'nf_session';
+const API_KEY_STORE = 'nf_portal_key'; // kept for backward compat with existing api() helper
 const ORG_STORE     = 'nf_portal_org';
 
-// ── Auth ────────────────────────────────────────────────────────────────────
-async function login() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) return;
+// ── Magic Link Auth ──────────────────────────────────────────────────────────
+async function verifyMagicToken(token) {
+  const resp = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`);
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || 'Token inválido');
+  return data.session_token;
+}
 
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
-
+async function validateSession(sessionToken) {
   try {
-    const res = await fetch('/api/portal/me', {
-      headers: { 'Authorization': `Bearer ${key}` }
+    const resp = await fetch('/api/auth/session', {
+      headers: { 'Authorization': `Bearer ${sessionToken}` }
     });
-    if (!res.ok) { err.style.display = 'block'; return; }
-    const org = await res.json();
-    localStorage.setItem(API_KEY_STORE, key);
-    localStorage.setItem(ORG_STORE, JSON.stringify(org));
-    showApp(org, key);
+    return resp.ok;
+  } catch { return false; }
+}
+
+async function loadOrgWithToken(token) {
+  const res = await fetch('/api/portal/me', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function initAuth() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const magicToken = urlParams.get('token');
+
+  if (magicToken) {
+    try {
+      const sessionToken = await verifyMagicToken(magicToken);
+      localStorage.setItem(SESSION_KEY, sessionToken);
+      localStorage.setItem(API_KEY_STORE, sessionToken); // api() helper uses this
+      window.history.replaceState({}, '', '/portal');
+      return sessionToken;
+    } catch (e) {
+      showRequestAccess(`Enlace inválido o expirado: ${e.message}`);
+      return null;
+    }
+  }
+
+  // Check existing session JWT
+  const existing = localStorage.getItem(SESSION_KEY);
+  if (existing) {
+    const valid = await validateSession(existing);
+    if (valid) return existing;
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(API_KEY_STORE);
+    localStorage.removeItem(ORG_STORE);
+  }
+
+  // Legacy API key login (backward compat for existing clients)
+  const legacyKey = localStorage.getItem(API_KEY_STORE);
+  const legacyOrg = localStorage.getItem(ORG_STORE);
+  if (legacyKey && legacyOrg) {
+    try { showApp(JSON.parse(legacyOrg), legacyKey); return legacyKey; } catch {}
+  }
+
+  showRequestAccess();
+  return null;
+}
+
+function showRequestAccess(errorMsg) {
+  document.getElementById('loginScreen').innerHTML = `
+    <div class="login-card">
+      <div class="login-logo">node<em>flow</em></div>
+      <div class="login-sub">Portal de clientes</div>
+      ${errorMsg ? `<div style="color:#e74c3c;font-size:13px;margin-bottom:16px;">${errorMsg}</div>` : ''}
+      <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">Introduce tu email y te enviamos un enlace de acceso instantáneo.</p>
+      <input type="email" class="login-input" id="accessEmail" placeholder="tu@email.com" autocomplete="email">
+      <button class="login-btn" onclick="requestAccess()">Enviar enlace de acceso</button>
+      <div id="accessMsg" style="margin-top:12px;font-size:13px;display:none;"></div>
+      <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
+    </div>
+  `;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function requestAccess() {
+  const email = document.getElementById('accessEmail').value.trim();
+  const msgEl = document.getElementById('accessMsg');
+  if (!email || !email.includes('@')) {
+    msgEl.style.color = '#e74c3c';
+    msgEl.textContent = 'Introduce un email válido.';
+    msgEl.style.display = 'block';
+    return;
+  }
+  msgEl.style.color = 'var(--dim)';
+  msgEl.textContent = 'Enviando...';
+  msgEl.style.display = 'block';
+  try {
+    const resp = await fetch('/api/auth/request-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await resp.json();
+    msgEl.style.color = '#2ecc71';
+    msgEl.textContent = data.message || '¡Enviado! Revisa tu email.';
   } catch (e) {
-    err.textContent = 'Error de conexión';
-    err.style.display = 'block';
+    msgEl.style.color = '#e74c3c';
+    msgEl.textContent = 'Error de conexión. Inténtalo de nuevo.';
   }
 }
 
-document.getElementById('apiKeyInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') login();
-});
-
 function logout() {
+  localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(API_KEY_STORE);
   localStorage.removeItem(ORG_STORE);
   location.reload();
@@ -648,24 +731,23 @@ function copyApiKey() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-(function init() {
-  const key = localStorage.getItem(API_KEY_STORE);
-  const org = localStorage.getItem(ORG_STORE);
-  if (key && org) {
-    try { showApp(JSON.parse(org), key); return; } catch {}
-  }
-  // Auto-fill from URL param or hash fragment (from bienvenida email).
-  // We now use #key= in emails (BUG-42: hash is not sent to server or referrer headers).
-  // Legacy ?key= links still work for any already-sent emails.
-  const params     = new URLSearchParams(location.search);
-  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const k = hashParams.get('key') || params.get('key');
-  if (k) {
-    document.getElementById('apiKeyInput').value = k;
-    // Clean URL so the key doesn't stay in browser history
-    history.replaceState({}, '', '/portal/');
-  }
-})();
+initAuth().then(sessionToken => {
+  if (!sessionToken) return;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  // Load org data and boot portal
+  loadOrgWithToken(sessionToken).then(org => {
+    if (org) {
+      localStorage.setItem(ORG_STORE, JSON.stringify(org));
+      showApp(org, sessionToken);
+    } else {
+      // Org not found — session may be valid but org not in DB yet (new client)
+      showApp({ name: 'Mi negocio', plan: 'negocio', owner_email: '' }, sessionToken);
+    }
+  }).catch(() => {
+    showApp({ name: 'Mi negocio', plan: 'negocio', owner_email: '' }, sessionToken);
+  });
+});
 </script>
 </body>
 </html>
