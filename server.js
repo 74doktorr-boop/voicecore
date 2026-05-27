@@ -186,6 +186,18 @@ app.get(['/portal', '/portal/'], serveGitHubPage('/portal/index.html', path.join
 // ─── NodeFlow Galicia ───
 app.get(['/galiza', '/galiza/'], serveGitHubPage('/galiza/index.html', path.join(__dirname, 'public', 'galiza', 'index.html')));
 
+// ─── Blog ───
+app.get(['/blog', '/blog/'], (req, res) => {
+  const f = path.join(__dirname, 'public', 'blog', 'index.html');
+  if (fs.existsSync(f)) return res.sendFile(f);
+  res.redirect('/');
+});
+app.get('/blog/:slug', (req, res) => {
+  const f = path.join(__dirname, 'public', 'blog', req.params.slug, 'index.html');
+  if (fs.existsSync(f)) return res.sendFile(f);
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
 // ─── City SEO pages ───
 app.get(['/andoain', '/andoain/'], serveGitHubPage('/andoain/index.html', path.join(__dirname, 'public', 'andoain', 'index.html')));
 app.get(['/donostia', '/donostia/'], serveGitHubPage('/donostia/index.html', path.join(__dirname, 'public', 'donostia', 'index.html')));

@@ -1,0 +1,74 @@
+name: Auto-publish Blog Post
+
+on:
+  # Cada lunes a las 9:00 hora España (UTC+1 → 08:00 UTC)
+  schedule:
+    - cron: '0 8 * * 1'
+
+  # Trigger manual desde GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Slug concreto a generar (opcional — deja vacío para el siguiente del pool)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (solo muestra el contenido, no escribe archivos)'
+        type: boolean
+        default: false
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # necesario para hacer commit + push
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Generate blog post
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.slug }}" ]; then
+            ARGS="--slug ${{ github.event.inputs.slug }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          node scripts/blog-gen.js $ARGS
+
+      - name: Check for new files
+        id: check
+        run: |
+          git status --short
+          if git status --porcelain | grep -q .; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push
+        if: steps.check.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name "NodeFlow Bot"
+          git config user.email "bot@nodeflow.es"
+          git add public/blog/ public/sitemap.xml
+          git commit -m "blog: auto-publish $(date +%Y-%m-%d)"
+          git push origin master
+
+      - name: Done
+        run: echo "✅ Blog post published and deployed"

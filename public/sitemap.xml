@@ -125,6 +125,14 @@
     <priority>0.85</priority>
   </url>
 
+  <!-- ── Blog ── -->
+  <url>
+    <loc>https://nodeflow.es/blog</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- ── Campañas / landing especiales ── -->
   <url>
     <loc>https://nodeflow.es/galiza</loc>
@@ -162,4 +170,11 @@
     <priority>0.2</priority>
   </url>
 
+
+  <url>
+    <loc>https://nodeflow.es/blog/cuanto-cuesta-recepcionista-virtual-ia</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
