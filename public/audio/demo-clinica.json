@@ -3,43 +3,43 @@
   "title": "Clínica Dental · Donostia",
   "icon": "🦷",
   "tag": "clínica",
-  "totalMs": 33026,
+  "totalMs": 34089,
   "segments": [
     {
       "speaker": "cliente",
-      "text": "Hola, necesito pedir una revisión con el dentista.",
+      "text": "Hola, necesitaría pedir una revisión con el dentista, por favor.",
       "startMs": 300,
-      "durationMs": 3183
+      "durationMs": 3483
     },
     {
       "speaker": "ia",
-      "text": "¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente habitual o es tu primera visita?",
-      "startMs": 3833,
-      "durationMs": 6881
+      "text": "¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente de la clínica o sería tu primera visita?",
+      "startMs": 4103,
+      "durationMs": 7198
     },
     {
       "speaker": "cliente",
-      "text": "Soy paciente habitual. Me llamo Mikel Urrutia.",
-      "startMs": 11264,
-      "durationMs": 2848
+      "text": "Soy paciente. Me llamo Mikel Urrutia.",
+      "startMs": 11801,
+      "durationMs": 2136
     },
     {
       "speaker": "ia",
-      "text": "Hola Mikel. Tenemos disponible el martes a las nueve de la mañana o el jueves a las cuatro de la tarde. ¿Cuál te va mejor?",
-      "startMs": 14462,
-      "durationMs": 7796
+      "text": "¡Hola, Mikel! Te encuentro en el sistema. Tengo disponible el martes a las nueve de la mañana, o el jueves a las cuatro de la tarde. ¿Cuál te viene mejor?",
+      "startMs": 14257,
+      "durationMs": 9381
     },
     {
       "speaker": "cliente",
-      "text": "El martes a las nueve me va bien.",
-      "startMs": 22808,
-      "durationMs": 2088
+      "text": "El martes a las nueve, perfecto.",
+      "startMs": 24138,
+      "durationMs": 1904
     },
     {
       "speaker": "ia",
-      "text": "Anotado, Mikel. Revisión el martes a las nueve. Te enviaremos un recordatorio el día anterior. ¡Hasta pronto!",
-      "startMs": 25246,
-      "durationMs": 6830
+      "text": "Anotado. Revisión el martes a las nueve con el doctor. Te llegará un recordatorio el lunes. ¡Hasta pronto, Mikel!",
+      "startMs": 26362,
+      "durationMs": 6827
     }
   ]
 }

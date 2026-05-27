@@ -3,43 +3,43 @@
   "title": "Restaurante · Vitoria-Gasteiz",
   "icon": "🍽️",
   "tag": "restaurante",
-  "totalMs": 28850,
+  "totalMs": 29863,
   "segments": [
     {
       "speaker": "cliente",
-      "text": "Hola, quería hacer una reserva para cenar esta noche.",
+      "text": "Hola, buenas noches. Queríamos hacer una reserva para cenar esta noche.",
       "startMs": 300,
-      "durationMs": 3286
+      "durationMs": 4412
     },
     {
       "speaker": "ia",
-      "text": "¡Hola! Soy el asistente virtual del Restaurante Txoko. ¿Para cuántas personas y a qué hora?",
-      "startMs": 3936,
-      "durationMs": 5915
+      "text": "¡Buenas noches! Soy la asistente del Restaurante Txoko. ¿Cuántos seríais y a qué hora pensabais venir?",
+      "startMs": 5032,
+      "durationMs": 5805
     },
     {
       "speaker": "cliente",
       "text": "Somos cuatro personas, sobre las nueve y media.",
-      "startMs": 10401,
-      "durationMs": 2964
+      "startMs": 11337,
+      "durationMs": 2972
     },
     {
       "speaker": "ia",
-      "text": "Perfecto, tenemos mesa disponible para cuatro a las nueve y media. ¿A nombre de quién hago la reserva?",
-      "startMs": 13715,
-      "durationMs": 6546
+      "text": "Perfecto, tengo mesa disponible para cuatro a las nueve y media. ¿A qué nombre la pongo?",
+      "startMs": 14629,
+      "durationMs": 4923
     },
     {
       "speaker": "cliente",
       "text": "A nombre de Gorka.",
-      "startMs": 20811,
-      "durationMs": 979
+      "startMs": 20052,
+      "durationMs": 1393
     },
     {
       "speaker": "ia",
-      "text": "Reserva confirmada, Gorka. Mesa para cuatro esta noche a las nueve y media. ¡Les esperamos!",
-      "startMs": 22140,
-      "durationMs": 5760
+      "text": "¡Listo, Gorka! Mesa para cuatro esta noche a las nueve y media. Cualquier cambio no dudéis en llamar. ¡Buenas noches y buen provecho!",
+      "startMs": 21765,
+      "durationMs": 7198
     }
   ]
 }

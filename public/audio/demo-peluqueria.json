@@ -3,55 +3,55 @@
   "title": "Peluquería · Bilbao",
   "icon": "✂️",
   "tag": "peluquería",
-  "totalMs": 32742,
+  "totalMs": 47123,
   "segments": [
     {
       "speaker": "cliente",
-      "text": "Buenas, llamo para reservar una cita para un corte de pelo.",
+      "text": "Buenas, mira, quería pedir cita para un corte de pelo.",
       "startMs": 300,
-      "durationMs": 3441
+      "durationMs": 4365
     },
     {
       "speaker": "ia",
-      "text": "¡Hola! Soy la asistente virtual de Peluquería Adela. Con mucho gusto te ayudo. ¿Para qué día necesitas la cita?",
-      "startMs": 4091,
-      "durationMs": 7191
+      "text": "¡Buenas! Soy Lucía, la asistente de Peluquería Adela. Claro que sí, ¿para qué día te viene bien?",
+      "startMs": 4985,
+      "durationMs": 5898
     },
     {
       "speaker": "cliente",
-      "text": "¿Tenéis algo el viernes por la tarde?",
-      "startMs": 11832,
-      "durationMs": 1985
+      "text": "Pues el viernes por la tarde, si tenéis algo.",
+      "startMs": 11383,
+      "durationMs": 10170
     },
     {
       "speaker": "ia",
-      "text": "El viernes tenemos disponible a las cinco y cuarto y a las seis y media. ¿Cuál te viene mejor?",
-      "startMs": 14167,
-      "durationMs": 5902
+      "text": "El viernes tengo disponible a las cinco y cuarto, y también a las seis y media. ¿Alguna te va bien?",
+      "startMs": 21873,
+      "durationMs": 5526
     },
     {
       "speaker": "cliente",
       "text": "Las cinco y cuarto, perfecto.",
-      "startMs": 20619,
-      "durationMs": 1714
+      "startMs": 27899,
+      "durationMs": 6920
     },
     {
       "speaker": "ia",
-      "text": "¿Me puedes decir tu nombre para apuntarte?",
-      "startMs": 22683,
-      "durationMs": 2487
+      "text": "¡Genial! ¿Y me dices tu nombre para apuntarlo?",
+      "startMs": 35139,
+      "durationMs": 3019
     },
     {
       "speaker": "cliente",
       "text": "Soy Ana.",
-      "startMs": 25720,
-      "durationMs": 451
+      "startMs": 38658,
+      "durationMs": 1115
     },
     {
       "speaker": "ia",
-      "text": "Perfecto, Ana. Cita confirmada para el viernes a las cinco y cuarto. ¡Te esperamos!",
-      "startMs": 26521,
-      "durationMs": 5271
+      "text": "Listo, Ana. Cita el viernes a las cinco y cuarto. Te mando un recordatorio el jueves. ¡Hasta entonces!",
+      "startMs": 40093,
+      "durationMs": 6130
     }
   ]
 }
