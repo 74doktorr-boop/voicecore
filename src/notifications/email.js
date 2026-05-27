@@ -509,10 +509,80 @@ async function notifyNuevoLead(registro) {
   return sendEmail({ to, subject, html, text });
 }
 
+async function sendWelcomePortalEmail(registro, magicToken) {
+  if (!registro?.email) { log.warn('sendWelcomePortalEmail: email nulo'); return false; }
+  const publicUrl  = process.env.PUBLIC_URL || 'https://nodeflow.es';
+  const portalLink = `${publicUrl}/portal?token=${encodeURIComponent(magicToken)}`;
+  const nombre     = esc((registro.contacto || registro.email).split(' ')[0]);
+  const eNegocio   = esc(registro.negocio || '');
+  const plan       = registro.plan === 'pro' ? 'Pro — 99€/mes' : 'Negocio — 49€/mes';
+  const subject    = `¡Bienvenido a NodeFlow, ${nombre}! Tu asistente está casi listo 🎉`;
+
+  const html = `
+    <div style="font-family:'Inter',sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#070712;border-radius:16px;color:#e0e0f0;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <span style="font-size:22px;font-weight:900;color:#f0f0ff;">node<span style="color:#a855f7;">flow</span></span>
+      </div>
+      <h1 style="font-size:24px;font-weight:800;margin-bottom:8px;color:#f0f0ff;">¡Hola, ${nombre}! 🎉</h1>
+      <p style="color:#9090b0;margin-bottom:24px;">Tu pago se ha confirmado. En menos de <strong style="color:#f0f0ff;">24 horas</strong> tu asistente IA estará activo y atendiendo llamadas.</p>
+
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="color:#6060a0;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumen</p>
+        <p style="margin:6px 0;font-size:14px;">🏪 <strong style="color:#f0f0ff;">${eNegocio}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">💳 <strong style="color:#a855f7;">${plan}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">⏱ Setup en menos de 24h</p>
+      </div>
+
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${esc(portalLink)}" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;box-shadow:0 4px 20px rgba(124,58,237,0.4);">⚡ Acceder a mi portal →</a>
+      </div>
+      <p style="color:#6060a0;font-size:12px;text-align:center;margin-top:4px;">Este enlace es válido durante 7 días</p>
+
+      <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;text-align:center;">
+        <p style="color:#6060a0;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
+        <a href="https://wa.me/34666351319?text=Hola%2C%20acabo%20de%20activar%20NodeFlow%20para%20${encodeURIComponent(registro.negocio||'mi negocio')}" style="background:#25d366;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">💬 WhatsApp →</a>
+      </div>
+
+      <p style="margin-top:24px;font-size:11px;color:#404060;text-align:center;">
+        NodeFlow IA · <a href="https://nodeflow.es" style="color:#a855f7;">nodeflow.es</a> · unai@nodeflow.es
+      </p>
+    </div>
+  `;
+
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n\nEste enlace es válido 7 días.\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
+async function sendMagicLinkEmail(email, magicToken) {
+  const publicUrl  = process.env.PUBLIC_URL || 'https://nodeflow.es';
+  const portalLink = `${publicUrl}/portal?token=${encodeURIComponent(magicToken)}`;
+
+  const html = `
+    <div style="font-family:'Inter',sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#070712;border-radius:16px;color:#e0e0f0;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <span style="font-size:22px;font-weight:900;color:#f0f0ff;">node<span style="color:#a855f7;">flow</span></span>
+      </div>
+      <h1 style="font-size:22px;font-weight:800;margin-bottom:12px;color:#f0f0ff;">Tu enlace de acceso</h1>
+      <p style="color:#9090b0;margin-bottom:28px;">Haz clic en el botón para acceder a tu portal. El enlace expira en 7 días.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${esc(portalLink)}" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">⚡ Acceder al portal →</a>
+      </div>
+      <p style="color:#6060a0;font-size:12px;text-align:center;">Si no solicitaste este enlace, ignora este email.</p>
+    </div>
+  `;
+
+  const text = `Accede a tu portal NodeFlow:\n\n${portalLink}\n\nEste enlace expira en 7 días.\n\nSi no lo solicitaste, ignora este email.`;
+
+  return sendEmail({ to: email, subject: 'Tu enlace de acceso a NodeFlow', html, text });
+}
+
 module.exports = {
   sendEmail,
   notifyNuevoCliente,
   sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
   sendAcknowledgement,
   notifyNuevoLead,
+  sendWelcomePortalEmail,
+  sendMagicLinkEmail,
 };
