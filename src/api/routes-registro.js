@@ -109,27 +109,37 @@ function setupRegistroRoutes(app) {
       const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
       const couponData = validateCoupon(coupon);
 
-      // Validación básica
-      const required = { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo };
+      // Validación básica — core required fields only
+      const required = { sector, negocio, contacto, telefono, email, plan };
       for (const [key, val] of Object.entries(required)) {
         if (!val?.toString().trim()) {
           return res.status(400).json({ error: `Campo requerido: ${key}` });
         }
       }
 
-      if (!['negocio', 'pro'].includes(plan)) {
+      if (!['negocio', 'pro', 'starter'].includes(plan)) {
         return res.status(400).json({ error: 'Plan inválido' });
       }
 
+      // Optional fields with sensible defaults
+      const efectivoVoz    = voz    || 'nova';
+      const efectivoIdioma = idioma || 'es';
+      const efectivoCiudad = ciudad || 'España';
+      const efectivoSaludo = saludo || `Hola, gracias por llamar a ${negocio}. ¿En qué puedo ayudarte?`;
+
       // Derive source and language — Galician landing sends source:'galiza', idioma:'gl'
       const effectiveSource   = couponData?.source || formSource || null;
-      const effectiveLanguage = formLanguage || idioma || 'es';
+      const effectiveLanguage = formLanguage || efectivoIdioma;
 
       const row = await saveRegistro({
-        sector, negocio, contacto, ciudad,
+        sector, negocio, contacto,
+        ciudad:  efectivoCiudad,
         telefono: telefono.trim(),
         email:    email.trim().toLowerCase(),
-        plan, voz, idioma, saludo,
+        plan,
+        voz:    efectivoVoz,
+        idioma: efectivoIdioma,
+        saludo: efectivoSaludo,
         horario:  typeof horario === 'object' ? horario : {},
         language: effectiveLanguage,
         ...(effectiveSource ? { source: effectiveSource } : {}),
