@@ -23,17 +23,25 @@ class ElevenLabsTTS {
    * @param {string} params.modelId - Model ID
    * @returns {Buffer} mulaw 8kHz audio
    */
-  async synthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId = 'eleven_multilingual_v2', stability = 0.5, similarityBoost = 0.75 }) {
+  async synthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, stability = 0.5, similarityBoost = 0.75, language = 'es' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) {
       return Buffer.alloc(0);
     }
 
-    log.tts(`[${callId}] Synthesizing with ElevenLabs: "${text.substring(0, 60)}..."`);
+    // eleven_turbo_v2_5 supports explicit language_code → prevents language switching mid-call.
+    // Falls back to eleven_multilingual_v2 only if caller overrides modelId explicitly.
+    const resolvedModel = modelId ?? 'eleven_turbo_v2_5';
+
+    // Map BCP-47 to ElevenLabs language codes
+    const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
+    const langCode = LANG_MAP[language] ?? 'es';
+
+    log.tts(`[${callId}] Synthesizing with ElevenLabs (${resolvedModel}, lang=${langCode}): "${text.substring(0, 60)}..."`);
 
     try {
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}`, {
+      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=pcm_24000`, {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
@@ -42,10 +50,13 @@ class ElevenLabsTTS {
         },
         body: JSON.stringify({
           text,
-          model_id: modelId,
+          model_id:      resolvedModel,
+          language_code: langCode,
           voice_settings: {
             stability,
             similarity_boost: similarityBoost,
+            style:             0.0,
+            use_speaker_boost: true,
           },
           output_format: 'pcm_24000',
         }),
@@ -74,15 +85,19 @@ class ElevenLabsTTS {
   /**
    * Stream TTS with ElevenLabs streaming endpoint
    */
-  async streamSynthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId = 'eleven_multilingual_v2', onChunk }) {
+  async streamSynthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, onChunk, language = 'es' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) return;
 
-    log.tts(`[${callId}] Streaming with ElevenLabs`);
+    const resolvedModel = modelId ?? 'eleven_turbo_v2_5';
+    const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
+    const langCode = LANG_MAP[language] ?? 'es';
+
+    log.tts(`[${callId}] Streaming with ElevenLabs (${resolvedModel}, lang=${langCode})`);
 
     try {
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}/stream`, {
+      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}/stream?output_format=pcm_24000`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,10 +105,13 @@ class ElevenLabsTTS {
         },
         body: JSON.stringify({
           text,
-          model_id: modelId,
+          model_id:      resolvedModel,
+          language_code: langCode,
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
+            stability:         0.5,
+            similarity_boost:  0.75,
+            style:             0.0,
+            use_speaker_boost: true,
           },
           output_format: 'pcm_24000',
         }),

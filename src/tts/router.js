@@ -245,7 +245,8 @@ class TTSRouter {
         params.language = language;
         break;
       case 'elevenlabs':
-        params.voiceId = voice ?? '21m00Tcm4TlvDq8ikWAM';
+        params.voiceId   = voice ?? '21m00Tcm4TlvDq8ikWAM';
+        params.language  = language;  // lock language — prevents mid-speech switching
         break;
       case 'openai':
         params.voice = voice ?? 'nova';

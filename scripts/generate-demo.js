@@ -80,8 +80,13 @@ function generatePcm(text, voice) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       text,
-      model_id:       'eleven_multilingual_v2',
-      voice_settings: voice.settings,
+      model_id:      'eleven_turbo_v2_5',  // supports explicit language_code → no switching
+      language_code: 'es',
+      voice_settings: {
+        ...voice.settings,
+        style:             voice.settings.style ?? 0.3,
+        use_speaker_boost: true,
+      },
     });
 
     const req = https.request({

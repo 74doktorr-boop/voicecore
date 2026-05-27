@@ -3,55 +3,55 @@
   "title": "Peluquería · Bilbao",
   "icon": "✂️",
   "tag": "peluquería",
-  "totalMs": 47123,
+  "totalMs": 35048,
   "segments": [
     {
       "speaker": "cliente",
       "text": "Buenas, mira, quería pedir cita para un corte de pelo.",
       "startMs": 300,
-      "durationMs": 4365
+      "durationMs": 3065
     },
     {
       "speaker": "ia",
       "text": "¡Buenas! Soy Lucía, la asistente de Peluquería Adela. Claro que sí, ¿para qué día te viene bien?",
-      "startMs": 4985,
-      "durationMs": 5898
+      "startMs": 3685,
+      "durationMs": 6641
     },
     {
       "speaker": "cliente",
       "text": "Pues el viernes por la tarde, si tenéis algo.",
-      "startMs": 11383,
-      "durationMs": 10170
+      "startMs": 10826,
+      "durationMs": 2183
     },
     {
       "speaker": "ia",
       "text": "El viernes tengo disponible a las cinco y cuarto, y también a las seis y media. ¿Alguna te va bien?",
-      "startMs": 21873,
-      "durationMs": 5526
+      "startMs": 13329,
+      "durationMs": 6455
     },
     {
       "speaker": "cliente",
       "text": "Las cinco y cuarto, perfecto.",
-      "startMs": 27899,
-      "durationMs": 6920
+      "startMs": 20284,
+      "durationMs": 1997
     },
     {
       "speaker": "ia",
       "text": "¡Genial! ¿Y me dices tu nombre para apuntarlo?",
-      "startMs": 35139,
-      "durationMs": 3019
+      "startMs": 22601,
+      "durationMs": 3111
     },
     {
       "speaker": "cliente",
       "text": "Soy Ana.",
-      "startMs": 38658,
-      "durationMs": 1115
+      "startMs": 26212,
+      "durationMs": 975
     },
     {
       "speaker": "ia",
       "text": "Listo, Ana. Cita el viernes a las cinco y cuarto. Te mando un recordatorio el jueves. ¡Hasta entonces!",
-      "startMs": 40093,
-      "durationMs": 6130
+      "startMs": 27507,
+      "durationMs": 6641
     }
   ]
 }
