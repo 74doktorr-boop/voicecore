@@ -8,7 +8,8 @@ const { requireAuth } = require('../auth/middleware');
 const { getBilling } = require('../billing/stripe');
 const { getDatabase } = require('../db/database');
 const { getRegistro, updateRegistro } = require('./routes-registro');
-const { sendEmail, notifyNuevoCliente, sendBienvenida } = require('../notifications/email');
+const { sendEmail, notifyNuevoCliente, sendBienvenida, sendWelcomePortalEmail } = require('../notifications/email');
+const { generateMagicToken } = require('./routes-auth');
 
 const log = new Logger('API:BILLING');
 
@@ -270,8 +271,25 @@ function setupBillingRoutes(app, config) {
             // Notificar a Unai
             await notifyNuevoCliente({ ...registro, stripe_customer_id: stripeCustomerId, api_key: apiKey });
 
-            // Email de bienvenida al cliente con su API key
-            await sendBienvenida({ ...registro, api_key: apiKey });
+            // Generar magic token para acceso al portal
+            let portalToken = null;
+            try {
+              portalToken = await generateMagicToken(registro.email, row.id);
+            } catch (e) {
+              log.warn(`Magic token generation failed: ${e.message}`);
+            }
+
+            // Email de bienvenida con enlace al portal (magic link)
+            const emailPayload = { ...registro, api_key: apiKey };
+            if (portalToken) {
+              sendWelcomePortalEmail(emailPayload, portalToken).catch(e =>
+                log.warn(`Welcome portal email failed: ${e.message}`)
+              );
+            } else {
+              sendBienvenida(emailPayload).catch(e =>
+                log.warn(`Bienvenida fallback email failed: ${e.message}`)
+              );
+            }
 
             log.info(`Cliente activado: ${registro.negocio} (${registro.plan})`);
           } else {
