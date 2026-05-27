@@ -59,7 +59,7 @@ async function sendAlert(type, info) {
   if (type === 'down') {
     await sendEmail({
       to: notifyEmail,
-      subject: `🚨 NodeFlow IA CAÍDO — ${new Date().toLocaleTimeString('es-ES')}`,
+      subject: `🚨 NodeFlow IA CAÍDO — ${new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' })}`,
       html: `
         <div style="font-family:sans-serif;max-width:500px;padding:24px;background:#1a0000;border-radius:12px;color:#fff;">
           <h2 style="color:#ff6b6b;">🚨 Servidor caído</h2>
@@ -82,7 +82,7 @@ async function sendAlert(type, info) {
   if (type === 'recovered') {
     await sendEmail({
       to: notifyEmail,
-      subject: `✅ NodeFlow IA recuperado — ${new Date().toLocaleTimeString('es-ES')}`,
+      subject: `✅ NodeFlow IA recuperado — ${new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' })}`,
       html: `<div style="font-family:sans-serif;padding:24px;"><h2 style="color:#00cec9;">✅ Servicio recuperado</h2><p>NodeFlow IA vuelve a estar online tras ${info.failures} fallo(s).</p></div>`,
       text: `✅ NodeFlow IA recuperado tras ${info.failures} fallo(s).`,
     });
