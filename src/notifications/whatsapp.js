@@ -5,7 +5,8 @@
 //   1. Añadir +34 644 52 70 22 en WhatsApp
 //   2. Enviar el mensaje: "I allow callmebot to send me messages"
 //   3. Recibirás tu API key por WhatsApp
-//   4. Añadir en EasyPanel: CALLMEBOT_PHONE + CALLMEBOT_API_KEY
+//   4. Añadir en EasyPanel env: CALLMEBOT_API_KEY=<tu key>
+//      (OWNER_PHONE ya está configurado en .env)
 // ============================================
 
 const https = require('https');
@@ -19,11 +20,11 @@ const log = new Logger('WHATSAPP');
  */
 function sendWhatsApp(text) {
   return new Promise((resolve) => {
-    const phone  = process.env.CALLMEBOT_PHONE;
+    const phone  = process.env.OWNER_PHONE || process.env.CALLMEBOT_PHONE;
     const apiKey = process.env.CALLMEBOT_API_KEY;
 
     if (!phone || !apiKey) {
-      log.warn('CALLMEBOT_PHONE o CALLMEBOT_API_KEY no configurados — WA omitido');
+      log.warn('CALLMEBOT_API_KEY no configurada (o OWNER_PHONE vacío) — WA omitido');
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
