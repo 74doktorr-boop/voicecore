@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activar NodeFlow IA — Regístrate</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070712;--bg2:#0c0c1a;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);--accent:#7c3aed;--accent-l:#a855f7;--text:rgba(200,200,230,.7);--white:#f0f0ff;--green:#10b981;--radius:14px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 16px 80px;}
+.logo{font-size:1.3rem;font-weight:900;color:var(--white);margin-bottom:36px;text-decoration:none;letter-spacing:-.04em;}
+.logo span{color:var(--accent-l);}
+.progress{display:flex;gap:10px;margin-bottom:36px;}
+.prog-step{width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);transition:background .3s;}
+.prog-step.active{background:var(--accent-l);}
+.prog-step.done{background:var(--green);}
+.card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;}
+.card h1{font-size:1.4rem;font-weight:800;color:var(--white);margin-bottom:6px;}
+.card p{font-size:.9rem;color:var(--text);margin-bottom:28px;line-height:1.6;}
+.plan-box{border:2px solid var(--accent);border-radius:14px;padding:22px;margin-bottom:28px;background:rgba(124,58,237,.06);}
+.plan-name{font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:4px;}
+.plan-price{font-size:2rem;font-weight:900;color:var(--accent-l);margin-bottom:10px;}
+.plan-price span{font-size:1rem;color:var(--text);}
+.plan-feats{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.plan-feats li{font-size:.85rem;color:var(--text);}
+.plan-feats li::before{content:'✓ ';color:var(--green);font-weight:700;}
+.form-group{margin-bottom:18px;}
+label{display:block;font-size:.82rem;font-weight:600;color:var(--white);margin-bottom:7px;}
+input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:.9rem;font-family:inherit;outline:none;transition:border-color .25s;}
+input::placeholder{color:rgba(200,200,230,.3);}
+input:focus,select:focus{border-color:rgba(124,58,237,.5);}
+select option{background:#0c0c1a;color:var(--white);}
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),#6d28d9);color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .3s;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,.4);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-back{background:none;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 20px;font-size:.88rem;cursor:pointer;font-family:inherit;margin-bottom:16px;transition:all .25s;}
+.btn-back:hover{border-color:rgba(255,255,255,.2);color:var(--white);}
+.error-msg{color:#f87171;font-size:.82rem;margin-top:10px;display:none;}
+.hint{font-size:.75rem;color:var(--text);margin-top:18px;text-align:center;line-height:1.5;}
+.step{display:none;}
+.step.active{display:block;}
+.summary-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;}
+.summary-row:last-child{border:none;}
+.summary-row .val{color:var(--white);font-weight:600;}
+.discount-badge{display:inline-block;background:rgba(16,185,129,.12);color:#4ade80;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<a href="/" class="logo">node<span>flow</span></a>
+
+<div class="progress">
+  <div class="prog-step active" id="prog-1"></div>
+  <div class="prog-step" id="prog-2"></div>
+  <div class="prog-step" id="prog-3"></div>
+</div>
+
+<div class="card">
+
+  <!-- Step 1: Plan confirmation -->
+  <div class="step active" id="step-1">
+    <h1>Tu plan seleccionado</h1>
+    <p>Confirma el plan que quieres activar para tu negocio.</p>
+    <div class="plan-box" id="plan-display"></div>
+    <button class="btn-primary" onclick="goStep(2)">Continuar →</button>
+    <p class="hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Setup en 24h</p>
+  </div>
+
+  <!-- Step 2: Business data -->
+  <div class="step" id="step-2">
+    <button class="btn-back" onclick="goStep(1)">← Volver</button>
+    <h1>Datos de tu negocio</h1>
+    <p>Necesitamos esta información para configurar tu asistente IA.</p>
+    <div class="form-group">
+      <label>Nombre completo *</label>
+      <input type="text" id="contacto" placeholder="Ana García López" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>Nombre del negocio *</label>
+      <input type="text" id="negocio" placeholder="Restaurante El Asador" autocomplete="organization">
+    </div>
+    <div class="form-group">
+      <label>Sector *</label>
+      <select id="sector">
+        <option value="">Selecciona tu sector...</option>
+        <option value="restaurante">Restaurante / Bar / Cafetería</option>
+        <option value="clinica">Clínica / Centro médico</option>
+        <option value="peluqueria">Peluquería / Estética / Barbería</option>
+        <option value="farmacia">Farmacia</option>
+        <option value="hotel">Hotel / Alojamiento</option>
+        <option value="gimnasio">Gimnasio / Centro deportivo</option>
+        <option value="academia">Academia / Clases particulares</option>
+        <option value="asesoria">Asesoría / Gestoría</option>
+        <option value="inmobiliaria">Inmobiliaria</option>
+        <option value="taller">Taller mecánico</option>
+        <option value="veterinaria">Veterinaria</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Teléfono del negocio *</label>
+      <input type="tel" id="telefono" placeholder="+34 600 000 000" autocomplete="tel">
+    </div>
+    <div class="form-group">
+      <label>Email de contacto *</label>
+      <input type="email" id="email" placeholder="tu@negocio.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Código de descuento (opcional)</label>
+      <input type="text" id="coupon" placeholder="HEMENTXE10" style="text-transform:uppercase">
+    </div>
+    <div class="error-msg" id="step2-error"></div>
+    <button class="btn-primary" id="step2-btn" onclick="submitRegistro()">Ver resumen →</button>
+  </div>
+
+  <!-- Step 3: Summary + pay -->
+  <div class="step" id="step-3">
+    <button class="btn-back" onclick="goStep(2)">← Volver</button>
+    <h1>Resumen y pago</h1>
+    <p>Revisa tu pedido y haz clic en "Pagar con Stripe".</p>
+    <div id="summary-rows" style="margin-bottom:24px;"></div>
+    <button class="btn-primary" id="pay-btn" onclick="redirectToStripe()">🔒 Pagar con Stripe →</button>
+    <p class="hint">Pago seguro con Stripe · SSL · Sin permanencia · Cancela cuando quieras</p>
+  </div>
+
+</div>
+
+<script>
+const PLANS = {
+  starter: {
+    name: 'Starter',
+    price: 'Gratis',
+    features: ['50 min/mes', '1 asistente', 'Solo castellano', 'Soporte email'],
+    stripeUrl: null,
+  },
+  negocio: {
+    name: 'Negocio',
+    price: '49€<span>/mes</span>',
+    features: ['500 min/mes', '1 asistente', 'Castellano + Euskera', 'Memoria persistente', 'Citas por voz', 'Notificaciones WhatsApp'],
+    stripeUrl: '__STRIPE_NEGOCIO_URL__',
+  },
+  pro: {
+    name: 'Pro',
+    price: '99€<span>/mes</span>',
+    features: ['2.000 min/mes', 'Asistentes ilimitados', 'Castellano + Euskera + Galego', 'Outbound calls', 'WhatsApp + Instagram + Email', 'Account manager'],
+    stripeUrl: '__STRIPE_PRO_URL__',
+  },
+};
+
+// Read plan from URL
+const params  = new URLSearchParams(location.search);
+const planKey = (params.get('plan') || 'negocio').toLowerCase();
+const plan    = PLANS[planKey] || PLANS.negocio;
+
+// State
+let registroId   = null;
+let stripeCode   = null;
+let discountPct  = 0;
+
+// Render plan box
+document.getElementById('plan-display').innerHTML = `
+  <div class="plan-name">${plan.name}</div>
+  <div class="plan-price">${plan.price}</div>
+  <ul class="plan-feats">${plan.features.map(f => `<li>${f}</li>`).join('')}</ul>
+`;
+
+function setProgress(step) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('prog-' + i);
+    el.className = 'prog-step' + (i < step ? ' done' : i === step ? ' active' : '');
+  }
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  setProgress(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function submitRegistro() {
+  const contacto = document.getElementById('contacto').value.trim();
+  const negocio  = document.getElementById('negocio').value.trim();
+  const sector   = document.getElementById('sector').value;
+  const telefono = document.getElementById('telefono').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const coupon   = document.getElementById('coupon').value.trim();
+  const errEl    = document.getElementById('step2-error');
+
+  if (!contacto || !negocio || !sector || !telefono || !email) {
+    errEl.textContent = 'Por favor rellena todos los campos obligatorios.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!email.includes('@')) {
+    errEl.textContent = 'Email inválido.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  const btn = document.getElementById('step2-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+  try {
+    const resp = await fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Error al guardar');
+
+    registroId  = data.id;
+    stripeCode  = data.stripeCode || null;
+    discountPct = data.discount || 0;
+
+    // Build summary
+    const basePrice  = planKey === 'pro' ? 99 : 49;
+    const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
+    const summary = document.getElementById('summary-rows');
+    summary.innerHTML = `
+      <div class="summary-row"><span>Plan</span><span class="val">${plan.name}</span></div>
+      <div class="summary-row"><span>Negocio</span><span class="val">${negocio}</span></div>
+      <div class="summary-row"><span>Email</span><span class="val">${email}</span></div>
+      <div class="summary-row"><span>Precio</span><span class="val">
+        ${discountPct ? `<s style="color:rgba(200,200,230,.4)">${basePrice}€</s> ${finalPrice}€/mes` : (planKey === 'starter' ? 'Gratis' : basePrice + '€/mes')}
+        ${discountPct ? `<span class="discount-badge">-${discountPct}%</span>` : ''}
+      </span></div>
+    `;
+
+    goStep(3);
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = 'Ver resumen →';
+  }
+}
+
+function redirectToStripe() {
+  if (planKey === 'starter') {
+    window.location.href = '/portal';
+    return;
+  }
+
+  let url = plan.stripeUrl;
+  if (!url || url.startsWith('__')) {
+    alert('Error de configuración: URL de Stripe no configurada. Contacta con soporte en unai@nodeflow.es');
+    return;
+  }
+
+  // Append registro ID as client_reference_id so webhook can identify the registro
+  const separator = url.includes('?') ? '&' : '?';
+  url += `${separator}client_reference_id=${encodeURIComponent(registroId)}`;
+
+  // Append prefilled email
+  const emailVal = document.getElementById('email').value.trim();
+  if (emailVal) url += `&prefilled_email=${encodeURIComponent(emailVal)}`;
+
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Redirigiendo a Stripe...';
+
+  window.location.href = url;
+}
+</script>
+</body>
+</html>
