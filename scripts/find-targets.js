@@ -14,9 +14,10 @@
 // ============================================
 
 require('dotenv').config();
-const https   = require('https');
-const fs      = require('fs');
-const path    = require('path');
+const https              = require('https');
+const fs                 = require('fs');
+const path               = require('path');
+const { appendLeadsToSheet } = require('../src/utils/sheets');
 
 // ─── CLI args ─────────────────────────────────────────────────────────────────
 const args      = process.argv.slice(2);
@@ -33,11 +34,24 @@ if (!API_KEY) {
 
 const CITIES = ARG_CITY
   ? [ARG_CITY]
-  : ['Bilbao', 'Donostia-San Sebastián', 'Vitoria-Gasteiz'];
+  : [
+    // País Vasco
+    'Bilbao', 'Donostia-San Sebastián', 'Vitoria-Gasteiz', 'Barakaldo', 'Getxo',
+    // Navarra + La Rioja + Cantabria
+    'Pamplona', 'Logroño', 'Santander',
+    // Asturias
+    'Oviedo', 'Gijón',
+    // Galicia
+    'A Coruña', 'Vigo', 'Santiago de Compostela', 'Pontevedra',
+    // Aragón + Castilla y León
+    'Zaragoza', 'Burgos', 'Valladolid', 'León', 'Salamanca',
+    // Levante + Andalucía
+    'Valencia', 'Alicante', 'Murcia', 'Sevilla', 'Málaga', 'Granada',
+  ];
 
 const SECTORS = ARG_SECT
   ? [ARG_SECT]
-  : ['peluquería', 'clínica dental', 'restaurante', 'taller mecánico', 'estética'];
+  : ['peluquería', 'clínica dental', 'restaurante', 'taller mecánico', 'estética', 'gimnasio', 'academia'];
 
 // ─── Templates de mensaje WhatsApp por sector ─────────────────────────────────
 const WA_TEMPLATES = {
@@ -55,6 +69,12 @@ const WA_TEMPLATES = {
 
   'estética': (nombre, ciudad) =>
     `Hola ${nombre} 👋 Vi vuestro centro en ${ciudad}. Trabajo con centros de estética para automatizar las reservas telefónicas con IA — sin perder una llamada aunque estéis atendiendo. ¿Te cuento?`,
+
+  'gimnasio': (nombre, ciudad) =>
+    `Hola ${nombre} 👋 Vi vuestro gimnasio en ${ciudad}. Ofrezco una IA que atiende llamadas 24h: altas, horarios, clases. Los clientes llaman cuando quieren, vosotros no perdéis ninguna alta. ¿Te cuento en 5 min?`,
+
+  'academia': (nombre, ciudad) =>
+    `Hola ${nombre} 👋 Vi vuestra academia en ${ciudad}. Tengo una IA que atiende consultas telefónicas y matriculaciones 24h sin que tengáis que coger el teléfono. ¿Te interesa verlo?`,
 
   'default': (nombre, ciudad) =>
     `Hola ${nombre} 👋 Os vi en ${ciudad}. Tengo una IA que atiende vuestras llamadas 24h — reservas, consultas, citas — sin perderse nada. ¿5 minutos para verlo?`,
@@ -242,18 +262,32 @@ async function main() {
   console.log('\n📋  Resumen por ciudad:');
   for (const city of CITIES) {
     const n = results.filter(r => r.ciudad === city).length;
-    console.log(`    ${city}: ${n}`);
+    if (n > 0) console.log(`    ${city}: ${n}`);
   }
   console.log('\n📋  Resumen por sector:');
   for (const sector of SECTORS) {
     const n = results.filter(r => r.sector === sector).length;
-    console.log(`    ${sector}: ${n}`);
+    if (n > 0) console.log(`    ${sector}: ${n}`);
   }
-  console.log('\n💡  Columnas incluidas:');
-  console.log('    nombre, sector, ciudad, telefono, dirección, rating, reviews,');
-  console.log('    website, google maps URL, link WA con mensaje prellenado,');
-  console.log('    estado (contactado/interesado/demo/cliente), notas, fecha_contacto\n');
-  console.log('👉  Abre el CSV con Excel/Sheets y filtra por ciudad/sector para empezar.');
+
+  // ─── Sync a Google Sheets (si está configurado) ───────────────────────────
+  if (process.env.GOOGLE_SHEET_ID && (process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_JSON)) {
+    console.log('\n📊  Sincronizando con Google Sheets…');
+    try {
+      const sync = await appendLeadsToSheet(results);
+      if (sync.ok) {
+        console.log(`    ✅ ${sync.added} leads nuevos añadidos (${sync.skipped} ya existían)`);
+        console.log(`    👉 https://docs.google.com/spreadsheets/d/${process.env.GOOGLE_SHEET_ID}`);
+      } else {
+        console.log(`    ⚠️  Sheets no configurado (${sync.reason}) — solo CSV generado`);
+      }
+    } catch (e) {
+      console.log(`    ❌ Error Sheets: ${e.message}`);
+    }
+  } else {
+    console.log('\n💡  Para sync automático con Google Sheets:');
+    console.log('    Añade GOOGLE_SHEET_ID + GOOGLE_SERVICE_ACCOUNT_KEY al .env');
+  }
 }
 
 main().catch(e => {
