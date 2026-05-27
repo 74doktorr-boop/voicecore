@@ -30,6 +30,7 @@ const { setupAdminRoutes }        = require('./src/api/routes-admin');
 const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
+const { setupAuthRoutes }         = require('./src/api/routes-auth');
 const { startCron }               = require('./src/scheduling/cron');
 const { flowManager }             = require('./src/automations/flow-manager');
 const { getBilling } = require('./src/billing/stripe');
@@ -154,7 +155,7 @@ function serveGitHubPage(publicPath, fallbackFile) {
 
 // Warm-up de las páginas más visitadas al arrancar
 [
-  '/index.html',
+  '/index.html', '/onboarding.html',
   '/hementxe/index.html', '/hementxe/anuncio.html',
   '/gracias/index.html', '/portal/index.html',
   '/galiza/index.html',
@@ -185,6 +186,10 @@ SECTOR_PAGES.forEach(sector => {
   const file = path.join(__dirname, 'public', page, 'index.html');
   app.get([`/${page}`, `/${page}/`], serveGitHubPage(`/${page}/index.html`, file));
 });
+
+// ─── Onboarding (conversión) ───
+app.get(['/onboarding.html', '/onboarding', '/onboarding/'],
+  serveGitHubPage('/onboarding.html', path.join(__dirname, 'public', 'onboarding.html')));
 
 // ─── Post-pago ───
 app.get(['/gracias', '/gracias/'], serveGitHubPage('/gracias/index.html', path.join(__dirname, 'public', 'gracias', 'index.html')));
@@ -341,6 +346,9 @@ setupBillingRoutes(app, config);
 
 // Setup Registro routes (formulario landing → Stripe)
 setupRegistroRoutes(app);
+
+// Setup Auth routes (magic link portal access)
+setupAuthRoutes(app);
 
 // Setup Admin routes (panel privado de Unai)
 setupAdminRoutes(app, config, assistantManager);
