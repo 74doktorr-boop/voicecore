@@ -150,6 +150,7 @@ function serveGitHubPage(publicPath, fallbackFile) {
   '/gracias/index.html', '/portal/index.html',
   '/galiza/index.html',
   '/andoain/index.html', '/donostia/index.html',
+  '/bilbao/index.html', '/vitoria/index.html',
 ].forEach(p => getPage(p).catch(() => {}));
 
 // ─── Landing principal ───
@@ -188,6 +189,8 @@ app.get(['/galiza', '/galiza/'], serveGitHubPage('/galiza/index.html', path.join
 // ─── City SEO pages ───
 app.get(['/andoain', '/andoain/'], serveGitHubPage('/andoain/index.html', path.join(__dirname, 'public', 'andoain', 'index.html')));
 app.get(['/donostia', '/donostia/'], serveGitHubPage('/donostia/index.html', path.join(__dirname, 'public', 'donostia', 'index.html')));
+app.get(['/bilbao', '/bilbao/'], serveGitHubPage('/bilbao/index.html', path.join(__dirname, 'public', 'bilbao', 'index.html')));
+app.get(['/vitoria', '/vitoria/'], serveGitHubPage('/vitoria/index.html', path.join(__dirname, 'public', 'vitoria', 'index.html')));
 
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {

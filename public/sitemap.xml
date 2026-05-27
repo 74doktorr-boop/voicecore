@@ -5,101 +5,122 @@
   <!-- ── Homepage ── -->
   <url>
     <loc>https://nodeflow.es</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es"/>
     <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es"/>
   </url>
 
   <!-- ── Páginas de ciudad (SEO local) ── -->
   <url>
-    <loc>https://nodeflow.es/andoain</loc>
-    <lastmod>2026-05-26</lastmod>
+    <loc>https://nodeflow.es/bilbao</loc>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/andoain"/>
-    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/andoain"/>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/bilbao"/>
+    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/bilbao"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es/bilbao"/>
   </url>
   <url>
     <loc>https://nodeflow.es/donostia</loc>
-    <lastmod>2026-05-26</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/donostia"/>
     <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/donostia"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es/donostia"/>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/vitoria</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/vitoria"/>
+    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/vitoria"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es/vitoria"/>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/andoain</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/andoain"/>
+    <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es/andoain"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es/andoain"/>
   </url>
 
   <!-- ── Páginas de sector ── -->
   <url>
     <loc>https://nodeflow.es/peluquerias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/clinicas</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/restaurantes</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/talleres</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/veterinarias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/estetica</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/gimnasios</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/inmobiliarias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/academias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/asesorias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/farmacias</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://nodeflow.es/hoteles</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
@@ -107,15 +128,16 @@
   <!-- ── Campañas / landing especiales ── -->
   <url>
     <loc>https://nodeflow.es/galiza</loc>
-    <lastmod>2026-05-26</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
     <xhtml:link rel="alternate" hreflang="gl" href="https://nodeflow.es/galiza"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es/galiza"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es/galiza"/>
   </url>
   <url>
     <loc>https://nodeflow.es/hementxe</loc>
-    <lastmod>2026-05-25</lastmod>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
