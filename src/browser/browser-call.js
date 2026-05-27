@@ -43,7 +43,8 @@ class BrowserCallHandler {
     };
 
     const systemPrompt = (assistant.systemPrompt || assistant.system_prompt || '')
-      .replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+      // BUG-47: pin to Europe/Madrid — server runs UTC
+      .replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }));
     if (systemPrompt) session.conversation.push({ role: 'system', content: systemPrompt });
 
     if (assistant.firstMessage) {

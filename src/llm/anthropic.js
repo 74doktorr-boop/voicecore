@@ -107,7 +107,7 @@ class AnthropicLLM {
       };
     } catch (error) {
       log.error(`[${callId}] Claude error`, { error: error.message });
-      yield { type: 'error', error: error.message };
+      yield { type: 'error', message: error.message };
     }
   }
 }

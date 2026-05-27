@@ -116,7 +116,7 @@ class OpenAILLM {
 
     } catch (error) {
       log.error(`[${callId}] LLM error`, { error: error.message });
-      yield { type: 'error', error: error.message };
+      yield { type: 'error', message: error.message };
     }
   }
 
