@@ -14,6 +14,7 @@ const ALERT_COOLDOWN_MS = 30 * 60 * 1000; // no repetir alerta en 30 min
 let lastAlertAt = 0;
 let consecutiveFailures = 0;
 let monitorInterval = null;
+let _warmupTimer = null;
 
 async function checkHealth(publicUrl) {
   try {
@@ -95,12 +96,16 @@ function startMonitor(publicUrl) {
   log.info(`Monitor iniciado — check cada 5 min → ${url}/health`);
 
   // Primera comprobación al arrancar (con delay de 30s para que el servidor esté listo)
-  setTimeout(() => checkHealth(url), 30000);
+  _warmupTimer = setTimeout(() => checkHealth(url), 30000);
 
   monitorInterval = setInterval(() => checkHealth(url), CHECK_INTERVAL_MS);
 }
 
 function stopMonitor() {
+  if (_warmupTimer) {
+    clearTimeout(_warmupTimer);
+    _warmupTimer = null;
+  }
   if (monitorInterval) {
     clearInterval(monitorInterval);
     monitorInterval = null;
