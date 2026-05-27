@@ -318,4 +318,162 @@ async function sendBienvenida(registro) {
   return sendEmail({ to: registro.email, subject, html, text });
 }
 
-module.exports = { sendEmail, notifyNuevoCliente, sendBienvenida, sendBienvenidaGl, sendBienvenidaEu };
+// ─────────────────────────────────────────────────────────────────────────────
+// sendAcknowledgement — Auto-responder al lead justo después de rellenar el form
+// Se envía ANTES del pago, en el momento que llega el registro
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendAcknowledgement(registro) {
+  const nombre  = registro.contacto.split(' ')[0];
+  const plan    = registro.plan === 'negocio' ? 'Negocio — 49€/mes' : 'Pro — 99€/mes';
+  const subject = `✅ Recibido, ${nombre} — te contactamos antes de 24h`;
+
+  const html = `
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;background:#07070e;border-radius:16px;overflow:hidden;color:#e8e8f0;">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:32px 32px 28px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:8px;">✅</div>
+        <h1 style="margin:0;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;">¡Solicitud recibida!</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.8);">Te contactamos antes de 24 horas</p>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:28px 32px;">
+        <p style="font-size:15px;color:#c8c8d8;line-height:1.7;margin:0 0 20px;">
+          Hola <strong style="color:#fff;">${nombre}</strong>, hemos recibido todos tus datos correctamente. En menos de 24 horas nos ponemos en contacto contigo para activar tu recepcionista IA.
+        </p>
+
+        <!-- Data box -->
+        <div style="background:#14141e;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;margin-bottom:24px;">
+          <p style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6c5ce7;font-weight:700;margin:0 0 14px;">Resumen de tu solicitud</p>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr><td style="color:#888;padding:5px 0;width:100px">Negocio</td><td style="color:#fff;font-weight:600;">${registro.negocio}</td></tr>
+            <tr><td style="color:#888;padding:5px 0">Sector</td><td style="color:#ddd;">${registro.sector}</td></tr>
+            <tr><td style="color:#888;padding:5px 0">Ciudad</td><td style="color:#ddd;">${registro.ciudad}</td></tr>
+            <tr><td style="color:#888;padding:5px 0">Plan</td><td style="color:#a29bfe;font-weight:700;">${plan}</td></tr>
+            <tr><td style="color:#888;padding:5px 0">14 días</td><td style="color:#00cec9;font-weight:600;">Prueba gratuita ✓</td></tr>
+          </table>
+        </div>
+
+        <!-- Steps -->
+        <p style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#888;font-weight:700;margin:0 0 14px;">Qué pasa ahora</p>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          ${[
+            ['1', 'Te contactamos', 'Te llamamos o escribimos por WhatsApp en menos de 24h para confirmar los detalles de tu asistente.'],
+            ['2', 'Configuramos tu IA', 'Ajustamos la voz, el saludo, tu horario de atención y las preguntas más frecuentes de tu negocio.'],
+            ['3', 'Llamada de prueba', 'Hacemos una llamada de prueba juntos antes de activar el servicio en producción.'],
+            ['4', '¡En marcha!', 'Tu recepcionista IA empieza a atender las llamadas de tu negocio 24h al día.'],
+          ].map(([n, t, d]) => `
+          <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="min-width:28px;height:28px;border-radius:50%;background:#6c5ce7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;text-align:center;line-height:28px;">${n}</div>
+            <div><p style="margin:0 0 3px;font-size:14px;font-weight:600;color:#e8e8f0;">${t}</p><p style="margin:0;font-size:13px;color:#888;line-height:1.6;">${d}</p></div>
+          </div>`).join('')}
+        </div>
+
+        <!-- WhatsApp CTA -->
+        <div style="margin:28px 0 0;padding:20px;background:#14141e;border:1px solid rgba(37,211,102,0.2);border-radius:12px;text-align:center;">
+          <p style="margin:0 0 12px;font-size:14px;color:#888;">¿No quieres esperar? Escríbenos ahora mismo</p>
+          <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20acabo%20de%20registrar%20${encodeURIComponent(registro.negocio)}%20en%20NodeFlow" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp directo →</a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:16px 32px 24px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+        <p style="margin:0;font-size:12px;color:#555;">
+          NodeFlow · <a href="https://nodeflow.es" style="color:#a29bfe;text-decoration:none;">nodeflow.es</a> · <a href="mailto:unai@nodeflow.es" style="color:#a29bfe;text-decoration:none;">unai@nodeflow.es</a>
+        </p>
+        <p style="margin:6px 0 0;font-size:11px;color:#444;">Has recibido este email porque registraste tu negocio en NodeFlow.</p>
+      </div>
+    </div>
+  `;
+
+  const text = [
+    `¡Solicitud recibida, ${nombre}!`,
+    ``,
+    `Hemos recibido los datos de ${registro.negocio}. Te contactamos en menos de 24 horas.`,
+    ``,
+    `Plan: ${plan}`,
+    `Ciudad: ${registro.ciudad}`,
+    `Sector: ${registro.sector}`,
+    ``,
+    `¿No quieres esperar? WhatsApp: https://wa.me/34666351319`,
+    ``,
+    `— NodeFlow · nodeflow.es`,
+  ].join('\n');
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// notifyNuevoLead — Notificación interna a Unai para CUALQUIER lead nuevo
+// Incluye teléfono grande + links directos WA y llamada
+// ─────────────────────────────────────────────────────────────────────────────
+async function notifyNuevoLead(registro) {
+  const to      = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
+  const plan    = registro.plan === 'negocio' ? 'Negocio 49€/mes' : 'Pro 99€/mes';
+  const emoji   = registro.plan === 'pro' ? '🚀' : '📞';
+  const subject = `${emoji} Nuevo lead — ${registro.negocio} · ${registro.ciudad} [${plan}]`;
+  const waLink  = `https://wa.me/34${registro.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${registro.contacto.split(' ')[0]}, soy Unai de NodeFlow. Vi que registraste ${registro.negocio} y quería presentarme y confirmar los detalles de tu asistente IA. ¿Tienes 5 minutos?`)}`;
+  const callLink = `tel:${registro.telefono.replace(/\s/g,'')}`;
+
+  const html = `
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#07070e;border-radius:16px;overflow:hidden;color:#e8e8f0;">
+      <!-- Header -->
+      <div style="background:${registro.plan === 'pro' ? 'linear-gradient(135deg,#f9ca24,#f0932b)' : 'linear-gradient(135deg,#6c5ce7,#a29bfe)'};padding:20px 24px;">
+        <p style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.7);font-weight:600;">NUEVO LEAD NODEFLOW</p>
+        <h1 style="margin:4px 0 0;font-size:20px;font-weight:800;color:#fff;">${registro.negocio}</h1>
+        <p style="margin:2px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">${registro.sector} · ${registro.ciudad}</p>
+      </div>
+
+      <!-- Teléfono grande — lo primero que ves -->
+      <div style="padding:20px 24px 0;text-align:center;background:#0d0d18;">
+        <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;">TELÉFONO DE CONTACTO</p>
+        <p style="margin:0;font-size:32px;font-weight:900;color:#fff;letter-spacing:2px;">${registro.telefono}</p>
+        <div style="display:flex;gap:10px;justify-content:center;margin:14px 0 20px;">
+          <a href="${callLink}" style="background:#6c5ce7;color:#fff;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">📞 Llamar ahora</a>
+          <a href="${waLink}" style="background:#25d366;color:#fff;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp</a>
+        </div>
+      </div>
+
+      <!-- Data table -->
+      <div style="padding:0 24px 24px;background:#0d0d18;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+          <tr style="background:#14141e;"><td style="padding:9px 14px;color:#666;width:110px;">Contacto</td><td style="padding:9px 14px;font-weight:600;">${registro.contacto}</td></tr>
+          <tr style="background:#0d0d18;"><td style="padding:9px 14px;color:#666;">Email</td><td style="padding:9px 14px;"><a href="mailto:${registro.email}" style="color:#a29bfe;">${registro.email}</a></td></tr>
+          <tr style="background:#14141e;"><td style="padding:9px 14px;color:#666;">Plan</td><td style="padding:9px 14px;font-weight:700;color:${registro.plan === 'pro' ? '#f9ca24' : '#a29bfe'};">${plan}</td></tr>
+          <tr style="background:#0d0d18;"><td style="padding:9px 14px;color:#666;">Voz</td><td style="padding:9px 14px;">${registro.voz || '—'}</td></tr>
+          <tr style="background:#14141e;"><td style="padding:9px 14px;color:#666;">Idioma</td><td style="padding:9px 14px;">${registro.idioma || 'es'}</td></tr>
+          <tr style="background:#0d0d18;"><td style="padding:9px 14px;color:#666;">Saludo</td><td style="padding:9px 14px;font-style:italic;color:#aaa;">"${registro.saludo || '—'}"</td></tr>
+          ${registro.coupon_code ? `<tr style="background:#14141e;"><td style="padding:9px 14px;color:#666;">Cupón</td><td style="padding:9px 14px;color:#00cec9;font-weight:700;">${registro.coupon_code} (−${registro.discount_percent}%)</td></tr>` : ''}
+          <tr style="background:#0d0d18;"><td style="padding:9px 14px;color:#444;font-size:11px;">ID</td><td style="padding:9px 14px;font-family:monospace;font-size:11px;color:#444;">${registro.id}</td></tr>
+        </table>
+        <p style="margin:12px 0 0;font-size:12px;color:#444;text-align:center;">⏱️ Registrado: ${new Date().toLocaleString('es-ES', {timeZone:'Europe/Madrid'})}</p>
+      </div>
+    </div>
+  `;
+
+  const text = [
+    `NUEVO LEAD NODEFLOW`,
+    ``,
+    `${registro.negocio} · ${registro.ciudad}`,
+    `Plan: ${plan}`,
+    ``,
+    `📞 ${registro.telefono}`,
+    `Contacto: ${registro.contacto}`,
+    `Email: ${registro.email}`,
+    ``,
+    `WhatsApp directo: ${waLink}`,
+    ``,
+    `ID: ${registro.id}`,
+  ].join('\n');
+
+  return sendEmail({ to, subject, html, text });
+}
+
+module.exports = {
+  sendEmail,
+  notifyNuevoCliente,
+  sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
+  sendAcknowledgement,
+  notifyNuevoLead,
+};

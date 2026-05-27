@@ -5,7 +5,7 @@
 
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
-const { sendEmail } = require('../notifications/email');
+const { sendEmail, sendAcknowledgement, notifyNuevoLead } = require('../notifications/email');
 const crypto = require('crypto');
 
 const log = new Logger('REGISTRO');
@@ -140,30 +140,12 @@ function setupRegistroRoutes(app) {
 
       log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
 
-      // ── Notificar a Unai si es pre-registro de Galicia (sin pago inmediato) ──
-      if (effectiveSource === 'galiza') {
-        sendEmail({
-          to: process.env.NOTIFY_EMAIL || 'unai@nodeflow.es',
-          subject: `🌊 Nuevo lead Galicia — ${negocio} (${plan})`,
-          html: `
-            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#0d0d12;border-radius:12px;color:#f0f0f5;">
-              <h2 style="color:#2ecc8a;margin:0 0 16px 0;">🌊 Novo lead de Galicia!</h2>
-              <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <tr><td style="color:#888;padding:4px 0;width:120px">Negocio</td><td><strong>${negocio}</strong></td></tr>
-                <tr><td style="color:#888;padding:4px 0">Sector</td><td>${sector}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">Contacto</td><td>${contacto}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">Ciudad</td><td>${ciudad}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">Teléfono</td><td>${telefono}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">Email</td><td>${email}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">Plan</td><td>${plan === 'pro' ? 'Pro — 99€/mes' : 'Negocio — 49€/mes'}</td></tr>
-                <tr><td style="color:#888;padding:4px 0">ID</td><td style="font-size:11px;color:#555">${row.id}</td></tr>
-              </table>
-              <p style="margin-top:16px;font-size:13px;color:#888;">Pre-registro desde /galiza — pendiente de contacto. <strong>Contáctalos en &lt;24h!</strong></p>
-            </div>
-          `,
-          text: `Novo lead Galicia!\n\nNegocio: ${negocio}\nSector: ${sector}\nContacto: ${contacto}\nTel: ${telefono}\nEmail: ${email}\nCiudad: ${ciudad}\nPlan: ${plan}\n\nID: ${row.id}`,
-        }).catch(() => {});
-      }
+      // ── Emails automáticos — fire & forget (no bloquean la respuesta) ──────
+      // 1. Auto-responder al lead: "Recibido, te contactamos en <24h"
+      sendAcknowledgement(row).catch(e => log.warn(`Acknowledgement email fallido: ${e.message}`));
+
+      // 2. Notificación interna a Unai con teléfono + links directos WA/llamada
+      notifyNuevoLead(row).catch(e => log.warn(`Lead notification fallida: ${e.message}`));
 
       res.json({
         id: row.id,
