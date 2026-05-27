@@ -1,0 +1,45 @@
+{
+  "id": "clinica",
+  "title": "Clínica Dental · Donostia",
+  "icon": "🦷",
+  "tag": "clínica",
+  "totalMs": 33026,
+  "segments": [
+    {
+      "speaker": "cliente",
+      "text": "Hola, necesito pedir una revisión con el dentista.",
+      "startMs": 300,
+      "durationMs": 3183
+    },
+    {
+      "speaker": "ia",
+      "text": "¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente habitual o es tu primera visita?",
+      "startMs": 3833,
+      "durationMs": 6881
+    },
+    {
+      "speaker": "cliente",
+      "text": "Soy paciente habitual. Me llamo Mikel Urrutia.",
+      "startMs": 11264,
+      "durationMs": 2848
+    },
+    {
+      "speaker": "ia",
+      "text": "Hola Mikel. Tenemos disponible el martes a las nueve de la mañana o el jueves a las cuatro de la tarde. ¿Cuál te va mejor?",
+      "startMs": 14462,
+      "durationMs": 7796
+    },
+    {
+      "speaker": "cliente",
+      "text": "El martes a las nueve me va bien.",
+      "startMs": 22808,
+      "durationMs": 2088
+    },
+    {
+      "speaker": "ia",
+      "text": "Anotado, Mikel. Revisión el martes a las nueve. Te enviaremos un recordatorio el día anterior. ¡Hasta pronto!",
+      "startMs": 25246,
+      "durationMs": 6830
+    }
+  ]
+}

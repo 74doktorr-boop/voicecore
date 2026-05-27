@@ -618,6 +618,59 @@
       .roi-result { flex-direction:column; }
       .auto-grid { grid-template-columns:1fr; }
     }
+
+    /* ── Voice Demo Section ── */
+    .voice-demo { padding:100px 0 80px; position:relative; z-index:2; }
+    .voice-demo .section-center { text-align:center; margin-bottom:44px; }
+    .voice-demo .section-center h2 { font-size:clamp(26px,4vw,44px); font-weight:900; letter-spacing:-1.5px; margin-bottom:12px; }
+    .voice-demo .section-center p  { color:var(--dim); font-size:16px; max-width:480px; margin:0 auto; }
+    .demo-tabs { display:flex; gap:8px; justify-content:center; margin-bottom:36px; flex-wrap:wrap; }
+    .demo-tab { background:transparent; border:1px solid var(--border); color:var(--dim); padding:9px 20px; border-radius:100px; font-size:13px; font-weight:600; cursor:pointer; transition:all .25s; font-family:inherit; }
+    .demo-tab:hover { border-color:rgba(108,92,231,0.4); color:var(--text); }
+    .demo-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 4px 18px var(--glow); }
+    .demo-phone-wrap { display:flex; justify-content:center; margin-bottom:36px; }
+    .demo-phone { width:100%; max-width:420px; background:#0d0d18; border:1px solid rgba(255,255,255,0.1); border-radius:24px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.6); }
+    .demo-phone-header { background:rgba(108,92,231,0.12); padding:16px 20px; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .demo-call-dot { width:8px; height:8px; border-radius:50%; background:#00cec9; flex-shrink:0; }
+    .demo-call-dot.pulsing { animation:callPulse 1.4s ease-in-out infinite; }
+    @keyframes callPulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,206,201,0.5)} 50%{box-shadow:0 0 0 6px rgba(0,206,201,0)} }
+    .demo-call-title { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+    .demo-timer { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; letter-spacing:.5px; }
+    .demo-chat { height:260px; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth; }
+    .demo-chat::-webkit-scrollbar { width:4px; }
+    .demo-chat::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+    .demo-bubble { max-width:80%; opacity:0; transform:translateY(8px); transition:opacity .3s ease, transform .3s ease; }
+    .demo-bubble.show { opacity:1; transform:translateY(0); }
+    .demo-bubble.b-ia { align-self:flex-start; }
+    .demo-bubble.b-cliente { align-self:flex-end; }
+    .demo-bubble-inner { padding:10px 14px; border-radius:16px; font-size:13px; line-height:1.55; }
+    .b-ia .demo-bubble-inner { background:rgba(108,92,231,0.18); border:1px solid rgba(108,92,231,0.25); color:var(--text); border-top-left-radius:4px; }
+    .b-cliente .demo-bubble-inner { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); color:#ddddf0; border-top-right-radius:4px; }
+    .demo-bubble-label { font-size:10px; color:var(--muted); margin-bottom:4px; font-weight:600; letter-spacing:.5px; }
+    .b-cliente .demo-bubble-label { text-align:right; }
+    .demo-phone-footer { padding:16px 20px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:14px; }
+    .demo-wave { display:flex; align-items:center; gap:3px; flex:1; height:28px; }
+    .demo-wave-bar { width:3px; border-radius:2px; background:rgba(108,92,231,0.35); transform-origin:bottom; transition:background .3s; }
+    .demo-wave.playing .demo-wave-bar { background:var(--accent-l); animation:waveAnim 0.8s ease-in-out infinite; }
+    .demo-wave-bar:nth-child(1){ height:8px; animation-delay:0s; }
+    .demo-wave-bar:nth-child(2){ height:18px; animation-delay:.1s; }
+    .demo-wave-bar:nth-child(3){ height:24px; animation-delay:.2s; }
+    .demo-wave-bar:nth-child(4){ height:16px; animation-delay:.15s; }
+    .demo-wave-bar:nth-child(5){ height:10px; animation-delay:.05s; }
+    .demo-wave-bar:nth-child(6){ height:20px; animation-delay:.25s; }
+    .demo-wave-bar:nth-child(7){ height:12px; animation-delay:.1s; }
+    .demo-wave-bar:nth-child(8){ height:22px; animation-delay:.3s; }
+    .demo-wave-bar:nth-child(9){ height:8px; animation-delay:.05s; }
+    .demo-wave-bar:nth-child(10){ height:15px; animation-delay:.2s; }
+    @keyframes waveAnim { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
+    .demo-play-btn { width:44px; height:44px; border-radius:50%; background:var(--accent); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .25s; box-shadow:0 4px 18px var(--glow); }
+    .demo-play-btn:hover { background:#7c6cf7; transform:scale(1.05); }
+    .demo-play-btn svg { width:18px; height:18px; fill:#fff; }
+    .demo-chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .demo-chip { font-size:13px; padding:8px 16px; border-radius:100px; background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--dim); }
+    .demo-chip strong { color:var(--text); }
+    .demo-result-tag { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#00cec9; background:rgba(0,206,201,0.1); border:1px solid rgba(0,206,201,0.2); padding:5px 12px; border-radius:100px; margin-top:8px; opacity:0; transition:opacity .5s; }
+    .demo-result-tag.show { opacity:1; }
   </style>
 
   <style>
@@ -874,6 +927,53 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- Voice Demo -->
+<section class="voice-demo" id="demo">
+  <div class="container">
+    <div class="section-center">
+      <div class="label">DEMO EN VIVO</div>
+      <h2>Escucha cómo suena <span style="color:var(--accent-l)">NodeFlow</span></h2>
+      <p>Conversaciones reales generadas con IA. Sin scripts rígidos. En castellano y en euskera.</p>
+    </div>
+
+    <div class="demo-tabs" role="tablist">
+      <button class="demo-tab active" data-demo="peluqueria" role="tab" aria-selected="true">✂️ Peluquería</button>
+      <button class="demo-tab" data-demo="clinica" role="tab" aria-selected="false">🦷 Clínica dental</button>
+      <button class="demo-tab" data-demo="restaurante" role="tab" aria-selected="false">🍽️ Restaurante</button>
+    </div>
+
+    <div class="demo-phone-wrap">
+      <div class="demo-phone">
+        <div class="demo-phone-header">
+          <div class="demo-call-dot" id="demoCallDot"></div>
+          <span class="demo-call-title" id="demoCallTitle">Peluquería · Bilbao</span>
+          <span class="demo-timer" id="demoTimer">00:00</span>
+        </div>
+        <div class="demo-chat" id="demoChat" role="log" aria-live="polite"></div>
+        <div class="demo-phone-footer">
+          <div class="demo-wave" id="demoWave">
+            <div class="demo-wave-bar"></div><div class="demo-wave-bar"></div>
+            <div class="demo-wave-bar"></div><div class="demo-wave-bar"></div>
+            <div class="demo-wave-bar"></div><div class="demo-wave-bar"></div>
+            <div class="demo-wave-bar"></div><div class="demo-wave-bar"></div>
+            <div class="demo-wave-bar"></div><div class="demo-wave-bar"></div>
+          </div>
+          <button class="demo-play-btn" id="demoPlayBtn" onclick="toggleDemoPlay()" aria-label="Reproducir demo">
+            <svg id="demoPlayIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-chips">
+      <div class="demo-chip">⚡ <strong>Responde en &lt;1 segundo</strong></div>
+      <div class="demo-chip">📅 <strong>Cita confirmada automáticamente</strong></div>
+      <div class="demo-chip">🌙 <strong>Disponible 24h sin coste extra</strong></div>
+      <div class="demo-chip">🗣️ <strong>Castellano y euskera nativos</strong></div>
     </div>
   </div>
 </section>
@@ -1918,6 +2018,199 @@
       : 'empieza a recuperarlo desde el primer mes';
   }
   calcROI();
+</script>
+
+<!-- ── Voice Demo Player ── -->
+<script>
+(function(){
+  // ── Manifest data embedded from generated JSON ─────────────────────────
+  var MANIFESTS = {
+    peluqueria: {
+      id:'peluqueria', title:'Peluquería · Bilbao', totalMs:32742,
+      segments:[
+        {speaker:'cliente', text:'Buenas, llamo para reservar una cita para un corte de pelo.', startMs:300,   durationMs:3441},
+        {speaker:'ia',      text:'¡Hola! Soy la asistente virtual de Peluquería Adela. Con mucho gusto te ayudo. ¿Para qué día necesitas la cita?', startMs:4091,  durationMs:7191},
+        {speaker:'cliente', text:'¿Tenéis algo el viernes por la tarde?', startMs:11832, durationMs:1985},
+        {speaker:'ia',      text:'El viernes tenemos disponible a las cinco y cuarto y a las seis y media. ¿Cuál te viene mejor?', startMs:14167, durationMs:5902},
+        {speaker:'cliente', text:'Las cinco y cuarto, perfecto.', startMs:20619, durationMs:1714},
+        {speaker:'ia',      text:'¿Me puedes decir tu nombre para apuntarte?', startMs:22683, durationMs:2487},
+        {speaker:'cliente', text:'Soy Ana.', startMs:25720, durationMs:451},
+        {speaker:'ia',      text:'Perfecto, Ana. Cita confirmada para el viernes a las cinco y cuarto. ¡Te esperamos!', startMs:26521, durationMs:5271}
+      ],
+      result:'✅ Cita reservada — viernes 17:15'
+    },
+    clinica: {
+      id:'clinica', title:'Clínica Dental · Donostia', totalMs:33026,
+      segments:[
+        {speaker:'cliente', text:'Hola, necesito pedir una revisión con el dentista.', startMs:300,   durationMs:3183},
+        {speaker:'ia',      text:'¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente habitual o es tu primera visita?', startMs:3833,  durationMs:6881},
+        {speaker:'cliente', text:'Soy paciente habitual. Me llamo Mikel Urrutia.', startMs:11264, durationMs:2848},
+        {speaker:'ia',      text:'Hola Mikel. Tenemos disponible el martes a las nueve de la mañana o el jueves a las cuatro de la tarde. ¿Cuál te va mejor?', startMs:14462, durationMs:7796},
+        {speaker:'cliente', text:'El martes a las nueve me va bien.', startMs:22808, durationMs:2088},
+        {speaker:'ia',      text:'Anotado, Mikel. Revisión el martes a las nueve. Te enviaremos un recordatorio el día anterior. ¡Hasta pronto!', startMs:25246, durationMs:6830}
+      ],
+      result:'✅ Revisión agendada — martes 09:00'
+    },
+    restaurante: {
+      id:'restaurante', title:'Restaurante · Vitoria-Gasteiz', totalMs:28850,
+      segments:[
+        {speaker:'cliente', text:'Hola, quería hacer una reserva para cenar esta noche.', startMs:300,   durationMs:3286},
+        {speaker:'ia',      text:'¡Hola! Soy el asistente virtual del Restaurante Txoko. ¿Para cuántas personas y a qué hora?', startMs:3936,  durationMs:5915},
+        {speaker:'cliente', text:'Somos cuatro personas, sobre las nueve y media.', startMs:10401, durationMs:2964},
+        {speaker:'ia',      text:'Perfecto, tenemos mesa disponible para cuatro a las nueve y media. ¿A nombre de quién hago la reserva?', startMs:13715, durationMs:6546},
+        {speaker:'cliente', text:'A nombre de Gorka.', startMs:20811, durationMs:979},
+        {speaker:'ia',      text:'Reserva confirmada, Gorka. Mesa para cuatro esta noche a las nueve y media. ¡Les esperamos!', startMs:22140, durationMs:5760}
+      ],
+      result:'✅ Mesa reservada — hoy 21:30 para 4'
+    }
+  };
+
+  // ── State ───────────────────────────────────────────────────────────────
+  var currentDemoId = 'peluqueria';
+  var audio         = null;
+  var syncTick      = null;
+  var shownIndices  = {};
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────
+  var chatEl    = document.getElementById('demoChat');
+  var timerEl   = document.getElementById('demoTimer');
+  var dotEl     = document.getElementById('demoCallDot');
+  var titleEl   = document.getElementById('demoCallTitle');
+  var waveEl    = document.getElementById('demoWave');
+  var playBtnEl = document.getElementById('demoPlayBtn');
+  var playIcon  = document.getElementById('demoPlayIcon');
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function fmtTime(ms){
+    var s = Math.floor(ms/1000);
+    return pad(Math.floor(s/60)) + ':' + pad(s%60);
+  }
+
+  function setPlayIcon(playing){
+    if(playing){
+      // Pause icon
+      playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+    } else {
+      // Play icon
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+  }
+
+  function buildChat(manifest){
+    chatEl.innerHTML = '';
+    shownIndices = {};
+    manifest.segments.forEach(function(seg, i){
+      var wrap = document.createElement('div');
+      wrap.className = 'demo-bubble b-' + seg.speaker;
+      wrap.id = 'db-' + i;
+      var label = document.createElement('div');
+      label.className = 'demo-bubble-label';
+      label.textContent = seg.speaker === 'ia' ? '🤖 NodeFlow IA' : '👤 Cliente';
+      var inner = document.createElement('div');
+      inner.className = 'demo-bubble-inner';
+      inner.textContent = seg.text;
+      // Result tag for last IA message
+      if(i === manifest.segments.length - 1){
+        var tag = document.createElement('div');
+        tag.className = 'demo-result-tag';
+        tag.id = 'demo-result-tag';
+        tag.textContent = manifest.result || '✅ Listo';
+        inner.appendChild(tag);
+      }
+      wrap.appendChild(label);
+      wrap.appendChild(inner);
+      chatEl.appendChild(wrap);
+    });
+  }
+
+  function syncBubbles(manifest){
+    var nowMs = audio ? audio.currentTime * 1000 : 0;
+    manifest.segments.forEach(function(seg, i){
+      if(!shownIndices[i] && nowMs >= seg.startMs){
+        shownIndices[i] = true;
+        var el = document.getElementById('db-' + i);
+        if(el){
+          el.classList.add('show');
+          // Scroll chat to bottom
+          chatEl.scrollTop = chatEl.scrollHeight;
+          // Show result tag after last segment finishes
+          if(i === manifest.segments.length - 1){
+            setTimeout(function(){
+              var tag = document.getElementById('demo-result-tag');
+              if(tag) tag.classList.add('show');
+            }, seg.durationMs + 200);
+          }
+        }
+      }
+    });
+    // Update timer
+    timerEl.textContent = fmtTime(nowMs) + ' / ' + fmtTime(manifest.totalMs);
+  }
+
+  function stopSync(){
+    if(syncTick){ clearInterval(syncTick); syncTick = null; }
+    dotEl.classList.remove('pulsing');
+    waveEl.classList.remove('playing');
+    setPlayIcon(false);
+  }
+
+  function startSync(manifest){
+    dotEl.classList.add('pulsing');
+    waveEl.classList.add('playing');
+    setPlayIcon(true);
+    syncTick = setInterval(function(){ syncBubbles(manifest); }, 80);
+  }
+
+  // ── Load demo ─────────────────────────────────────────────────────────────
+  function loadDemo(id){
+    stopSync();
+    if(audio){ audio.pause(); audio.src = ''; audio = null; }
+    currentDemoId = id;
+    var manifest = MANIFESTS[id];
+    titleEl.textContent = manifest.title;
+    timerEl.textContent = '00:00 / ' + fmtTime(manifest.totalMs);
+    buildChat(manifest);
+    setPlayIcon(false);
+    dotEl.classList.remove('pulsing');
+    waveEl.classList.remove('playing');
+  }
+
+  // ── Toggle play/pause ─────────────────────────────────────────────────────
+  window.toggleDemoPlay = function(){
+    var manifest = MANIFESTS[currentDemoId];
+    if(!audio){
+      audio = new Audio('/audio/demo-' + currentDemoId + '.wav');
+      audio.addEventListener('ended', function(){
+        stopSync();
+        timerEl.textContent = fmtTime(manifest.totalMs) + ' / ' + fmtTime(manifest.totalMs);
+      });
+      audio.addEventListener('error', function(){
+        stopSync();
+        timerEl.textContent = 'Error al cargar audio';
+      });
+    }
+    if(audio.paused){
+      audio.play().then(function(){ startSync(manifest); }).catch(function(e){ console.warn('Audio play failed:', e); });
+    } else {
+      audio.pause();
+      stopSync();
+    }
+  };
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  document.querySelectorAll('.demo-tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.demo-tab').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected','true');
+      loadDemo(btn.dataset.demo);
+    });
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadDemo('peluqueria');
+})();
 </script>
 
 </body>

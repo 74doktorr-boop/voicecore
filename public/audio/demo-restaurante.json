@@ -1,0 +1,45 @@
+{
+  "id": "restaurante",
+  "title": "Restaurante · Vitoria-Gasteiz",
+  "icon": "🍽️",
+  "tag": "restaurante",
+  "totalMs": 28850,
+  "segments": [
+    {
+      "speaker": "cliente",
+      "text": "Hola, quería hacer una reserva para cenar esta noche.",
+      "startMs": 300,
+      "durationMs": 3286
+    },
+    {
+      "speaker": "ia",
+      "text": "¡Hola! Soy el asistente virtual del Restaurante Txoko. ¿Para cuántas personas y a qué hora?",
+      "startMs": 3936,
+      "durationMs": 5915
+    },
+    {
+      "speaker": "cliente",
+      "text": "Somos cuatro personas, sobre las nueve y media.",
+      "startMs": 10401,
+      "durationMs": 2964
+    },
+    {
+      "speaker": "ia",
+      "text": "Perfecto, tenemos mesa disponible para cuatro a las nueve y media. ¿A nombre de quién hago la reserva?",
+      "startMs": 13715,
+      "durationMs": 6546
+    },
+    {
+      "speaker": "cliente",
+      "text": "A nombre de Gorka.",
+      "startMs": 20811,
+      "durationMs": 979
+    },
+    {
+      "speaker": "ia",
+      "text": "Reserva confirmada, Gorka. Mesa para cuatro esta noche a las nueve y media. ¡Les esperamos!",
+      "startMs": 22140,
+      "durationMs": 5760
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "id": "peluqueria",
+  "title": "Peluquería · Bilbao",
+  "icon": "✂️",
+  "tag": "peluquería",
+  "totalMs": 32742,
+  "segments": [
+    {
+      "speaker": "cliente",
+      "text": "Buenas, llamo para reservar una cita para un corte de pelo.",
+      "startMs": 300,
+      "durationMs": 3441
+    },
+    {
+      "speaker": "ia",
+      "text": "¡Hola! Soy la asistente virtual de Peluquería Adela. Con mucho gusto te ayudo. ¿Para qué día necesitas la cita?",
+      "startMs": 4091,
+      "durationMs": 7191
+    },
+    {
+      "speaker": "cliente",
+      "text": "¿Tenéis algo el viernes por la tarde?",
+      "startMs": 11832,
+      "durationMs": 1985
+    },
+    {
+      "speaker": "ia",
+      "text": "El viernes tenemos disponible a las cinco y cuarto y a las seis y media. ¿Cuál te viene mejor?",
+      "startMs": 14167,
+      "durationMs": 5902
+    },
+    {
+      "speaker": "cliente",
+      "text": "Las cinco y cuarto, perfecto.",
+      "startMs": 20619,
+      "durationMs": 1714
+    },
+    {
+      "speaker": "ia",
+      "text": "¿Me puedes decir tu nombre para apuntarte?",
+      "startMs": 22683,
+      "durationMs": 2487
+    },
+    {
+      "speaker": "cliente",
+      "text": "Soy Ana.",
+      "startMs": 25720,
+      "durationMs": 451
+    },
+    {
+      "speaker": "ia",
+      "text": "Perfecto, Ana. Cita confirmada para el viernes a las cinco y cuarto. ¡Te esperamos!",
+      "startMs": 26521,
+      "durationMs": 5271
+    }
+  ]
+}
