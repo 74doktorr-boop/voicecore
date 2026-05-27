@@ -50,9 +50,11 @@ class CallSession {
     const lang      = this.assistant.language || 'es';
     // Use locale matching the business language so day/month names are correct
     const locale    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es-ES';
+    // BUG-47 FIX: Pin timezone to Europe/Madrid — server may run in UTC and the date/time
+    // shown to the AI must reflect what the Spanish business owner sees on their clock.
     const now       = new Date();
-    const dateStr   = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr   = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const dateStr   = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' });
+    const timeStr   = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
     const label     = lang === 'eu' ? 'Uneko data eta ordua' : lang === 'gl' ? 'Data e hora actual' : 'Fecha y hora actual';
     this.messages.push({ role: 'system', content: `${systemMsg}\n\n[${label}: ${dateStr}, ${timeStr}]` });
   }

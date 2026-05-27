@@ -6,6 +6,18 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('EMAIL');
 
+// BUG-41 FIX: Escape user-provided data before inserting into HTML templates.
+// Without this, a business name like "<script>alert(1)</script>" would execute in the email client.
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let _resend = null;
 
 function getResend() {
@@ -89,9 +101,25 @@ function formatHorario(horario = {}) {
  * Notificación interna a Unai cuando llega un nuevo cliente
  */
 async function notifyNuevoCliente(registro) {
+  // BUG-44 FIX: Guard against null/undefined fields
+  if (!registro) { log.warn('notifyNuevoCliente llamado con registro null'); return false; }
+
   const to      = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
   const plan    = registro.plan === 'negocio' ? 'Negocio — 49€/mes' : 'Pro — 99€/mes';
   const horario = formatHorario(registro.horario);
+
+  // BUG-41 FIX: Escape all user-controlled data before inserting into HTML
+  const eNegocio  = esc(registro.negocio);
+  const eSector   = esc(registro.sector);
+  const eContacto = esc(registro.contacto);
+  const eTelefono = esc(registro.telefono);
+  const eEmail    = esc(registro.email);
+  const eCiudad   = esc(registro.ciudad);
+  const ePlan     = esc(plan);
+  const eVoz      = esc(registro.voz);
+  const eIdioma   = esc(registro.idioma);
+  const eSaludo   = esc(registro.saludo);
+  const eHorario  = esc(horario);
 
   const subject = `🎉 Nuevo cliente NodeFlow — ${registro.negocio}`;
 
@@ -121,19 +149,19 @@ async function notifyNuevoCliente(registro) {
       <h2 style="color:#6c5ce7;margin-bottom:4px;">🎉 Nuevo cliente</h2>
       <p style="color:#666;margin-top:0;font-size:14px;">Acaba de pagar su suscripción a NodeFlow</p>
       <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:14px;">
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;width:120px;">Negocio</td><td style="padding:8px 12px;font-weight:600;">${registro.negocio}</td></tr>
-        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Sector</td><td style="padding:8px 12px;">${registro.sector}</td></tr>
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Contacto</td><td style="padding:8px 12px;">${registro.contacto}</td></tr>
-        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Teléfono</td><td style="padding:8px 12px;">${registro.telefono}</td></tr>
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Email</td><td style="padding:8px 12px;">${registro.email}</td></tr>
-        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Ciudad</td><td style="padding:8px 12px;">${registro.ciudad}</td></tr>
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;font-weight:600;color:#6c5ce7;">Plan</td><td style="padding:8px 12px;font-weight:700;color:#6c5ce7;">${plan}</td></tr>
-        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Voz</td><td style="padding:8px 12px;">${registro.voz}</td></tr>
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Idioma</td><td style="padding:8px 12px;">${registro.idioma}</td></tr>
-        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Saludo</td><td style="padding:8px 12px;font-style:italic;">"${registro.saludo}"</td></tr>
-        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Horario</td><td style="padding:8px 12px;font-size:13px;">${horario}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;width:120px;">Negocio</td><td style="padding:8px 12px;font-weight:600;">${eNegocio}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Sector</td><td style="padding:8px 12px;">${eSector}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Contacto</td><td style="padding:8px 12px;">${eContacto}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Teléfono</td><td style="padding:8px 12px;">${eTelefono}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Email</td><td style="padding:8px 12px;">${eEmail}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Ciudad</td><td style="padding:8px 12px;">${eCiudad}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;font-weight:600;color:#6c5ce7;">Plan</td><td style="padding:8px 12px;font-weight:700;color:#6c5ce7;">${ePlan}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Voz</td><td style="padding:8px 12px;">${eVoz}</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Idioma</td><td style="padding:8px 12px;">${eIdioma}</td></tr>
+        <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Saludo</td><td style="padding:8px 12px;font-style:italic;">&ldquo;${eSaludo}&rdquo;</td></tr>
+        <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Horario</td><td style="padding:8px 12px;font-size:13px;">${eHorario}</td></tr>
       </table>
-      <p style="margin-top:20px;font-size:12px;color:#999;">ID: ${registro.id} · ${registro.created_at}</p>
+      <p style="margin-top:20px;font-size:12px;color:#999;">ID: ${esc(registro.id)} · ${esc(registro.created_at)}</p>
     </div>
   `;
 
@@ -144,8 +172,10 @@ async function notifyNuevoCliente(registro) {
  * Email de benvida en galego — enviado cando idioma === 'gl' ou source === 'galiza'
  */
 async function sendBienvenidaGl(registro) {
+  // BUG-44 FIX: Guard null contacto
+  if (!registro?.email) { log.warn('sendBienvenidaGl: email nulo'); return false; }
   const plan    = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
-  const nome    = registro.contacto.split(' ')[0];
+  const nome    = (registro.contacto || 'Cliente').split(' ')[0];
   const subject = `Benvido a NodeFlow, ${nome}! 🎉`;
 
   const html = `
@@ -171,13 +201,13 @@ async function sendBienvenidaGl(registro) {
       ${registro.api_key ? `
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #1e8a5e;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">A túa API Key</p>
-        <p style="font-family:monospace;font-size:13px;color:#2ecc8a;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="font-family:monospace;font-size:13px;color:#2ecc8a;word-break:break-all;margin:0;">${esc(registro.api_key)}</p>
         <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Gárdaa nun lugar seguro. Necesitarala para acceder ao panel de control.</p>
       </div>` : ''}
 
       ${registro.api_key ? `
       <div style="text-align:center;margin-top:24px;">
-        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#1e8a5e;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder ao meu portal →</a>
+        <a href="https://nodeflow.es/portal/#key=${registro.api_key}" style="background:#1e8a5e;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder ao meu portal →</a>
       </div>` : ''}
 
       <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
@@ -200,8 +230,10 @@ async function sendBienvenidaGl(registro) {
  * Email de ongi etorri en euskera — enviado cuando idioma === 'eu' o source === 'hementxe'
  */
 async function sendBienvenidaEu(registro) {
+  // BUG-44 FIX: Guard null contacto
+  if (!registro?.email) { log.warn('sendBienvenidaEu: email nulo'); return false; }
   const plan  = registro.plan === 'negocio' ? 'Negocio (49€/hil)' : 'Pro (99€/hil)';
-  const izena = registro.contacto.split(' ')[0];
+  const izena = (registro.contacto || 'Bezeroa').split(' ')[0];
   const subject = `Ongi etorri NodeFlow-era, ${izena}! 🎉`;
 
   const html = `
@@ -227,13 +259,13 @@ async function sendBienvenidaEu(registro) {
       ${registro.api_key ? `
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #e74c3c;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Zure API Gakoa</p>
-        <p style="font-family:monospace;font-size:13px;color:#e74c3c;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="font-family:monospace;font-size:13px;color:#e74c3c;word-break:break-all;margin:0;">${esc(registro.api_key)}</p>
         <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Leku seguru batean gorde. Kontrol-panelera sartzeko beharko duzu.</p>
       </div>` : ''}
 
       ${registro.api_key ? `
       <div style="text-align:center;margin-top:24px;">
-        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#e74c3c;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Nire atarira sartu →</a>
+        <a href="https://nodeflow.es/portal/#key=${registro.api_key}" style="background:#e74c3c;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Nire atarira sartu →</a>
       </div>` : ''}
 
       <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
@@ -257,6 +289,9 @@ async function sendBienvenidaEu(registro) {
  * Detecta idioma: gl → galego, eu → euskera, default → español
  */
 async function sendBienvenida(registro) {
+  // BUG-44 FIX: Guard null registro/email
+  if (!registro?.email) { log.warn('sendBienvenida: registro o email nulo'); return false; }
+
   // Route to Galician welcome email
   if (registro.idioma === 'gl' || registro.source === 'galiza' || registro.language === 'gl') {
     return sendBienvenidaGl(registro);
@@ -267,20 +302,22 @@ async function sendBienvenida(registro) {
   }
 
   const plan = registro.plan === 'negocio' ? 'Negocio (49€/mes)' : 'Pro (99€/mes)';
+  // BUG-44 FIX: Safe split — contacto may be null for programmatic calls
+  const nombre = (registro.contacto || 'Cliente').split(' ')[0];
 
-  const subject = `¡Bienvenido a NodeFlow, ${registro.contacto.split(' ')[0]}! 🎉`;
+  const subject = `¡Bienvenido a NodeFlow, ${nombre}! 🎉`;
 
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
       <h1 style="color:#a29bfe;font-size:28px;margin-bottom:8px;">¡Bienvenido a NodeFlow!</h1>
-      <p style="color:#a0a0b8;margin-bottom:24px;">Hola <strong style="color:#f0f0f5;">${registro.contacto.split(' ')[0]}</strong>, tu pago se ha confirmado. En menos de 24 horas tu asistente estará listo.</p>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Hola <strong style="color:#f0f0f5;">${esc(nombre)}</strong>, tu pago se ha confirmado. En menos de 24 horas tu asistente estará listo.</p>
 
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumen de tu contratación</p>
-        <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${plan}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${registro.voz}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">🌐 Idioma: <strong>${registro.idioma}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🏪 <strong>${esc(registro.negocio)}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${esc(plan)}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${esc(registro.voz)}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🌐 Idioma: <strong>${esc(registro.idioma)}</strong></p>
       </div>
 
       <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">¿Qué pasa ahora?</strong></p>
@@ -293,13 +330,13 @@ async function sendBienvenida(registro) {
       ${registro.api_key ? `
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #6c5ce7;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Tu API Key</p>
-        <p style="font-family:monospace;font-size:13px;color:#a29bfe;word-break:break-all;margin:0;">${registro.api_key}</p>
+        <p style="font-family:monospace;font-size:13px;color:#a29bfe;word-break:break-all;margin:0;">${esc(registro.api_key)}</p>
         <p style="color:#666680;font-size:11px;margin-top:8px;margin-bottom:0;">Guárdala en un lugar seguro. La necesitarás para acceder al panel de control.</p>
       </div>` : ''}
 
       ${registro.api_key ? `
       <div style="text-align:center;margin-top:24px;">
-        <a href="https://nodeflow.es/portal/?key=${registro.api_key}" style="background:#6c5ce7;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder a mi portal →</a>
+        <a href="https://nodeflow.es/portal/#key=${registro.api_key}" style="background:#6c5ce7;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">⚡ Acceder a mi portal →</a>
       </div>` : ''}
 
       <div style="margin-top:20px;padding:16px;background:#1a1a24;border-radius:10px;text-align:center;">
@@ -313,7 +350,7 @@ async function sendBienvenida(registro) {
     </div>
   `;
 
-  const text = `¡Bienvenido a NodeFlow, ${registro.contacto.split(' ')[0]}!\n\nTu pago se ha confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nVoz: ${registro.voz}\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago se ha confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nVoz: ${registro.voz}\n\n¿Dudas? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }
@@ -323,7 +360,9 @@ async function sendBienvenida(registro) {
 // Se envía ANTES del pago, en el momento que llega el registro
 // ─────────────────────────────────────────────────────────────────────────────
 async function sendAcknowledgement(registro) {
-  const nombre  = registro.contacto.split(' ')[0];
+  // BUG-44 FIX: Guard null registro/fields
+  if (!registro?.email) { log.warn('sendAcknowledgement: email nulo'); return false; }
+  const nombre  = (registro.contacto || 'Cliente').split(' ')[0];
   const plan    = registro.plan === 'negocio' ? 'Negocio — 49€/mes' : 'Pro — 99€/mes';
   const subject = `✅ Recibido, ${nombre} — te contactamos antes de 24h`;
 

@@ -88,9 +88,11 @@ class SchedulingSystem {
       slotInterval: 15,
     });
 
-    // Seed some demo appointments
-    this._seedDemoAppointments();
-    this._seedLuminaAppointments();
+    // BUG-40 FIX: Only seed demo data in development — never in production
+    if (process.env.NODE_ENV !== 'production') {
+      this._seedDemoAppointments();
+      this._seedLuminaAppointments();
+    }
   }
 
   setBusinessConfig(businessId, config) {
@@ -112,7 +114,8 @@ class SchedulingSystem {
     const config = this.getBusinessConfig(businessId);
     if (!config) return { error: 'Business not configured' };
     // Never show slots in the past — clamp fromDate to today
-    const todayStr = new Date().toISOString().split('T')[0];
+    // BUG-47 FIX: Use Madrid timezone — UTC date can be one day off at midnight
+    const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
     if (fromDate < todayStr) fromDate = todayStr;
 
     const service = config.services.find(s => s.id === serviceId || s.name.toLowerCase().includes((serviceId || '').toLowerCase()));
@@ -249,14 +252,22 @@ class SchedulingSystem {
   }
 
   // ─── Cancel an appointment ───
-  cancelAppointment(appointmentId, patientName) {
-    // Search by ID or by patient name
+  // BUG-39 FIX: Always filter by businessId to prevent cross-business cancellations.
+  // Without this, a caller could cancel another business's appointment by guessing IDs.
+  cancelAppointment(appointmentId, patientName, businessId) {
+    // Search by ID or by patient name, always scoped to businessId
     let apt = this.appointments.get(appointmentId);
 
+    // Verify the appointment belongs to this business (prevents cross-tenant cancellation)
+    if (apt && businessId && apt.businessId !== businessId) {
+      apt = null; // Pretend it doesn't exist to avoid leaking info
+    }
+
     if (!apt && patientName) {
-      // Search by name
+      // Search by name — scoped to businessId
       for (const [, a] of this.appointments) {
-        if (a.patientName.toLowerCase().includes(patientName.toLowerCase()) && a.status !== 'cancelled') {
+        const sameBusiness = !businessId || a.businessId === businessId;
+        if (sameBusiness && a.patientName.toLowerCase().includes(patientName.toLowerCase()) && a.status !== 'cancelled') {
           apt = a;
           break;
         }

@@ -11,20 +11,50 @@ const { getDatabase } = require('../db/database');
 
 const log = new Logger('API');
 
+// BUG-21 FIX: Twilio webhook signature validation middleware.
+// Validates X-Twilio-Signature header when TWILIO_AUTH_TOKEN is configured.
+// Without this, anyone who discovers the webhook URL can POST fake call events.
+function twilioValidate(config) {
+  return (req, res, next) => {
+    const authToken = config.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
+    if (!authToken) {
+      log.warn('[Twilio] TWILIO_AUTH_TOKEN no configurado — webhook sin validación de firma');
+      return next();
+    }
+    try {
+      const twilio = require('twilio');
+      const sig = req.headers['x-twilio-signature'] || '';
+      // Build full URL including query string (Twilio signs the complete URL)
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host  = req.headers['x-forwarded-host'] || req.headers.host;
+      const url   = `${proto}://${host}${req.originalUrl}`;
+      const valid = twilio.validateRequest(authToken, sig, url, req.body || {});
+      if (!valid) {
+        log.error(`[Twilio] Firma inválida — webhook rechazado desde ${req.ip}`);
+        return res.status(403).type('text/xml').send('<Response></Response>');
+      }
+    } catch (e) {
+      log.warn(`[Twilio] Error validando firma: ${e.message}`);
+    }
+    next();
+  };
+}
+
 function setupRoutes(app, pipeline, assistantManager, config) {
   const auth = requireAuth(config);
   const limit = rateLimit();
   const db = getDatabase();
+  const twilioSig = twilioValidate(config);
 
-  // ─── Twilio Webhooks (no auth - Twilio validates) ───
-  app.post('/voice/inbound', (req, res) => {
+  // ─── Twilio Webhooks — validated with X-Twilio-Signature ───
+  app.post('/voice/inbound', twilioSig, (req, res) => {
     const assistantId = req.query.assistantId || null;
     const wsUrl = `wss://${req.headers.host}/media-stream`;
     log.call(`[Twilio] Inbound call → assistant: ${assistantId || 'default'}`);
     res.type('text/xml').send(generateTwiML(wsUrl, assistantId));
   });
 
-  app.post('/voice/inbound/:assistantId', (req, res) => {
+  app.post('/voice/inbound/:assistantId', twilioSig, (req, res) => {
     const wsUrl = `wss://${req.headers.host}/media-stream`;
     log.call(`[Twilio] Inbound call → assistant: ${req.params.assistantId}`);
     res.type('text/xml').send(generateTwiML(wsUrl, req.params.assistantId));
@@ -159,7 +189,8 @@ function setupRoutes(app, pipeline, assistantManager, config) {
 
   app.get('/api/calls/history', auth, async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit) || 50;
+      // BUG-24 FIX: Cap the limit to prevent fetching millions of rows
+      const limit = Math.min(parseInt(req.query.limit) || 50, 500);
       if (db.enabled && req.org.id !== 'legacy') {
         const calls = await db.getCalls(req.org.id, { limit });
         return res.json({ calls });

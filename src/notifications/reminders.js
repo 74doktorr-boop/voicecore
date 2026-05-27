@@ -348,6 +348,20 @@ function generateWhatsAppConfirmation(appointment, businessConfig, ownerPhone) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 }
 
+// BUG-47 FIX: Parse appointment datetime in Europe/Madrid timezone, not server local time.
+// Without this, on a UTC server an appointment at 10:00 Madrid time (UTC+2 in summer)
+// would be treated as 10:00 UTC → reminders sent 2 hours too late.
+function madridDateTimeToMs(dateStr, timeStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hour, minute]     = (timeStr || '00:00').split(':').map(Number);
+  // Get noon UTC on that day, then compare to Madrid noon to derive the DST-aware offset
+  const refUtc   = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const madridNoon = new Date(refUtc.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+  const offsetMs   = refUtc.getTime() - madridNoon.getTime(); // Madrid → UTC offset (negative when ahead)
+  const localAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  return localAsUtc + offsetMs; // UTC timestamp for the Madrid local datetime
+}
+
 // ── Cron check: reminders ─────────────────────────────────────────────────────
 // Sends reminder to appointments in the configured window (default 24h ±4h)
 // flowManager is optional — if omitted, defaults apply for all businesses
@@ -367,7 +381,7 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
     const WINDOW_START  = targetMs - 4 * 3600 * 1000;
     const WINDOW_END    = targetMs + 4 * 3600 * 1000;
 
-    const aptTime = new Date(`${apt.date}T${apt.time}:00`).getTime();
+    const aptTime = madridDateTimeToMs(apt.date, apt.time); // BUG-47
     const diff    = aptTime - now;
 
     if (diff >= WINDOW_START && diff <= WINDOW_END) {
@@ -402,7 +416,7 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
     const WINDOW_START = targetMs - 4 * 3600 * 1000;
     const WINDOW_END   = targetMs + 12 * 3600 * 1000;
 
-    const aptTime = new Date(`${apt.date}T${apt.time}:00`).getTime();
+    const aptTime = madridDateTimeToMs(apt.date, apt.time); // BUG-47
     const elapsed = now - aptTime;
 
     if (elapsed >= WINDOW_START && elapsed <= WINDOW_END) {

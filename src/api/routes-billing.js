@@ -14,7 +14,9 @@ const log = new Logger('API:BILLING');
 
 function setupBillingRoutes(app, config) {
   const auth = requireAuth(config);
-  const billing = getBilling();
+  // BUG-14 FIX: Pass config so getBilling can read priceIds/keys from config if env vars differ.
+  // Without this, getBilling() creates an unconfigured instance if called before server.js does it.
+  const billing = getBilling(config);
   const db = getDatabase();
 
   // ─── Plans ───
@@ -115,7 +117,8 @@ function setupBillingRoutes(app, config) {
         minutesUsed: Math.round(minutesUsed * 100) / 100,
         minutesLimit,
         minutesRemaining: Math.max(0, minutesLimit - minutesUsed),
-        percentUsed: Math.round((minutesUsed / minutesLimit) * 100),
+        // BUG-19 FIX: Guard divide-by-zero when minutesLimit is 0 (e.g. custom plans)
+        percentUsed: minutesLimit > 0 ? Math.round((minutesUsed / minutesLimit) * 100) : 0,
         overage: Math.round(overage * 100) / 100,
         overageCost: Math.round(overageCost * 100) / 100,
         overageRate: planConfig.overagePerMinute,

@@ -165,7 +165,9 @@ class StripeBilling {
    * Handle Stripe webhook events
    */
   async handleWebhook(body, signature) {
-    if (!this.enabled) return { received: true };
+    // BUG-15 FIX: Never accept webhook events when billing is not configured.
+    // Silently accepting them would let anyone POST fake payment events.
+    if (!this.enabled) throw new Error('Billing no configurado — webhook rechazado por seguridad');
 
     let event;
     try {
@@ -182,9 +184,12 @@ class StripeBilling {
 
         // ── Viene de un Payment Link (landing de nodeflow.es) ──
         if (session.payment_link || session.client_reference_id?.startsWith('reg_')) {
-          // Mapear amount → plan key (4900 = €49 negocio, 9900 = €99 pro)
+          // BUG-16 FIX: Prefer plan from metadata — don't rely solely on amount which changes.
+          // Price IDs or subscription metadata are authoritative; amount is only a fallback.
           const amount = session.amount_total || 0;
-          const planKey = amount <= 5000 ? 'negocio' : 'pro';
+          const planKey = session.metadata?.plan ||
+            session.subscription_data?.metadata?.plan ||
+            (amount > 0 && amount <= 5500 ? 'negocio' : amount > 5500 ? 'pro' : 'negocio');
 
           return {
             action: 'payment_link_completed',

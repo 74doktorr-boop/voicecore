@@ -174,6 +174,13 @@ class VoicePipeline {
           }
         }
 
+        // BUG-09 FIX: Handle error chunks from LLM router — they were silently ignored,
+        // leaving the call stalled with isProcessing=true and no response.
+        if (chunk.type === 'error') {
+          log.error(`[${callId}] LLM error chunk: ${chunk.message || chunk.content}`);
+          break;
+        }
+
         if (chunk.type === 'tool_call') {
           pendingToolCalls.push(chunk.toolCall);
         }
@@ -285,9 +292,17 @@ class VoicePipeline {
           // Vonage expects L16 PCM 16kHz — convert mulaw 8kHz → PCM 8kHz → PCM 16kHz
           const pcm16k = pcm8kToPcm16k(mulawToPcm(mulaw));
           sendAudioToVonage(session.vonageWs, pcm16k);
+          // BUG-01 FIX: Vonage has no mark/acknowledgement mechanism — reset isSpeaking now.
+          // Twilio resets it via handleMark(); Vonage audio is fire-and-forget.
+          session.isSpeaking = false;
         } else {
           session.sendAudioToTwilio(mulaw);
+          // isSpeaking resets via handleMark() when Twilio confirms playback
         }
+      } else {
+        // BUG-06 FIX: isSpeaking was set to true at the top of this function.
+        // If no audio was actually sent (empty, interrupted), reset it here.
+        session.isSpeaking = false;
       }
 
       const ttsTime = Date.now() - ttsStart;
@@ -295,6 +310,9 @@ class VoicePipeline {
 
     } catch (error) {
       log.error(`[${callId}] TTS error`, { error: error.message });
+      // BUG-06 FIX: Reset isSpeaking on error — otherwise the session is stuck
+      // thinking the assistant is speaking when TTS failed.
+      session.isSpeaking = false;
     }
   }
 

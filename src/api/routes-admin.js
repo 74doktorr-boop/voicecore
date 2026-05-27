@@ -36,10 +36,19 @@ function adminAuth(req, res, next) {
 }
 
 function setupAdminRoutes(app, config, assistantManager) {
-  const PASS = config.dashboardPassword || process.env.DASHBOARD_PASSWORD || 'admin';
+  const PASS = config.dashboardPassword || process.env.DASHBOARD_PASSWORD;
+
+  // BUG-25 FIX: Fail loudly if admin password not configured — never silently fall back to 'admin'
+  if (!PASS) {
+    log.error('⚠️  DASHBOARD_PASSWORD no configurado — panel de admin desactivado por seguridad');
+  }
 
   // ─── Auth (with brute-force protection) ───
   app.post('/api/admin/auth', (req, res) => {
+    // BUG-25: Reject all logins if password not configured
+    if (!PASS) {
+      return res.status(503).json({ error: 'Panel de admin no disponible — configura DASHBOARD_PASSWORD en el servidor' });
+    }
     const ip = req.ip;
     if (isLoginBlocked(ip)) {
       log.warn(`Admin login bloqueado por brute-force: ${ip}`);
@@ -118,9 +127,11 @@ function setupAdminRoutes(app, config, assistantManager) {
       const db = getDatabase();
       if (!db.enabled) return res.json({ orgs: [] });
 
+      // BUG-28 FIX: Don't expose api_key in the listing — it's a secret credential.
+      // Use the individual /api/admin/orgs/:id endpoint to view a specific org's key.
       const { data, error } = await db.client
         .from('organizations')
-        .select('id, name, slug, plan, owner_email, owner_name, phone, monthly_minutes_limit, monthly_minutes_used, api_key, stripe_customer_id, is_active, created_at')
+        .select('id, name, slug, plan, owner_email, owner_name, phone, monthly_minutes_limit, monthly_minutes_used, stripe_customer_id, is_active, created_at')
         .order('created_at', { ascending: false })
         .limit(200);
 

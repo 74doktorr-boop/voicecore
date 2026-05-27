@@ -66,14 +66,17 @@ class Database {
 
   async getOrgByApiKey(apiKey) {
     if (!this.enabled) return null;
-    const { data } = await this.client.from('organizations')
+    // BUG-36 FIX: Log Supabase errors that were previously silently swallowed
+    const { data, error } = await this.client.from('organizations')
       .select('*').eq('api_key', apiKey).eq('is_active', true).single();
+    if (error && error.code !== 'PGRST116') log.error(`getOrgByApiKey failed: ${error.message}`);
     return data;
   }
 
   async getOrg(id) {
     if (!this.enabled) return null;
-    const { data } = await this.client.from('organizations').select('*').eq('id', id).single();
+    const { data, error } = await this.client.from('organizations').select('*').eq('id', id).single();
+    if (error && error.code !== 'PGRST116') log.error(`getOrg failed: ${error.message}`);
     return data;
   }
 
@@ -125,8 +128,9 @@ class Database {
 
   async getAssistant(orgId, assistantId) {
     if (!this.enabled) return null;
-    const { data } = await this.client.from('assistants')
+    const { data, error } = await this.client.from('assistants')
       .select('*').eq('org_id', orgId).eq('id', assistantId).single();
+    if (error && error.code !== 'PGRST116') log.error(`getAssistant failed: ${error.message}`);
     return data;
   }
 
@@ -205,15 +209,31 @@ class Database {
 
   // ─── Usage Tracking ───
 
-  async trackUsage(orgId, usageData) {
-    if (!this.enabled) return;
+  // BUG-33 FIX: Serialize usage updates per org using an in-process promise chain.
+  // Without this, two concurrent calls ending at the same time would both read the
+  // same usage row, then both write "existing + delta", losing one update.
+  // Note: this serialization is per-process — for multi-replica deployments a DB-level
+  // upsert-with-increment RPC is needed (see db/schema.sql for the increment_usage fn).
+  trackUsage(orgId, usageData) {
+    if (!this.enabled) return Promise.resolve();
+    if (!this._usageLocks) this._usageLocks = new Map();
+
+    const key = `usage:${orgId}`;
+    const prev = this._usageLocks.get(key) || Promise.resolve();
+    const next = prev.then(() => this._doTrackUsage(orgId, usageData));
+    // Store the chained promise but swallow errors so the chain keeps going
+    this._usageLocks.set(key, next.catch(() => {}));
+    return next;
+  }
+
+  async _doTrackUsage(orgId, usageData) {
     const period = new Date().toISOString().substring(0, 7); // YYYY-MM
 
     const { data: existing } = await this.client.from('usage')
       .select('*').eq('org_id', orgId).eq('period', period).single();
 
     if (existing) {
-      await this.client.from('usage').update({
+      const { error } = await this.client.from('usage').update({
         call_count: existing.call_count + (usageData.calls || 0),
         call_minutes: parseFloat(existing.call_minutes) + (usageData.minutes || 0),
         stt_minutes: parseFloat(existing.stt_minutes) + (usageData.sttMinutes || 0),
@@ -223,8 +243,9 @@ class Database {
         total_cost: parseFloat(existing.total_cost) + (usageData.cost || 0),
         updated_at: new Date().toISOString(),
       }).eq('id', existing.id);
+      if (error) log.error(`trackUsage update failed: ${error.message}`);
     } else {
-      await this.client.from('usage').insert({
+      const { error } = await this.client.from('usage').insert({
         org_id: orgId,
         period,
         call_count: usageData.calls || 0,
@@ -235,6 +256,7 @@ class Database {
         tool_calls: usageData.toolCalls || 0,
         total_cost: usageData.cost || 0,
       });
+      if (error) log.error(`trackUsage insert failed: ${error.message}`);
     }
   }
 
@@ -293,8 +315,11 @@ class Database {
     return require('crypto').randomUUID();
   }
 
+  // BUG-32 FIX: Previous implementation called randomBytes(length) then substring(0, length),
+  // discarding half the entropy (randomBytes(N) gives 2N hex chars). Now we generate exactly
+  // ceil(length/2) bytes so the output has the full entropy of `length` hex characters.
   _generateKey(length) {
-    return require('crypto').randomBytes(length).toString('hex').substring(0, length);
+    return require('crypto').randomBytes(Math.ceil(length / 2)).toString('hex').substring(0, length);
   }
 }
 

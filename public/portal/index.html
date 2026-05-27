@@ -654,10 +654,17 @@ function copyApiKey() {
   if (key && org) {
     try { showApp(JSON.parse(org), key); return; } catch {}
   }
-  // Auto-fill from URL param (from bienvenida email)
-  const params = new URLSearchParams(location.search);
-  const k = params.get('key');
-  if (k) document.getElementById('apiKeyInput').value = k;
+  // Auto-fill from URL param or hash fragment (from bienvenida email).
+  // We now use #key= in emails (BUG-42: hash is not sent to server or referrer headers).
+  // Legacy ?key= links still work for any already-sent emails.
+  const params     = new URLSearchParams(location.search);
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const k = hashParams.get('key') || params.get('key');
+  if (k) {
+    document.getElementById('apiKeyInput').value = k;
+    // Clean URL so the key doesn't stay in browser history
+    history.replaceState({}, '', '/portal/');
+  }
 })();
 </script>
 </body>
