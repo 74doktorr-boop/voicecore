@@ -2,7 +2,7 @@
 // NodeFlow — WhatsApp alerts via Callmebot
 // ============================================
 // Setup (one-time, por el receptor):
-//   1. Añadir +34 644 52 70 22 en WhatsApp
+//   1. Añadir +34 623 78 64 49 en WhatsApp (bot oficial Callmebot)
 //   2. Enviar el mensaje: "I allow callmebot to send me messages"
 //   3. Recibirás tu API key por WhatsApp
 //   4. Añadir en EasyPanel env: CALLMEBOT_API_KEY=<tu key>
