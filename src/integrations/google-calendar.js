@@ -58,9 +58,17 @@ class GoogleCalendar {
       const { google } = require('googleapis');
       const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
 
-      const start = new Date(`${appointment.date}T${appointment.time}:00`);
-      const end   = new Date(start.getTime() + (appointment.duration || 30) * 60_000);
       const tz    = config.timezone || 'Europe/Madrid';
+
+      // BUG FIX: Pass local date-time WITHOUT timezone offset so Google Calendar
+      // interprets it using the `timeZone` field. Using .toISOString() would emit
+      // UTC (the server's clock is UTC), making events 1-2h late in Spain.
+      const startLocal = `${appointment.date}T${appointment.time}:00`;
+      const [startH, startM] = (appointment.time || '00:00').split(':').map(Number);
+      const totalMins  = startH * 60 + startM + (appointment.duration || 30);
+      const endH       = String(Math.floor(totalMins / 60) % 24).padStart(2, '0');
+      const endM       = String(totalMins % 60).padStart(2, '0');
+      const endLocal   = `${appointment.date}T${endH}:${endM}:00`;
 
       const desc = [
         `Cliente: ${appointment.patientName}`,
@@ -75,8 +83,8 @@ class GoogleCalendar {
         requestBody: {
           summary: `${appointment.service || 'Cita'} — ${appointment.patientName}`,
           description: desc,
-          start: { dateTime: start.toISOString(), timeZone: tz },
-          end:   { dateTime: end.toISOString(),   timeZone: tz },
+          start: { dateTime: startLocal, timeZone: tz },
+          end:   { dateTime: endLocal,   timeZone: tz },
           reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }] },
         },
       });
@@ -109,15 +117,16 @@ class GoogleCalendar {
       const { google } = require('googleapis');
       const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
 
-      // Use explicit Europe/Madrid offset to avoid UTC/local timezone mismatch
-      // Spain is UTC+1 (winter) / UTC+2 (summer) — using ISO with explicit time is safest
-      const timeMin = new Date(`${date}T00:00:00+01:00`).toISOString();
-      const timeMax = new Date(`${date}T23:59:59+01:00`).toISOString();
+      // BUG FIX: Use local date-time + timeZone instead of hardcoded +01:00 offset.
+      // Spain uses CEST (+02:00) in summer, so hardcoding +01:00 would be 1h off.
+      const timeMin = `${date}T00:00:00`;
+      const timeMax = `${date}T23:59:59`;
 
       const { data } = await cal.events.list({
         calendarId,
         timeMin,
         timeMax,
+        timeZone: 'Europe/Madrid',
         singleEvents: true,
         orderBy: 'startTime',
       });

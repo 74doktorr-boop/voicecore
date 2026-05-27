@@ -75,6 +75,14 @@ app.use((req, res, next) => {
 // ─── Simple in-memory rate limiter factory (no external dep) ───
 function makeRateLimit({ windowMs = 60000, max = 20, keyFn = (req) => req.ip } = {}) {
   const store = new Map();
+  // Prevent memory leak: purge expired buckets every 10 minutes
+  setInterval(() => {
+    const cutoff = Date.now() - windowMs;
+    for (const [key, bucket] of store) {
+      if (bucket.start < cutoff) store.delete(key);
+    }
+  }, 10 * 60 * 1000).unref(); // .unref() so the interval doesn't prevent process exit
+
   return (req, res, next) => {
     const key = keyFn(req);
     const now = Date.now();
@@ -105,8 +113,9 @@ app.use((req, res, next) => {
 // already-consumed stream for this path when the route handler runs.
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Limit JSON and URL-encoded body size to 512 KB — prevents DoS via massive POST bodies
+app.use(express.json({ limit: '512kb' }));
+app.use(express.urlencoded({ extended: true, limit: '512kb' }));
 
 // ─── GitHub Raw Page Server ───────────────────────────────────────────────────
 // Todas las páginas HTML se sirven desde GitHub raw con TTL 60s.
@@ -193,7 +202,14 @@ app.get(['/blog', '/blog/'], (req, res) => {
   res.redirect('/');
 });
 app.get('/blog/:slug', (req, res) => {
-  const f = path.join(__dirname, 'public', 'blog', req.params.slug, 'index.html');
+  // Sanitize slug to prevent path traversal (e.g. '../../../etc/passwd')
+  const slug = req.params.slug.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!slug) return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  const f = path.join(__dirname, 'public', 'blog', slug, 'index.html');
+  // Extra guard: confirm resolved path is inside public/blog/
+  if (!f.startsWith(path.join(__dirname, 'public', 'blog', ''))) {
+    return res.status(403).end();
+  }
   if (fs.existsSync(f)) return res.sendFile(f);
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
@@ -275,7 +291,9 @@ const config = {
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
   publicUrl: process.env.PUBLIC_URL || `http://localhost:${PORT}`,
   apiKey: process.env.API_KEY || 'voicecore-dev',
-  dashboardPassword: process.env.DASHBOARD_PASSWORD || 'admin',
+  // BUG-25 FOLLOW-UP: Do NOT default to 'admin' — routes-admin.js will reject
+  // all login attempts if this is null/undefined, forcing explicit configuration.
+  dashboardPassword: process.env.DASHBOARD_PASSWORD || null,
   webhookUrl: process.env.WEBHOOK_URL || null,
   // Pass routers
   sttRouter,

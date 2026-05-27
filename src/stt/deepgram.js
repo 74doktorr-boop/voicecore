@@ -31,8 +31,10 @@ class DeepgramSTT {
       interim_results: true,
       utterance_end_ms: options.utteranceEndMs || 1000,
       vad_events: true,
-      encoding: 'mulaw',
-      sample_rate: 8000,
+      // BUG FIX: respect caller-supplied encoding/sample_rate so Vonage (linear16 @16kHz)
+      // and Twilio (mulaw @8kHz) both get the correct Deepgram transcription config.
+      encoding: options.encoding || 'mulaw',
+      sample_rate: options.sample_rate || 8000,
       channels: 1,
       endpointing: options.endpointing || 300,
       ...options.extra

@@ -74,7 +74,9 @@ class ToolExecutor {
 
   checkAvailability(args, assistantId) {
     const businessId = assistantId || 'demo-clinic';
-    const fromDate   = args.from_date || new Date().toISOString().split('T')[0];
+    // BUG-47 follow-up: use Madrid date for default, not UTC date which can be a day off
+    const todayMadrid = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+    const fromDate   = args.from_date || todayMadrid;
     const toDate     = args.to_date || (() => { const d = new Date(fromDate); d.setDate(d.getDate() + 5); return d.toISOString().split('T')[0]; })();
     const result     = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null);
 
@@ -119,8 +121,10 @@ class ToolExecutor {
     return result;
   }
 
-  cancelAppointment(args) {
-    return scheduler.cancelAppointment(args.appointment_id || '', args.patient_name || '');
+  cancelAppointment(args, assistantId) {
+    // BUG-39 follow-up: pass businessId so cancelAppointment scopes the search correctly
+    const businessId = assistantId || null;
+    return scheduler.cancelAppointment(args.appointment_id || '', args.patient_name || '', businessId);
   }
 
   lookupAppointments(args) {

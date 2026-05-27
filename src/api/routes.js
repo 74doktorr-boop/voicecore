@@ -60,9 +60,26 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     res.type('text/xml').send(generateTwiML(wsUrl, req.params.assistantId));
   });
 
-  // ─── Vonage Webhooks (no auth - Vonage signed) ───
-  // Answer URL: Vonage calls this when a call is received → return NCCO
-  app.get('/vonage/answer', (req, res) => {
+  // BUG-22 FIX: Vonage webhook token validation.
+  // Set VONAGE_WEBHOOK_TOKEN env var (any random string), then append ?wt=<token>
+  // to your Vonage Answer URL in the dashboard — e.g. https://nodeflow.es/vonage/answer?wt=TOKEN
+  // Without a token configured, webhooks are unauthenticated (warning logged at startup).
+  const vonageToken = config.vonageWebhookToken || process.env.VONAGE_WEBHOOK_TOKEN || null;
+  if (!vonageToken) {
+    log.warn('VONAGE_WEBHOOK_TOKEN no configurado — webhooks Vonage sin autenticación de token');
+  }
+  function vonageValidate(req, res, next) {
+    if (!vonageToken) return next();
+    const provided = req.query.wt || req.body?.wt;
+    if (provided !== vonageToken) {
+      log.error(`[Vonage] Token inválido desde ${req.ip}`);
+      return res.status(403).json([]);
+    }
+    next();
+  }
+
+  // ─── Vonage Webhooks (token-validated) ───
+  app.get('/vonage/answer', vonageValidate, (req, res) => {
     const assistantId = req.query.assistantId || null;
     const callerNumber = req.query.from || null;
     const wsUrl = `wss://${req.headers.host}/vonage-stream`;
@@ -70,7 +87,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     res.type('application/json').send(generateNCCO(wsUrl, assistantId, callerNumber));
   });
 
-  app.get('/vonage/answer/:assistantId', (req, res) => {
+  app.get('/vonage/answer/:assistantId', vonageValidate, (req, res) => {
     const callerNumber = req.query.from || null;
     const wsUrl = `wss://${req.headers.host}/vonage-stream`;
     log.call(`[Vonage] Inbound call → assistant: ${req.params.assistantId}`);
@@ -78,7 +95,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   });
 
   // Event URL: Vonage posts call state changes here (ringing, answered, completed...)
-  app.post('/vonage/event', (req, res) => {
+  app.post('/vonage/event', vonageValidate, (req, res) => {
     log.call(`[Vonage] Event: ${req.body?.status || 'unknown'}`, {
       uuid: req.body?.uuid,
       duration: req.body?.duration,

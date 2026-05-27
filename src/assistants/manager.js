@@ -154,13 +154,15 @@ class AssistantManager {
   buildSystemMessage(assistant) {
     let systemPrompt = assistant.systemPrompt || assistant.system_prompt || '';
     
-    // Add current date/time context
+    // Add current date/time context (BUG-47: always use Madrid timezone — server runs UTC)
     const now = new Date();
-    const dateStr = now.toLocaleDateString('es-ES', { 
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    const dateStr = now.toLocaleDateString('es-ES', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      timeZone: 'Europe/Madrid',
     });
-    const timeStr = now.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', minute: '2-digit' 
+    const timeStr = now.toLocaleTimeString('es-ES', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'Europe/Madrid',
     });
 
     systemPrompt += `\n\n[Contexto actual: ${dateStr}, ${timeStr}]`;

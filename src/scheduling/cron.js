@@ -7,10 +7,11 @@ const { Logger } = require('../utils/logger');
 
 const log = new Logger('CRON');
 
-let _interval  = null;
-let _running   = false;
-let _lastRun   = null;
-let _stats     = { reminders: 0, reviews: 0, runs: 0 };
+let _interval    = null;
+let _warmupTimer = null; // Track the startup delay timer for clean cancellation
+let _running     = false;
+let _lastRun     = null;
+let _stats       = { reminders: 0, reviews: 0, runs: 0 };
 
 async function runAutomations() {
   if (_running) return;
@@ -51,12 +52,16 @@ function startCron(intervalMinutes = 30) {
   log.info(`Cron started — interval: ${intervalMinutes} min`);
 
   // First run after 1 minute (let server finish booting)
-  setTimeout(runAutomations, 60 * 1000);
+  _warmupTimer = setTimeout(runAutomations, 60 * 1000);
 
   _interval = setInterval(runAutomations, intervalMinutes * 60 * 1000);
 }
 
 function stopCron() {
+  if (_warmupTimer) {
+    clearTimeout(_warmupTimer);
+    _warmupTimer = null;
+  }
   if (_interval) {
     clearInterval(_interval);
     _interval = null;

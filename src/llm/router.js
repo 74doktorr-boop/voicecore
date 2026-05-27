@@ -119,7 +119,7 @@ class LLMRouter {
             return;
           } catch (e) { continue; }
         }
-        yield { type: 'error', error: 'All LLM providers failed' };
+        yield { type: 'error', message: 'All LLM providers failed' };
       }
     }
   }
