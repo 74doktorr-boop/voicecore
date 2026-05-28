@@ -16,11 +16,12 @@
       --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
       --border:rgba(255,255,255,0.07);
       --radius:14px;
+      --sidebar-w:220px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-    /* Login */
+    /* ── Login ── */
     #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
     .login-card{background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px;text-align:center}
     .login-logo{font-size:22px;font-weight:900;margin-bottom:8px}
@@ -30,724 +31,265 @@
     .login-input:focus{border-color:var(--accent)}
     .login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
     .login-btn:hover{background:#5a4bd1}
-    #loginError{color:#e74c3c;font-size:13px;margin-top:10px;display:none}
     .login-help{font-size:12px;color:var(--muted);margin-top:16px}
     .login-help a{color:var(--accent-l);text-decoration:none}
 
-    /* App */
+    /* ── App shell ── */
     #app{display:none}
-    header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
-    .header-logo{font-size:16px;font-weight:900}
-    .header-logo em{color:var(--accent-l);font-style:normal}
-    .header-org{font-size:13px;color:var(--dim);font-weight:500}
-    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s}
-    .logout-btn:hover{color:var(--text);border-color:var(--muted)}
 
-    nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;overflow-x:auto}
-    .nav-tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--dim);background:transparent;border:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
-    .nav-tab.active{color:var(--accent-l);border-bottom-color:var(--accent)}
-    .nav-tab:hover:not(.active){color:var(--text)}
+    /* ── Hamburger (mobile only) ── */
+    .hamburger{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--card);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:8px;font-size:18px;cursor:pointer;align-items:center;justify-content:center;line-height:1}
 
-    main{max-width:960px;margin:0 auto;padding:32px 24px}
+    /* ── Backdrop ── */
+    .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150}
+    .backdrop.open{display:block}
 
-    /* Cards */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
-    .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
-    .kpi-label{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--dim);text-transform:uppercase;margin-bottom:8px}
-    .kpi-val{font-size:28px;font-weight:900;letter-spacing:-1px;color:var(--text)}
-    .kpi-sub{font-size:12px;color:var(--dim);margin-top:4px}
+    /* ── Sidebar ── */
+    .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--card);border-right:1px solid var(--border);z-index:160;display:flex;flex-direction:column;overflow-y:auto}
+    .sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+    .sidebar-logo-title{font-size:16px;font-weight:900}
+    .sidebar-logo-title em{color:var(--accent-l);font-style:normal}
+    .sidebar-biz{font-size:11px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sidebar-nav{flex:1;padding:10px 8px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--dim);transition:all .15s;margin-bottom:2px;user-select:none}
+    .nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+    .nav-item.active{background:rgba(108,92,231,.15);color:var(--accent-l)}
+    .nav-icon{font-size:15px;line-height:1}
+    .sidebar-footer{padding:12px}
+    .plan-badge{background:rgba(108,92,231,.1);border:1px solid rgba(108,92,231,.2);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+    .plan-badge-name{font-size:10px;color:var(--accent-l);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .plan-badge-sub{font-size:10px;color:var(--dim);margin-top:2px}
 
+    /* ── Main content ── */
+    .main-content{margin-left:var(--sidebar-w);min-height:100vh;padding:28px}
+
+    /* ── Sections ── */
+    .section{display:none}
+    .section.active{display:block}
+    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+    .section-title{font-size:20px;font-weight:800}
+
+    /* ── Cards ── */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+    .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .kpi-label{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
+    .kpi-val{font-size:26px;font-weight:900;letter-spacing:-1px}
+    .kpi-sub{font-size:11px;color:var(--dim);margin-top:4px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
     .card-title{font-size:15px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 
-    /* Table */
+    /* ── Tables ── */
     .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
     table{width:100%;border-collapse:collapse}
-    thead th{background:var(--card2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--dim);text-transform:uppercase}
+    thead th{background:var(--card2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;white-space:nowrap}
     tbody tr:hover{background:rgba(255,255,255,0.025)}
-    tbody td{padding:12px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+    tbody td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
     .empty-row td{text-align:center;color:var(--dim);padding:32px;font-style:italic}
 
-    /* Badges */
+    /* ── Badges ── */
     .badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.3px}
-    .bg{background:rgba(0,206,201,0.12);color:var(--green);border:1px solid rgba(0,206,201,0.25)}
-    .br{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
-    .by{background:rgba(249,202,36,0.12);color:var(--yellow);border:1px solid rgba(249,202,36,0.2)}
-    .bp{background:rgba(108,92,231,0.15);color:var(--accent-l);border:1px solid rgba(108,92,231,0.3)}
-    .bd{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}
+    .bg{background:rgba(0,206,201,.12);color:var(--green);border:1px solid rgba(0,206,201,.25)}
+    .br{background:rgba(231,76,60,.12);color:#e74c3c;border:1px solid rgba(231,76,60,.2)}
+    .by{background:rgba(249,202,36,.12);color:var(--yellow);border:1px solid rgba(249,202,36,.2)}
+    .bp{background:rgba(108,92,231,.15);color:var(--accent-l);border:1px solid rgba(108,92,231,.3)}
+    .bd{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--border)}
+    .binfo{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
 
-    /* Buttons */
+    /* ── Buttons ── */
     .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
     .btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:#5a4bd1}
-    .btn-g{background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.25)}.btn-g:hover{background:rgba(0,184,148,0.2)}
-    .btn-r{background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}.btn-r:hover{background:rgba(231,76,60,0.18)}
-    .btn-d{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}.btn-d:hover{color:var(--text);border-color:var(--muted)}
+    .btn-g{background:rgba(0,184,148,.12);color:var(--green2);border:1px solid rgba(0,184,148,.25)}.btn-g:hover{background:rgba(0,184,148,.2)}
+    .btn-r{background:rgba(231,76,60,.1);color:#e74c3c;border:1px solid rgba(231,76,60,.2)}.btn-r:hover{background:rgba(231,76,60,.18)}
+    .btn-d{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--border)}.btn-d:hover{color:var(--text);border-color:var(--muted)}
     .btn:disabled{opacity:.5;cursor:default}
+    .btn-sm{padding:5px 12px;font-size:12px}
 
-    /* Toggle switch */
+    /* ── Toggle switch ── */
     .toggle{position:relative;display:inline-block;width:40px;height:22px}
     .toggle input{opacity:0;width:0;height:0}
-    .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.1);border-radius:22px;transition:.2s}
+    .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.1);border-radius:22px;transition:.2s}
     .slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--dim);border-radius:50%;transition:.2s}
     input:checked+.slider{background:var(--green2)}
     input:checked+.slider:before{transform:translateX(18px);background:#fff}
 
-    /* Cal connect box */
-    .cal-box{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:18px 20px;margin-bottom:20px}
-    .cal-info{display:flex;align-items:center;gap:12px}
-    .cal-icon{font-size:28px}
-    .cal-title{font-size:14px;font-weight:700}
-    .cal-sub{font-size:12px;color:var(--dim);margin-top:2px}
-    .cal-connected{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green2)}
-    .cal-dot{width:8px;height:8px;border-radius:50%;background:var(--green2)}
+    /* ── Automation cards ── */
+    .auto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+    .auto-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+    .auto-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .auto-name{font-size:14px;font-weight:700;margin-bottom:4px}
+    .auto-desc{font-size:12px;color:var(--dim);line-height:1.4}
+    .auto-footer{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+    .auto-label{font-size:12px;color:var(--dim)}
+    .auto-hours input{width:60px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-family:inherit}
 
-    /* Toast */
-    #toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999}
+    /* ── Form ── */
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+    .form-input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input:focus{border-color:var(--accent)}
+    textarea.form-input{resize:vertical;min-height:80px}
+    select.form-input option{background:var(--card2)}
+    .form-section-title{font-size:13px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+    /* ── Bar chart ── */
+    .bar-chart{display:flex;align-items:flex-end;gap:8px;height:90px;padding-top:8px}
+    .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .bar{width:100%;background:rgba(108,92,231,.35);border-radius:4px 4px 0 0;min-height:4px;transition:background .2s;cursor:default}
+    .bar:hover{background:rgba(108,92,231,.7)}
+    .bar-label{font-size:10px;color:var(--dim)}
+    .bar-val{font-size:10px;color:var(--dim);min-height:14px}
+
+    /* ── Modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+    .modal-box{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+    .modal-title{font-size:16px;font-weight:800;margin-bottom:20px}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px}
+
+    /* ── Filter bar ── */
+    .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+    .filter-bar select,.filter-bar input[type=date]{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+
+    /* ── Toast ── */
+    #toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:400;pointer-events:none}
     #toast.show{transform:translateY(0);opacity:1}
     #toast.ok{border-color:rgba(0,184,148,.4);color:var(--green2)}
     #toast.err{border-color:rgba(231,76,60,.4);color:#e74c3c}
 
-    /* Tab panels */
-    .tab-panel{display:none}
-    .tab-panel.active{display:block}
+    /* ── AI status chip ── */
+    .ai-status{background:rgba(0,184,148,.1);border:1px solid rgba(0,184,148,.2);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--green2);font-weight:700}
 
-    .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
-    .section-title{font-size:17px;font-weight:800}
+    /* ── Activity feed ── */
+    .activity-list{display:flex;flex-direction:column;gap:8px}
+    .activity-item{display:flex;gap:10px;align-items:flex-start}
+    .activity-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap;margin-top:2px}
+    .activity-text{font-size:13px;color:var(--text)}
+    .activity-time{font-size:11px;color:var(--dim);margin-top:2px}
 
-    /* Automations grid */
-    .auto-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-    @media(max-width:600px){.auto-grid{grid-template-columns:1fr}}
-    .auto-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:20px}
-    .auto-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-    .auto-name{font-size:14px;font-weight:700}
-    .auto-desc{font-size:12px;color:var(--dim);margin-top:4px}
-    .auto-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-    .auto-label{font-size:12px;color:var(--dim)}
-    .auto-hours input{width:48px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;text-align:center;font-family:inherit}
+    /* ── Critical dates ── */
+    .crit-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+    .crit-name{font-size:13px;font-weight:600}
+    .crit-meta{font-size:11px;color:var(--dim);margin-top:3px}
+    .crit-date{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}
+    .crit-days{font-size:11px;color:var(--dim);margin-top:2px;text-align:right}
 
-    /* Plan box */
-    .plan-box{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:18px 20px}
-    .plan-info{}
-    .plan-name{font-size:15px;font-weight:800;color:var(--accent-l)}
-    .plan-sub{font-size:12px;color:var(--dim);margin-top:4px}
-    .plan-progress{flex:1;max-width:280px}
-    .prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:6px}
-    .prog-bar{height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
-    .prog-fill{height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:3px;transition:width .4s}
+    /* ── Empty state ── */
+    .empty-state{text-align:center;padding:48px 24px;color:var(--dim)}
+    .empty-state-icon{font-size:40px;margin-bottom:12px}
+    .empty-state-text{font-size:14px;line-height:1.5}
+
+    /* ── Mobile ── */
+    @media (max-width:767px) {
+      .hamburger{display:flex}
+      .sidebar{left:calc(-1 * var(--sidebar-w));transition:left .25s}
+      .sidebar.open{left:0}
+      .main-content{margin-left:0;padding:16px;padding-top:56px}
+      .two-col{grid-template-columns:1fr}
+      .kpi-grid{grid-template-columns:repeat(2,1fr)}
+      .auto-grid{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
-<div id="toast"></div>
 
-<!-- ─── Login ─────────────────────────────────────────────────────────────── -->
-<div id="loginScreen">
+<!-- ── Login Screen ── -->
+<div id="loginScreen" style="display:flex">
   <div class="login-card">
     <div class="login-logo">node<em>flow</em></div>
     <div class="login-sub">Portal de clientes</div>
-    <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">Introduce tu email y te enviamos un enlace de acceso instantáneo.</p>
-    <input type="email" class="login-input" id="accessEmail" placeholder="tu@email.com" autocomplete="email">
+    <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">
+      Introduce tu email y te enviamos un enlace de acceso instantáneo.
+    </p>
+    <input type="email" class="login-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email"
+           onkeydown="if(event.key==='Enter')requestAccess()">
     <button class="login-btn" onclick="requestAccess()">Enviar enlace de acceso</button>
-    <div id="accessMsg" style="margin-top:12px;font-size:13px;display:none;"></div>
+    <div id="loginMsg" style="margin-top:12px;font-size:13px;display:none"></div>
     <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
   </div>
 </div>
 
-<!-- ─── App ───────────────────────────────────────────────────────────────── -->
+<!-- ── App ── -->
 <div id="app">
-  <header>
-    <div class="header-logo">⚡ Node<em>Flow</em></div>
-    <div class="header-org" id="orgName">—</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span id="planBadge" class="badge bp" style="font-size:11px"></span>
-      <button class="logout-btn" onclick="logout()">Salir</button>
+
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+  <!-- Backdrop -->
+  <div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-title">node<em>flow</em></div>
+      <div class="sidebar-biz" id="sidebarBiz">—</div>
     </div>
-  </header>
-
-  <nav>
-    <button class="nav-tab active" onclick="switchTab('resumen',this)">📊 Resumen</button>
-    <button class="nav-tab" onclick="switchTab('citas',this)">📅 Citas</button>
-    <button class="nav-tab" onclick="switchTab('automatizaciones',this)">🤖 Automatizaciones</button>
-    <button class="nav-tab" onclick="switchTab('cuenta',this)">⚙️ Mi cuenta</button>
-  </nav>
-
-  <main>
-
-    <!-- ── Resumen ── -->
-    <div id="tab-resumen" class="tab-panel active">
-      <div class="kpi-grid">
-        <div class="kpi">
-          <div class="kpi-label">Citas este mes</div>
-          <div class="kpi-val" id="kCitas">—</div>
-          <div class="kpi-sub">total confirmadas</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Próxima cita</div>
-          <div class="kpi-val" id="kNext" style="font-size:18px">—</div>
-          <div class="kpi-sub" id="kNextSub">—</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Minutos usados</div>
-          <div class="kpi-val" id="kMins">—</div>
-          <div class="kpi-sub" id="kMinsLimit">de — incluidos</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Reminders enviados</div>
-          <div class="kpi-val" id="kReminders">—</div>
-          <div class="kpi-sub">este mes</div>
-        </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" id="nav-dashboard"        onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
       </div>
-
-      <!-- Plan + usage -->
-      <div class="plan-box">
-        <div class="plan-info">
-          <div class="plan-name" id="planName">Plan —</div>
-          <div class="plan-sub" id="planSub">—</div>
-        </div>
-        <div class="plan-progress">
-          <div class="prog-label">
-            <span>Minutos de voz</span>
-            <span id="progText">0 / 0</span>
-          </div>
-          <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-        </div>
-        <a href="https://wa.me/34666351319?text=Quiero%20cambiar%20mi%20plan%20de%20NodeFlow" target="_blank" class="btn btn-accent" style="white-space:nowrap">Cambiar plan →</a>
+      <div class="nav-item"       id="nav-llamadas"          onclick="navigate('llamadas')">
+        <span class="nav-icon">📞</span><span>Llamadas</span>
       </div>
-
-      <!-- Próximas citas -->
-      <div class="card">
-        <div class="card-title">📅 Próximas citas</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Estado</th></tr></thead>
-            <tbody id="upcomingBody"><tr class="empty-row"><td colspan="5">Cargando…</td></tr></tbody>
-          </table>
-        </div>
+      <div class="nav-item"       id="nav-citas"             onclick="navigate('citas')">
+        <span class="nav-icon">🗓️</span><span>Citas</span>
       </div>
+      <div class="nav-item"       id="nav-informes"          onclick="navigate('informes')">
+        <span class="nav-icon">📈</span><span>Informes</span>
+      </div>
+      <div class="nav-item"       id="nav-automatizaciones"  onclick="navigate('automatizaciones')">
+        <span class="nav-icon">🤖</span><span>Automatizaciones</span>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+      <div class="nav-item"       id="nav-configuracion"     onclick="navigate('configuracion')">
+        <span class="nav-icon">⚙️</span><span>Configuración</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div class="plan-badge-name" id="sidebarPlan">—</div>
+        <div class="plan-badge-sub"  id="sidebarPlanSub">Activo</div>
+      </div>
+      <button class="btn btn-d" style="width:100%;font-size:12px" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <div id="sec-dashboard" class="section active">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando dashboard…</div></div>
     </div>
 
-    <!-- ── Citas ── -->
-    <div id="tab-citas" class="tab-panel">
-      <div class="section-head">
-        <div class="section-title">Agenda</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="filterDate" type="date" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit" oninput="loadCitas()">
-          <button class="btn btn-d" onclick="document.getElementById('filterDate').value='';loadCitas()">Todas</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr></thead>
-          <tbody id="citasBody"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody>
-        </table>
-      </div>
+    <div id="sec-llamadas" class="section">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando llamadas…</div></div>
     </div>
 
-    <!-- ── Automatizaciones ── -->
-    <div id="tab-automatizaciones" class="tab-panel">
-      <!-- Google Calendar -->
-      <div id="calBox" class="cal-box">
-        <div class="cal-info">
-          <div class="cal-icon">📅</div>
-          <div>
-            <div class="cal-title">Google Calendar</div>
-            <div class="cal-sub" id="calSubText">Sincroniza tus citas con Google Calendar automáticamente</div>
-          </div>
-        </div>
-        <div id="calActions">
-          <button class="btn btn-accent" onclick="connectCalendar()" id="calBtn">Conectar →</button>
-        </div>
-      </div>
-
-      <!-- Toggles -->
-      <div class="auto-grid">
-        <div class="auto-card">
-          <div class="auto-row">
-            <div>
-              <div class="auto-name">🔔 Recordatorios de cita</div>
-              <div class="auto-desc">Email automático al cliente antes de su cita</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="toggleReminders" onchange="updateFlow('reminders',this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="auto-footer">
-            <span class="auto-label">Horas antes:</span>
-            <div class="auto-hours">
-              <input type="number" id="hoursReminders" value="24" min="1" max="72" onchange="updateFlowHours('reminders',this.value)">
-            </div>
-          </div>
-        </div>
-
-        <div class="auto-card">
-          <div class="auto-row">
-            <div>
-              <div class="auto-name">⭐ Solicitud de reseña</div>
-              <div class="auto-desc">Email pidiendo reseña Google tras la cita</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="toggleReviews" onchange="updateFlow('reviews',this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="auto-footer">
-            <span class="auto-label">Horas después:</span>
-            <div class="auto-hours">
-              <input type="number" id="hoursReviews" value="24" min="1" max="72" onchange="updateFlowHours('reviews',this.value)">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Google Place ID -->
-      <div class="card">
-        <div class="card-title">🗺️ Google Place ID</div>
-        <p style="font-size:13px;color:var(--dim);margin-bottom:16px">
-          Necesario para que los emails de reseña incluyan el link directo a tu ficha de Google.
-          <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" style="color:var(--accent-l)">¿Cómo encontrarlo?</a>
-        </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <input id="placeIdInput" type="text" placeholder="ChIJ…" style="flex:1;min-width:200px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none">
-          <button class="btn btn-g" onclick="savePlaceId()">Guardar Place ID</button>
-        </div>
-        <div id="reviewUrlWrap" style="margin-top:12px;display:none">
-          <p style="font-size:12px;color:var(--dim);margin-bottom:6px">Link de reseña generado:</p>
-          <a id="reviewUrlLink" href="#" target="_blank" style="font-size:12px;color:var(--accent-l);word-break:break-all">—</a>
-        </div>
-      </div>
+    <div id="sec-citas" class="section">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando citas…</div></div>
     </div>
 
-    <!-- ── Cuenta ── -->
-    <div id="tab-cuenta" class="tab-panel">
-      <div class="card">
-        <div class="card-title">🔑 API Key</div>
-        <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Tu clave de acceso al portal y a la API de NodeFlow.</p>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <code id="apiKeyDisplay" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;flex:1;min-width:200px;word-break:break-all;color:var(--accent-l)">—</code>
-          <button class="btn btn-d" onclick="copyApiKey()">Copiar</button>
-        </div>
-      </div>
+    <div id="sec-informes" class="section">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando informes…</div></div>
+    </div>
 
-      <div class="card">
-        <div class="card-title">📬 Información de contacto</div>
-        <div style="display:grid;gap:10px">
-          <div style="font-size:13px"><span style="color:var(--dim)">Negocio: </span><strong id="infoNegocio">—</strong></div>
-          <div style="font-size:13px"><span style="color:var(--dim)">Email: </span><strong id="infoEmail">—</strong></div>
-          <div style="font-size:13px"><span style="color:var(--dim)">Plan: </span><strong id="infoPlan">—</strong></div>
-        </div>
-        <div style="margin-top:18px">
-          <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20necesito%20ayuda%20con%20mi%20NodeFlow" target="_blank" class="btn btn-accent">💬 Contactar soporte</a>
-        </div>
-      </div>
+    <div id="sec-automatizaciones" class="section">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando automatizaciones…</div></div>
+    </div>
+
+    <div id="sec-configuracion" class="section">
+      <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando configuración…</div></div>
     </div>
 
   </main>
 </div>
 
-<script>
-const SESSION_KEY   = 'nf_session';
-const API_KEY_STORE = 'nf_portal_key'; // kept for backward compat with existing api() helper
-const ORG_STORE     = 'nf_portal_org';
+<!-- Modal overlay -->
+<div id="modalOverlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
 
-// ── Magic Link Auth ──────────────────────────────────────────────────────────
-async function verifyMagicToken(token) {
-  const resp = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`);
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error || 'Token inválido');
-  return data.session_token;
-}
+<!-- Toast -->
+<div id="toast"></div>
 
-async function validateSession(sessionToken) {
-  try {
-    const resp = await fetch('/api/auth/session', {
-      headers: { 'Authorization': `Bearer ${sessionToken}` }
-    });
-    return resp.ok;
-  } catch { return false; }
-}
-
-async function loadOrgWithToken(token) {
-  const res = await fetch('/api/portal/me', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-async function initAuth() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const magicToken = urlParams.get('token');
-
-  if (magicToken) {
-    try {
-      const sessionToken = await verifyMagicToken(magicToken);
-      localStorage.setItem(SESSION_KEY, sessionToken);
-      localStorage.setItem(API_KEY_STORE, sessionToken); // api() helper uses this
-      window.history.replaceState({}, '', '/portal');
-      return sessionToken;
-    } catch (e) {
-      showRequestAccess(`Enlace inválido o expirado: ${e.message}`);
-      return null;
-    }
-  }
-
-  // Check existing session JWT
-  const existing = localStorage.getItem(SESSION_KEY);
-  if (existing) {
-    const valid = await validateSession(existing);
-    if (valid) return existing;
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(API_KEY_STORE);
-    localStorage.removeItem(ORG_STORE);
-  }
-
-  // Legacy API key login (backward compat for existing clients)
-  const legacyKey = localStorage.getItem(API_KEY_STORE);
-  const legacyOrg = localStorage.getItem(ORG_STORE);
-  if (legacyKey && legacyOrg) {
-    try { showApp(JSON.parse(legacyOrg), legacyKey); return legacyKey; } catch {}
-  }
-
-  showRequestAccess();
-  return null;
-}
-
-function showRequestAccess(errorMsg) {
-  document.getElementById('loginScreen').innerHTML = `
-    <div class="login-card">
-      <div class="login-logo">node<em>flow</em></div>
-      <div class="login-sub">Portal de clientes</div>
-      ${errorMsg ? `<div style="color:#e74c3c;font-size:13px;margin-bottom:16px;">${errorMsg}</div>` : ''}
-      <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">Introduce tu email y te enviamos un enlace de acceso instantáneo.</p>
-      <input type="email" class="login-input" id="accessEmail" placeholder="tu@email.com" autocomplete="email">
-      <button class="login-btn" onclick="requestAccess()">Enviar enlace de acceso</button>
-      <div id="accessMsg" style="margin-top:12px;font-size:13px;display:none;"></div>
-      <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
-    </div>
-  `;
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-}
-
-async function requestAccess() {
-  const email = document.getElementById('accessEmail').value.trim();
-  const msgEl = document.getElementById('accessMsg');
-  if (!email || !email.includes('@')) {
-    msgEl.style.color = '#e74c3c';
-    msgEl.textContent = 'Introduce un email válido.';
-    msgEl.style.display = 'block';
-    return;
-  }
-  msgEl.style.color = 'var(--dim)';
-  msgEl.textContent = 'Enviando...';
-  msgEl.style.display = 'block';
-  try {
-    const resp = await fetch('/api/auth/request-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await resp.json();
-    msgEl.style.color = '#2ecc71';
-    msgEl.textContent = data.message || '¡Enviado! Revisa tu email.';
-  } catch (e) {
-    msgEl.style.color = '#e74c3c';
-    msgEl.textContent = 'Error de conexión. Inténtalo de nuevo.';
-  }
-}
-
-function logout() {
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(API_KEY_STORE);
-  localStorage.removeItem(ORG_STORE);
-  location.reload();
-}
-
-// ── API helper ───────────────────────────────────────────────────────────────
-function getKey() { return localStorage.getItem(API_KEY_STORE); }
-
-async function api(path, opts = {}) {
-  const res = await fetch(path, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getKey()}`,
-      ...(opts.headers || {}),
-    },
-  });
-  if (res.status === 401) { logout(); throw new Error('401'); }
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-// ── Show app ─────────────────────────────────────────────────────────────────
-function showApp(org, key) {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('orgName').textContent = org.name || '';
-  document.getElementById('planBadge').textContent = org.plan || 'starter';
-
-  // Cuenta tab
-  document.getElementById('apiKeyDisplay').textContent = key;
-  document.getElementById('infoNegocio').textContent = org.name || '—';
-  document.getElementById('infoEmail').textContent = org.owner_email || '—';
-  document.getElementById('infoPlan').textContent = org.plan || '—';
-
-  // Plan display
-  const planLabels = { starter:'Starter', pro:'Negocio (500 min)', business:'Pro (2000 min)' };
-  document.getElementById('planName').textContent = planLabels[org.plan] || org.plan || 'Starter';
-  document.getElementById('planSub').textContent = org.owner_email || '';
-
-  loadAll(org);
-  checkCalendarCallback();
-}
-
-function loadAll(org) {
-  loadUsage();
-  loadUpcoming();
-  loadFlow();
-  loadCalStatus();
-}
-
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  btn.classList.add('active');
-  if (name === 'citas') loadCitas();
-}
-
-// ── Toast ─────────────────────────────────────────────────────────────────────
-let _tt;
-function toast(msg, type = 'ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'show ' + type;
-  clearTimeout(_tt); _tt = setTimeout(() => { t.className = ''; }, 3000);
-}
-
-// ── Usage ─────────────────────────────────────────────────────────────────────
-async function loadUsage() {
-  try {
-    const data = await api('/api/billing/usage');
-    document.getElementById('kMins').textContent    = Math.round(data.minutesUsed);
-    document.getElementById('kMinsLimit').textContent = `de ${data.minutesLimit} incluidos`;
-    document.getElementById('planSub').textContent  = `${data.percentUsed}% usado este mes`;
-    document.getElementById('progText').textContent = `${Math.round(data.minutesUsed)} / ${data.minutesLimit}`;
-    document.getElementById('progFill').style.width = Math.min(data.percentUsed, 100) + '%';
-    if (data.percentUsed > 80) document.getElementById('progFill').style.background = '#e17055';
-  } catch {}
-}
-
-// ── Upcoming appointments ─────────────────────────────────────────────────────
-async function loadUpcoming() {
-  try {
-    const org = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
-    const data = await api(`/api/citas/${org.id || org.slug}?upcoming=1`);
-    const apts = data.appointments || [];
-    document.getElementById('kCitas').textContent = apts.length;
-
-    const next = apts[0];
-    if (next) {
-      document.getElementById('kNext').textContent    = next.time;
-      document.getElementById('kNextSub').textContent = `${next.date} · ${next.patientName}`;
-    }
-
-    const body = document.getElementById('upcomingBody');
-    if (!apts.length) {
-      body.innerHTML = '<tr class="empty-row"><td colspan="5">Sin citas próximas</td></tr>';
-      return;
-    }
-    body.innerHTML = apts.slice(0, 8).map(a => `<tr>
-      <td>${a.date}</td>
-      <td><strong>${a.time}</strong></td>
-      <td>${a.patientName || '—'}</td>
-      <td>${a.service || '—'}</td>
-      <td><span class="badge ${a.status==='confirmed'?'bg':'bd'}">${a.status || 'pendiente'}</span></td>
-    </tr>`).join('');
-  } catch {}
-}
-
-// ── Citas (full list) ─────────────────────────────────────────────────────────
-async function loadCitas() {
-  const org   = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
-  const date  = document.getElementById('filterDate')?.value;
-  let url     = `/api/citas/${org.id || org.slug}`;
-  if (date) url += `?date=${date}`;
-
-  const body = document.getElementById('citasBody');
-  body.innerHTML = '<tr class="empty-row"><td colspan="7">Cargando…</td></tr>';
-
-  try {
-    const data = await api(url);
-    const apts = data.appointments || [];
-    if (!apts.length) {
-      body.innerHTML = '<tr class="empty-row"><td colspan="7">Sin citas para los filtros seleccionados</td></tr>';
-      return;
-    }
-    body.innerHTML = apts.map(a => `<tr>
-      <td>${a.date}</td>
-      <td><strong>${a.time}</strong></td>
-      <td>${a.patientName || '—'}</td>
-      <td>${a.phone || '—'}</td>
-      <td>${a.service || '—'}</td>
-      <td><span class="badge ${a.status==='confirmed'?'bg':'bd'}">${a.status||'—'}</span></td>
-      <td>
-        <button class="btn btn-d" style="padding:4px 8px;font-size:11px" onclick="sendReminder('${a.id}')">Reminder</button>
-      </td>
-    </tr>`).join('');
-  } catch (e) { body.innerHTML = '<tr class="empty-row"><td colspan="7">Error cargando citas</td></tr>'; }
-}
-
-async function sendReminder(aptId) {
-  try {
-    await api(`/api/automations/reminder/${aptId}`, { method: 'POST' });
-    toast('✓ Reminder enviado');
-  } catch { toast('Error al enviar', 'err'); }
-}
-
-// ── Flow settings ──────────────────────────────────────────────────────────────
-let _flowId = null;
-
-async function loadFlow() {
-  try {
-    const org = JSON.parse(localStorage.getItem(ORG_STORE) || '{}');
-    _flowId   = org.id || org.slug;
-    const data = await api(`/api/flows/${_flowId}`);
-
-    document.getElementById('toggleReminders').checked = data.automations?.reminders?.enabled ?? true;
-    document.getElementById('toggleReviews').checked   = data.automations?.reviews?.enabled   ?? true;
-    document.getElementById('hoursReminders').value    = data.automations?.reminders?.hoursBefore ?? 24;
-    document.getElementById('hoursReviews').value      = data.automations?.reviews?.hoursAfter   ?? 24;
-
-    if (data.googlePlaceId) {
-      document.getElementById('placeIdInput').value = data.googlePlaceId;
-      const url = `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`;
-      const wrap = document.getElementById('reviewUrlWrap');
-      wrap.style.display = 'block';
-      document.getElementById('reviewUrlLink').href        = url;
-      document.getElementById('reviewUrlLink').textContent = url;
-    }
-    document.getElementById('kReminders').textContent = data.automations?.reminders?.enabled ? 'Activos' : 'Pausados';
-  } catch {}
-}
-
-async function updateFlow(type, enabled) {
-  if (!_flowId) return;
-  try {
-    await api(`/api/flows/${_flowId}/toggle/${type}`, { method: 'POST' });
-    toast(`${type === 'reminders' ? 'Recordatorios' : 'Reseñas'}: ${enabled ? 'activados' : 'pausados'}`);
-  } catch { toast('Error', 'err'); }
-}
-
-async function updateFlowHours(type, hours) {
-  if (!_flowId) return;
-  try {
-    const key = type === 'reminders' ? 'hoursBefore' : 'hoursAfter';
-    await api(`/api/flows/${_flowId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ automations: { [type]: { [key]: parseInt(hours) } } })
-    });
-    toast('✓ Guardado');
-  } catch { toast('Error', 'err'); }
-}
-
-async function savePlaceId() {
-  const val = document.getElementById('placeIdInput').value.trim();
-  try {
-    await api(`/api/flows/${_flowId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ googlePlaceId: val || null })
-    });
-    toast('✓ Google Place ID guardado');
-    if (val) {
-      const url = `https://search.google.com/local/writereview?placeid=${val}`;
-      const wrap = document.getElementById('reviewUrlWrap');
-      wrap.style.display = 'block';
-      document.getElementById('reviewUrlLink').href        = url;
-      document.getElementById('reviewUrlLink').textContent = url;
-    }
-  } catch { toast('Error al guardar', 'err'); }
-}
-
-// ── Google Calendar ────────────────────────────────────────────────────────────
-async function loadCalStatus() {
-  try {
-    const data = await api('/api/calendar/status');
-    renderCalStatus(data.connected, data.enabled);
-  } catch {}
-}
-
-function renderCalStatus(connected, enabled) {
-  const sub     = document.getElementById('calSubText');
-  const actions = document.getElementById('calActions');
-
-  if (!enabled) {
-    sub.textContent = 'Integración con Google Calendar disponible próximamente';
-    actions.innerHTML = '<span class="badge bd">No disponible</span>';
-    return;
-  }
-  if (connected) {
-    sub.textContent = 'Tu Google Calendar está conectado. Las citas se sincronizan automáticamente.';
-    actions.innerHTML = `
-      <div class="cal-connected"><div class="cal-dot"></div> Conectado</div>
-      <button class="btn btn-r" style="margin-top:8px;font-size:11px;padding:5px 10px" onclick="disconnectCalendar()">Desconectar</button>
-    `;
-  } else {
-    sub.textContent = 'Sincroniza tus citas con Google Calendar automáticamente';
-    actions.innerHTML = '<button class="btn btn-accent" onclick="connectCalendar()" id="calBtn">Conectar →</button>';
-  }
-}
-
-async function connectCalendar() {
-  try {
-    const data = await api('/api/calendar/auth');
-    if (data.url) window.location.href = data.url;
-  } catch (e) { toast('Error al conectar con Google', 'err'); }
-}
-
-async function disconnectCalendar() {
-  try {
-    await api('/api/calendar/disconnect', { method: 'POST' });
-    renderCalStatus(false, true);
-    toast('Google Calendar desconectado');
-  } catch { toast('Error', 'err'); }
-}
-
-function checkCalendarCallback() {
-  const params = new URLSearchParams(location.search);
-  const cal    = params.get('cal');
-  if (cal === 'connected') { toast('✓ Google Calendar conectado'); loadCalStatus(); }
-  if (cal === 'error')     toast('Error conectando Google Calendar', 'err');
-  if (cal === 'denied')    toast('Conexión cancelada', 'err');
-  // Clean URL
-  if (cal) history.replaceState({}, '', '/portal/');
-}
-
-function copyApiKey() {
-  const key = getKey();
-  if (!key) return;
-  navigator.clipboard.writeText(key).then(() => toast('✓ API Key copiada'));
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-initAuth().then(sessionToken => {
-  if (!sessionToken) return;
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  // Load org data and boot portal
-  loadOrgWithToken(sessionToken).then(org => {
-    if (org) {
-      localStorage.setItem(ORG_STORE, JSON.stringify(org));
-      showApp(org, sessionToken);
-    } else {
-      // Org not found — session may be valid but org not in DB yet (new client)
-      showApp({ name: 'Mi negocio', plan: 'negocio', owner_email: '' }, sessionToken);
-    }
-  }).catch(() => {
-    showApp({ name: 'Mi negocio', plan: 'negocio', owner_email: '' }, sessionToken);
-  });
-});
-</script>
+<script src="/portal/portal.js"></script>
 </body>
 </html>
