@@ -57,6 +57,61 @@ function sectorBlock(sector, sectorData = {}) {
         ? `CLASES DISPONIBLES: ${sectorData.clases}`
         : '';
     }
+    case 'optica': {
+      const seguros = Array.isArray(sectorData.seguros) && sectorData.seguros.length > 0
+        ? `SEGUROS ÓPTICOS: ${sectorData.seguros.join(', ')}` : null;
+      const marcas = sectorData.marcas ? `MARCAS DISPONIBLES: ${sectorData.marcas}` : null;
+      return [seguros, marcas].filter(Boolean).join('\n');
+    }
+    case 'psicologia':
+    case 'coaching': {
+      const esp      = sectorData.especialidades ? `ESPECIALIDADES: ${sectorData.especialidades}` : null;
+      const sesiones = sectorData.duracionSesion ? `DURACIÓN DE SESIÓN: ${sectorData.duracionSesion}` : null;
+      return [esp, sesiones].filter(Boolean).join('\n');
+    }
+    case 'nutricion':
+    case 'dietetica': {
+      const programas = sectorData.programas ? `PROGRAMAS: ${sectorData.programas}` : null;
+      const metodo    = sectorData.metodo ? `METODOLOGÍA: ${sectorData.metodo}` : null;
+      return [programas, metodo].filter(Boolean).join('\n');
+    }
+    case 'podologia': {
+      return sectorData.servicios ? `SERVICIOS Y PRECIOS:\n${sectorData.servicios}` : '';
+    }
+    case 'autoescuela': {
+      const carnets = sectorData.carnets ? `CARNETS: ${sectorData.carnets}` : null;
+      const precio  = sectorData.precioPractica ? `PRECIO CLASE PRÁCTICA: ${sectorData.precioPractica}` : null;
+      return [carnets, precio].filter(Boolean).join('\n');
+    }
+    case 'estetica_avanzada':
+    case 'laser': {
+      return sectorData.tratamientos ? `TRATAMIENTOS: ${sectorData.tratamientos}` : '';
+    }
+    case 'yoga':
+    case 'pilates': {
+      const tipos = sectorData.tiposClase ? `TIPOS DE CLASE: ${sectorData.tiposClase}` : null;
+      const packs = sectorData.packs ? `PACKS DISPONIBLES: ${sectorData.packs}` : null;
+      return [tipos, packs].filter(Boolean).join('\n');
+    }
+    case 'guarderia_canina':
+    case 'residencia_mascotas': {
+      const razas  = sectorData.razasAdmitidas ? `RAZAS ADMITIDAS: ${sectorData.razasAdmitidas}` : null;
+      const plazas = sectorData.plazas ? `PLAZAS DISPONIBLES: ${sectorData.plazas}` : null;
+      return [razas, plazas].filter(Boolean).join('\n');
+    }
+    case 'abogados':
+    case 'notaria': {
+      const esp      = sectorData.especialidades ? `ESPECIALIDADES LEGALES: ${sectorData.especialidades}` : null;
+      const consulta = sectorData.consultaInicial ? `CONSULTA INICIAL: ${sectorData.consultaInicial}` : null;
+      return [esp, consulta].filter(Boolean).join('\n');
+    }
+    case 'agencia_viajes': {
+      return sectorData.destinos ? `DESTINOS PRINCIPALES: ${sectorData.destinos}` : '';
+    }
+    case 'reformas':
+    case 'arquitectura': {
+      return sectorData.tiposObra ? `TIPOS DE OBRA/REFORMA: ${sectorData.tiposObra}` : '';
+    }
     default:
       return '';
   }
