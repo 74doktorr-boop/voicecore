@@ -1,0 +1,108 @@
+<h2>¿Cómo funciona el "probar demo"?</h2>
+<p class="subtitle">Cuando pulsas Test en un negocio, ¿qué quieres que pase?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:system-ui;font-size:11px">
+        <div style="background:#1e293b;border-radius:6px;padding:8px;height:100px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <div style="background:#374151;border-radius:12px;padding:3px 8px;font-size:9px;color:#9ca3af;max-width:70%">Hola, ¿estáis abiertos el sábado por la tarde?</div>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px">
+              <div style="background:#3b82f6;border-radius:12px;padding:3px 8px;font-size:9px;color:#fff;max-width:80%">¡Buenas! Sí, abrimos los sábados de 10:00 a 14:00. ¿Le gustaría reservar cita?</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <div style="background:#374151;border-radius:12px;padding:3px 8px;font-size:9px;color:#9ca3af">Sí, para fisioterapia de espalda</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;border-top:1px solid #334155;padding-top:6px">
+            <div style="flex:1;background:#0f172a;border-radius:4px;padding:3px 6px;font-size:8px;color:#6b7280">Escribe un mensaje...</div>
+            <div style="background:#3b82f6;border-radius:4px;padding:3px 8px;font-size:8px;color:#fff">Enviar</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:4px">
+          <div style="background:#10b98122;border-radius:3px;padding:2px 6px;font-size:7px;color:#10b981">⚡ Respuesta LLM real</div>
+          <div style="background:#6366f122;border-radius:3px;padding:2px 6px;font-size:7px;color:#818cf8">sin voz / sin teléfono</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Chat de texto</h3>
+      <p>Widget de chat en el navegador. Escribes mensajes y el bot responde con el LLM real usando el prompt configurado. Ves exactamente qué diría en cada caso.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Sin latencia de voz</li><li>Fácil de probar rápido</li><li>Los negocios lo entienden</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>No pruebas la voz real</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:system-ui;font-size:11px">
+        <div style="background:#1e293b;border-radius:6px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:#a78bfa;margin-bottom:8px">🎤 Demo de voz — Fisio Bilbao</div>
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px">📞</div>
+          <div style="font-size:9px;color:#34d399;margin-bottom:6px">● En llamada... 0:23</div>
+          <div style="background:#0d1117;border-radius:4px;padding:4px;font-size:8px;color:#94a3b8;margin-bottom:6px;height:30px">
+            <span style="color:#60a5fa">Bot:</span> ¡Buenos días! Clínica Fisio Bilbao, ¿en qué puedo ayudarle?
+          </div>
+          <div style="display:flex;gap:4px;justify-content:center">
+            <div style="background:#374151;border-radius:4px;padding:3px 8px;font-size:7px;color:#9ca3af">🔇 Mute</div>
+            <div style="background:#ef4444;border-radius:4px;padding:3px 8px;font-size:7px;color:#fff">⏹ Colgar</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:4px">
+          <div style="background:#a78bfa22;border-radius:3px;padding:2px 6px;font-size:7px;color:#a78bfa">🎙 WebRTC real</div>
+          <div style="background:#f59e0b22;border-radius:3px;padding:2px 6px;font-size:7px;color:#f59e0b">requiere mic + STT/TTS</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Llamada de voz (WebRTC)</h3>
+      <p>Abres una llamada de voz real desde el navegador. Hablas con el bot tal y como lo haría un cliente por teléfono. Prueba completa: voz, velocidad, pausas.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Demo 100% real</li><li>Pruebas voz + latencia</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>Necesita mic en el browser</li><li>Más complejo de implementar</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:system-ui;font-size:11px">
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <div style="background:#1e293b;border-radius:4px;padding:3px 8px;font-size:8px;color:#60a5fa;border-bottom:1px solid #3b82f6">💬 Chat</div>
+          <div style="padding:3px 8px;font-size:8px;color:#94a3b8">🎤 Voz</div>
+        </div>
+        <div style="background:#1e293b;border-radius:6px;padding:8px;height:75px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;gap:6px;margin-bottom:4px">
+              <div style="background:#374151;border-radius:12px;padding:2px 7px;font-size:8px;color:#9ca3af">Tengo una reserva para mañana</div>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              <div style="background:#3b82f6;border-radius:12px;padding:2px 7px;font-size:8px;color:#fff">Perfecto, ¿a nombre de quién?</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:3px;align-items:center;border-top:1px solid #334155;padding-top:4px">
+            <div style="flex:1;background:#0f172a;border-radius:3px;padding:2px 5px;font-size:7px;color:#6b7280">Mensaje...</div>
+            <div style="background:#3b82f6;border-radius:3px;padding:2px 6px;font-size:7px;color:#fff">→</div>
+            <div style="background:#7c3aed;border-radius:3px;padding:2px 6px;font-size:7px;color:#fff">🎤</div>
+          </div>
+        </div>
+        <div style="margin-top:4px;font-size:7px;color:#94a3b8">Tab Chat por defecto, pestaña Voz para demo completa</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Ambos (chat por defecto + voz opcional)</h3>
+      <p>Chat de texto como modo por defecto (rápido, sin setup). Tab de voz para cuando quieras probar la experiencia real de llamada. Lo mejor de las dos opciones.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Flexible</li><li>Chat para pruebas rápidas</li><li>Voz cuando lo necesitas</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>Más UI que construir</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,95 @@
+<h2>¿Qué ve cada negocio cuando configura su asistente?</h2>
+<p class="subtitle">La diferencia está en cómo se traduce lo que rellena a lo que dice el bot</p>
+
+<div class="split">
+
+  <div class="mockup">
+    <div class="mockup-header">Opción A — Formulario guiado (sin ver el prompt)</div>
+    <div class="mockup-body" style="padding:10px;font-size:10px">
+      <div style="color:#a78bfa;font-size:9px;margin-bottom:6px;font-weight:600">🏢 INFORMACIÓN DEL NEGOCIO</div>
+      <div style="margin-bottom:4px">
+        <div style="color:#94a3b8;font-size:8px">Nombre del negocio</div>
+        <div class="mock-input" style="font-size:8px;padding:3px 6px">Fisioterapia Bilbao Centro</div>
+      </div>
+      <div style="margin-bottom:4px">
+        <div style="color:#94a3b8;font-size:8px">Nombre de tu asistente</div>
+        <div class="mock-input" style="font-size:8px;padding:3px 6px">Laura</div>
+      </div>
+
+      <div style="color:#a78bfa;font-size:9px;margin:8px 0 4px;font-weight:600">🕐 HORARIO</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">L</div>
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">M</div>
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">X</div>
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">J</div>
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">V</div>
+        <div style="background:#3b82f6;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#fff">S</div>
+        <div style="background:#1e293b;border-radius:3px;padding:2px;text-align:center;font-size:7px;color:#4b5563">D</div>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:4px">
+        <div style="flex:1"><div style="color:#94a3b8;font-size:8px">Apertura</div><div class="mock-input" style="font-size:8px;padding:3px 6px">09:00</div></div>
+        <div style="flex:1"><div style="color:#94a3b8;font-size:8px">Cierre</div><div class="mock-input" style="font-size:8px;padding:3px 6px">20:00</div></div>
+      </div>
+
+      <div style="color:#a78bfa;font-size:9px;margin:8px 0 4px;font-weight:600">📋 SERVICIOS</div>
+      <div style="background:#1e293b;border-radius:4px;padding:4px;font-size:8px;color:#94a3b8;height:28px;margin-bottom:4px">Fisioterapia general, deportiva, dolor lumbar, cervical, lesiones...</div>
+
+      <div style="background:#10b98122;border-radius:4px;padding:4px;font-size:8px;color:#10b981;margin-top:6px">
+        ✨ El sistema genera el prompt automáticamente a partir de estos datos
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Opción B — Formulario + acceso al prompt raw (avanzado)</div>
+    <div class="mockup-body" style="padding:10px;font-size:10px">
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <div style="background:#3b82f6;border-radius:4px;padding:3px 8px;font-size:8px;color:#fff">📋 Básico</div>
+        <div style="background:#1e293b;border-radius:4px;padding:3px 8px;font-size:8px;color:#94a3b8">🕐 Horario</div>
+        <div style="background:#1e293b;border-radius:4px;padding:3px 8px;font-size:8px;color:#94a3b8">🍽️ Carta/Servicios</div>
+        <div style="background:#7c3aed;border-radius:4px;padding:3px 8px;font-size:8px;color:#fff">⚙️ Prompt</div>
+      </div>
+
+      <div style="color:#a78bfa;font-size:8px;margin-bottom:4px">🔧 Sistema prompt (avanzado)</div>
+      <div style="background:#0d1117;border-radius:4px;padding:6px;font-size:7px;color:#e2e8f0;font-family:monospace;height:70px;overflow:hidden;line-height:1.4;border:1px solid #334155">
+Eres Laura, la recepcionista de Fisioterapia Bilbao Centro.<br/>
+Hablas por teléfono con pacientes.<br/><br/>
+HORARIO: L-S 09:00-20:00<br/>
+SERVICIOS: {{SERVICIOS}}<br/>
+SEGUROS: Adeslas, Sanitas, Mutua...
+      </div>
+      <div style="display:flex;gap:3px;margin-top:4px">
+        <div style="background:#22c55e22;border-radius:3px;padding:2px 5px;font-size:7px;color:#22c55e">Variables disponibles</div>
+        <div style="background:#f59e0b22;border-radius:3px;padding:2px 5px;font-size:7px;color:#f59e0b">⚠️ Solo usuarios avanzados</div>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:4px">
+        <div class="mock-input" style="flex:1;font-size:8px;padding:3px 6px">Nombre asistente</div>
+        <div style="background:#1e293b;border-radius:4px;padding:3px 6px;font-size:7px;color:#94a3b8">Voz: Nova ▼</div>
+      </div>
+      <div style="background:#3b82f622;border-radius:4px;padding:4px;font-size:8px;color:#60a5fa;margin-top:6px">
+        ℹ️ Los negocios ven el tab "Prompt" pero con disclaimer. Admin puede ocultarlo.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:#1e293b;border-radius:8px;padding:12px">
+  <div style="font-size:11px;color:#e2e8f0;margin-bottom:8px">¿Qué enfoque prefieres?</div>
+  <div class="options">
+    <div class="option" data-choice="guided" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Solo formulario guiado</h3>
+        <p>Negocios rellenan campos simples. El prompt se genera automáticamente. Más simple, menos errores.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="guided-plus-raw" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Formulario + prompt raw visible</h3>
+        <p>Campos guiados + pestaña avanzada con el prompt completo editable. Tú (admin) ves todo; negocios ven el básico por defecto.</p>
+      </div>
+    </div>
+  </div>
+</div>

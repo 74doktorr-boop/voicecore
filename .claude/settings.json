@@ -1,0 +1,18 @@
+﻿{
+  "mcpServers": {
+    "@21st-dev/magic": {
+      "command": "npx",
+      "args": ["-y", "@21st-dev/magic@latest"],
+      "env": {
+        "API_KEY": "669089869d6ec133c6a76161520809eed7bd61d4035fdca32bdfd2de99bb638c"
+      }
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["@_davideast/stitch-mcp", "proxy"],
+      "env": {
+        "STITCH_PROJECT_ID": "7021255797435614757"
+      }
+    }
+  }
+}

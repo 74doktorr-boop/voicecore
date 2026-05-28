@@ -1,0 +1,122 @@
+<h2>Diseño del Playground — /admin/playground</h2>
+<p class="subtitle">Wireframe detallado de la UI completa. Panel izquierdo + detalle a la derecha con tabs.</p>
+
+<div class="mockup">
+  <div class="mockup-header">nodeflow.es/admin/playground — vista completa</div>
+  <div class="mockup-body" style="padding:0;display:flex;min-height:320px;font-family:system-ui;font-size:10px">
+
+    <!-- Sidebar izquierdo -->
+    <div style="width:200px;background:#0f172a;border-right:1px solid #1e293b;padding:10px;flex-shrink:0">
+      <div style="color:#60a5fa;font-size:9px;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">🏢 Orgs reales</div>
+
+      <div style="background:#1e3a5f;border-radius:5px;padding:6px 8px;margin-bottom:3px;border-left:2px solid #3b82f6">
+        <div style="color:#e2e8f0;font-size:9px;font-weight:500">Fisio Bilbao</div>
+        <div style="display:flex;gap:3px;margin-top:2px">
+          <div style="background:#22c55e22;border-radius:2px;padding:1px 4px;font-size:7px;color:#22c55e">negocio</div>
+          <div style="background:#22c55e22;border-radius:2px;padding:1px 4px;font-size:7px;color:#22c55e">activo</div>
+        </div>
+      </div>
+
+      <div style="background:#1e293b;border-radius:5px;padding:6px 8px;margin-bottom:3px;cursor:pointer">
+        <div style="color:#94a3b8;font-size:9px">Clínica Norte</div>
+        <div style="display:flex;gap:3px;margin-top:2px">
+          <div style="background:#a78bfa22;border-radius:2px;padding:1px 4px;font-size:7px;color:#a78bfa">pro</div>
+          <div style="background:#22c55e22;border-radius:2px;padding:1px 4px;font-size:7px;color:#22c55e">activo</div>
+        </div>
+      </div>
+
+      <div style="background:#1e293b;border-radius:5px;padding:6px 8px;margin-bottom:3px;cursor:pointer">
+        <div style="color:#94a3b8;font-size:9px">Asador Larre</div>
+        <div style="display:flex;gap:3px;margin-top:2px">
+          <div style="background:#22c55e22;border-radius:2px;padding:1px 4px;font-size:7px;color:#22c55e">negocio</div>
+          <div style="background:#f59e0b22;border-radius:2px;padding:1px 4px;font-size:7px;color:#f59e0b">prueba</div>
+        </div>
+      </div>
+
+      <div style="border:1px dashed #334155;border-radius:5px;padding:5px 8px;margin-bottom:12px;cursor:pointer;text-align:center">
+        <div style="color:#3b82f6;font-size:8px">＋ Nueva org</div>
+      </div>
+
+      <div style="color:#a78bfa;font-size:9px;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">🧪 Bots de prueba</div>
+
+      <div style="background:#1e293b;border-radius:5px;padding:6px 8px;margin-bottom:3px;cursor:pointer">
+        <div style="color:#94a3b8;font-size:9px">bot-peluqueria-test</div>
+        <div style="font-size:7px;color:#6b7280;margin-top:1px">sin org asociada</div>
+      </div>
+
+      <div style="border:1px dashed #334155;border-radius:5px;padding:5px 8px;cursor:pointer;text-align:center">
+        <div style="color:#a78bfa;font-size:8px">＋ Nuevo bot test</div>
+      </div>
+    </div>
+
+    <!-- Panel derecho -->
+    <div style="flex:1;background:#111827;padding:12px">
+
+      <!-- Tabs del panel derecho -->
+      <div style="display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid #1e293b;padding-bottom:0">
+        <div style="background:#1e293b;border-radius:4px 4px 0 0;padding:5px 10px;font-size:9px;color:#e2e8f0;border-bottom:2px solid #3b82f6">⚙️ Config org</div>
+        <div style="padding:5px 10px;font-size:9px;color:#94a3b8">🤖 Asistente</div>
+        <div style="padding:5px 10px;font-size:9px;color:#94a3b8">🎤 Demo voz</div>
+      </div>
+
+      <!-- Tab Config org (activo) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="color:#94a3b8;font-size:8px;margin-bottom:2px">Nombre</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 6px;font-size:9px;color:#e2e8f0">Fisio Bilbao Centro</div>
+        </div>
+        <div>
+          <div style="color:#94a3b8;font-size:8px;margin-bottom:2px">Email propietario</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 6px;font-size:9px;color:#e2e8f0">fisio@bilbao.com</div>
+        </div>
+        <div>
+          <div style="color:#94a3b8;font-size:8px;margin-bottom:2px">Plan</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 6px;font-size:9px;color:#22c55e">negocio (€49/mes)</div>
+        </div>
+        <div>
+          <div style="color:#94a3b8;font-size:8px;margin-bottom:2px">Sector</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 6px;font-size:9px;color:#e2e8f0">fisioterapia</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:4px">
+        <div style="background:#3b82f6;border-radius:4px;padding:4px 10px;font-size:8px;color:#fff">💌 Enviar magic link</div>
+        <div style="background:#1e293b;border-radius:4px;padding:4px 10px;font-size:8px;color:#94a3b8">📋 Ver portal</div>
+        <div style="background:#ef444422;border-radius:4px;padding:4px 10px;font-size:8px;color:#ef4444">🗑 Eliminar org</div>
+      </div>
+
+      <!-- Preview tab Asistente -->
+      <div style="margin-top:12px;background:#1e293b;border-radius:6px;padding:8px;opacity:0.5">
+        <div style="font-size:8px;color:#94a3b8;margin-bottom:6px">Tab Asistente (preview — clic para abrir)</div>
+        <div style="display:flex;gap:4px">
+          <div style="background:#0f172a;border-radius:3px;padding:3px 6px;font-size:7px;color:#60a5fa">📋 Básico</div>
+          <div style="background:#0f172a;border-radius:3px;padding:3px 6px;font-size:7px;color:#94a3b8">🕐 Horario</div>
+          <div style="background:#0f172a;border-radius:3px;padding:3px 6px;font-size:7px;color:#94a3b8">🍽 Contenido</div>
+          <div style="background:#7c3aed44;border-radius:3px;padding:3px 6px;font-size:7px;color:#a78bfa">⚙️ Prompt raw</div>
+          <div style="background:#0f172a;border-radius:3px;padding:3px 6px;font-size:7px;color:#94a3b8">🔊 Voz</div>
+        </div>
+      </div>
+
+      <!-- Preview tab Demo -->
+      <div style="margin-top:6px;background:#1e293b;border-radius:6px;padding:8px;opacity:0.5">
+        <div style="font-size:8px;color:#94a3b8;margin-bottom:4px">Tab Demo voz (preview)</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:13px">🎤</div>
+          <div style="font-size:8px;color:#6b7280">Pulsa para iniciar demo de voz con Fisio Bilbao</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:12px;background:#1e293b;border-radius:8px;padding:10px;font-size:9px;color:#94a3b8">
+  <strong style="color:#e2e8f0">Notas del diseño:</strong>
+  <ul style="margin:4px 0 0;padding-left:14px;line-height:1.8">
+    <li>Panel izquierdo: orgs reales (de Supabase) + bots de prueba (sin org)</li>
+    <li>Org seleccionada → 3 tabs: Config org / Asistente / Demo voz</li>
+    <li>Tab Asistente tiene sub-tabs propios: Básico, Horario, Contenido (sector-specific), Prompt raw, Voz</li>
+    <li>Tab Demo: botón para iniciar llamada de voz en el navegador (mic → STT → LLM → TTS → audio)</li>
+    <li>Portal de negocio: misma estructura de sub-tabs del Asistente, pero sin acceso a Config org ni a la lista de otras orgs</li>
+  </ul>
+</div>

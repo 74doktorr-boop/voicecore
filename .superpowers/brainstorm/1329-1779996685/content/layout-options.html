@@ -1,0 +1,125 @@
+<h2>¿Cómo organizamos el panel de asistentes?</h2>
+<p class="subtitle">Tres enfoques distintos — elige el que mejor encaje con tu flujo de trabajo</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#94a3b8">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="background:#1e293b;border-radius:4px;padding:4px 10px;color:#60a5fa;font-size:10px">Stats</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 10px;color:#94a3b8;font-size:10px">Leads</div>
+          <div style="background:#3b82f6;border-radius:4px;padding:4px 10px;color:#fff;font-size:10px">⚡ Asistentes</div>
+          <div style="background:#1e293b;border-radius:4px;padding:4px 10px;color:#94a3b8;font-size:10px">Cron</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:#1e293b;border-radius:6px;padding:8px">
+            <div style="font-size:9px;color:#60a5fa;margin-bottom:4px">📋 Negocios (3)</div>
+            <div style="font-size:9px;color:#e2e8f0">🟢 Fisio Bilbao</div>
+            <div style="font-size:9px;color:#e2e8f0">🟢 Clínica Norte</div>
+            <div style="font-size:9px;color:#6b7280">⚪ Demo Test</div>
+            <div style="margin-top:6px;background:#3b82f6;border-radius:3px;padding:2px 6px;font-size:8px;color:#fff;display:inline-block">+ Añadir</div>
+          </div>
+          <div style="background:#1e293b;border-radius:6px;padding:8px">
+            <div style="font-size:9px;color:#a78bfa;margin-bottom:4px">✏️ Fisio Bilbao</div>
+            <div style="font-size:9px;color:#94a3b8;margin-bottom:2px">Nombre:</div>
+            <div style="background:#0f172a;border-radius:2px;padding:2px 4px;font-size:8px;color:#e2e8f0;margin-bottom:4px">Clínica Fisio...</div>
+            <div style="font-size:9px;color:#94a3b8;margin-bottom:2px">Prompt:</div>
+            <div style="background:#0f172a;border-radius:2px;padding:2px 4px;font-size:8px;color:#e2e8f0;height:20px">Eres una recep...</div>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:6px;padding:6px;margin-top:6px">
+          <div style="font-size:9px;color:#34d399;margin-bottom:3px">💬 Chat de prueba</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <div style="background:#0f172a;border-radius:2px;padding:2px 6px;font-size:8px;color:#94a3b8;flex:1">Escribe un mensaje...</div>
+            <div style="background:#3b82f6;border-radius:2px;padding:2px 5px;font-size:8px;color:#fff">▶</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Nueva pestaña en /admin</h3>
+      <p>Se añade un tab "Asistentes" al panel admin existente. Lista de negocios a la izquierda, editor + chat de prueba a la derecha. Todo en un solo sitio.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Un solo sitio, ya tienes el login</li><li>Consistente con lo que hay</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>La página admin ya es densa</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#94a3b8">
+        <div style="background:#1e293b;border-radius:4px;padding:4px 12px;margin-bottom:8px;display:inline-block;font-size:10px;color:#a78bfa">nodeflow.es/admin/playground</div>
+        <div style="display:flex;gap:6px;height:80px">
+          <div style="background:#1e293b;border-radius:6px;padding:8px;width:35%">
+            <div style="font-size:9px;color:#60a5fa;margin-bottom:6px">Negocios</div>
+            <div style="background:#3b82f6;border-radius:3px;padding:3px 5px;font-size:8px;color:#fff;margin-bottom:2px">Fisio Bilbao</div>
+            <div style="background:#0f172a;border-radius:3px;padding:3px 5px;font-size:8px;color:#94a3b8;margin-bottom:2px">Clínica Norte</div>
+            <div style="background:#0f172a;border-radius:3px;padding:3px 5px;font-size:8px;color:#94a3b8">Demo Test</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <div style="background:#1e293b;border-radius:6px;padding:6px;flex:1">
+              <div style="font-size:8px;color:#a78bfa;margin-bottom:3px">Sistema prompt</div>
+              <div style="background:#0f172a;border-radius:2px;padding:3px;font-size:7px;color:#e2e8f0;height:20px;overflow:hidden">Eres la recepcionista virtual de Fisio Bilbao. Hablas en euskera y castellano...</div>
+            </div>
+            <div style="background:#0d1117;border-radius:6px;padding:6px;border:1px solid #22c55e33">
+              <div style="font-size:8px;color:#34d399;margin-bottom:2px">🎮 Playground</div>
+              <div style="font-size:7px;color:#94a3b8">← Usuario: Hola, ¿tenéis cita para hoy?</div>
+              <div style="font-size:7px;color:#60a5fa">→ Bot: ¡Claro! ¿Para qué especialidad?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Página dedicada /admin/playground</h3>
+      <p>URL separada, acceso desde el admin existente con un botón. Diseño optimizado para el flujo editar→probar→guardar. Más espacio para el chat.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Experiencia enfocada</li><li>Más espacio para chat y editor</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>Una URL más que recordar</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#94a3b8">
+        <div style="display:flex;height:90px;gap:0">
+          <div style="background:#1e293b;border-radius:6px 0 0 6px;padding:8px;width:28%;border-right:1px solid #334155">
+            <div style="font-size:8px;color:#60a5fa;margin-bottom:5px">📋 Orgs</div>
+            <div style="background:#3b82f6;border-radius:3px;padding:2px 4px;font-size:7px;color:#fff;margin-bottom:2px">🟢 Fisio Bilbao</div>
+            <div style="padding:2px 4px;font-size:7px;color:#94a3b8;margin-bottom:2px">🟢 Clínica Norte</div>
+            <div style="padding:2px 4px;font-size:7px;color:#6b7280">⚪ Demo</div>
+            <div style="margin-top:4px;font-size:7px;color:#3b82f6">+ Nueva org</div>
+          </div>
+          <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;gap:4px">
+              <div style="background:#1e293b;border-radius:4px;padding:4px 8px;font-size:8px;color:#60a5fa;border-bottom:1px solid #3b82f6">Config</div>
+              <div style="padding:4px 8px;font-size:8px;color:#94a3b8">Prompt</div>
+              <div style="padding:4px 8px;font-size:8px;color:#94a3b8">🎮 Demo</div>
+            </div>
+            <div style="background:#1e293b;border-radius:4px;padding:6px;flex:1">
+              <div style="font-size:7px;color:#94a3b8">Nombre del negocio</div>
+              <div style="background:#0f172a;border-radius:2px;padding:2px 4px;font-size:7px;color:#e2e8f0;margin-top:1px">Fisioterapia Bilbao</div>
+              <div style="font-size:7px;color:#94a3b8;margin-top:4px">Plan / Estado</div>
+              <div style="display:flex;gap:3px;margin-top:1px">
+                <div style="background:#22c55e22;border-radius:2px;padding:1px 4px;font-size:6px;color:#22c55e">negocio</div>
+                <div style="background:#3b82f622;border-radius:2px;padding:1px 4px;font-size:6px;color:#60a5fa">activo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Admin expandido (lista + detalle + tabs)</h3>
+      <p>La lista de orgs existente se convierte en un panel maestro-detalle. Clic en una org abre config/prompt/demo en tabs a la derecha, en la misma página.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>✅ Pros</h4><ul><li>Todo el flujo en una pantalla</li><li>Muy rápido cambiar entre orgs</li></ul></div>
+        <div class="cons"><h4>❌ Contras</h4><ul><li>Requiere reescribir más del admin</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
