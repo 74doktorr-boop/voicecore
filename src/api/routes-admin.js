@@ -6,7 +6,9 @@
 
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
-const { verifySessionToken } = require('./routes-auth');
+const { verifySessionToken, generateMagicToken } = require('./routes-auth');
+const { getAnalytics } = require('../analytics/engine');
+const { sendMagicLinkEmail } = require('../notifications/email');
 
 const log = new Logger('ADMIN');
 
@@ -74,27 +76,41 @@ function setupAdminRoutes(app, config, assistantManager) {
   app.get('/api/admin/stats', adminAuth, async (req, res) => {
     try {
       const db = getDatabase();
-      if (!db.enabled) return res.json({ totalLeads: 0, totalOrgs: 0, mrr: 0, totalMinutes: 0 });
+      if (!db.enabled) return res.json({ totalLeads: 0, totalOrgs: 0, mrr: 0, totalMinutes: 0, leadsThisMonth: 0, callsToday: 0 });
 
       const [regRes, orgsRes] = await Promise.all([
         db.client.from('registros').select('id, status, plan, created_at', { count: 'exact' }),
         db.client.from('organizations').select('id, plan, monthly_minutes_used, is_active', { count: 'exact' }),
       ]);
 
-      const orgs     = orgsRes.data || [];
+      const orgs       = orgsRes.data || [];
+      const regs       = regRes.data  || [];
       const activeOrgs = orgs.filter(o => o.is_active);
       const mrr = activeOrgs.reduce((sum, o) => {
-        return sum + (o.plan === 'pro' ? 49 : o.plan === 'business' ? 99 : 0);
+        return sum + (o.plan === 'negocio' ? 49 : o.plan === 'pro' ? 99 : 0);
       }, 0);
-      const totalMinutes = orgs.reduce((sum, o) => sum + parseFloat(o.monthly_minutes_used || 0), 0);
+      // Only count minutes from active orgs
+      const totalMinutes = activeOrgs.reduce((sum, o) => sum + parseFloat(o.monthly_minutes_used || 0), 0);
+
+      // Leads this month
+      const firstOfMonth = new Date();
+      firstOfMonth.setDate(1); firstOfMonth.setHours(0, 0, 0, 0);
+      const leadsThisMonth = regs.filter(r => new Date(r.created_at) >= firstOfMonth).length;
+
+      // Calls today from analytics engine (in-memory)
+      const analytics  = getAnalytics();
+      const dashboard  = analytics.getDashboard();
+      const callsToday = dashboard.today.calls;
 
       res.json({
         totalLeads:   regRes.count  || 0,
-        activeLeads:  (regRes.data||[]).filter(r => r.status === 'active').length,
+        activeLeads:  regs.filter(r => r.status === 'active').length,
         totalOrgs:    orgsRes.count || 0,
         activeOrgs:   activeOrgs.length,
         mrr,
         totalMinutes: totalMinutes.toFixed(1),
+        leadsThisMonth,
+        callsToday,
       });
     } catch (e) {
       log.error('Admin stats error', { error: e.message });
@@ -153,6 +169,39 @@ function setupAdminRoutes(app, config, assistantManager) {
       if (!data) return res.status(404).json({ error: 'No encontrado' });
       res.json({ org: data });
     } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Send magic link to org owner ────────────────────────────────────────────
+  app.post('/api/admin/send-magic-link', adminAuth, async (req, res) => {
+    try {
+      const { orgId } = req.body;
+      if (!orgId) return res.status(400).json({ error: 'orgId requerido' });
+
+      const db = getDatabase();
+      const { data: org } = await db.client
+        .from('organizations').select('id, owner_email, name').eq('id', orgId).single();
+      if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
+
+      const token = generateMagicToken(org.owner_email, orgId);
+      await sendMagicLinkEmail(org.owner_email, token);
+
+      log.info(`Magic link enviado a ${org.owner_email} para org ${orgId}`);
+      res.json({ ok: true, sentTo: org.owner_email });
+    } catch (e) {
+      log.error('send-magic-link error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Calls analytics dashboard ───────────────────────────────────────────────
+  app.get('/api/admin/calls', adminAuth, (req, res) => {
+    try {
+      const analytics = getAnalytics();
+      res.json(analytics.getDashboard());
+    } catch (e) {
+      log.error('Admin calls error', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });

@@ -12,6 +12,7 @@ let _warmupTimer = null; // Track the startup delay timer for clean cancellation
 let _running     = false;
 let _lastRun     = null;
 let _stats       = { reminders: 0, reviews: 0, runs: 0 };
+let _history     = [];   // last 10 runs: [{ runAt, reminders, reviews }]
 
 async function runAutomations() {
   if (_running) return;
@@ -33,6 +34,8 @@ async function runAutomations() {
     _stats.reviews   += reviews;
     _stats.runs      += 1;
     _lastRun          = new Date().toISOString();
+    _history.unshift({ runAt: _lastRun, reminders, reviews });
+    if (_history.length > 10) _history.pop();
 
     const elapsed = Date.now() - start;
     log.info(`Automations done in ${elapsed}ms — reminders: ${reminders}, reviews: ${reviews}`);
@@ -75,6 +78,7 @@ function getCronStats() {
     lastRun:  _lastRun,
     uptime:   _interval ? 'active' : 'stopped',
     totals:   { ..._stats },
+    lastRuns: _history.slice(),
   };
 }
 
