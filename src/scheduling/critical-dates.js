@@ -27,6 +27,13 @@ const CRITICAL_DATE_TYPES = {
   contract_expiry:      { label: 'Vencimiento contrato',      emoji: '📋', sectors: ['inmobiliaria','asesoria'] },
   birthday:             { label: 'Cumpleaños',                emoji: '🎂', sectors: [] }, // universal
   anniversary:          { label: 'Aniversario',               emoji: '💑', sectors: [] },
+  passport_expiry:      { label: 'Vencimiento pasaporte',      emoji: '🛂', sectors: ['agencia_viajes'] },
+  glasses_prescription: { label: 'Renovación de prescripción', emoji: '👓', sectors: ['optica'] },
+  legal_deadline:       { label: 'Plazo legal / escritura',    emoji: '⚖️', sectors: ['abogados', 'notaria'] },
+  driving_license:      { label: 'Renovación carnet conducir', emoji: '🪪', sectors: ['taller', 'asesoria'] },
+  annual_contract:      { label: 'Vencimiento contrato anual', emoji: '📋', sectors: ['asesoria', 'reformas'] },
+  treatment_cycle:      { label: 'Ciclo de tratamiento',       emoji: '✨', sectors: ['estetica_avanzada', 'laser'] },
+  class_pack_expiry:    { label: 'Vencimiento pack de clases', emoji: '🧘', sectors: ['yoga', 'pilates', 'gimnasio'] },
 };
 
 class CriticalDatesStore {
