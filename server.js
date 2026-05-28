@@ -369,6 +369,14 @@ flowManager.loadFromDB()
   .catch(() => {})
   .finally(() => startCron(30));
 
+// System B: daily re-booking cron
+const { startRebookingCron }  = require('./src/scheduling/rebooking-cron');
+startRebookingCron();
+
+// System C: load critical dates from Supabase on startup
+const { criticalDatesStore }  = require('./src/scheduling/critical-dates');
+criticalDatesStore.loadFromDB().catch(e => log.warn('Critical dates DB load failed:', e.message));
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {
@@ -452,6 +460,10 @@ app.get('/api/providers', (req, res) => {
     stt: sttRouter.getMetrics(),
   });
 });
+
+// Critical dates API (System C)
+const criticalDatesRouter = require('./src/api/routes-critical-dates');
+app.use('/api/critical-dates', criticalDatesRouter);
 
 // ─── 404 handler ───
 app.use((req, res) => {
