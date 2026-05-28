@@ -401,6 +401,182 @@ function setupPortalRoutes(app, pipeline) {
     });
   });
 
+  // ── GET /api/portal/contacts ───────────────────────────────
+  app.get('/api/portal/contacts', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const q  = (req.query.q || '').trim();
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ contacts: [] });
+
+    let query = db.client
+      .from('contacts')
+      .select('id,phone,name,email,call_count,last_call_at,created_at')
+      .eq('org_id', businessId)
+      .is('deleted_at', null)
+      .order('last_call_at', { ascending: false, nullsFirst: false })
+      .limit(200);
+
+    if (q) {
+      query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Enrich: if contact has no name, try appointments for display name
+    const apts = scheduler.getAppointments(businessId);
+    const aptByPhone = {};
+    apts.forEach(a => { if (a.phone && !aptByPhone[a.phone]) aptByPhone[a.phone] = a; });
+
+    const contacts = (data || []).map(c => ({
+      id:          c.id,
+      phone:       c.phone,
+      name:        c.name || null,
+      email:       c.email || null,
+      callCount:   c.call_count || 0,
+      lastCallAt:  c.last_call_at || null,
+      createdAt:   c.created_at,
+      displayName: c.name || (aptByPhone[c.phone] && aptByPhone[c.phone].patientName) || c.phone,
+    }));
+
+    res.json({ ok: true, count: contacts.length, contacts });
+  });
+
+  // ── GET /api/portal/contacts/:id ──────────────────────────
+  app.get('/api/portal/contacts/:id', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const { id } = req.params;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+
+    // 1. Fetch contact
+    const { data: contact, error: cErr } = await db.client
+      .from('contacts')
+      .select('*')
+      .eq('id', id)
+      .eq('org_id', businessId)
+      .is('deleted_at', null)
+      .single();
+
+    if (cErr || !contact) return res.status(404).json({ error: 'Contacto no encontrado' });
+
+    // 2. Fetch linked calls by phone
+    const { data: calls } = await db.client
+      .from('calls')
+      .select('call_sid,outcome,started_at,ended_at,duration_ms,turn_count')
+      .eq('org_id', businessId)
+      .eq('caller_number', contact.phone)
+      .order('started_at', { ascending: false })
+      .limit(50);
+
+    // 3. Fetch linked appointments by phone (in-memory)
+    const apts = scheduler.getAppointments(businessId)
+      .filter(a => a.phone === contact.phone)
+      .sort((a, b) => new Date(b.date + 'T' + (b.time || '00:00')) - new Date(a.date + 'T' + (a.time || '00:00')));
+
+    res.json({
+      ok: true,
+      contact: {
+        id:          contact.id,
+        phone:       contact.phone,
+        name:        contact.name  || null,
+        email:       contact.email || null,
+        notes:       contact.notes || '',
+        callCount:   contact.call_count || 0,
+        lastCallAt:  contact.last_call_at || null,
+        createdAt:   contact.created_at,
+        displayName: contact.name || contact.phone,
+      },
+      calls: (calls || []).map(c => ({
+        callSid:    c.call_sid,
+        outcome:    c.outcome    || 'abandoned',
+        startedAt:  c.started_at || null,
+        endedAt:    c.ended_at   || null,
+        durationMs: c.duration_ms || 0,
+        turnCount:  c.turn_count  || 0,
+      })),
+      appointments: apts,
+    });
+  });
+
+  // ── PATCH /api/portal/contacts/:id ────────────────────────
+  app.patch('/api/portal/contacts/:id', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const { id } = req.params;
+    const { name, email, notes } = req.body;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+
+    const patch = {};
+    if (name  !== undefined) patch.name  = name  || null;
+    if (email !== undefined) patch.email = email || null;
+    if (notes !== undefined) patch.notes = notes || null;
+
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'Nada que actualizar' });
+    }
+
+    const { data, error } = await db.client
+      .from('contacts')
+      .update(patch)
+      .eq('id', id)
+      .eq('org_id', businessId)
+      .is('deleted_at', null)
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data)  return res.status(404).json({ error: 'Contacto no encontrado' });
+    res.json({ ok: true, contact: data });
+  });
+
+  // ── DELETE /api/portal/contacts/:id ───────────────────────
+  app.delete('/api/portal/contacts/:id', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const { id } = req.params;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+
+    const { error } = await db.client
+      .from('contacts')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('org_id', businessId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  });
+
+  // ── GET /api/portal/calls/:callSid/transcript ──────────────
+  app.get('/api/portal/calls/:callSid/transcript', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const { callSid } = req.params;
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ transcript: [], available: false });
+
+    const { data, error } = await db.client
+      .from('calls')
+      .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number')
+      .eq('call_sid', callSid)
+      .eq('org_id', businessId)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Transcripción no disponible para esta llamada' });
+    }
+
+    res.json({
+      ok:           true,
+      transcript:   data.transcript   || [],
+      outcome:      data.outcome      || null,
+      startedAt:    data.started_at   || null,
+      endedAt:      data.ended_at     || null,
+      durationMs:   data.duration_ms  || 0,
+      callerNumber: data.caller_number || null,
+      available:    (data.transcript || []).length > 0,
+    });
+  });
+
 } // end setupPortalRoutes
 
 module.exports = { setupPortalRoutes };
