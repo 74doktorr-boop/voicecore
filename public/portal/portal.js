@@ -752,7 +752,10 @@ async function loadConfig() {
 
   var c = data.config || {};
   var SECTORS = ['peluqueria','barberia','estetica','clinica','dental','veterinaria','restaurante',
-    'taller','gimnasio','academia','farmacia','asesoria','hotel','inmobiliaria','otro'];
+    'taller','gimnasio','academia','farmacia','asesoria','hotel','inmobiliaria',
+    'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+    'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
+    'agencia_viajes','reformas','otro'];
   var sectorOpts = SECTORS.map(function(s) {
     return '<option value="' + s + '" ' + (c.sector === s ? 'selected' : '') + '>' +
       s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
@@ -1149,6 +1152,10 @@ function renderAsisSectorFields(sector, sd, services) {
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Horario comidas</label><input class="form-ctrl" id="asis-horComida" value="' + (sd.horarioComida||'') + '" placeholder="13:00-15:30"></div>';
     html += '<div class="form-group"><label class="form-label">Horario cenas</label><input class="form-ctrl" id="asis-horCena" value="' + (sd.horarioCena||'') + '" placeholder="20:30-23:00"></div></div>';
     html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Carta (un plato por línea: Nombre - Precio)</label><textarea class="form-ctrl" id="asis-carta" rows="5" placeholder="Chuletón - 28€">' + ((sd.cartaItems||[]).map(function(i){return i.name+(i.price?' - '+i.price:'');}).join('\n')) + '</textarea></div>';
+  } else {
+    html += '<div class="asis-field"><label class="form-label">Servicios y precios</label>' +
+      '<textarea class="form-ctrl" id="sd-servicios" rows="4" placeholder="Lista tus servicios...">' +
+      esc(sd.servicios || services || '') + '</textarea></div>';
   }
 
   document.getElementById('asis-contenido-body').innerHTML = html;
@@ -1192,6 +1199,8 @@ function collectAsisConfig() {
     var cartaRaw = get('asis-carta');
     sd.cartaItems = cartaRaw.split('\n').filter(Boolean).map(function(l) { var p=l.split(' - '); return {name:p[0].trim(),price:p[1]?p[1].trim():null}; });
   }
+  var sdServEl = document.getElementById('sd-servicios');
+  if (sdServEl) sd.servicios = sdServEl.value.trim();
   c.sectorData = sd;
   return c;
 }

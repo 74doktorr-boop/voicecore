@@ -234,7 +234,11 @@ function renderAssistantSubTabs() {
       [['es','Español'],['eu','Euskera'],['es+eu','Español + Euskera']].map(function(l){ return '<option value="' + l[0] + '"' + (c.language===l[0]?' selected':'') + '>' + l[1] + '</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-group"><label>Sector</label><select class="form-select" id="a-sector">' +
-      ['generico','restaurante','fisioterapia','clinica','peluqueria','gimnasio','veterinaria','farmacia'].map(function(s){ return '<option value="' + s + '"' + (c.sector===s?' selected':'') + '>' + s + '</option>'; }).join('') +
+      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia','estetica','gimnasio',
+       'veterinaria','farmacia','asesoria','taller','hotel','inmobiliaria',
+       'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+       'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
+       'agencia_viajes','reformas'].map(function(s){ return '<option value="' + s + '"' + (c.sector===s?' selected':'') + '>' + s + '</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-group"><label>Modelo LLM</label><select class="form-select" id="a-model">' +
       ['gpt-4o-mini','gpt-4o'].map(function(m){ return '<option value="' + m + '"' + (c.model===m?' selected':'') + '>' + m + '</option>'; }).join('') +
@@ -308,6 +312,9 @@ function renderContenidoTab(sector, sectorData, services) {
     html += '<div class="form-group form-full"><label>Servicios y precios</label><textarea class="form-textarea" id="sd-servicios" placeholder="Corte mujer - 25€\nTinte - 45€">' + esc(sectorData.servicios||'') + '</textarea></div>';
   } else if (sector === 'gimnasio') {
     html += '<div class="form-group form-full"><label>Clases disponibles</label><textarea class="form-textarea" id="sd-clases" placeholder="Yoga L/X/V 9:00, Spinning M/J 19:00...">' + esc(sectorData.clases||'') + '</textarea></div>';
+  } else {
+    // Generic fallback: any sector not explicitly handled gets a services textarea
+    html += '<div class="form-group form-full"><label>Servicios y precios</label><textarea class="form-textarea" id="sd-servicios" placeholder="Lista tus servicios y precios...">' + esc(sectorData.servicios || services || '') + '</textarea></div>';
   }
   html += '</div>';
   document.getElementById('sub-contenido').innerHTML = html;
@@ -377,6 +384,8 @@ function collectAssistantConfig() {
   } else if (sector === 'gimnasio') {
     sd.clases = get('sd-clases');
   }
+  var sdServEl = document.getElementById('sd-servicios');
+  if (sdServEl) sd.servicios = sdServEl.value.trim();
   c.sectorData = sd;
 
   return c;
@@ -436,7 +445,13 @@ async function createOrg() {
 function openCreateBotModal() {
   openModal('<div class="modal-title">Nuevo bot de prueba</div>' +
     '<div class="form-group" style="margin-bottom:10px"><label>Nombre</label><input class="form-input" id="bot-name" placeholder="bot-restaurante-test"></div>' +
-    '<div class="form-group" style="margin-bottom:18px"><label>Sector</label><select class="form-select" id="bot-sector"><option>generico</option><option>restaurante</option><option>fisioterapia</option><option>clinica</option><option>peluqueria</option><option>gimnasio</option></select></div>' +
+    '<div class="form-group" style="margin-bottom:18px"><label>Sector</label><select class="form-select" id="bot-sector">' +
+      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia','estetica','gimnasio',
+       'veterinaria','farmacia','asesoria','taller','hotel','inmobiliaria',
+       'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+       'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
+       'agencia_viajes','reformas'].map(function(s){return '<option>'+s+'</option>';}).join('') +
+      '</select></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
     '<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>' +
     '<button class="btn btn-primary" onclick="createBot()">Crear</button></div>');
