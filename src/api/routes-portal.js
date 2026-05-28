@@ -141,20 +141,20 @@ function setupPortalRoutes(app, pipeline) {
       .filter(c => (c.businessId || c.assistantId) === businessId);
 
     if (from) {
-      calls = calls.filter(c => (c.endedAt || c.startedAt || '') >= from);
+      calls = calls.filter(c => (c.endTime || c.startTime || '') >= from);
     }
     if (to) {
       const toEnd = to + 'T23:59:59';
-      calls = calls.filter(c => (c.endedAt || c.startedAt || '') <= toEnd);
+      calls = calls.filter(c => (c.endTime || c.startTime || '') <= toEnd);
     }
     if (outcome && ['booked', 'info', 'abandoned'].includes(outcome)) {
       calls = calls.filter(c => c.outcome === outcome);
     }
 
     const formatted = calls.map(c => ({
-      callId:      c.callId,
-      startedAt:   c.startedAt,
-      endedAt:     c.endedAt,
+      callId:      c.id,
+      startedAt:   c.startTime,
+      endedAt:     c.endTime,
       duration:    c.duration || 0,
       outcome:     c.outcome || 'abandoned',
       clientEmail: c.clientEmail || null,
