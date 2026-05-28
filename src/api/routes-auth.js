@@ -16,7 +16,14 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // ── JWT helpers (HMAC-SHA256, no external library) ─────────────────────────
 function jwtSecret() {
-  return process.env.JWT_SECRET || process.env.API_KEY || 'nodeflow-fallback-secret';
+  const s = process.env.JWT_SECRET || process.env.API_KEY;
+  if (!s) {
+    // Hardcoded fallback would allow anyone with source access to forge tokens.
+    // Fail loudly so ops notices immediately.
+    log.error('⚠️  JWT_SECRET (and API_KEY) not configured — session tokens cannot be issued securely. Set JWT_SECRET in environment.');
+    throw new Error('JWT_SECRET not configured');
+  }
+  return s;
 }
 
 function createSessionToken(payload) {
@@ -106,6 +113,22 @@ async function generateMagicToken(email, registroId) {
   return token;
 }
 
+// ── In-memory rate limiter (no external dep) ────────────────────────────────
+// Limits: 5 magic link requests per IP per 10 minutes
+const _rlStore = new Map();
+function requestLinkRateLimit(req, res, next) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const window = 10 * 60 * 1000; // 10 min
+  let bucket = _rlStore.get(ip);
+  if (!bucket || now - bucket.start > window) { bucket = { start: now, count: 0 }; _rlStore.set(ip, bucket); }
+  bucket.count++;
+  if (bucket.count > 5) {
+    return res.status(429).json({ error: 'Demasiadas solicitudes. Espera unos minutos.' });
+  }
+  next();
+}
+
 // ── Route setup ─────────────────────────────────────────────────────────────
 function setupAuthRoutes(app) {
   // GET /api/auth/verify?token=xxx
@@ -118,6 +141,8 @@ function setupAuthRoutes(app) {
       const record = await getMagicToken(token);
       if (!record) return res.status(401).json({ error: 'Token inválido' });
       if (record.expiresAt < Date.now()) return res.status(401).json({ error: 'Token expirado. Solicita un nuevo acceso.' });
+      // Magic links are single-use: reject if already consumed
+      if (record.usedCount >= 1) return res.status(401).json({ error: 'Este enlace ya fue utilizado. Solicita uno nuevo desde el portal.' });
 
       await incrementTokenUsage(token);
 
@@ -132,7 +157,7 @@ function setupAuthRoutes(app) {
 
   // POST /api/auth/request-link  { email }
   // Sends a new magic link to the given email (must be a known client)
-  app.post('/api/auth/request-link', async (req, res) => {
+  app.post('/api/auth/request-link', requestLinkRateLimit, async (req, res) => {
     const { email } = req.body;
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ error: 'Email inválido' });

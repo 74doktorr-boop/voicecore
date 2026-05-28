@@ -174,7 +174,7 @@ app.get('/hementxe/anuncio.html',           serveGitHubPage('/hementxe/anuncio.h
 const SECTOR_PAGES = [
   'peluquerias', 'clinicas', 'restaurantes', 'talleres',
   'veterinarias', 'estetica', 'gimnasios', 'inmobiliarias',
-  'academias', 'asesorias', 'farmacias', 'hoteles',
+  'academias', 'asesorias', 'farmacias', 'hoteles', 'fisioterapia',
 ];
 SECTOR_PAGES.forEach(sector => {
   const file = path.join(__dirname, 'public', sector, 'index.html');
@@ -422,7 +422,9 @@ const _ttsPreviewLimit = makeRateLimit({ windowMs: 60000, max: 10 });
 app.get('/api/tts/preview', _ttsPreviewLimit, async (req, res) => {
   try {
     const voice = req.query.voice || 'nova';
-    const text = req.query.text || 'Hola, soy tu asistente virtual de NodeFlow. ¿En qué puedo ayudarte hoy?';
+    const rawText = req.query.text || 'Hola, soy tu asistente virtual de NodeFlow. ¿En qué puedo ayudarte hoy?';
+    // Guard: cap text at 300 chars to prevent cost amplification via long strings
+    const text = rawText.slice(0, 300);
     const provider = req.query.provider || 'openai';
 
     // Use OpenAI TTS directly for previews
