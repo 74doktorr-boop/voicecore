@@ -1139,19 +1139,19 @@ function toggleAsisDayClosed(day) {
 
 function renderAsisSectorFields(sector, sd, services) {
   var html = '<div class="form-group" style="margin-bottom:14px"><label class="form-label">Servicios generales</label>' +
-    '<textarea class="form-ctrl" id="asis-services" rows="3" placeholder="Describe los servicios que ofrece el negocio...">' + (services||'') + '</textarea></div>';
+    '<textarea class="form-ctrl" id="asis-services" rows="3" placeholder="Describe los servicios que ofrece el negocio...">' + esc(services||'') + '</textarea></div>';
 
   if (sector === 'fisioterapia' || sector === 'clinica') {
     var seguros = (sd.seguros || []);
     html += '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
       '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
-      seguros.map(function(s) { return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' + s + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>'; }).join('') +
+      seguros.map(function(s) { return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' + esc(s) + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>'; }).join('') +
       '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" style="width:180px" onkeydown="if(event.key===\'Enter\'){addAsisSeguro();event.preventDefault()}"></div>';
-    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Especialidades</label><textarea class="form-ctrl" id="asis-espec" rows="2">' + (sd.especialidades||'') + '</textarea></div>';
+    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Especialidades</label><textarea class="form-ctrl" id="asis-espec" rows="2">' + esc(sd.especialidades||'') + '</textarea></div>';
   } else if (sector === 'restaurante') {
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Horario comidas</label><input class="form-ctrl" id="asis-horComida" value="' + (sd.horarioComida||'') + '" placeholder="13:00-15:30"></div>';
-    html += '<div class="form-group"><label class="form-label">Horario cenas</label><input class="form-ctrl" id="asis-horCena" value="' + (sd.horarioCena||'') + '" placeholder="20:30-23:00"></div></div>';
-    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Carta (un plato por línea: Nombre - Precio)</label><textarea class="form-ctrl" id="asis-carta" rows="5" placeholder="Chuletón - 28€">' + ((sd.cartaItems||[]).map(function(i){return i.name+(i.price?' - '+i.price:'');}).join('\n')) + '</textarea></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Horario comidas</label><input class="form-ctrl" id="asis-horComida" value="' + esc(sd.horarioComida||'') + '" placeholder="13:00-15:30"></div>';
+    html += '<div class="form-group"><label class="form-label">Horario cenas</label><input class="form-ctrl" id="asis-horCena" value="' + esc(sd.horarioCena||'') + '" placeholder="20:30-23:00"></div></div>';
+    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Carta (un plato por línea: Nombre - Precio)</label><textarea class="form-ctrl" id="asis-carta" rows="5" placeholder="Chuletón - 28€">' + esc((sd.cartaItems||[]).map(function(i){return i.name+(i.price?' - '+i.price:'');}).join('\n')) + '</textarea></div>';
   } else {
     html += '<div class="asis-field"><label class="form-label">Servicios y precios</label>' +
       '<textarea class="form-ctrl" id="sd-servicios" rows="4" placeholder="Lista tus servicios...">' +
