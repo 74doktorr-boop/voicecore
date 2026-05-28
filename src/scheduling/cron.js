@@ -12,7 +12,7 @@ let _interval    = null;
 let _warmupTimer = null;
 let _running     = false;
 let _lastRun     = null;
-let _stats       = { reminders: 0, reviews: 0, criticalDates: 0, runs: 0 };
+let _stats       = { reminders: 0, reviews: 0, criticalDates: 0, noShows: 0, runs: 0 };
 let _history     = [];
 
 async function checkAndSendCriticalDateReminders() {
@@ -51,6 +51,39 @@ async function checkAndSendCriticalDateReminders() {
   return sent;
 }
 
+async function checkAndHandleNoShows(scheduler, flowManager) {
+  const { sendNoShowEmail } = require('../notifications/noshow-notifications');
+  const GRACE_MS = 30 * 60 * 1000; // 30 minutes grace period after appointment time
+  const now  = Date.now();
+  let handled = 0;
+
+  for (const apt of scheduler.appointments.values()) {
+    if (apt.status === 'cancelled') continue;   // cancelled — not a no-show
+    if (apt.noShowNotified) continue;           // already sent a no-show email
+    if (!apt.email) continue;                   // no email to send to
+
+    const aptMs = new Date(`${apt.date}T${apt.time}:00`).getTime();
+    if (isNaN(aptMs)) continue;                 // invalid date — skip
+    if (now < aptMs + GRACE_MS) continue;       // not yet past grace period
+
+    // No-show confirmed: appointment passed, still confirmed, not notified
+    const config = scheduler.getBusinessConfig(apt.businessId) || {};
+
+    try {
+      const ok = await sendNoShowEmail(apt, config);
+      if (ok) {
+        apt.noShowNotified = true;
+        handled++;
+        log.info(`No-show handled: apt ${apt.id} — ${apt.patientName}`);
+      }
+    } catch (e) {
+      log.warn(`No-show email error for apt ${apt.id}`, { err: e.message });
+    }
+  }
+
+  return handled;
+}
+
 async function runAutomations() {
   if (_running) return;
   _running = true;
@@ -66,17 +99,19 @@ async function runAutomations() {
     const reminders     = await checkAndSendReminders(scheduler, flowManager);
     const reviews       = await checkAndSendReviews(scheduler, flowManager);
     const criticalDates = await checkAndSendCriticalDateReminders();
+    const noShows        = await checkAndHandleNoShows(scheduler, flowManager);
 
     _stats.reminders     += reminders;
     _stats.reviews       += reviews;
     _stats.criticalDates += criticalDates;
+    _stats.noShows       = (_stats.noShows || 0) + noShows;
     _stats.runs          += 1;
     _lastRun              = new Date().toISOString();
-    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates });
+    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates, noShows });
     if (_history.length > 10) _history.pop();
 
     const elapsed = Date.now() - start;
-    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates}`);
+    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates} noShows:${noShows}`);
   } catch (e) {
     log.error('Automation run error', { error: e.message });
   } finally {
