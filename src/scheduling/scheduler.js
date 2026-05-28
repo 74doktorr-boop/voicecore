@@ -287,6 +287,13 @@ class SchedulingSystem {
     };
   }
 
+  // ─── Get all appointments for a business (for rebooking cron) ───
+  getAppointments(businessId) {
+    const config = this.getBusinessConfig(businessId);
+    if (!config) return [];
+    return [...this.appointments.values()].filter(a => a.businessId === businessId);
+  }
+
   // ─── Look up appointments by patient ───
   lookupAppointments(patientName) {
     const results = [];
