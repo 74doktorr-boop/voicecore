@@ -173,6 +173,81 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Create org manually (without Stripe) ───────────────────────────────────
+  app.post('/api/admin/orgs', adminAuth, async (req, res) => {
+    const { name, ownerEmail, plan, sector, phone } = req.body;
+    if (!name || !ownerEmail || !plan) {
+      return res.status(400).json({ error: 'name, ownerEmail y plan son requeridos' });
+    }
+    if (!['starter', 'negocio', 'pro'].includes(plan)) {
+      return res.status(400).json({ error: "plan debe ser 'starter', 'negocio' o 'pro'" });
+    }
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    try {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const { data, error } = await db.client
+        .from('organizations')
+        .insert({
+          name,
+          slug: `${slug}-${Date.now().toString(36)}`,
+          owner_email: ownerEmail.trim().toLowerCase(),
+          owner_name:  name,
+          phone:       phone || null,
+          plan,
+          sector:      sector || 'generico',
+          is_active:   true,
+          status:      'active',
+          assistant_config: {},
+        })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      log.info(`Org created manually: ${data.id} (${name})`);
+      res.json({ org: data });
+    } catch (e) {
+      log.error(`POST /api/admin/orgs error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Delete org ──────────────────────────────────────────────────────────────
+  app.delete('/api/admin/orgs/:id', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    try {
+      // Soft-delete: set is_active=false, status='deleted'
+      await db.client
+        .from('organizations')
+        .update({ is_active: false, status: 'deleted' })
+        .eq('id', req.params.id);
+      log.info(`Org soft-deleted: ${req.params.id}`);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── PATCH org fields ──────────────────────────────────────────────────────────
+  app.patch('/api/admin/orgs/:id', adminAuth, async (req, res) => {
+    const { name, plan, sector, phone, status } = req.body;
+    const db = getDatabase();
+    const patch = {};
+    if (name   !== undefined) patch.name   = name;
+    if (plan   !== undefined) {
+      if (!['starter','negocio','pro'].includes(plan)) return res.status(400).json({ error: 'plan inválido' });
+      patch.plan = plan;
+    }
+    if (sector !== undefined) patch.sector = sector;
+    if (phone  !== undefined) patch.phone  = phone;
+    if (status !== undefined) patch.status = status;
+    try {
+      await db.client.from('organizations').update(patch).eq('id', req.params.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Send magic link to org owner ────────────────────────────────────────────
   app.post('/api/admin/send-magic-link', adminAuth, async (req, res) => {
     try {
@@ -308,4 +383,8 @@ function setupAdminRoutes(app, config, assistantManager) {
 
 // Export adminAuth so routes-flows and routes-automations can reuse it
 // (they share the same _validTokens set — admin login activates all protected routes)
-module.exports = { setupAdminRoutes, adminAuth };
+function isAdminToken(token) {
+  return !!(token && _validTokens.has(token));
+}
+
+module.exports = { setupAdminRoutes, adminAuth, isAdminToken };
