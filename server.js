@@ -27,6 +27,8 @@ const { setupExtendedRoutes } = require('./src/api/routes-extended');
 const { setupBillingRoutes } = require('./src/api/routes-billing');
 const { setupRegistroRoutes } = require('./src/api/routes-registro');
 const { setupAdminRoutes }        = require('./src/api/routes-admin');
+const { setupAssistantRoutes }    = require('./src/api/routes-assistant');
+const { setupDemoRoutes }         = require('./src/api/routes-demo');
 const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
@@ -198,6 +200,9 @@ app.get(['/gracias', '/gracias/'], serveGitHubPage('/gracias/index.html', path.j
 app.get(['/admin', '/admin/'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
+app.get('/admin/playground', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'playground.html'));
+});
 
 // ─── Portal del cliente ───
 app.get(['/portal', '/portal/'], serveGitHubPage('/portal/index.html', path.join(__dirname, 'public', 'portal', 'index.html')));
@@ -361,6 +366,8 @@ setupPortalRoutes(app, pipeline);
 
 // Setup Admin routes (panel privado de Unai)
 setupAdminRoutes(app, config, assistantManager);
+setupAssistantRoutes(app);
+setupDemoRoutes(app, ttsRouter);
 
 // Setup Automation routes + start cron (reminders, reviews, WA confirmations)
 setupAutomationRoutes(app);
