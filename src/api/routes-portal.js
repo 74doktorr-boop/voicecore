@@ -577,6 +577,60 @@ function setupPortalRoutes(app, pipeline) {
     });
   });
 
+  // ── GET /api/portal/assistant ─────────────────────────────────
+  app.get('/api/portal/assistant', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ config: {} });
+    try {
+      const { data } = await db.client
+        .from('organizations')
+        .select('name, assistant_config')
+        .eq('id', businessId)
+        .single();
+      res.json({ config: data?.assistant_config || {}, orgName: data?.name || '' });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── PUT /api/portal/assistant ─────────────────────────────────
+  // Portal users can edit their config but CANNOT set customPromptOverride or model.
+  app.put('/api/portal/assistant', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const incoming = req.body;
+    if (!incoming || typeof incoming !== 'object') {
+      return res.status(400).json({ error: 'body debe ser el objeto config' });
+    }
+
+    // Strip fields portal users must not control
+    const safe = { ...incoming };
+    delete safe.customPromptOverride;
+    delete safe.model;
+
+    const db = getDatabase();
+    try {
+      // Merge with existing config (don't overwrite fields not sent)
+      const { data: existing } = await db.client
+        .from('organizations').select('name, assistant_config').eq('id', businessId).single();
+      const merged = { ...(existing?.assistant_config || {}), ...safe };
+
+      const { generatePrompt } = require('../assistants/prompt-generator');
+      const prompt = generatePrompt(merged, existing?.name || '');
+
+      await db.client
+        .from('organizations')
+        .update({ assistant_config: merged })
+        .eq('id', businessId);
+
+      log.info(`Portal: assistant config updated for ${businessId}`);
+      res.json({ ok: true, prompt });
+    } catch (e) {
+      log.error(`Portal PUT assistant error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
 } // end setupPortalRoutes
 
 module.exports = { setupPortalRoutes };
