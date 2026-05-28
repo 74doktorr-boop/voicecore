@@ -28,6 +28,24 @@ const REBOOKING_DEFAULTS = {
   asesoria:     90,
   hotel:        90,
   inmobiliaria: null, // disabled
+  optica:       365,
+  psicologia:   21,
+  coaching:     21,
+  nutricion:    30,
+  dietetica:    30,
+  podologia:    90,
+  autoescuela:  14,
+  estetica_avanzada: 45,
+  laser:        45,
+  yoga:         21,
+  pilates:      21,
+  guarderia_canina: 60,
+  residencia_mascotas: 60,
+  abogados:     60,
+  notaria:      60,
+  agencia_viajes: 180,
+  reformas:     90,
+  arquitectura: 90,
 };
 
 // Anti-spam log: Map<`${businessId}:${phone}`, lastSentAt (ms)>
