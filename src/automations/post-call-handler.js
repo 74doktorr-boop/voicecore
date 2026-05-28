@@ -11,6 +11,7 @@ const {
   sendCallSummaryToOwner,
   sendCallFollowUpEmail,
 } = require('../notifications/call-notifications');
+const { getDatabase }    = require('../db/database');
 const { Logger } = require('../utils/logger');
 
 const log = new Logger('POST-CALL');
@@ -65,6 +66,40 @@ async function handle(callData) {
       sendCallFollowUpEmail(callData, config)
         .catch(e => log.warn('followup email failed', { err: e.message }));
     }, FOLLOWUP_DELAY_MS);
+  }
+
+  // ── 5. Persist call to Supabase (transcript + outcome) ──────────────────────
+  const db = getDatabase();
+  if (db.enabled && callData.id) {
+    db.client.from('calls').upsert({
+      call_sid:           callData.id,
+      org_id:             businessId,
+      outcome:            callData.outcome            || null,
+      caller_number:      callData.callerNumber       || null,
+      client_email:       callData.clientEmail        || null,
+      booked_appointment: callData.bookedAppointment  || null,
+      transcript:         callData.transcript         || [],
+      duration_ms:        callData.duration           || 0,
+      turn_count:         callData.turnCount          || 0,
+      started_at:         callData.startTime          || null,
+      ended_at:           callData.endTime            || null,
+      status:             'ended',
+    }, { onConflict: 'call_sid' })
+      .catch(e => log.warn('call DB persist failed', { err: e.message }));
+  }
+
+  // ── 6. Upsert contact (phone → contacts table) ───────────────────────────────
+  if (db.enabled && callData.callerNumber) {
+    const apt   = callData.bookedAppointment;
+    const pName = apt?.patientName || null;
+    const pEmail = apt?.email || callData.clientEmail || null;
+    db.client.rpc('upsert_contact', {
+      p_org_id:       businessId,
+      p_phone:        callData.callerNumber,
+      p_name:         pName,
+      p_email:        pEmail,
+      p_last_call_at: callData.endTime || new Date().toISOString(),
+    }).catch(e => log.warn('contact upsert failed', { err: e.message }));
   }
 }
 
