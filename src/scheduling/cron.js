@@ -51,6 +51,24 @@ async function checkAndSendCriticalDateReminders() {
   return sent;
 }
 
+function aptToMs(date, time) {
+  // Parse a Madrid local datetime (e.g. '2026-05-29', '10:00') as UTC milliseconds.
+  // Treats the date+time as Europe/Madrid local time and returns the corresponding UTC ms.
+  const isoStr = `${date}T${time}:00`;
+  const guessUtc = new Date(isoStr + 'Z').getTime(); // treat as UTC first
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  // Format guessUtc back to Madrid local time
+  const madridStr = formatter.format(guessUtc).replace(' ', 'T'); // "2026-05-29T10:00:00"
+  // Offset = difference between the UTC guess and what Madrid shows for that same instant
+  const offsetMs = guessUtc - new Date(madridStr + 'Z').getTime();
+  // Return the UTC ms that corresponds to the Madrid local time
+  return guessUtc - offsetMs;
+}
+
 async function checkAndHandleNoShows(scheduler, flowManager) {
   const { sendNoShowEmail } = require('../notifications/noshow-notifications');
   const GRACE_MS = 30 * 60 * 1000; // 30 minutes grace period after appointment time
@@ -58,11 +76,14 @@ async function checkAndHandleNoShows(scheduler, flowManager) {
   let handled = 0;
 
   for (const apt of scheduler.appointments.values()) {
-    if (apt.status === 'cancelled') continue;   // cancelled — not a no-show
+    if (apt.status !== 'confirmed') continue;   // only process confirmed (pending/completed/cancelled = skip)
     if (apt.noShowNotified) continue;           // already sent a no-show email
     if (!apt.email) continue;                   // no email to send to
 
-    const aptMs = new Date(`${apt.date}T${apt.time}:00`).getTime();
+    let aptMs;
+    try {
+      aptMs = aptToMs(apt.date, apt.time);
+    } catch(_) { aptMs = NaN; }
     if (isNaN(aptMs)) continue;                 // invalid date — skip
     if (now < aptMs + GRACE_MS) continue;       // not yet past grace period
 
