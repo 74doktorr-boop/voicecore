@@ -14,6 +14,7 @@ const DEFAULTS = {
   reminders: { enabled: true,  hoursBefore: 24 },
   reviews:   { enabled: true,  hoursAfter:  24 },
   waConfirm: { enabled: true },
+  rebooking: { enabled: true,  daysThreshold: null, maxPerYear: 4 },
 };
 
 class FlowManager {
@@ -38,6 +39,7 @@ class FlowManager {
         reminders: { ...DEFAULTS.reminders, ...(prev.automations?.reminders || {}), ...(config.automations?.reminders || {}) },
         reviews:   { ...DEFAULTS.reviews,   ...(prev.automations?.reviews   || {}), ...(config.automations?.reviews   || {}) },
         waConfirm: { ...DEFAULTS.waConfirm, ...(prev.automations?.waConfirm || {}), ...(config.automations?.waConfirm || {}) },
+        rebooking: { ...DEFAULTS.rebooking, ...(prev.automations?.rebooking || {}), ...(config.automations?.rebooking || {}) },
       },
       registeredAt: prev.registeredAt || new Date().toISOString(),
       updatedAt:    new Date().toISOString(),
@@ -60,6 +62,7 @@ class FlowManager {
             reminders: { ...flow.automations.reminders, ...(automations.reminders || {}) },
             reviews:   { ...flow.automations.reviews,   ...(automations.reviews   || {}) },
             waConfirm: { ...flow.automations.waConfirm, ...(automations.waConfirm || {}) },
+            rebooking: { ...flow.automations.rebooking, ...(automations.rebooking || {}) },
           }
         : flow.automations,
       updatedAt: new Date().toISOString(),
