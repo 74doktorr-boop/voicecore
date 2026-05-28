@@ -631,6 +631,59 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 .wa-float:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(37,211,102,.6);}
 .wa-float svg{width:30px;height:30px;}
 @media(max-width:640px){.wa-float{bottom:80px;right:16px;width:48px;height:48px;}}
+
+/* ── AUTOMATIONS SECTION ── */
+.auto-badge{display:inline-block;padding:5px 14px;border-radius:40px;margin-bottom:4px;}
+.auto-row{padding:8px 0;}
+.auto-cards-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.auto-card{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px 18px;
+  flex:1;min-width:200px;transition:border-color .25s;
+}
+.auto-card:hover{border-color:var(--border-a);}
+.auto-icon{font-size:1.5rem;flex-shrink:0;line-height:1;}
+.auto-card-title{font-weight:700;color:var(--white);font-size:.9rem;margin-bottom:4px;}
+.auto-card-desc{font-size:.78rem;color:var(--text-2);line-height:1.45;}
+.auto-arrow{color:var(--accent-l);font-size:1.4rem;font-weight:800;flex-shrink:0;}
+@media(max-width:768px){.auto-arrow{display:none;}}
+
+/* Threshold grid */
+.auto-threshold-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.threshold-item{
+  display:flex;flex-direction:column;align-items:center;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 18px;gap:4px;
+}
+.th-sector{font-size:.75rem;color:var(--text-2);font-weight:600;}
+.th-days{font-size:.92rem;font-weight:800;color:#60a5fa;}
+
+/* Re-booking example */
+.auto-rebooking-example{display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.rebooking-bubble{
+  background:linear-gradient(135deg,var(--accent),#6d28d9);
+  border-radius:16px 16px 16px 4px;
+  padding:16px 20px;color:#fff;font-size:.92rem;line-height:1.55;
+  max-width:460px;flex:1;box-shadow:0 4px 20px rgba(124,58,237,.25);
+}
+.rebooking-stat{text-align:center;flex-shrink:0;}
+.rbs-num{font-size:2.4rem;font-weight:900;color:#60a5fa;line-height:1;}
+.rbs-label{font-size:.72rem;color:var(--text-2);margin-top:4px;line-height:1.4;}
+
+/* Critical dates grid */
+.critical-dates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:900px){.critical-dates-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:540px){.critical-dates-grid{grid-template-columns:1fr;}}
+.cd-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:16px;
+  transition:border-color .25s,transform .25s;
+}
+.cd-card:hover{border-color:rgba(34,197,94,.3);transform:translateY(-2px);}
+.cd-icon{font-size:1.4rem;margin-bottom:8px;}
+.cd-title{font-weight:700;color:var(--white);font-size:.9rem;margin-bottom:5px;}
+.cd-dates{font-size:.75rem;color:var(--text-2);line-height:1.5;}
 </style>
 </head>
 <body>
@@ -644,10 +697,10 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
       <a href="#" class="logo">node<span>flow</span></a>
       <ul class="nav-links">
         <li><a href="#funciones">Funciones</a></li>
+        <li><a href="#automatizaciones">Automatizaciones</a></li>
         <li><a href="#sectores">Sectores</a></li>
         <li><a href="#precios">Precios</a></li>
         <li><a href="#faq">FAQ</a></li>
-        <li><a href="#demo">Demo</a></li>
       </ul>
       <div class="nav-cta">
         <a href="/login.html" class="nav-login">Acceder</a>
@@ -662,10 +715,10 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 
 <div class="mobile-nav" id="mobile-nav">
   <a href="#funciones" onclick="closeMobileNav()">Funciones</a>
+  <a href="#automatizaciones" onclick="closeMobileNav()">Automatizaciones</a>
   <a href="#sectores" onclick="closeMobileNav()">Sectores</a>
   <a href="#precios" onclick="closeMobileNav()">Precios</a>
   <a href="#faq" onclick="closeMobileNav()">FAQ</a>
-  <a href="#demo" onclick="closeMobileNav()">Demo</a>
   <a href="/login.html" onclick="closeMobileNav()">Acceder</a>
   <a href="#precios" class="btn btn-primary" onclick="closeMobileNav()">Empezar →</a>
 </div>
@@ -888,6 +941,128 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
   </div>
 </section>
 
+<!-- ══ AUTOMATIZACIONES ══ -->
+<section id="automatizaciones" style="background:var(--bg-2);">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Automatizaciones</div>
+      <h2>Tu negocio trabajando solo.<br><span class="gradient-text">Incluso cuando duermes.</span></h2>
+      <p>NodeFlow no solo atiende llamadas — actúa después. Tres sistemas automáticos que fidelizan clientes sin que muevas un dedo.</p>
+    </div>
+
+    <!-- System A -->
+    <div class="auto-row reveal" style="margin-bottom:32px;">
+      <div class="auto-badge" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);">
+        <span style="color:var(--accent-l);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">Sistema A · Post-llamada</span>
+      </div>
+      <h3 style="font-size:1.55rem;margin:10px 0 8px;">Cada llamada desencadena <span class="gradient-text">acciones automáticas</span></h3>
+      <p style="color:var(--text);max-width:620px;margin-bottom:22px;">Cuando tu asistente IA confirma una cita, el cliente recibe un email de confirmación en segundos. Tú recibes un WhatsApp. Todo sin tocar nada.</p>
+      <div class="auto-cards-row">
+        <div class="auto-card">
+          <div class="auto-icon">✉️</div>
+          <div>
+            <div class="auto-card-title">Email de confirmación</div>
+            <div class="auto-card-desc">Instantáneo al cliente con todos los detalles de su cita o reserva</div>
+          </div>
+        </div>
+        <div class="auto-arrow">→</div>
+        <div class="auto-card">
+          <div class="auto-icon">📲</div>
+          <div>
+            <div class="auto-card-title">WhatsApp al propietario</div>
+            <div class="auto-card-desc">Resumen de la llamada en tiempo real en tu teléfono</div>
+          </div>
+        </div>
+        <div class="auto-arrow">→</div>
+        <div class="auto-card">
+          <div class="auto-icon">⭐</div>
+          <div>
+            <div class="auto-card-title">Encuesta 48h después</div>
+            <div class="auto-card-desc">Solicitud de valoración automática para acumular reseñas positivas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- System B -->
+    <div class="auto-row reveal" style="margin:32px 0;">
+      <div class="auto-badge" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);">
+        <span style="color:#60a5fa;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">Sistema B · Re-booking automático</span>
+      </div>
+      <h3 style="font-size:1.55rem;margin:10px 0 8px;">Recupera clientes que <span style="color:#60a5fa;">llevan tiempo sin venir</span></h3>
+      <p style="color:var(--text);max-width:620px;margin-bottom:22px;">Cuando un cliente habitual supera el umbral de días sin contactar — según tu sector — recibe un mensaje personalizado invitándole a volver. Hasta 4 veces al año por cliente.</p>
+      <div class="auto-threshold-grid">
+        <div class="threshold-item"><span class="th-sector">Peluquería</span><span class="th-days">42 días</span></div>
+        <div class="threshold-item"><span class="th-sector">Restaurante</span><span class="th-days">21 días</span></div>
+        <div class="threshold-item"><span class="th-sector">Gimnasio</span><span class="th-days">21 días</span></div>
+        <div class="threshold-item"><span class="th-sector">Asesoría</span><span class="th-days">90 días</span></div>
+        <div class="threshold-item"><span class="th-sector">Clínica</span><span class="th-days">180 días</span></div>
+        <div class="threshold-item"><span class="th-sector">Veterinaria</span><span class="th-days">365 días</span></div>
+      </div>
+      <div class="auto-rebooking-example">
+        <div class="rebooking-bubble">
+          <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">Mensaje automático · Peluquería</div>
+          "Hola Ana, ya hace más de un mes desde tu última visita 😊 Si quieres, te reservo cita esta semana. ¿Qué día te va mejor?"
+        </div>
+        <div class="rebooking-stat">
+          <div class="rbs-num">60%</div>
+          <div class="rbs-label">de clientes reactivados<br>en el primer mes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- System C -->
+    <div class="auto-row reveal" style="margin-top:32px;">
+      <div class="auto-badge" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);">
+        <span style="color:#4ade80;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">Sistema C · Fechas críticas</span>
+      </div>
+      <h3 style="font-size:1.55rem;margin:10px 0 8px;">El asistente registra fechas clave<br><span style="color:#4ade80;">y avisa cuando importa</span></h3>
+      <p style="color:var(--text);max-width:620px;margin-bottom:22px;">Durante la llamada, la IA recoge fechas importantes de cada cliente. Días antes del vencimiento, el sistema envía un recordatorio automático. Sin trabajo manual.</p>
+      <div class="critical-dates-grid">
+        <div class="cd-card">
+          <div class="cd-icon">🔧</div>
+          <div class="cd-title">Taller</div>
+          <div class="cd-dates">ITV · Revisión aceite · Cambio neumáticos</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-icon">🐾</div>
+          <div class="cd-title">Veterinaria</div>
+          <div class="cd-dates">Vacuna antirrábica · Desparasitación · Revisión anual</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-icon">📊</div>
+          <div class="cd-title">Asesoría</div>
+          <div class="cd-dates">IVA trimestral · Renta · Impuesto Sociedades</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-icon">💊</div>
+          <div class="cd-title">Clínica / Farmacia</div>
+          <div class="cd-dates">Renovación receta · Analítica anual · Control periódico</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-icon">🎓</div>
+          <div class="cd-title">Academia</div>
+          <div class="cd-dates">Examen Cambridge · Inscripción convocatoria · Fin de curso</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-icon">🏠</div>
+          <div class="cd-title">Inmobiliaria</div>
+          <div class="cd-dates">Vencimiento contrato · Revisión IPC · Cert. energético</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:48px" class="reveal">
+      <a href="#precios" class="btn btn-primary">Activar automatizaciones →</a>
+      <p style="margin-top:12px;font-size:.82rem;color:var(--text-2);">Incluidas desde el plan Negocio · Sin configuración adicional</p>
+    </div>
+  </div>
+</section>
+
 <!-- ══ DEMO (phone) ══ -->
 <section class="demo-section" id="demo">
   <div class="container">
@@ -1053,7 +1228,9 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
         <div class="ba-row"><span class="lbl">Memoria</span><span class="val" style="color:var(--text)">No recuerda nada</span></div>
         <div class="ba-row"><span class="lbl">Conocimiento</span><span class="val" style="color:var(--text)">Solo un script</span></div>
         <div class="ba-row"><span class="lbl">Citas</span><span class="val" style="color:var(--text)">Manual</span></div>
-        <div class="ba-row"><span class="lbl">Informes</span><span class="val" style="color:var(--text)">No existen</span></div>
+        <div class="ba-row"><span class="lbl">Confirmaciones</span><span class="val" style="color:var(--text)">A mano o no se envían</span></div>
+        <div class="ba-row"><span class="lbl">Clientes inactivos</span><span class="val" style="color:var(--text)">Se pierden para siempre</span></div>
+        <div class="ba-row"><span class="lbl">Fechas críticas</span><span class="val" style="color:var(--text)">El cliente las olvida</span></div>
         <div class="ba-row"><span class="lbl">Canales</span><span class="val" style="color:var(--text)">Solo teléfono</span></div>
       </div>
       <div class="ba-card after">
@@ -1062,7 +1239,9 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
         <div class="ba-row"><span class="lbl">Memoria</span><span class="val">Recuerda todo</span></div>
         <div class="ba-row"><span class="lbl">Conocimiento</span><span class="val">Documentos reales</span></div>
         <div class="ba-row"><span class="lbl">Citas</span><span class="val">Automáticas por voz</span></div>
-        <div class="ba-row"><span class="lbl">Informes</span><span class="val">Semanales auto.</span></div>
+        <div class="ba-row"><span class="lbl">Confirmaciones</span><span class="val">Email instantáneo (Sistema A)</span></div>
+        <div class="ba-row"><span class="lbl">Clientes inactivos</span><span class="val">Re-booking automático (Sistema B)</span></div>
+        <div class="ba-row"><span class="lbl">Fechas críticas</span><span class="val">Recordatorios auto. (Sistema C)</span></div>
         <div class="ba-row"><span class="lbl">Canales</span><span class="val">Tel + WA + IG + Email</span></div>
       </div>
     </div>
