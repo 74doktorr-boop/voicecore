@@ -33,21 +33,24 @@ async function _sendBirthdayEmail(criticalDate, config) {
     return false;
   }
 
-  const lang    = config?.language || 'es';
-  const name    = esc(firstName(criticalDate.clientName));
-  const bizName = esc(config?.name || 'nosotros');
-  const phone   = esc(config?.ownerPhone || '');
-  const notes   = esc(criticalDate.notes || '');  // notes can hold discount text e.g. "10% descuento"
+  const lang       = config?.language || 'es';
+  const rawName    = firstName(criticalDate.clientName ?? '');
+  const rawBizName = config?.name || 'nosotros';
+  const name       = esc(rawName);
+  const bizName    = esc(rawBizName);
+  const phone      = esc(config?.ownerPhone || '');
+  const phoneClean = phone.replace(/[^0-9+\-\s]/g, ''); // strip non-numeric/phone chars
+  const notes      = esc(criticalDate.notes || '');  // notes can hold discount text e.g. "10% descuento"
 
   const subject = lang === 'eu'
-    ? `Zorionak ${name}! 🎂 — ${bizName}`
-    : `¡Feliz cumpleaños, ${name}! 🎂 — ${bizName}`;
+    ? `Zorionak ${rawName}! 🎂 — ${rawBizName}`
+    : `¡Feliz cumpleaños, ${rawName}! 🎂 — ${rawBizName}`;
 
   const greeting = lang === 'eu'
     ? `Zorionak ${name}! 🥳`
     : `¡Feliz cumpleaños, ${name}! 🥳`;
 
-  const bodyText = lang === 'eu'
+  const bodyHtml = lang === 'eu'
     ? `Zure urtebetetzea ospatzeko ${bizName}-k zoragarria den eguna opa dizu.`
     : `Todo el equipo de <strong>${bizName}</strong> te desea un día increíble.`;
 
@@ -69,9 +72,9 @@ async function _sendBirthdayEmail(criticalDate, config) {
     <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">${bizName}</div>
   </div>
   <div style="padding:28px;">
-    <p style="color:#e2e8f0;font-size:15px;line-height:1.7;margin:0 0 20px;text-align:center;">${bodyText}</p>
+    <p style="color:#e2e8f0;font-size:15px;line-height:1.7;margin:0 0 20px;text-align:center;">${bodyHtml}</p>
     ${giftNote}
-    ${phone ? `<a href="tel:${phone.replace(/\\s/g,'')}" style="display:block;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-top:20px;">🎁 ${ctaLabel}</a>` : ''}
+    ${phoneClean ? `<a href="tel:${phoneClean.replace(/\s/g,'')}" style="display:block;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-top:20px;">🎁 ${ctaLabel}</a>` : ''}
     <p style="color:#334155;font-size:11px;text-align:center;margin:20px 0 0;">${unsubText}</p>
   </div>
 </div>
