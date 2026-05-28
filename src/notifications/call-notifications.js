@@ -1,0 +1,217 @@
+// ============================================
+// NodeFlow — Post-call email notifications
+// System A: booking confirmation, owner summary, followup
+// ============================================
+
+const { sendEmail } = require('./email');
+const { Logger }    = require('../utils/logger');
+
+const log = new Logger('CALL-NOTIF');
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function firstName(name = '') { return name.split(' ')[0]; }
+
+// ── 1. Booking confirmation to client ─────────────────────────────────────────
+
+/**
+ * @param {object} appointment   - { patientName, email, service, date, time, phone, price? }
+ * @param {object} config        - { name, ownerPhone, language, address? }
+ */
+async function sendBookingConfirmationEmail(appointment, config) {
+  if (!appointment?.email) {
+    log.warn('sendBookingConfirmationEmail: no email in appointment — skipped');
+    return false;
+  }
+
+  const lang       = config?.language || 'es';
+  const name       = firstName(appointment.patientName);
+  const bizName    = esc(config?.name || 'tu negocio');
+  const service    = esc(appointment.service || '');
+  const date       = esc(appointment.date    || '');
+  const time       = esc(appointment.time    || '');
+  const phone      = esc(config?.ownerPhone  || '');
+  const address    = esc(config?.address     || '');
+
+  const gcalBase   = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+  const gcalTitle  = encodeURIComponent(`${appointment.service || 'Cita'} — ${config?.name || ''}`);
+  const gcalDate   = (date + 'T' + time.replace(':','') + '00').replace(/-/g,'');
+  const gcalLink   = `${gcalBase}&text=${gcalTitle}&dates=${gcalDate}/${gcalDate}`;
+
+  // Spanish template
+  if (lang === 'es' || lang === 'gl') {
+    const greeting = lang === 'gl' ? `Ola ${esc(name)}` : `Hola ${esc(name)}`;
+    const confirmed = lang === 'gl' ? 'A túa cita está confirmada' : 'Tu cita está confirmada';
+    const addCal   = lang === 'gl' ? 'Engadir ao calendario' : 'Añadir al calendario';
+    const cancel   = lang === 'gl' ? 'Para cancelar ou cambiar, responde a este email ou chama ao' : 'Para cancelar o cambiar, responde a este email o llama al';
+
+    const html = `
+<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;background:#07071200;margin:0;padding:0;">
+<div style="max-width:520px;margin:32px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(124,58,237,.25);">
+  <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:28px 32px;">
+    <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.02em;">NodeFlow</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">${confirmed}</div>
+  </div>
+  <div style="padding:28px 32px;">
+    <p style="color:#e2e8f0;font-size:16px;margin:0 0 20px;">${greeting} 👋</p>
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;margin-bottom:20px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Negocio</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${bizName}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Servicio</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${service}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Fecha</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${date}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Hora</td><td style="color:#a855f7;font-size:15px;font-weight:800;text-align:right;">${time}h</td></tr>
+        ${address ? `<tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Dirección</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${address}</td></tr>` : ''}
+      </table>
+    </div>
+    <a href="${gcalLink}" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:16px;">📅 ${addCal}</a>
+    <p style="color:#64748b;font-size:12px;margin:0;">${cancel} <strong style="color:#94a3b8;">${phone}</strong></p>
+  </div>
+</div>
+</body></html>`;
+
+    const subject = lang === 'gl'
+      ? `✅ Cita confirmada — ${config?.name || 'o teu negocio'}`
+      : `✅ Cita confirmada — ${config?.name || 'tu negocio'}`;
+
+    return sendEmail({ to: appointment.email, subject, html });
+  }
+
+  // Basque template
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;margin:0;padding:0;">
+<div style="max-width:520px;margin:32px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(124,58,237,.25);">
+  <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:28px 32px;">
+    <div style="font-size:22px;font-weight:800;color:#fff;">NodeFlow</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">Zure hitzordua baieztatuta dago</div>
+  </div>
+  <div style="padding:28px 32px;">
+    <p style="color:#e2e8f0;font-size:16px;margin:0 0 20px;">Kaixo ${esc(name)} 👋</p>
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;margin-bottom:20px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Negozioa</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${bizName}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Zerbitzua</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${service}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Data</td><td style="color:#fff;font-size:13px;font-weight:600;text-align:right;">${date}</td></tr>
+        <tr><td style="color:#94a3b8;font-size:13px;padding:6px 0;">Ordua</td><td style="color:#a855f7;font-size:15px;font-weight:800;text-align:right;">${time}</td></tr>
+      </table>
+    </div>
+    <a href="${gcalLink}" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:16px;">📅 Egutegiari gehitu</a>
+    <p style="color:#64748b;font-size:12px;margin:0;">Aldaketak egiteko, erantzun email hau edo deitu <strong style="color:#94a3b8;">${phone}</strong></p>
+  </div>
+</div>
+</body></html>`;
+
+  return sendEmail({ to: appointment.email, subject: `✅ Hitzordua baieztatuta — ${config?.name || ''}`, html });
+}
+
+// ── 2. Call summary to business owner ─────────────────────────────────────────
+
+/**
+ * @param {object} callData  - session.toJSON() result
+ * @param {object} config    - { name, ownerEmail, ownerPhone, language }
+ */
+async function sendCallSummaryToOwner(callData, config) {
+  if (!config?.ownerEmail) {
+    log.warn('sendCallSummaryToOwner: no ownerEmail in config — skipped');
+    return false;
+  }
+
+  const outcome      = callData.outcome    || 'abandoned';
+  const caller       = esc(callData.callerNumber || 'desconocido');
+  const dur          = esc(callData.durationFormatted || '0:00');
+  const turns        = callData.turnCount  || 0;
+  const bizName      = esc(config.name     || 'tu negocio');
+  const apt          = callData.bookedAppointment;
+  const outcomeBadge = outcome === 'booked' ? '✅ RESERVA' : outcome === 'info' ? 'ℹ️ CONSULTA' : '❌ ABANDONADA';
+
+  let aptRows = '';
+  if (apt) {
+    aptRows = `
+    <tr style="background:rgba(124,58,237,.08);">
+      <td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Cliente</td>
+      <td style="color:#e2e8f0;font-size:12px;font-weight:600;padding:5px 8px;">${esc(apt.patientName)}</td>
+    </tr>
+    <tr>
+      <td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Servicio</td>
+      <td style="color:#e2e8f0;font-size:12px;padding:5px 8px;">${esc(apt.service)}</td>
+    </tr>
+    <tr style="background:rgba(124,58,237,.08);">
+      <td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Fecha / Hora</td>
+      <td style="color:#a855f7;font-size:13px;font-weight:700;padding:5px 8px;">${esc(apt.date)} a las ${esc(apt.time)}h</td>
+    </tr>`;
+    if (apt.email) aptRows += `<tr><td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Email</td><td style="color:#e2e8f0;font-size:12px;padding:5px 8px;">${esc(apt.email)}</td></tr>`;
+    if (apt.phone) aptRows += `<tr style="background:rgba(124,58,237,.08);"><td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Teléfono</td><td style="color:#e2e8f0;font-size:12px;padding:5px 8px;">${esc(apt.phone)}</td></tr>`;
+  }
+
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;margin:0;padding:0;">
+<div style="max-width:540px;margin:24px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);">
+  <div style="background:#13131a;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;">NodeFlow · Resumen de llamada</span>
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-top:4px;">${bizName}</div>
+  </div>
+  <div style="padding:24px 28px;">
+    <div style="display:inline-block;background:${outcome==='booked'?'rgba(34,197,94,.12)':outcome==='info'?'rgba(59,130,246,.1)':'rgba(239,68,68,.1)'};border:1px solid ${outcome==='booked'?'rgba(34,197,94,.3)':outcome==='info'?'rgba(59,130,246,.3)':'rgba(239,68,68,.3)'};border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:${outcome==='booked'?'#4ade80':outcome==='info'?'#60a5fa':'#f87171'};margin-bottom:20px;">${outcomeBadge}</div>
+    <table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,.03);border-radius:10px;overflow:hidden;">
+      <tr style="background:rgba(255,255,255,.04);">
+        <td style="color:#94a3b8;font-size:12px;padding:8px 12px;">Número</td>
+        <td style="color:#e2e8f0;font-size:12px;font-weight:600;padding:8px 12px;">${caller}</td>
+      </tr>
+      <tr>
+        <td style="color:#94a3b8;font-size:12px;padding:8px 12px;">Duración</td>
+        <td style="color:#e2e8f0;font-size:12px;padding:8px 12px;">${dur} · ${turns} turnos</td>
+      </tr>
+      ${aptRows}
+    </table>
+    ${apt && config.ownerPhone ? `<a href="https://wa.me/${(config.ownerPhone||'').replace(/\D/g,'')}?text=${encodeURIComponent(`Hola, te confirmo la cita de ${apt.patientName} el ${apt.date} a las ${apt.time}h`)}" style="display:block;margin-top:16px;background:#25d366;color:#fff;text-decoration:none;text-align:center;padding:12px;border-radius:10px;font-weight:700;font-size:14px;">📲 Enviar confirmación WA al cliente</a>` : ''}
+  </div>
+</div>
+</body></html>`;
+
+  const subject = outcome === 'booked'
+    ? `📞 Nueva reserva — ${callData.callerNumber} · ${apt?.date || ''}`
+    : `📞 Llamada ${outcomeBadge} — ${callData.callerNumber} (${dur})`;
+
+  return sendEmail({ to: config.ownerEmail, subject, html });
+}
+
+// ── 3. Follow-up email to client (info calls only) ────────────────────────────
+
+/**
+ * @param {object} callData  - session.toJSON()
+ * @param {object} config    - { name, ownerPhone, language }
+ */
+async function sendCallFollowUpEmail(callData, config) {
+  if (!callData?.clientEmail) {
+    log.warn('sendCallFollowUpEmail: no clientEmail in callData — skipped');
+    return false;
+  }
+
+  const bizName = esc(config?.name || 'nuestro negocio');
+  const phone   = esc(config?.ownerPhone || '');
+
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;margin:0;padding:0;">
+<div style="max-width:480px;margin:32px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);">
+  <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:24px 28px;">
+    <div style="font-size:20px;font-weight:800;color:#fff;">NodeFlow</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:2px;">Gracias por tu llamada</div>
+  </div>
+  <div style="padding:24px 28px;">
+    <p style="color:#e2e8f0;font-size:15px;margin:0 0 16px;">Hemos atendido tu consulta a <strong>${bizName}</strong>. Si necesitas algo más, estamos aquí.</p>
+    <a href="tel:${phone.replace(/\s/g,'')}" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:10px;">📞 Llamar ahora</a>
+    <p style="color:#475569;font-size:11px;text-align:center;margin:0;">Este mensaje fue generado automáticamente por NodeFlow IA</p>
+  </div>
+</div>
+</body></html>`;
+
+  return sendEmail({
+    to:      callData.clientEmail,
+    subject: `Gracias por llamar a ${config?.name || 'nosotros'}`,
+    html,
+  });
+}
+
+module.exports = { sendBookingConfirmationEmail, sendCallSummaryToOwner, sendCallFollowUpEmail };
