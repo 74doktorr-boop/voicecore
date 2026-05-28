@@ -102,7 +102,7 @@ Bottom of sidebar: plan badge (PLAN NEGOCIO · €49/mes · Activo), logout butt
 - `GET /api/portal/appointments` — list all
 - `POST /api/portal/appointments` — create
 - `PATCH /api/portal/appointments/:id` — edit
-- `DELETE /api/portal/appointments/:id` — cancel (soft delete, sends email if client email present)
+- `DELETE /api/portal/appointments/:id` — cancel (sets `status: 'cancelled'` on the appointment object, sends cancellation email if client email is present; does not remove the record)
 
 ---
 
@@ -239,7 +239,7 @@ function portalAuth(req, res, next) {
   if (!session) return res.status(401).json({ error: 'Session expired' });
   
   // Resolve businessId
-  const flow = flowManager.getAllFlows().find(f => f.ownerEmail === session.email);
+  const flow = flowManager.list().find(f => f.ownerEmail === session.email);
   if (!flow) return res.status(404).json({ error: 'No business found for this account' });
   
   req.session = session;
