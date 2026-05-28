@@ -355,6 +355,10 @@ setupRegistroRoutes(app);
 // Setup Auth routes (magic link portal access)
 setupAuthRoutes(app);
 
+// Setup Portal de Negocio routes (dashboard, calls, citas, informes, automations, config)
+const { setupPortalRoutes } = require('./src/api/routes-portal');
+setupPortalRoutes(app, pipeline);
+
 // Setup Admin routes (panel privado de Unai)
 setupAdminRoutes(app, config, assistantManager);
 
