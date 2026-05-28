@@ -47,11 +47,12 @@ async function _syncToCalendar(businessId, appointment) {
 class ToolExecutor {
   constructor() {
     this.handlers = {
-      check_availability: this.checkAvailability.bind(this),
-      book_appointment: this.bookAppointment.bind(this),
-      cancel_appointment: this.cancelAppointment.bind(this),
+      check_availability:  this.checkAvailability.bind(this),
+      book_appointment:    this.bookAppointment.bind(this),
+      cancel_appointment:  this.cancelAppointment.bind(this),
       lookup_appointments: this.lookupAppointments.bind(this),
-      get_services: this.getServices.bind(this),
+      get_services:        this.getServices.bind(this),
+      add_critical_date:   this.addCriticalDate.bind(this),
     };
   }
 
@@ -143,6 +144,28 @@ class ToolExecutor {
     return { services: config.services.map(s => ({ name: s.name, duration: `${s.duration} min`, price: s.price > 0 ? `${s.price}EUR` : 'Gratuita' })) };
   }
 
+  addCriticalDate(args, assistantId, context = {}) {
+    const businessId = assistantId || 'demo';
+    try {
+      const { criticalDatesStore } = require('../scheduling/critical-dates');
+      const entry = criticalDatesStore.add({
+        businessId,
+        clientName:  args.client_name,
+        clientEmail: args.client_email  || null,
+        clientPhone: args.client_phone  || null,
+        type:        args.type,
+        dueDate:     args.due_date,
+        notes:       args.notes         || null,
+        advanceDays: [30, 15, 7],
+      });
+      log.info(`add_critical_date: saved ${entry.type} for ${entry.clientName} on ${entry.dueDate}`);
+      return { success: true, id: entry.id, message: `Fecha crítica registrada: ${entry.type} el ${entry.dueDate}. El cliente recibirá recordatorios automáticos.` };
+    } catch (e) {
+      log.warn(`add_critical_date failed: ${e.message}`);
+      return { success: false, error: e.message };
+    }
+  }
+
   /**
    * Convert assistant tool names to OpenAI function-calling format
    * Called as ToolExecutor.toOpenAITools(assistant.tools)
@@ -224,6 +247,25 @@ class ToolExecutor {
             type: 'object',
             properties: {},
             required: [],
+          },
+        },
+      },
+      add_critical_date: {
+        type: 'function',
+        function: {
+          name: 'add_critical_date',
+          description: 'Registra una fecha crítica del cliente para enviarle recordatorios automáticos (ITV, vacuna, declaración de renta, revisión, etc.)',
+          parameters: {
+            type: 'object',
+            properties: {
+              client_name:  { type: 'string',  description: 'Nombre completo del cliente o dueño de la mascota' },
+              client_email: { type: 'string',  description: 'Email del cliente para los recordatorios' },
+              client_phone: { type: 'string',  description: 'Teléfono del cliente' },
+              type:         { type: 'string',  description: 'Tipo de fecha: itv_expiry | vaccine_due | service_due | tax_filing | quarterly_vat | prescription_renewal | membership_renewal | exam_date | enrollment_deadline | contract_expiry | birthday | anniversary | annual_checkup | deworming | insurance_renewal | annual_accounts' },
+              due_date:     { type: 'string',  description: 'Fecha de vencimiento en formato YYYY-MM-DD' },
+              notes:        { type: 'string',  description: 'Notas adicionales, p.ej. "ITV furgoneta Renault Trafic matrícula 1234ABC"' },
+            },
+            required: ['client_name', 'type', 'due_date'],
           },
         },
       },
