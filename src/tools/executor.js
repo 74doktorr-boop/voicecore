@@ -55,7 +55,7 @@ class ToolExecutor {
     };
   }
 
-  async execute(functionName, args, assistantId) {
+  async execute(functionName, args, assistantId, context = {}) {
     const handler = this.handlers[functionName];
     if (!handler) {
       log.warn(`Unknown tool: ${functionName}`);
@@ -63,7 +63,7 @@ class ToolExecutor {
     }
     log.info(`Executing: ${functionName}`, args);
     try {
-      const result = await handler(args, assistantId);
+      const result = await handler(args, assistantId, context);
       log.info(`Result: ${functionName}`, result);
       return result;
     } catch (err) {
@@ -104,7 +104,7 @@ class ToolExecutor {
     return result;
   }
 
-  bookAppointment(args, assistantId) {
+  bookAppointment(args, assistantId, context = {}) {
     const businessId = assistantId || 'demo-clinic';
     const result = scheduler.bookAppointment(businessId, {
       patientName: args.patient_name,
@@ -114,6 +114,12 @@ class ToolExecutor {
       date:        args.date,
       time:        args.time,
     });
+    // Stamp the active session with booking context for post-call handler
+    if (result.success && result.appointment && context.session) {
+      context.session.bookedAppointment = result.appointment;
+      context.session.clientEmail       = args.email || null;
+      context.session.outcome           = 'booked';  // _deriveOutcome() will confirm in end()
+    }
     // Best-effort Google Calendar sync (non-blocking)
     if (result.success && result.appointment) {
       _syncToCalendar(businessId, result.appointment).catch(() => {});

@@ -230,7 +230,8 @@ class VoicePipeline {
       const result = await this.toolExecutor.execute(
         tc.function.name,
         JSON.parse(tc.function.arguments || '{}'),
-        session.assistant.id
+        session.assistant.id,
+        { callId, session }          // ← context for session stamping (System A)
       );
 
       session.addToolMessage(tc.id, result.success !== undefined
@@ -346,6 +347,15 @@ class VoicePipeline {
     this.callHistory.unshift(callData);
     if (this.callHistory.length > this.maxHistory) this.callHistory.pop();
     this._fireWebhook('call.ended', callData);
+
+    // System A: post-call automations (fire-and-forget — never blocks endCall)
+    try {
+      const { postCallHandler } = require('../automations/post-call-handler');
+      postCallHandler.handle(callData).catch(e => this._log?.warn?.('post-call handler error', e));
+    } catch (e) {
+      // require() failure (missing module) must not break call teardown
+    }
+
     return callData;
   }
 
