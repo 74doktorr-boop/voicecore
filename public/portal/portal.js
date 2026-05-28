@@ -751,9 +751,9 @@ async function loadConfig() {
   }
 
   var c = data.config || {};
-  var SECTORS = ['peluqueria','barberia','estetica','clinica','dental','veterinaria','restaurante',
-    'taller','gimnasio','academia','farmacia','asesoria','hotel','inmobiliaria',
-    'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+  var SECTORS = ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia',
+    'estetica','gimnasio','academia','veterinaria','farmacia','asesoria','taller','hotel',
+    'inmobiliaria','optica','psicologia','coaching','nutricion','podologia','autoescuela',
     'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
     'agencia_viajes','reformas','otro'];
   var sectorOpts = SECTORS.map(function(s) {
@@ -1200,7 +1200,7 @@ function collectAsisConfig() {
     sd.cartaItems = cartaRaw.split('\n').filter(Boolean).map(function(l) { var p=l.split(' - '); return {name:p[0].trim(),price:p[1]?p[1].trim():null}; });
   }
   var sdServEl = document.getElementById('sd-servicios');
-  if (sdServEl) sd.servicios = sdServEl.value.trim();
+  if (sdServEl && !sd.servicios) sd.servicios = sdServEl.value.trim();
   c.sectorData = sd;
   return c;
 }

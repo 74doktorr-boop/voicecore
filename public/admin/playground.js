@@ -234,11 +234,11 @@ function renderAssistantSubTabs() {
       [['es','Español'],['eu','Euskera'],['es+eu','Español + Euskera']].map(function(l){ return '<option value="' + l[0] + '"' + (c.language===l[0]?' selected':'') + '>' + l[1] + '</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-group"><label>Sector</label><select class="form-select" id="a-sector">' +
-      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia','estetica','gimnasio',
-       'veterinaria','farmacia','asesoria','taller','hotel','inmobiliaria',
-       'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia',
+       'estetica','gimnasio','academia','veterinaria','farmacia','asesoria','taller','hotel',
+       'inmobiliaria','optica','psicologia','coaching','nutricion','podologia','autoescuela',
        'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
-       'agencia_viajes','reformas'].map(function(s){ return '<option value="' + s + '"' + (c.sector===s?' selected':'') + '>' + s + '</option>'; }).join('') +
+       'agencia_viajes','reformas','otro'].map(function(s){ return '<option value="' + s + '"' + (c.sector===s?' selected':'') + '>' + s + '</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-group"><label>Modelo LLM</label><select class="form-select" id="a-model">' +
       ['gpt-4o-mini','gpt-4o'].map(function(m){ return '<option value="' + m + '"' + (c.model===m?' selected':'') + '>' + m + '</option>'; }).join('') +
@@ -385,7 +385,7 @@ function collectAssistantConfig() {
     sd.clases = get('sd-clases');
   }
   var sdServEl = document.getElementById('sd-servicios');
-  if (sdServEl) sd.servicios = sdServEl.value.trim();
+  if (sdServEl && !sd.servicios) sd.servicios = sdServEl.value.trim();
   c.sectorData = sd;
 
   return c;
@@ -446,11 +446,11 @@ function openCreateBotModal() {
   openModal('<div class="modal-title">Nuevo bot de prueba</div>' +
     '<div class="form-group" style="margin-bottom:10px"><label>Nombre</label><input class="form-input" id="bot-name" placeholder="bot-restaurante-test"></div>' +
     '<div class="form-group" style="margin-bottom:18px"><label>Sector</label><select class="form-select" id="bot-sector">' +
-      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia','estetica','gimnasio',
-       'veterinaria','farmacia','asesoria','taller','hotel','inmobiliaria',
-       'optica','psicologia','coaching','nutricion','podologia','autoescuela',
+      ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia',
+       'estetica','gimnasio','academia','veterinaria','farmacia','asesoria','taller','hotel',
+       'inmobiliaria','optica','psicologia','coaching','nutricion','podologia','autoescuela',
        'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
-       'agencia_viajes','reformas'].map(function(s){return '<option>'+s+'</option>';}).join('') +
+       'agencia_viajes','reformas','otro'].map(function(s){return '<option>'+s+'</option>';}).join('') +
       '</select></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
     '<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>' +
