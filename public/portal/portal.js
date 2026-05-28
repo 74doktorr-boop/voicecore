@@ -76,6 +76,7 @@ function navigate(section) {
   else if (section === 'automatizaciones') loadAutomatizaciones();
   else if (section === 'configuracion')    loadConfig();
   else if (section === 'clientes')         loadClientes();
+  if (section === 'asistente') loadAsistente();
 }
 
 // ── Auth flow ─────────────────────────────────────────────────
@@ -1068,3 +1069,215 @@ async function openTranscriptModal(callSid) {
 
 // ── Boot ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', initAuth);
+
+// ── Asistente section ─────────────────────────────────────────────
+var _asisConfig = {};
+var _asisOrgName = '';
+var _DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+var _DAY_LABELS = { mon:'Lun', tue:'Mar', wed:'Mié', thu:'Jue', fri:'Vie', sat:'Sáb', sun:'Dom' };
+
+async function loadAsistente() {
+  try {
+    var data = await api('/api/portal/assistant');
+    _asisConfig  = data.config  || {};
+    _asisOrgName = data.orgName || '';
+    renderAsistenteForm();
+  } catch (e) { toast('Error cargando asistente: ' + e.message, 'err'); }
+}
+
+function switchAsistenteTab(tab) {
+  document.querySelectorAll('.btn-subtab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.subtab === tab);
+  });
+  document.querySelectorAll('.asis-panel').forEach(function(p) {
+    p.classList.toggle('hidden', p.id !== 'asis-' + tab);
+  });
+}
+
+function renderAsistenteForm() {
+  var c = _asisConfig;
+  var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
+
+  setVal('asis-name',  c.assistantName || '');
+  setVal('asis-lang',  c.language || 'es');
+  setVal('asis-first', c.firstMessage || '');
+  setVal('asis-extra', c.extraInfo || '');
+  setVal('asis-voice', c.voice || 'nova');
+
+  // Schedule grid
+  var sched = c.schedule || {};
+  var schedHtml = _DAYS.map(function(d) {
+    var slot = sched[d];
+    return '<div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center;margin-bottom:8px">' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer">' +
+      '<input type="checkbox" id="asis-day-' + d + '"' + (slot ? ' checked' : '') + ' onchange="toggleAsisDayClosed(\'' + d + '\')">' +
+      ' ' + _DAY_LABELS[d] + '</label>' +
+      '<div id="asis-slots-' + d + '" style="display:' + (slot?'flex':'none') + ';gap:8px;align-items:center">' +
+      '<input type="time" class="form-ctrl" id="asis-open-' + d + '" value="' + (slot?slot.open:'09:00') + '" style="width:90px">' +
+      '<span style="color:var(--dim);font-size:11px">–</span>' +
+      '<input type="time" class="form-ctrl" id="asis-close-' + d + '" value="' + (slot?slot.close:'18:00') + '" style="width:90px">' +
+      '</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('asis-schedule-grid').innerHTML = schedHtml;
+
+  // Contenido
+  renderAsisSectorFields(c.sector || 'generico', c.sectorData || {}, c.services || '');
+
+  // Generated prompt preview
+  var genPrompt = document.getElementById('asis-generated-prompt');
+  if (genPrompt) genPrompt.textContent = '(Guarda primero para ver el prompt generado)';
+}
+
+function toggleAsisDayClosed(day) {
+  var checked = document.getElementById('asis-day-' + day).checked;
+  document.getElementById('asis-slots-' + day).style.display = checked ? 'flex' : 'none';
+}
+
+function renderAsisSectorFields(sector, sd, services) {
+  var html = '<div class="form-group" style="margin-bottom:14px"><label class="form-label">Servicios generales</label>' +
+    '<textarea class="form-ctrl" id="asis-services" rows="3" placeholder="Describe los servicios que ofrece el negocio...">' + (services||'') + '</textarea></div>';
+
+  if (sector === 'fisioterapia' || sector === 'clinica') {
+    var seguros = (sd.seguros || []);
+    html += '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
+      '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
+      seguros.map(function(s) { return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' + s + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>'; }).join('') +
+      '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" style="width:180px" onkeydown="if(event.key===\'Enter\'){addAsisSeguro();event.preventDefault()}"></div>';
+    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Especialidades</label><textarea class="form-ctrl" id="asis-espec" rows="2">' + (sd.especialidades||'') + '</textarea></div>';
+  } else if (sector === 'restaurante') {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Horario comidas</label><input class="form-ctrl" id="asis-horComida" value="' + (sd.horarioComida||'') + '" placeholder="13:00-15:30"></div>';
+    html += '<div class="form-group"><label class="form-label">Horario cenas</label><input class="form-ctrl" id="asis-horCena" value="' + (sd.horarioCena||'') + '" placeholder="20:30-23:00"></div></div>';
+    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Carta (un plato por línea: Nombre - Precio)</label><textarea class="form-ctrl" id="asis-carta" rows="5" placeholder="Chuletón - 28€">' + ((sd.cartaItems||[]).map(function(i){return i.name+(i.price?' - '+i.price:'');}).join('\n')) + '</textarea></div>';
+  }
+
+  document.getElementById('asis-contenido-body').innerHTML = html;
+}
+
+function addAsisSeguro() {
+  var input = document.getElementById('asis-seguro-input');
+  var val = input.value.trim(); if (!val) return;
+  var span = document.createElement('span');
+  span.style.cssText = 'background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px';
+  span.innerHTML = val + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span>';
+  document.getElementById('asis-seguros-chips').appendChild(span);
+  input.value = '';
+}
+
+function collectAsisConfig() {
+  var c = {};
+  var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+  c.assistantName = get('asis-name');
+  c.language      = get('asis-lang');
+  c.firstMessage  = get('asis-first');
+  c.extraInfo     = get('asis-extra');
+  c.voice         = get('asis-voice');
+  c.services      = get('asis-services') || '';
+
+  c.schedule = {};
+  _DAYS.forEach(function(d) {
+    var cb = document.getElementById('asis-day-' + d);
+    c.schedule[d] = (cb && cb.checked) ? { open: get('asis-open-' + d)||'09:00', close: get('asis-close-' + d)||'18:00' } : null;
+  });
+
+  var sector = _asisConfig.sector || 'generico';
+  c.sector = sector;
+  var sd = {};
+  if (sector === 'fisioterapia' || sector === 'clinica') {
+    sd.seguros = Array.from(document.querySelectorAll('#asis-seguros-chips span')).map(function(el) { return el.textContent.replace('×','').trim(); });
+    sd.especialidades = get('asis-espec');
+  } else if (sector === 'restaurante') {
+    sd.horarioComida = get('asis-horComida');
+    sd.horarioCena   = get('asis-horCena');
+    var cartaRaw = get('asis-carta');
+    sd.cartaItems = cartaRaw.split('\n').filter(Boolean).map(function(l) { var p=l.split(' - '); return {name:p[0].trim(),price:p[1]?p[1].trim():null}; });
+  }
+  c.sectorData = sd;
+  return c;
+}
+
+async function saveAsistente() {
+  var config = collectAsisConfig();
+  try {
+    var data = await api('/api/portal/assistant', 'PUT', config);
+    _asisConfig = Object.assign(_asisConfig, config);
+    var genEl = document.getElementById('asis-generated-prompt');
+    if (genEl && data.prompt) genEl.textContent = data.prompt;
+    toast('Asistente guardado ✓');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ── Portal voice demo ──────────────────────────────────────────────
+var _portalDemoActive = false;
+var _portalMediaRecorder = null;
+var _portalMessages = [];
+var _portalBotSpeaking = false;
+var _portalAudio = null;
+
+async function togglePortalDemo() {
+  if (_portalDemoActive) {
+    _portalDemoActive = false;
+    if (_portalMediaRecorder && _portalMediaRecorder.state !== 'inactive') _portalMediaRecorder.stop();
+    if (_portalAudio) { _portalAudio.pause(); _portalAudio = null; }
+    document.getElementById('portal-mic-btn').style.background = 'rgba(108,92,231,.15)';
+    document.getElementById('portal-demo-status').textContent = 'Pulsa para probar tu asistente';
+  } else {
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      _portalDemoActive = true;
+      _portalMessages = [];
+      document.getElementById('portal-demo-transcript').innerHTML = '';
+      document.getElementById('portal-mic-btn').style.background = '#e74c3c';
+      document.getElementById('portal-demo-status').textContent = 'Escuchando...';
+      portalCaptureChunk(stream);
+    } catch (e) { toast('No se puede acceder al micrófono', 'err'); }
+  }
+}
+
+function portalCaptureChunk(stream) {
+  if (!_portalDemoActive || _portalBotSpeaking) return;
+  var chunks = [];
+  _portalMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+  _portalMediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
+  _portalMediaRecorder.onstop = async function() {
+    if (!_portalDemoActive) return;
+    var blob = new Blob(chunks, { type: 'audio/webm' });
+    var reader = new FileReader();
+    reader.onload = async function() {
+      var base64 = reader.result.split(',')[1];
+      try {
+        var sttData = await api('/api/demo/stt', 'POST', { audio: base64, mimeType: 'audio/webm' });
+        var transcript = (sttData.transcript || '').trim();
+        if (transcript) {
+          var t = document.getElementById('portal-demo-transcript');
+          t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--dim)">Tú:</strong> ' + transcript + '</div>';
+          _portalMessages.push({ role: 'user', content: transcript });
+          document.getElementById('portal-demo-status').textContent = 'Pensando...';
+          _portalBotSpeaking = true;
+          var chatData = await api('/api/demo/chat', 'POST', { messages: _portalMessages });
+          var reply = chatData.reply || '';
+          if (reply) {
+            t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--accent-l)">Bot:</strong> ' + reply + '</div>';
+            t.scrollTop = t.scrollHeight;
+            _portalMessages.push({ role: 'assistant', content: reply });
+            var res = await fetch('/api/demo/tts', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_token}, body:JSON.stringify({text:reply,voice:_asisConfig.voice||'nova'}) });
+            var audioBlob = await res.blob();
+            _portalAudio = new Audio(URL.createObjectURL(audioBlob));
+            await new Promise(function(resolve) { _portalAudio.onended = resolve; _portalAudio.onerror = resolve; _portalAudio.play(); });
+          }
+        }
+      } catch(e) { toast('Error demo: ' + e.message, 'err'); }
+      finally {
+        _portalBotSpeaking = false;
+        if (_portalDemoActive) {
+          document.getElementById('portal-mic-btn').style.background = '#e74c3c';
+          document.getElementById('portal-demo-status').textContent = 'Escuchando...';
+          portalCaptureChunk(stream);
+        }
+      }
+    };
+    reader.readAsDataURL(blob);
+  };
+  _portalMediaRecorder.start();
+  setTimeout(function() { if (_portalMediaRecorder && _portalMediaRecorder.state==='recording') _portalMediaRecorder.stop(); }, 3000);
+}

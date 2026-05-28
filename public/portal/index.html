@@ -208,6 +208,13 @@
       .kpi-grid{grid-template-columns:repeat(2,1fr)}
       .auto-grid{grid-template-columns:1fr}
     }
+    .btn-subtab{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s}
+    .btn-subtab.active{background:var(--card);color:var(--text)}
+    .asis-panel{display:block}.asis-panel.hidden{display:none}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .form-label{display:block;font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+    .form-ctrl{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-ctrl:focus{border-color:var(--accent)}
   </style>
 </head>
 <body>
@@ -261,6 +268,10 @@
       <div class="nav-item"       id="nav-automatizaciones"  onclick="navigate('automatizaciones')">
         <span class="nav-icon">🤖</span><span>Automatizaciones</span>
       </div>
+      <div class="nav-item" data-section="asistente" id="nav-asistente" onclick="navigate('asistente')">
+        <span class="nav-icon">🤖</span>
+        <span>Asistente</span>
+      </div>
       <div style="border-top:1px solid var(--border);margin:8px 0"></div>
       <div class="nav-item"       id="nav-configuracion"     onclick="navigate('configuracion')">
         <span class="nav-icon">⚙️</span><span>Configuración</span>
@@ -301,6 +312,81 @@
     <div id="sec-automatizaciones" class="section">
       <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando automatizaciones…</div></div>
     </div>
+
+    <section id="sec-asistente" class="section hidden">
+      <div class="section-header">
+        <h2 class="section-title">🤖 Asistente</h2>
+        <p class="section-sub">Configura cómo habla tu asistente con tus clientes</p>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;background:var(--card2);border-radius:8px;padding:4px;width:fit-content">
+        <button class="btn-subtab active" data-subtab="basico" onclick="switchAsistenteTab('basico')">📋 Básico</button>
+        <button class="btn-subtab" data-subtab="horario" onclick="switchAsistenteTab('horario')">🕐 Horario</button>
+        <button class="btn-subtab" data-subtab="contenido" onclick="switchAsistenteTab('contenido')">📄 Contenido</button>
+        <button class="btn-subtab" data-subtab="voz" onclick="switchAsistenteTab('voz')">🔊 Voz</button>
+      </div>
+
+      <div id="asis-basico" class="asis-panel">
+        <div class="card" style="padding:20px">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nombre del asistente</label><input class="form-ctrl" id="asis-name" placeholder="Laura"></div>
+            <div class="form-group"><label class="form-label">Idioma</label>
+              <select class="form-ctrl" id="asis-lang">
+                <option value="es">Español</option><option value="eu">Euskera</option><option value="es+eu">Español + Euskera</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Mensaje de bienvenida</label><input class="form-ctrl" id="asis-first" placeholder="Buenas, ¿en qué puedo ayudarle?"></div>
+          <div class="form-group"><label class="form-label">Información adicional</label><textarea class="form-ctrl" id="asis-extra" rows="3" placeholder="Parking, accesibilidad, notas..."></textarea></div>
+        </div>
+      </div>
+
+      <div id="asis-horario" class="asis-panel hidden">
+        <div class="card" style="padding:20px" id="asis-schedule-grid"></div>
+      </div>
+
+      <div id="asis-contenido" class="asis-panel hidden">
+        <div class="card" style="padding:20px" id="asis-contenido-body"></div>
+      </div>
+
+      <div id="asis-voz" class="asis-panel hidden">
+        <div class="card" style="padding:20px">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Voz del asistente</label>
+              <select class="form-ctrl" id="asis-voice">
+                <option value="nova">Nova</option><option value="alloy">Alloy</option><option value="echo">Echo</option><option value="shimmer">Shimmer</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px;margin-top:12px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:14px">🎤 Demo de voz</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 0">
+            <button id="portal-mic-btn" onclick="togglePortalDemo()" style="width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;font-size:24px;background:rgba(108,92,231,.15);color:var(--accent-l);transition:all .2s">🎤</button>
+            <div id="portal-demo-status" style="font-size:12px;color:var(--dim)">Pulsa para probar tu asistente</div>
+            <div id="portal-demo-transcript" style="width:100%;background:var(--card2);border-radius:10px;padding:12px;min-height:80px;font-size:12px;line-height:1.6"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avanzado accordion -->
+      <details style="margin-top:16px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--dim);padding:8px 0;user-select:none">⚙️ Avanzado — Prompt raw</summary>
+        <div class="card" style="padding:16px;margin-top:8px">
+          <div style="background:rgba(249,202,36,.08);border:1px solid rgba(249,202,36,.2);border-radius:8px;padding:10px;font-size:11px;color:#f9ca24;margin-bottom:12px">
+            Modificar el prompt puede cambiar el comportamiento del asistente de formas inesperadas. Solo edita si sabes lo que haces.
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:6px">Prompt actual (generado automáticamente):</div>
+          <pre id="asis-generated-prompt" style="white-space:pre-wrap;font-size:10px;color:#8888a8;background:#0d0d15;padding:12px;border-radius:8px;max-height:200px;overflow-y:auto"></pre>
+        </div>
+      </details>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+        <button class="btn-secondary" onclick="loadAsistente()">Descartar cambios</button>
+        <button class="btn-primary" onclick="saveAsistente()">Guardar asistente</button>
+      </div>
+    </section>
 
     <div id="sec-configuracion" class="section">
       <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando configuración…</div></div>
