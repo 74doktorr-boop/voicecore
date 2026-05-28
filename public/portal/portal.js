@@ -75,6 +75,7 @@ function navigate(section) {
   else if (section === 'informes')    loadInformes();
   else if (section === 'automatizaciones') loadAutomatizaciones();
   else if (section === 'configuracion')    loadConfig();
+  else if (section === 'clientes')         loadClientes();
 }
 
 // ── Auth flow ─────────────────────────────────────────────────
@@ -307,10 +308,11 @@ async function loadCalls(outcome, from, to) {
         : '';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
         '<td>' + c.turnCount + ' turnos' + apt + '</td>' +
-        '<td style="color:var(--dim)">' + esc(c.clientEmail || '—') + '</td></tr>';
+        '<td style="color:var(--dim)">' + esc(c.clientEmail || '—') + '</td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td></tr>';
     }
   } else {
-    rows = '<tr class="empty-row"><td colspan="5">No hay llamadas con estos filtros</td></tr>';
+    rows = '<tr class="empty-row"><td colspan="6">No hay llamadas con estos filtros</td></tr>';
   }
 
   sec.innerHTML =
@@ -330,7 +332,7 @@ async function loadCalls(outcome, from, to) {
       '<button class="btn btn-d btn-sm" onclick="loadCalls()">Limpiar</button>' +
     '</div>' +
     '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th></tr></thead>' +
+      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>💬</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
     '<div style="font-size:12px;color:var(--dim);margin-top:12px">Total: ' + (data.count || 0) + ' llamadas</div>';
 
@@ -811,6 +813,257 @@ async function saveConfig() {
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
+}
+
+// ── Clientes ──────────────────────────────────────────────────
+var _clientesSearchTimer = null;
+
+function onClientesSearch() {
+  clearTimeout(_clientesSearchTimer);
+  _clientesSearchTimer = setTimeout(function() {
+    var q = document.getElementById('clientesSearch');
+    loadClientes(q ? q.value.trim() : '');
+  }, 300);
+}
+
+async function loadClientes(q) {
+  q = q || '';
+  var sec = document.getElementById('sec-clientes');
+  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando clientes…</div></div>';
+
+  var data;
+  try {
+    var qs = q ? '?q=' + encodeURIComponent(q) : '';
+    data = await api('/api/portal/contacts' + qs);
+  } catch (e) {
+    sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
+    return;
+  }
+
+  var rows = '';
+  if (data.contacts && data.contacts.length > 0) {
+    for (var i = 0; i < data.contacts.length; i++) {
+      var c = data.contacts[i];
+      rows += '<tr onclick="openContactProfile(\'' + esc(c.id) + '\')" style="cursor:pointer">' +
+        '<td><strong>' + esc(c.displayName) + '</strong>' +
+          (c.name ? '<div style="font-size:11px;color:var(--dim)">' + esc(c.phone) + '</div>' : '') + '</td>' +
+        '<td>' + esc(c.email || '—') + '</td>' +
+        '<td style="text-align:center"><span class="badge bp">' + (c.callCount || 0) + '</span></td>' +
+        '<td style="color:var(--dim);font-size:12px">' + (c.lastCallAt ? timeAgo(c.lastCallAt) : '—') + '</td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="event.stopPropagation();openContactProfile(\'' + esc(c.id) + '\')">Ver →</button></td>' +
+        '</tr>';
+    }
+  } else {
+    rows = '<tr class="empty-row"><td colspan="5">' +
+      (q ? 'Sin resultados para "' + esc(q) + '"' : 'Aún no hay clientes registrados. Aparecerán tras las primeras llamadas.') +
+      '</td></tr>';
+  }
+
+  sec.innerHTML =
+    '<div class="section-header">' +
+      '<div class="section-title">👥 Clientes</div>' +
+      '<div style="font-size:13px;color:var(--dim)">' + (data.count || 0) + ' contactos</div>' +
+    '</div>' +
+    '<div class="search-bar">' +
+      '<input class="search-input" id="clientesSearch" placeholder="Buscar por nombre, teléfono o email…"' +
+        ' value="' + esc(q) + '" oninput="onClientesSearch()">' +
+    '</div>' +
+    '<div class="table-wrap"><table>' +
+      '<thead><tr><th>Cliente</th><th>Email</th><th>Llamadas</th><th>Última llamada</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
+}
+
+async function openContactProfile(id) {
+  openModal('<div class="modal-title">👤 Perfil de cliente</div>' +
+    '<div style="color:var(--dim);font-size:13px">Cargando…</div>');
+
+  var data;
+  try {
+    data = await api('/api/portal/contacts/' + id);
+  } catch (e) {
+    openModal('<div class="modal-title">👤 Perfil de cliente</div>' +
+      '<p style="color:var(--dim)">Error: ' + esc(e.message) + '</p>' +
+      '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>');
+    return;
+  }
+
+  var c = data.contact;
+  var initial = (c.displayName || c.phone).charAt(0).toUpperCase();
+
+  // Calls table rows
+  var callRows = '';
+  var OUTCOME_BADGE = {
+    booked: '<span class="badge bg">reserva</span>',
+    info:   '<span class="badge binfo">info</span>',
+    abandoned: '<span class="badge bd">abandonada</span>',
+  };
+  if (data.calls && data.calls.length > 0) {
+    for (var i = 0; i < data.calls.length; i++) {
+      var cl = data.calls[i];
+      var dur = cl.durationMs ? Math.round(cl.durationMs / 1000) + 's' : '—';
+      callRows += '<tr>' +
+        '<td>' + (cl.startedAt ? new Date(cl.startedAt).toLocaleDateString('es-ES') : '—') + '</td>' +
+        '<td>' + dur + '</td>' +
+        '<td>' + (OUTCOME_BADGE[cl.outcome] || '<span class="badge bd">' + esc(cl.outcome) + '</span>') + '</td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(cl.callSid) + '\')">💬</button></td>' +
+        '</tr>';
+    }
+  } else {
+    callRows = '<tr class="empty-row"><td colspan="4">Sin llamadas registradas</td></tr>';
+  }
+
+  // Appointments table rows
+  var aptRows = '';
+  if (data.appointments && data.appointments.length > 0) {
+    for (var j = 0; j < data.appointments.length; j++) {
+      var a = data.appointments[j];
+      var statusBadge = a.status === 'cancelled'
+        ? '<span class="badge br">Cancelada</span>'
+        : '<span class="badge bg">✓ Confirmada</span>';
+      aptRows += '<tr>' +
+        '<td>' + fmtDate(a.date) + '</td>' +
+        '<td>' + esc(a.time || '—') + '</td>' +
+        '<td>' + esc(a.service || '—') + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '</tr>';
+    }
+  } else {
+    aptRows = '<tr class="empty-row"><td colspan="4">Sin citas registradas</td></tr>';
+  }
+
+  openModal(
+    '<div class="profile-header">' +
+      '<div class="profile-avatar">' + initial + '</div>' +
+      '<div>' +
+        '<div class="profile-name">' + esc(c.displayName) + '</div>' +
+        '<div class="profile-meta">' + esc(c.phone) +
+          (c.email ? ' · ' + esc(c.email) : '') + '</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px">' +
+          (c.callCount || 0) + ' llamadas · Cliente desde ' + fmtDate((c.createdAt || '').slice(0,10)) +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="profile-section-title">Nombre y notas</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Nombre</label>' +
+      '<input class="form-input" id="cpName" value="' + esc(c.name || '') + '" placeholder="' + esc(c.phone) + '">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Email</label>' +
+      '<input class="form-input" id="cpEmail" type="email" value="' + esc(c.email || '') + '">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Notas</label>' +
+      '<textarea class="form-input" id="cpNotes" rows="3" onblur="saveContactNotes(\'' + esc(id) + '\')">' + esc(c.notes || '') + '</textarea>' +
+      '<small style="color:var(--dim);font-size:11px">Se guarda automáticamente al salir del campo</small>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+      '<button class="btn btn-accent btn-sm" onclick="saveContactNotes(\'' + esc(id) + '\', true)">Guardar datos</button>' +
+      '<button class="btn btn-r btn-sm" onclick="deleteContact(\'' + esc(id) + '\')">Eliminar contacto</button>' +
+    '</div>' +
+
+    '<div class="profile-section-title">Historial de llamadas</div>' +
+    '<div class="table-wrap" style="margin-bottom:16px"><table>' +
+      '<thead><tr><th>Fecha</th><th>Duración</th><th>Resultado</th><th>Transcript</th></tr></thead>' +
+      '<tbody>' + callRows + '</tbody></table></div>' +
+
+    '<div class="profile-section-title">Historial de citas</div>' +
+    '<div class="table-wrap"><table>' +
+      '<thead><tr><th>Fecha</th><th>Hora</th><th>Servicio</th><th>Estado</th></tr></thead>' +
+      '<tbody>' + aptRows + '</tbody></table></div>' +
+
+    '<div class="modal-actions" style="margin-top:20px">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
+    '</div>'
+  );
+}
+
+async function saveContactNotes(id, withNameEmail) {
+  var patch = {
+    notes: (document.getElementById('cpNotes') || {}).value || '',
+  };
+  if (withNameEmail) {
+    var nameEl  = document.getElementById('cpName');
+    var emailEl = document.getElementById('cpEmail');
+    if (nameEl)  patch.name  = nameEl.value.trim()  || null;
+    if (emailEl) patch.email = emailEl.value.trim()  || null;
+  }
+  try {
+    await api('/api/portal/contacts/' + id, 'PATCH', patch);
+    toast(withNameEmail ? 'Contacto actualizado' : 'Notas guardadas');
+    // Refresh clientes list if visible
+    if (_currentSection === 'clientes') loadClientes();
+  } catch (e) {
+    toast('Error al guardar: ' + e.message, 'err');
+  }
+}
+
+function deleteContact(id) {
+  openModal(
+    '<div class="modal-title">Eliminar contacto</div>' +
+    '<p style="color:var(--dim);margin-bottom:20px">¿Seguro que quieres eliminar este contacto? Se eliminarán sus notas y datos editados, pero el historial de llamadas permanece en el sistema.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-r" onclick="confirmDeleteContact(\'' + esc(id) + '\')">Sí, eliminar</button>' +
+    '</div>'
+  );
+}
+
+async function confirmDeleteContact(id) {
+  try {
+    await api('/api/portal/contacts/' + id, 'DELETE');
+    closeModal();
+    toast('Contacto eliminado');
+    if (_currentSection === 'clientes') loadClientes();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// ── Transcript modal ──────────────────────────────────────────
+async function openTranscriptModal(callSid) {
+  if (!callSid) {
+    openModal('<div class="modal-title">💬 Transcripción</div>' +
+      '<p style="color:var(--dim)">ID de llamada no disponible. Actualiza la sección Llamadas.</p>' +
+      '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>');
+    return;
+  }
+  openModal('<div class="modal-title">💬 Transcripción</div>' +
+    '<div style="color:var(--dim);font-size:13px;padding:12px 0">Cargando…</div>');
+  var data;
+  try {
+    data = await api('/api/portal/calls/' + callSid + '/transcript');
+  } catch (e) {
+    openModal('<div class="modal-title">💬 Transcripción</div>' +
+      '<p style="color:var(--dim)">No disponible: ' + esc(e.message) + '</p>' +
+      '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>');
+    return;
+  }
+
+  var dateStr = data.startedAt ? new Date(data.startedAt).toLocaleDateString('es-ES', {day:'numeric',month:'long'}) : '';
+  var durStr  = data.durationMs ? Math.round(data.durationMs / 1000) + 's' : '';
+
+  var rows = '';
+  if (data.transcript && data.transcript.length > 0) {
+    for (var i = 0; i < data.transcript.length; i++) {
+      var t = data.transcript[i];
+      var isAI = t.role === 'assistant';
+      rows += '<div class="transcript-row ' + (isAI ? 'ai' : 'user') + '">' +
+        '<span class="transcript-role">' + (isAI ? '🤖 AI' : '👤 Cliente') + '</span>' +
+        '<span class="transcript-text">' + esc(t.content || '') + '</span>' +
+        '</div>';
+    }
+  } else {
+    rows = '<div style="color:var(--dim);font-size:13px;padding:12px 0">Sin transcripción disponible para esta llamada.</div>';
+  }
+
+  openModal(
+    '<div class="modal-title">💬 Transcripción' + (dateStr ? ' · ' + dateStr : '') + '</div>' +
+    (durStr ? '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + durStr + ' · ' + data.transcript.length + ' turnos</div>' : '') +
+    '<div class="transcript-list">' + rows + '</div>' +
+    '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
+  );
 }
 
 // ── Boot ──────────────────────────────────────────────────────
