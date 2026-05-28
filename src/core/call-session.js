@@ -42,6 +42,11 @@ class CallSession {
     this.endTime = null;
     this.metrics = { turns: [], totalSttTime: 0, totalLlmTime: 0, totalTtsTime: 0, totalToolTime: 0, llmTokens: 0, toolCalls: 0, interruptions: 0 };
     this.transcript = [];
+    // ── Post-call context (populated by ToolExecutor during call) ────────────
+    this.outcome         = 'abandoned';  // 'booked' | 'info' | 'abandoned'
+    this.bookedAppointment = null;       // set by book_appointment tool
+    this.clientEmail     = null;         // set by book_appointment tool if email given
+    this.businessId      = assistant?.id || null;
     if (assistant) this._initConversation();
   }
 
@@ -164,11 +169,18 @@ class CallSession {
 
   getDuration() { return (this.endTime || Date.now()) - this.startTime; }
 
+  _deriveOutcome() {
+    if (this.bookedAppointment) return 'booked';
+    if (this.turnCount >= 3)   return 'info';
+    return 'abandoned';
+  }
+
   end() {
-    this.status = 'ended';
+    this.status  = 'ended';
     this.endTime = Date.now();
-    const cost = this.getCost();
-    log.call(`[${this.id}] Call ended — ${Math.round(this.getDuration()/1000)}s, ${this.turnCount} turns, $${cost.total.toFixed(4)}`);
+    this.outcome = this._deriveOutcome();
+    const cost   = this.getCost();
+    log.call(`[${this.id}] Call ended — ${Math.round(this.getDuration()/1000)}s, ${this.turnCount} turns, $${cost.total.toFixed(4)}, outcome:${this.outcome}`);
     return this.toJSON();
   }
 
@@ -180,7 +192,12 @@ class CallSession {
       status: this.status, startTime: new Date(this.startTime).toISOString(),
       endTime: this.endTime ? new Date(this.endTime).toISOString() : null,
       duration: d, durationFormatted: `${m}:${(s%60).toString().padStart(2,'0')}`,
-      turnCount: this.turnCount, transcript: this.transcript, metrics: this.metrics, cost: this.getCost()
+      turnCount: this.turnCount, transcript: this.transcript, metrics: this.metrics, cost: this.getCost(),
+      // Post-call context
+      outcome: this.outcome,
+      bookedAppointment: this.bookedAppointment,
+      clientEmail: this.clientEmail,
+      businessId: this.businessId,
     };
   }
 }
