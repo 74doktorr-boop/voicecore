@@ -5,12 +5,28 @@
   <!-- ── Homepage ── -->
   <url>
     <loc>https://nodeflow.es</loc>
-    <lastmod>2026-05-27</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es"/>
     <xhtml:link rel="alternate" hreflang="eu" href="https://nodeflow.es"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://nodeflow.es"/>
+  </url>
+
+  <!-- ── Onboarding / registro ── -->
+  <url>
+    <loc>https://nodeflow.es/onboarding</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ── Portal de negocio ── -->
+  <url>
+    <loc>https://nodeflow.es/portal</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 
   <!-- ── Páginas de ciudad (SEO local) ── -->
@@ -124,11 +140,17 @@
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
+  <url>
+    <loc>https://nodeflow.es/fisioterapia</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
 
   <!-- ── Blog ── -->
   <url>
     <loc>https://nodeflow.es/blog</loc>
-    <lastmod>2026-05-27</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
