@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía NodeFlow — Servicios Profesionales</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    /* COVER PAGE */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px 32px;
+      max-width: 860px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 60px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .cover h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .cover h1 span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 32px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cover-meta strong { color: var(--text); }
+
+    /* SECTIONS */
+    section {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      margin-bottom: 24px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 32px;
+      color: var(--text);
+    }
+
+    h3:first-of-type { margin-top: 0; }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    p strong { color: var(--text); }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    li strong { color: var(--text); }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .step-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* AUTOMATION CARDS */
+    .auto-grid { display: grid; gap: 16px; margin: 24px 0; }
+
+    .auto-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .auto-card.accent2 { border-left-color: var(--accent2); }
+    .auto-card.green { border-left-color: #10b981; }
+    .auto-card.amber { border-left-color: #f59e0b; }
+    .auto-card.rose { border-left-color: #f43f5e; }
+
+    .auto-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .auto-icon { font-size: 20px; }
+
+    .auto-header h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .auto-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: rgba(124, 58, 237, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    .auto-badge.pro {
+      background: rgba(6, 182, 212, 0.15);
+      color: #67e8f9;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .auto-card p { font-size: 14px; margin: 0; }
+
+    /* SCREENSHOT BOX */
+    .screenshot-box {
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(124, 58, 237, 0.05);
+      font-size: 14px;
+      margin: 16px 0;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* PORTAL SECTIONS */
+    .portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+
+    .portal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .portal-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .portal-card p { font-size: 13px; margin: 0; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .faq-item h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .faq-item p { font-size: 14px; margin: 0; }
+
+    /* SUPPORT */
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+
+    .support-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .support-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .support-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .support-card a { color: var(--accent2); font-size: 14px; text-decoration: none; }
+
+    /* INFO BOX */
+    .info-box {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .info-box p { font-size: 14px; margin: 0; color: #c4b5fd; }
+
+    /* NAV PRINT BUTTON */
+    .print-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .print-bar-logo { font-size: 16px; font-weight: 700; }
+    .print-bar-logo span { color: var(--accent); }
+
+    .btn-print {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-print:hover { background: #6d28d9; }
+
+    body { padding-top: 56px; }
+
+    /* ===== PRINT STYLES ===== */
+    @media print {
+      body {
+        background: white;
+        color: #111;
+        padding-top: 0;
+        font-size: 13px;
+      }
+
+      .print-bar { display: none; }
+
+      .container { max-width: 100%; padding: 0 20px; }
+
+      .cover {
+        min-height: 100vh;
+        page-break-after: always;
+        padding: 60px 20px;
+      }
+
+      .cover h1 { font-size: 38px; color: #111; }
+      .cover h1 span { -webkit-text-fill-color: #5b21b6; color: #5b21b6; }
+      .cover-subtitle { color: #555; }
+      .cover-meta { color: #777; }
+      .cover-meta strong { color: #333; }
+      .cover-badge { color: #5b21b6; border-color: #5b21b6; background: #f5f3ff; }
+
+      .logo-text { color: #111; }
+      .logo-text span { color: #5b21b6; }
+      .logo-icon { background: #5b21b6; }
+
+      section {
+        padding: 32px 0;
+        border-bottom: 1px solid #e5e7eb;
+        page-break-inside: avoid;
+      }
+
+      .page-break { page-break-after: always; }
+
+      h2 { font-size: 22px; color: #111; margin-bottom: 16px; }
+      h3 { font-size: 15px; color: #111; }
+      p { color: #444; }
+      li { color: #444; }
+      li strong { color: #111; }
+
+      .section-tag { color: #5b21b6; }
+
+      .step {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .step-num { background: #5b21b6; }
+      .step-content h4 { color: #111; }
+      .step-content p { color: #444; }
+
+      .auto-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        border-left-color: #5b21b6;
+      }
+      .auto-card.accent2 { border-left-color: #0891b2; }
+      .auto-card.green { border-left-color: #059669; }
+      .auto-card.amber { border-left-color: #d97706; }
+      .auto-card.rose { border-left-color: #e11d48; }
+
+      .auto-header h4 { color: #111; }
+      .auto-card p { color: #444; }
+      .auto-badge { background: #f5f3ff; color: #5b21b6; border-color: #c4b5fd; }
+      .auto-badge.pro { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+
+      .screenshot-box {
+        border-color: #c4b5fd;
+        background: #f5f3ff;
+        color: #6d28d9;
+        min-height: 80px;
+      }
+
+      .portal-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .portal-card h4 { color: #111; }
+      .portal-card p { color: #444; }
+
+      .portal-grid { grid-template-columns: 1fr 1fr; }
+
+      .faq-item {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        page-break-inside: avoid;
+      }
+      .faq-item h4 { color: #111; }
+      .faq-item p { color: #444; }
+
+      .support-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .support-card h4 { color: #111; }
+      .support-card a { color: #0891b2; }
+
+      .info-box {
+        background: #f5f3ff;
+        border-color: #c4b5fd;
+      }
+      .info-box p { color: #5b21b6; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR (screen only) -->
+  <div class="print-bar no-print">
+    <div class="print-bar-logo">Node<span>Flow</span></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir guía</button>
+  </div>
+
+  <!-- ===================== PORTADA ===================== -->
+  <div class="cover">
+    <div class="logo-mark">
+      <div class="logo-icon">🎙️</div>
+      <div class="logo-text">Node<span>Flow</span></div>
+    </div>
+    <div class="cover-badge">Guía de Uso · Sector Profesional</div>
+    <h1>Servicios<br><span>Profesionales</span></h1>
+    <p class="cover-subtitle">
+      Tu asistente de voz inteligente para despachos de abogados, asesorías, notarías y consultoras — gestiona citas y plazos sin interrumpir tu trabajo.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong> 1.0</div>
+      <div><strong>Fecha</strong> Mayo 2026</div>
+      <div><strong>Plan</strong> Negocio / Pro</div>
+      <div><strong>Idiomas</strong> Castellano · Euskera</div>
+    </div>
+  </div>
+
+  <!-- ===================== INTRODUCCIÓN ===================== -->
+  <div class="container">
+    <section>
+      <div class="section-tag">01 — Introducción</div>
+      <h2>NodeFlow para tu despacho o asesoría</h2>
+      <p>
+        En un despacho profesional, cada llamada mal gestionada puede suponer un cliente que pierde un plazo legal o que no recibe el asesoramiento que necesita a tiempo. NodeFlow actúa como tu recepcionista virtual especializado, disponible las 24 horas, respondiendo en castellano y euskera con el tono formal que tus clientes esperan.
+      </p>
+      <p>
+        Más allá de atender llamadas, NodeFlow controla los plazos legales y contractuales de cada cliente: te avisa —y les avisa a ellos— con la antelación suficiente para que nunca se pierda una fecha crítica. Desde la primera consulta hasta la renovación anual de contratos o pólizas, el ciclo completo queda cubierto.
+      </p>
+
+      <h3>¿Por qué NodeFlow para servicios profesionales?</h3>
+      <ul>
+        <li><strong>Cero llamadas perdidas:</strong> el asistente contesta mientras estás en reunión, en sala o en juicio. El cliente siempre recibe atención inmediata.</li>
+        <li><strong>Control de plazos legales:</strong> la automatización de fechas críticas alerta a tus clientes con 30, 15 y 7 días de antelación ante cualquier plazo de recurso, renovación o presentación de documentación.</li>
+        <li><strong>Reactivación de clientes inactivos:</strong> para clientes que no han tenido consulta en 90 días, NodeFlow envía un recordatorio sutil para retomar el contacto sin presión comercial.</li>
+      </ul>
+
+      <div class="info-box">
+        <p><strong>Esta guía te enseña a:</strong> configurar tu asistente de voz para servicios profesionales, activar las automatizaciones de plazos y seguimiento, gestionar el portal y resolver las dudas más comunes de privacidad y cumplimiento normativo.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PRIMEROS PASOS ===================== -->
+    <section>
+      <div class="section-tag">02 — Primeros Pasos</div>
+      <h2>Configura NodeFlow en 3 pasos</h2>
+      <p>La configuración inicial se hace desde el portal web y tarda menos de 15 minutos. No necesitas conocimientos técnicos.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Acceder al portal</h4>
+            <p>Ve a <strong>nodeflow.es/portal</strong> e inicia sesión con tu cuenta. Si es la primera vez, usa el enlace de activación que recibiste por email al registrarte.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Configura tu asistente</h4>
+            <p>En <strong>Configuración → Básico</strong>, elige el sector <em>Servicios Profesionales</em> (o el subsector más específico: Abogados, Asesoría, Notaría, Gestoría…), introduce el nombre del despacho, el número de teléfono y el idioma principal. El asistente recibirá automáticamente instrucciones de tono formal adaptadas al ámbito profesional.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Configura servicios y disponibilidad</h4>
+            <p>En <strong>Configuración → Servicios</strong> añade los tipos de consulta que ofreces (consulta inicial, revisión de contrato, consulta tributaria, asesoramiento laboral…) con su duración. En <strong>Configuración → Horarios</strong> define cuándo acepta citas el asistente, diferenciando si quieres reservar solo consultas presenciales o también llamadas de seguimiento.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Sección Configuración del portal — pestañas Básico, Servicios, Horarios</div>
+
+      <h3>Datos clave de cada cliente para las automatizaciones</h3>
+      <p>Para que las alertas de plazos y la reactivación funcionen correctamente, asegúrate de completar en la ficha de cada cliente:</p>
+      <ul>
+        <li><strong>Email:</strong> obligatorio para todos los envíos automáticos.</li>
+        <li><strong>Fechas de plazos legales:</strong> vencimientos de recursos, presentaciones, audiencias o plazos administrativos. Se añaden en la ficha del cliente bajo <em>Fechas Críticas</em>.</li>
+        <li><strong>Fecha de renovación de contrato o póliza:</strong> para clientes con contratos de asesoramiento periódico o seguros de asistencia jurídica.</li>
+        <li><strong>Fecha de inicio de relación:</strong> para el recordatorio de aniversario (opcional, plan Pro).</li>
+      </ul>
+
+      <div class="screenshot-box">📸 Captura: Ficha de cliente — sección Fechas Críticas con tipo de plazo, fecha y alertas activadas</div>
+    </section>
+
+    <!-- ===================== AUTOMATIZACIONES ===================== -->
+    <section>
+      <div class="section-tag">03 — Automatizaciones</div>
+      <h2>Automatizaciones activas para tu despacho</h2>
+      <p>NodeFlow incluye automatizaciones diseñadas para el flujo de trabajo de servicios profesionales. Puedes activar o desactivar cada una desde <strong>Automatizaciones</strong> en el portal.</p>
+
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio de cita — 24h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a cualquier consulta, reunión o audiencia registrada en el portal, el cliente recibe un email de confirmación con fecha, hora, profesional responsable y dirección. Incluye opción de confirmar o proponer nuevo horario.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">💌</span>
+            <h4>Rebooking — Clientes inactivos 90 días</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si un cliente no ha tenido ninguna consulta en los últimos 90 días, NodeFlow envía un email discreto para retomar el contacto: <em>"Hace tiempo que no nos reunimos. Si necesitas revisar algún asunto, estaremos encantados de atenderte."</em> Incluye enlace de reserva directa.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">📩</span>
+            <h4>Second touch — 7 días sin respuesta</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si el cliente no responde al primer email de reactivación en 7 días, NodeFlow envía un segundo contacto más concreto, recordándole algún asunto pendiente o la posibilidad de una consulta de revisión rápida.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📅</span>
+            <h4>Fechas críticas — Plazos legales (30/15/7 días)</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>NodeFlow alerta al cliente con 30, 15 y 7 días de antelación ante cualquier plazo crítico registrado: vencimiento de recurso, plazo de presentación de documentación, caducidad de licencia, fecha de junta o audiencia. El email indica claramente el plazo y la acción requerida.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📋</span>
+            <h4>Renovación de contrato o asesoramiento</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>Para clientes con contratos de asesoramiento anual o pólizas de asistencia jurídica, NodeFlow envía una alerta de renovación con 30 y 15 días de antelación, facilitando la continuidad del servicio sin que el cliente tenga que recordarlo.</p>
+        </div>
+
+        <div class="auto-card">
+          <div class="auto-header">
+            <span class="auto-icon">🎂</span>
+            <h4>Email de cumpleaños</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>La mañana del cumpleaños del cliente, NodeFlow envía un mensaje de felicitación personalizado. Es un detalle sencillo que refuerza la relación con clientes habituales y consolida la fidelización a largo plazo sin necesidad de acción manual.</p>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p><strong>Nota sobre no-shows:</strong> En el contexto de servicios profesionales, NodeFlow no envía emails de recuperación por no-show por defecto, ya que puede resultar inapropiado en este ámbito. Si tu despacho lo considera necesario, puedes activarlo manualmente en <strong>Automatizaciones → Avanzado → No-show recovery</strong>.</p>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Panel de Automatizaciones — sección Fechas Críticas con listado de plazos próximos</div>
+
+      <h3>Gestión de fechas críticas</h3>
+      <p>Las fechas críticas se añaden en la ficha de cada cliente bajo la pestaña <em>Fechas Críticas</em>. Para cada fecha puedes definir:</p>
+      <ul>
+        <li><strong>Tipo:</strong> plazo legal, renovación, audiencia, entrega de documentación, vencimiento fiscal…</li>
+        <li><strong>Anticipación:</strong> con cuántos días de antelación se envían las alertas (por defecto: 30, 15 y 7 días).</li>
+        <li><strong>Responsable interno:</strong> a qué profesional del despacho se notifica internamente además del cliente.</li>
+        <li><strong>Texto personalizado:</strong> mensaje específico para ese plazo concreto, si el genérico no es suficiente.</li>
+      </ul>
+    </section>
+
+    <!-- ===================== EL PORTAL ===================== -->
+    <section>
+      <div class="section-tag">04 — El Portal</div>
+      <h2>Tu centro de control: el Portal NodeFlow</h2>
+      <p>Accede desde cualquier dispositivo en <strong>nodeflow.es/portal</strong>. Está diseñado para gestionarse desde el ordenador del despacho o desde el móvil entre reuniones.</p>
+
+      <div class="portal-grid">
+        <div class="portal-card">
+          <h4>📊 Dashboard</h4>
+          <p>Vista general: llamadas hoy, citas esta semana, plazos próximos en los próximos 30 días. Alerta visual cuando hay fechas críticas inminentes sin contacto registrado.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📞 Llamadas</h4>
+          <p>Historial completo de llamadas atendidas por el asistente. Incluye transcripción, duración y si se reservó consulta o no. Puedes escuchar la grabación y añadir notas internas.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📆 Citas</h4>
+          <p>Calendario de consultas y reuniones con vista día/semana/mes. Confirma, cancela o reagenda. Filtra por profesional responsable o tipo de servicio.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚡ Automatizaciones</h4>
+          <p>Activa o pausa cualquier automatización. Consulta el historial de emails enviados y confirma qué clientes han abierto los avisos de plazo.</p>
+        </div>
+        <div class="portal-card">
+          <h4>👤 Clientes</h4>
+          <p>Fichas de clientes con historial de consultas, emails enviados, fechas críticas registradas y notas internas confidenciales.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚙️ Configuración</h4>
+          <p>Actualiza horarios, tipos de servicio, datos del asistente, textos de emails y preferencias de tono formal en cualquier momento.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Dashboard — vista de plazos próximos en los próximos 30 días con estado de contacto</div>
+      <div class="screenshot-box">📸 Captura: Ficha de cliente — pestaña Fechas Críticas con alertas programadas</div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section>
+      <div class="section-tag">05 — Preguntas Frecuentes</div>
+      <h2>Preguntas frecuentes</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <h4>¿El asistente puede gestionar consultas con varios abogados o asesores del equipo?</h4>
+          <p>Sí. En Configuración → Servicios puedes asignar cada tipo de consulta a uno o varios profesionales del equipo y definir su disponibilidad por separado. El asistente preguntará si el cliente tiene preferencia y buscará disponibilidad en el profesional adecuado.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Las comunicaciones automáticas cumplen con el secreto profesional y el RGPD?</h4>
+          <p>NodeFlow envía únicamente la información que tú defines en cada email. Los mensajes de plazo legal no incluyen datos del expediente ni del asunto. El sistema actúa como un recordatorio de gestión, no como un canal de comunicación privilegiada. Todos los emails incluyen enlace de baja. Recomendamos mencionar el uso de notificaciones automáticas en tu política de privacidad y en el contrato de prestación de servicios.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo añadir fechas críticas de forma masiva para todos mis clientes?</h4>
+          <p>Actualmente las fechas se añaden individualmente en la ficha de cada cliente. Si necesitas importar un volumen alto de fechas, contáctanos en hola@nodeflow.es y estudiamos una importación por CSV adaptada a tu despacho.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Qué pasa si un plazo cambia tras enviar la primera alerta?</h4>
+          <p>Puedes actualizar la fecha en la ficha del cliente en cualquier momento. NodeFlow recalcula automáticamente las alertas pendientes y cancela los envíos ya programados que ya no correspondan.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo pausar todas las comunicaciones durante las vacaciones del despacho?</h4>
+          <p>Sí. En Automatizaciones puedes pausar todas las reglas con un clic, o configurar un período de cierre en Configuración → Horarios. El asistente informará a los clientes de la fecha de reapertura y los recordatorios de plazos se reanudarán automáticamente al volver.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SOPORTE ===================== -->
+    <section>
+      <div class="section-tag">06 — Soporte</div>
+      <h2>¿Necesitas ayuda?</h2>
+      <p>El equipo de NodeFlow está disponible para ayudarte a configurar tu asistente y sacarle el máximo partido. Aquí tienes todos los canales de contacto.</p>
+
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="icon">📧</div>
+          <h4>Email</h4>
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">🌐</div>
+          <h4>Portal</h4>
+          <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">💻</div>
+          <h4>Web</h4>
+          <a href="https://nodeflow.es">nodeflow.es</a>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p><strong>Consejo:</strong> Si tienes dudas sobre cómo configurar las fechas críticas para tus expedientes, escríbenos a hola@nodeflow.es con el asunto <em>"Onboarding Servicios Profesionales"</em>. Te respondemos en menos de 24 horas laborables y podemos hacer una videollamada de configuración guiada sin coste adicional.</p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>

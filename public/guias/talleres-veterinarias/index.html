@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía NodeFlow — Talleres y Veterinarias</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    /* COVER PAGE */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px 32px;
+      max-width: 860px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 60px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .cover h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .cover h1 span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 32px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cover-meta strong { color: var(--text); }
+
+    /* SECTIONS */
+    section {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      margin-bottom: 24px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 32px;
+      color: var(--text);
+    }
+
+    h3:first-of-type { margin-top: 0; }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    p strong { color: var(--text); }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    li strong { color: var(--text); }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .step-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* AUTOMATION CARDS */
+    .auto-grid { display: grid; gap: 16px; margin: 24px 0; }
+
+    .auto-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .auto-card.accent2 { border-left-color: var(--accent2); }
+    .auto-card.green { border-left-color: #10b981; }
+    .auto-card.amber { border-left-color: #f59e0b; }
+    .auto-card.rose { border-left-color: #f43f5e; }
+
+    .auto-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .auto-icon { font-size: 20px; }
+
+    .auto-header h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .auto-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: rgba(124, 58, 237, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    .auto-badge.pro {
+      background: rgba(6, 182, 212, 0.15);
+      color: #67e8f9;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .auto-card p { font-size: 14px; margin: 0; }
+
+    /* SCREENSHOT BOX */
+    .screenshot-box {
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(124, 58, 237, 0.05);
+      font-size: 14px;
+      margin: 16px 0;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* PORTAL SECTIONS */
+    .portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+
+    .portal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .portal-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .portal-card p { font-size: 13px; margin: 0; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .faq-item h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .faq-item p { font-size: 14px; margin: 0; }
+
+    /* SUPPORT */
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+
+    .support-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .support-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .support-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .support-card a { color: var(--accent2); font-size: 14px; text-decoration: none; }
+
+    /* INFO BOX */
+    .info-box {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .info-box p { font-size: 14px; margin: 0; color: #c4b5fd; }
+
+    /* NAV PRINT BUTTON */
+    .print-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .print-bar-logo { font-size: 16px; font-weight: 700; }
+    .print-bar-logo span { color: var(--accent); }
+
+    .btn-print {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-print:hover { background: #6d28d9; }
+
+    body { padding-top: 56px; }
+
+    /* ===== PRINT STYLES ===== */
+    @media print {
+      body {
+        background: white;
+        color: #111;
+        padding-top: 0;
+        font-size: 13px;
+      }
+
+      .print-bar { display: none; }
+
+      .container { max-width: 100%; padding: 0 20px; }
+
+      .cover {
+        min-height: 100vh;
+        page-break-after: always;
+        padding: 60px 20px;
+      }
+
+      .cover h1 { font-size: 38px; color: #111; }
+      .cover h1 span { -webkit-text-fill-color: #5b21b6; color: #5b21b6; }
+      .cover-subtitle { color: #555; }
+      .cover-meta { color: #777; }
+      .cover-meta strong { color: #333; }
+      .cover-badge { color: #5b21b6; border-color: #5b21b6; background: #f5f3ff; }
+
+      .logo-text { color: #111; }
+      .logo-text span { color: #5b21b6; }
+      .logo-icon { background: #5b21b6; }
+
+      section {
+        padding: 32px 0;
+        border-bottom: 1px solid #e5e7eb;
+        page-break-inside: avoid;
+      }
+
+      .page-break { page-break-after: always; }
+
+      h2 { font-size: 22px; color: #111; margin-bottom: 16px; }
+      h3 { font-size: 15px; color: #111; }
+      p { color: #444; }
+      li { color: #444; }
+      li strong { color: #111; }
+
+      .section-tag { color: #5b21b6; }
+
+      .step {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .step-num { background: #5b21b6; }
+      .step-content h4 { color: #111; }
+      .step-content p { color: #444; }
+
+      .auto-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        border-left-color: #5b21b6;
+      }
+      .auto-card.accent2 { border-left-color: #0891b2; }
+      .auto-card.green { border-left-color: #059669; }
+      .auto-card.amber { border-left-color: #d97706; }
+      .auto-card.rose { border-left-color: #e11d48; }
+
+      .auto-header h4 { color: #111; }
+      .auto-card p { color: #444; }
+      .auto-badge { background: #f5f3ff; color: #5b21b6; border-color: #c4b5fd; }
+      .auto-badge.pro { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+
+      .screenshot-box {
+        border-color: #c4b5fd;
+        background: #f5f3ff;
+        color: #6d28d9;
+        min-height: 80px;
+      }
+
+      .portal-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .portal-card h4 { color: #111; }
+      .portal-card p { color: #444; }
+
+      .portal-grid { grid-template-columns: 1fr 1fr; }
+
+      .faq-item {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        page-break-inside: avoid;
+      }
+      .faq-item h4 { color: #111; }
+      .faq-item p { color: #444; }
+
+      .support-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .support-card h4 { color: #111; }
+      .support-card a { color: #0891b2; }
+
+      .info-box {
+        background: #f5f3ff;
+        border-color: #c4b5fd;
+      }
+      .info-box p { color: #5b21b6; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR (screen only) -->
+  <div class="print-bar no-print">
+    <div class="print-bar-logo">Node<span>Flow</span></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir guía</button>
+  </div>
+
+  <!-- ===================== PORTADA ===================== -->
+  <div class="cover">
+    <div class="logo-mark">
+      <div class="logo-icon">🎙️</div>
+      <div class="logo-text">Node<span>Flow</span></div>
+    </div>
+    <div class="cover-badge">Guía de Uso · Talleres y Veterinarias</div>
+    <h1>Talleres y<br><span>Veterinarias</span></h1>
+    <p class="cover-subtitle">
+      Tu asistente de voz inteligente para talleres mecánicos y clínicas veterinarias — recuerda revisiones, ITV, vacunas y citas sin intervención manual.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong> 1.0</div>
+      <div><strong>Fecha</strong> Mayo 2026</div>
+      <div><strong>Plan</strong> Negocio / Pro</div>
+      <div><strong>Idiomas</strong> Castellano · Euskera</div>
+    </div>
+  </div>
+
+  <!-- ===================== INTRODUCCIÓN ===================== -->
+  <div class="container">
+    <section>
+      <div class="section-tag">01 — Introducción</div>
+      <h2>NodeFlow para tu taller o clínica veterinaria</h2>
+      <p>
+        Los talleres mecánicos y las clínicas veterinarias comparten un reto clave: sus clientes solo vienen cuando tienen un problema o cuando les toca, y es muy fácil que se olviden de las revisiones periódicas. NodeFlow actúa como tu asistente virtual proactivo, recordándoles los mantenimientos, vacunas e ITVs antes de que sea demasiado tarde.
+      </p>
+      <p>
+        Más allá de gestionar citas, NodeFlow se encarga del ciclo completo de fidelización: desde el recordatorio de la próxima revisión hasta el aviso de vencimiento del seguro o la vacuna anual de la mascota. Todo automatizado, sin trabajo manual por tu parte.
+      </p>
+
+      <h3>¿Por qué NodeFlow para talleres y veterinarias?</h3>
+      <ul>
+        <li><strong>Clientes que vuelven solos:</strong> los recordatorios de mantenimiento periódico y vacunas generan visitas recurrentes sin que el cliente tenga que acordarse por su cuenta.</li>
+        <li><strong>Cero llamadas perdidas:</strong> el asistente atiende mientras estás en el foso del taller o en quirófano. Ningún cliente se queda sin respuesta aunque estés ocupado.</li>
+        <li><strong>Alertas de fechas críticas:</strong> ITV, seguro del vehículo, desparasitación semestral o vacuna anual — NodeFlow avisa al cliente con la antelación suficiente para que pueda reservar sin prisas.</li>
+      </ul>
+
+      <div class="info-box">
+        <p><strong>Esta guía te enseña a:</strong> configurar tu asistente de voz para talleres o veterinarias, activar todas las automatizaciones de mantenimiento y seguimiento, gestionar el portal y resolver las dudas más comunes del sector.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PRIMEROS PASOS ===================== -->
+    <section>
+      <div class="section-tag">02 — Primeros Pasos</div>
+      <h2>Configura NodeFlow en 3 pasos</h2>
+      <p>La configuración inicial se hace desde el portal web y tarda menos de 15 minutos. No necesitas conocimientos técnicos.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Acceder al portal</h4>
+            <p>Ve a <strong>nodeflow.es/portal</strong> e inicia sesión con tu cuenta. Si es la primera vez, usa el enlace de activación que recibiste por email al registrarte.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Configura tu asistente</h4>
+            <p>En <strong>Configuración → Básico</strong>, elige el sector <em>Taller Mecánico</em> o <em>Clínica Veterinaria</em> según tu tipo de negocio, introduce el nombre del establecimiento, el número de teléfono y el idioma principal. El asistente recibirá las instrucciones específicas para tu sector: mantenimientos de vehículos o calendario de salud animal.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Configura servicios y disponibilidad</h4>
+            <p>En <strong>Configuración → Servicios</strong> añade los servicios que ofreces. Para talleres: revisión general, cambio de aceite, frenos, ITV previa, neumáticos… Para veterinarias: consulta general, vacunación, desparasitación, cirugía, grooming… Define la duración de cada uno para que el calendario se gestione correctamente.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Sección Configuración del portal — sector Taller / Veterinaria, servicios configurados</div>
+
+      <h3>Datos clave por cliente para las automatizaciones</h3>
+
+      <p><strong>Para talleres mecánicos,</strong> registra en la ficha de cada vehículo:</p>
+      <ul>
+        <li><strong>Matrícula y modelo:</strong> para identificar el vehículo en las comunicaciones.</li>
+        <li><strong>Fecha de la última revisión:</strong> base para calcular el próximo mantenimiento.</li>
+        <li><strong>Fecha de ITV:</strong> para los recordatorios de vencimiento.</li>
+        <li><strong>Fecha de vencimiento del seguro:</strong> opcional, para la alerta de renovación.</li>
+        <li><strong>Kilómetros registrados:</strong> si quieres usar alertas basadas en kilometraje (Pro).</li>
+      </ul>
+
+      <p><strong>Para clínicas veterinarias,</strong> registra en la ficha de cada mascota:</p>
+      <ul>
+        <li><strong>Nombre y especie/raza:</strong> para personalizar las comunicaciones.</li>
+        <li><strong>Fecha de nacimiento:</strong> para el recordatorio de cumpleaños.</li>
+        <li><strong>Fecha de la última vacuna y tipo:</strong> para calcular la próxima.</li>
+        <li><strong>Fecha de la última desparasitación:</strong> para el recordatorio semestral.</li>
+        <li><strong>Chip/pasaporte europeo:</strong> si atiendes animales de viaje o con documentación obligatoria.</li>
+      </ul>
+
+      <div class="screenshot-box">📸 Captura: Ficha de vehículo (taller) y ficha de mascota (veterinaria) con fechas de mantenimiento</div>
+    </section>
+
+    <!-- ===================== AUTOMATIZACIONES ===================== -->
+    <section>
+      <div class="section-tag">03 — Automatizaciones</div>
+      <h2>Automatizaciones activas para tu negocio</h2>
+      <p>NodeFlow incluye dos conjuntos de automatizaciones, uno para talleres y otro para veterinarias. Puedes activar o desactivar cada una desde <strong>Automatizaciones</strong> en el portal.</p>
+
+      <h3>🔧 Automatizaciones para talleres mecánicos</h3>
+
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio de cita — 24h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a la cita en el taller, el cliente recibe un email con fecha, hora y el trabajo a realizar. Incluye indicaciones de acceso y opción de confirmar o cancelar sin llamar.</p>
+        </div>
+
+        <div class="auto-card rose">
+          <div class="auto-header">
+            <span class="auto-icon">🚫</span>
+            <h4>No-show recovery</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si 30 minutos tras la hora de cita el estado sigue sin cambiar a "en taller", NodeFlow envía un email para reagendar: <em>"Vemos que no has podido traer el vehículo hoy. Sin problema, reserva tu nueva cita cuando te venga bien."</em></p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">🔄</span>
+            <h4>Recordatorio de mantenimiento periódico</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Basándose en la fecha de la última revisión, NodeFlow envía un recordatorio cuando toca la siguiente (por defecto: 365 días / 15.000 km). El email incluye un enlace de reserva directa. Puedes ajustar el período por tipo de servicio.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">🚗</span>
+            <h4>Aviso de ITV — 30/15/7 días antes del vencimiento</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>NodeFlow alerta al cliente con 30, 15 y 7 días de antelación antes de que venza la ITV de su vehículo. El email recuerda que tu taller ofrece revisión previa a ITV y facilita la reserva directa. Reduce el riesgo de que el cliente vaya directamente a la ITV sin pasar por el taller.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📋</span>
+            <h4>Aviso de renovación de seguro</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>Con 30 y 15 días de antelación, NodeFlow recuerda al cliente el vencimiento de su seguro. Es un servicio de valor añadido que fideliza sin coste: el cliente te agradece el aviso y asocia tu taller con un servicio de confianza integral.</p>
+        </div>
+      </div>
+
+      <h3>🐾 Automatizaciones para clínicas veterinarias</h3>
+
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio de cita — 24h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a la visita veterinaria, el dueño de la mascota recibe un email con fecha, hora, nombre de la mascota y tipo de consulta. Incluye indicaciones de preparación si aplica (en ayunas para análisis, traer cartilla de vacunación…).</p>
+        </div>
+
+        <div class="auto-card rose">
+          <div class="auto-header">
+            <span class="auto-icon">🚫</span>
+            <h4>No-show recovery</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si la mascota no aparece en la cita, NodeFlow envía un email empático para reagendar: <em>"Parece que [nombre de mascota] no pudo venir hoy. ¡No hay problema! Reserva una nueva cita cuando te venga bien."</em></p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">💉</span>
+            <h4>Recordatorio de vacunación anual</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Basándose en la fecha de la última vacuna registrada, NodeFlow envía un recordatorio cuando toca la siguiente (por defecto: 365 días para vacunas anuales, configurable por tipo). El email nombra a la mascota y la vacuna concreta para mayor personalización.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">🪲</span>
+            <h4>Recordatorio de desparasitación</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Cada 6 meses (configurable), NodeFlow recuerda al dueño que toca la desparasitación interna y/o externa de la mascota. Es uno de los recordatorios con mayor tasa de respuesta positiva porque el dueño sabe que olvidarlo afecta directamente a su animal.</p>
+        </div>
+
+        <div class="auto-card">
+          <div class="auto-header">
+            <span class="auto-icon">🎂</span>
+            <h4>Cumpleaños de la mascota</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>La mañana del cumpleaños de la mascota, NodeFlow envía un email festivo y personalizado al dueño. Es el detalle más valorado por los clientes de veterinarias: demuestra que la clínica conoce y quiere a su animal. Puedes incluir un mensaje especial o un descuento en la próxima visita.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📋</span>
+            <h4>Aviso de renovación de documentación (pasaporte, chip)</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>Para mascotas con pasaporte europeo o documentación de viaje, NodeFlow alerta al dueño con 60 y 30 días de antelación cuando algún certificado o tratamiento obligatorio está próximo a vencer. Especialmente útil para clínicas con clientes que viajan frecuentemente con sus animales.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Panel de Automatizaciones — vista dividida Talleres / Veterinarias con estado activo de cada regla</div>
+
+      <h3>Ajustar períodos de mantenimiento por servicio</h3>
+      <p>Los períodos por defecto son orientativos. Puedes personalizarlos en <strong>Automatizaciones → Mantenimiento → Editar</strong>:</p>
+      <ul>
+        <li><strong>Taller:</strong> cambio de aceite (12 meses / 10.000 km), neumáticos (24 meses), batería (36 meses), revisión general (12 meses)</li>
+        <li><strong>Veterinaria:</strong> vacuna polivalente (12 meses), rabia (12 o 36 meses según zona), desparasitación interna (6 meses), desparasitación externa (3 meses)</li>
+      </ul>
+    </section>
+
+    <!-- ===================== EL PORTAL ===================== -->
+    <section>
+      <div class="section-tag">04 — El Portal</div>
+      <h2>Tu centro de control: el Portal NodeFlow</h2>
+      <p>Accede desde cualquier dispositivo en <strong>nodeflow.es/portal</strong>. Pensado para usarse desde el ordenador de recepción o desde el móvil entre intervenciones.</p>
+
+      <div class="portal-grid">
+        <div class="portal-card">
+          <h4>📊 Dashboard</h4>
+          <p>Vista general: citas hoy, mantenimientos vencidos esta semana, automatizaciones enviadas este mes. Alerta visual si hay ITVs o vacunas venciendo en los próximos 7 días sin cita reservada.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📞 Llamadas</h4>
+          <p>Historial completo de llamadas atendidas por el asistente. Transcripción, duración, si se reservó cita. Escucha la grabación y añade notas al expediente del vehículo o mascota.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📆 Citas</h4>
+          <p>Calendario con vista día/semana/mes. Confirma, cancela o reagenda. Filtra por técnico (taller) o veterinario, o por tipo de servicio.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚡ Automatizaciones</h4>
+          <p>Activa o pausa cada regla. Consulta el historial de emails enviados y cuántos clientes han reservado cita tras recibir un recordatorio de mantenimiento.</p>
+        </div>
+        <div class="portal-card">
+          <h4>🚗 / 🐾 Expedientes</h4>
+          <p>Fichas de vehículos y mascotas con historial de visitas, emails enviados y próximas fechas de mantenimiento. Añade notas técnicas internas.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚙️ Configuración</h4>
+          <p>Actualiza horarios, servicios, períodos de mantenimiento, datos del asistente y textos de emails en cualquier momento.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Dashboard — alertas de ITV próximas y vacunas vencidas sin cita reservada</div>
+      <div class="screenshot-box">📸 Captura: Ficha de mascota — historial de vacunas y próxima fecha programada de recordatorio</div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section>
+      <div class="section-tag">05 — Preguntas Frecuentes</div>
+      <h2>Preguntas frecuentes</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <h4>¿Puedo usar NodeFlow para un negocio que tiene tanto taller como venta de recambios o tienda?</h4>
+          <p>Sí. En Configuración → Servicios puedes añadir cualquier tipo de servicio, incluidos los que no son cita estrictamente (consulta rápida de presupuesto, entrega de recambio…). Para ventas sin cita previa, el asistente puede informar al cliente del producto y horario de recogida sin necesidad de reservar un tiempo específico.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Cómo gestiona NodeFlow los recordatorios si tengo clientes con varios vehículos o varias mascotas?</h4>
+          <p>Cada vehículo o mascota tiene su propio expediente con sus fechas de mantenimiento independientes. Un mismo cliente puede tener múltiples fichas y cada una genera sus propios recordatorios de forma autónoma. Los emails indican siempre el nombre/matrícula del vehículo o el nombre de la mascota para evitar confusiones.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo activar recordatorios basados en kilómetros además de en fechas?</h4>
+          <p>Los recordatorios por kilómetros están disponibles en el plan Pro. Debes registrar los km en la ficha del vehículo tras cada visita. NodeFlow calculará el próximo mantenimiento basándose en el umbral de km que definas, enviando la alerta cuando estimes que el vehículo debería alcanzar ese kilómetro según el uso habitual.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Los emails de recordatorio de vacuna cumplen con la normativa de protección de datos?</h4>
+          <p>NodeFlow gestiona los envíos bajo base legal de interés legítimo (relación de prestación de servicios). Todos los emails incluyen enlace de baja. Para garantizar el cumplimiento del RGPD, asegúrate de que tu política de privacidad menciona el envío de comunicaciones de seguimiento sanitario para las mascotas registradas.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo pausar los recordatorios de un vehículo o mascota concreto sin desactivar todo el sistema?</h4>
+          <p>Sí. En la ficha de cada expediente (vehículo o mascota) puedes pausar individualmente todos los recordatorios automáticos. Esto es útil, por ejemplo, si un cliente ha vendido el coche o si una mascota ha fallecido, sin afectar al resto de clientes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SOPORTE ===================== -->
+    <section>
+      <div class="section-tag">06 — Soporte</div>
+      <h2>¿Necesitas ayuda?</h2>
+      <p>El equipo de NodeFlow está disponible para ayudarte a configurar tu asistente y maximizar las visitas recurrentes de tu negocio. Aquí tienes todos los canales de contacto.</p>
+
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="icon">📧</div>
+          <h4>Email</h4>
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">🌐</div>
+          <h4>Portal</h4>
+          <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">💻</div>
+          <h4>Web</h4>
+          <a href="https://nodeflow.es">nodeflow.es</a>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p><strong>Consejo:</strong> Si tienes dudas durante la configuración de los recordatorios de mantenimiento o los períodos de vacunación, escríbenos a hola@nodeflow.es con el asunto <em>"Onboarding Taller"</em> o <em>"Onboarding Veterinaria"</em>. Te respondemos en menos de 24 horas laborables y podemos hacer una videollamada de configuración guiada sin coste adicional.</p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía NodeFlow — Restaurantes y Hostelería</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 32px; }
+    .cover { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 80px 32px; max-width: 860px; margin: 0 auto; border-bottom: 1px solid var(--border); }
+    .logo-mark { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 60px; }
+    .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .logo-text { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+    .cover-badge { display: inline-block; background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.4); color: #a78bfa; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 14px; border-radius: 100px; margin-bottom: 24px; }
+    .cover h1 { font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 16px; }
+    .cover h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .cover-subtitle { font-size: 20px; color: var(--muted); margin-bottom: 48px; max-width: 560px; }
+    .cover-meta { display: flex; gap: 32px; font-size: 13px; color: var(--muted); }
+    .cover-meta strong { color: var(--text); }
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    .section-tag { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+    h2 { font-size: 32px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 24px; line-height: 1.2; }
+    h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; margin-top: 32px; color: var(--text); }
+    h3:first-of-type { margin-top: 0; }
+    p { color: var(--muted); margin-bottom: 16px; font-size: 15px; }
+    p strong { color: var(--text); }
+    ul, ol { padding-left: 20px; margin-bottom: 16px; }
+    li { color: var(--muted); margin-bottom: 8px; font-size: 15px; }
+    li strong { color: var(--text); }
+    .steps { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .step { display: flex; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; }
+    .step-content h4 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .step-content p { margin: 0; font-size: 14px; }
+    .auto-grid { display: grid; gap: 16px; margin: 24px 0; }
+    .auto-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 3px solid var(--accent); }
+    .auto-card.accent2 { border-left-color: var(--accent2); }
+    .auto-card.green { border-left-color: #10b981; }
+    .auto-card.amber { border-left-color: #f59e0b; }
+    .auto-card.rose { border-left-color: #f43f5e; }
+    .auto-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .auto-icon { font-size: 20px; }
+    .auto-header h4 { font-size: 15px; font-weight: 600; color: var(--text); }
+    .auto-badge { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 100px; background: rgba(124,58,237,0.15); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+    .auto-badge.pro { background: rgba(6,182,212,0.15); color: #67e8f9; border-color: rgba(6,182,212,0.3); }
+    .auto-card p { font-size: 14px; margin: 0; }
+    .screenshot-box { border: 2px dashed var(--accent); border-radius: 8px; padding: 24px; text-align: center; color: var(--muted); background: rgba(124,58,237,0.05); font-size: 14px; margin: 16px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+    .portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .portal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .portal-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .portal-card p { font-size: 13px; margin: 0; }
+    .faq { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .faq-item h4 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .faq-item p { font-size: 14px; margin: 0; }
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+    .support-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; text-align: center; }
+    .support-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .support-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .support-card a { color: var(--accent2); font-size: 14px; text-decoration: none; }
+    .info-box { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.25); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .info-box p { font-size: 14px; margin: 0; color: #c4b5fd; }
+    .print-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(15,15,15,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 12px 32px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .print-bar-logo { font-size: 16px; font-weight: 700; }
+    .print-bar-logo span { color: var(--accent); }
+    .btn-print { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-print:hover { background: #6d28d9; }
+    body { padding-top: 56px; }
+    @media print {
+      body { background: white; color: #111; padding-top: 0; font-size: 13px; }
+      .print-bar { display: none; }
+      .container { max-width: 100%; padding: 0 20px; }
+      .cover { min-height: 100vh; page-break-after: always; padding: 60px 20px; }
+      .cover h1 { font-size: 38px; color: #111; }
+      .cover h1 span { -webkit-text-fill-color: #5b21b6; color: #5b21b6; }
+      .cover-subtitle { color: #555; }
+      .cover-meta { color: #777; }
+      .cover-meta strong { color: #333; }
+      .cover-badge { color: #5b21b6; border-color: #5b21b6; background: #f5f3ff; }
+      .logo-text { color: #111; }
+      .logo-text span { color: #5b21b6; }
+      .logo-icon { background: #5b21b6; }
+      section { padding: 32px 0; border-bottom: 1px solid #e5e7eb; page-break-inside: avoid; }
+      .page-break { page-break-after: always; }
+      h2 { font-size: 22px; color: #111; margin-bottom: 16px; }
+      h3 { font-size: 15px; color: #111; }
+      p { color: #444; }
+      li { color: #444; }
+      li strong { color: #111; }
+      .section-tag { color: #5b21b6; }
+      .step { background: #f9fafb; border-color: #e5e7eb; }
+      .step-num { background: #5b21b6; }
+      .step-content h4 { color: #111; }
+      .step-content p { color: #444; }
+      .auto-card { background: #f9fafb; border-color: #e5e7eb; border-left-color: #5b21b6; }
+      .auto-card.accent2 { border-left-color: #0891b2; }
+      .auto-card.green { border-left-color: #059669; }
+      .auto-card.amber { border-left-color: #d97706; }
+      .auto-card.rose { border-left-color: #e11d48; }
+      .auto-header h4 { color: #111; }
+      .auto-card p { color: #444; }
+      .auto-badge { background: #f5f3ff; color: #5b21b6; border-color: #c4b5fd; }
+      .auto-badge.pro { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+      .screenshot-box { border-color: #c4b5fd; background: #f5f3ff; color: #6d28d9; min-height: 80px; }
+      .portal-card { background: #f9fafb; border-color: #e5e7eb; }
+      .portal-card h4 { color: #111; }
+      .portal-card p { color: #444; }
+      .portal-grid { grid-template-columns: 1fr 1fr; }
+      .faq-item { background: #f9fafb; border-color: #e5e7eb; page-break-inside: avoid; }
+      .faq-item h4 { color: #111; }
+      .faq-item p { color: #444; }
+      .support-card { background: #f9fafb; border-color: #e5e7eb; }
+      .support-card h4 { color: #111; }
+      .support-card a { color: #0891b2; }
+      .info-box { background: #f5f3ff; border-color: #c4b5fd; }
+      .info-box p { color: #5b21b6; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="print-bar">
+    <div class="print-bar-logo">Node<span>Flow</span></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir guía</button>
+  </div>
+
+  <div class="cover">
+    <div class="logo-mark">
+      <div class="logo-icon">🍽️</div>
+      <div class="logo-text">Node<span>Flow</span></div>
+    </div>
+    <div class="cover-badge">Guía de Uso · Restaurantes y Hostelería</div>
+    <h1>Restaurantes<br>y <span>Hostelería</span></h1>
+    <p class="cover-subtitle">
+      Tu asistente de voz para gestionar reservas de mesa, confirmar grupos y fidelizar comensales habituales — sin perder una llamada en hora punta.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong> 1.0</div>
+      <div><strong>Fecha</strong> Mayo 2026</div>
+      <div><strong>Plan</strong> Negocio / Pro</div>
+      <div><strong>Idiomas</strong> Castellano · Euskera · Inglés</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <section>
+      <div class="section-tag">01 — Introducción</div>
+      <h2>NodeFlow para tu restaurante o local de hostelería</h2>
+      <p>
+        En hostelería, el teléfono suena en los peores momentos: cuando el servicio está lleno, cuando estás en la cocina o cuando el local está cerrado y un turista quiere reservar para mañana. NodeFlow atiende todas esas llamadas, gestiona las reservas en tu nombre y confirma automáticamente sin que tengas que levantar el dedo.
+      </p>
+      <p>
+        El asistente responde en castellano, euskera e inglés de forma natural. Gestiona grupos, informa sobre menús del día, horarios y eventos especiales, y recupera comensales habituales que llevan semanas sin aparecer.
+      </p>
+      <h3>¿Por qué NodeFlow para restaurantes?</h3>
+      <ul>
+        <li><strong>Sin llamadas perdidas en hora punta:</strong> el asistente cubre el mediodía y la noche, cuando el servicio está lleno y nadie puede atender el teléfono.</li>
+        <li><strong>Turismo atendido en su idioma:</strong> responde en inglés para turistas sin que tengas que cambiar de idioma en mitad del servicio.</li>
+        <li><strong>Comensales habituales de vuelta:</strong> el sistema detecta quién no ha venido en 3 semanas y les recuerda su sitio favorito con un email cálido.</li>
+      </ul>
+      <div class="info-box">
+        <p><strong>Esta guía te enseña a:</strong> configurar tu asistente para reservas, activar confirmaciones y recordatorios automáticos, gestionar grupos y eventos, y usar el portal de reservas.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-tag">02 — Primeros Pasos</div>
+      <h2>Configura NodeFlow en 3 pasos</h2>
+      <p>Configuración inicial desde el portal web en menos de 20 minutos, sin necesidad de técnico.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Acceder al portal</h4>
+            <p>Ve a <strong>nodeflow.es/portal</strong> e inicia sesión. Si es la primera vez, usa el enlace de activación de tu email de bienvenida.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Configura tu restaurante</h4>
+            <p>En <strong>Configuración → Básico</strong>, elige el sector <em>Restaurantes / Hostelería</em>, introduce el nombre del restaurante, el teléfono y los idiomas de atención. Si recibes turistas, activa inglés como segundo idioma.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Configura horarios, servicios y aforo</h4>
+            <p>En <strong>Configuración → Horarios</strong> establece cuándo sirves comidas y cenas (y si cierras algún día). En <strong>Configuración → Servicios</strong> añade los turnos (comida, cena, menú degustación, eventos…) con su aforo máximo para que el asistente sepa cuándo puede aceptar reservas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-box">📸 Captura: Configuración → Básico — sector Restaurantes, idiomas activados, datos del local</div>
+
+      <h3>Información que el asistente puede dar automáticamente</h3>
+      <p>En <strong>Configuración → Servicios</strong> puedes añadir texto libre que el asistente memorizará y comunicará a los clientes:</p>
+      <ul>
+        <li><strong>Menú del día:</strong> actualízalo cada mañana con los platos del día (precio, entrantes, principales, postres).</li>
+        <li><strong>Política de grupos:</strong> "Para grupos de más de 8 personas necesitamos reserva con 48h de antelación y un menú cerrado."</li>
+        <li><strong>Parking y acceso:</strong> "Parking público a 50 metros en la Calle Mayor."</li>
+        <li><strong>Eventos especiales:</strong> "Este sábado tenemos cena especial de Temporada de Pintxos. Plazas limitadas."</li>
+      </ul>
+      <div class="screenshot-box">📸 Captura: Configuración → Servicios — campo "Información adicional" con menú del día</div>
+    </section>
+
+    <section>
+      <div class="section-tag">03 — Automatizaciones</div>
+      <h2>Automatizaciones activas para tu restaurante</h2>
+      <p>NodeFlow gestiona el ciclo completo del comensal de forma automática. Activa o desactiva cada regla desde <strong>Automatizaciones</strong> en el portal.</p>
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">✅</span>
+            <h4>Confirmación automática de reserva</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>En el momento en que el asistente gestiona una reserva telefónica, envía automáticamente un email de confirmación al cliente con los detalles: fecha, hora, número de personas, nombre y dirección del restaurante.</p>
+        </div>
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio — Día anterior</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a la reserva, el comensal recibe un recordatorio con todos los detalles de la reserva y la opción de cancelar si no puede venir, liberando la mesa a tiempo para ofrecerla a otros clientes.</p>
+        </div>
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">💌</span>
+            <h4>Rebooking — Comensales habituales inactivos 21 días</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si un comensal habitual no ha hecho una reserva en 21 días, NodeFlow le envía un email cálido recordándole el restaurante: <em>"Hace un tiempo que no te vemos por aquí. Tu mesa favorita te espera."</em></p>
+        </div>
+        <div class="auto-card rose">
+          <div class="auto-header">
+            <span class="auto-icon">🚫</span>
+            <h4>No-show recovery</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si 30 minutos después de la hora de reserva el estado sigue en "confirmada" (el cliente no apareció), NodeFlow envía un email empático: <em>"Lamentamos no haberte visto esta noche. ¿Quieres reservar para otro día?"</em></p>
+        </div>
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">🎂</span>
+            <h4>Email de cumpleaños</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>La mañana del cumpleaños de un comensal registrado, NodeFlow le envía un email festivo. Puedes incluir una oferta especial de cumpleaños (postre gratis, copa de cava, descuento en cena) para generar visitas.</p>
+        </div>
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">⭐</span>
+            <h4>Solicitud de valoración post-visita</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>El día siguiente a la visita, NodeFlow envía un email agradeciendo la visita y solicitando una valoración en Google Maps o TripAdvisor. Una forma elegante de conseguir reseñas sin pedirlas en persona.</p>
+        </div>
+      </div>
+      <div class="screenshot-box">📸 Captura: Panel de Automatizaciones — todas las reglas activas, último envío de cada una</div>
+
+      <h3>Gestión de grupos grandes</h3>
+      <p>Para grupos de más de 8 personas, el asistente puede:</p>
+      <ul>
+        <li>Informar que los grupos necesitan confirmación manual y tomar los datos de contacto</li>
+        <li>Derivar la llamada a tu móvil si estás disponible (configurable en Configuración → Derivaciones)</li>
+        <li>Enviar el email de datos del grupo para que los confirmes tú desde el portal</li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="section-tag">04 — El Portal</div>
+      <h2>Tu centro de control: el Portal NodeFlow</h2>
+      <p>Accede desde cualquier dispositivo en <strong>nodeflow.es/portal</strong>. Perfecto para revisarlo antes del servicio desde el móvil.</p>
+      <div class="portal-grid">
+        <div class="portal-card">
+          <h4>📊 Dashboard</h4>
+          <p>Reservas hoy, esta semana, tasa de no-shows y de rebooking. Ver de un vistazo si el servicio de hoy está lleno.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📞 Llamadas</h4>
+          <p>Historial de todas las llamadas con transcripción. Revisa si alguna reserva necesita confirmación manual.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📆 Reservas</h4>
+          <p>Vista de calendario con todas las reservas. Filtra por turno (comida/cena). Cancela o modifica desde aquí.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚡ Automatizaciones</h4>
+          <p>Activa o pausa confirmaciones, recordatorios y rebooking. Consulta el historial de emails enviados.</p>
+        </div>
+        <div class="portal-card">
+          <h4>👥 Comensales</h4>
+          <p>Fichas de comensales habituales con historial de visitas, preferencias y emails enviados.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚙️ Configuración</h4>
+          <p>Actualiza el menú del día, horarios, aforo y eventos especiales en cualquier momento.</p>
+        </div>
+      </div>
+      <div class="screenshot-box">📸 Captura: Vista Reservas — calendario con turnos comida y cena, estado de cada mesa</div>
+    </section>
+
+    <section>
+      <div class="section-tag">05 — Preguntas Frecuentes</div>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <h4>¿El asistente puede atender en inglés a turistas?</h4>
+          <p>Sí. Si activas el inglés en Configuración → Básico, el asistente detecta automáticamente el idioma del llamante y responde en inglés. Puede gestionar reservas, informar sobre el menú y responder preguntas básicas sobre el restaurante.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Cómo actualizo el menú del día?</h4>
+          <p>Ve a Configuración → Servicios y edita el campo "Menú del día". El asistente usará ese texto en todas las llamadas del día. Puedes hacerlo desde el móvil en 2 minutos cada mañana antes del servicio.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo pausar las reservas si estamos completos?</h4>
+          <p>Sí. En Configuración → Horarios puedes marcar un turno como completo o cerrado temporalmente. El asistente informará a los clientes que ese turno está lleno y les ofrecerá alternativas o tomar sus datos para una lista de espera.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿El asistente puede gestionar menús de alérgenos?</h4>
+          <p>Puede dar información general sobre alérgenos si la configuras en Servicios → Información adicional (ej: "Tenemos opciones sin gluten y veganas, infórmanos al reservar"). Para consultas específicas o alergias severas, el asistente derivará al local para confirmación humana.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Funciona durante las fiestas y festivos?</h4>
+          <p>El asistente funciona los 365 días del año. Si cierras por vacaciones o festivos, actualiza tus horarios en Configuración → Horarios y el asistente informará automáticamente a quien llame.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-tag">06 — Soporte</div>
+      <h2>¿Necesitas ayuda?</h2>
+      <p>El equipo de NodeFlow está disponible para ayudarte. Aquí tienes todos los canales de contacto.</p>
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="icon">📧</div>
+          <h4>Email</h4>
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">🌐</div>
+          <h4>Portal</h4>
+          <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">💻</div>
+          <h4>Web</h4>
+          <a href="https://nodeflow.es">nodeflow.es</a>
+        </div>
+      </div>
+      <div class="info-box">
+        <p><strong>Consejo:</strong> Escríbenos con el asunto <em>"Onboarding Restaurante"</em> y en 24h hacemos una videollamada para configurar juntos el menú del día, los textos de reserva y las automatizaciones de tu local.</p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>
