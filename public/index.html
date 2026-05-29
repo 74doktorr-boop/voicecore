@@ -30,7 +30,7 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow IA","url":"https://nodeflow.es","description":"Plataforma de IA con memoria persistente que contesta llamadas, recuerda clientes, consulta documentos reales (RAG), agenda citas por voz y gestiona 4 canales de comunicación.","applicationCategory":"BusinessApplication","operatingSystem":"Web","offers":{"@type":"AggregateOffer","lowPrice":"0","highPrice":"99","priceCurrency":"EUR","offerCount":"3"}}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es NodeFlow IA?","acceptedAnswer":{"@type":"Answer","text":"Es una plataforma de IA que atiende llamadas, recuerda clientes, consulta documentos reales, agenda citas y te envía informes. 24/7 en castellano y euskera."}},{"@type":"Question","name":"¿Necesito cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. Configuramos un desvío desde tu número actual. No necesitas cambiar nada."}},{"@type":"Question","name":"¿Cuánto tarda en activarse?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que nos proporcionas la información de tu negocio."}},{"@type":"Question","name":"¿Es legal?","acceptedAnswer":{"@type":"Answer","text":"Sí, cumplimos con el RGPD. La IA avisa al inicio de cada llamada que está siendo atendida por un asistente de inteligencia artificial."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es NodeFlow IA?","acceptedAnswer":{"@type":"Answer","text":"Es una plataforma de IA que atiende llamadas, recuerda clientes, consulta documentos reales, agenda citas y te envía informes. 24/7 en castellano y euskera."}},{"@type":"Question","name":"¿Necesito cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. Configuramos un desvío desde tu número actual. No necesitas cambiar nada."}},{"@type":"Question","name":"¿Cuánto tarda en activarse?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que nos proporcionas la información de tu negocio."}},{"@type":"Question","name":"¿Es legal?","acceptedAnswer":{"@type":"Answer","text":"Sí, cumplimos con el RGPD. La IA avisa al inicio de cada llamada que está siendo atendida por un asistente de inteligencia artificial."}},{"@type":"Question","name":"¿Qué es la memoria persistente?","acceptedAnswer":{"@type":"Answer","text":"La IA recuerda las conversaciones anteriores de cada llamante. Sabe su nombre, preferencias y qué pidió la última vez. Cada interacción es más personalizada."}},{"@type":"Question","name":"¿Cómo funciona la base de conocimiento?","acceptedAnswer":{"@type":"Answer","text":"Subes tus documentos (menú, precios, FAQ) y la IA los consulta en tiempo real durante las llamadas para dar información real y actualizada de tu negocio."}},{"@type":"Question","name":"¿Qué pasa si el cliente quiere hablar con un humano?","acceptedAnswer":{"@type":"Answer","text":"La IA detecta automáticamente cuando el cliente necesita atención humana y te envía una notificación inmediata por WhatsApp con el resumen de la conversación."}},{"@type":"Question","name":"¿Puedo cancelar en cualquier momento?","acceptedAnswer":{"@type":"Answer","text":"Sí, sin permanencia ni letra pequeña. Puedes cancelar tu suscripción cuando quieras desde tu panel de control. Sin preguntas, sin penalizaciones."}}]}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"NodeFlow IA","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
@@ -444,7 +444,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 
 /* ── FOOTER ── */
 .footer{border-top:1px solid var(--border);padding:56px 0 28px;background:var(--bg-2);}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px;}
 .footer-brand .logo{margin-bottom:12px;display:inline-block;}
 .footer-brand p{font-size:.86rem;color:var(--text-2);line-height:1.7;max-width:280px;}
 .footer-col h4{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-2);margin-bottom:14px;}
@@ -484,7 +484,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
   .ba-grid{grid-template-columns:1fr;}
   .steps{flex-direction:column;gap:28px;}
   .steps::before{display:none;}
-  .footer-grid{grid-template-columns:1fr 1fr;}
+  .footer-grid{grid-template-columns:repeat(3,1fr);}
   .demo-wrapper{flex-direction:column;align-items:center;}
   .side-cards{width:100%;max-width:360px;}
   .trust-grid{grid-template-columns:repeat(2,1fr);}
@@ -701,6 +701,8 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
         <li><a href="#sectores">Sectores</a></li>
         <li><a href="#precios">Precios</a></li>
         <li><a href="#faq">FAQ</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/guias">Guías</a></li>
       </ul>
       <div class="nav-cta">
         <a href="/login.html" class="nav-login">Acceder</a>
@@ -719,6 +721,8 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
   <a href="#sectores" onclick="closeMobileNav()">Sectores</a>
   <a href="#precios" onclick="closeMobileNav()">Precios</a>
   <a href="#faq" onclick="closeMobileNav()">FAQ</a>
+  <a href="/blog" onclick="closeMobileNav()">Blog</a>
+  <a href="/guias" onclick="closeMobileNav()">Guías</a>
   <a href="/login.html" onclick="closeMobileNav()">Acceder</a>
   <a href="#precios" class="btn btn-primary" onclick="closeMobileNav()">Empezar →</a>
 </div>
@@ -1167,49 +1171,34 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
       <h2>Diseñado para <span class="gradient-text">tu sector</span></h2>
       <p>Soluciones adaptadas a las necesidades de cada industria.</p>
     </div>
-    <div class="sectors-grid reveal">
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=restaurante">
-        <span class="sc-icon">🍽️</span>
-        <h3>Restaurantes</h3>
-        <p>Reservas, menú del día, alérgenos. Todo automatizado.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=clinica">
-        <span class="sc-icon">🦷</span>
-        <h3>Clínicas dentales</h3>
-        <p>Gestión de citas, recordatorios y urgencias.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=peluqueria">
-        <span class="sc-icon">✂️</span>
-        <h3>Peluquerías</h3>
-        <p>Reservas de servicios, horarios y estilistas.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=veterinaria">
-        <span class="sc-icon">🐾</span>
-        <h3>Veterinarias</h3>
-        <p>Citas, vacunaciones y urgencias 24/7.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=taller">
-        <span class="sc-icon">🔧</span>
-        <h3>Talleres</h3>
-        <p>Presupuestos, estado de reparaciones y citas.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=estetica">
-        <span class="sc-icon">💆</span>
-        <h3>Estética</h3>
-        <p>Reserva de tratamientos, horarios y consultas.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
-      <a class="sector-card" href="/onboarding.html?plan=negocio&sector=fisioterapia">
-        <span class="sc-icon">🏥</span>
-        <h3>Fisioterapia</h3>
-        <p>Citas, seguimiento de pacientes y tratamientos.</p>
-        <span class="sector-price">Desde 49€/mes →</span>
-      </a>
+    <div class="sectors-grid reveal" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+      <a class="sector-card" href="/fisioterapia"><span class="sc-icon">🏥</span><h3>Fisioterapia</h3><p>Citas, seguimiento y tratamientos.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/clinicas"><span class="sc-icon">🦷</span><h3>Clínicas dentales</h3><p>Gestión de citas y urgencias.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/veterinarias"><span class="sc-icon">🐾</span><h3>Veterinarias</h3><p>Citas, vacunaciones 24/7.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/psicologia"><span class="sc-icon">🧠</span><h3>Psicología</h3><p>Consultas y seguimiento.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/nutricion"><span class="sc-icon">🥗</span><h3>Nutrición</h3><p>Consultas y planes.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/podologia"><span class="sc-icon">🦶</span><h3>Podología</h3><p>Citas y tratamientos.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/optica"><span class="sc-icon">👓</span><h3>Ópticas</h3><p>Revisiones y seguros.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/peluquerias"><span class="sc-icon">✂️</span><h3>Peluquerías</h3><p>Reservas y estilistas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/estetica"><span class="sc-icon">💆</span><h3>Estética</h3><p>Tratamientos y horarios.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/estetica-avanzada"><span class="sc-icon">✨</span><h3>Estética avanzada</h3><p>Láser, hifu, rellenos.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/yoga"><span class="sc-icon">🧘</span><h3>Yoga</h3><p>Clases y reservas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/pilates"><span class="sc-icon">🤸</span><h3>Pilates</h3><p>Clases y reservas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/restaurantes"><span class="sc-icon">🍽️</span><h3>Restaurantes</h3><p>Reservas y menú del día.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/hoteles"><span class="sc-icon">🏨</span><h3>Hoteles</h3><p>Reservas y atención.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/gimnasios"><span class="sc-icon">💪</span><h3>Gimnasios</h3><p>Altas, clases, consultas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/talleres"><span class="sc-icon">🔧</span><h3>Talleres</h3><p>Presupuestos y estado.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/reformas"><span class="sc-icon">🏗️</span><h3>Reformas</h3><p>Presupuestos e inicio.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/autoescuela"><span class="sc-icon">🚗</span><h3>Autoescuelas</h3><p>Clases y exámenes.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/agencia-viajes"><span class="sc-icon">✈️</span><h3>Agencias de viajes</h3><p>Consultas y reservas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/abogados"><span class="sc-icon">⚖️</span><h3>Abogados</h3><p>Consultas y plazos.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/asesorias"><span class="sc-icon">📊</span><h3>Asesorías</h3><p>Consultas fiscales.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/notaria"><span class="sc-icon">📋</span><h3>Notarías</h3><p>Citas y documentos.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/coaching"><span class="sc-icon">🎯</span><h3>Coaching</h3><p>Sesiones y seguimiento.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/farmacias"><span class="sc-icon">💊</span><h3>Farmacias</h3><p>Turnos y consultas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/academias"><span class="sc-icon">📚</span><h3>Academias</h3><p>Matrículas y horarios.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/inmobiliarias"><span class="sc-icon">🏠</span><h3>Inmobiliarias</h3><p>Visitas y consultas.</p><span class="sector-price">Desde 49€/mes →</span></a>
+      <a class="sector-card" href="/guarderia-canina"><span class="sc-icon">🐕</span><h3>Guarderías caninas</h3><p>Reservas y cuidados.</p><span class="sector-price">Desde 49€/mes →</span></a>
     </div>
   </div>
 </section>
@@ -1466,15 +1455,28 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
       </div>
       <div class="footer-col">
         <h4>Legal</h4>
-        <a href="/privacy">Política de privacidad</a>
-        <a href="/terms">Términos de uso</a>
-        <a href="/terms">Aviso legal</a>
+        <a href="/privacidad">Política de privacidad</a>
+        <a href="/terminos">Términos de uso</a>
+        <a href="/aviso-legal">Aviso legal</a>
       </div>
       <div class="footer-col">
         <h4>Contacto</h4>
         <a href="tel:+34666351319">+34 666 351 319</a>
         <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a>
         <a href="https://wa.me/34666351319" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <div class="footer-col">
+        <h4>Recursos</h4>
+        <a href="/blog">Blog</a>
+        <a href="/guias">Guías de uso</a>
+        <a href="/admin/playground.html">Demo IA</a>
+      </div>
+      <div class="footer-col">
+        <h4>Ciudades</h4>
+        <a href="/bilbao">Bilbao</a>
+        <a href="/donostia">Donostia</a>
+        <a href="/vitoria">Vitoria</a>
+        <a href="/andoain">Andoain</a>
       </div>
     </div>
     <div class="footer-bottom">
