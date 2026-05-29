@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía NodeFlow — Belleza y Estética</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 32px; }
+
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px 32px;
+      max-width: 860px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 60px; }
+    .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .logo-text { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+
+    .cover-badge { display: inline-block; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(124, 58, 237, 0.4); color: #a78bfa; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 14px; border-radius: 100px; margin-bottom: 24px; }
+
+    .cover h1 { font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 16px; }
+    .cover h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .cover-subtitle { font-size: 20px; color: var(--muted); margin-bottom: 48px; max-width: 560px; }
+    .cover-meta { display: flex; gap: 32px; font-size: 13px; color: var(--muted); }
+    .cover-meta strong { color: var(--text); }
+
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    .section-tag { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+    h2 { font-size: 32px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 24px; line-height: 1.2; }
+    h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; margin-top: 32px; color: var(--text); }
+    h3:first-of-type { margin-top: 0; }
+    p { color: var(--muted); margin-bottom: 16px; font-size: 15px; }
+    p strong { color: var(--text); }
+    ul, ol { padding-left: 20px; margin-bottom: 16px; }
+    li { color: var(--muted); margin-bottom: 8px; font-size: 15px; }
+    li strong { color: var(--text); }
+
+    .steps { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .step { display: flex; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; }
+    .step-content h4 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .step-content p { margin: 0; font-size: 14px; }
+
+    .auto-grid { display: grid; gap: 16px; margin: 24px 0; }
+    .auto-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 3px solid var(--accent); }
+    .auto-card.accent2 { border-left-color: var(--accent2); }
+    .auto-card.green { border-left-color: #10b981; }
+    .auto-card.amber { border-left-color: #f59e0b; }
+    .auto-card.rose { border-left-color: #f43f5e; }
+    .auto-card.pink { border-left-color: #ec4899; }
+    .auto-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .auto-icon { font-size: 20px; }
+    .auto-header h4 { font-size: 15px; font-weight: 600; color: var(--text); }
+    .auto-badge { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 100px; background: rgba(124, 58, 237, 0.15); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.3); }
+    .auto-badge.pro { background: rgba(6, 182, 212, 0.15); color: #67e8f9; border-color: rgba(6, 182, 212, 0.3); }
+    .auto-card p { font-size: 14px; margin: 0; }
+
+    .screenshot-box { border: 2px dashed var(--accent); border-radius: 8px; padding: 24px; text-align: center; color: var(--muted); background: rgba(124, 58, 237, 0.05); font-size: 14px; margin: 16px 0; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+
+    .portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .portal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .portal-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .portal-card p { font-size: 13px; margin: 0; }
+
+    .faq { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .faq-item h4 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .faq-item p { font-size: 14px; margin: 0; }
+
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+    .support-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; text-align: center; }
+    .support-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .support-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .support-card a { color: var(--accent2); font-size: 14px; text-decoration: none; }
+
+    .info-box { background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .info-box p { font-size: 14px; margin: 0; color: #c4b5fd; }
+
+    .highlight-box { background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.25); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .highlight-box p { font-size: 14px; margin: 0; color: #f9a8d4; }
+
+    .print-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 12px 32px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .print-bar-logo { font-size: 16px; font-weight: 700; }
+    .print-bar-logo span { color: var(--accent); }
+    .btn-print { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-print:hover { background: #6d28d9; }
+    body { padding-top: 56px; }
+
+    @media print {
+      body { background: white; color: #111; padding-top: 0; font-size: 13px; }
+      .print-bar { display: none; }
+      .container { max-width: 100%; padding: 0 20px; }
+      .cover { min-height: 100vh; page-break-after: always; padding: 60px 20px; }
+      .cover h1 { font-size: 38px; color: #111; }
+      .cover h1 span { -webkit-text-fill-color: #5b21b6; color: #5b21b6; }
+      .cover-subtitle { color: #555; }
+      .cover-meta { color: #777; }
+      .cover-meta strong { color: #333; }
+      .cover-badge { color: #5b21b6; border-color: #5b21b6; background: #f5f3ff; }
+      .logo-text { color: #111; }
+      .logo-text span { color: #5b21b6; }
+      .logo-icon { background: #5b21b6; }
+      section { padding: 32px 0; border-bottom: 1px solid #e5e7eb; page-break-inside: avoid; }
+      h2 { font-size: 22px; color: #111; margin-bottom: 16px; }
+      h3 { font-size: 15px; color: #111; }
+      p { color: #444; }
+      li { color: #444; }
+      li strong { color: #111; }
+      .section-tag { color: #5b21b6; }
+      .step { background: #f9fafb; border-color: #e5e7eb; }
+      .step-num { background: #5b21b6; }
+      .step-content h4 { color: #111; }
+      .step-content p { color: #444; }
+      .auto-card { background: #f9fafb; border-color: #e5e7eb; border-left-color: #5b21b6; }
+      .auto-card.accent2 { border-left-color: #0891b2; }
+      .auto-card.green { border-left-color: #059669; }
+      .auto-card.amber { border-left-color: #d97706; }
+      .auto-card.rose { border-left-color: #e11d48; }
+      .auto-card.pink { border-left-color: #db2777; }
+      .auto-header h4 { color: #111; }
+      .auto-card p { color: #444; }
+      .auto-badge { background: #f5f3ff; color: #5b21b6; border-color: #c4b5fd; }
+      .auto-badge.pro { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+      .screenshot-box { border-color: #c4b5fd; background: #f5f3ff; color: #6d28d9; min-height: 80px; }
+      .portal-card { background: #f9fafb; border-color: #e5e7eb; }
+      .portal-card h4 { color: #111; }
+      .portal-card p { color: #444; }
+      .faq-item { background: #f9fafb; border-color: #e5e7eb; page-break-inside: avoid; }
+      .faq-item h4 { color: #111; }
+      .faq-item p { color: #444; }
+      .support-card { background: #f9fafb; border-color: #e5e7eb; }
+      .support-card h4 { color: #111; }
+      .support-card a { color: #0891b2; }
+      .info-box { background: #f5f3ff; border-color: #c4b5fd; }
+      .info-box p { color: #5b21b6; }
+      .highlight-box { background: #fdf2f8; border-color: #f9a8d4; }
+      .highlight-box p { color: #9d174d; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="print-bar no-print">
+    <div class="print-bar-logo">Node<span>Flow</span></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir guía</button>
+  </div>
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="logo-mark">
+      <div class="logo-icon">🎙️</div>
+      <div class="logo-text">Node<span>Flow</span></div>
+    </div>
+    <div class="cover-badge">Guía de Uso · Sector Belleza</div>
+    <h1>Belleza<br>y <span>Estética</span></h1>
+    <p class="cover-subtitle">
+      Tu recepcionista virtual para salones, centros de estética y clínicas de tratamientos — nunca más pierdas una cita por no contestar el teléfono.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong> 1.0</div>
+      <div><strong>Fecha</strong> Mayo 2026</div>
+      <div><strong>Plan</strong> Negocio / Pro</div>
+      <div><strong>Idiomas</strong> Castellano · Euskera</div>
+    </div>
+  </div>
+
+  <!-- INTRODUCCIÓN -->
+  <div class="container">
+    <section>
+      <div class="section-tag">01 — Introducción</div>
+      <h2>NodeFlow para tu salón o centro de estética</h2>
+      <p>
+        En un salón de belleza o centro de estética, el teléfono suena constantemente: mientras atiendes a un cliente, otra persona llama para pedir cita y termina llamando a la competencia. NodeFlow soluciona exactamente esto: atiende todas las llamadas en tu nombre, reserva citas, informa de precios y servicios, todo de forma automática y natural.
+      </p>
+      <p>
+        Pero NodeFlow va mucho más allá de contestar llamadas. Sabe cuándo tus clientes deben volver para su próximo tratamiento, les recuerda sus citas, celebra su cumpleaños con un mensaje especial, y los contacta si llevan demasiado tiempo sin verte. Todo de forma automática y personalizada.
+      </p>
+
+      <h3>¿Por qué NodeFlow para belleza y estética?</h3>
+      <ul>
+        <li><strong>Más citas, menos esfuerzo:</strong> el asistente gestiona las reservas mientras tú te centras en tus clientes. No más interrupciones durante los tratamientos.</li>
+        <li><strong>Fidelización inteligente:</strong> los recordatorios de ciclos de tratamiento y los emails de reenganche recuperan clientes que no han vuelto en 45 días, aumentando el ticket medio mensual.</li>
+        <li><strong>Experiencia premium:</strong> un email de cumpleaños con descuento exclusivo hace que tus clientes se sientan especiales y refuerza su lealtad a tu centro.</li>
+      </ul>
+
+      <div class="info-box">
+        <p><strong>Esta guía te enseña a:</strong> configurar NodeFlow para tu salón o centro, activar las automatizaciones de belleza (recordatorios de ciclos de láser, rebooking, no-shows, cumpleaños), y gestionar tu agenda desde el portal.</p>
+      </div>
+    </section>
+
+    <!-- PRIMEROS PASOS -->
+    <section>
+      <div class="section-tag">02 — Primeros Pasos</div>
+      <h2>Configura NodeFlow en 3 pasos</h2>
+      <p>La configuración inicial se completa en el portal en menos de 20 minutos. Puedes hacerlo desde el ordenador o desde tu móvil.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Acceder al portal</h4>
+            <p>Ve a <strong>nodeflow.es/portal</strong> e inicia sesión. Si es la primera vez, activa tu cuenta desde el email que recibiste al registrarte en NodeFlow.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Configura tu asistente</h4>
+            <p>En <strong>Configuración → Básico</strong>, selecciona el sector <em>Belleza / Estética</em>. Introduce el nombre de tu salón o centro, el número de teléfono y el idioma de atención. Con el sector correcto, el asistente tendrá el vocabulario y tono adecuados para tu negocio.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Añade tus servicios y horarios</h4>
+            <p>En <strong>Configuración → Servicios</strong> lista todos los tratamientos que ofreces: corte, tinte, manicura, depilación láser, faciales, etc. Indica la duración de cada uno. En <strong>Configuración → Horarios</strong> define tus horas de apertura por día de la semana y los posibles días de cierre.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Sección Configuración del portal — pestañas Básico, Servicios, Horarios</div>
+
+      <h3>Datos importantes de tus clientes</h3>
+      <p>Para aprovechar todas las automatizaciones, completa la ficha de cada cliente con:</p>
+      <ul>
+        <li><strong>Email:</strong> indispensable para todos los envíos automáticos.</li>
+        <li><strong>Fecha de nacimiento:</strong> para el email de cumpleaños con descuento especial.</li>
+        <li><strong>Tipo de tratamiento recurrente:</strong> por ejemplo, "depilación láser ciclo 4 semanas" o "tinte cada 6 semanas". Esto activa los recordatorios de ciclo.</li>
+      </ul>
+
+      <div class="screenshot-box">📸 Captura: Ficha de cliente — campos Email, Fecha nacimiento, Tratamientos recurrentes</div>
+    </section>
+
+    <!-- AUTOMATIZACIONES -->
+    <section>
+      <div class="section-tag">03 — Automatizaciones</div>
+      <h2>Automatizaciones activas para tu centro</h2>
+      <p>Estas son las automatizaciones preconfiguradas para el sector belleza y estética. Actívalas o ajústalas desde <strong>Automatizaciones</strong> en el portal.</p>
+
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio de cita — 24h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a la cita, tu cliente recibe un email con todos los detalles: servicio reservado, hora, duración y dirección. Puede confirmar o cancelar con un clic, sin llamarte.</p>
+        </div>
+
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">🔔</span>
+            <h4>Recordatorio de cita — 2h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Recordatorio de último momento para minimizar los olvidos. Especialmente útil para citas de mañana temprano o primeras horas de tarde.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">💌</span>
+            <h4>Rebooking — Clientes inactivos 45 días</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si un cliente no ha tenido cita en 45 días, NodeFlow le envía un email de reenganche: <em>"¡Te echamos de menos! Reserva tu próxima visita con un 10% de descuento."</em> El período de 45 días es ajustable por servicio.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">📩</span>
+            <h4>Second touch — 3 días sin respuesta</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si el cliente no reserva en los 3 días siguientes al email de rebooking, recibe un segundo contacto con un recordatorio diferente, mostrando los últimos huecos disponibles de la semana.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">💆</span>
+            <h4>Recordatorio de ciclo de tratamiento</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Para tratamientos con ciclos definidos (depilación láser, lifting de pestañas, hidratación profunda), NodeFlow envía un recordatorio automático 4 semanas antes del próximo ciclo recomendado. El cliente puede reservar directamente desde el email.</p>
+        </div>
+
+        <div class="auto-card rose">
+          <div class="auto-header">
+            <span class="auto-icon">🚫</span>
+            <h4>No-show recovery</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si 30 minutos después de la hora de la cita el estado sigue en "confirmada", NodeFlow envía un email amigable para reagendar: <em>"¡Vemos que hoy no pudiste venir! No hay problema, aquí tienes hueco para reagendar."</em></p>
+        </div>
+
+        <div class="auto-card pink">
+          <div class="auto-header">
+            <span class="auto-icon">🎂</span>
+            <h4>Email de cumpleaños con descuento</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>La mañana del cumpleaños de tu cliente, NodeFlow envía un email festivo personalizado con un descuento exclusivo de cumpleaños en su tratamiento favorito. Una forma eficaz de fidelizar y generar citas en días especiales.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Panel de Automatizaciones — estado activo/inactivo, últimos envíos y tasa de apertura</div>
+
+      <h3>Ajusta los períodos de rebooking por servicio</h3>
+      <p>Cada servicio tiene su propio ritmo natural de repetición. En <strong>Automatizaciones → Rebooking → Configurar por servicio</strong> puedes personalizar:</p>
+      <ul>
+        <li>Tinte o coloración: <strong>45–60 días</strong></li>
+        <li>Depilación con cera: <strong>21–28 días</strong></li>
+        <li>Manicura/pedicura: <strong>21 días</strong></li>
+        <li>Tratamientos faciales: <strong>30 días</strong></li>
+        <li>Depilación láser: <strong>28–42 días</strong> (según protocolo)</li>
+      </ul>
+
+      <div class="highlight-box">
+        <p><strong>Consejo Pro:</strong> Para la depilación láser, configura el recordatorio de ciclo en lugar del rebooking genérico. Así el email incluye contexto específico del tratamiento ("Estás en la fase X de tu ciclo, es momento de la siguiente sesión") y convierte mucho mejor.</p>
+      </div>
+    </section>
+
+    <!-- EL PORTAL -->
+    <section>
+      <div class="section-tag">04 — El Portal</div>
+      <h2>Gestiona tu centro desde el portal</h2>
+      <p>El portal NodeFlow es tu panel de control para todo lo que pasa en tu centro: llamadas, citas, clientes y automatizaciones. Accede desde <strong>nodeflow.es/portal</strong>.</p>
+
+      <div class="portal-grid">
+        <div class="portal-card">
+          <h4>📊 Dashboard</h4>
+          <p>Resumen del día y la semana: citas pendientes, llamadas atendidas, automatizaciones enviadas, tasa de ocupación. Detecta rápido si hay huecos que rellenar.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📞 Llamadas</h4>
+          <p>Historial de todas las llamadas atendidas por el asistente, con transcripción completa. Puedes escuchar cualquier llamada y ver si se reservó cita o no.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📆 Citas</h4>
+          <p>Calendario con vista día, semana y mes. Filtra por estilista o servicio. Confirma, cancela o mueve citas manualmente si es necesario.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚡ Automatizaciones</h4>
+          <p>Controla qué automatizaciones están activas, revisa el historial de emails, las tasas de apertura y cuántas citas se han generado gracias a los envíos.</p>
+        </div>
+        <div class="portal-card">
+          <h4>👤 Clientes</h4>
+          <p>Fichas completas con historial, tratamientos recurrentes, fechas clave y notas privadas. Imprescindible para personalizar la experiencia de cada cliente.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚙️ Configuración</h4>
+          <p>Actualiza precios, servicios, horarios especiales (festivos, vacaciones), textos de los emails automáticos y configuración del asistente de voz.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Dashboard — métricas de la semana, próximas citas y últimas automatizaciones enviadas</div>
+      <div class="screenshot-box">📸 Captura: Calendario de citas semanal con estados (confirmada, pendiente, cancelada, no-show)</div>
+    </section>
+
+    <!-- FAQ -->
+    <section>
+      <div class="section-tag">05 — Preguntas Frecuentes</div>
+      <h2>Preguntas frecuentes</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <h4>¿El asistente puede gestionar varios estilistas o cabinas al mismo tiempo?</h4>
+          <p>Sí. En Configuración → Servicios asignas cada servicio a uno o varios profesionales y defines su disponibilidad. Cuando un cliente llama para reservar, el asistente consulta la agenda del profesional disponible y ofrece los huecos libres en tiempo real.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo enviar recordatorios de ciclos de láser a clientes que llevan meses sin venir?</h4>
+          <p>Sí, con la automatización de Rebooking. Una vez que un cliente tiene asociado un servicio de ciclo (como depilación láser), NodeFlow calcula cuándo debería ser su próxima cita y le envía el recordatorio automáticamente, sin importar cuánto tiempo haya pasado.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Qué descuento se envía en el email de cumpleaños?</h4>
+          <p>El porcentaje o importe del descuento lo defines tú en Automatizaciones → Cumpleaños → Configurar. Puedes usar un descuento fijo (ej: 15% en cualquier servicio) o un servicio específico a precio reducido (ej: manicura a €15).</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿El asistente informa de precios cuando llaman?</h4>
+          <p>Sí, si tienes los precios configurados en Configuración → Servicios. El asistente puede informar del precio aproximado o de un rango si el precio varía (por ejemplo, por longitud de cabello en el caso de cortes o tintes).</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo desactivar los emails de rebooking para clientes VIP?</h4>
+          <p>Sí. En la ficha de cada cliente puedes activar el modo "Sin automatizaciones" para excluirlo de todos los envíos automáticos. Útil para clientes con acuerdos especiales o que prefieren el contacto directo contigo.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOPORTE -->
+    <section>
+      <div class="section-tag">06 — Soporte</div>
+      <h2>¿Necesitas ayuda?</h2>
+      <p>Estamos aquí para ayudarte a configurar tu centro y sacar el máximo partido a todas las automatizaciones de NodeFlow.</p>
+
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="icon">📧</div>
+          <h4>Email</h4>
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">🌐</div>
+          <h4>Portal</h4>
+          <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">💻</div>
+          <h4>Web</h4>
+          <a href="https://nodeflow.es">nodeflow.es</a>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p><strong>Onboarding incluido:</strong> Escríbenos a hola@nodeflow.es con el asunto <em>"Onboarding Belleza"</em> y te ayudamos a configurar tus servicios, ciclos de tratamiento y automatizaciones en una videollamada de 30 minutos sin coste adicional.</p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>

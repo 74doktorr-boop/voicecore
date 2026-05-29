@@ -666,4 +666,36 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- ── Guías de uso por sector ── -->
+  <url>
+    <loc>https://nodeflow.es/guias/salud-fisioterapia</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/guias/belleza-estetica</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/guias/restaurantes-hosteleria</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/guias/servicios-profesionales</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/guias/talleres-veterinarias</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>

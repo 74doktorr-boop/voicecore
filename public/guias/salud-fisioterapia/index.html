@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía NodeFlow — Salud y Fisioterapia</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    /* COVER PAGE */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px 32px;
+      max-width: 860px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 60px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .cover h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .cover h1 span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 32px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cover-meta strong { color: var(--text); }
+
+    /* SECTIONS */
+    section {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      margin-bottom: 24px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 32px;
+      color: var(--text);
+    }
+
+    h3:first-of-type { margin-top: 0; }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    p strong { color: var(--text); }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    li strong { color: var(--text); }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .step-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* AUTOMATION CARDS */
+    .auto-grid { display: grid; gap: 16px; margin: 24px 0; }
+
+    .auto-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .auto-card.accent2 { border-left-color: var(--accent2); }
+    .auto-card.green { border-left-color: #10b981; }
+    .auto-card.amber { border-left-color: #f59e0b; }
+    .auto-card.rose { border-left-color: #f43f5e; }
+
+    .auto-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .auto-icon { font-size: 20px; }
+
+    .auto-header h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .auto-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: rgba(124, 58, 237, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    .auto-badge.pro {
+      background: rgba(6, 182, 212, 0.15);
+      color: #67e8f9;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .auto-card p { font-size: 14px; margin: 0; }
+
+    /* SCREENSHOT BOX */
+    .screenshot-box {
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(124, 58, 237, 0.05);
+      font-size: 14px;
+      margin: 16px 0;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* PORTAL SECTIONS */
+    .portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+
+    .portal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .portal-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .portal-card p { font-size: 13px; margin: 0; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .faq-item h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .faq-item p { font-size: 14px; margin: 0; }
+
+    /* SUPPORT */
+    .support-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+
+    .support-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .support-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .support-card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .support-card a { color: var(--accent2); font-size: 14px; text-decoration: none; }
+
+    /* INFO BOX */
+    .info-box {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .info-box p { font-size: 14px; margin: 0; color: #c4b5fd; }
+
+    /* NAV PRINT BUTTON */
+    .print-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .print-bar-logo { font-size: 16px; font-weight: 700; }
+    .print-bar-logo span { color: var(--accent); }
+
+    .btn-print {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-print:hover { background: #6d28d9; }
+
+    body { padding-top: 56px; }
+
+    /* ===== PRINT STYLES ===== */
+    @media print {
+      body {
+        background: white;
+        color: #111;
+        padding-top: 0;
+        font-size: 13px;
+      }
+
+      .print-bar { display: none; }
+
+      .container { max-width: 100%; padding: 0 20px; }
+
+      .cover {
+        min-height: 100vh;
+        page-break-after: always;
+        padding: 60px 20px;
+      }
+
+      .cover h1 { font-size: 38px; color: #111; }
+      .cover h1 span { -webkit-text-fill-color: #5b21b6; color: #5b21b6; }
+      .cover-subtitle { color: #555; }
+      .cover-meta { color: #777; }
+      .cover-meta strong { color: #333; }
+      .cover-badge { color: #5b21b6; border-color: #5b21b6; background: #f5f3ff; }
+
+      .logo-text { color: #111; }
+      .logo-text span { color: #5b21b6; }
+      .logo-icon { background: #5b21b6; }
+
+      section {
+        padding: 32px 0;
+        border-bottom: 1px solid #e5e7eb;
+        page-break-inside: avoid;
+      }
+
+      .page-break { page-break-after: always; }
+
+      h2 { font-size: 22px; color: #111; margin-bottom: 16px; }
+      h3 { font-size: 15px; color: #111; }
+      p { color: #444; }
+      li { color: #444; }
+      li strong { color: #111; }
+
+      .section-tag { color: #5b21b6; }
+
+      .step {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .step-num { background: #5b21b6; }
+      .step-content h4 { color: #111; }
+      .step-content p { color: #444; }
+
+      .auto-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        border-left-color: #5b21b6;
+      }
+      .auto-card.accent2 { border-left-color: #0891b2; }
+      .auto-card.green { border-left-color: #059669; }
+      .auto-card.amber { border-left-color: #d97706; }
+      .auto-card.rose { border-left-color: #e11d48; }
+
+      .auto-header h4 { color: #111; }
+      .auto-card p { color: #444; }
+      .auto-badge { background: #f5f3ff; color: #5b21b6; border-color: #c4b5fd; }
+      .auto-badge.pro { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+
+      .screenshot-box {
+        border-color: #c4b5fd;
+        background: #f5f3ff;
+        color: #6d28d9;
+        min-height: 80px;
+      }
+
+      .portal-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .portal-card h4 { color: #111; }
+      .portal-card p { color: #444; }
+
+      .portal-grid { grid-template-columns: 1fr 1fr; }
+
+      .faq-item {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        page-break-inside: avoid;
+      }
+      .faq-item h4 { color: #111; }
+      .faq-item p { color: #444; }
+
+      .support-card {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+      }
+      .support-card h4 { color: #111; }
+      .support-card a { color: #0891b2; }
+
+      .info-box {
+        background: #f5f3ff;
+        border-color: #c4b5fd;
+      }
+      .info-box p { color: #5b21b6; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR (screen only) -->
+  <div class="print-bar no-print">
+    <div class="print-bar-logo">Node<span>Flow</span></div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir guía</button>
+  </div>
+
+  <!-- ===================== PORTADA ===================== -->
+  <div class="cover">
+    <div class="logo-mark">
+      <div class="logo-icon">🎙️</div>
+      <div class="logo-text">Node<span>Flow</span></div>
+    </div>
+    <div class="cover-badge">Guía de Uso · Sector Salud</div>
+    <h1>Fisioterapia<br>y <span>Clínicas de Salud</span></h1>
+    <p class="cover-subtitle">
+      Tu asistente de voz inteligente para gestionar citas, pacientes y seguimientos — sin perder una llamada, sin trabajo manual.
+    </p>
+    <div class="cover-meta">
+      <div><strong>Versión</strong> 1.0</div>
+      <div><strong>Fecha</strong> Mayo 2026</div>
+      <div><strong>Plan</strong> Negocio / Pro</div>
+      <div><strong>Idiomas</strong> Castellano · Euskera</div>
+    </div>
+  </div>
+
+  <!-- ===================== INTRODUCCIÓN ===================== -->
+  <div class="container">
+    <section>
+      <div class="section-tag">01 — Introducción</div>
+      <h2>NodeFlow para tu clínica o centro de fisioterapia</h2>
+      <p>
+        En una clínica de fisioterapia o salud, cada llamada perdida puede suponer un paciente que no vuelve o un tratamiento que no se completa. NodeFlow actúa como tu recepcionista virtual, disponible las 24 horas del día, los 7 días de la semana, respondiendo en castellano y euskera con naturalidad.
+      </p>
+      <p>
+        Más allá de atender llamadas, NodeFlow automatiza el ciclo completo del paciente: desde la primera cita hasta los seguimientos, los recordatorios y la recuperación de pacientes inactivos. Todo sin que tengas que hacer nada manualmente.
+      </p>
+
+      <h3>¿Por qué NodeFlow para salud y fisioterapia?</h3>
+      <ul>
+        <li><strong>Cero llamadas perdidas:</strong> tu asistente contesta a las 7am, los sábados y cuando estás en consulta. Ningún paciente se queda sin respuesta.</li>
+        <li><strong>Adherencia al tratamiento:</strong> los recordatorios automáticos 24h y 2h antes reducen los no-shows hasta un 60% y ayudan a que los pacientes completen su plan terapéutico.</li>
+        <li><strong>Reactivación de pacientes:</strong> detecta automáticamente a pacientes que no han vuelto tras 30 días y les envía un email empático de seguimiento, generando nuevas visitas sin esfuerzo comercial.</li>
+      </ul>
+
+      <div class="info-box">
+        <p><strong>Esta guía te enseña a:</strong> configurar tu asistente de voz para fisioterapia, activar todas las automatizaciones relevantes para tu clínica, gestionar el portal de citas y resolver las dudas más comunes.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PRIMEROS PASOS ===================== -->
+    <section>
+      <div class="section-tag">02 — Primeros Pasos</div>
+      <h2>Configura NodeFlow en 3 pasos</h2>
+      <p>La configuración inicial se hace desde el portal web y tarda menos de 15 minutos. No necesitas conocimientos técnicos.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Acceder al portal</h4>
+            <p>Ve a <strong>nodeflow.es/portal</strong> e inicia sesión con tu cuenta. Si es la primera vez, usa el enlace de activación que recibiste por email al registrarte.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Configura tu asistente</h4>
+            <p>En <strong>Configuración → Básico</strong>, elige el sector <em>Salud / Fisioterapia</em>, introduce el nombre de tu clínica, el número de teléfono que quieres usar y el idioma principal (castellano, euskera o ambos). El asistente recibirá automáticamente las instrucciones específicas para el sector sanitario.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Configura horarios y servicios</h4>
+            <p>En <strong>Configuración → Horarios</strong> establece cuándo está abierta la clínica. En <strong>Configuración → Servicios</strong> añade los tratamientos que ofreces (fisioterapia general, osteopatía, pilates terapéutico, electroterapia…) con su duración en minutos. El asistente usará estos datos para gestionar las reservas correctamente.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Sección Configuración del portal — pestañas Básico, Servicios, Horarios</div>
+
+      <h3>Configura los datos de tus pacientes</h3>
+      <p>Para que las automatizaciones de cumpleaños y fechas críticas funcionen, asegúrate de tener en el perfil de cada paciente:</p>
+      <ul>
+        <li><strong>Email:</strong> obligatorio para todos los envíos automáticos.</li>
+        <li><strong>Fecha de nacimiento:</strong> para el email de felicitación de cumpleaños.</li>
+        <li><strong>Fecha de inicio de tratamiento:</strong> para el recordatorio de aniversario terapéutico.</li>
+        <li><strong>Fecha de renovación de prescripción:</strong> si aplica.</li>
+      </ul>
+
+      <div class="screenshot-box">📸 Captura: Ficha de paciente — campos Fecha nacimiento, Inicio tratamiento, Email</div>
+    </section>
+
+    <!-- ===================== AUTOMATIZACIONES ===================== -->
+    <section>
+      <div class="section-tag">03 — Automatizaciones</div>
+      <h2>Automatizaciones activas para tu clínica</h2>
+      <p>NodeFlow incluye un conjunto de automatizaciones diseñadas específicamente para clínicas de salud y fisioterapia. Puedes activar o desactivar cada una desde <strong>Automatizaciones</strong> en el portal.</p>
+
+      <div class="auto-grid">
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">⏰</span>
+            <h4>Recordatorio de cita — 24h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>El día anterior a la cita, tu paciente recibe un email de recordatorio con la fecha, hora, terapeuta y dirección de la clínica. Incluye un enlace para confirmar o cancelar sin necesidad de llamar.</p>
+        </div>
+
+        <div class="auto-card green">
+          <div class="auto-header">
+            <span class="auto-icon">🔔</span>
+            <h4>Recordatorio de cita — 2h antes</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Dos horas antes de la cita, un segundo recordatorio breve vía email para minimizar los olvidos de último momento y reducir los no-shows.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">💌</span>
+            <h4>Rebooking — Pacientes inactivos 30 días</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si un paciente no ha tenido cita en los últimos 30 días, NodeFlow le envía un email empático: <em>"¿Cómo te encuentras? Es hora de tu próxima sesión."</em> El email incluye un enlace de reserva directa.</p>
+        </div>
+
+        <div class="auto-card accent2">
+          <div class="auto-header">
+            <span class="auto-icon">📩</span>
+            <h4>Second touch — 3 días sin respuesta</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si el paciente no reserva en los 3 días siguientes al primer email de rebooking, NodeFlow envía un segundo contacto con un tono diferente, recordándole los beneficios de continuar el tratamiento.</p>
+        </div>
+
+        <div class="auto-card rose">
+          <div class="auto-header">
+            <span class="auto-icon">🚫</span>
+            <h4>No-show recovery</h4>
+            <span class="auto-badge">Negocio</span>
+          </div>
+          <p>Si 30 minutos después de la hora de cita el estado sigue en "confirmada" (es decir, el paciente no apareció), NodeFlow envía automáticamente un email empático para reagendar sin generar fricción: <em>"Vemos que no pudiste venir hoy, ¡no hay problema! Reserva tu nueva cita aquí."</em></p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📅</span>
+            <h4>Fechas críticas — Aniversario de tratamiento</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>NodeFlow recuerda la fecha de inicio de tratamiento de cada paciente y le envía un mensaje en el aniversario, reconociendo su progreso y sugiriendo una revisión o mantenimiento.</p>
+        </div>
+
+        <div class="auto-card amber">
+          <div class="auto-header">
+            <span class="auto-icon">📋</span>
+            <h4>Fechas críticas — Renovación de prescripción</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>Si el paciente tiene una fecha de renovación de prescripción médica guardada, NodeFlow le avisa con 15 y 7 días de antelación para que no pierda su autorización de tratamiento.</p>
+        </div>
+
+        <div class="auto-card">
+          <div class="auto-header">
+            <span class="auto-icon">🎂</span>
+            <h4>Email de cumpleaños</h4>
+            <span class="auto-badge pro">Pro</span>
+          </div>
+          <p>La mañana del cumpleaños de cada paciente, NodeFlow envía automáticamente un email festivo y personalizado. Puedes incluir un mensaje especial o un descuento en la próxima sesión para reforzar la fidelización.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Panel de Automatizaciones — estado activo/inactivo de cada regla, último envío</div>
+
+      <h3>Configurar el período de rebooking</h3>
+      <p>El período de 30 días es el valor por defecto para fisioterapia. Puedes ajustarlo en <strong>Automatizaciones → Rebooking → Editar período</strong>. Algunos ejemplos:</p>
+      <ul>
+        <li>Tratamientos de mantenimiento muscular: <strong>21 días</strong></li>
+        <li>Fisioterapia respiratoria o neurológica: <strong>14 días</strong></li>
+        <li>Pilates terapéutico semanal: <strong>10 días</strong></li>
+        <li>Revisiones posturales: <strong>60 días</strong></li>
+      </ul>
+    </section>
+
+    <!-- ===================== EL PORTAL ===================== -->
+    <section>
+      <div class="section-tag">04 — El Portal</div>
+      <h2>Tu centro de control: el Portal NodeFlow</h2>
+      <p>Accede desde cualquier dispositivo en <strong>nodeflow.es/portal</strong>. Está pensado para usarse desde el ordenador de recepción o desde el móvil entre cita y cita.</p>
+
+      <div class="portal-grid">
+        <div class="portal-card">
+          <h4>📊 Dashboard</h4>
+          <p>Vista general: llamadas hoy, citas esta semana, automatizaciones enviadas este mes. Métrica clave: tasa de no-shows y tasa de rebooking.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📞 Llamadas</h4>
+          <p>Historial completo de todas las llamadas atendidas por el asistente. Incluye transcripción, duración y si se reservó cita o no. Puedes escuchar la grabación.</p>
+        </div>
+        <div class="portal-card">
+          <h4>📆 Citas</h4>
+          <p>Calendario de citas con vista día/semana/mes. Confirma, cancela o reagenda desde aquí. Filtra por terapeuta o por servicio.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚡ Automatizaciones</h4>
+          <p>Activa o pausa cualquier automatización. Consulta el historial de emails enviados, quién los abrió y quién reservó tras recibirlos.</p>
+        </div>
+        <div class="portal-card">
+          <h4>👤 Pacientes</h4>
+          <p>Fichas de pacientes con historial de citas, emails enviados y recibidos, y fechas críticas configuradas. Añade notas internas.</p>
+        </div>
+        <div class="portal-card">
+          <h4>⚙️ Configuración</h4>
+          <p>Actualiza horarios, servicios, datos del asistente, textos de los emails automáticos y preferencias de idioma en cualquier momento.</p>
+        </div>
+      </div>
+
+      <div class="screenshot-box">📸 Captura: Dashboard principal — métricas llamadas, citas y automatizaciones del mes</div>
+      <div class="screenshot-box">📸 Captura: Vista Citas — calendario semanal con estado de cada cita (confirmada, pendiente, no-show)</div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section>
+      <div class="section-tag">05 — Preguntas Frecuentes</div>
+      <h2>Preguntas frecuentes</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <h4>¿El asistente puede gestionar citas con varios fisioterapeutas?</h4>
+          <p>Sí. En Configuración → Servicios puedes asignar cada servicio a uno o varios terapeutas y definir su disponibilidad horaria por separado. El asistente preguntará al paciente su preferencia y buscará disponibilidad en el terapeuta correcto.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Qué pasa si un paciente llama fuera de horario?</h4>
+          <p>El asistente responde 24/7. Fuera del horario de apertura, informa al paciente de los horarios disponibles y le ofrece reservar cita directamente sin necesidad de esperar a que abráis.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo personalizar el texto de los emails de rebooking?</h4>
+          <p>Sí. En Automatizaciones → Rebooking → Editar puedes modificar el asunto y el cuerpo del email. Recomendamos mantener el tono empático y personalizado que NodeFlow usa por defecto, pero puedes adaptarlo a la voz de tu clínica.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Los emails cumplen con la normativa de protección de datos (RGPD)?</h4>
+          <p>NodeFlow gestiona todos los envíos bajo consentimiento de tratamiento médico (base legal: interés legítimo / relación contractual). Todos los emails incluyen enlace de baja. Para garantizar el cumplimiento, asegúrate de que tu política de privacidad menciona el uso de comunicaciones automáticas de seguimiento.</p>
+        </div>
+        <div class="faq-item">
+          <h4>¿Puedo pausar las automatizaciones durante las vacaciones de la clínica?</h4>
+          <p>Sí. En Automatizaciones puedes pausar todas las reglas de un clic, o configurar un período de vacaciones en Configuración → Horarios para que el asistente informe correctamente y no se envíen recordatorios de citas durante el cierre.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SOPORTE ===================== -->
+    <section>
+      <div class="section-tag">06 — Soporte</div>
+      <h2>¿Necesitas ayuda?</h2>
+      <p>El equipo de NodeFlow está disponible para ayudarte a sacar el máximo partido a tu asistente. Aquí tienes todos los canales de contacto.</p>
+
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="icon">📧</div>
+          <h4>Email</h4>
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">🌐</div>
+          <h4>Portal</h4>
+          <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>
+        </div>
+        <div class="support-card">
+          <div class="icon">💻</div>
+          <h4>Web</h4>
+          <a href="https://nodeflow.es">nodeflow.es</a>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p><strong>Consejo:</strong> Si tienes dudas durante la configuración inicial, escríbenos a hola@nodeflow.es con el asunto <em>"Onboarding Fisioterapia"</em>. Te respondemos en menos de 24 horas laborables y podemos hacer una videollamada de configuración guiada sin coste adicional.</p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>
