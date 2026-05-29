@@ -87,18 +87,37 @@ select option{background:#0c0c1a;color:var(--white);}
       <label>Sector *</label>
       <select id="sector">
         <option value="">Selecciona tu sector...</option>
-        <option value="restaurante">Restaurante / Bar / Cafetería</option>
-        <option value="clinica">Clínica / Centro médico</option>
-        <option value="peluqueria">Peluquería / Estética / Barbería</option>
-        <option value="farmacia">Farmacia</option>
-        <option value="hotel">Hotel / Alojamiento</option>
-        <option value="gimnasio">Gimnasio / Centro deportivo</option>
-        <option value="academia">Academia / Clases particulares</option>
-        <option value="asesoria">Asesoría / Gestoría</option>
-        <option value="inmobiliaria">Inmobiliaria</option>
-        <option value="taller">Taller mecánico</option>
-        <option value="veterinaria">Veterinaria</option>
-        <option value="otro">Otro</option>
+        <optgroup label="Salud y bienestar">
+          <option value="clinica">Clínica / Centro médico</option>
+          <option value="dental">Clínica dental</option>
+          <option value="fisioterapia">Fisioterapia / Rehabilitación</option>
+          <option value="psicologia">Psicología / Terapia</option>
+          <option value="nutricion">Nutrición / Dietética</option>
+          <option value="farmacia">Farmacia</option>
+          <option value="veterinaria">Veterinaria</option>
+          <option value="optica">Óptica</option>
+          <option value="podologia">Podología</option>
+        </optgroup>
+        <optgroup label="Estética y deporte">
+          <option value="peluqueria">Peluquería / Estética / Barbería</option>
+          <option value="gimnasio">Gimnasio / Centro deportivo</option>
+          <option value="yoga">Yoga / Pilates / Meditación</option>
+          <option value="spa">Spa / Balneario</option>
+        </optgroup>
+        <optgroup label="Hostelería y turismo">
+          <option value="restaurante">Restaurante / Bar / Cafetería</option>
+          <option value="hotel">Hotel / Alojamiento / Rural</option>
+        </optgroup>
+        <optgroup label="Servicios profesionales">
+          <option value="asesoria">Asesoría / Gestoría</option>
+          <option value="abogado">Despacho de abogados / Notaría</option>
+          <option value="inmobiliaria">Inmobiliaria</option>
+          <option value="academia">Academia / Clases particulares</option>
+          <option value="autoescuela">Autoescuela</option>
+          <option value="taller">Taller mecánico</option>
+          <option value="reformas">Reformas / Construcción</option>
+        </optgroup>
+        <option value="otro">Otro sector</option>
       </select>
     </div>
     <div class="form-group">
@@ -219,6 +238,11 @@ async function submitRegistro() {
     registroId  = data.id;
     stripeCode  = data.stripeCode || null;
     discountPct = data.discount || 0;
+
+    // Persist for /gracias personalisation (read after Stripe redirect)
+    localStorage.setItem('nf_reg_id',      registroId);
+    localStorage.setItem('nf_reg_negocio', negocio);
+    localStorage.setItem('nf_reg_plan',    planKey);
 
     // Build summary
     const basePrice  = planKey === 'pro' ? 99 : 49;
