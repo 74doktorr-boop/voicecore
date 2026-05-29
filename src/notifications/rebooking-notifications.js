@@ -122,7 +122,8 @@ async function sendRebookingFollowUp(client, config) {
   const lang      = config?.language || 'es';
   const rawName   = (client.name ?? '').split(' ')[0];
   const name      = esc(rawName);
-  const bizName   = esc(config?.name || 'nuestro equipo');
+  const rawBizName = config?.name || 'nuestro equipo';
+  const bizName   = esc(rawBizName);
   const phone     = esc(config?.ownerPhone || '');
   const phoneClean = phone.replace(/[^0-9+\-\s]/g, '');
 
@@ -134,7 +135,7 @@ async function sendRebookingFollowUp(client, config) {
 
   const title = lang === 'eu' ? 'Zurekin egon nahi dugu' : '¿Seguimos en contacto?';
   const body  = lang === 'eu'
-    ? `Duela egun gutxi idatzi genizun. ${bizName}ko atea zabalik dago zuretzat.`
+    ? `Duela egun gutxi idatzi genizun. ${rawBizName}ko atea zabalik dago zuretzat.`
     : `Te escribimos hace unos días. Seguimos aquí cuando lo necesites — reservar solo lleva un momento.`;
 
   const html = `
