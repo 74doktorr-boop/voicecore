@@ -7,7 +7,7 @@
 
 const { flowManager }          = require('../automations/flow-manager');
 const { scheduler }            = require('./scheduler');
-const { sendRebookingEmail }   = require('../notifications/rebooking-notifications');
+const { sendRebookingEmail, sendRebookingFollowUp } = require('../notifications/rebooking-notifications');
 const { Logger }               = require('../utils/logger');
 
 const log = new Logger('REBOOKING-CRON');
@@ -51,6 +51,8 @@ const REBOOKING_DEFAULTS = {
 // Anti-spam log: Map<`${businessId}:${phone}`, lastSentAt (ms)>
 // Loaded from memory only — acceptable loss on restart
 const _sentLog = new Map();
+// Second-touch log: Map<secondKey, lastSentAt (ms)>
+const _secondTouchLog = new Map();
 
 function _sentKey(businessId, phone) {
   return `${businessId}:${(phone || '').replace(/\D/g, '')}`;
@@ -115,39 +117,56 @@ async function checkAndSendRebookings() {
     // Evaluate each client
     for (const [, client] of clientMap) {
       checked++;
-      if (!client.email) continue;                             // need email to send
-      if (client.upcomingCount > 0) continue;                 // already has upcoming apt
-      if (!client.lastVisitDate) continue;                     // never visited
-
-      const daysSince = _daysSince(client.lastVisitDate);
-      if (daysSince < threshold) continue;                     // not yet past threshold
-
-      // Anti-spam: check if already sent within threshold days
       const key = _sentKey(businessId, client.phone || client.email);
-      const lastSent = _sentLog.get(key);
-      if (lastSent) {
-        const daysSinceSent = Math.floor((Date.now() - lastSent) / 86400000);
-        if (daysSinceSent < threshold) continue;
-      }
 
-      // Check annual cap: count how many times sent this year
-      // (simplified: use _sentLog — production should persist to DB)
-      const yearKey = `${key}:${new Date().getFullYear()}`;
-      const sentThisYear = _sentLog.get(yearKey) || 0;
-      if (sentThisYear >= maxPerYear) continue;
+      if (client.email && client.upcomingCount === 0 && client.lastVisitDate) {
+        const daysSince = _daysSince(client.lastVisitDate);
 
-      // Send
-      const config = flowManager.mergeConfig(businessId, scheduler.getBusinessConfig(businessId) || {});
-      config.sector = sector;
+        // ── First touch ────────────────────────────────────────────────────
+        if (daysSince >= threshold) {
+          const lastSent = _sentLog.get(key);
+          const alreadySent = lastSent && Math.floor((Date.now() - lastSent) / 86400000) < threshold;
+          if (!alreadySent) {
+            const yearKey = `${key}:${new Date().getFullYear()}`;
+            const sentThisYear = _sentLog.get(yearKey) || 0;
+            if (sentThisYear < maxPerYear) {
+              const config = flowManager.mergeConfig(businessId, scheduler.getBusinessConfig(businessId) || {});
+              config.sector = sector;
+              try {
+                await sendRebookingEmail(client, config, client.lastVisitDate);
+                _sentLog.set(key, Date.now());
+                _sentLog.set(yearKey, sentThisYear + 1);
+                sent++;
+                log.info(`Rebooking sent: ${client.email} (${businessId}/${sector}, last:${client.lastVisitDate})`);
+              } catch (e) {
+                log.warn(`Rebooking send failed: ${client.email}`, { err: e.message });
+              }
+            }
+          }
+        }
 
-      try {
-        await sendRebookingEmail(client, config, client.lastVisitDate);
-        _sentLog.set(key, Date.now());
-        _sentLog.set(yearKey, sentThisYear + 1);
-        sent++;
-        log.info(`Rebooking sent: ${client.email} (${businessId}/${sector}, last:${client.lastVisitDate})`);
-      } catch (e) {
-        log.warn(`Rebooking send failed: ${client.email}`, { err: e.message });
+        // ── Second touch: 3 days after first, if no appointment yet ────────
+        const firstSent = _sentLog.get(key);
+        if (firstSent) {
+          const daysSinceFirst = Math.floor((Date.now() - firstSent) / 86400000);
+          if (daysSinceFirst >= 3) {
+            const secondKey = `2nd:${key}`;
+            const lastSecond = _secondTouchLog.get(secondKey);
+            const secondAlreadySent = lastSecond && Math.floor((Date.now() - lastSecond) / 86400000) < threshold;
+            if (!secondAlreadySent) {
+              const config2 = flowManager.mergeConfig(businessId, scheduler.getBusinessConfig(businessId) || {});
+              config2.sector = sector;
+              try {
+                await sendRebookingFollowUp(client, config2);
+                _secondTouchLog.set(secondKey, Date.now());
+                sent++;
+                log.info(`Second-touch sent: ${client.email} (${businessId}/${sector})`);
+              } catch (e) {
+                log.warn(`Second-touch failed: ${client.email}`, { err: e.message });
+              }
+            }
+          }
+        }
       }
     }
   }

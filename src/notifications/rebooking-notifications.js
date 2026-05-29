@@ -108,4 +108,53 @@ async function sendRebookingEmail(client, config, lastVisitDate) {
   return sendEmail({ to: client.email, subject: `${copy.title} — ${config?.name || ''}`, html });
 }
 
-module.exports = { sendRebookingEmail };
+/**
+ * Second-touch follow-up — shorter, more personal, different angle.
+ * @param {object} client  - { name, email, phone, lastVisitDate }
+ * @param {object} config  - { name, ownerPhone, language, sector }
+ */
+async function sendRebookingFollowUp(client, config) {
+  if (!client?.email) {
+    log.warn(`sendRebookingFollowUp: no email for ${client?.name} — skipped`);
+    return false;
+  }
+
+  const lang      = config?.language || 'es';
+  const rawName   = (client.name ?? '').split(' ')[0];
+  const name      = esc(rawName);
+  const bizName   = esc(config?.name || 'nuestro equipo');
+  const phone     = esc(config?.ownerPhone || '');
+  const phoneClean = phone.replace(/[^0-9+\-\s]/g, '');
+
+  const greeting   = lang === 'eu' ? `Kaixo ${name}` : `Hola ${name}`;
+  const ctaLabel   = lang === 'eu' ? 'Hitzordua hartu' : 'Reservar cita';
+  const unsubLabel = lang === 'eu'
+    ? 'Jakinarazpenik ez jasotzeko, erantzun email hau.'
+    : 'Para darte de baja de estos recordatorios, responde a este email.';
+
+  const title = lang === 'eu' ? 'Zurekin egon nahi dugu' : '¿Seguimos en contacto?';
+  const body  = lang === 'eu'
+    ? `Duela egun gutxi idatzi genizun. ${bizName}ko atea zabalik dago zuretzat.`
+    : `Te escribimos hace unos días. Seguimos aquí cuando lo necesites — reservar solo lleva un momento.`;
+
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;background:#f8fafc;margin:0;padding:20px 0;">
+<div style="max-width:480px;margin:0 auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(124,58,237,.2);">
+  <div style="background:linear-gradient(135deg,#1e1e2e,#0c0c1a);padding:20px 28px;border-bottom:2px solid rgba(124,58,237,.4);">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">NodeFlow · ${bizName}</div>
+    <div style="font-size:18px;margin-top:6px;color:#fff;font-weight:800;">${esc(title)}</div>
+  </div>
+  <div style="padding:24px 28px;">
+    <p style="color:#e2e8f0;font-size:15px;font-weight:600;margin:0 0 12px;">${greeting} 👋</p>
+    <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0 0 24px;">${esc(body)}</p>
+    ${phoneClean ? `<a href="tel:${phoneClean.replace(/\s/g,'')}" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:12px;">📞 ${ctaLabel}</a>` : ''}
+    <p style="color:#334155;font-size:11px;text-align:center;margin:16px 0 0;">${unsubLabel}</p>
+  </div>
+</div>
+</body></html>`;
+
+  log.info(`Second-touch rebooking sent to ${client.email} (${config?.sector}/${lang})`);
+  return sendEmail({ to: client.email, subject: `${title} — ${config?.name || ''}`, html });
+}
+
+module.exports = { sendRebookingEmail, sendRebookingFollowUp };
