@@ -2,375 +2,609 @@
   {
     "slug": "cuanto-cuesta-recepcionista-virtual-ia",
     "title": "¿Cuánto cuesta un recepcionista virtual con IA en 2026?",
-    "keywords": ["recepcionista virtual IA precio", "coste asistente virtual telefónico", "recepcionista IA España"],
+    "keywords": [
+      "recepcionista virtual IA precio",
+      "coste asistente virtual telefónico",
+      "recepcionista IA España"
+    ],
     "focus": "Comparativa de costes: recepcionista humano vs IA. Desglose por plan, casos reales de ahorro, ROI para pequeños negocios.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-peluqueria-bilbao",
     "title": "Recepcionista IA para peluquerías en Bilbao: guía completa 2026",
-    "keywords": ["recepcionista IA peluquería Bilbao", "automatizar citas peluquería Bilbao", "asistente virtual peluquería Bizkaia"],
+    "keywords": [
+      "recepcionista IA peluquería Bilbao",
+      "automatizar citas peluquería Bilbao",
+      "asistente virtual peluquería Bizkaia"
+    ],
     "focus": "Cómo una peluquería en Bilbao puede automatizar sus llamadas y citas con IA. Casos de uso, integración con Google Calendar, atención en euskera.",
     "sector": "peluquerias",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "asistente-voz-clinica-dental-pais-vasco",
     "title": "Asistente de voz IA para clínicas dentales en el País Vasco",
-    "keywords": ["asistente IA clínica dental País Vasco", "recepcionista virtual odontología", "automatizar citas dental Bilbao"],
+    "keywords": [
+      "asistente IA clínica dental País Vasco",
+      "recepcionista virtual odontología",
+      "automatizar citas dental Bilbao"
+    ],
     "focus": "Cómo las clínicas dentales del País Vasco pueden reducir llamadas perdidas, automatizar recordatorios y cumplir la RGPD con IA.",
     "sector": "clinicas",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "como-no-perder-llamadas-negocio-euskadi",
     "title": "Cómo dejar de perder llamadas en tu negocio del País Vasco",
-    "keywords": ["perder llamadas negocio", "solución llamadas perdidas negocio", "IA atiende llamadas negocio"],
+    "keywords": [
+      "perder llamadas negocio",
+      "solución llamadas perdidas negocio",
+      "IA atiende llamadas negocio"
+    ],
     "focus": "Las 5 razones por las que los negocios pierden llamadas y cómo solucionarlo con IA. Estadísticas reales, impacto económico, soluciones.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-virtual-euskera-nativo",
     "title": "Recepcionista virtual que habla euskera nativo: ¿es posible en 2026?",
-    "keywords": ["recepcionista virtual euskera", "asistente IA euskera nativo", "IA habla euskera negocio"],
+    "keywords": [
+      "recepcionista virtual euskera",
+      "asistente IA euskera nativo",
+      "IA habla euskera negocio"
+    ],
     "focus": "Estado de la IA en euskera, diferencias entre síntesis genérica y voces clonadas de locutores vascos reales. Por qué importa para los negocios del País Vasco.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "automatizar-reservas-restaurante-donostia",
     "title": "Cómo automatizar las reservas de tu restaurante en Donostia",
-    "keywords": ["automatizar reservas restaurante Donostia", "recepcionista IA restaurante San Sebastián", "reservas automáticas bar Gipuzkoa"],
+    "keywords": [
+      "automatizar reservas restaurante Donostia",
+      "recepcionista IA restaurante San Sebastián",
+      "reservas automáticas bar Gipuzkoa"
+    ],
     "focus": "Guía para restaurantes en Donostia: automatizar reservas de mesa, gestionar grupos, atender turismo en varios idiomas con IA.",
     "sector": "restaurantes",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "ia-atencion-telefonica-pymes-espana",
     "title": "IA para atención telefónica en pymes españolas: todo lo que necesitas saber",
-    "keywords": ["IA atención telefónica pymes", "asistente telefónico inteligente pyme", "automatizar llamadas pequeño negocio España"],
+    "keywords": [
+      "IA atención telefónica pymes",
+      "asistente telefónico inteligente pyme",
+      "automatizar llamadas pequeño negocio España"
+    ],
     "focus": "Panorama general de la IA telefónica para pymes en España. Tecnologías disponibles, costes, casos de éxito, cómo empezar.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-taller-mecanico-bilbao",
     "title": "Recepcionista IA para talleres mecánicos en Bilbao y Bizkaia",
-    "keywords": ["recepcionista IA taller mecánico Bilbao", "automatizar citas taller Bizkaia", "asistente virtual taller mecánico"],
+    "keywords": [
+      "recepcionista IA taller mecánico Bilbao",
+      "automatizar citas taller Bizkaia",
+      "asistente virtual taller mecánico"
+    ],
     "focus": "Cómo los talleres mecánicos en Bilbao y Bizkaia pueden gestionar citas, presupuestos y llamadas de seguimiento con IA. Integración con Google Calendar.",
     "sector": "talleres",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "google-calendar-citas-automaticas-negocio",
     "title": "Google Calendar + IA: citas automáticas para tu negocio en 2026",
-    "keywords": ["Google Calendar IA citas automáticas", "integrar IA Google Calendar negocio", "reservas automáticas Google Calendar"],
+    "keywords": [
+      "Google Calendar IA citas automáticas",
+      "integrar IA Google Calendar negocio",
+      "reservas automáticas Google Calendar"
+    ],
     "focus": "Cómo funciona la integración entre un asistente IA y Google Calendar. Configuración, casos de uso, ventajas frente a otras herramientas.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-estetica-vitoria-gasteiz",
     "title": "Asistente IA para centros de estética en Vitoria-Gasteiz",
-    "keywords": ["asistente IA estética Vitoria", "recepcionista virtual centro belleza Gasteiz", "automatizar citas estética Álava"],
+    "keywords": [
+      "asistente IA estética Vitoria",
+      "recepcionista virtual centro belleza Gasteiz",
+      "automatizar citas estética Álava"
+    ],
     "focus": "Cómo los centros de estética y belleza en Vitoria-Gasteiz pueden automatizar llamadas, recordatorios de cita y valoraciones post-servicio con IA.",
     "sector": "estetica",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "recepcionista-virtual-galicia-galego",
     "title": "Recepcionista virtual que fala galego: a IA para os negocios de Galicia",
-    "keywords": ["recepcionista virtual galego", "asistente IA galego negocio", "IA fala galego Galicia"],
+    "keywords": [
+      "recepcionista virtual galego",
+      "asistente IA galego negocio",
+      "IA fala galego Galicia"
+    ],
     "focus": "Por qué los negocios de Galicia necesitan un asistente IA que hable gallego nativo. Estado de la tecnología, casos de uso, diferencias con síntesis genérica.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "cuanto-ahorra-negocio-recepcionista-ia",
     "title": "¿Cuánto ahorra un negocio con un recepcionista IA? Análisis real",
-    "keywords": ["ahorro recepcionista IA negocio", "ROI asistente virtual telefónico", "rentabilidad IA atención llamadas"],
+    "keywords": [
+      "ahorro recepcionista IA negocio",
+      "ROI asistente virtual telefónico",
+      "rentabilidad IA atención llamadas"
+    ],
     "focus": "Análisis económico: coste del tiempo de atención telefónica, coste de llamadas perdidas, ROI real de un recepcionista IA para diferentes sectores.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-clinica-dental-bilbao",
     "title": "Recepcionista IA para clínicas dentales en Bilbao: menos llamadas perdidas",
-    "keywords": ["recepcionista IA clínica dental Bilbao", "automatizar citas dentista Bilbao", "asistente virtual odontología Bizkaia"],
+    "keywords": [
+      "recepcionista IA clínica dental Bilbao",
+      "automatizar citas dentista Bilbao",
+      "asistente virtual odontología Bizkaia"
+    ],
     "focus": "Cómo las clínicas dentales de Bilbao pueden eliminar las llamadas perdidas, automatizar confirmaciones y cumplir la RGPD con un asistente IA.",
     "sector": "clinicas",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "asistente-ia-gimnasio-bilbao",
     "title": "Asistente IA para gimnasios en Bilbao: automatiza inscripciones y llamadas",
-    "keywords": ["asistente IA gimnasio Bilbao", "recepcionista virtual gimnasio Bizkaia", "automatizar llamadas gimnasio Bilbao"],
+    "keywords": [
+      "asistente IA gimnasio Bilbao",
+      "recepcionista virtual gimnasio Bizkaia",
+      "automatizar llamadas gimnasio Bilbao"
+    ],
     "focus": "Cómo los gimnasios y centros deportivos de Bilbao pueden automatizar consultas de horarios, precios, inscripciones y bajas con un asistente IA.",
     "sector": "gimnasios",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-veterinaria-donostia",
     "title": "Recepcionista IA para clínicas veterinarias en Donostia-San Sebastián",
-    "keywords": ["recepcionista IA veterinaria Donostia", "asistente virtual clínica veterinaria San Sebastián", "automatizar citas veterinario Gipuzkoa"],
+    "keywords": [
+      "recepcionista IA veterinaria Donostia",
+      "asistente virtual clínica veterinaria San Sebastián",
+      "automatizar citas veterinario Gipuzkoa"
+    ],
     "focus": "Cómo las clínicas veterinarias de Donostia pueden gestionar urgencias, citas y recordatorios de vacunas con IA, sin perder ninguna llamada.",
     "sector": "veterinarias",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "asistente-ia-academia-vitoria",
     "title": "Asistente IA para academias y centros de formación en Vitoria-Gasteiz",
-    "keywords": ["asistente IA academia Vitoria", "recepcionista virtual centro formación Gasteiz", "automatizar matrículas academia Álava"],
+    "keywords": [
+      "asistente IA academia Vitoria",
+      "recepcionista virtual centro formación Gasteiz",
+      "automatizar matrículas academia Álava"
+    ],
     "focus": "Cómo las academias de idiomas, autoescuelas y centros de formación en Vitoria pueden automatizar consultas, matrículas y horarios con IA.",
     "sector": "academias",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-peluqueria-donostia",
     "title": "Recepcionista IA para peluquerías en Donostia y Gipuzkoa",
-    "keywords": ["recepcionista IA peluquería Donostia", "automatizar citas peluquería San Sebastián", "asistente virtual peluquería Gipuzkoa"],
+    "keywords": [
+      "recepcionista IA peluquería Donostia",
+      "automatizar citas peluquería San Sebastián",
+      "asistente virtual peluquería Gipuzkoa"
+    ],
     "focus": "Guía para peluquerías y barberías de Donostia: cómo automatizar citas, gestionar cancelaciones y atender al turismo en varios idiomas con IA.",
     "sector": "peluquerias",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-restaurante-bilbao",
     "title": "Automatiza las reservas de tu restaurante en Bilbao con IA",
-    "keywords": ["recepcionista IA restaurante Bilbao", "reservas automáticas restaurante Bilbao", "asistente virtual bar Bizkaia"],
+    "keywords": [
+      "recepcionista IA restaurante Bilbao",
+      "reservas automáticas restaurante Bilbao",
+      "asistente virtual bar Bizkaia"
+    ],
     "focus": "Cómo los restaurantes de Bilbao pueden gestionar reservas, grupos y llamadas de turistas extranjeros con un asistente IA multiidioma.",
     "sector": "restaurantes",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "asistente-ia-clinica-estetica-donostia",
     "title": "Asistente IA para clínicas estéticas en Donostia-San Sebastián",
-    "keywords": ["asistente IA clínica estética Donostia", "recepcionista virtual estética San Sebastián", "automatizar citas estética Gipuzkoa"],
+    "keywords": [
+      "asistente IA clínica estética Donostia",
+      "recepcionista virtual estética San Sebastián",
+      "automatizar citas estética Gipuzkoa"
+    ],
     "focus": "Cómo las clínicas de estética avanzada y centros de belleza en Donostia pueden automatizar consultas, citas y seguimientos post-tratamiento con IA.",
     "sector": "estetica",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-taller-vitoria",
     "title": "Recepcionista IA para talleres mecánicos en Vitoria-Gasteiz",
-    "keywords": ["recepcionista IA taller mecánico Vitoria", "automatizar citas taller Gasteiz", "asistente virtual taller Álava"],
+    "keywords": [
+      "recepcionista IA taller mecánico Vitoria",
+      "automatizar citas taller Gasteiz",
+      "asistente virtual taller Álava"
+    ],
     "focus": "Cómo los talleres mecánicos y concesionarios de Vitoria-Gasteiz pueden gestionar citas, presupuestos y llamadas de seguimiento con IA.",
     "sector": "talleres",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "como-no-perder-clientes-llamadas-sin-contestar",
     "title": "Cada llamada no contestada es un cliente perdido: cómo evitarlo con IA",
-    "keywords": ["llamada no contestada cliente perdido", "perder clientes por teléfono negocio", "cómo no perder clientes llamadas"],
+    "keywords": [
+      "llamada no contestada cliente perdido",
+      "perder clientes por teléfono negocio",
+      "cómo no perder clientes llamadas"
+    ],
     "focus": "El coste real de no contestar el teléfono: estadísticas de conversión, lo que pierde un negocio mensualmente y cómo la IA soluciona el problema definitivamente.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-negocio-24-horas-festivos",
     "title": "Tu negocio abierto 24h, fines de semana y festivos gracias a la IA",
-    "keywords": ["negocio abierto 24 horas IA", "asistente virtual fuera de horario negocio", "atender llamadas festivos IA"],
+    "keywords": [
+      "negocio abierto 24 horas IA",
+      "asistente virtual fuera de horario negocio",
+      "atender llamadas festivos IA"
+    ],
     "focus": "Cómo la IA permite a los pequeños negocios atender llamadas de madrugada, fines de semana y festivos sin coste extra. Casos reales y configuración.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "automatizar-recordatorios-citas-reducir-no-shows",
     "title": "Cómo reducir las citas perdidas (no-shows) con recordatorios IA automáticos",
-    "keywords": ["reducir no-shows citas negocio", "recordatorios automáticos citas IA", "evitar cancelaciones last minute negocio"],
+    "keywords": [
+      "reducir no-shows citas negocio",
+      "recordatorios automáticos citas IA",
+      "evitar cancelaciones last minute negocio"
+    ],
     "focus": "El problema de los no-shows en negocios con cita previa. Cómo los recordatorios automáticos por voz reducen los no-shows hasta un 40%. Casos por sector.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-virtual-vs-telefonista-comparativa",
     "title": "Recepcionista virtual IA vs telefonista humano: comparativa honesta 2026",
-    "keywords": ["recepcionista virtual vs telefonista", "IA vs humano atención telefónica", "comparativa recepcionista IA humano"],
+    "keywords": [
+      "recepcionista virtual vs telefonista",
+      "IA vs humano atención telefónica",
+      "comparativa recepcionista IA humano"
+    ],
     "focus": "Comparativa real entre contratar un telefonista y usar IA: coste, disponibilidad, calidad, escalabilidad, RGPD. Sin humo, sin sesgos.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "ia-atiende-llamadas-fuera-horario-negocio",
     "title": "IA que atiende las llamadas fuera de horario: guía para negocios en España",
-    "keywords": ["IA atiende llamadas fuera horario", "asistente virtual horario no laboral", "recepcionista virtual noche fines de semana"],
+    "keywords": [
+      "IA atiende llamadas fuera horario",
+      "asistente virtual horario no laboral",
+      "recepcionista virtual noche fines de semana"
+    ],
     "focus": "Cómo configurar un asistente IA para gestionar llamadas fuera del horario comercial: qué información puede dar, qué citas puede agendar, cómo escala urgencias.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-virtual-para-veterinarias-espana",
     "title": "Recepcionista virtual IA para clínicas veterinarias: guía completa",
-    "keywords": ["recepcionista virtual veterinaria", "asistente IA clínica veterinaria España", "automatizar citas veterinario"],
+    "keywords": [
+      "recepcionista virtual veterinaria",
+      "asistente IA clínica veterinaria España",
+      "automatizar citas veterinario"
+    ],
     "focus": "Cómo las clínicas veterinarias pueden gestionar urgencias, recordatorios de vacunas y citas de revisión con IA, en cualquier idioma y sin perder llamadas.",
     "sector": "veterinarias",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-para-gimnasios-centros-deportivos",
     "title": "Asistente IA para gimnasios y centros deportivos: automatiza todo",
-    "keywords": ["asistente IA gimnasio", "recepcionista virtual centro deportivo España", "automatizar inscripciones gimnasio IA"],
+    "keywords": [
+      "asistente IA gimnasio",
+      "recepcionista virtual centro deportivo España",
+      "automatizar inscripciones gimnasio IA"
+    ],
     "focus": "Guía completa para gimnasios: automatizar consultas de precios, horarios de clases, inscripciones, bajas y recordatorios con IA. ROI real.",
     "sector": "gimnasios",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "ia-para-academias-clases-particulares",
     "title": "IA para academias y clases particulares: automatiza matrículas y consultas",
-    "keywords": ["IA academia clases particulares", "recepcionista virtual academia idiomas", "automatizar consultas academia IA"],
+    "keywords": [
+      "IA academia clases particulares",
+      "recepcionista virtual academia idiomas",
+      "automatizar consultas academia IA"
+    ],
     "focus": "Cómo academias de idiomas, autoescuelas y centros de refuerzo escolar pueden automatizar las consultas telefónicas más repetitivas con IA.",
     "sector": "academias",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-farmacias-espana",
     "title": "Recepcionista IA para farmacias en España: turno, consultas y más",
-    "keywords": ["recepcionista IA farmacia España", "asistente virtual farmacia", "automatizar llamadas farmacia IA"],
+    "keywords": [
+      "recepcionista IA farmacia España",
+      "asistente virtual farmacia",
+      "automatizar llamadas farmacia IA"
+    ],
     "focus": "Cómo las farmacias pueden usar IA para informar sobre turnos de guardia, disponibilidad de medicamentos, horarios y derivar urgencias médicas.",
     "sector": "farmacias",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-virtual-hoteles-rurales-espana",
     "title": "Asistente virtual IA para hoteles rurales y alojamientos en España",
-    "keywords": ["asistente IA hotel rural España", "recepcionista virtual alojamiento turístico", "automatizar reservas hotel rural IA"],
+    "keywords": [
+      "asistente IA hotel rural España",
+      "recepcionista virtual alojamiento turístico",
+      "automatizar reservas hotel rural IA"
+    ],
     "focus": "Cómo hoteles rurales, casas de turismo rural y apartamentos turísticos pueden automatizar las consultas de disponibilidad, reservas y check-in con IA multiidioma.",
     "sector": "hoteles",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "ia-para-inmobiliarias-gestion-llamadas",
     "title": "IA para inmobiliarias: gestiona llamadas de compradores y vendedores 24/7",
-    "keywords": ["IA inmobiliaria gestión llamadas", "recepcionista virtual agencia inmobiliaria", "asistente IA inmobiliaria España"],
+    "keywords": [
+      "IA inmobiliaria gestión llamadas",
+      "recepcionista virtual agencia inmobiliaria",
+      "asistente IA inmobiliaria España"
+    ],
     "focus": "Cómo las agencias inmobiliarias pueden cualificar leads por teléfono, agendar visitas y atender consultas de manera automática con IA. Casos y ROI.",
     "sector": "inmobiliarias",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-virtual-clinica-fisioterapia",
     "title": "Recepcionista virtual IA para clínicas de fisioterapia y rehabilitación",
-    "keywords": ["recepcionista virtual fisioterapia", "asistente IA clínica rehabilitación", "automatizar citas fisioterapia IA"],
+    "keywords": [
+      "recepcionista virtual fisioterapia",
+      "asistente IA clínica rehabilitación",
+      "automatizar citas fisioterapia IA"
+    ],
     "focus": "Cómo las clínicas de fisioterapia pueden automatizar citas, recordatorios de sesión y seguimientos de alta con IA, liberando al personal para atender pacientes.",
     "sector": "clinicas",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "integracion-whatsapp-business-ia-negocio",
     "title": "WhatsApp Business + IA: el dúo perfecto para tu negocio en 2026",
-    "keywords": ["WhatsApp Business IA negocio", "integrar WhatsApp asistente IA", "WhatsApp automatizado negocio España"],
+    "keywords": [
+      "WhatsApp Business IA negocio",
+      "integrar WhatsApp asistente IA",
+      "WhatsApp automatizado negocio España"
+    ],
     "focus": "Cómo combinar la atención por WhatsApp y la IA telefónica para crear una experiencia de cliente omnicanal. Configuración, ejemplos, ventajas.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-multiidioma-euskera-galego",
     "title": "Recepcionista IA multiidioma: castellano, euskera y galego en un solo sistema",
-    "keywords": ["recepcionista IA multiidioma España", "asistente virtual euskera castellano galego", "IA varios idiomas negocio"],
+    "keywords": [
+      "recepcionista IA multiidioma España",
+      "asistente virtual euskera castellano galego",
+      "IA varios idiomas negocio"
+    ],
     "focus": "Por qué los negocios en el País Vasco y Galicia necesitan IA que responda en el idioma del cliente. Cómo funciona el multiidioma en NodeFlow.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "ia-telefonica-rgpd-cumplimiento-espana",
     "title": "IA telefónica y RGPD: cómo cumplir la ley de protección de datos en España",
-    "keywords": ["IA telefónica RGPD España", "asistente virtual protección de datos", "cumplimiento RGPD recepcionista IA"],
+    "keywords": [
+      "IA telefónica RGPD España",
+      "asistente virtual protección de datos",
+      "cumplimiento RGPD recepcionista IA"
+    ],
     "focus": "Qué exige la RGPD para el uso de IA en llamadas de negocios: consentimiento, grabaciones, almacenamiento de datos, derechos del cliente. Guía práctica.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "como-elegir-asistente-ia-telefono-pyme",
     "title": "Cómo elegir el mejor asistente IA telefónico para tu pyme en 2026",
-    "keywords": ["elegir asistente IA telefónico pyme", "mejor recepcionista virtual España 2026", "comparativa asistentes IA telefónico"],
+    "keywords": [
+      "elegir asistente IA telefónico pyme",
+      "mejor recepcionista virtual España 2026",
+      "comparativa asistentes IA telefónico"
+    ],
     "focus": "Guía de criterios para elegir un asistente IA telefónico: precio, idiomas, integración con agenda, RGPD, soporte técnico. Checklist para pymes.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "estadisticas-llamadas-perdidas-pymes-espana",
     "title": "Estadísticas de llamadas perdidas en pymes españolas: el coste que nadie calcula",
-    "keywords": ["estadísticas llamadas perdidas pymes España", "coste llamadas perdidas negocio", "datos pérdida llamadas pequeño negocio"],
+    "keywords": [
+      "estadísticas llamadas perdidas pymes España",
+      "coste llamadas perdidas negocio",
+      "datos pérdida llamadas pequeño negocio"
+    ],
     "focus": "Cifras reales sobre cuántas llamadas pierden los negocios, qué porcentaje se convierte en cliente, y cuánto dinero se pierde. Base para el argumento del ROI.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-asesorias-gestoras-espana",
     "title": "Recepcionista IA para asesorías y gestorías: filtra llamadas y agenda citas",
-    "keywords": ["recepcionista IA asesoría España", "asistente virtual gestoría fiscal", "automatizar llamadas asesoría laboral"],
+    "keywords": [
+      "recepcionista IA asesoría España",
+      "asistente virtual gestoría fiscal",
+      "automatizar llamadas asesoría laboral"
+    ],
     "focus": "Cómo las asesorías fiscales, laborales y gestorías pueden usar IA para filtrar llamadas, responder preguntas frecuentes y agendar reuniones automáticamente.",
     "sector": "asesorias",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-restaurante-vitoria",
     "title": "Asistente IA para restaurantes en Vitoria-Gasteiz: reservas y más",
-    "keywords": ["asistente IA restaurante Vitoria", "reservas automáticas restaurante Gasteiz", "recepcionista virtual bar Álava"],
+    "keywords": [
+      "asistente IA restaurante Vitoria",
+      "reservas automáticas restaurante Gasteiz",
+      "recepcionista virtual bar Álava"
+    ],
     "focus": "Cómo los restaurantes y bares de Vitoria-Gasteiz pueden automatizar reservas de mesa, gestionar menús del día y atender clientes fuera de horario con IA.",
     "sector": "restaurantes",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-fisioterapia-bilbao",
     "title": "Recepcionista IA para fisioterapia en Bilbao y Bizkaia",
-    "keywords": ["recepcionista IA fisioterapia Bilbao", "automatizar citas fisioterapia Bilbao", "asistente virtual fisio Bizkaia"],
+    "keywords": [
+      "recepcionista IA fisioterapia Bilbao",
+      "automatizar citas fisioterapia Bilbao",
+      "asistente virtual fisio Bizkaia"
+    ],
     "focus": "Cómo las clínicas de fisioterapia de Bilbao pueden gestionar sesiones, informar sobre cobertura Adeslas/Sanitas y enviar recordatorios sin interrumpir tratamientos.",
     "sector": "fisioterapia",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "asistente-ia-fisioterapia-donostia",
     "title": "Asistente IA para clínicas de fisioterapia en Donostia-San Sebastián",
-    "keywords": ["asistente IA fisioterapia Donostia", "recepcionista virtual fisio San Sebastián", "automatizar citas rehabilitación Gipuzkoa"],
+    "keywords": [
+      "asistente IA fisioterapia Donostia",
+      "recepcionista virtual fisio San Sebastián",
+      "automatizar citas rehabilitación Gipuzkoa"
+    ],
     "focus": "Cómo las clínicas de fisioterapia y rehabilitación de Donostia pueden automatizar citas, gestionar seguros y enviar recordatorios de sesión con IA bilingüe.",
     "sector": "fisioterapia",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-fisioterapia-vitoria",
     "title": "Recepcionista IA para fisioterapia en Vitoria-Gasteiz",
-    "keywords": ["recepcionista IA fisioterapia Vitoria", "automatizar sesiones fisio Gasteiz", "asistente virtual rehabilitación Álava"],
+    "keywords": [
+      "recepcionista IA fisioterapia Vitoria",
+      "automatizar sesiones fisio Gasteiz",
+      "asistente virtual rehabilitación Álava"
+    ],
     "focus": "Guía para clínicas de fisioterapia en Vitoria-Gasteiz: automatizar reservas de sesión, informar sobre Mutua y Adeslas, y reducir no-shows con recordatorios automáticos.",
     "sector": "fisioterapia",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
     "title": "Fisioterapia y seguros: cómo el asistente IA responde sobre Adeslas, Sanitas y Mutua",
-    "keywords": ["fisioterapia cobertura Adeslas", "sesiones fisio Sanitas asistente IA", "fisioterapia Mutua Madrileña IA"],
+    "keywords": [
+      "fisioterapia cobertura Adeslas",
+      "sesiones fisio Sanitas asistente IA",
+      "fisioterapia Mutua Madrileña IA"
+    ],
     "focus": "Cómo configurar un asistente IA para responder automáticamente preguntas sobre cobertura de fisioterapia por seguro: Adeslas, Sanitas, Mutua, DKV, Asisa. Qué datos necesitas configurar.",
     "sector": "fisioterapia",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-veterinaria-bilbao",
     "title": "Recepcionista IA para clínicas veterinarias en Bilbao y Bizkaia",
-    "keywords": ["recepcionista IA veterinaria Bilbao", "automatizar citas veterinario Bizkaia", "asistente virtual clínica veterinaria Bilbao"],
+    "keywords": [
+      "recepcionista IA veterinaria Bilbao",
+      "automatizar citas veterinario Bizkaia",
+      "asistente virtual clínica veterinaria Bilbao"
+    ],
     "focus": "Cómo las clínicas veterinarias de Bilbao y Bizkaia pueden gestionar urgencias, vacunaciones y citas de revisión automáticamente con IA en castellano y euskera.",
     "sector": "veterinarias",
-    "city": "bilbao"
+    "city": "bilbao",
+    "generated": true
   },
   {
     "slug": "asistente-ia-gimnasio-donostia",
     "title": "Asistente IA para gimnasios y centros deportivos en Donostia",
-    "keywords": ["asistente IA gimnasio Donostia", "recepcionista virtual centro deportivo San Sebastián", "automatizar inscripciones gimnasio Gipuzkoa"],
+    "keywords": [
+      "asistente IA gimnasio Donostia",
+      "recepcionista virtual centro deportivo San Sebastián",
+      "automatizar inscripciones gimnasio Gipuzkoa"
+    ],
     "focus": "Cómo los gimnasios de Donostia pueden automatizar consultas de precios, horarios de clases, inscripciones y bajas con IA. ROI real para un gimnasio mediano de Gipuzkoa.",
     "sector": "gimnasios",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-peluqueria-vitoria",
     "title": "Recepcionista IA para peluquerías y barberías en Vitoria-Gasteiz",
-    "keywords": ["recepcionista IA peluquería Vitoria", "automatizar citas peluquería Gasteiz", "asistente virtual barbería Álava"],
+    "keywords": [
+      "recepcionista IA peluquería Vitoria",
+      "automatizar citas peluquería Gasteiz",
+      "asistente virtual barbería Álava"
+    ],
     "focus": "Cómo las peluquerías y barberías de Vitoria-Gasteiz pueden automatizar reservas, gestionar cancelaciones y atender clientes fuera de horario con IA bilingüe.",
     "sector": "peluquerias",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "asistente-ia-clinica-dental-donostia",
     "title": "Asistente IA para clínicas dentales en Donostia-San Sebastián",
-    "keywords": ["asistente IA clínica dental Donostia", "recepcionista virtual dentista San Sebastián", "automatizar citas dentista Gipuzkoa"],
+    "keywords": [
+      "asistente IA clínica dental Donostia",
+      "recepcionista virtual dentista San Sebastián",
+      "automatizar citas dentista Gipuzkoa"
+    ],
     "focus": "Cómo las clínicas dentales de Donostia-San Sebastián pueden reducir llamadas perdidas, automatizar triaje de urgencias y gestionar recordatorios con IA en euskera y castellano.",
     "sector": "clinicas",
     "city": "donostia"
@@ -378,7 +612,11 @@
   {
     "slug": "recepcionista-ia-clinica-dental-vitoria",
     "title": "Recepcionista IA para clínicas dentales en Vitoria-Gasteiz",
-    "keywords": ["recepcionista IA clínica dental Vitoria", "automatizar citas dentista Gasteiz", "asistente virtual odontología Álava"],
+    "keywords": [
+      "recepcionista IA clínica dental Vitoria",
+      "automatizar citas dentista Gasteiz",
+      "asistente virtual odontología Álava"
+    ],
     "focus": "Guía para clínicas dentales de Vitoria-Gasteiz: automatizar recordatorios, triaje de urgencias, gestión de seguros y citas con IA sin cambiar el número de teléfono.",
     "sector": "clinicas",
     "city": "vitoria"
@@ -386,7 +624,11 @@
   {
     "slug": "recepcionista-ia-farmacia-bilbao",
     "title": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y más",
-    "keywords": ["recepcionista IA farmacia Bilbao", "asistente virtual farmacia Bizkaia", "automatizar consultas farmacia Bilbao"],
+    "keywords": [
+      "recepcionista IA farmacia Bilbao",
+      "asistente virtual farmacia Bizkaia",
+      "automatizar consultas farmacia Bilbao"
+    ],
     "focus": "Cómo las farmacias de Bilbao pueden usar IA para informar sobre turnos de guardia, disponibilidad de medicamentos, horarios y derivar urgencias. Casos reales.",
     "sector": "farmacias",
     "city": "bilbao"
@@ -394,7 +636,11 @@
   {
     "slug": "asistente-ia-farmacia-donostia",
     "title": "Asistente IA para farmacias en Donostia-San Sebastián",
-    "keywords": ["asistente IA farmacia Donostia", "recepcionista virtual farmacia San Sebastián", "turno guardia farmacia IA Gipuzkoa"],
+    "keywords": [
+      "asistente IA farmacia Donostia",
+      "recepcionista virtual farmacia San Sebastián",
+      "turno guardia farmacia IA Gipuzkoa"
+    ],
     "focus": "Cómo las farmacias de Donostia pueden automatizar consultas de turno de guardia, disponibilidad y horarios en castellano y euskera con IA.",
     "sector": "farmacias",
     "city": "donostia"
@@ -402,7 +648,11 @@
   {
     "slug": "asistente-ia-taller-mecanico-donostia",
     "title": "Asistente IA para talleres mecánicos en Donostia y Gipuzkoa",
-    "keywords": ["asistente IA taller mecánico Donostia", "recepcionista virtual taller San Sebastián", "automatizar citas taller Gipuzkoa"],
+    "keywords": [
+      "asistente IA taller mecánico Donostia",
+      "recepcionista virtual taller San Sebastián",
+      "automatizar citas taller Gipuzkoa"
+    ],
     "focus": "Cómo los talleres mecánicos de Donostia pueden gestionar citas, presupuestos y llamadas de seguimiento automáticamente con IA en euskera y castellano.",
     "sector": "talleres",
     "city": "donostia"
@@ -410,63 +660,102 @@
   {
     "slug": "recepcionista-ia-psicologos-terapeutas-espana",
     "title": "Recepcionista IA para psicólogos y terapeutas: gestión de citas con total confidencialidad",
-    "keywords": ["recepcionista IA psicólogo", "asistente virtual terapeuta España", "automatizar citas psicología IA"],
+    "keywords": [
+      "recepcionista IA psicólogo",
+      "asistente virtual terapeuta España",
+      "automatizar citas psicología IA"
+    ],
     "focus": "Cómo los psicólogos y terapeutas pueden usar IA para gestionar citas manteniendo confidencialidad, responder preguntas sobre tarifas y seguros, y reducir no-shows. RGPD y privacidad.",
     "sector": "psicologos",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-opticas-espana",
     "title": "Asistente IA para ópticas: automatiza citas, revisiones y pedidos de gafas",
-    "keywords": ["asistente IA óptica España", "recepcionista virtual óptica", "automatizar citas revisión vista IA"],
+    "keywords": [
+      "asistente IA óptica España",
+      "recepcionista virtual óptica",
+      "automatizar citas revisión vista IA"
+    ],
     "focus": "Cómo las ópticas pueden usar IA para agendar revisiones de vista, informar sobre seguros que cubren gafas y lentillas, y gestionar el seguimiento de pedidos.",
     "sector": "opticas",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-podologos-espana",
     "title": "Recepcionista IA para podólogos: gestiona citas y recordatorios de revisión",
-    "keywords": ["recepcionista IA podólogo España", "asistente virtual podología", "automatizar citas podólogo IA"],
+    "keywords": [
+      "recepcionista IA podólogo España",
+      "asistente virtual podología",
+      "automatizar citas podólogo IA"
+    ],
     "focus": "Cómo los podólogos y clínicas de podología pueden automatizar la gestión de citas, recordatorios de revisión y respuestas sobre seguros médicos con IA.",
     "sector": "podologos",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-centros-yoga-pilates",
     "title": "Asistente IA para centros de yoga y pilates: automatiza inscripciones y horarios",
-    "keywords": ["asistente IA yoga pilates", "recepcionista virtual centro yoga España", "automatizar reservas clases yoga IA"],
+    "keywords": [
+      "asistente IA yoga pilates",
+      "recepcionista virtual centro yoga España",
+      "automatizar reservas clases yoga IA"
+    ],
     "focus": "Cómo los estudios de yoga, pilates y meditación pueden usar IA para gestionar reservas de clases, listas de espera, inscripciones y recordatorios. ROI para un estudio mediano.",
     "sector": "yoga",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-autoescuelas-espana",
     "title": "Recepcionista IA para autoescuelas: gestiona matrículas, exámenes y consultas",
-    "keywords": ["recepcionista IA autoescuela España", "asistente virtual autoescuela", "automatizar consultas autoescuela IA"],
+    "keywords": [
+      "recepcionista IA autoescuela España",
+      "asistente virtual autoescuela",
+      "automatizar consultas autoescuela IA"
+    ],
     "focus": "Cómo las autoescuelas pueden usar IA para responder sobre precios, matriculaciones, fechas de examen y disponibilidad de clases prácticas sin ocupar al personal.",
     "sector": "autoescuelas",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "ia-multiidioma-turismo-pais-vasco",
     "title": "IA multiidioma para negocios turísticos del País Vasco: euskera, castellano, inglés y francés",
-    "keywords": ["IA multiidioma turismo País Vasco", "asistente virtual turismo Bilbao inglés francés", "recepcionista IA varios idiomas negocios turísticos"],
+    "keywords": [
+      "IA multiidioma turismo País Vasco",
+      "asistente virtual turismo Bilbao inglés francés",
+      "recepcionista IA varios idiomas negocios turísticos"
+    ],
     "focus": "Por qué los negocios turísticos del País Vasco necesitan IA que responda en euskera, castellano, inglés y francés. Restaurantes, hoteles y actividades ante turistas internacionales.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "como-reducir-tiempo-gestion-telefonica-negocio",
     "title": "Cómo reducir el tiempo de gestión telefónica en tu negocio un 80%",
-    "keywords": ["reducir tiempo gestión telefónica negocio", "automatizar llamadas repetitivas negocio", "eficiencia operativa atención telefónica IA"],
+    "keywords": [
+      "reducir tiempo gestión telefónica negocio",
+      "automatizar llamadas repetitivas negocio",
+      "eficiencia operativa atención telefónica IA"
+    ],
     "focus": "Análisis de qué tipo de llamadas consumen más tiempo en los negocios (precios, horarios, disponibilidad, seguros) y cómo la IA las elimina sin perder calidad de atención.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-centro-medico-privado",
     "title": "Asistente IA para centros médicos privados: gestión de citas y seguros",
-    "keywords": ["asistente IA centro médico privado", "recepcionista virtual clínica médica España", "automatizar citas médico seguro privado"],
+    "keywords": [
+      "asistente IA centro médico privado",
+      "recepcionista virtual clínica médica España",
+      "automatizar citas médico seguro privado"
+    ],
     "focus": "Cómo los centros médicos privados pueden automatizar la gestión de primeras consultas, citas de especialistas, información sobre seguros aceptados y recordatorios con IA.",
     "sector": "medicos",
     "city": null
@@ -474,23 +763,37 @@
   {
     "slug": "ia-voz-para-negocios-espana-tendencias-2026",
     "title": "IA de voz para negocios en España: tendencias y casos reales en 2026",
-    "keywords": ["IA voz negocios España 2026", "tendencias asistente virtual telefónico España", "recepcionista IA futuro pequeño negocio"],
+    "keywords": [
+      "IA voz negocios España 2026",
+      "tendencias asistente virtual telefónico España",
+      "recepcionista IA futuro pequeño negocio"
+    ],
     "focus": "Panorama actual de la IA de voz para negocios en España: qué tecnologías están maduras, qué costes son reales, qué sectores adoptan más rápido y cuál es el ROI típico.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "diferencia-chatbot-asistente-voz-ia",
     "title": "Chatbot vs asistente de voz IA: ¿cuál necesita tu negocio?",
-    "keywords": ["chatbot vs asistente voz IA", "diferencia chatbot recepcionista virtual", "cuándo usar chatbot cuándo IA voz negocio"],
+    "keywords": [
+      "chatbot vs asistente voz IA",
+      "diferencia chatbot recepcionista virtual",
+      "cuándo usar chatbot cuándo IA voz negocio"
+    ],
     "focus": "Comparativa honesta entre chatbots de texto y asistentes de voz IA para negocios: casos donde cada uno funciona mejor, costes, integración, limitaciones. Sin humo.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-clinicas-seguros-privados-espana",
     "title": "Recepcionista IA para clínicas con seguros privados: Adeslas, Sanitas, Asisa y más",
-    "keywords": ["recepcionista IA seguros privados clínica", "asistente IA Adeslas Sanitas clínica", "automatizar consultas seguros médicos IA"],
+    "keywords": [
+      "recepcionista IA seguros privados clínica",
+      "asistente IA Adeslas Sanitas clínica",
+      "automatizar consultas seguros médicos IA"
+    ],
     "focus": "Cómo configurar un asistente IA para responder automáticamente sobre qué seguros acepta tu clínica, copagos, autorización previa y cobertura por especialidad.",
     "sector": null,
     "city": null
@@ -498,7 +801,11 @@
   {
     "slug": "integracion-ia-software-gestion-clinica",
     "title": "Integrar IA con el software de gestión de tu clínica: guía práctica",
-    "keywords": ["integrar IA software gestión clínica", "asistente virtual conectar agenda clínica", "automatización citas software médico IA"],
+    "keywords": [
+      "integrar IA software gestión clínica",
+      "asistente virtual conectar agenda clínica",
+      "automatización citas software médico IA"
+    ],
     "focus": "Cómo conectar un asistente IA telefónico con los sistemas de gestión clínica más habituales en España. Google Calendar como puente universal, APIs disponibles, casos reales.",
     "sector": null,
     "city": null
@@ -506,15 +813,24 @@
   {
     "slug": "como-configurar-bienvenida-asistente-ia-negocio",
     "title": "Cómo configurar el saludo y bienvenida perfecta de tu asistente IA",
-    "keywords": ["configurar bienvenida asistente IA negocio", "saludo ideal recepcionista virtual", "primer mensaje asistente IA empresa"],
+    "keywords": [
+      "configurar bienvenida asistente IA negocio",
+      "saludo ideal recepcionista virtual",
+      "primer mensaje asistente IA empresa"
+    ],
     "focus": "Guía práctica para diseñar el saludo de tu recepcionista IA: qué decir en los primeros segundos, cómo capturar el motivo de la llamada, ejemplos reales por sector.",
     "sector": null,
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-consultas-medicas-generales",
     "title": "Recepcionista IA para consultas médicas: gestiona citas sin saturar la línea",
-    "keywords": ["recepcionista IA consulta médica", "asistente virtual médico de cabecera", "automatizar citas médico general IA"],
+    "keywords": [
+      "recepcionista IA consulta médica",
+      "asistente virtual médico de cabecera",
+      "automatizar citas médico general IA"
+    ],
     "focus": "Cómo las consultas médicas generales y de medicina familiar pueden usar IA para gestionar citas, responder sobre horarios y derivar urgencias sin saturar la línea principal.",
     "sector": "medicos",
     "city": null
@@ -522,7 +838,11 @@
   {
     "slug": "asistente-ia-spa-balneario-espana",
     "title": "Asistente IA para spas y balnearios en España: reservas y tratamientos",
-    "keywords": ["asistente IA spa España", "recepcionista virtual balneario", "automatizar reservas spa tratamientos IA"],
+    "keywords": [
+      "asistente IA spa España",
+      "recepcionista virtual balneario",
+      "automatizar reservas spa tratamientos IA"
+    ],
     "focus": "Cómo los spas, balnearios y centros de bienestar pueden automatizar reservas de tratamientos, gestionar packs y responder consultas de precios con IA multiidioma.",
     "sector": "spa",
     "city": null
@@ -530,7 +850,11 @@
   {
     "slug": "ia-recepcion-virtual-sector-servicios-espana",
     "title": "La recepción virtual IA ya es una realidad para los servicios en España",
-    "keywords": ["recepción virtual IA sector servicios España", "adopción IA servicios pymes 2026", "asistente virtual por sectores España"],
+    "keywords": [
+      "recepción virtual IA sector servicios España",
+      "adopción IA servicios pymes 2026",
+      "asistente virtual por sectores España"
+    ],
     "focus": "Análisis de cómo la recepción virtual IA se está adoptando en los sectores de servicios en España: qué sectores lideran, qué barreras quedan y cuál es el impacto económico real.",
     "sector": null,
     "city": null
@@ -538,7 +862,11 @@
   {
     "slug": "recepcionista-ia-academias-idiomas-espana",
     "title": "Recepcionista IA para academias de idiomas: matrículas y consultas automáticas",
-    "keywords": ["recepcionista IA academia idiomas España", "asistente virtual inglés academia", "automatizar matrículas academia idiomas IA"],
+    "keywords": [
+      "recepcionista IA academia idiomas España",
+      "asistente virtual inglés academia",
+      "automatizar matrículas academia idiomas IA"
+    ],
     "focus": "Cómo las academias de inglés, francés y otros idiomas pueden automatizar consultas de horarios, niveles, matrículas y precios con IA. Casos reales y ROI.",
     "sector": "academias",
     "city": null
@@ -546,7 +874,11 @@
   {
     "slug": "asistente-ia-peluqueria-coloracion-citas-largas",
     "title": "Asistente IA para peluquerías: cómo gestionar citas largas de coloración y tratamientos",
-    "keywords": ["asistente IA peluquería coloración", "gestionar citas largas peluquería IA", "recepcionista virtual servicios complejos peluquería"],
+    "keywords": [
+      "asistente IA peluquería coloración",
+      "gestionar citas largas peluquería IA",
+      "recepcionista virtual servicios complejos peluquería"
+    ],
     "focus": "Las peluquerías con servicios de coloración, mechas y tratamientos necesitan gestionar citas más complejas. Cómo el asistente IA puede preguntar por el servicio, asignar tiempo correcto y asignar el estilista adecuado.",
     "sector": "peluquerias",
     "city": null
@@ -554,81 +886,131 @@
   {
     "slug": "asistente-ia-coaches-terapeutas",
     "title": "Asistente IA para coaches y consultores: gestiona sesiones y primeras consultas",
-    "keywords": ["asistente IA coach consultor España", "recepcionista virtual coaching", "automatizar citas coach IA"],
+    "keywords": [
+      "asistente IA coach consultor España",
+      "recepcionista virtual coaching",
+      "automatizar citas coach IA"
+    ],
     "focus": "Cómo los coaches y consultores automatizan la gestión de primeras sesiones, responden sobre precios y reducen el tiempo de administración con IA.",
     "sector": "coaching",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-nutricionistas-espana",
     "title": "Recepcionista IA para nutricionistas y dietistas: automatiza consultas y seguimientos",
-    "keywords": ["recepcionista IA nutricionista España", "asistente virtual dietista", "automatizar consultas nutrición IA"],
+    "keywords": [
+      "recepcionista IA nutricionista España",
+      "asistente virtual dietista",
+      "automatizar consultas nutrición IA"
+    ],
     "focus": "Cómo los nutricionistas y dietistas gestionan primeras consultas, recordatorios de revisión mensual y seguimientos de dieta con IA.",
     "sector": "nutricion",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-centros-estetica-laser",
     "title": "Asistente IA para centros de estética avanzada y láser: automatiza ciclos de tratamiento",
-    "keywords": ["asistente IA estética avanzada España", "recepcionista virtual depilación láser", "automatizar ciclos tratamiento estética IA"],
+    "keywords": [
+      "asistente IA estética avanzada España",
+      "recepcionista virtual depilación láser",
+      "automatizar ciclos tratamiento estética IA"
+    ],
     "focus": "Cómo los centros de estética avanzada y depilación láser gestionan ciclos de sesiones, recordatorios y reactivación de clientes con IA.",
     "sector": "estetica_avanzada",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-guarderias-caninas",
     "title": "Asistente IA para guarderías caninas: reservas, estancias y seguimiento",
-    "keywords": ["asistente IA guardería canina España", "recepcionista virtual residencia mascotas", "automatizar reservas guardería perros IA"],
+    "keywords": [
+      "asistente IA guardería canina España",
+      "recepcionista virtual residencia mascotas",
+      "automatizar reservas guardería perros IA"
+    ],
     "focus": "Cómo las guarderías y residencias caninas automatizan reservas de estancias, recordatorios de vacunas y gestión de clientes con IA.",
     "sector": "guarderia_canina",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-despachos-abogados",
     "title": "Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos",
-    "keywords": ["recepcionista IA abogados España", "asistente virtual despacho abogados", "automatizar consultas jurídicas IA"],
+    "keywords": [
+      "recepcionista IA abogados España",
+      "asistente virtual despacho abogados",
+      "automatizar consultas jurídicas IA"
+    ],
     "focus": "Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.",
     "sector": "abogados",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-gimnasio-donostia",
     "title": "Asistente IA para gimnasios en Donostia y Gipuzkoa: automatiza inscripciones",
-    "keywords": ["asistente IA gimnasio Donostia", "recepcionista virtual centro deportivo San Sebastián", "automatizar inscripciones gimnasio Gipuzkoa"],
+    "keywords": [
+      "asistente IA gimnasio Donostia",
+      "recepcionista virtual centro deportivo San Sebastián",
+      "automatizar inscripciones gimnasio Gipuzkoa"
+    ],
     "focus": "Cómo los gimnasios de Donostia automatizan consultas de precios, inscripciones y recordatorios de cuota con IA bilingüe. Captación de socios 24/7 en euskera y castellano.",
     "sector": "gimnasios",
-    "city": "donostia"
+    "city": "donostia",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-peluqueria-vitoria",
     "title": "Recepcionista IA para peluquerías y barberías en Vitoria-Gasteiz",
-    "keywords": ["recepcionista IA peluquería Vitoria", "automatizar citas peluquería Gasteiz", "asistente virtual barbería Álava"],
+    "keywords": [
+      "recepcionista IA peluquería Vitoria",
+      "automatizar citas peluquería Gasteiz",
+      "asistente virtual barbería Álava"
+    ],
     "focus": "Cómo las peluquerías y barberías de Vitoria-Gasteiz automatizan citas, gestionan cancelaciones y atienden clientes fuera de horario con IA. Lista de espera y fidelización incluidos.",
     "sector": "peluquerias",
-    "city": "vitoria"
+    "city": "vitoria",
+    "generated": true
   },
   {
     "slug": "recepcionista-ia-notarias-espana",
     "title": "Recepcionista IA para notarías: gestiona citas y consultas sin interrupciones",
-    "keywords": ["recepcionista IA notaría España", "asistente virtual notaría", "automatizar citas notaría IA"],
+    "keywords": [
+      "recepcionista IA notaría España",
+      "asistente virtual notaría",
+      "automatizar citas notaría IA"
+    ],
     "focus": "Cómo las notarías automatizan la agenda de citas, responden sobre documentación necesaria y gestionan plazos con IA. Sin interrumpir escrituras ni actos notariales.",
     "sector": "notaria",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-agencias-viajes-espana",
     "title": "Asistente IA para agencias de viajes: consultas, reservas y recordatorios",
-    "keywords": ["asistente IA agencia viajes España", "recepcionista virtual agencia viajes", "automatizar consultas viajes IA"],
+    "keywords": [
+      "asistente IA agencia viajes España",
+      "recepcionista virtual agencia viajes",
+      "automatizar consultas viajes IA"
+    ],
     "focus": "Cómo las agencias de viajes automatizan consultas de destinos, reservas y recordatorios de documentación antes del viaje con IA multiidioma.",
     "sector": "agencia_viajes",
-    "city": null
+    "city": null,
+    "generated": true
   },
   {
     "slug": "asistente-ia-empresas-reformas-espana",
     "title": "Asistente IA para empresas de reformas y construcción: gestiona presupuestos y citas",
-    "keywords": ["asistente IA empresa reformas España", "recepcionista virtual construcción reformas", "automatizar presupuestos reformas IA"],
+    "keywords": [
+      "asistente IA empresa reformas España",
+      "recepcionista virtual construcción reformas",
+      "automatizar presupuestos reformas IA"
+    ],
     "focus": "Cómo las empresas de reformas, arquitectos e interioristas automatizan la gestión de solicitudes de presupuesto, cualificación de leads y visitas de valoración con IA.",
     "sector": "reformas",
-    "city": null
+    "city": null,
+    "generated": true
   }
 ]
