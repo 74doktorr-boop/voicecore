@@ -38,6 +38,7 @@ function sectorBlock(sector, sectorData = {}) {
       ].filter(Boolean).join('\n');
     }
     case 'fisioterapia':
+    case 'dental':
     case 'clinica': {
       const seguros = Array.isArray(sectorData.seguros) && sectorData.seguros.length > 0
         ? `SEGUROS ACEPTADOS: ${sectorData.seguros.join(', ')}`
@@ -83,6 +84,7 @@ function sectorBlock(sector, sectorData = {}) {
       const precio  = sectorData.precioPractica ? `PRECIO CLASE PRÁCTICA: ${sectorData.precioPractica}` : null;
       return [carnets, precio].filter(Boolean).join('\n');
     }
+    case 'spa':
     case 'estetica_avanzada':
     case 'laser': {
       return sectorData.tratamientos ? `TRATAMIENTOS: ${sectorData.tratamientos}` : '';
@@ -99,6 +101,7 @@ function sectorBlock(sector, sectorData = {}) {
       const plazas = sectorData.plazas ? `PLAZAS DISPONIBLES: ${sectorData.plazas}` : null;
       return [razas, plazas].filter(Boolean).join('\n');
     }
+    case 'abogado':
     case 'abogados':
     case 'notaria': {
       const esp      = sectorData.especialidades ? `ESPECIALIDADES LEGALES: ${sectorData.especialidades}` : null;
