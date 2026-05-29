@@ -1012,5 +1012,161 @@
     "sector": "reformas",
     "city": null,
     "generated": true
+  },
+  {
+    "slug": "asistente-ia-psicologos-bilbao",
+    "title": "Asistente IA para psicólogos y terapeutas en Bilbao",
+    "keywords": [
+      "asistente IA psicólogo Bilbao",
+      "recepcionista virtual terapeuta Bizkaia",
+      "automatizar citas psicología Bilbao"
+    ],
+    "focus": "Cómo un asistente de voz con IA ayuda a los psicólogos y terapeutas en Bilbao a gestionar citas, reducir no-shows y atender llamadas fuera de consulta.",
+    "sector": "psicologia",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-nutricionistas-bilbao",
+    "title": "Recepcionista IA para nutricionistas en Bilbao — automatiza tu consulta",
+    "keywords": [
+      "recepcionista IA nutricionista Bilbao",
+      "asistente virtual nutrición Bizkaia",
+      "automatizar citas nutriología Bilbao"
+    ],
+    "focus": "Automatiza la gestión de citas de tu consulta de nutrición en Bilbao con IA. Recordatorios, seguimiento y atención 24/7 sin esfuerzo.",
+    "sector": "nutricion",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-veterinaria-vitoria",
+    "title": "Asistente IA para veterinarias en Vitoria-Gasteiz — atiende cada llamada",
+    "keywords": [
+      "asistente IA veterinaria Vitoria",
+      "recepcionista virtual clínica veterinaria Álava",
+      "automatizar citas veterinario Gasteiz"
+    ],
+    "focus": "Las veterinarias en Vitoria-Gasteiz pueden automatizar citas, recordatorios de vacunas y guardias de urgencia con un asistente de voz IA. Descubre cómo.",
+    "sector": "veterinarias",
+    "city": "vitoria",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-optica-bilbao",
+    "title": "Asistente IA para ópticas en Bilbao — gestiona citas y revisiones visuales",
+    "keywords": [
+      "asistente IA óptica Bilbao",
+      "recepcionista virtual óptica Bizkaia",
+      "automatizar citas revisión visual Bilbao"
+    ],
+    "focus": "Las ópticas en Bilbao pueden automatizar citas de graduación, revisiones periódicas y recogida de gafas con un asistente de voz IA. Menos llamadas perdidas, más ventas.",
+    "sector": "optica",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "recepcionista-ia-autoescuela-bilbao",
+    "title": "Recepcionista IA para autoescuelas en Bilbao — gestiona matrículas y clases prácticas",
+    "keywords": [
+      "recepcionista IA autoescuela Bilbao",
+      "asistente virtual academia conducción Bizkaia",
+      "automatizar matrículas autoescuela Bilbao"
+    ],
+    "focus": "Las autoescuelas en Bilbao pueden automatizar matrículas, clases prácticas y exámenes con un asistente de voz IA. Atención 24/7 sin perder ningún alumno potencial.",
+    "sector": "autoescuela",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-inmobiliaria-bilbao",
+    "title": "Asistente IA para inmobiliarias en Bilbao — atiende consultas y coordina visitas",
+    "keywords": [
+      "asistente IA inmobiliaria Bilbao",
+      "recepcionista virtual agencia inmobiliaria Bizkaia",
+      "automatizar visitas inmobiliaria Bilbao"
+    ],
+    "focus": "Las inmobiliarias en Bilbao pueden automatizar la atención de consultas, filtrado de leads y coordinación de visitas con un asistente de voz IA. 24/7, sin perder ningún comprador potencial.",
+    "sector": "inmobiliarias",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-abogados-bilbao",
+    "title": "Recepcionista IA para despachos de abogados en Bilbao — discreción y eficiencia",
+    "keywords": [
+      "recepcionista IA abogados Bilbao",
+      "asistente virtual despacho jurídico Bizkaia",
+      "automatizar citas abogado Bilbao"
+    ],
+    "focus": "Los despachos de abogados en Bilbao pueden automatizar la gestión de llamadas, citas y consultas iniciales con un asistente IA. Tono profesional, atención 24/7 y RGPD compliant.",
+    "sector": "abogados",
+    "city": "bilbao",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-fisioterapia-vitoria",
+    "title": "Asistente IA para clínicas de fisioterapia en Vitoria-Gasteiz",
+    "keywords": [
+      "asistente IA fisioterapia Vitoria",
+      "recepcionista virtual clínica fisio Álava",
+      "automatizar citas fisioterapia Gasteiz"
+    ],
+    "focus": "Las clínicas de fisioterapia en Vitoria-Gasteiz pueden automatizar citas, recordatorios de sesión y seguimiento de pacientes con un asistente de voz IA. Descubre cómo.",
+    "sector": "fisioterapia",
+    "city": "vitoria",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-dental-vitoria",
+    "title": "Recepcionista IA para clínicas dentales en Vitoria-Gasteiz — más pacientes, menos esperas",
+    "keywords": [
+      "recepcionista IA clínica dental Vitoria",
+      "asistente virtual dentista Álava",
+      "automatizar citas odontología Gasteiz"
+    ],
+    "focus": "Las clínicas dentales en Vitoria-Gasteiz pueden automatizar citas, recordatorios y gestión de seguros con un asistente de voz IA. Atención 24/7 y reducción de no-shows.",
+    "sector": "clinicas",
+    "city": "vitoria",
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-centros-pilates-espana",
+    "title": "Asistente IA para centros de pilates en España — automatiza reservas y reducción de bajas",
+    "keywords": [
+      "asistente IA pilates España",
+      "recepcionista virtual centro pilates",
+      "automatizar reservas clases pilates"
+    ],
+    "focus": "Los centros de pilates en España pueden automatizar reservas de clase, recordatorios y gestión de bonos con un asistente IA. Menos bajas, más fidelidad.",
+    "sector": "pilates",
+    "city": null,
+    "generated": true
+  },
+  {
+    "slug": "como-elegir-ia-voz-negocio-espana-2026",
+    "title": "Cómo elegir el mejor asistente de voz IA para tu negocio en España (2026)",
+    "keywords": [
+      "elegir asistente voz IA negocio España",
+      "comparativa IA telefónica pyme",
+      "mejor recepcionista virtual 2026"
+    ],
+    "focus": "Guía completa para elegir un asistente de voz IA para tu negocio en España: criterios clave, comparativa de funcionalidades y lo que realmente importa en 2026.",
+    "sector": null,
+    "city": null,
+    "generated": true
+  },
+  {
+    "slug": "asistente-ia-yoga-bilbao",
+    "title": "Asistente IA para centros de yoga en Bilbao — más alumnos, menos gestión",
+    "keywords": [
+      "asistente IA yoga Bilbao",
+      "recepcionista virtual centro yoga Bizkaia",
+      "automatizar reservas yoga Bilbao"
+    ],
+    "focus": "Los centros de yoga en Bilbao pueden automatizar reservas, recordatorios y comunicación con alumnos usando un asistente de voz IA. Descubre cómo.",
+    "sector": "yoga",
+    "city": "bilbao",
+    "generated": true
   }
 ]
