@@ -630,4 +630,40 @@
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/ia-multiidioma-turismo-pais-vasco</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/como-reducir-tiempo-gestion-telefonica-negocio</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/ia-voz-para-negocios-espana-tendencias-2026</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/diferencia-chatbot-asistente-voz-ia</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/como-configurar-bienvenida-asistente-ia-negocio</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>
