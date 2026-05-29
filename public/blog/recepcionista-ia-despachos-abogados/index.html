@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos | NodeFlow Blog</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.">
+  <meta name="keywords" content="recepcionista IA abogados España, asistente virtual despacho abogados, automatizar consultas jurídicas IA">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NodeFlow">
+  <link rel="canonical" href="https://nodeflow.es/blog/recepcionista-ia-despachos-abogados">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://nodeflow.es/blog/recepcionista-ia-despachos-abogados">
+  <meta property="og:title" content="Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos">
+  <meta property="og:description" content="Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.">
+  <meta property="og:image" content="https://nodeflow.es/og-image.png">
+  <meta property="og:site_name" content="NodeFlow">
+  <meta property="article:published_time" content="2026-05-29T09:00:00+02:00">
+  <meta property="article:author" content="NodeFlow">
+  <meta property="article:section" content="abogados">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos">
+  <meta name="twitter:description" content="Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.">
+  <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": "https://nodeflow.es/blog/recepcionista-ia-despachos-abogados#article",
+        "headline": "Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos",
+        "description": "Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.",
+        "url": "https://nodeflow.es/blog/recepcionista-ia-despachos-abogados",
+        "datePublished": "2026-05-29",
+        "dateModified": "2026-05-29",
+        "author": {"@type": "Organization", "name": "NodeFlow", "url": "https://nodeflow.es"},
+        "publisher": {
+          "@type": "Organization",
+          "name": "NodeFlow",
+          "url": "https://nodeflow.es",
+          "logo": {"@type": "ImageObject", "url": "https://nodeflow.es/favicon.svg"}
+        },
+        "image": {"@type": "ImageObject", "url": "https://nodeflow.es/og-image.png", "width": 1200, "height": 630},
+        "keywords": "recepcionista IA abogados España, asistente virtual despacho abogados, automatizar consultas jurídicas IA",
+        "wordCount": 1000,
+        "timeRequired": "PT5M"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "NodeFlow", "item": "https://nodeflow.es"},
+          {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://nodeflow.es/blog"},
+          {"@type": "ListItem", "position": 3, "name": "Recepcionista IA para despachos de abogados", "item": "https://nodeflow.es/blog/recepcionista-ia-despachos-abogados"}
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Puede la IA dar asesoramiento jurídico básico?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. NodeFlow no proporciona asesoramiento jurídico bajo ninguna circunstancia. Su función es gestionar la recepción: identificar el tipo de consulta, recoger información básica del cliente, y derivar siempre al abogado para cualquier cuestión de fondo. Esta limitación no es un defecto: es una garantía de responsabilidad profesional."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cómo gestiona llamadas de urgencia fuera de horario?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NodeFlow puede configurarse con un protocolo específico para urgencias: identificar si la llamada tiene carácter urgente (detención, plazo inminente, situación familiar crítica), recoger los datos del cliente y el motivo, y notificar inmediatamente al abogado de guardia mediante una llamada o mensaje prioritario."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Funciona para diferentes ramas del derecho?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sí. NodeFlow se configura con la información específica del despacho: áreas de práctica (civil, penal, laboral, mercantil, familia, extranjería...), qué tipo de asuntos acepta el despacho y cuáles no, y cómo enrutar cada tipo de consulta al abogado correspondiente si hay especialización interna."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cumple el secreto profesional?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NodeFlow opera con pleno cumplimiento del RGPD. Los datos de las llamadas se almacenan de forma cifrada, con acceso restringido únicamente al despacho, y con la posibilidad de configurar políticas de retención y borrado. El asistente no revela información de clientes ni de asuntos a terceros en ningún caso."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZPKHPG2BLC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
+  <!-- Plausible -->
+  <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{--bg:#07070e;--card:#14141e;--accent:#6c5ce7;--accent-l:#a29bfe;--glow:rgba(108,92,231,0.3);--green:#00cec9;--text:#e8e8f0;--dim:#8888a8;--muted:#3a3a52;--border:rgba(255,255,255,0.07);--border-accent:rgba(108,92,231,0.3)}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+    .container{max-width:760px;margin:0 auto;padding:0 24px}
+    .container-wide{max-width:1100px;margin:0 auto;padding:0 24px}
+    a{text-decoration:none;color:inherit}
+    .progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));z-index:9999;transition:width .1s linear;width:0%}
+    .noise{position:fixed;inset:0;z-index:9998;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;opacity:0.025;animation:grain .4s steps(1) infinite}
+    @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,-2%)}40%{transform:translate(2%,3%)}60%{transform:translate(-1%,2%)}80%{transform:translate(3%,-1%)}}
+    .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+    .orb-1{width:600px;height:600px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(108,92,231,0.25) 0%,transparent 70%)}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;transition:all .4s}
+    nav::before{content:'';position:absolute;inset:0;background:rgba(7,7,14,0.9);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+    .logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text)}
+    .logo em{color:var(--accent-l);font-style:normal}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:all .25s;cursor:pointer;border:none}
+    .btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 20px var(--glow)}
+    .btn-primary:hover{background:#7c6cf7;transform:translateY(-1px)}
+    .breadcrumb{padding:90px 0 0;position:relative;z-index:2}
+    .bc-list{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap;list-style:none}
+    .bc-list a{color:var(--accent-l);transition:color .2s}
+    .bc-list a:hover{color:#fff}
+    .post-header{padding:32px 0 40px;position:relative;z-index:2}
+    .post-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+    .tag{font-size:11px;padding:4px 10px;border-radius:100px;background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);color:var(--accent-l);font-weight:500}
+    .post-header h1{font-size:clamp(26px,5vw,50px);font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:18px;color:#fff}
+    .post-meta{display:flex;gap:20px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+    .post-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    .toc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin:0 0 40px}
+    .toc-title{font-weight:700;font-size:13px;color:var(--accent-l);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+    .toc ol{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+    .toc li{font-size:14px}
+    .toc a{color:var(--dim);transition:color .2s}
+    .toc a:hover{color:var(--accent-l)}
+    .post-body{padding:0 0 80px;position:relative;z-index:2}
+    .post-body p{font-size:17px;line-height:1.85;color:#c8c8d8;margin-bottom:22px}
+    .post-body h2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.8px;margin:52px 0 18px;color:#fff;padding-top:8px;border-top:1px solid var(--border);scroll-margin-top:90px}
+    .post-body h2:first-of-type{border-top:none}
+    .post-section{margin-bottom:8px}
+    .post-divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+    .cta-mid{background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);border-radius:14px;padding:24px 28px;margin:40px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .cta-mid p{color:var(--dim);font-size:14px;flex:1;min-width:200px;margin:0}
+    .cta-mid strong{color:var(--text);display:block;margin-bottom:4px;font-size:15px}
+    .cta-box{background:linear-gradient(135deg,rgba(108,92,231,0.14),rgba(0,206,201,0.07));border:1px solid var(--border-accent);border-radius:20px;padding:44px 40px;text-align:center;margin:48px 0}
+    .cta-box h3{font-size:24px;font-weight:900;margin-bottom:12px;letter-spacing:-0.5px}
+    .cta-box p{color:var(--dim);margin-bottom:24px;font-size:15px}
+    .btn-lg{padding:14px 32px;font-size:15px;border-radius:12px}
+    .faq-section{margin:48px 0}
+    .faq-section>h2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.8px;margin-bottom:24px;color:#fff;padding-top:8px;border-top:1px solid var(--border);scroll-margin-top:90px}
+    .faq-list{display:flex;flex-direction:column;gap:8px}
+    .faq-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
+    .faq-item:hover{border-color:rgba(108,92,231,0.3)}
+    .faq-q{width:100%;background:var(--card);border:none;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer;text-align:left;color:var(--text);font-size:15px;font-weight:600;font-family:inherit;transition:background .2s}
+    .faq-q:hover{background:#1c1c28}
+    .faq-icon{color:var(--accent-l);font-size:20px;font-weight:300;flex-shrink:0;transition:transform .3s}
+    .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .3s}
+    .faq-a.open{max-height:300px;padding:4px 22px 18px}
+    .faq-a p{font-size:15px;color:var(--dim);line-height:1.7;margin:0}
+    .related-links{margin:40px 0;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:14px}
+    .related-grid{display:flex;flex-wrap:wrap;gap:10px}
+    .related-link{font-size:13px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;color:var(--accent-l);transition:all .2s;background:rgba(108,92,231,0.05)}
+    .related-link:hover{border-color:var(--border-accent);background:rgba(108,92,231,0.12)}
+    .wa-float{position:fixed;bottom:24px;right:24px;z-index:200;width:56px;height:56px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:28px;text-decoration:none;box-shadow:0 4px 24px rgba(37,211,102,0.5);transition:transform .2s}
+    .wa-float:hover{transform:scale(1.1)}
+    footer{border-top:1px solid var(--border);padding:32px 0}
+    .footer-inner{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+    .footer-links{display:flex;gap:16px;flex-wrap:wrap}
+    .footer-links a{font-size:13px;color:var(--dim)}
+    .footer-links a:hover{color:var(--text)}
+    .footer-copy{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="progress-bar" id="pb"></div>
+<div class="noise"></div>
+<div class="orb orb-1"></div>
+
+<nav>
+  <div class="container-wide">
+    <div class="nav-inner">
+      <a href="https://nodeflow.es" class="logo">Node<em>Flow</em></a>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a href="/blog" style="font-size:14px;color:var(--dim)">Blog</a>
+        <a href="https://nodeflow.es/#contacto" class="btn btn-primary">Empezar gratis →</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="bc-list">
+        <li><a href="https://nodeflow.es">NodeFlow</a></li>
+        <li aria-hidden="true" style="color:var(--muted)">›</li>
+        <li><a href="/blog">Blog</a></li>
+        <li aria-hidden="true" style="color:var(--muted)">›</li>
+        <li aria-current="page" style="color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px">Recepcionista IA para despachos de abogados</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<header class="post-header">
+  <div class="container">
+    <div class="post-tags"><span class="tag">recepcionista IA abogados España</span><span class="tag">asistente virtual despacho abogados</span><span class="tag">automatizar consultas jurídicas IA</span></div>
+    <h1>Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos</h1>
+    <div class="post-meta">
+      <span>NodeFlow Blog</span>
+      <span class="dot"></span>
+      <time datetime="2026-05-29">2026-05-29</time>
+      <span class="dot"></span>
+      <span>5 min de lectura</span>
+    </div>
+  </div>
+</header>
+
+<article class="post-body" itemscope itemtype="https://schema.org/Article">
+  <div class="container">
+
+    <nav class="toc" aria-label="Tabla de contenidos">
+      <div class="toc-title">📋 En este artículo</div>
+      <ol>
+        <li><a href="#s1">El abogado que no puede atender el teléfono en juicio</a></li>
+        <li><a href="#s2">Filtrado inteligente: consulta nueva vs cliente existente vs urgencia</a></li>
+        <li><a href="#s3">Agenda automática de consultas de valoración</a></li>
+        <li><a href="#s4">Recordatorios de plazos críticos: recursos, plazos de prescripción</a></li>
+        <li><a href="#s5">Confidencialidad y RGPD en despachos legales</a></li>
+        <li><a href="#faq">Preguntas frecuentes</a></li>
+      </ol>
+    </nav>
+
+    <p>Un abogado en sala no puede salir a atender el teléfono. Un abogado en reunión con un cliente no puede interrumpir la consulta para responder a otro. Sin embargo, cada llamada perdida puede ser un cliente potencial que se va a la competencia o un cliente existente con una urgencia real. NodeFlow actúa como el escudo entre el despacho y el mundo exterior, filtrando y priorizando sin perder nada.</p>
+
+    <div class="cta-mid">
+      <div>
+        <strong>¿Quieres que tu despacho no pierda ni una llamada?</strong>
+        <p>NodeFlow configura tu recepcionista IA en menos de 24 horas. Sin hardware, sin cambiar tu número.</p>
+      </div>
+      <a href="https://nodeflow.es/#contacto" class="btn btn-primary" style="white-space:nowrap">Ver planes →</a>
+    </div>
+
+    <div class="post-section" id="s1">
+      <h2>El abogado que no puede atender el teléfono en juicio</h2>
+      <p>La jornada de un abogado está plagada de momentos en los que es imposible atender el teléfono: vistas orales que pueden durar horas, reuniones con clientes en las que la concentración es imprescindible, trabajo de análisis y redacción de documentos que requiere silencio e interrupciones mínimas. Y sin embargo, el teléfono sigue sonando.</p>
+      <p>El problema es que quien llama a un despacho de abogados rara vez está en una situación neutral. O es alguien en crisis buscando ayuda urgente (una detención, una notificación de embargo, una demanda recibida), o es un cliente existente con una pregunta importante sobre su caso, o es un nuevo cliente potencial que ha tomado la difícil decisión de buscar asesoramiento legal. En los tres casos, no atender la llamada tiene consecuencias reales.</p>
+      <p>NodeFlow garantiza que ninguna llamada queda sin respuesta. El asistente atiende inmediatamente, identifica el tipo de llamada, recoge la información necesaria y actúa según el protocolo configurado: agenda una cita, deja un mensaje urgente para el abogado o proporciona información básica de orientación. El despacho siempre tiene la última palabra en cualquier decisión de fondo.</p>
+    </div>
+
+    <div class="post-section" id="s2">
+      <h2>Filtrado inteligente: consulta nueva vs cliente existente vs urgencia</h2>
+      <p>No todas las llamadas a un despacho son iguales, y tratarlas de la misma manera es un error. Una consulta nueva requiere recoger información básica sobre el asunto y agendar una primera reunión de valoración. Un cliente existente que llama sobre su caso necesita que se le identifique, se verifique su identidad básica y se tome nota de su consulta para que el abogado la atienda con la información del expediente a mano. Una urgencia requiere interrumpir lo que sea y conectar inmediatamente.</p>
+      <p>NodeFlow puede configurarse para hacer este filtrado de forma automática: en los primeros segundos de la llamada, el asistente identifica si la persona es cliente del despacho (por su nombre o número) y si la llamada tiene carácter urgente. Según esa clasificación, el flujo de la llamada cambia: los clientes existentes pasan por un proceso diferente al de nuevas consultas, y las urgencias tienen un protocolo de escalado inmediato.</p>
+      <p>Para los despachos con varios abogados y áreas especializadas, el filtrado puede incluir también el enrutamiento por especialidad: el asistente pregunta brevemente sobre el tipo de asunto (laboral, civil, penal, familia, mercantil) y redirige la llamada o la nota al abogado correspondiente, asegurando que cada cliente habla con el profesional adecuado desde el primer contacto.</p>
+    </div>
+
+    <div class="post-section" id="s3">
+      <h2>Agenda automática de consultas de valoración</h2>
+      <p>La primera consulta en un despacho de abogados es un momento crítico: el cliente llega con un problema legal, normalmente en estado de ansiedad, y necesita sentir que está en manos de alguien competente y disponible. Una primera impresión positiva en el proceso de reserva de esa consulta ya es parte del servicio. Una primera impresión negativa (no se coge el teléfono, se hace esperar, se pide que llamen más tarde) puede costar el cliente antes de que entre por la puerta.</p>
+      <p>NodeFlow puede gestionar completamente la reserva de consultas de valoración: explica el formato de la primera consulta (duración, si tiene coste o es gratuita, qué documentación hay que traer), ofrece los huecos disponibles en la agenda del abogado correspondiente y confirma la cita. Si el despacho ofrece consultas en diferentes formatos (presencial, videollamada, telefónica), el asistente pregunta la preferencia del cliente y registra el formato en la reserva.</p>
+      <p>Para nuevas consultas, el asistente también puede recoger información previa básica que ayude al abogado a llegar preparado: tipo de asunto (divorcio, despido, reclamación de deuda, etc.), si hay plazos inminentes que el abogado deba conocer, si el cliente ha tenido algún asesoramiento previo sobre el mismo asunto. Esta información, recogida antes de la reunión, hace más eficiente la consulta y transmite al cliente que el despacho ya está trabajando en su caso.</p>
+    </div>
+
+    <div class="post-section" id="s4">
+      <h2>Recordatorios de plazos críticos: recursos, plazos de prescripción</h2>
+      <p>En el derecho, los plazos no son sugerencias: son límites infranqueables cuyo incumplimiento puede tener consecuencias devastadoras para el cliente y graves consecuencias profesionales para el abogado. Un recurso no presentado en plazo, una prescripción que se cumple sin haber actuado, un plazo de contestación a una demanda que se pasa: son situaciones que no pueden ocurrir.</p>
+      <p>NodeFlow puede configurarse como sistema de recordatorio de plazos críticos: cuando se registra un plazo importante en el sistema, el asistente puede hacer llamadas o enviar mensajes de recordatorio al abogado responsable con varios días de antelación. Para plazos que afectan también al cliente (por ejemplo, el plazo para aportar documentación o para tomar una decisión), el asistente puede contactar directamente al cliente con el recordatorio pertinente.</p>
+      <p>Este sistema de recordatorios no reemplaza al software de gestión de expedientes del despacho, pero sí añade una capa adicional de seguridad para los plazos más críticos, funcionando como una segunda red de seguridad que actúa incluso cuando el abogado está fuera de la oficina o en situaciones de carga de trabajo excepcional.</p>
+    </div>
+
+    <div class="post-section" id="s5">
+      <h2>Confidencialidad y RGPD en despachos legales</h2>
+      <p>La confidencialidad es uno de los pilares deontológicos de la abogacía. Todo lo que un cliente comunica a su abogado está protegido por el secreto profesional, y cualquier sistema que entre en contacto con esa información debe cumplir los estándares más exigentes de protección de datos. Para un despacho que plantee usar IA en su recepción, esta cuestión no es menor.</p>
+      <p>NodeFlow opera con pleno cumplimiento del RGPD y de la legislación española de protección de datos: los datos de las llamadas se almacenan de forma cifrada, con acceso exclusivo del despacho, con políticas de retención configurables y con la posibilidad de borrado completo a petición. Las conversaciones no se comparten con terceros ni se utilizan para entrenar modelos de IA genéricos.</p>
+      <p>El asistente está configurado para no recopilar información sensible innecesaria: no pregunta sobre los detalles del asunto (eso es para el abogado), no repite información confidencial que el cliente haya mencionado, y no revela datos de otros clientes del despacho bajo ninguna circunstancia. Esta arquitectura de mínimos datos necesarios es la más adecuada para el entorno legal y proporciona al despacho la tranquilidad necesaria para implementar la solución.</p>
+    </div>
+
+    <hr class="post-divider">
+
+    <section class="faq-section" id="faq" itemscope itemtype="https://schema.org/FAQPage">
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq-list">
+        <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+          <button class="faq-q" onclick="toggleFaq(0)" aria-expanded="false" aria-controls="faq-a-0">
+            <span itemprop="name">¿Puede la IA dar asesoramiento jurídico básico?</span>
+            <span class="faq-icon" id="faq-icon-0">+</span>
+          </button>
+          <div class="faq-a" id="faq-a-0" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+            <p itemprop="text">No. NodeFlow no proporciona asesoramiento jurídico bajo ninguna circunstancia. Su función es gestionar la recepción: identificar el tipo de consulta, recoger información básica del cliente, y derivar siempre al abogado para cualquier cuestión de fondo. Esta limitación no es un defecto: es una garantía de responsabilidad profesional.</p>
+          </div>
+        </div>
+        <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+          <button class="faq-q" onclick="toggleFaq(1)" aria-expanded="false" aria-controls="faq-a-1">
+            <span itemprop="name">¿Cómo gestiona llamadas de urgencia fuera de horario?</span>
+            <span class="faq-icon" id="faq-icon-1">+</span>
+          </button>
+          <div class="faq-a" id="faq-a-1" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+            <p itemprop="text">NodeFlow puede configurarse con un protocolo específico para urgencias: identificar si la llamada tiene carácter urgente (detención, plazo inminente, situación familiar crítica), recoger los datos del cliente y el motivo, y notificar inmediatamente al abogado de guardia mediante una llamada o mensaje prioritario.</p>
+          </div>
+        </div>
+        <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+          <button class="faq-q" onclick="toggleFaq(2)" aria-expanded="false" aria-controls="faq-a-2">
+            <span itemprop="name">¿Funciona para diferentes ramas del derecho?</span>
+            <span class="faq-icon" id="faq-icon-2">+</span>
+          </button>
+          <div class="faq-a" id="faq-a-2" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+            <p itemprop="text">Sí. NodeFlow se configura con la información específica del despacho: áreas de práctica (civil, penal, laboral, mercantil, familia, extranjería...), qué tipo de asuntos acepta el despacho y cuáles no, y cómo enrutar cada tipo de consulta al abogado correspondiente si hay especialización interna.</p>
+          </div>
+        </div>
+        <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+          <button class="faq-q" onclick="toggleFaq(3)" aria-expanded="false" aria-controls="faq-a-3">
+            <span itemprop="name">¿Cumple el secreto profesional?</span>
+            <span class="faq-icon" id="faq-icon-3">+</span>
+          </button>
+          <div class="faq-a" id="faq-a-3" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+            <p itemprop="text">NodeFlow opera con pleno cumplimiento del RGPD. Los datos de las llamadas se almacenan de forma cifrada, con acceso restringido únicamente al despacho, y con la posibilidad de configurar políticas de retención y borrado. El asistente no revela información de clientes ni de asuntos a terceros en ningún caso.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="related-links">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Páginas relacionadas</p>
+      <div class="related-grid">
+        <a href="/abogados" class="related-link">NodeFlow para abogados →</a>
+        <a href="/notaria" class="related-link">IA para notarías →</a>
+        <a href="/blog" class="related-link">Más artículos en el blog →</a>
+      </div>
+    </div>
+
+    <div class="cta-box">
+      <h3>¿Listo para no perder ni una llamada más?</h3>
+      <p>NodeFlow configura tu asistente de voz IA en menos de 24 horas. Sin hardware, sin cambiar tu número de teléfono. Desde 49€/mes.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Empezar gratis 14 días →</a>
+        <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20el%20blog%20de%20NodeFlow%20y%20quiero%20m%C3%A1s%20informaci%C3%B3n" class="btn btn-lg" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text)">💬 WhatsApp</a>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:14px;margin-bottom:0">Desde 49€/mes · Sin permanencia · Alta en &lt;24h</p>
+    </div>
+  </div>
+</article>
+
+<footer>
+  <div class="container-wide">
+    <div class="footer-inner">
+      <div style="font-weight:700;font-size:15px">⚡ Node<span style="color:var(--accent-l)">Flow</span></div>
+      <div class="footer-links">
+        <a href="https://nodeflow.es">Inicio</a>
+        <a href="/blog">Blog</a>
+        <a href="https://nodeflow.es/bilbao">Bilbao</a>
+        <a href="https://nodeflow.es/donostia">Donostia</a>
+        <a href="https://nodeflow.es/vitoria">Vitoria</a>
+        <a href="https://nodeflow.es/privacidad">Privacidad</a>
+      </div>
+      <div class="footer-copy">© 2026 NodeFlow · unai@nodeflow.es</div>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20el%20blog%20de%20NodeFlow" class="wa-float" target="_blank" rel="noopener" title="WhatsApp NodeFlow">💬</a>
+
+<script>
+(function(){
+  var pb=document.getElementById('pb');
+  if(!pb)return;
+  function upd(){
+    var s=document.documentElement,b=document.body;
+    var st=s.scrollTop||b.scrollTop;
+    var sh=s.scrollHeight||b.scrollHeight;
+    var ch=s.clientHeight||b.clientHeight;
+    var pct=sh-ch>0?(st/(sh-ch)*100):100;
+    pb.style.width=Math.min(pct,100)+'%';
+  }
+  window.addEventListener('scroll',upd,{passive:true});
+  upd();
+})();
+
+function toggleFaq(i){
+  var a=document.getElementById('faq-a-'+i);
+  var ic=document.getElementById('faq-icon-'+i);
+  var btn=a.previousElementSibling;
+  var isOpen=a.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(function(el,idx){
+    el.classList.remove('open');
+    var icon=document.getElementById('faq-icon-'+idx);
+    if(icon)icon.style.transform='';
+    el.previousElementSibling.setAttribute('aria-expanded','false');
+  });
+  if(!isOpen){
+    a.classList.add('open');
+    ic.style.transform='rotate(45deg)';
+    btn.setAttribute('aria-expanded','true');
+  }
+}
+</script>
+</body>
+</html>

@@ -550,5 +550,45 @@
     "focus": "Las peluquerías con servicios de coloración, mechas y tratamientos necesitan gestionar citas más complejas. Cómo el asistente IA puede preguntar por el servicio, asignar tiempo correcto y asignar el estilista adecuado.",
     "sector": "peluquerias",
     "city": null
+  },
+  {
+    "slug": "asistente-ia-coaches-terapeutas",
+    "title": "Asistente IA para coaches y consultores: gestiona sesiones y primeras consultas",
+    "keywords": ["asistente IA coach consultor España", "recepcionista virtual coaching", "automatizar citas coach IA"],
+    "focus": "Cómo los coaches y consultores automatizan la gestión de primeras sesiones, responden sobre precios y reducen el tiempo de administración con IA.",
+    "sector": "coaching",
+    "city": null
+  },
+  {
+    "slug": "recepcionista-ia-nutricionistas-espana",
+    "title": "Recepcionista IA para nutricionistas y dietistas: automatiza consultas y seguimientos",
+    "keywords": ["recepcionista IA nutricionista España", "asistente virtual dietista", "automatizar consultas nutrición IA"],
+    "focus": "Cómo los nutricionistas y dietistas gestionan primeras consultas, recordatorios de revisión mensual y seguimientos de dieta con IA.",
+    "sector": "nutricion",
+    "city": null
+  },
+  {
+    "slug": "asistente-ia-centros-estetica-laser",
+    "title": "Asistente IA para centros de estética avanzada y láser: automatiza ciclos de tratamiento",
+    "keywords": ["asistente IA estética avanzada España", "recepcionista virtual depilación láser", "automatizar ciclos tratamiento estética IA"],
+    "focus": "Cómo los centros de estética avanzada y depilación láser gestionan ciclos de sesiones, recordatorios y reactivación de clientes con IA.",
+    "sector": "estetica_avanzada",
+    "city": null
+  },
+  {
+    "slug": "asistente-ia-guarderias-caninas",
+    "title": "Asistente IA para guarderías caninas: reservas, estancias y seguimiento",
+    "keywords": ["asistente IA guardería canina España", "recepcionista virtual residencia mascotas", "automatizar reservas guardería perros IA"],
+    "focus": "Cómo las guarderías y residencias caninas automatizan reservas de estancias, recordatorios de vacunas y gestión de clientes con IA.",
+    "sector": "guarderia_canina",
+    "city": null
+  },
+  {
+    "slug": "recepcionista-ia-despachos-abogados",
+    "title": "Recepcionista IA para despachos de abogados: filtra llamadas y gestiona plazos",
+    "keywords": ["recepcionista IA abogados España", "asistente virtual despacho abogados", "automatizar consultas jurídicas IA"],
+    "focus": "Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.",
+    "sector": "abogados",
+    "city": null
   }
 ]
