@@ -34,7 +34,7 @@ async function demoAuth(req, res, next) {
         .from('organizations')
         .select('id')
         .eq('owner_email', decoded.email.toLowerCase())
-        .eq('status', 'active')
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();

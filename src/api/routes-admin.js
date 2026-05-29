@@ -347,7 +347,7 @@ function setupAdminRoutes(app, config, assistantManager) {
           .from('organizations')
           .select('*')
           .eq('owner_email', sessionEmail.trim().toLowerCase())
-          .eq('status', 'active')
+          .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();

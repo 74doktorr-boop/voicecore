@@ -43,7 +43,7 @@ async function portalAuth(req, res, next) {
           .from('organizations')
           .select('id, name, owner_email, phone, plan, sector, language, automation_config, registered_at, created_at')
           .eq('owner_email', session.email.toLowerCase())
-          .eq('status', 'active')
+          .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
