@@ -590,5 +590,45 @@
     "focus": "Cómo los despachos de abogados filtran llamadas, agendan consultas y recuerdan plazos legales críticos automáticamente con IA.",
     "sector": "abogados",
     "city": null
+  },
+  {
+    "slug": "asistente-ia-gimnasio-donostia",
+    "title": "Asistente IA para gimnasios en Donostia y Gipuzkoa: automatiza inscripciones",
+    "keywords": ["asistente IA gimnasio Donostia", "recepcionista virtual centro deportivo San Sebastián", "automatizar inscripciones gimnasio Gipuzkoa"],
+    "focus": "Cómo los gimnasios de Donostia automatizan consultas de precios, inscripciones y recordatorios de cuota con IA bilingüe. Captación de socios 24/7 en euskera y castellano.",
+    "sector": "gimnasios",
+    "city": "donostia"
+  },
+  {
+    "slug": "recepcionista-ia-peluqueria-vitoria",
+    "title": "Recepcionista IA para peluquerías y barberías en Vitoria-Gasteiz",
+    "keywords": ["recepcionista IA peluquería Vitoria", "automatizar citas peluquería Gasteiz", "asistente virtual barbería Álava"],
+    "focus": "Cómo las peluquerías y barberías de Vitoria-Gasteiz automatizan citas, gestionan cancelaciones y atienden clientes fuera de horario con IA. Lista de espera y fidelización incluidos.",
+    "sector": "peluquerias",
+    "city": "vitoria"
+  },
+  {
+    "slug": "recepcionista-ia-notarias-espana",
+    "title": "Recepcionista IA para notarías: gestiona citas y consultas sin interrupciones",
+    "keywords": ["recepcionista IA notaría España", "asistente virtual notaría", "automatizar citas notaría IA"],
+    "focus": "Cómo las notarías automatizan la agenda de citas, responden sobre documentación necesaria y gestionan plazos con IA. Sin interrumpir escrituras ni actos notariales.",
+    "sector": "notaria",
+    "city": null
+  },
+  {
+    "slug": "asistente-ia-agencias-viajes-espana",
+    "title": "Asistente IA para agencias de viajes: consultas, reservas y recordatorios",
+    "keywords": ["asistente IA agencia viajes España", "recepcionista virtual agencia viajes", "automatizar consultas viajes IA"],
+    "focus": "Cómo las agencias de viajes automatizan consultas de destinos, reservas y recordatorios de documentación antes del viaje con IA multiidioma.",
+    "sector": "agencia_viajes",
+    "city": null
+  },
+  {
+    "slug": "asistente-ia-empresas-reformas-espana",
+    "title": "Asistente IA para empresas de reformas y construcción: gestiona presupuestos y citas",
+    "keywords": ["asistente IA empresa reformas España", "recepcionista virtual construcción reformas", "automatizar presupuestos reformas IA"],
+    "focus": "Cómo las empresas de reformas, arquitectos e interioristas automatizan la gestión de solicitudes de presupuesto, cualificación de leads y visitas de valoración con IA.",
+    "sector": "reformas",
+    "city": null
   }
 ]
