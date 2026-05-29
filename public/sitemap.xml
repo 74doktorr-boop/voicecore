@@ -698,4 +698,21 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- Blog articles (13 new) -->
+  <url><loc>https://nodeflow.es/blog/asistente-ia-clinica-dental-donostia</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinica-dental-vitoria</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-farmacia-donostia</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-taller-mecanico-donostia</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-centro-medico-privado</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinicas-seguros-privados-espana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/integracion-ia-software-gestion-clinica</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-consultas-medicas-generales</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-spa-balneario-espana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/ia-recepcion-virtual-sector-servicios-espana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-academias-idiomas-espana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-peluqueria-coloracion-citas-largas</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <!-- Index pages (2 new) -->
+  <url><loc>https://nodeflow.es/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nodeflow.es/guias</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
