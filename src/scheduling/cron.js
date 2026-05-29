@@ -63,8 +63,8 @@ function aptToMs(date, time) {
   });
   // Format guessUtc back to Madrid local time
   const madridStr = formatter.format(guessUtc).replace(' ', 'T'); // "2026-05-29T10:00:00"
-  // Offset = difference between the UTC guess and what Madrid shows for that same instant
-  const offsetMs = guessUtc - new Date(madridStr + 'Z').getTime();
+  // Offset = how far ahead Madrid is from UTC at this instant (positive when Madrid > UTC)
+  const offsetMs = new Date(madridStr + 'Z').getTime() - guessUtc;
   // Return the UTC ms that corresponds to the Madrid local time
   return guessUtc - offsetMs;
 }
