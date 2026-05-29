@@ -174,9 +174,10 @@ async function sendReviewRequest(appointment, businessConfig) {
   const lang         = businessConfig?.language || 'es';
   const name         = firstName(appointment.patientName);
   const businessName = businessConfig?.name || (lang === 'gl' ? 'o negocio' : 'el negocio');
-  const reviewUrl    = businessConfig?.googlePlaceId
-    ? `${GOOGLE_REVIEW_BASE}${businessConfig.googlePlaceId}`
-    : `https://www.google.com/search?q=${encodeURIComponent(businessName)}`;
+  // reviewUrl priority: direct URL from portal config > googlePlaceId > generic search
+  const reviewUrl    = businessConfig?.automations?.config?.reviewUrl
+    || (businessConfig?.googlePlaceId ? `${GOOGLE_REVIEW_BASE}${businessConfig.googlePlaceId}` : null)
+    || `https://www.google.com/search?q=${encodeURIComponent(businessName + ' opiniones')}`;
 
   // ── Galician template ──────────────────────────────────────────────────────
   if (lang === 'gl') {

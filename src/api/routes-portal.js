@@ -330,6 +330,7 @@ function setupPortalRoutes(app, pipeline) {
         welcomeMessage: custom.welcomeMessage  || '',
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
+        reviewUrl:      custom.reviewUrl       || '',
       },
     });
   });
@@ -337,7 +338,7 @@ function setupPortalRoutes(app, pipeline) {
   // ── PATCH /api/portal/config ──────────────────────────────
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const { name, language, sector, avgTicket, welcomeMessage, services, schedule } = req.body;
+    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl } = req.body;
 
     if (language && !['es', 'eu', 'gl'].includes(language)) {
       return res.status(400).json({ error: "language debe ser 'es', 'eu' o 'gl'" });
@@ -366,6 +367,7 @@ function setupPortalRoutes(app, pipeline) {
       ...(welcomeMessage !== undefined && { welcomeMessage }),
       ...(services       !== undefined && { services }),
       ...(schedule       !== undefined && { schedule }),
+      ...(reviewUrl      !== undefined && { reviewUrl }),
     };
     flow.updatedAt = new Date().toISOString();
 
@@ -397,6 +399,7 @@ function setupPortalRoutes(app, pipeline) {
         welcomeMessage: custom.welcomeMessage  || '',
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
+        reviewUrl:      custom.reviewUrl       || '',
       },
     });
   });

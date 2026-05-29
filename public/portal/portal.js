@@ -135,6 +135,12 @@ function showApp() {
   var planPrice = _orgInfo.plan === 'negocio' ? '€49' : _orgInfo.plan === 'pro' ? '€99' : 'Gratis';
   document.getElementById('sidebarPlanSub').textContent = planPrice + '/mes · Activo';
 
+  // Show upgrade CTA for starter users
+  var upgradeEl = document.getElementById('upgradeCtaBox');
+  if (upgradeEl) {
+    upgradeEl.style.display = (_orgInfo.plan === 'starter') ? 'block' : 'none';
+  }
+
   navigate('dashboard');
 }
 
@@ -791,6 +797,11 @@ async function loadConfig() {
         '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea></div>' +
       '<div class="form-group"><label class="form-label">Precio medio por servicio (€)</label>' +
         '<input class="form-input" id="cfgAvgTicket" type="number" min="1" max="9999" value="' + (c.avgTicket || 35) + '"></div>' +
+      '<div class="form-section-title">Reseñas de Google</div>' +
+      '<div class="form-group"><label class="form-label">URL de tu ficha de Google</label>' +
+        '<input class="form-input" id="cfgReviewUrl" type="url" placeholder="https://g.page/r/…/review"' +
+          ' value="' + esc(c.reviewUrl || '') + '">' +
+        '<small style="color:var(--dim);font-size:11px">Pega el enlace de "Escribe una reseña" de tu Google Business. Se incluirá en los emails automáticos de solicitud de reseña.</small></div>' +
       '<div style="display:flex;gap:12px;margin-top:24px">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
         '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20con%20mi%20portal" target="_blank"' +
@@ -808,6 +819,7 @@ async function saveConfig() {
     schedule:       document.getElementById('cfgSchedule').value.trim(),
     welcomeMessage: document.getElementById('cfgWelcome').value.trim(),
     avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) || 35,
+    reviewUrl:      (document.getElementById('cfgReviewUrl') || {}).value || '',
   };
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {

@@ -269,7 +269,7 @@
         <span class="nav-icon">🤖</span><span>Automatizaciones</span>
       </div>
       <div class="nav-item" data-section="asistente" id="nav-asistente" onclick="navigate('asistente')">
-        <span class="nav-icon">🤖</span>
+        <span class="nav-icon">🎙️</span>
         <span>Asistente</span>
       </div>
       <div style="border-top:1px solid var(--border);margin:8px 0"></div>
@@ -281,6 +281,11 @@
       <div class="plan-badge">
         <div class="plan-badge-name" id="sidebarPlan">—</div>
         <div class="plan-badge-sub"  id="sidebarPlanSub">Activo</div>
+      </div>
+      <div id="upgradeCtaBox" style="display:none;background:linear-gradient(135deg,rgba(108,92,231,.18),rgba(162,155,254,.08));border:1px solid rgba(108,92,231,.3);border-radius:10px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">🚀 Activa tu AI ahora</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">Atiende llamadas 24/7 y elimina las perdidas por €49/mes</div>
+        <a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver planes →</a>
       </div>
       <button class="btn btn-d" style="width:100%;font-size:12px" onclick="logout()">Cerrar sesión</button>
     </div>
@@ -383,8 +388,8 @@
       </details>
 
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
-        <button class="btn-secondary" onclick="loadAsistente()">Descartar cambios</button>
-        <button class="btn-primary" onclick="saveAsistente()">Guardar asistente</button>
+        <button class="btn btn-d" onclick="loadAsistente()">Descartar cambios</button>
+        <button class="btn btn-accent" onclick="saveAsistente()">Guardar asistente</button>
       </div>
     </section>
 
