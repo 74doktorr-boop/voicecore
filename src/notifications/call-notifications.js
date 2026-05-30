@@ -38,8 +38,15 @@ async function sendBookingConfirmationEmail(appointment, config) {
 
   const gcalBase   = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
   const gcalTitle  = encodeURIComponent(`${appointment.service || 'Cita'} — ${config?.name || ''}`);
-  const gcalDate   = (date + 'T' + time.replace(':','') + '00').replace(/-/g,'');
-  const gcalLink   = `${gcalBase}&text=${gcalTitle}&dates=${gcalDate}/${gcalDate}`;
+  const gcalStart  = (date + 'T' + time.replace(':','') + '00').replace(/-/g,'');
+  // Calculate end time: use appointment.duration (minutes) or default 30 min
+  const durationMin = appointment.duration || 30;
+  const [h, m]     = time.split(':').map(Number);
+  const totalMin   = h * 60 + m + durationMin;
+  const endH       = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
+  const endM       = String(totalMin % 60).padStart(2, '0');
+  const gcalEnd    = (date + 'T' + endH + endM + '00').replace(/-/g,'');
+  const gcalLink   = `${gcalBase}&text=${gcalTitle}&dates=${gcalStart}/${gcalEnd}&ctz=Europe%2FMadrid`;
 
   // Spanish template
   if (lang === 'es' || lang === 'gl') {

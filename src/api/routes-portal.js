@@ -378,6 +378,7 @@ function setupPortalRoutes(app, pipeline) {
         const dbUpdate = { automation_config: flow.automations };
         if (name)     dbUpdate.name     = name;
         if (language) dbUpdate.language = language;
+        if (sector)   dbUpdate.sector   = sector;
         await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
       } catch (e) {
         log.warn(`Portal: config DB save failed for ${businessId}: ${e.message}`);
