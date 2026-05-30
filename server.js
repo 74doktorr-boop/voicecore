@@ -69,7 +69,7 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -174,9 +174,14 @@ app.get('/hementxe/anuncio.html',           serveGitHubPage('/hementxe/anuncio.h
 
 // ─── Sector SEO landing pages ───
 const SECTOR_PAGES = [
+  // Original 13
   'peluquerias', 'clinicas', 'restaurantes', 'talleres',
   'veterinarias', 'estetica', 'gimnasios', 'inmobiliarias',
   'academias', 'asesorias', 'farmacias', 'hoteles', 'fisioterapia',
+  // Additional 14 (pages exist in public/ but were missing routes)
+  'abogados', 'agencia-viajes', 'autoescuela', 'coaching',
+  'estetica-avanzada', 'guarderia-canina', 'notaria', 'nutricion',
+  'optica', 'pilates', 'podologia', 'psicologia', 'reformas', 'yoga',
 ];
 SECTOR_PAGES.forEach(sector => {
   const file = path.join(__dirname, 'public', sector, 'index.html');
@@ -187,6 +192,13 @@ SECTOR_PAGES.forEach(sector => {
 ['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
   const file = path.join(__dirname, 'public', page, 'index.html');
   app.get([`/${page}`, `/${page}/`], serveGitHubPage(`/${page}/index.html`, file));
+});
+
+// ─── Guías sectoriales ───
+app.get(['/guias', '/guias/'], serveGitHubPage('/guias/index.html', path.join(__dirname, 'public', 'guias', 'index.html')));
+['belleza-estetica', 'restaurantes-hosteleria', 'salud-fisioterapia', 'servicios-profesionales', 'talleres-veterinarias'].forEach(slug => {
+  const file = path.join(__dirname, 'public', 'guias', slug, 'index.html');
+  app.get([`/guias/${slug}`, `/guias/${slug}/`], serveGitHubPage(`/guias/${slug}/index.html`, file));
 });
 
 // ─── Onboarding (conversión) ───
