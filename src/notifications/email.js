@@ -160,6 +160,8 @@ async function notifyNuevoCliente(registro) {
         <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Idioma</td><td style="padding:8px 12px;">${eIdioma}</td></tr>
         <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Saludo</td><td style="padding:8px 12px;font-style:italic;">&ldquo;${eSaludo}&rdquo;</td></tr>
         <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Horario</td><td style="padding:8px 12px;font-size:13px;">${eHorario}</td></tr>
+        ${registro.api_key ? `<tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">API Key</td><td style="padding:8px 12px;font-family:monospace;font-size:12px;">${esc(registro.api_key)}</td></tr>` : ''}
+        ${registro.stripe_customer_id ? `<tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Stripe ID</td><td style="padding:8px 12px;font-family:monospace;font-size:12px;">${esc(registro.stripe_customer_id)}</td></tr>` : ''}
       </table>
       <p style="margin-top:20px;font-size:12px;color:#999;">ID: ${esc(registro.id)} · ${esc(registro.created_at)}</p>
     </div>
