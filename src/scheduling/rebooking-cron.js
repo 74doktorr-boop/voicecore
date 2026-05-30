@@ -182,11 +182,17 @@ let _interval = null;
 function startRebookingCron() {
   if (_interval) { log.warn('Rebooking cron already running'); return; }
 
-  // Schedule daily at 10:00 Madrid — check every minute if time has come
-  // Simple approach: use setInterval every 60s, check current Madrid hour+minute
+  // Schedule daily at 10:00 Madrid — check every minute if time has come.
+  // Use sv-SE locale (ISO-style "HH:mm:ss") to avoid locale-dependent suffixes
+  // like the " h" that es-ES appends in some ICU versions.
   _interval = setInterval(() => {
-    const now = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false });
-    if (now === '10:00') {
+    const madridHHMM = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Madrid',
+      hour:   '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+    if (madridHHMM === '10:00') {
       checkAndSendRebookings().catch(e => log.error('Rebooking cron error', { err: e.message }));
     }
   }, 60 * 1000);
