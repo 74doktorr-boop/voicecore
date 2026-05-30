@@ -1305,7 +1305,13 @@ function addAsisSeguro() {
   var val = input.value.trim(); if (!val) return;
   var span = document.createElement('span');
   span.style.cssText = 'background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px';
-  span.innerHTML = val + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span>';
+  // Use DOM API (not innerHTML) to avoid XSS from user-typed insurer name
+  span.appendChild(document.createTextNode(val + ' '));
+  var x = document.createElement('span');
+  x.style.cursor = 'pointer';
+  x.textContent = '×';
+  x.onclick = function() { span.remove(); };
+  span.appendChild(x);
   document.getElementById('asis-seguros-chips').appendChild(span);
   input.value = '';
 }
@@ -1461,14 +1467,14 @@ function portalCaptureChunk(stream) {
         var transcript = (sttData.transcript || '').trim();
         if (transcript) {
           var t = document.getElementById('portal-demo-transcript');
-          t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--dim)">Tú:</strong> ' + transcript + '</div>';
+          t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--dim)">Tú:</strong> ' + esc(transcript) + '</div>';
           _portalMessages.push({ role: 'user', content: transcript });
           document.getElementById('portal-demo-status').textContent = 'Pensando...';
           _portalBotSpeaking = true;
           var chatData = await api('/api/demo/chat', 'POST', { messages: _portalMessages });
           var reply = chatData.reply || '';
           if (reply) {
-            t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--accent-l)">Bot:</strong> ' + reply + '</div>';
+            t.innerHTML += '<div style="margin-bottom:6px;font-size:12px"><strong style="color:var(--accent-l)">Bot:</strong> ' + esc(reply) + '</div>';
             t.scrollTop = t.scrollHeight;
             _portalMessages.push({ role: 'assistant', content: reply });
             var res = await fetch('/api/demo/tts', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_token}, body:JSON.stringify({text:reply,voice:_asisConfig.voice||'nova'}) });
