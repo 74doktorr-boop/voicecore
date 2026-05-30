@@ -56,7 +56,7 @@ class Database {
 
     const { data, error } = await this.client.from('organizations').insert({
       name, slug: uniqueSlug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, language, api_key: apiKey,
-      monthly_minutes_limit: plan === 'pro' ? 500 : plan === 'business' ? 2000 : 50,
+      monthly_minutes_limit: plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : 50,
     }).select().single();
 
     if (error) throw new Error(`Create org failed: ${error.message}`);

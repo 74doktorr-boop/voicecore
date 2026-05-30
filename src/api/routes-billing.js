@@ -182,9 +182,8 @@ function setupBillingRoutes(app, config) {
               return res.json({ received: true, duplicate: true });
             }
 
-            // Mapear plan del formulario → plan interno
-            // 'negocio' (€49) → 'pro' (500 min) | 'pro' (€99) → 'business' (2000 min)
-            const orgPlan = registro.plan === 'pro' ? 'business' : 'pro';
+            // Plan del formulario coincide directamente con el valor de DB ('starter'|'negocio'|'pro')
+            const orgPlan = registro.plan || 'negocio';
 
             // ── Crear org + asistente automáticamente ──
             let apiKey = null;

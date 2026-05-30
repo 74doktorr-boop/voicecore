@@ -25,21 +25,19 @@ class StripeBilling {
       log.warn('No Stripe key — billing disabled');
     }
 
-    // Plan → Stripe Price ID mapping
-    // Internal plan names vs landing form names:
-    //   starter  → Starter  (gratis, 50 min)
-    //   pro      → Negocio  (€49/mes, 500 min)   — form sends 'negocio'
-    //   business → Pro      (€99/mes, 2000 min)  — form sends 'pro'
+    // Plan keys match DB column `plan` (set by webhook).
+    // DB values: 'starter' | 'negocio' | 'pro'
+    // Stripe env vars: STRIPE_PRO_PRICE_ID (€49 Negocio), STRIPE_BUSINESS_PRICE_ID (€99 Pro)
     this.plans = {
       starter: {
         name: 'Starter', price: 0, priceId: config.starterPriceId || null,
         minutes: 50, assistants: 1, overagePerMinute: 0.05,
       },
-      pro: {
+      negocio: {
         name: 'Negocio', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
         minutes: 500, assistants: 1, overagePerMinute: 0.05,
       },
-      business: {
+      pro: {
         name: 'Pro', price: 9900, priceId: config.businessPriceId || process.env.STRIPE_BUSINESS_PRICE_ID,
         minutes: 2000, assistants: 999, overagePerMinute: 0.05,
       },

@@ -16,12 +16,11 @@ const log = new Logger('AUTH');
 const rateLimits = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 
-// Internal plan names → limits (matches landing pricing)
-// starter = Starter gratis, pro = Negocio €49, business = Pro €99
+// Plan limits keyed by DB `plan` column values: 'starter' | 'negocio' | 'pro'
 const PLAN_LIMITS = {
   starter:    { minutesPerMonth: 50,    assistants: 1,   callsPerMinute: 5,   concurrentCalls: 1 },
-  pro:        { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3 },
-  business:   { minutesPerMonth: 2000,  assistants: 999, callsPerMinute: 50,  concurrentCalls: 10 },
+  negocio:    { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3 },
+  pro:        { minutesPerMonth: 2000,  assistants: 999, callsPerMinute: 50,  concurrentCalls: 10 },
   enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100 },
 };
 
