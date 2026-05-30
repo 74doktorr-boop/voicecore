@@ -274,7 +274,7 @@ function setupBillingRoutes(app, config) {
             // Generar magic token para acceso al portal
             let portalToken = null;
             try {
-              portalToken = await generateMagicToken(registro.email, row.id);
+              portalToken = await generateMagicToken(registro.email, registroId);
             } catch (e) {
               log.warn(`Magic token generation failed: ${e.message}`);
             }
