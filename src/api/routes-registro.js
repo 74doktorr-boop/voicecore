@@ -11,6 +11,22 @@ const crypto = require('crypto');
 
 const log = new Logger('REGISTRO');
 
+// ─── Rate limiter — 10 submissions per IP per 15 minutes ──────────────────────
+const _rlStore = new Map();
+function registroRateLimit(req, res, next) {
+  const ip  = req.ip || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 min
+  let bucket = _rlStore.get(ip);
+  if (!bucket || now - bucket.start > windowMs) { bucket = { start: now, count: 0 }; _rlStore.set(ip, bucket); }
+  bucket.count++;
+  if (bucket.count > 10) {
+    log.warn(`Registro rate limit exceeded for IP: ${ip}`);
+    return res.status(429).json({ error: 'Demasiadas solicitudes. Espera unos minutos.' });
+  }
+  next();
+}
+
 // ─── Cupones válidos ───────────────────────────────────────────────────────────
 const COUPONS = {
   'HEMENTXE10': {
@@ -104,7 +120,7 @@ async function updateRegistro(id, patch) {
 
 function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
-  app.post('/api/registro', async (req, res) => {
+  app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
       const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
       const couponData = validateCoupon(coupon);
