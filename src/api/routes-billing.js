@@ -397,23 +397,44 @@ function setupBillingRoutes(app, config) {
 
         if (result.action === 'payment_failed') {
           log.warn(`Pago fallido — customer: ${result.customerId}`);
-          // Intentar encontrar el cliente por stripe_customer_id y avisarle
+          // Notify the customer by email — look up in registros first (Payment Link customers),
+          // then fall back to organizations (dashboard checkout customers).
           if (db.enabled && result.customerId) {
             try {
+              let clientEmail = null;
+              let clientFirstName = '';
+
+              // 1. Try registros (Payment Link flow)
               const { data: registro } = await db.client
                 .from('registros')
-                .select('*')
+                .select('email, contacto')
                 .eq('stripe_customer_id', result.customerId)
-                .single();
+                .single().catch(() => ({ data: null }));
 
               if (registro?.email) {
+                clientEmail     = registro.email;
+                clientFirstName = registro.contacto?.split(' ')[0] || '';
+              } else {
+                // 2. Fallback: look up in organizations (dashboard checkout flow)
+                const { data: org } = await db.client
+                  .from('organizations')
+                  .select('owner_email, owner_name')
+                  .eq('stripe_customer_id', result.customerId)
+                  .single().catch(() => ({ data: null }));
+                if (org?.owner_email) {
+                  clientEmail     = org.owner_email;
+                  clientFirstName = org.owner_name?.split(' ')[0] || '';
+                }
+              }
+
+              if (clientEmail) {
                 await sendEmail({
-                  to: registro.email,
+                  to: clientEmail,
                   subject: '⚠️ Problema con tu pago en NodeFlow',
                   html: `
                     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;">
                       <h2 style="color:#e17055;">Problema con tu pago</h2>
-                      <p>Hola ${registro.contacto?.split(' ')[0] || ''},</p>
+                      <p>Hola ${clientFirstName || 'cliente'},</p>
                       <p>No hemos podido procesar el pago de tu suscripción a NodeFlow. Tu servicio puede verse interrumpido.</p>
                       <p>Por favor, actualiza tu método de pago o contacta con nosotros.</p>
                       <a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px;">Contactar por WhatsApp →</a>
@@ -422,7 +443,7 @@ function setupBillingRoutes(app, config) {
                   `,
                   text: `Hola, no hemos podido procesar tu pago en NodeFlow. Contacta con nosotros en WhatsApp: +34 666 351 319`,
                 });
-                log.info(`Email pago fallido enviado a ${registro.email}`);
+                log.info(`Email pago fallido enviado a ${clientEmail}`);
               }
             } catch (e) {
               log.warn(`No se pudo notificar pago fallido: ${e.message}`);
