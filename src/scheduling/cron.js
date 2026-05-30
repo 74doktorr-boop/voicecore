@@ -14,6 +14,7 @@ let _running     = false;
 let _lastRun     = null;
 let _stats       = { reminders: 0, reviews: 0, criticalDates: 0, noShows: 0, runs: 0 };
 let _history     = [];
+let _lastMonthlyResetDay = null; // 'YYYY-MM-01' — prevents duplicate resets in same day
 
 async function checkAndSendCriticalDateReminders() {
   const { criticalDatesStore } = require('../scheduling/critical-dates');
@@ -115,6 +116,28 @@ async function runAutomations() {
     const { flowManager }            = require('../automations/flow-manager');
     const { checkAndSendReminders,
             checkAndSendReviews }    = require('../notifications/reminders');
+
+    // ── Monthly usage reset (1st of month, free/Starter orgs only) ──
+    // Stripe-subscribed orgs are reset via invoice.paid webhook; only reset orgs without
+    // a Stripe subscription so we don't interfere with mid-month billing periods.
+    const todayMadrid = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+    if (todayMadrid.endsWith('-01') && _lastMonthlyResetDay !== todayMadrid) {
+      _lastMonthlyResetDay = todayMadrid;
+      try {
+        const { getDatabase } = require('../db/database');
+        const db = getDatabase();
+        if (db.enabled) {
+          await db.client
+            .from('organizations')
+            .update({ monthly_minutes_used: 0 })
+            .is('stripe_subscription_id', null)
+            .gt('monthly_minutes_used', 0);
+          log.info('Monthly usage reset applied to Starter (no-subscription) orgs');
+        }
+      } catch (e) {
+        log.warn('Monthly usage reset failed', { err: e.message });
+      }
+    }
 
     log.info(`Running automations for ${flowManager.list().length} flows…`);
     const reminders     = await checkAndSendReminders(scheduler, flowManager);
