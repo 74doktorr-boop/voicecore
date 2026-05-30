@@ -415,7 +415,10 @@ app.get('/api/voices', (req, res) => {
   }
 });
 
-app.get('/api/voices/:id/preview', async (req, res) => {
+// ─── Voice preview rate limiter (shared by both preview endpoints) ───
+const _ttsPreviewLimit = makeRateLimit({ windowMs: 60000, max: 10 });
+
+app.get('/api/voices/:id/preview', _ttsPreviewLimit, async (req, res) => {
   try {
     const catalogPath = path.join(__dirname, 'config', 'voices.json');
     const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
@@ -437,7 +440,6 @@ app.get('/api/voices/:id/preview', async (req, res) => {
 });
 
 // ─── Simple TTS Preview (direct OpenAI) — rate limited ───
-const _ttsPreviewLimit = makeRateLimit({ windowMs: 60000, max: 10 });
 app.get('/api/tts/preview', _ttsPreviewLimit, async (req, res) => {
   try {
     const voice = req.query.voice || 'nova';
