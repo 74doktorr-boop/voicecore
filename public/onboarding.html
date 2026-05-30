@@ -303,6 +303,9 @@ function redirectToStripe() {
   const emailVal = document.getElementById('email').value.trim();
   if (emailVal) url += `&prefilled_email=${encodeURIComponent(emailVal)}`;
 
+  // Apply coupon code to the Stripe Payment Link (pre-fill the promotion code field)
+  if (stripeCode) url += `&prefilled_promo_code=${encodeURIComponent(stripeCode)}`;
+
   const btn = document.getElementById('pay-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Redirigiendo a Stripe...';
