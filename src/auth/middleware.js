@@ -5,6 +5,10 @@
 
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
+// Lazy import to avoid circular dependency at module eval time
+function _verifySessionToken(token) {
+  return require('../api/routes-auth').verifySessionToken(token);
+}
 
 const log = new Logger('AUTH');
 
@@ -65,18 +69,48 @@ function requireAuth(config = {}) {
       return next();
     }
 
-    // Multi-tenant: resolve from DB
+    // Multi-tenant: resolve from DB by API key
     if (db.enabled) {
       try {
         const org = await db.getOrgByApiKey(apiKey);
-        if (!org) {
-          return res.status(401).json({ error: 'Invalid API key' });
+        if (org) {
+          if (!org.is_active) {
+            return res.status(403).json({ error: 'Organization is suspended' });
+          }
+          req.org = org;
+          return next();
         }
-        if (!org.is_active) {
-          return res.status(403).json({ error: 'Organization is suspended' });
+        // API key not found — try as a portal session JWT (allows /api/billing/* from portal)
+        try {
+          const session = _verifySessionToken(apiKey);
+          // Load org by email, including billing fields
+          const { data: orgRow } = await db.client
+            .from('organizations')
+            .select('id, name, owner_email, phone, plan, is_active, api_key, monthly_minutes_used, stripe_customer_id, stripe_subscription_id, registered_at, created_at')
+            .eq('owner_email', session.email.toLowerCase())
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          if (orgRow) {
+            req.org = {
+              id:                       orgRow.id,
+              name:                     orgRow.name,
+              owner_email:              orgRow.owner_email,
+              phone:                    orgRow.phone,
+              plan:                     orgRow.plan || 'starter',
+              is_active:                orgRow.is_active,
+              api_key:                  orgRow.api_key,
+              monthly_minutes_used:     parseFloat(orgRow.monthly_minutes_used) || 0,
+              stripe_customer_id:       orgRow.stripe_customer_id || null,
+              stripe_subscription_id:   orgRow.stripe_subscription_id || null,
+            };
+            return next();
+          }
+        } catch (_jwtErr) {
+          // Not a valid session JWT — fall through to 401
         }
-        req.org = org;
-        return next();
+        return res.status(401).json({ error: 'Invalid API key' });
       } catch (e) {
         log.error('Auth DB error', { error: e.message });
         return res.status(500).json({ error: 'Authentication service error' });
