@@ -1164,25 +1164,137 @@ function toggleAsisDayClosed(day) {
   document.getElementById('asis-slots-' + day).style.display = checked ? 'flex' : 'none';
 }
 
-function renderAsisSectorFields(sector, sd, services) {
-  var html = '<div class="form-group" style="margin-bottom:14px"><label class="form-label">Servicios generales</label>' +
-    '<textarea class="form-ctrl" id="asis-services" rows="3" placeholder="Describe los servicios que ofrece el negocio...">' + esc(services||'') + '</textarea></div>';
+// ── Sector field helpers ──────────────────────────────────────
+function _ta(id, label, value, rows, ph) {
+  return '<div class="form-group"><label class="form-label">' + label + '</label>' +
+    '<textarea class="form-ctrl" id="' + id + '" rows="' + (rows||3) + '" placeholder="' + (ph||'') + '">' +
+    esc(value||'') + '</textarea></div>';
+}
+function _inp(id, label, value, ph) {
+  return '<div class="form-group"><label class="form-label">' + label + '</label>' +
+    '<input class="form-ctrl" id="' + id + '" value="' + esc(value||'') + '" placeholder="' + (ph||'') + '"></div>';
+}
+function _chk(id, label, checked) {
+  return '<div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:4px">' +
+    '<input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') +
+    ' style="width:16px;height:16px;accent-color:var(--accent)">' +
+    '<label for="' + id + '" class="form-label" style="margin:0;cursor:pointer">' + label + '</label></div>';
+}
+function _segurosBlock(arr) {
+  return '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
+    '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
+    (arr||[]).map(function(s) {
+      return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' +
+        esc(s) + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>';
+    }).join('') +
+    '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" ' +
+    'style="width:200px" onkeydown="if(event.key===\'Enter\'){addAsisSeguro();event.preventDefault()}"></div>';
+}
+function _getChips(chipsId) {
+  var el = document.getElementById(chipsId);
+  if (!el) return [];
+  return Array.from(el.querySelectorAll('span')).map(function(s) {
+    return s.textContent.replace('×', '').trim();
+  }).filter(Boolean);
+}
 
-  if (sector === 'fisioterapia' || sector === 'clinica') {
-    var seguros = (sd.seguros || []);
-    html += '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
-      '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
-      seguros.map(function(s) { return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' + esc(s) + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>'; }).join('') +
-      '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" style="width:180px" onkeydown="if(event.key===\'Enter\'){addAsisSeguro();event.preventDefault()}"></div>';
-    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Especialidades</label><textarea class="form-ctrl" id="asis-espec" rows="2">' + esc(sd.especialidades||'') + '</textarea></div>';
+function renderAsisSectorFields(sector, sd, services) {
+  var html = _ta('asis-services', 'Servicios generales', services, 3, 'Describe los servicios que ofrece el negocio…');
+
+  if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
+    html += _segurosBlock(sd.seguros);
+    html += _ta('asis-espec', 'Especialidades', sd.especialidades, 2, 'Ej: Rehabilitación, Osteopatía…');
+
   } else if (sector === 'restaurante') {
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Horario comidas</label><input class="form-ctrl" id="asis-horComida" value="' + esc(sd.horarioComida||'') + '" placeholder="13:00-15:30"></div>';
-    html += '<div class="form-group"><label class="form-label">Horario cenas</label><input class="form-ctrl" id="asis-horCena" value="' + esc(sd.horarioCena||'') + '" placeholder="20:30-23:00"></div></div>';
-    html += '<div class="form-group" style="margin-top:12px"><label class="form-label">Carta (un plato por línea: Nombre - Precio)</label><textarea class="form-ctrl" id="asis-carta" rows="5" placeholder="Chuletón - 28€">' + esc((sd.cartaItems||[]).map(function(i){return i.name+(i.price?' - '+i.price:'');}).join('\n')) + '</textarea></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      _inp('asis-horComida', 'Horario comidas', sd.horarioComida, '13:00-15:30') +
+      _inp('asis-horCena',   'Horario cenas',   sd.horarioCena,   '20:30-23:00') + '</div>';
+    html += _ta('asis-carta', 'Carta (nombre – precio por línea)',
+      (sd.cartaItems||[]).map(function(i){ return i.name + (i.price ? ' - ' + i.price : ''); }).join('\n'),
+      5, 'Chuletón - 28€');
+
+  } else if (sector === 'peluqueria' || sector === 'podologia') {
+    html += _ta('sd-servicios', 'Servicios y precios', sd.servicios, 4, 'Ej: Corte pelo - 25€, Manicura - 18€');
+
+  } else if (sector === 'gimnasio') {
+    html += _ta('sd-clases', 'Clases disponibles', sd.clases, 3, 'Ej: Yoga, Pilates, Spinning…');
+
+  } else if (sector === 'spa' || sector === 'estetica_avanzada' || sector === 'laser') {
+    html += _ta('sd-tratamientos', 'Tratamientos disponibles', sd.tratamientos, 4, 'Ej: Masaje relajante, Depilación láser…');
+
+  } else if (sector === 'optica') {
+    html += _segurosBlock(sd.seguros);
+    html += _inp('sd-marcas', 'Marcas disponibles', sd.marcas, 'Ej: Ray-Ban, Oakley, Silhouette');
+
+  } else if (sector === 'psicologia' || sector === 'coaching') {
+    html += _ta('sd-espec', 'Especialidades', sd.especialidades, 2, 'Ej: Ansiedad, Terapia de pareja…');
+    html += _inp('sd-duracion', 'Duración de sesión', sd.duracionSesion, 'Ej: 50 min');
+
+  } else if (sector === 'nutricion' || sector === 'dietetica') {
+    html += _ta('sd-programas', 'Programas disponibles', sd.programas, 3, 'Ej: Pérdida de peso, Nutrición deportiva…');
+    html += _ta('sd-metodo', 'Metodología', sd.metodo, 2, 'Describe tu enfoque…');
+
+  } else if (sector === 'autoescuela') {
+    html += _inp('sd-carnets', 'Carnets disponibles', sd.carnets, 'Ej: B, A1, A2, C, D…');
+    html += _inp('sd-precPrac', 'Precio clase práctica', sd.precioPractica, 'Ej: 45€/hora');
+
+  } else if (sector === 'yoga' || sector === 'pilates') {
+    html += _ta('sd-tipos', 'Tipos de clase', sd.tiposClase, 3, 'Ej: Hatha yoga, Pilates mat…');
+    html += _ta('sd-packs', 'Packs disponibles', sd.packs, 2, 'Ej: Bono 10 clases - 90€');
+
+  } else if (sector === 'guarderia_canina' || sector === 'residencia_mascotas') {
+    html += _ta('sd-razas', 'Razas admitidas', sd.razasAdmitidas, 2, 'Ej: Todas las razas, máx 30 kg…');
+    html += _inp('sd-plazas', 'Plazas disponibles', sd.plazas, 'Ej: 15 plazas');
+
+  } else if (sector === 'abogado' || sector === 'abogados' || sector === 'notaria') {
+    html += _ta('sd-espec', 'Especialidades legales', sd.especialidades, 2, 'Ej: Divorcios, Herencias, Laboral…');
+    html += _inp('sd-consul', 'Consulta inicial', sd.consultaInicial, 'Ej: Gratuita, 50€…');
+
+  } else if (sector === 'agencia_viajes') {
+    html += _ta('sd-destinos', 'Destinos principales', sd.destinos, 3, 'Ej: Caribe, Europa, Asia…');
+
+  } else if (sector === 'reformas' || sector === 'arquitectura') {
+    html += _ta('sd-tiposObra', 'Tipos de obra/reforma', sd.tiposObra, 3, 'Ej: Baños, cocinas, obra nueva…');
+
+  } else if (sector === 'veterinaria') {
+    html += _ta('sd-espec', 'Especialidades', sd.especialidades, 2, 'Ej: Cirugía, Dermatología, Nutrición…');
+    html += _inp('sd-vacunas', 'Campañas de vacunación', sd.vacunas, 'Ej: Antirrábica anual…');
+    html += _chk('sd-urgencias', 'Servicio de urgencias 24 h', sd.urgencias24h);
+
+  } else if (sector === 'farmacia') {
+    html += _ta('sd-servicios', 'Servicios adicionales', sd.servicios, 3, 'Ej: Análisis, tensión, dermocosmética…');
+    html += _segurosBlock(sd.seguros);
+
+  } else if (sector === 'hotel') {
+    html += _inp('sd-tipo', 'Tipo de alojamiento', sd.tipo, 'Ej: Hotel 4*, Hostal, Apartamento…');
+    html += _ta('sd-servicios', 'Servicios incluidos', sd.servicios, 3, 'Ej: Desayuno, parking, spa…');
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      _inp('sd-checkin',  'Check-in',  sd.checkIn,  'Ej: 14:00') +
+      _inp('sd-checkout', 'Check-out', sd.checkOut, 'Ej: 12:00') + '</div>';
+
+  } else if (sector === 'taller') {
+    html += _ta('sd-marcas',    'Marcas que trabaja', sd.marcas,   2, 'Ej: Toyota, BMW, Volkswagen…');
+    html += _ta('sd-servicios', 'Servicios',          sd.servicios, 3, 'Ej: Cambio aceite, frenos, ITV…');
+    html += _chk('sd-citaPrevia', 'Cita previa necesaria', sd.citaPrevia);
+
+  } else if (sector === 'academia') {
+    html += _ta('sd-cursos', 'Cursos / Clases', sd.cursos, 3, 'Ej: Inglés, Matemáticas, Programación…');
+    html += _inp('sd-niveles', 'Niveles', sd.niveles, 'Ej: Principiante, Intermedio, Avanzado');
+    html += _inp('sd-precio',  'Precio clase', sd.precio, 'Ej: 30€/hora, 100€/mes');
+
+  } else if (sector === 'asesoria') {
+    html += _ta('sd-espec',    'Especialidades', sd.especialidades, 2, 'Ej: Fiscal, Laboral, Contable…');
+    html += _inp('sd-software', 'Software contable', sd.software, 'Ej: A3, Contaplus, Holded…');
+    html += _chk('sd-online', 'Servicio online disponible', sd.servicioOnline);
+
+  } else if (sector === 'inmobiliaria') {
+    html += _inp('sd-zona',  'Zona de actuación', sd.zona,  'Ej: Bilbao centro, Gipuzkoa…');
+    html += _ta('sd-tipos',  'Tipos de inmueble', sd.tipos, 2, 'Ej: Pisos, locales, naves…');
+    html += _chk('sd-alquiler', 'También gestionamos alquileres', sd.alquiler);
+
   } else {
-    html += '<div class="asis-field"><label class="form-label">Servicios y precios</label>' +
-      '<textarea class="form-ctrl" id="sd-servicios" rows="4" placeholder="Lista tus servicios...">' +
-      esc(sd.servicios || services || '') + '</textarea></div>';
+    // Generic fallback (otro, generico, etc.)
+    html += _ta('sd-servicios', 'Servicios y precios', sd.servicios || services, 4, 'Lista tus servicios…');
   }
 
   document.getElementById('asis-contenido-body').innerHTML = html;
@@ -1217,17 +1329,80 @@ function collectAsisConfig() {
   var sector = _asisConfig.sector || 'generico';
   c.sector = sector;
   var sd = {};
-  if (sector === 'fisioterapia' || sector === 'clinica') {
-    sd.seguros = Array.from(document.querySelectorAll('#asis-seguros-chips span')).map(function(el) { return el.textContent.replace('×','').trim(); });
+  var getChk = function(id) { var el = document.getElementById(id); return el ? el.checked : false; };
+
+  if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
+    sd.seguros        = _getChips('asis-seguros-chips');
     sd.especialidades = get('asis-espec');
   } else if (sector === 'restaurante') {
-    sd.horarioComida = get('asis-horComida');
-    sd.horarioCena   = get('asis-horCena');
-    var cartaRaw = get('asis-carta');
-    sd.cartaItems = cartaRaw.split('\n').filter(Boolean).map(function(l) { var p=l.split(' - '); return {name:p[0].trim(),price:p[1]?p[1].trim():null}; });
+    sd.horarioComida  = get('asis-horComida');
+    sd.horarioCena    = get('asis-horCena');
+    sd.cartaItems     = get('asis-carta').split('\n').filter(Boolean).map(function(l) {
+      var p = l.split(' - '); return { name: p[0].trim(), price: p[1] ? p[1].trim() : null };
+    });
+  } else if (sector === 'peluqueria' || sector === 'podologia') {
+    sd.servicios      = get('sd-servicios');
+  } else if (sector === 'gimnasio') {
+    sd.clases         = get('sd-clases');
+  } else if (sector === 'spa' || sector === 'estetica_avanzada' || sector === 'laser') {
+    sd.tratamientos   = get('sd-tratamientos');
+  } else if (sector === 'optica') {
+    sd.seguros        = _getChips('asis-seguros-chips');
+    sd.marcas         = get('sd-marcas');
+  } else if (sector === 'psicologia' || sector === 'coaching') {
+    sd.especialidades = get('sd-espec');
+    sd.duracionSesion = get('sd-duracion');
+  } else if (sector === 'nutricion' || sector === 'dietetica') {
+    sd.programas      = get('sd-programas');
+    sd.metodo         = get('sd-metodo');
+  } else if (sector === 'autoescuela') {
+    sd.carnets        = get('sd-carnets');
+    sd.precioPractica = get('sd-precPrac');
+  } else if (sector === 'yoga' || sector === 'pilates') {
+    sd.tiposClase     = get('sd-tipos');
+    sd.packs          = get('sd-packs');
+  } else if (sector === 'guarderia_canina' || sector === 'residencia_mascotas') {
+    sd.razasAdmitidas = get('sd-razas');
+    sd.plazas         = get('sd-plazas');
+  } else if (sector === 'abogado' || sector === 'abogados' || sector === 'notaria') {
+    sd.especialidades  = get('sd-espec');
+    sd.consultaInicial = get('sd-consul');
+  } else if (sector === 'agencia_viajes') {
+    sd.destinos        = get('sd-destinos');
+  } else if (sector === 'reformas' || sector === 'arquitectura') {
+    sd.tiposObra       = get('sd-tiposObra');
+  } else if (sector === 'veterinaria') {
+    sd.especialidades  = get('sd-espec');
+    sd.vacunas         = get('sd-vacunas');
+    sd.urgencias24h    = getChk('sd-urgencias');
+  } else if (sector === 'farmacia') {
+    sd.servicios       = get('sd-servicios');
+    sd.seguros         = _getChips('asis-seguros-chips');
+  } else if (sector === 'hotel') {
+    sd.tipo            = get('sd-tipo');
+    sd.servicios       = get('sd-servicios');
+    sd.checkIn         = get('sd-checkin');
+    sd.checkOut        = get('sd-checkout');
+  } else if (sector === 'taller') {
+    sd.marcas          = get('sd-marcas');
+    sd.servicios       = get('sd-servicios');
+    sd.citaPrevia      = getChk('sd-citaPrevia');
+  } else if (sector === 'academia') {
+    sd.cursos          = get('sd-cursos');
+    sd.niveles         = get('sd-niveles');
+    sd.precio          = get('sd-precio');
+  } else if (sector === 'asesoria') {
+    sd.especialidades  = get('sd-espec');
+    sd.software        = get('sd-software');
+    sd.servicioOnline  = getChk('sd-online');
+  } else if (sector === 'inmobiliaria') {
+    sd.zona            = get('sd-zona');
+    sd.tipos           = get('sd-tipos');
+    sd.alquiler        = getChk('sd-alquiler');
+  } else {
+    var sdServEl = document.getElementById('sd-servicios');
+    if (sdServEl) sd.servicios = sdServEl.value.trim();
   }
-  var sdServEl = document.getElementById('sd-servicios');
-  if (sdServEl && !sd.servicios) sd.servicios = sdServEl.value.trim();
   c.sectorData = sd;
   return c;
 }
