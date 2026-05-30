@@ -68,14 +68,14 @@ async function sendAlert(type, info) {
             <tr><td style="color:#999;padding:4px 0;">URL</td><td>${publicUrl}</td></tr>
             <tr><td style="color:#999;padding:4px 0;">Error</td><td style="color:#ff6b6b;">${info.error}</td></tr>
             <tr><td style="color:#999;padding:4px 0;">Fallos consecutivos</td><td>${info.failures}</td></tr>
-            <tr><td style="color:#999;padding:4px 0;">Hora</td><td>${new Date().toLocaleString('es-ES')}</td></tr>
+            <tr><td style="color:#999;padding:4px 0;">Hora</td><td>${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}</td></tr>
           </table>
           <a href="https://xmehd4.easypanel.host" style="display:inline-block;margin-top:16px;background:#6c5ce7;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">
             Abrir EasyPanel →
           </a>
         </div>
       `,
-      text: `🚨 NodeFlow IA caído. Error: ${info.error}. Fallos: ${info.failures}. Hora: ${new Date().toLocaleString('es-ES')}`,
+      text: `🚨 NodeFlow IA caído. Error: ${info.error}. Fallos: ${info.failures}. Hora: ${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}`,
     });
   }
 
