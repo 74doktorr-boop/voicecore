@@ -145,13 +145,20 @@ class SchedulingSystem {
         daySlots.push(...afternoonSlots);
       }
 
-      // Filter out past time slots for today
+      // Filter out past time slots for today.
+      // BUG-47 follow-up: use Madrid clock, not server UTC, for the now comparison.
       const filteredSlots = dateStr === todayStr
-        ? daySlots.filter(s => {
-            const [sh, sm] = s.time.split(':').map(Number);
-            const now = new Date();
-            return sh * 60 + sm > now.getHours() * 60 + now.getMinutes() + 30; // 30 min buffer
-          })
+        ? (() => {
+            const madridNow = new Intl.DateTimeFormat('sv-SE', {
+              timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false,
+            }).format(new Date());
+            const [nowH, nowM] = madridNow.split(':').map(Number);
+            const nowMinutes = nowH * 60 + nowM;
+            return daySlots.filter(s => {
+              const [sh, sm] = s.time.split(':').map(Number);
+              return sh * 60 + sm > nowMinutes + 30; // 30 min buffer
+            });
+          })()
         : daySlots;
 
       if (filteredSlots.length > 0) {
