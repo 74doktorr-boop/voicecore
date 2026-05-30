@@ -236,6 +236,8 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (plan   !== undefined) {
       if (!['starter','negocio','pro'].includes(plan)) return res.status(400).json({ error: 'plan inválido' });
       patch.plan = plan;
+      // Keep monthly_minutes_limit in sync with plan when admin changes plan manually
+      patch.monthly_minutes_limit = plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : 50;
     }
     if (sector !== undefined) patch.sector = sector;
     if (phone  !== undefined) patch.phone  = phone;
@@ -259,7 +261,7 @@ function setupAdminRoutes(app, config, assistantManager) {
         .from('organizations').select('id, owner_email, name').eq('id', orgId).single();
       if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
 
-      const token = generateMagicToken(org.owner_email, orgId);
+      const token = await generateMagicToken(org.owner_email, orgId);
       await sendMagicLinkEmail(org.owner_email, token);
 
       log.info(`Magic link enviado a ${org.owner_email} para org ${orgId}`);
