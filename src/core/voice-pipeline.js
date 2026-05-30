@@ -351,7 +351,7 @@ class VoicePipeline {
     // System A: post-call automations (fire-and-forget — never blocks endCall)
     try {
       const { postCallHandler } = require('../automations/post-call-handler');
-      postCallHandler.handle(callData).catch(e => this._log?.warn?.('post-call handler error', e));
+      postCallHandler.handle(callData).catch(e => log.warn('post-call handler error', { err: e.message }));
     } catch (e) {
       // require() failure (missing module) must not break call teardown
     }

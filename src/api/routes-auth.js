@@ -165,9 +165,10 @@ function setupAuthRoutes(app) {
 
     const db = getDatabase();
     let registroId = null;
+    let isKnownEmail = false;
 
-    // Look up the most recent active registro for this email
     if (db.enabled) {
+      // 1. Look up the most recent active registro for this email (primary path)
       try {
         const { data } = await db.client
           .from('registros')
@@ -177,12 +178,27 @@ function setupAuthRoutes(app) {
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-        if (data) registroId = data.id;
+        if (data) { registroId = data.id; isKnownEmail = true; }
       } catch (_) {}
+
+      // 2. Fallback: check organizations table (manually onboarded customers)
+      if (!isKnownEmail) {
+        try {
+          const { data: orgRow } = await db.client
+            .from('organizations')
+            .select('id')
+            .eq('owner_email', email.trim().toLowerCase())
+            .eq('is_active', true)
+            .limit(1)
+            .single();
+          if (orgRow) isKnownEmail = true;
+          // registroId stays null — the session JWT only needs the email
+        } catch (_) {}
+      }
     }
 
     // Even if not found, send a neutral response to avoid email enumeration
-    if (registroId) {
+    if (isKnownEmail) {
       const token = await generateMagicToken(email.trim().toLowerCase(), registroId);
       const { sendMagicLinkEmail } = require('../notifications/email');
       sendMagicLinkEmail(email.trim().toLowerCase(), token).catch(e =>
