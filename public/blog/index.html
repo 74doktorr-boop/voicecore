@@ -67,6 +67,14 @@
     .footer-links a{font-size:13px;color:var(--dim)}
     .footer-links a:hover{color:var(--text)}
     .footer-copy{font-size:12px;color:var(--muted)}
+    /* Category filter */
+    .filter-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 0 32px;position:relative;z-index:2}
+    .filter-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);font-family:inherit;transition:all .2s}
+    .filter-btn:hover{border-color:var(--border-accent);color:var(--accent-l)}
+    .filter-btn.active{background:rgba(108,92,231,0.15);border-color:rgba(108,92,231,0.4);color:var(--accent-l)}
+    .filter-count{font-size:10px;background:rgba(108,92,231,0.25);border-radius:10px;padding:1px 6px;color:var(--accent-l)}
+    .post-card.hidden{display:none}
+    #filterResults{font-size:13px;color:var(--dim);text-align:center;padding-bottom:12px;position:relative;z-index:2;display:none}
   </style>
 </head>
 <body>
@@ -89,7 +97,9 @@
 </section>
 <main>
   <div class="container">
-    <div class="posts-grid">
+    <div class="filter-bar" id="filterBar" aria-label="Filtrar por categoría"></div>
+    <div id="filterResults"></div>
+    <div class="posts-grid" id="postsGrid">
       
       <a href="/blog/asistente-ia-restaurante-vitoria" class="post-card">
         <div class="post-card-meta">
@@ -799,5 +809,100 @@
     </div>
   </div>
 </footer>
+<script>
+(function() {
+  // Strip accents for fuzzy matching: "peluquerías" → "peluquerias"
+  function norm(s) {
+    return s.toLowerCase()
+      .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+      .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
+      .trim();
+  }
+
+  // Each filter: { key, label, match: [normalized strings that match] }
+  var FILTERS = [
+    { key:'todos',        label:'✦ Todos' },
+    { key:'fisioterapia', label:'💪 Fisioterapia',  match:['fisioterapia'] },
+    { key:'dental',       label:'🦷 Dental',        match:['dental','clinicas dentales','clinica dental'] },
+    { key:'clinicas',     label:'🏥 Clínicas',      match:['clinicas','clinica','salud'] },
+    { key:'psicologia',   label:'🧠 Psicología',    match:['psicologia','psicologos'] },
+    { key:'nutricion',    label:'🥗 Nutrición',     match:['nutricion','dietetica'] },
+    { key:'veterinarias', label:'🐾 Veterinarias',  match:['veterinarias','veterinaria'] },
+    { key:'opticas',      label:'👓 Ópticas',       match:['opticas','optica'] },
+    { key:'peluquerias',  label:'✂️ Peluquerías',   match:['peluquerias','peluqueria','barberia'] },
+    { key:'estetica',     label:'💆 Estética',      match:['estetica','estetica avanzada','laser'] },
+    { key:'gimnasios',    label:'💪 Gimnasios',     match:['gimnasios','gimnasio'] },
+    { key:'yoga',         label:'🧘 Yoga/Pilates',  match:['yoga','pilates','yoga y pilates'] },
+    { key:'restaurantes', label:'🍽️ Restaurantes',  match:['restaurantes','restaurante','hosteleria'] },
+    { key:'talleres',     label:'🔧 Talleres',      match:['talleres','taller'] },
+    { key:'farmacias',    label:'💊 Farmacias',     match:['farmacias','farmacia'] },
+    { key:'autoescuelas', label:'🚗 Autoescuelas',  match:['autoescuelas','autoescuela'] },
+    { key:'abogados',     label:'⚖️ Abogados',      match:['abogados','abogado','notaria'] },
+    { key:'inmobiliarias',label:'🏠 Inmobiliarias', match:['inmobiliarias','inmobiliaria'] },
+    { key:'academias',    label:'📚 Academias',     match:['academias','academia'] },
+    { key:'ia',           label:'🤖 IA general',   match:['ia general','tendencias','guia','configuracion'] },
+    { key:'bilbao',       label:'📍 Bilbao',        match:['bilbao'] },
+    { key:'vitoria',      label:'📍 Vitoria',       match:['vitoria'] },
+    { key:'donostia',     label:'📍 Donostia',      match:['donostia'] },
+  ];
+
+  // Precompute normalized tags per card
+  var filterBar = document.getElementById('filterBar');
+  var resultsEl = document.getElementById('filterResults');
+  var postsGrid = document.getElementById('postsGrid');
+  var cards     = Array.from(postsGrid.querySelectorAll('.post-card'));
+
+  cards.forEach(function(card) {
+    card._normTags = Array.from(card.querySelectorAll('.tag')).map(function(t) {
+      return norm(t.textContent);
+    });
+  });
+
+  // Count cards per filter
+  function countFor(filter) {
+    if (filter.key === 'todos') return cards.length;
+    return cards.filter(function(c) {
+      return filter.match.some(function(m) { return c._normTags.indexOf(m) !== -1; });
+    }).length;
+  }
+
+  // Build buttons — only show filters that have ≥1 matching card
+  var active = 'todos';
+  FILTERS.forEach(function(f) {
+    var count = countFor(f);
+    if (f.key !== 'todos' && count === 0) return;
+    var btn = document.createElement('button');
+    btn.className = 'filter-btn' + (f.key === 'todos' ? ' active' : '');
+    btn.dataset.cat = f.key;
+    btn.setAttribute('aria-pressed', f.key === 'todos' ? 'true' : 'false');
+    btn.innerHTML = f.label + ' <span class="filter-count">' + count + '</span>';
+    btn.addEventListener('click', function() { setFilter(f); });
+    filterBar.appendChild(btn);
+  });
+
+  function setFilter(filter) {
+    active = filter.key;
+    filterBar.querySelectorAll('.filter-btn').forEach(function(btn) {
+      var on = btn.dataset.cat === filter.key;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var visible = 0;
+    cards.forEach(function(card) {
+      var show = filter.key === 'todos' ||
+        (filter.match && filter.match.some(function(m) { return card._normTags.indexOf(m) !== -1; }));
+      card.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+    if (filter.key === 'todos') {
+      resultsEl.style.display = 'none';
+    } else {
+      resultsEl.style.display = 'block';
+      resultsEl.textContent = visible + (visible === 1 ? ' artículo' : ' artículos') +
+        ' — ' + filter.label.replace(/^[^\p{L}]*/u, '');
+    }
+  }
+})();
+</script>
 </body>
 </html>
