@@ -76,6 +76,7 @@ function navigate(section) {
   else if (section === 'automatizaciones') loadAutomatizaciones();
   else if (section === 'configuracion')    loadConfig();
   else if (section === 'clientes')         loadClientes();
+  else if (section === 'facturacion')      loadFacturacion();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -135,10 +136,24 @@ function showApp() {
   var planPrice = _orgInfo.plan === 'negocio' ? '€49' : _orgInfo.plan === 'pro' ? '€99' : 'Gratis';
   document.getElementById('sidebarPlanSub').textContent = planPrice + '/mes · Activo';
 
-  // Show upgrade CTA for starter users
+  // Show upgrade CTA: starter → Negocio, Negocio → Pro
   var upgradeEl = document.getElementById('upgradeCtaBox');
   if (upgradeEl) {
-    upgradeEl.style.display = (_orgInfo.plan === 'starter') ? 'block' : 'none';
+    if (_orgInfo.plan === 'starter') {
+      upgradeEl.innerHTML =
+        '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">🚀 Activa tu AI ahora</div>' +
+        '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">Atiende llamadas 24/7 y elimina las perdidas por €49/mes</div>' +
+        '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver planes →</a>';
+      upgradeEl.style.display = 'block';
+    } else if (_orgInfo.plan === 'negocio') {
+      upgradeEl.innerHTML =
+        '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">⚡ Pasa a Plan Pro</div>' +
+        '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">2.000 min/mes, llamadas salientes y account manager dedicado</div>' +
+        '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver Plan Pro €99/mes →</a>';
+      upgradeEl.style.display = 'block';
+    } else {
+      upgradeEl.style.display = 'none';
+    }
   }
 
   navigate('dashboard');
@@ -1301,4 +1316,157 @@ function portalCaptureChunk(stream) {
   };
   _portalMediaRecorder.start();
   setTimeout(function() { if (_portalMediaRecorder && _portalMediaRecorder.state==='recording') _portalMediaRecorder.stop(); }, 3000);
+}
+
+// ── Facturación section ───────────────────────────────────────
+async function loadFacturacion() {
+  var sec = document.getElementById('sec-facturacion');
+  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando facturación…</div></div>';
+  try {
+    var results  = await Promise.all([
+      api('/api/billing/usage'),
+      api('/api/billing/invoices'),
+    ]);
+    var usage    = results[0];
+    var invoices = results[1].invoices || [];
+    renderFacturacion(sec, usage, invoices);
+  } catch (e) {
+    sec.innerHTML =
+      '<div class="empty-state"><div class="empty-state-icon">❌</div>' +
+      '<div class="empty-state-text">Error al cargar facturación: ' + e.message + '</div></div>';
+  }
+}
+
+function renderFacturacion(sec, usage, invoices) {
+  var planNames  = { starter: 'Starter', negocio: 'Negocio', pro: 'Pro' };
+  var planPrices = { starter: 'Gratis', negocio: '€49/mes', pro: '€99/mes' };
+  var planName   = planNames[usage.plan]  || usage.plan;
+  var planPrice  = planPrices[usage.plan] || '';
+  var pct        = usage.percentUsed || 0;
+  var barColor   = pct >= 90 ? '#e74c3c' : pct >= 70 ? '#f39c12' : 'var(--accent)';
+
+  // Overage warning
+  var overageWarn = '';
+  if (usage.overage > 0) {
+    overageWarn =
+      '<div style="background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.25);border-radius:8px;padding:10px 12px;font-size:11px;color:#e74c3c;margin-top:10px">' +
+        '⚠️ Has superado tu límite de minutos en <strong>' + usage.overage.toFixed(1) + ' min</strong>. ' +
+        'Cargo adicional estimado: <strong>€' + usage.overageCost.toFixed(2) + '</strong>.' +
+      '</div>';
+  }
+
+  // Pro upsell (only for negocio users)
+  var proUpsell = '';
+  if (usage.plan === 'negocio') {
+    proUpsell =
+      '<div class="card" style="padding:20px;margin-top:16px;background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(162,155,254,.05));border:1px solid rgba(108,92,231,.3)">' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:6px">⚡ ¿Necesitas más capacidad?</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">' +
+          'El <strong>Plan Pro</strong> incluye 2.000 min/mes, llamadas salientes, ' +
+          'integraciones avanzadas y un account manager dedicado por solo €99/mes.' +
+        '</div>' +
+        '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent" ' +
+          'style="font-size:12px;text-decoration:none;display:inline-block">' +
+          'Ver Plan Pro €99/mes →' +
+        '</a>' +
+      '</div>';
+  }
+
+  // Invoices table rows
+  var invRows = '';
+  if (invoices.length === 0) {
+    invRows =
+      '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--dim);font-size:12px">' +
+        'No hay facturas aún.' +
+      '</td></tr>';
+  } else {
+    invoices.forEach(function(inv) {
+      var d       = new Date(inv.date * 1000);
+      var dateStr = d.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+      var symbol  = inv.currency === 'eur' ? '€' : inv.currency.toUpperCase() + ' ';
+      var amt     = symbol + Number(inv.amount).toFixed(2);
+      var statusLabel = inv.status === 'paid'
+        ? '<span style="color:var(--green2)">Pagada</span>'
+        : '<span style="color:#f39c12">' + inv.status + '</span>';
+      var pdfLink = inv.pdf
+        ? '<a href="' + inv.pdf + '" target="_blank" style="color:var(--accent-l);font-size:11px;margin-left:8px">PDF ↓</a>'
+        : '';
+      invRows +=
+        '<tr style="border-bottom:1px solid var(--border)">' +
+          '<td style="padding:10px 8px;font-size:12px;color:var(--dim)">' + dateStr + '</td>' +
+          '<td style="padding:10px 8px;font-size:12px;font-family:monospace">' + (inv.number || inv.id) + '</td>' +
+          '<td style="padding:10px 8px;font-size:12px;font-weight:600">' + amt + '</td>' +
+          '<td style="padding:10px 8px;font-size:12px">' + statusLabel + pdfLink + '</td>' +
+        '</tr>';
+    });
+  }
+
+  var manageBtn = usage.plan !== 'starter'
+    ? '<button class="btn btn-d" style="font-size:12px" onclick="openStripePortal()">Gestionar suscripción →</button>'
+    : '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent" style="font-size:12px;text-decoration:none">Activar plan →</a>';
+
+  sec.innerHTML =
+    '<div class="section-header">' +
+      '<h2 class="section-title">💳 Facturación</h2>' +
+      '<p class="section-sub">Gestiona tu plan y consulta tus facturas</p>' +
+    '</div>' +
+
+    // Plan card + usage bar
+    '<div class="card" style="padding:20px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">' +
+        '<div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em">Plan actual</div>' +
+          '<div style="font-size:20px;font-weight:700">' + planName +
+            '<span style="font-size:13px;font-weight:400;color:var(--dim);margin-left:8px">' + planPrice + '</span>' +
+          '</div>' +
+        '</div>' +
+        manageBtn +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:6px">' +
+        'Minutos este mes: <strong style="color:var(--fg)">' +
+        (usage.minutesUsed || 0).toFixed(1) + ' / ' + (usage.minutesLimit || 0) +
+        '</strong>' +
+      '</div>' +
+      '<div style="background:var(--card2);border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px">' +
+        '<div style="height:100%;width:' + Math.min(pct, 100) + '%;background:' + barColor +
+          ';border-radius:6px;transition:width .4s"></div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--dim)">' +
+        pct + '% utilizado · ' + Math.floor(usage.minutesRemaining || 0) + ' min restantes' +
+      '</div>' +
+      overageWarn +
+    '</div>' +
+
+    proUpsell +
+
+    // Invoice history
+    '<div class="card" style="padding:20px;margin-top:16px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:14px">🧾 Historial de facturas</div>' +
+      '<div style="overflow-x:auto">' +
+        '<table style="width:100%;border-collapse:collapse">' +
+          '<thead>' +
+            '<tr style="border-bottom:1px solid var(--border)">' +
+              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Fecha</th>' +
+              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Nº Factura</th>' +
+              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Importe</th>' +
+              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Estado</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + invRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+}
+
+async function openStripePortal() {
+  try {
+    var data = await api('/api/billing/portal', 'POST');
+    if (data.url) {
+      window.open(data.url, '_blank');
+    } else {
+      toast('No se pudo abrir el portal de Stripe.', 'err');
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
 }
