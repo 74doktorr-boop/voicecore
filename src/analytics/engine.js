@@ -36,16 +36,17 @@ class AnalyticsEngine {
     this.realtimeMetrics.totalCost += cost;
 
     // Record to log
+    // BUG-32 FIX: toJSON() emits 'id'/'startTime'/'endTime'; accept both spellings.
     const entry = {
-      callId: callData.callId,
+      callId: callData.id || callData.callId,
       assistantId: callData.assistantId,
       callerNumber: callData.callerNumber,
       direction: callData.direction,
       duration: Math.round(duration / 1000),
       turnCount: callData.turnCount || 0,
       cost: Math.round(cost * 10000) / 10000,
-      startedAt: callData.startedAt,
-      endedAt: callData.endedAt,
+      startedAt: callData.startTime || callData.startedAt,
+      endedAt: callData.endTime || callData.endedAt,
       avgLatency: callData.metrics?.avgTurnTime || 0,
       sentiment: callData.sentiment || 'neutral',
       outcome: callData.outcome || 'completed',
@@ -55,7 +56,7 @@ class AnalyticsEngine {
     if (this.callLog.length > this.maxLogSize) this.callLog.pop();
 
     // Hourly stats
-    const hour = new Date(callData.startedAt || Date.now()).toISOString().substring(0, 13);
+    const hour = new Date(callData.startTime || callData.startedAt || Date.now()).toISOString().substring(0, 13);
     if (!this.hourlyStats[hour]) this.hourlyStats[hour] = { calls: 0, minutes: 0, cost: 0 };
     this.hourlyStats[hour].calls++;
     this.hourlyStats[hour].minutes += minutes;

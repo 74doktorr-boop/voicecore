@@ -348,6 +348,15 @@ class VoicePipeline {
     if (this.callHistory.length > this.maxHistory) this.callHistory.pop();
     this._fireWebhook('call.ended', callData);
 
+    // BUG-32 FIX: Wire analytics so admin dashboard callsToday reflects real calls.
+    // Must run before System A (which may throw) to guarantee recording.
+    try {
+      const { getAnalytics } = require('../analytics/engine');
+      getAnalytics().recordCall(callData);
+    } catch (e) {
+      log.warn('analytics recordCall failed', { err: e.message });
+    }
+
     // System A: post-call automations (fire-and-forget — never blocks endCall)
     try {
       const { postCallHandler } = require('../automations/post-call-handler');
