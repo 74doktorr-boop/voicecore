@@ -115,6 +115,51 @@ function sectorBlock(sector, sectorData = {}) {
     case 'arquitectura': {
       return sectorData.tiposObra ? `TIPOS DE OBRA/REFORMA: ${sectorData.tiposObra}` : '';
     }
+    case 'veterinaria': {
+      const esp       = sectorData.especialidades ? `ESPECIALIDADES: ${sectorData.especialidades}` : null;
+      const urgencias = sectorData.urgencias24h   ? `URGENCIAS 24H: Sí — contactar con el veterinario de guardia` : null;
+      const vacunas   = sectorData.vacunas        ? `CAMPAÑAS DE VACUNACIÓN: ${sectorData.vacunas}` : null;
+      return [esp, urgencias, vacunas].filter(Boolean).join('\n');
+    }
+    case 'farmacia': {
+      const servicios = sectorData.servicios ? `SERVICIOS ADICIONALES: ${sectorData.servicios}` : null;
+      const seguros   = Array.isArray(sectorData.seguros) && sectorData.seguros.length > 0
+        ? `MUTUAS/SEGUROS: ${sectorData.seguros.join(', ')}` : null;
+      return [servicios, seguros].filter(Boolean).join('\n');
+    }
+    case 'hotel': {
+      const tipo     = sectorData.tipo       ? `TIPO DE ALOJAMIENTO: ${sectorData.tipo}` : null;
+      const servicios = sectorData.servicios ? `SERVICIOS: ${sectorData.servicios}` : null;
+      const checkIn  = sectorData.checkIn    ? `CHECK-IN: ${sectorData.checkIn}` : null;
+      const checkOut = sectorData.checkOut   ? `CHECK-OUT: ${sectorData.checkOut}` : null;
+      return [tipo, servicios, checkIn, checkOut].filter(Boolean).join('\n');
+    }
+    case 'taller': {
+      const marcas   = sectorData.marcas   ? `MARCAS QUE TRABAJA: ${sectorData.marcas}` : null;
+      const servicios = sectorData.servicios ? `SERVICIOS: ${sectorData.servicios}` : null;
+      const cita     = sectorData.citaPrevia !== undefined
+        ? `CITA PREVIA: ${sectorData.citaPrevia ? 'Necesaria' : 'No necesaria'}` : null;
+      return [marcas, servicios, cita].filter(Boolean).join('\n');
+    }
+    case 'academia': {
+      const cursos  = sectorData.cursos  ? `CURSOS/CLASES: ${sectorData.cursos}` : null;
+      const niveles = sectorData.niveles ? `NIVELES: ${sectorData.niveles}` : null;
+      const precio  = sectorData.precio  ? `PRECIO CLASE: ${sectorData.precio}` : null;
+      return [cursos, niveles, precio].filter(Boolean).join('\n');
+    }
+    case 'asesoria': {
+      const esp      = sectorData.especialidades ? `ESPECIALIDADES: ${sectorData.especialidades}` : null;
+      const software = sectorData.software ? `SOFTWARE CONTABLE: ${sectorData.software}` : null;
+      const online   = sectorData.servicioOnline ? `SERVICIO ONLINE: Disponible` : null;
+      return [esp, software, online].filter(Boolean).join('\n');
+    }
+    case 'inmobiliaria': {
+      const zona   = sectorData.zona   ? `ZONA DE ACTUACIÓN: ${sectorData.zona}` : null;
+      const tipos  = sectorData.tipos  ? `TIPOS DE INMUEBLE: ${sectorData.tipos}` : null;
+      const alquiler = sectorData.alquiler !== undefined
+        ? `ALQUILER: ${sectorData.alquiler ? 'Sí' : 'Solo venta'}` : null;
+      return [zona, tipos, alquiler].filter(Boolean).join('\n');
+    }
     default:
       return '';
   }
