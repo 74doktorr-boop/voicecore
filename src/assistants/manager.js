@@ -165,6 +165,10 @@ class AssistantManager {
       timeZone: 'Europe/Madrid',
     });
 
+    // BUG-31 FIX: Replace {{DATE}} placeholder that generatePrompt() embeds in templates.
+    // Without this, the LLM sees the literal string "FECHA DE HOY: {{DATE}}" in its prompt.
+    systemPrompt = systemPrompt.replace('{{DATE}}', dateStr);
+
     systemPrompt += `\n\n[Contexto actual: ${dateStr}, ${timeStr}]`;
 
     return { role: 'system', content: systemPrompt };
