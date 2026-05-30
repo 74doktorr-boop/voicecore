@@ -170,15 +170,26 @@ const PLANS = {
   },
 };
 
-// Read plan from URL
-const params  = new URLSearchParams(location.search);
-const planKey = (params.get('plan') || 'negocio').toLowerCase();
-const plan    = PLANS[planKey] || PLANS.negocio;
+// Read plan + sector from URL
+const params     = new URLSearchParams(location.search);
+const planKey    = (params.get('plan') || 'negocio').toLowerCase();
+const plan       = PLANS[planKey] || PLANS.negocio;
+const urlSector  = params.get('sector') || '';
 
 // State
 let registroId   = null;
 let stripeCode   = null;
 let discountPct  = 0;
+
+// Pre-select sector dropdown if passed from a sector landing page
+if (urlSector) {
+  const sectorEl = document.getElementById('sector');
+  if (sectorEl) {
+    // Find the matching option (case-insensitive)
+    const opt = Array.from(sectorEl.options).find(o => o.value.toLowerCase() === urlSector.toLowerCase());
+    if (opt) sectorEl.value = opt.value;
+  }
+}
 
 // Render plan box
 document.getElementById('plan-display').innerHTML = `
@@ -230,7 +241,7 @@ async function submitRegistro() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined, source: urlSector || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
