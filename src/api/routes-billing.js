@@ -30,6 +30,9 @@ function setupBillingRoutes(app, config) {
     try {
       const { plan } = req.body;
       if (!plan) return res.status(400).json({ error: 'Plan required' });
+      if (!['negocio', 'pro'].includes(plan)) {
+        return res.status(400).json({ error: "plan debe ser 'negocio' o 'pro'" });
+      }
 
       let customerId = req.org.stripe_customer_id;
 
@@ -313,18 +316,49 @@ function setupBillingRoutes(app, config) {
           }
         }
 
+        // Helper: minutes limit matching PLAN_LIMITS constants
+        const _minutesForPlan = (plan) =>
+          plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : plan === 'enterprise' ? 99999 : 50;
+
         // ── Flujo legacy (checkout sessions con orgId) ──
         if (result.action === 'subscription_created' && db.enabled && result.orgId) {
           await db.updateOrg(result.orgId, {
             plan: result.plan,
             stripe_subscription_id: result.subscriptionId,
+            monthly_minutes_limit: _minutesForPlan(result.plan),
           });
           log.info(`Org ${result.orgId} upgraded to ${result.plan}`);
         }
 
+        // ── Plan changed via Stripe billing portal (customer.subscription.updated) ──
+        if (result.action === 'subscription_updated' && db.enabled) {
+          const planToSet = result.plan || 'starter';
+          let orgId = result.orgId;
+          // If orgId not in metadata (Payment Link customers), look up by subscriptionId
+          if (!orgId && result.subscriptionId) {
+            const { data: orgRow } = await db.client
+              .from('organizations')
+              .select('id')
+              .eq('stripe_subscription_id', result.subscriptionId)
+              .single().catch(() => ({ data: null }));
+            orgId = orgRow?.id || null;
+          }
+          if (orgId) {
+            await db.updateOrg(orgId, {
+              plan: planToSet,
+              monthly_minutes_limit: _minutesForPlan(planToSet),
+            });
+            log.info(`Org ${orgId} plan updated via Stripe portal → ${planToSet}`);
+          }
+        }
+
         if (result.action === 'subscription_cancelled' && db.enabled) {
           if (result.orgId) {
-            await db.updateOrg(result.orgId, { plan: 'starter', is_active: true });
+            await db.updateOrg(result.orgId, {
+              plan: 'starter',
+              is_active: true,
+              monthly_minutes_limit: 50,
+            });
             log.warn(`Org ${result.orgId} downgraded to starter (sub cancelled)`);
           } else if (result.subscriptionId) {
             // Payment Link customers — look up by stripe_subscription_id
@@ -334,7 +368,10 @@ function setupBillingRoutes(app, config) {
               .eq('stripe_subscription_id', result.subscriptionId)
               .single().catch(() => ({ data: null }));
             if (orgRow) {
-              await db.updateOrg(orgRow.id, { plan: 'starter' });
+              await db.updateOrg(orgRow.id, {
+                plan: 'starter',
+                monthly_minutes_limit: 50,
+              });
               log.warn(`Org ${orgRow.id} downgraded to starter (Payment Link cancellation)`);
             }
           }
