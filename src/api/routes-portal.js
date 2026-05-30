@@ -87,7 +87,9 @@ function setupPortalRoutes(app, pipeline) {
     const todayStr   = new Date().toISOString().slice(0, 10);
     const allCalls   = pipeline.getCallHistory(500);
     const bizCalls   = allCalls.filter(c => (c.businessId || c.assistantId) === businessId);
-    const todayCalls = bizCalls.filter(c => (c.endedAt || c.startedAt || '').startsWith(todayStr));
+    // BUG-30 FIX: callSession.toJSON() emits 'endTime'/'startTime', not 'endedAt'/'startedAt'.
+    // Wrong field names made todayCalls always empty, so dashboard always showed zero calls.
+    const todayCalls = bizCalls.filter(c => (c.endTime || c.startTime || '').startsWith(todayStr));
 
     const callCount   = todayCalls.length;
     const bookedToday = todayCalls.filter(c => c.outcome === 'booked').length;
@@ -113,7 +115,7 @@ function setupPortalRoutes(app, pipeline) {
           : c.outcome === 'info'
           ? `Consulta · ${(c.callId || '---').toString().replace(/(\d{3})\d{4,}/, '$1···')}`
           : 'Llamada no completada',
-      time: c.endedAt || c.startedAt || null,
+      time: c.endTime || c.startTime || null,
     }));
 
     const registeredAt = flowConfig.registeredAt || null;
@@ -253,7 +255,8 @@ function setupPortalRoutes(app, pipeline) {
     const bizCalls = allCalls.filter(c => (c.businessId || c.assistantId) === businessId);
 
     // Period calls
-    const periodCalls = bizCalls.filter(c => (c.endedAt || c.startedAt || '') >= fromStr);
+    // BUG-30 FIX: same field name issue — use endTime/startTime from toJSON()
+    const periodCalls = bizCalls.filter(c => (c.endTime || c.startTime || '') >= fromStr);
     const totalCalls  = periodCalls.length;
     const bookings    = periodCalls.filter(c => c.outcome === 'booked').length;
     const convRate    = totalCalls > 0 ? Math.round((bookings / totalCalls) * 100) : 0;
@@ -265,7 +268,7 @@ function setupPortalRoutes(app, pipeline) {
     const DOW_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const callsByDow = Array(7).fill(0);
     for (const c of periodCalls) {
-      const d = new Date(c.endedAt || c.startedAt || Date.now());
+      const d = new Date(c.endTime || c.startTime || Date.now());
       callsByDow[d.getDay()]++;
     }
     const callsByDayOfWeek = DOW_LABELS.map((label, i) => ({ label, value: callsByDow[i] }));

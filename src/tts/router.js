@@ -213,11 +213,13 @@ class TTSRouter {
     const remaining = Array.from(this.providers.entries())
       .filter(([name]) => !chain.includes(name))
       .filter(([, info]) => info.languages.includes(language))
-      .sort(([, a], [, b]) => {
+      .sort(([nameA, a], [nameB, b]) => {
         switch (strategy) {
           case 'latency':
-            return (this._realAvgLatency(a) ?? a.avgLatency) -
-                   (this._realAvgLatency(b) ?? b.avgLatency);
+            // BUG-29 FIX: _realAvgLatency must receive the provider *name* (string key),
+            // not the info object — this.metrics is keyed by name.
+            return (this._realAvgLatency(nameA) ?? a.avgLatency) -
+                   (this._realAvgLatency(nameB) ?? b.avgLatency);
           case 'cost':
             return a.costPerMinute - b.costPerMinute;
           case 'quality':
@@ -271,8 +273,8 @@ class TTSRouter {
 
   // ── Metrics ───────────────────────────────────────────────────────────────
 
-  _realAvgLatency(providerInfo) {
-    const m = this.metrics.get(providerInfo);
+  _realAvgLatency(providerName) {
+    const m = this.metrics.get(providerName);
     if (!m || m.callCount <= m.errorCount) return null;
     return Math.round(m.totalLatency / (m.callCount - m.errorCount));
   }
