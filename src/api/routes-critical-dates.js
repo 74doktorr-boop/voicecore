@@ -15,15 +15,20 @@ const log = new Logger('ROUTES-CRIT-DATES');
 
 // ── Simple api-key auth middleware (same pattern as other routes) ──────────────
 function apiKeyAuth(req, res, next) {
-  const key = req.headers['x-api-key'] || req.query.apiKey;
+  // BUG-33 FIX: Always deny when no key is configured — the old 'allow all' default
+  // exposed these endpoints publicly in deployments that hadn't set the env var.
   const validKey = process.env.INTERNAL_API_KEY || process.env.ADMIN_SECRET;
-  if (!validKey || key === validKey) return next(); // if no key configured, allow all
-  // Also accept session cookie via verifySessionToken
+  if (!validKey) {
+    return res.status(503).json({ error: 'Critical dates API not configured — set INTERNAL_API_KEY in server env' });
+  }
+  // Accept session JWT (magic link / portal)
   try {
     const { verifySessionToken } = require('./routes-auth');
     const token = req.cookies?.[process.env.SESSION_KEY || 'nf_session'] || req.headers.authorization?.replace('Bearer ', '');
     if (token && verifySessionToken(token)) return next();
   } catch(_) {}
+  const key = req.headers['x-api-key'] || req.query.apiKey;
+  if (key && key === validKey) return next();
   return res.status(401).json({ error: 'Unauthorized' });
 }
 

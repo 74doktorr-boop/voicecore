@@ -110,8 +110,8 @@ function setupDemoRoutes(app, ttsRouter) {
         }
       }
 
-      // Inject today's date
-      systemPrompt = systemPrompt.replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+      // BUG-47 FIX: use Madrid timezone — server runs UTC so bare toLocaleDateString() gives wrong date.
+      systemPrompt = systemPrompt.replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }));
 
       const completion = await openai.chat.completions.create({
         model,
