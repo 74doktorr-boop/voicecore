@@ -175,6 +175,13 @@ function setupBillingRoutes(app, config) {
           const registro = await getRegistro(registroId);
 
           if (registro) {
+            // Idempotency guard: if this registro was already activated by a previous
+            // webhook delivery, skip org creation to avoid duplicates.
+            if (registro.status === 'active') {
+              log.warn(`Webhook duplicado ignorado — registro ${registroId} ya está activo`);
+              return res.json({ received: true, duplicate: true });
+            }
+
             // Mapear plan del formulario → plan interno
             // 'negocio' (€49) → 'pro' (500 min) | 'pro' (€99) → 'business' (2000 min)
             const orgPlan = registro.plan === 'pro' ? 'business' : 'pro';
