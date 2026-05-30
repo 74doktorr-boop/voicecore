@@ -88,7 +88,17 @@ async function handle(callData) {
       .catch(e => log.warn('call DB persist failed', { err: e.message }));
   }
 
-  // ── 6. Upsert contact (phone → contacts table) ───────────────────────────────
+  // ── 6. Track call usage — increments monthly_minutes_used and usage table ────
+  if (db.enabled && callData.duration > 0) {
+    const deltaMinutes = callData.duration / 60000;
+    db.incrementMinutesUsed(businessId, deltaMinutes, {
+      llmTokens: callData.metrics?.llmTokens  || 0,
+      toolCalls: callData.metrics?.toolCalls  || 0,
+      cost:      callData.cost?.total         || 0,
+    }).catch(e => log.warn('usage increment failed', { err: e.message }));
+  }
+
+  // ── 7. Upsert contact (phone → contacts table) ───────────────────────────────
   if (db.enabled && callData.callerNumber) {
     const apt   = callData.bookedAppointment;
     const pName = apt?.patientName || null;

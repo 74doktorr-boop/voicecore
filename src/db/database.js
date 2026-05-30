@@ -260,6 +260,48 @@ class Database {
     }
   }
 
+  /**
+   * Increment monthly_minutes_used for an org AND write to the usage table.
+   * Uses the same per-org promise chain as trackUsage to avoid lost updates.
+   * @param {string} orgId
+   * @param {number} deltaMinutes - call duration in minutes (decimal)
+   * @param {object} [extra] - optional additional usage fields (llmTokens, toolCalls, cost)
+   */
+  incrementMinutesUsed(orgId, deltaMinutes, extra = {}) {
+    if (!this.enabled || !deltaMinutes || deltaMinutes <= 0) return Promise.resolve();
+    if (!this._usageLocks) this._usageLocks = new Map();
+
+    const key = `usage:${orgId}`;
+    const prev = this._usageLocks.get(key) || Promise.resolve();
+    const next = prev.then(() => this._doIncrementMinutes(orgId, deltaMinutes, extra));
+    this._usageLocks.set(key, next.catch(() => {}));
+    return next;
+  }
+
+  async _doIncrementMinutes(orgId, deltaMinutes, extra = {}) {
+    // 1. Increment monthly_minutes_used in organizations (read-modify-write, serialized by mutex)
+    const { data: org, error: orgErr } = await this.client
+      .from('organizations')
+      .select('monthly_minutes_used')
+      .eq('id', orgId)
+      .single();
+    if (!orgErr && org) {
+      const newTotal = parseFloat(org.monthly_minutes_used || 0) + deltaMinutes;
+      await this.client.from('organizations')
+        .update({ monthly_minutes_used: Math.round(newTotal * 100) / 100 })
+        .eq('id', orgId);
+    }
+
+    // 2. Write to granular usage table (same period key)
+    await this._doTrackUsage(orgId, {
+      calls:     1,
+      minutes:   deltaMinutes,
+      llmTokens: extra.llmTokens  || 0,
+      toolCalls: extra.toolCalls  || 0,
+      cost:      extra.cost       || 0,
+    });
+  }
+
   async getUsage(orgId, period) {
     if (!this.enabled) return null;
     const p = period || new Date().toISOString().substring(0, 7);

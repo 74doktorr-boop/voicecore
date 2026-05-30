@@ -377,6 +377,24 @@ function setupBillingRoutes(app, config) {
           }
         }
 
+        // ── New billing period — reset monthly usage counter ──────────────────
+        // invoice.paid fires at the start of each Stripe billing cycle
+        if (result.action === 'invoice_paid' && db.enabled && result.customerId) {
+          try {
+            const { data: orgRow } = await db.client
+              .from('organizations')
+              .select('id')
+              .eq('stripe_customer_id', result.customerId)
+              .single().catch(() => ({ data: null }));
+            if (orgRow?.id) {
+              await db.updateOrg(orgRow.id, { monthly_minutes_used: 0 });
+              log.info(`Usage counter reset for org ${orgRow.id} (invoice paid — new period)`);
+            }
+          } catch (e) {
+            log.warn(`Could not reset usage on invoice.paid: ${e.message}`);
+          }
+        }
+
         if (result.action === 'payment_failed') {
           log.warn(`Pago fallido — customer: ${result.customerId}`);
           // Intentar encontrar el cliente por stripe_customer_id y avisarle
