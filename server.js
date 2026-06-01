@@ -33,6 +33,8 @@ const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
 const { setupAuthRoutes }         = require('./src/api/routes-auth');
+const { setupWebhookRoutes }      = require('./src/api/routes-webhooks');
+const { webhookDispatcher }       = require('./src/webhooks/dispatcher');
 const { startCron }               = require('./src/scheduling/cron');
 const { flowManager }             = require('./src/automations/flow-manager');
 const { getBilling } = require('./src/billing/stripe');
@@ -242,10 +244,16 @@ app.get('/blog/:slug', (req, res) => {
 });
 
 // ─── City SEO pages ───
-app.get(['/andoain', '/andoain/'], serveGitHubPage('/andoain/index.html', path.join(__dirname, 'public', 'andoain', 'index.html')));
-app.get(['/donostia', '/donostia/'], serveGitHubPage('/donostia/index.html', path.join(__dirname, 'public', 'donostia', 'index.html')));
-app.get(['/bilbao', '/bilbao/'], serveGitHubPage('/bilbao/index.html', path.join(__dirname, 'public', 'bilbao', 'index.html')));
-app.get(['/vitoria', '/vitoria/'], serveGitHubPage('/vitoria/index.html', path.join(__dirname, 'public', 'vitoria', 'index.html')));
+app.get(['/andoain', '/andoain/'],     serveGitHubPage('/andoain/index.html',   path.join(__dirname, 'public', 'andoain',   'index.html')));
+app.get(['/donostia', '/donostia/'],   serveGitHubPage('/donostia/index.html',  path.join(__dirname, 'public', 'donostia',  'index.html')));
+app.get(['/bilbao', '/bilbao/'],       serveGitHubPage('/bilbao/index.html',    path.join(__dirname, 'public', 'bilbao',    'index.html')));
+app.get(['/vitoria', '/vitoria/'],     serveGitHubPage('/vitoria/index.html',   path.join(__dirname, 'public', 'vitoria',   'index.html')));
+app.get(['/madrid', '/madrid/'],       serveGitHubPage('/madrid/index.html',    path.join(__dirname, 'public', 'madrid',    'index.html')));
+app.get(['/barcelona', '/barcelona/'], serveGitHubPage('/barcelona/index.html', path.join(__dirname, 'public', 'barcelona', 'index.html')));
+app.get(['/pamplona', '/pamplona/'],   serveGitHubPage('/pamplona/index.html',  path.join(__dirname, 'public', 'pamplona',  'index.html')));
+
+// Also warm up new city pages at startup
+['/madrid/index.html', '/barcelona/index.html', '/pamplona/index.html'].forEach(p => getPage(p).catch(() => {}));
 
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -334,6 +342,9 @@ const db = getDatabase({
   supabaseKey: process.env.SUPABASE_SERVICE_KEY,
 });
 
+// ─── Initialize Webhook Dispatcher ───
+webhookDispatcher.init(db);
+
 const pipeline = new VoicePipeline(config);
 const assistantManager = new AssistantManager();
 
@@ -385,6 +396,7 @@ setupDemoRoutes(app, ttsRouter);
 setupAutomationRoutes(app);
 setupFlowRoutes(app);
 setupCalendarRoutes(app, config);
+setupWebhookRoutes(app);
 
 // Load per-business flows from DB, then start cron
 flowManager.loadFromDB()

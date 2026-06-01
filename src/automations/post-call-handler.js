@@ -12,6 +12,7 @@ const {
   sendCallFollowUpEmail,
 } = require('../notifications/call-notifications');
 const { getDatabase }    = require('../db/database');
+const { webhookDispatcher, EVENTS } = require('../webhooks/dispatcher');
 const { Logger } = require('../utils/logger');
 
 const log = new Logger('POST-CALL');
@@ -98,7 +99,20 @@ async function handle(callData) {
     }).catch(e => log.warn('usage increment failed', { err: e.message }));
   }
 
-  // ── 7. Upsert contact (phone → contacts table) ───────────────────────────────
+  // ── 7. Fire webhooks (call.completed / call.missed) — non-blocking ──────────
+  const webhookEvent = (callData.outcome && callData.outcome !== 'unknown')
+    ? EVENTS.CALL_COMPLETED
+    : EVENTS.CALL_MISSED;
+  webhookDispatcher.fire(businessId, webhookEvent, {
+    callId:       callData.id,
+    outcome:      callData.outcome      || 'unknown',
+    duration:     callData.duration     || 0,
+    callerNumber: callData.callerNumber || null,
+    transcript:   callData.transcript   || [],
+    bookedAppointment: callData.bookedAppointment || null,
+  }).catch(() => {});
+
+  // ── 8. Upsert contact (phone → contacts table) ───────────────────────────────
   if (db.enabled && callData.callerNumber) {
     const apt   = callData.bookedAppointment;
     const pName = apt?.patientName || null;

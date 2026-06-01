@@ -8,6 +8,7 @@ const { scheduler }          = require('../scheduling/scheduler');
 const { Logger }             = require('../utils/logger');
 const { getGoogleCalendar }  = require('../integrations/google-calendar');
 const { getDatabase }        = require('../db/database');
+const { webhookDispatcher, EVENTS } = require('../webhooks/dispatcher');
 const log = new Logger('TOOLS');
 
 // Push a calendar event after a successful booking (non-blocking, best-effort)
@@ -125,13 +126,34 @@ class ToolExecutor {
     if (result.success && result.appointment) {
       _syncToCalendar(businessId, result.appointment).catch(() => {});
     }
+    // Webhook: appointment.booked
+    if (result.success && result.appointment) {
+      webhookDispatcher.fire(businessId, EVENTS.APPOINTMENT_BOOKED, {
+        appointmentId: result.appointment.id,
+        patientName:   result.appointment.patientName,
+        phone:         result.appointment.phone    || null,
+        email:         result.appointment.email    || null,
+        service:       result.appointment.service,
+        date:          result.appointment.date,
+        time:          result.appointment.time,
+        duration:      result.appointment.duration || null,
+      }).catch(() => {});
+    }
     return result;
   }
 
   cancelAppointment(args, assistantId) {
     // BUG-39 follow-up: pass businessId so cancelAppointment scopes the search correctly
     const businessId = assistantId || null;
-    return scheduler.cancelAppointment(args.appointment_id || '', args.patient_name || '', businessId);
+    const result = scheduler.cancelAppointment(args.appointment_id || '', args.patient_name || '', businessId);
+    // Webhook: appointment.cancelled
+    if (result.success && businessId) {
+      webhookDispatcher.fire(businessId, EVENTS.APPOINTMENT_CANCELLED, {
+        appointmentId: args.appointment_id || null,
+        patientName:   args.patient_name   || null,
+      }).catch(() => {});
+    }
+    return result;
   }
 
   lookupAppointments(args) {
