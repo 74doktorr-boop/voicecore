@@ -58,6 +58,11 @@ function setupDemoRoutes(app, ttsRouter) {
     try {
       const buffer = Buffer.from(audio, 'base64');
       if (buffer.length < 500) return res.json({ transcript: '' }); // skip silence
+      // BUG-52 FIX: Reject oversized audio to prevent expensive Whisper API abuse.
+      // 5 MB decoded ≈ ~30 s of audio at 128 kbps — more than enough for a demo turn.
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(413).json({ error: 'Audio demasiado largo para el demo (máx ~30s)' });
+      }
       const ext  = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
       const file = await toFile(buffer, `audio.${ext}`, { type: mimeType });
       const result = await openai.audio.transcriptions.create({
@@ -79,6 +84,15 @@ function setupDemoRoutes(app, ttsRouter) {
     const { orgId, botId, messages } = req.body;
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages requerido' });
+    }
+    // BUG-52 FIX: Cap message count and total text length to prevent input-token abuse.
+    // Without this, a caller could send thousands of messages and drain OpenAI credits.
+    if (messages.length > 30) {
+      return res.status(400).json({ error: 'Demasiados mensajes (máx 30 para el demo)' });
+    }
+    const totalChars = messages.reduce((s, m) => s + String(m?.content || '').length, 0);
+    if (totalChars > 8000) {
+      return res.status(400).json({ error: 'Conversación demasiado larga para el demo' });
     }
     // Portal users can only chat with their own org
     const effectiveOrgId = req.isAdmin ? orgId : req.businessId;
