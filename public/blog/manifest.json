@@ -38,9 +38,25 @@
     "como-elegir-asistente-ia-telefono-pyme",
     "estadisticas-llamadas-perdidas-pymes-espana",
     "recepcionista-ia-asesorias-gestoras-espana",
-    "asistente-ia-restaurante-vitoria"
+    "asistente-ia-restaurante-vitoria",
+    "recepcionista-ia-fisioterapia-bilbao"
   ],
   "posts": [
+    {
+      "slug": "recepcionista-ia-fisioterapia-bilbao",
+      "title": "Recepcionista IA para Fisioterapia en Bilbao: Eficiencia y Comodidad",
+      "metaTitle": "Recepcionista IA para Fisioterapia en Bilbao",
+      "description": "Optimiza tu clínica de fisioterapia en Bilbao con una recepcionista IA. Automatiza citas y más. Descubre cómo en NodeFlow.",
+      "date": "2026-06-01",
+      "keywords": [
+        "recepcionista IA fisioterapia Bilbao",
+        "automatizar citas fisioterapia Bilbao",
+        "asistente virtual fisio Bizkaia"
+      ],
+      "sector": "fisioterapia",
+      "city": "bilbao",
+      "readingMinutes": 6
+    },
     {
       "slug": "asistente-ia-restaurante-vitoria",
       "title": "Asistente IA para Restaurantes en Vitoria: Reservas y Más",
