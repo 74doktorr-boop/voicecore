@@ -5,7 +5,7 @@
   <!-- ── Homepage ── -->
   <url>
     <loc>https://nodeflow.es</loc>
-    <lastmod>2026-05-28</lastmod>
+    <lastmod>2026-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es"/>
@@ -30,6 +30,24 @@
   </url>
 
   <!-- ── Páginas de ciudad (SEO local) ── -->
+  <url>
+    <loc>https://nodeflow.es/madrid</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/barcelona</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://nodeflow.es/pamplona</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
   <url>
     <loc>https://nodeflow.es/bilbao</loc>
     <lastmod>2026-05-27</lastmod>
@@ -699,32 +717,32 @@
   </url>
 
   <!-- Blog articles (13 new) -->
-  <url><loc>https://nodeflow.es/blog/asistente-ia-clinica-dental-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinica-dental-vitoria</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-farmacia-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-taller-mecanico-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-centro-medico-privado</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinicas-seguros-privados-espana</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/integracion-ia-software-gestion-clinica</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-consultas-medicas-generales</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-spa-balneario-espana</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/ia-recepcion-virtual-sector-servicios-espana</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-academias-idiomas-espana</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-peluqueria-coloracion-citas-largas</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-clinica-dental-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinica-dental-vitoria</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-farmacia-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-taller-mecanico-donostia</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-centro-medico-privado</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-clinicas-seguros-privados-espana</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/integracion-ia-software-gestion-clinica</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-consultas-medicas-generales</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-spa-balneario-espana</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/ia-recepcion-virtual-sector-servicios-espana</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-academias-idiomas-espana</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-peluqueria-coloracion-citas-largas</loc><lastmod>2026-05-29</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <!-- Blog articles (12 new — May 2026 sprint 2) -->
-  <url><loc>https://nodeflow.es/blog/asistente-ia-psicologos-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-nutricionistas-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-veterinaria-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-optica-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/recepcionista-ia-autoescuela-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-inmobiliaria-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-abogados-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-fisioterapia-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-dental-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-centros-pilates-espana</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/como-elegir-ia-voz-negocio-espana-2026</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-yoga-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-psicologos-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-nutricionistas-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-veterinaria-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-optica-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/recepcionista-ia-autoescuela-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-inmobiliaria-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-abogados-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-fisioterapia-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-dental-vitoria</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-centros-pilates-espana</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/como-elegir-ia-voz-negocio-espana-2026</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-yoga-bilbao</loc><lastmod>2026-05-30</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <!-- Index pages (2 new) -->
   <url><loc>https://nodeflow.es/guias</loc><lastmod>2026-05-29</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
