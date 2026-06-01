@@ -1514,7 +1514,7 @@ async function loadFacturacion() {
   } catch (e) {
     sec.innerHTML =
       '<div class="empty-state"><div class="empty-state-icon">❌</div>' +
-      '<div class="empty-state-text">Error al cargar facturación: ' + e.message + '</div></div>';
+      '<div class="empty-state-text">Error al cargar facturación: ' + esc(e.message) + '</div></div>';
   }
 }
 
