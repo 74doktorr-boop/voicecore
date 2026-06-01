@@ -77,6 +77,7 @@ function navigate(section) {
   else if (section === 'configuracion')    loadConfig();
   else if (section === 'clientes')         loadClientes();
   else if (section === 'facturacion')      loadFacturacion();
+  else if (section === 'integraciones')    loadIntegraciones();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -1639,6 +1640,213 @@ function renderFacturacion(sec, usage, invoices) {
     '</div>';
 }
 
+// ── Integraciones (Webhooks) ──────────────────────────────────
+var _ALL_EVENTS = [
+  'call.completed', 'call.missed',
+  'appointment.booked', 'appointment.cancelled',
+  'reminder.sent', 'review_request.sent',
+];
+var _EVENT_LABELS = {
+  'call.completed':        '📞 Llamada completada',
+  'call.missed':           '📵 Llamada perdida',
+  'appointment.booked':    '✅ Cita reservada',
+  'appointment.cancelled': '❌ Cita cancelada',
+  'reminder.sent':         '🔔 Recordatorio enviado',
+  'review_request.sent':   '⭐ Petición de reseña',
+};
+
+async function loadIntegraciones() {
+  var sec = document.getElementById('sec-integraciones');
+  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando webhooks…</div></div>';
+
+  var data;
+  try {
+    data = await api('/api/portal/webhooks');
+  } catch (e) {
+    sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
+    return;
+  }
+
+  var rows = '';
+  if (data.webhooks && data.webhooks.length > 0) {
+    data.webhooks.forEach(function(wh) {
+      var eventsText = wh.events && wh.events.includes('*')
+        ? '<span class="badge bg">Todos los eventos</span>'
+        : (wh.events || []).map(function(e) {
+            return '<span class="badge bp" style="margin:1px 2px;font-size:10px">' + esc(_EVENT_LABELS[e] || e) + '</span>';
+          }).join('');
+      var enabledBadge = wh.enabled
+        ? '<span class="badge bg">Activo</span>'
+        : '<span class="badge br">Pausado</span>';
+      rows +=
+        '<tr>' +
+        '<td style="max-width:220px;word-break:break-all;font-size:12px">' + esc(wh.url) + '</td>' +
+        '<td>' + eventsText + '</td>' +
+        '<td>' + enabledBadge + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn btn-d btn-sm" title="Enviar ping de prueba" onclick="testWebhook(\'' + esc(wh.id) + '\',this)">🧪 Test</button> ' +
+          '<button class="btn btn-d btn-sm" title="' + (wh.enabled ? 'Pausar' : 'Activar') + '" onclick="toggleWebhook(\'' + esc(wh.id) + '\',' + (!wh.enabled) + ')">' +
+            (wh.enabled ? '⏸' : '▶️') +
+          '</button> ' +
+          '<button class="btn btn-r btn-sm" title="Eliminar" onclick="deleteWebhook(\'' + esc(wh.id) + '\')">🗑</button>' +
+        '</td>' +
+        '</tr>';
+    });
+  } else {
+    rows = '<tr class="empty-row"><td colspan="4" style="text-align:center;padding:20px;color:var(--dim);font-size:13px">' +
+      'Aún no has configurado ningún webhook.' +
+      '</td></tr>';
+  }
+
+  sec.innerHTML =
+    '<div class="section-header">' +
+      '<div>' +
+        '<div class="section-title">🔗 Integraciones</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Recibe eventos en tu propio servidor en tiempo real</div>' +
+      '</div>' +
+      '<button class="btn btn-accent" onclick="openNewWebhookModal()">+ Nuevo webhook</button>' +
+    '</div>' +
+
+    // Info box
+    '<div style="background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--dim);line-height:1.6">' +
+      '📡 <strong style="color:var(--text)">¿Para qué sirve esto?</strong> Cada vez que ocurra un evento en NodeFlow (llamada, cita, recordatorio…) ' +
+      'te haremos una petición <code>POST</code> firmada con HMAC-SHA256 a la URL que configures. ' +
+      'Perfecta para sincronizar con tu CRM, Zapier, Make o cualquier sistema propio.' +
+    '</div>' +
+
+    '<div class="table-wrap"><table>' +
+      '<thead><tr><th>URL del endpoint</th><th>Eventos</th><th>Estado</th><th>Acciones</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table></div>' +
+
+    // Signature docs card
+    '<div class="card" style="padding:16px;margin-top:20px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:8px">🔐 Verificar la firma</div>' +
+      '<div style="font-size:12px;color:var(--dim);line-height:1.7">' +
+        'Cada petición incluye la cabecera <code>X-NodeFlow-Signature: sha256=&lt;hex&gt;</code>.<br>' +
+        'Verifica con: <code>HMAC-SHA256(secret, body) === signature</code>' +
+      '</div>' +
+      '<pre style="background:var(--card2);border-radius:6px;padding:12px;margin-top:10px;font-size:11px;overflow-x:auto;color:#a29bfe">' +
+'// Node.js\n' +
+'const sig = req.headers[\'x-nodeflow-signature\'];\n' +
+'const expected = \'sha256=\' + crypto\n' +
+'  .createHmac(\'sha256\', whsec_YOUR_SECRET)\n' +
+'  .update(req.body).digest(\'hex\');\n' +
+'const ok = crypto.timingSafeEqual(\n' +
+'  Buffer.from(sig), Buffer.from(expected));' +
+      '</pre>' +
+    '</div>';
+}
+
+function openNewWebhookModal() {
+  var evtCheckboxes = _ALL_EVENTS.map(function(e) {
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0">' +
+      '<input type="checkbox" class="wh-evt-chk" value="' + esc(e) + '" style="accent-color:var(--accent)">' +
+      esc(_EVENT_LABELS[e] || e) +
+    '</label>';
+  }).join('');
+
+  openModal(
+    '<div class="modal-title">+ Nuevo webhook</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">URL del endpoint *</label>' +
+      '<input class="form-input" id="wh-url" type="url" placeholder="https://mi-servidor.com/webhooks/nodeflow">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Eventos a recibir</label>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0;margin-bottom:6px;border-bottom:1px solid var(--border)">' +
+        '<input type="checkbox" id="wh-evt-all" style="accent-color:var(--accent)" onchange="toggleAllWebhookEvents(this.checked)">' +
+        '<strong>Todos los eventos (*)</strong>' +
+      '</label>' +
+      '<div id="wh-evt-list">' + evtCheckboxes + '</div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="submitNewWebhook()">Crear webhook</button>' +
+    '</div>'
+  );
+}
+
+function toggleAllWebhookEvents(checked) {
+  document.querySelectorAll('.wh-evt-chk').forEach(function(chk) {
+    chk.checked = checked;
+    chk.disabled = checked;
+  });
+}
+
+async function submitNewWebhook() {
+  var url = (document.getElementById('wh-url') || {}).value || '';
+  if (!url) { toast('Introduce una URL', 'err'); return; }
+  try { new URL(url); } catch (_) { toast('URL no válida', 'err'); return; }
+
+  var allEvts = document.getElementById('wh-evt-all');
+  var events;
+  if (allEvts && allEvts.checked) {
+    events = ['*'];
+  } else {
+    events = Array.from(document.querySelectorAll('.wh-evt-chk:checked')).map(function(c) { return c.value; });
+    if (!events.length) events = ['*'];
+  }
+
+  try {
+    var data = await api('/api/portal/webhooks', 'POST', { url: url, events: events });
+    closeModal();
+    // Show secret — only shown once
+    openModal(
+      '<div class="modal-title">✅ Webhook creado</div>' +
+      '<p style="font-size:13px;color:var(--dim);margin-bottom:12px">' +
+        '⚠️ <strong style="color:#f59e0b">Guarda este secreto ahora.</strong> No se volverá a mostrar.' +
+      '</p>' +
+      '<div style="background:var(--card2);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#a29bfe">' +
+        esc(data.webhook.secret) +
+      '</div>' +
+      '<button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="navigator.clipboard.writeText(\'' + esc(data.webhook.secret) + '\').then(function(){toast(\'Secreto copiado ✓\')});closeModal();loadIntegraciones()">' +
+        '📋 Copiar y cerrar' +
+      '</button>'
+    );
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
+}
+
+async function toggleWebhook(id, enabled) {
+  try {
+    await api('/api/portal/webhooks/' + id, 'PATCH', { enabled: enabled });
+    toast(enabled ? 'Webhook activado' : 'Webhook pausado');
+    loadIntegraciones();
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
+}
+
+async function deleteWebhook(id) {
+  if (!confirm('¿Eliminar este webhook? Se dejarán de enviar eventos a esta URL.')) return;
+  try {
+    await api('/api/portal/webhooks/' + id, 'DELETE');
+    toast('Webhook eliminado');
+    loadIntegraciones();
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
+}
+
+async function testWebhook(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    var res = await api('/api/portal/webhooks/' + id + '/test', 'POST');
+    if (res.ok) {
+      toast('✅ Ping recibido — HTTP ' + res.status);
+    } else {
+      toast('⚠️ Entregado pero HTTP ' + res.status, 'err');
+    }
+  } catch (e) {
+    toast('❌ No se pudo conectar: ' + esc(e.message), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🧪 Test'; }
+  }
+}
+
+// ── Stripe portal ─────────────────────────────────────────────
 async function openStripePortal() {
   try {
     var data = await api('/api/billing/portal', 'POST');
