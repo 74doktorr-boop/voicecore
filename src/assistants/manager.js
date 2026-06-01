@@ -102,9 +102,16 @@ class AssistantManager {
    * Create or update an assistant
    */
   upsert(id, config) {
+    // BUG-51 FIX: Sanitize id before using it as a filename to prevent path traversal.
+    // An authenticated caller could pass id="../../package.json" and overwrite server files.
+    // Allow only alphanumeric, hyphens, and underscores; strip everything else.
+    const safeId = String(id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
+    if (!safeId) throw new Error('Invalid assistant id — only alphanumeric, hyphens and underscores allowed');
+    id = safeId;
+
     config.id = id;
     config.updatedAt = new Date().toISOString();
-    
+
     if (!config.createdAt) {
       config.createdAt = config.updatedAt;
     }
