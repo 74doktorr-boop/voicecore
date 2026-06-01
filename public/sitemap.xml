@@ -24,9 +24,17 @@
   <!-- ── Portal de negocio ── -->
   <url>
     <loc>https://nodeflow.es/portal</loc>
-    <lastmod>2026-05-28</lastmod>
+    <lastmod>2026-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+  </url>
+
+  <!-- ── API / documentación para integradores ── -->
+  <url>
+    <loc>https://nodeflow.es/docs</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
 
   <!-- ── Páginas de ciudad (SEO local) ── -->
