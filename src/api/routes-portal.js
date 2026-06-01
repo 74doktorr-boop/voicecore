@@ -424,7 +424,14 @@ function setupPortalRoutes(app, pipeline) {
       .limit(200);
 
     if (q) {
-      query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
+      // BUG-48 FIX: Sanitize search query before interpolating into PostgREST .or() filter
+      // string.  Raw user input can inject additional filter conditions (e.g. commas and
+      // parentheses are special in PostgREST filter syntax).  Strip everything except
+      // characters that legitimately appear in names, phone numbers and email addresses.
+      const safeQ = q.replace(/[^a-zA-Z0-9 .@+\-_áéíóúàèìòùäëïöüñçÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÑÇ]/g, '').slice(0, 100);
+      if (safeQ) {
+        query = query.or(`name.ilike.%${safeQ}%,phone.ilike.%${safeQ}%,email.ilike.%${safeQ}%`);
+      }
     }
 
     const { data, error } = await query;

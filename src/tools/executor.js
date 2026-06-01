@@ -156,8 +156,9 @@ class ToolExecutor {
     return result;
   }
 
-  lookupAppointments(args) {
-    return scheduler.lookupAppointments(args.patient_name);
+  lookupAppointments(args, assistantId) {
+    // BUG-50 FIX: Pass businessId so lookup is scoped to this business only
+    return scheduler.lookupAppointments(args.patient_name, assistantId || null);
   }
 
   getServices(args, assistantId) {

@@ -302,9 +302,13 @@ class SchedulingSystem {
   }
 
   // ─── Look up appointments by patient ───
-  lookupAppointments(patientName) {
+  // BUG-50 FIX: Scope lookup to businessId — without this, an AI assistant at business A
+  // could read appointments from business B by guessing a common patient name.
+  lookupAppointments(patientName, businessId) {
     const results = [];
     for (const [, apt] of this.appointments) {
+      // Always filter by business (null businessId is treated as "no isolation" — dev-only)
+      if (businessId && apt.businessId !== businessId) continue;
       if (apt.patientName.toLowerCase().includes(patientName.toLowerCase()) && apt.status !== 'cancelled') {
         results.push({ id: apt.id, date: apt.date, time: apt.time, service: apt.service, status: apt.status });
       }

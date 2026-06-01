@@ -25,6 +25,21 @@ function setupBillingRoutes(app, config) {
     res.json({ plans: billing.getPlans() });
   });
 
+  // ─── Helpers ────────────────────────────────────────────────
+  // BUG-49 FIX: Validate redirect URLs to prevent open-redirect abuse.
+  // Callers may pass successUrl/cancelUrl/returnUrl; when billing is disabled
+  // the server echoes them back as the destination URL.  Restrict to HTTPS only.
+  function _safeUrl(raw, fallback) {
+    if (!raw) return fallback || null;
+    try {
+      const u = new URL(raw);
+      if (u.protocol !== 'https:') throw new Error('not https');
+      return raw;
+    } catch (_) {
+      return fallback || null;
+    }
+  }
+
   // ─── Create Checkout Session ───
   app.post('/api/billing/checkout', auth, async (req, res) => {
     try {
@@ -51,12 +66,13 @@ function setupBillingRoutes(app, config) {
         }
       }
 
+      const baseUrl = process.env.PUBLIC_URL || 'https://nodeflow.es';
       const session = await billing.createCheckoutSession({
         orgId: req.org.id,
         plan,
         customerId,
-        successUrl: req.body.successUrl,
-        cancelUrl: req.body.cancelUrl,
+        successUrl: _safeUrl(req.body.successUrl, `${baseUrl}/portal?checkout=success`),
+        cancelUrl:  _safeUrl(req.body.cancelUrl,  `${baseUrl}/portal?checkout=cancelled`),
       });
 
       res.json({ url: session.url, sessionId: session.id });
@@ -72,9 +88,10 @@ function setupBillingRoutes(app, config) {
       const customerId = req.org.stripe_customer_id;
       if (!customerId) return res.status(400).json({ error: 'No billing account' });
 
+      const baseUrl = process.env.PUBLIC_URL || 'https://nodeflow.es';
       const session = await billing.createPortalSession({
         customerId,
-        returnUrl: req.body.returnUrl,
+        returnUrl: _safeUrl(req.body.returnUrl, `${baseUrl}/portal`),
       });
 
       res.json({ url: session.url });
