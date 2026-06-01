@@ -1,0 +1,19 @@
+{
+  "name": "NodeFlow Portal",
+  "short_name": "NodeFlow",
+  "description": "Portal de clientes NodeFlow — gestiona tu asistente AI 24/7",
+  "start_url": "/portal/",
+  "scope": "/portal/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07070e",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

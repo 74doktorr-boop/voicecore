@@ -329,13 +329,17 @@ async function loadCalls(outcome, from, to) {
       var apt = c.appointment
         ? '<br><small style="color:var(--dim)">' + esc(c.appointment.date) + ' ' + esc(c.appointment.time) + ' · ' + esc(c.appointment.service) + '</small>'
         : '';
+      var callBtn = c.callerNumber
+        ? '<button class="btn btn-g btn-sm" onclick="callOutbound(\'' + esc(c.callerNumber) + '\',this)" title="Llamar a ' + esc(c.callerNumber) + '">📞</button>'
+        : '<span style="color:var(--muted)">—</span>';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
         '<td>' + c.turnCount + ' turnos' + apt + '</td>' +
         '<td style="color:var(--dim)">' + esc(c.clientEmail || '—') + '</td>' +
-        '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td></tr>';
+        '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td>' +
+        '<td>' + callBtn + '</td></tr>';
     }
   } else {
-    rows = '<tr class="empty-row"><td colspan="6">No hay llamadas con estos filtros</td></tr>';
+    rows = '<tr class="empty-row"><td colspan="7">No hay llamadas con estos filtros</td></tr>';
   }
 
   sec.innerHTML =
@@ -355,7 +359,7 @@ async function loadCalls(outcome, from, to) {
       '<button class="btn btn-d btn-sm" onclick="loadCalls()">Limpiar</button>' +
     '</div>' +
     '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>💬</th></tr></thead>' +
+      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>💬</th><th>📞</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
     '<div style="font-size:12px;color:var(--dim);margin-top:12px">Total: ' + (data.count || 0) + ' llamadas</div>';
 
@@ -1006,6 +1010,7 @@ async function openContactProfile(id) {
       '<tbody>' + aptRows + '</tbody></table></div>' +
 
     '<div class="modal-actions" style="margin-top:20px">' +
+      (c.phone ? '<button class="btn btn-g" onclick="callOutbound(\'' + esc(c.phone) + '\',this)">📞 Llamar</button>' : '') +
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
@@ -1858,4 +1863,37 @@ async function openStripePortal() {
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
+}
+
+// ── Llamadas salientes ────────────────────────────────────────
+async function callOutbound(phone, btn) {
+  if (!phone) { toast('Número no disponible', 'err'); return; }
+  if (!confirm('¿Iniciar llamada saliente a ' + phone + '?\n\nEl asistente AI llamará a este número.')) return;
+  if (btn) { btn.disabled = true; var origText = btn.textContent; btn.textContent = '⏳'; }
+  try {
+    await api('/api/portal/calls/outbound', 'POST', { to: phone });
+    toast('📞 Llamada iniciada a ' + phone + '. El asistente marcará en breve.');
+  } catch (e) {
+    var msg = e.message || 'Error al iniciar llamada';
+    if (msg.toLowerCase().includes('negocio') || msg.toLowerCase().includes('upgrade') || msg.toLowerCase().includes('plan')) {
+      toast('Esta función requiere el plan Negocio o Pro — actualiza en Facturación', 'err');
+    } else {
+      toast('Error: ' + msg, 'err');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText || '📞'; }
+  }
+}
+
+// ── Service Worker (PWA) ──────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(reg) {
+        console.log('[NodeFlow SW] Registered, scope:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[NodeFlow SW] Registration failed:', err);
+      });
+  });
 }

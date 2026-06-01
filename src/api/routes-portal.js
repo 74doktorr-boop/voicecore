@@ -78,7 +78,8 @@ async function portalAuth(req, res, next) {
 }
 
 // ── setupPortalRoutes ────────────────────────────────────────
-function setupPortalRoutes(app, pipeline) {
+function setupPortalRoutes(app, pipeline, config) {
+  config = config || {};
 
   // ── GET /api/portal/dashboard ──────────────────────────────
   app.get('/api/portal/dashboard', portalAuth, (req, res) => {
@@ -154,14 +155,15 @@ function setupPortalRoutes(app, pipeline) {
     }
 
     const formatted = calls.map(c => ({
-      callId:      c.id,
-      startedAt:   c.startTime,
-      endedAt:     c.endTime,
-      duration:    c.duration || 0,
-      outcome:     c.outcome || 'abandoned',
-      clientEmail: c.clientEmail || null,
-      appointment: c.bookedAppointment || null,
-      turnCount:   c.turnCount || 0,
+      callId:       c.id,
+      startedAt:    c.startTime,
+      endedAt:      c.endTime,
+      duration:     c.duration || 0,
+      outcome:      c.outcome || 'abandoned',
+      clientEmail:  c.clientEmail || null,
+      callerNumber: c.callerNumber || null,
+      appointment:  c.bookedAppointment || null,
+      turnCount:    c.turnCount || 0,
     }));
 
     res.json({ ok: true, count: formatted.length, calls: formatted });
@@ -641,6 +643,75 @@ function setupPortalRoutes(app, pipeline) {
       res.json({ ok: true, prompt });
     } catch (e) {
       log.error(`Portal PUT assistant error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/calls/outbound ──────────────────────────
+  // Inicia una llamada saliente desde el portal del cliente.
+  // Plan gate: sólo Negocio y Pro. Starter no puede hacer llamadas salientes.
+  // body: { to: string, assistantId?: string, provider?: 'auto'|'vonage'|'twilio' }
+  app.post('/api/portal/calls/outbound', portalAuth, async (req, res) => {
+    const { flowConfig, businessId } = req;
+
+    // Plan gate
+    const plan = (flowConfig.plan || 'starter').toLowerCase();
+    if (!['negocio', 'pro'].includes(plan)) {
+      return res.status(403).json({
+        error: 'Las llamadas salientes requieren el plan Negocio o Pro.',
+        upgrade: true,
+      });
+    }
+
+    const { to, assistantId, provider = 'auto' } = req.body;
+    if (!to) return res.status(400).json({ error: 'El campo "to" (número destino) es obligatorio' });
+
+    // Sanitise: only digits, +, spaces, hyphens — no other chars
+    const safeTo = String(to).replace(/[^\d+\s\-]/g, '').slice(0, 20);
+    if (safeTo.replace(/[+\s\-]/g, '').length < 7) {
+      return res.status(400).json({ error: 'Número de teléfono no válido' });
+    }
+
+    // Resolve assistant: prefer explicit id, then fall back to businessId (org's own assistant)
+    const effAssistantId = assistantId || businessId;
+
+    const publicUrl = config.publicUrl || process.env.PUBLIC_URL || '';
+
+    try {
+      const useVonage = (provider === 'vonage') ||
+        (provider === 'auto' && config.vonageApiKey && config.vonageApplicationId);
+
+      if (useVonage) {
+        const { Vonage } = require('@vonage/server-sdk');
+        const vonage = new Vonage({
+          apiKey:        config.vonageApiKey,
+          apiSecret:     config.vonageApiSecret,
+          applicationId: config.vonageApplicationId,
+          privateKey:    config.vonagePrivateKeyPath || './vonage_private.key',
+        });
+        const result = await vonage.voice.createOutboundCall({
+          to:         [{ type: 'phone', number: safeTo }],
+          from:       { type: 'phone', number: config.vonagePhoneNumber },
+          answer_url: [`${publicUrl}/vonage/answer/${effAssistantId}`],
+          event_url:  [`${publicUrl}/vonage/event`],
+        });
+        log.info(`Portal: Vonage outbound call → ${safeTo} for ${businessId}`);
+        res.json({ ok: true, callUUID: result.uuid, provider: 'vonage' });
+      } else {
+        const twilio = require('twilio')(
+          config.twilioAccountSid  || process.env.TWILIO_ACCOUNT_SID,
+          config.twilioAuthToken   || process.env.TWILIO_AUTH_TOKEN,
+        );
+        const call = await twilio.calls.create({
+          to:   safeTo,
+          from: config.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER,
+          url:  `${publicUrl}/voice/inbound/${effAssistantId}`,
+        });
+        log.info(`Portal: Twilio outbound call → ${safeTo} for ${businessId}`);
+        res.json({ ok: true, callSid: call.sid, provider: 'twilio' });
+      }
+    } catch (e) {
+      log.error(`Portal: outbound call failed for ${businessId}: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
   });

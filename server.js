@@ -385,7 +385,7 @@ setupAuthRoutes(app);
 
 // Setup Portal de Negocio routes (dashboard, calls, citas, informes, automations, config)
 const { setupPortalRoutes } = require('./src/api/routes-portal');
-setupPortalRoutes(app, pipeline);
+setupPortalRoutes(app, pipeline, config);
 
 // Setup Admin routes (panel privado de Unai)
 setupAdminRoutes(app, config, assistantManager);
