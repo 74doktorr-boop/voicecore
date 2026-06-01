@@ -14,6 +14,11 @@ const GOOGLE_REVIEW_BASE = 'https://search.google.com/local/writereview?placeid=
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
@@ -55,6 +60,10 @@ async function sendAppointmentReminder(appointment, businessConfig) {
   const lang         = businessConfig?.language || 'es';
   const name         = firstName(appointment.patientName);
   const businessName = businessConfig?.name || (lang === 'gl' ? 'o teu negocio' : 'tu negocio');
+  // HTML-safe variants for email templates (name/service can contain caller-dictated content)
+  const nameH        = esc(name);
+  const serviceH     = esc(appointment.service || '');
+  const bizNameH     = esc(businessName);
 
   // ── Galician template ──────────────────────────────────────────────────────
   if (lang === 'gl') {
@@ -67,13 +76,13 @@ async function sendAppointmentReminder(appointment, businessConfig) {
           <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Recordatorio de cita</p>
           <h2 style="color:#2ecc8a;margin:0;font-size:22px;">⏰ Mañá tes cita!</h2>
         </div>
-        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Ola <strong style="color:#fff;">${name}</strong>, escribímosche para que non esqueczas a túa cita de mañá.</p>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Ola <strong style="color:#fff;">${nameH}</strong>, escribímosche para que non esqueczas a túa cita de mañá.</p>
 
         <div style="background:#1a1a24;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid rgba(46,204,138,0.15);">
           <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">A túa cita</p>
           <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}h</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${businessName}</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${appointment.service}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
           ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
         </div>
 
@@ -81,7 +90,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
         <p style="color:#a0a0b8;font-size:14px;margin-bottom:0;">Ata mañá! 👋</p>
 
         <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-          ${businessName} · Recordatorio automático por <a href="https://nodeflow.es/galiza" style="color:#1e8a5e;text-decoration:none;">NodeFlow</a>
+          ${bizNameH} · Recordatorio automático por <a href="https://nodeflow.es/galiza" style="color:#1e8a5e;text-decoration:none;">NodeFlow</a>
         </p>
       </div>
     `;
@@ -104,13 +113,13 @@ async function sendAppointmentReminder(appointment, businessConfig) {
           <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Hitzordu-gogorarazlea</p>
           <h2 style="color:#e74c3c;margin:0;font-size:22px;">⏰ Bihar hitzordua duzu!</h2>
         </div>
-        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${name}</strong>, biharko hitzordua gogora ekartzeko idazten dizugu.</p>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${nameH}</strong>, biharko hitzordua gogora ekartzeko idazten dizugu.</p>
 
         <div style="background:#1a1a24;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid rgba(231,76,60,0.15);">
           <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">Zure hitzordua</p>
           <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}etan</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${businessName}</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${appointment.service}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
           ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
         </div>
 
@@ -118,7 +127,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
         <p style="color:#a0a0b8;font-size:14px;margin-bottom:0;">Bihar arte! 👋</p>
 
         <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-          ${businessName} · Gogorarazle automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
+          ${bizNameH} · Gogorarazle automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
         </p>
       </div>
     `;
@@ -140,13 +149,13 @@ async function sendAppointmentReminder(appointment, businessConfig) {
         <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Recordatorio de cita</p>
         <h2 style="color:#a29bfe;margin:0;font-size:22px;">⏰ ¡Mañana tienes cita!</h2>
       </div>
-      <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Hola <strong style="color:#fff;">${name}</strong>, te escribimos para que no se te olvide tu cita de mañana.</p>
+      <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Hola <strong style="color:#fff;">${nameH}</strong>, te escribimos para que no se te olvide tu cita de mañana.</p>
 
       <div style="background:#1a1a24;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid rgba(162,155,254,0.15);">
         <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">Tu cita</p>
         <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}h</p>
-        <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${businessName}</p>
-        <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${appointment.service}</p>
+        <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
+        <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
         ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
       </div>
 
@@ -154,7 +163,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
       <p style="color:#a0a0b8;font-size:14px;margin-bottom:0;">¡Hasta mañana! 👋</p>
 
       <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-        ${businessName} · Recordatorio automático por <a href="https://nodeflow.es" style="color:#6c5ce7;text-decoration:none;">NodeFlow</a>
+        ${bizNameH} · Recordatorio automático por <a href="https://nodeflow.es" style="color:#6c5ce7;text-decoration:none;">NodeFlow</a>
       </p>
     </div>
   `;
@@ -174,6 +183,9 @@ async function sendReviewRequest(appointment, businessConfig) {
   const lang         = businessConfig?.language || 'es';
   const name         = firstName(appointment.patientName);
   const businessName = businessConfig?.name || (lang === 'gl' ? 'o negocio' : 'el negocio');
+  // HTML-safe variants for email templates
+  const nameH        = esc(name);
+  const bizNameH     = esc(businessName);
   // reviewUrl priority: direct URL from portal config > googlePlaceId > generic search
   const reviewUrl    = businessConfig?.automations?.config?.reviewUrl
     || (businessConfig?.googlePlaceId ? `${GOOGLE_REVIEW_BASE}${businessConfig.googlePlaceId}` : null)
@@ -189,7 +201,7 @@ async function sendReviewRequest(appointment, businessConfig) {
           <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">A túa opinión importa</p>
           <h2 style="color:#f9ca24;margin:0;font-size:22px;">⭐ Que tal foi a cita?</h2>
         </div>
-        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Ola <strong style="color:#fff;">${name}</strong>, esperamos que a túa visita a <strong style="color:#fff;">${businessName}</strong> fose perfecta.</p>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Ola <strong style="color:#fff;">${nameH}</strong>, esperamos que a túa visita a <strong style="color:#fff;">${bizNameH}</strong> fose perfecta.</p>
 
         <div style="background:#1a1a24;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;border:1px solid rgba(249,202,36,0.12);">
           <p style="color:#a0a0b8;font-size:14px;line-height:1.7;margin:0 0 20px 0;">
@@ -206,7 +218,7 @@ async function sendReviewRequest(appointment, businessConfig) {
         <p style="color:#666680;font-size:13px;text-align:center;">Algo mellorable? Cóntanos respondendo a este email — o teu feedback axúdanos.</p>
 
         <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-          ${businessName} · Mensaxe automática por <a href="https://nodeflow.es/galiza" style="color:#1e8a5e;text-decoration:none;">NodeFlow</a>
+          ${bizNameH} · Mensaxe automática por <a href="https://nodeflow.es/galiza" style="color:#1e8a5e;text-decoration:none;">NodeFlow</a>
         </p>
       </div>
     `;
@@ -228,7 +240,7 @@ async function sendReviewRequest(appointment, businessConfig) {
           <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Zure iritzia garrantzitsua da</p>
           <h2 style="color:#f9ca24;margin:0;font-size:22px;">⭐ Nola joan zen hitzordua?</h2>
         </div>
-        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${name}</strong>, espero dugu <strong style="color:#fff;">${businessName}</strong>-n egon zinela ondo.</p>
+        <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Kaixo <strong style="color:#fff;">${nameH}</strong>, espero dugu <strong style="color:#fff;">${bizNameH}</strong>-n egon zinela ondo.</p>
 
         <div style="background:#1a1a24;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;border:1px solid rgba(249,202,36,0.12);">
           <p style="color:#a0a0b8;font-size:14px;line-height:1.7;margin:0 0 20px 0;">
@@ -245,7 +257,7 @@ async function sendReviewRequest(appointment, businessConfig) {
         <p style="color:#666680;font-size:13px;text-align:center;">Hobetu daitekeen zerbait? Esan iezaguzu mezu honi erantzunda.</p>
 
         <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-          ${businessName} · Mezu automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
+          ${bizNameH} · Mezu automatikoa — <a href="https://nodeflow.es" style="color:#e74c3c;text-decoration:none;">NodeFlow</a>
         </p>
       </div>
     `;
@@ -266,7 +278,7 @@ async function sendReviewRequest(appointment, businessConfig) {
         <p style="font-size:13px;color:#666680;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px 0;">Tu opinión importa</p>
         <h2 style="color:#f9ca24;margin:0;font-size:22px;">⭐ ¿Qué tal fue la cita?</h2>
       </div>
-      <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Hola <strong style="color:#fff;">${name}</strong>, esperamos que tu visita a <strong style="color:#fff;">${businessName}</strong> haya sido perfecta.</p>
+      <p style="color:#a0a0b8;font-size:15px;margin:0 0 24px 0;">Hola <strong style="color:#fff;">${nameH}</strong>, esperamos que tu visita a <strong style="color:#fff;">${bizNameH}</strong> haya sido perfecta.</p>
 
       <div style="background:#1a1a24;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;border:1px solid rgba(249,202,36,0.12);">
         <p style="color:#a0a0b8;font-size:14px;line-height:1.7;margin:0 0 20px 0;">
@@ -283,7 +295,7 @@ async function sendReviewRequest(appointment, businessConfig) {
       <p style="color:#666680;font-size:13px;text-align:center;">¿Algo mejorable? Cuéntanoslo respondiendo a este email — tu feedback nos ayuda.</p>
 
       <p style="margin-top:32px;font-size:11px;color:#333350;text-align:center;border-top:1px solid #1a1a24;padding-top:16px;">
-        ${businessName} · Mensaje automático por <a href="https://nodeflow.es" style="color:#6c5ce7;text-decoration:none;">NodeFlow</a>
+        ${bizNameH} · Mensaje automático por <a href="https://nodeflow.es" style="color:#6c5ce7;text-decoration:none;">NodeFlow</a>
       </p>
     </div>
   `;
