@@ -6,6 +6,11 @@
 const { Logger } = require('../utils/logger');
 const { sendEmail } = require('../notifications/email');
 
+// Minimal HTML escape for alert emails (avoids pulling in the full email.js esc helper)
+function _esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 const log = new Logger('MONITOR');
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
@@ -66,7 +71,7 @@ async function sendAlert(type, info) {
           <p>El servidor de NodeFlow IA no responde.</p>
           <table style="width:100%;margin-top:12px;font-size:14px;">
             <tr><td style="color:#999;padding:4px 0;">URL</td><td>${publicUrl}</td></tr>
-            <tr><td style="color:#999;padding:4px 0;">Error</td><td style="color:#ff6b6b;">${info.error}</td></tr>
+            <tr><td style="color:#999;padding:4px 0;">Error</td><td style="color:#ff6b6b;">${_esc(info.error)}</td></tr>
             <tr><td style="color:#999;padding:4px 0;">Fallos consecutivos</td><td>${info.failures}</td></tr>
             <tr><td style="color:#999;padding:4px 0;">Hora</td><td>${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}</td></tr>
           </table>
