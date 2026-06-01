@@ -336,6 +336,7 @@ function setupPortalRoutes(app, pipeline, config) {
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
+        outboundNumber: custom.outboundNumber  || '',   // assigned by admin — read-only for portal users
       },
     });
   });
@@ -406,6 +407,7 @@ function setupPortalRoutes(app, pipeline, config) {
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
+        outboundNumber: custom.outboundNumber  || '',
       },
     });
   });
@@ -691,7 +693,7 @@ function setupPortalRoutes(app, pipeline, config) {
         });
         const result = await vonage.voice.createOutboundCall({
           to:         [{ type: 'phone', number: safeTo }],
-          from:       { type: 'phone', number: config.vonagePhoneNumber },
+          from:       { type: 'phone', number: (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber) || config.vonagePhoneNumber },
           answer_url: [`${publicUrl}/vonage/answer/${effAssistantId}`],
           event_url:  [`${publicUrl}/vonage/event`],
         });
@@ -702,9 +704,15 @@ function setupPortalRoutes(app, pipeline, config) {
           config.twilioAccountSid  || process.env.TWILIO_ACCOUNT_SID,
           config.twilioAuthToken   || process.env.TWILIO_AUTH_TOKEN,
         );
+        // Per-org outbound number takes priority over global config
+        const fromNumber = (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber)
+          || config.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER;
+        if (!fromNumber) {
+          return res.status(503).json({ error: 'No hay número de teléfono saliente configurado para este negocio. Contacta con soporte.' });
+        }
         const call = await twilio.calls.create({
           to:   safeTo,
-          from: config.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER,
+          from: fromNumber,
           url:  `${publicUrl}/voice/inbound/${effAssistantId}`,
         });
         log.info(`Portal: Twilio outbound call → ${safeTo} for ${businessId}`);

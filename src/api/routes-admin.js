@@ -229,7 +229,7 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── PATCH org fields ──────────────────────────────────────────────────────────
   app.patch('/api/admin/orgs/:id', adminAuth, async (req, res) => {
-    const { name, plan, sector, phone, status } = req.body;
+    const { name, plan, sector, phone, status, outboundNumber } = req.body;
     const db = getDatabase();
     const patch = {};
     if (name   !== undefined) patch.name   = name;
@@ -242,6 +242,16 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (sector !== undefined) patch.sector = sector;
     if (phone  !== undefined) patch.phone  = phone;
     if (status !== undefined) patch.status = status;
+    // outboundNumber: the Twilio/Vonage number assigned to this org for outbound calls
+    // Stored inside automation_config.outboundNumber (JSONB merge)
+    if (outboundNumber !== undefined) {
+      try {
+        const { data: existing } = await db.client
+          .from('organizations').select('automation_config').eq('id', req.params.id).single();
+        const merged = { ...(existing?.automation_config || {}), config: { ...((existing?.automation_config || {}).config || {}), outboundNumber: outboundNumber || null } };
+        patch.automation_config = merged;
+      } catch (_) { /* non-fatal — fall through */ }
+    }
     try {
       await db.client.from('organizations').update(patch).eq('id', req.params.id);
       res.json({ ok: true });
