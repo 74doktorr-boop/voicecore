@@ -3,3 +3,8 @@ node_modules/
 *.log
 .DS_Store
 dashboard_test_*
+
+# Leads CSV exports (generados por buscar-leads.js)
+leads_*.csv
+outreach-targets.csv
+_pa_tmp_*.csv
