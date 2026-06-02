@@ -11,6 +11,14 @@ const { Logger }              = require('../utils/logger');
 const log = new Logger('TRANSCRIPT-ANALYZER');
 const MAX_RETRIES = 3;
 
+let _openai = null;
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  if (!_openai) _openai = new (require('openai').OpenAI)({ apiKey });
+  return _openai;
+}
+
 const SYSTEM_PROMPT = `Eres un asistente que analiza transcripciones de llamadas telefónicas de negocios españoles.
 Analiza la transcripción y devuelve ÚNICAMENTE un objeto JSON válido con estos campos:
 {
@@ -40,8 +48,8 @@ Devuelve SOLO el JSON. Sin texto adicional.`;
  * @param {number} attempt
  */
 async function analyzeTranscript(transcript, attempt = 1) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const openai = getOpenAI();
+  if (!openai) {
     log.warn('OPENAI_API_KEY not set — skipping transcript analysis');
     return null;
   }
@@ -56,9 +64,6 @@ async function analyzeTranscript(transcript, attempt = 1) {
   }
 
   try {
-    const { OpenAI } = require('openai');
-    const openai = new OpenAI({ apiKey });
-
     const resp = await openai.chat.completions.create({
       model:       'gpt-4o-mini',
       messages:    [
@@ -66,13 +71,21 @@ async function analyzeTranscript(transcript, attempt = 1) {
         { role: 'user',   content: `Transcripción:\n${text}` },
       ],
       temperature:  0,
-      max_tokens:   600,
+      max_tokens:   800,
       response_format: { type: 'json_object' },
     });
 
-    return JSON.parse(resp.choices[0].message.content);
+    const raw = JSON.parse(resp.choices[0].message.content);
+    // Normalize to prevent case/type mismatches in downstream checks
+    raw.outcome        = typeof raw.outcome === 'string' ? raw.outcome.toLowerCase().trim() : null;
+    raw.topics         = Array.isArray(raw.topics) ? raw.topics : [];
+    raw.preferences    = raw.preferences    && typeof raw.preferences    === 'object' ? raw.preferences    : {};
+    raw.sensitivities  = raw.sensitivities  && typeof raw.sensitivities  === 'object' ? raw.sensitivities  : {};
+    raw.extracted_data = raw.extracted_data && typeof raw.extracted_data === 'object' ? raw.extracted_data : {};
+    return raw;
   } catch (err) {
-    if (attempt < MAX_RETRIES) {
+    const is4xx = err.status && err.status >= 400 && err.status < 500;
+    if (attempt < MAX_RETRIES && !is4xx) {
       log.warn(`analyzeTranscript attempt ${attempt} failed: ${err.message} — retrying in ${attempt}s`);
       await new Promise(r => setTimeout(r, 1000 * attempt));
       return analyzeTranscript(transcript, attempt + 1);
@@ -102,7 +115,7 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript })
     const analysis = await analyzeTranscript(transcript);
     if (!analysis) {
       // Already logged with context in analyzeTranscript
-      log.error(`processCallAsync: analysis null for session ${callSessionId} contact ${contactId}`);
+      log.warn(`processCallAsync: analysis null for session ${callSessionId} contact ${contactId}`);
       return;
     }
 
@@ -136,16 +149,28 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript })
     }
     await upsertContactMemory(contactId, orgId, memUpdates);
 
-    // 3. If extracted_data has usable fields, merge into contacts.sector_data
-    const extracted = analysis.extracted_data || {};
-    if (Object.keys(extracted).length > 0) {
-      const { data: contact } = await db.client
+    // 3. If extracted_data has known-safe fields, merge into contacts.sector_data
+    const SECTOR_DATA_ALLOWLIST = new Set([
+      'fecha_itv', 'fecha_vencimiento_itv', 'fecha_ultimo_aceite', 'matricula', 'marca_modelo',
+      'nombre_mascota', 'fecha_proxima_vacuna', 'especie_raza', 'fecha_nacimiento_mascota',
+      'fecha_cumpleanos', 'fecha_aniversario', 'frecuencia_sesiones',
+      'fecha_alta', 'fecha_fin_curso', 'suministro_lentillas_dias', 'tipo_servicio_habitual',
+    ]);
+    const safeExtracted = Object.fromEntries(
+      Object.entries(analysis.extracted_data).filter(([k]) => SECTOR_DATA_ALLOWLIST.has(k))
+    );
+    if (Object.keys(safeExtracted).length > 0) {
+      const { data: contact, error: contactErr } = await db.client
         .from('contacts').select('sector_data').eq('id', contactId).maybeSingle();
-      const merged = { ...(contact?.sector_data || {}), ...extracted };
-      await db.client.from('contacts')
-        .update({ sector_data: merged })
-        .eq('id', contactId)
-        .catch(e => log.warn('sector_data auto-update failed', { err: e.message }));
+      if (contactErr) {
+        log.warn('sector_data fetch failed', { err: contactErr.message });
+      } else {
+        const merged = { ...(contact?.sector_data || {}), ...safeExtracted };
+        await db.client.from('contacts')
+          .update({ sector_data: merged })
+          .eq('id', contactId)
+          .catch(e => log.warn('sector_data auto-update failed', { err: e.message }));
+      }
     }
 
     log.info(`processCallAsync done: contact ${contactId}, outcome: ${analysis.outcome}, topics: ${(analysis.topics || []).join(',')}`);
