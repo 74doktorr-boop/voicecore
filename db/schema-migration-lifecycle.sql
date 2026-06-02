@@ -106,9 +106,10 @@ create table if not exists scheduled_outbounds (
   created_at     timestamptz not null default now()
 );
 
--- 7. Add opt-in columns to contacts (idempotent)
+-- 7. Add opt-in columns and sector_data to contacts (idempotent)
 alter table contacts add column if not exists wa_opted_in  boolean not null default false;
 alter table contacts add column if not exists sms_opted_in boolean not null default false;
+alter table contacts add column if not exists sector_data  jsonb   not null default '{}';
 
 -- 8. RPC: atomic claim of pending reminders (prevents duplicate sends on restart)
 create or replace function claim_pending_reminders(
