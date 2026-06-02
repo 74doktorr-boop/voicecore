@@ -11,6 +11,7 @@ const { verifySessionToken } = require('./routes-auth');
 const { flowManager }        = require('../automations/flow-manager');
 const { scheduler }          = require('../scheduling/scheduler');
 const { getDatabase }        = require('../db/database');
+const { getOrgReminderConfig, scheduleReminder, recalculate } = require('../lifecycle/reminder-engine');
 
 const log = new Logger('ROUTES-PORTAL');
 
@@ -722,6 +723,199 @@ function setupPortalRoutes(app, pipeline, config) {
       log.error(`Portal: outbound call failed for ${businessId}: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
+  });
+
+  // ============================================================
+  // Lifecycle: Reminder Config
+  // ============================================================
+
+  app.get('/api/portal/reminder-config', portalAuth, async (req, res) => {
+    try {
+      const db    = getDatabase();
+      const orgId = req.businessId;
+      const { data: org } = await db.client.from('organizations')
+        .select('sector').eq('id', orgId).maybeSingle();
+      const config = await getOrgReminderConfig(orgId, org?.sector || '');
+      res.json({ ok: true, config });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/portal/reminder-config', portalAuth, async (req, res) => {
+    try {
+      const db    = getDatabase();
+      const orgId = req.businessId;
+      const { config: cfg } = req.body;
+      if (!cfg || typeof cfg !== 'object') return res.status(400).json({ error: 'config object required' });
+      const { error } = await db.client.from('org_reminder_config')
+        .upsert({ org_id: orgId, config: cfg, updated_at: new Date().toISOString() }, { onConflict: 'org_id' });
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============================================================
+  // Lifecycle: Contact Sector Data
+  // ============================================================
+
+  app.get('/api/portal/contacts/:id/sector-data', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const { data, error } = await db.client.from('contacts')
+        .select('id, name, phone, sector_data')
+        .eq('id', req.params.id)
+        .eq('org_id', req.businessId)
+        .maybeSingle();
+      if (error || !data) return res.status(404).json({ error: 'Contact not found' });
+      res.json({ ok: true, sectorData: data.sector_data || {} });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/portal/contacts/:id/sector-data', portalAuth, async (req, res) => {
+    try {
+      const db        = getDatabase();
+      const orgId     = req.businessId;
+      const contactId = req.params.id;
+      const { sectorData } = req.body;
+      if (!sectorData || typeof sectorData !== 'object') return res.status(400).json({ error: 'sectorData object required' });
+
+      const { error } = await db.client.from('contacts')
+        .update({ sector_data: sectorData })
+        .eq('id', contactId).eq('org_id', orgId);
+      if (error) return res.status(500).json({ error: error.message });
+
+      // Recalculate reminders in background (fire-and-forget)
+      recalculate(contactId, orgId).catch(() => {});
+
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============================================================
+  // Lifecycle: Reminders Dashboard
+  // ============================================================
+
+  app.get('/api/portal/reminders', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const { status = 'pending', limit = 50, offset = 0 } = req.query;
+
+      let query = db.client.from('scheduled_reminders')
+        .select('*, contacts(name, phone)')
+        .eq('org_id', req.businessId)
+        .order('scheduled_for', { ascending: true })
+        .range(Number(offset), Number(offset) + Number(limit) - 1);
+
+      if (status !== 'all') query = query.eq('status', status);
+
+      const { data, error } = await query;
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true, reminders: data || [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/portal/reminders/upcoming', portalAuth, async (req, res) => {
+    try {
+      const db    = getDatabase();
+      const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await db.client.from('scheduled_reminders')
+        .select('*, contacts(name, phone)')
+        .eq('org_id', req.businessId)
+        .eq('status', 'pending')
+        .lte('scheduled_for', until)
+        .order('scheduled_for', { ascending: true })
+        .limit(100);
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true, reminders: data || [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/portal/reminders/:id/send-now', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const { data: existing } = await db.client.from('scheduled_reminders')
+        .select('*').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
+      if (!existing) return res.status(404).json({ error: 'Reminder not found' });
+
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', failed_reason: 'manual_send_now', updated_at: new Date().toISOString() })
+        .eq('id', req.params.id);
+
+      await scheduleReminder({
+        orgId:        req.businessId,
+        contactId:    existing.contact_id,
+        serviceKey:   existing.service_key,
+        scheduledFor: new Date(Date.now() + 5000), // 5 seconds from now
+        channel:      existing.channel,
+      });
+
+      res.json({ ok: true, message: 'Reminder queued for immediate dispatch' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/portal/reminders/:id/postpone', portalAuth, async (req, res) => {
+    try {
+      const db   = getDatabase();
+      const days = Math.max(1, Math.min(90, Number(req.body.days) || 7));
+
+      const { data: existing } = await db.client.from('scheduled_reminders')
+        .select('*').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
+      if (!existing) return res.status(404).json({ error: 'Reminder not found' });
+
+      const newDate = new Date(existing.scheduled_for);
+      newDate.setDate(newDate.getDate() + days);
+
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'postponed', updated_at: new Date().toISOString() })
+        .eq('id', req.params.id);
+
+      await db.client.from('scheduled_reminders').insert({
+        org_id:         req.businessId,
+        contact_id:     existing.contact_id,
+        service_key:    existing.service_key,
+        channel:        existing.channel,
+        scheduled_for:  newDate.toISOString(),
+        status:         'pending',
+        postponed_from: req.params.id,
+        postponed_days: days,
+      });
+
+      res.json({ ok: true, newDate: newDate.toISOString() });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/portal/reminders/:id/cancel', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const { error } = await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', failed_reason: 'manual_cancel', updated_at: new Date().toISOString() })
+        .eq('id', req.params.id).eq('org_id', req.businessId);
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============================================================
+  // Opt-out (PUBLIC — no auth required)
+  // ============================================================
+
+  app.get('/api/portal/unsubscribe', async (req, res) => {
+    try {
+      const { c: contactId, o: orgId, ch: channel } = req.query;
+      if (!contactId || !orgId || !['whatsapp','email','sms'].includes(channel)) {
+        return res.status(400).send('Enlace inválido');
+      }
+      const db    = getDatabase();
+      const field = channel === 'whatsapp' ? 'no_whatsapp' : channel === 'sms' ? 'no_sms' : 'no_email';
+      await db.client.from('contact_memory')
+        .upsert(
+          { org_id: orgId, contact_id: contactId, [field]: true, updated_at: new Date().toISOString() },
+          { onConflict: 'org_id,contact_id' }
+        ).catch(() => {});
+      res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h2>✅ Preferencia guardada</h2>
+        <p>No recibirás más recordatorios por ${channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : 'email'} de este negocio.</p>
+      </body></html>`);
+    } catch (e) { res.status(500).send('Error interno'); }
   });
 
 } // end setupPortalRoutes
