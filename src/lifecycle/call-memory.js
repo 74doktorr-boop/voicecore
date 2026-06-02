@@ -62,9 +62,6 @@ async function upsertContactMemory(contactId, orgId, updates) {
     no_whatsapp: existing?.no_whatsapp || updates.no_whatsapp === true,
     no_email:    existing?.no_email    || updates.no_email    === true,
     no_sms:      existing?.no_sms      || updates.no_sms      === true,
-    // Keep existing failed_attempts (managed separately via RPC)
-    failed_attempts: existing?.failed_attempts || 0,
-    last_failed_at:  existing?.last_failed_at  || null,
     updated_at:      new Date().toISOString(),
   };
 
@@ -107,6 +104,7 @@ function isCoolingOff(memory) {
  *           sensitivities, recentCalls, sectorData }
  */
 async function buildCallContext(contactId, orgId) {
+  if (!contactId || !orgId) return { isFirstCall: true, sectorData: {} };
   const db = getDatabase();
   if (!db.enabled) return { isFirstCall: true, sectorData: {} };
 
