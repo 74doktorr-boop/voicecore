@@ -93,61 +93,65 @@ async function analyzeTranscript(transcript, attempt = 1) {
  * Call fire-and-forget: processCallAsync({...}).catch(() => {})
  */
 async function processCallAsync({ callSessionId, contactId, orgId, transcript }) {
-  if (!contactId || !orgId) {
-    log.warn('processCallAsync: missing contactId or orgId — skipping');
-    return;
+  try {
+    if (!contactId || !orgId) {
+      log.warn('processCallAsync: missing contactId or orgId — skipping');
+      return;
+    }
+
+    const analysis = await analyzeTranscript(transcript);
+    if (!analysis) {
+      // Already logged with context in analyzeTranscript
+      log.error(`processCallAsync: analysis null for session ${callSessionId} contact ${contactId}`);
+      return;
+    }
+
+    const db = getDatabase();
+    if (!db.enabled) return;
+
+    // 1. Insert immutable call summary
+    const { error: summaryErr } = await db.client.from('call_summaries').insert({
+      call_session_id: callSessionId || null,
+      org_id:          orgId,
+      contact_id:      contactId,
+      summary:         analysis.summary    || '',
+      outcome:         analysis.outcome    || null,
+      extracted_data:  analysis.extracted_data || {},
+      topics:          analysis.topics     || [],
+    });
+    if (summaryErr) log.error('call_summaries insert failed', { err: summaryErr.message });
+
+    // 2. Upsert contact memory
+    const memUpdates = {
+      incrementCallCount: true,
+      last_call_at:       new Date().toISOString(),
+      last_call_summary:  analysis.summary || '',
+      preferences:        analysis.preferences  || {},
+      sensitivities:      analysis.sensitivities || {},
+    };
+    if (analysis.outcome === 'do_not_contact') {
+      memUpdates.no_whatsapp = true;
+      memUpdates.no_email    = true;
+      memUpdates.no_sms      = true;
+    }
+    await upsertContactMemory(contactId, orgId, memUpdates);
+
+    // 3. If extracted_data has usable fields, merge into contacts.sector_data
+    const extracted = analysis.extracted_data || {};
+    if (Object.keys(extracted).length > 0) {
+      const { data: contact } = await db.client
+        .from('contacts').select('sector_data').eq('id', contactId).maybeSingle();
+      const merged = { ...(contact?.sector_data || {}), ...extracted };
+      await db.client.from('contacts')
+        .update({ sector_data: merged })
+        .eq('id', contactId)
+        .catch(e => log.warn('sector_data auto-update failed', { err: e.message }));
+    }
+
+    log.info(`processCallAsync done: contact ${contactId}, outcome: ${analysis.outcome}, topics: ${(analysis.topics || []).join(',')}`);
+  } catch (err) {
+    log.error(`processCallAsync threw unexpectedly: ${err.message}`, { callSessionId, contactId });
   }
-
-  const analysis = await analyzeTranscript(transcript);
-  if (!analysis) {
-    // Already logged with context in analyzeTranscript
-    log.error(`processCallAsync: analysis null for session ${callSessionId} contact ${contactId}`);
-    return;
-  }
-
-  const db = getDatabase();
-  if (!db.enabled) return;
-
-  // 1. Insert immutable call summary
-  const { error: summaryErr } = await db.client.from('call_summaries').insert({
-    call_session_id: callSessionId || null,
-    org_id:          orgId,
-    contact_id:      contactId,
-    summary:         analysis.summary    || '',
-    outcome:         analysis.outcome    || null,
-    extracted_data:  analysis.extracted_data || {},
-    topics:          analysis.topics     || [],
-  });
-  if (summaryErr) log.error('call_summaries insert failed', { err: summaryErr.message });
-
-  // 2. Upsert contact memory
-  const memUpdates = {
-    incrementCallCount: true,
-    last_call_at:       new Date().toISOString(),
-    last_call_summary:  analysis.summary || '',
-    preferences:        analysis.preferences  || {},
-    sensitivities:      analysis.sensitivities || {},
-  };
-  if (analysis.outcome === 'do_not_contact') {
-    memUpdates.no_whatsapp = true;
-    memUpdates.no_email    = true;
-    memUpdates.no_sms      = true;
-  }
-  await upsertContactMemory(contactId, orgId, memUpdates);
-
-  // 3. If extracted_data has usable fields, merge into contacts.sector_data
-  const extracted = analysis.extracted_data || {};
-  if (Object.keys(extracted).length > 0) {
-    const { data: contact } = await db.client
-      .from('contacts').select('sector_data').eq('id', contactId).maybeSingle();
-    const merged = { ...(contact?.sector_data || {}), ...extracted };
-    await db.client.from('contacts')
-      .update({ sector_data: merged })
-      .eq('id', contactId)
-      .catch(e => log.warn('sector_data auto-update failed', { err: e.message }));
-  }
-
-  log.info(`processCallAsync done: contact ${contactId}, outcome: ${analysis.outcome}, topics: ${(analysis.topics || []).join(',')}`);
 }
 
 module.exports = { analyzeTranscript, processCallAsync };
