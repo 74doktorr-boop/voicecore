@@ -14,6 +14,7 @@ const {
 const { getDatabase }    = require('../db/database');
 const { webhookDispatcher, EVENTS } = require('../webhooks/dispatcher');
 const { Logger } = require('../utils/logger');
+const { processCallAsync } = require('../lifecycle/transcript-analyzer');
 
 const log = new Logger('POST-CALL');
 
@@ -124,6 +125,27 @@ async function handle(callData) {
       p_email:        pEmail,
       p_last_call_at: callData.endTime || new Date().toISOString(),
     }).catch(e => log.warn('contact upsert failed', { err: e.message }));
+  }
+
+  // ── 9. Async transcript analysis → call memory ──────────────────────────────
+  if (db.enabled && callData.callerNumber && callData.transcript?.length > 0) {
+    // Resolve contactId from the just-upserted contact
+    db.client.from('contacts')
+      .select('id')
+      .eq('org_id', businessId)
+      .eq('phone', callData.callerNumber)
+      .maybeSingle()
+      .then(({ data: contact }) => {
+        if (contact?.id) {
+          processCallAsync({
+            callSessionId: callData.id         || null,
+            contactId:     contact.id,
+            orgId:         businessId,
+            transcript:    callData.transcript || [],
+          }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
+        }
+      })
+      .catch(() => {});
   }
 }
 
