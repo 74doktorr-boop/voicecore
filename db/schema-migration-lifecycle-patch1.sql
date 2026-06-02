@@ -21,4 +21,9 @@ begin
 end;
 $$;
 
+-- Prevent duplicate pending reminders for same (contact, service) — resolves cancel+insert race
+create unique index if not exists uq_reminder_pending
+  on scheduled_reminders (contact_id, service_key)
+  where status = 'pending';
+
 select 'Lifecycle Patch 1 complete ✓ (increment_call_count RPC)' as result;

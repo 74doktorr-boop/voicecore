@@ -88,11 +88,12 @@ async function getOrgReminderConfig(orgId, sectorSlug) {
 
   if (!db.enabled) return sectorDefaults;
 
-  const { data } = await db.client
+  const { data, error: configErr } = await db.client
     .from('org_reminder_config')
     .select('config')
     .eq('org_id', orgId)
     .maybeSingle();
+  if (configErr) log.warn('getOrgReminderConfig: failed to load org config', { err: configErr.message, orgId });
 
   const orgConfig = data?.config || {};
 
@@ -184,12 +185,12 @@ async function scheduleReminder({ orgId, contactId, serviceKey, scheduledFor, ch
     }
   }
 
-  // Cancel existing pending reminders for same (contact, service)
+  // Cancel existing pending/postponed reminders for same (contact, service)
   await db.client.from('scheduled_reminders')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('contact_id', contactId)
     .eq('service_key', serviceKey)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'postponed'])
     .catch(e => log.warn('scheduleReminder: cancel existing failed', { err: e.message }));
 
   // Insert new reminder
@@ -244,19 +245,42 @@ async function recalculate(contactId, orgId) {
   const sectorSlug = org?.sector;
   if (!sectorSlug) return;
 
-  // Get last appointment
-  const { data: lastApt } = await db.client.from('appointments')
+  // Get all appointments for this contact (we'll filter per service below)
+  const { data: allApts } = await db.client.from('appointments')
     .select('date, service, status')
     .eq('org_id', orgId).eq('contact_id', contactId)
-    .order('date', { ascending: false }).limit(1).maybeSingle();
+    .order('date', { ascending: false })
+    .limit(20);
 
   const config = await getOrgReminderConfig(orgId, sectorSlug);
 
   for (const [serviceKey, def] of Object.entries(config)) {
     if (!def.enabled) continue;
     if (def.trigger === 'seasonal') continue;
+    // Only schedule post-completion reminders if last appointment was completed
+    if (def.onlyIfCompleted && !(allApts || []).some(a => a.status === 'completed')) continue;
 
-    const scheduledFor = calculateScheduledFor(def, contact.sector_data, lastApt?.date);
+    // Find the most recent relevant appointment for this service
+    const relevantApt = def.serviceFilter
+      ? (allApts || []).find(a =>
+          def.serviceFilter.some(f => (a.service || '').toLowerCase().includes(f))
+        )
+      : (allApts || [])[0];
+
+    // from_last_if_no_new: skip if contact has any future appointment
+    if (def.trigger === 'from_last_if_no_new') {
+      const { count: futureCount } = await db.client.from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', orgId).eq('contact_id', contactId)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .in('status', ['confirmed', 'pending', 'booked']);
+      if ((futureCount || 0) > 0) continue;
+    }
+
+    // onlyIfCompleted: only schedule if the relevant appointment was completed
+    if (def.onlyIfCompleted && relevantApt?.status !== 'completed') continue;
+
+    const scheduledFor = calculateScheduledFor(def, contact.sector_data, relevantApt?.date);
     if (!scheduledFor) continue;
 
     await scheduleReminder({
