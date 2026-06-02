@@ -78,6 +78,7 @@ function navigate(section) {
   else if (section === 'clientes')         loadClientes();
   else if (section === 'facturacion')      loadFacturacion();
   else if (section === 'integraciones')    loadIntegraciones();
+  else if (section === 'seguimientos')     loadSeguimientos();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -1882,6 +1883,151 @@ async function callOutbound(phone, btn) {
     }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = origText || '📞'; }
+  }
+}
+
+// ============================================================
+// Seguimientos (Lifecycle Reminders)
+// ============================================================
+
+async function loadSeguimientos() {
+  // Wire up tab switching
+  document.querySelectorAll('#sec-seguimientos .tab-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      document.querySelectorAll('#sec-seguimientos .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var tab = btn.dataset.tab;
+      document.getElementById('tab-proximos').style.display  = tab === 'proximos'  ? '' : 'none';
+      document.getElementById('tab-historial').style.display = tab === 'historial' ? '' : 'none';
+      if (tab === 'historial') loadReminderHistory();
+    };
+  });
+  await loadUpcomingReminders();
+}
+
+async function loadUpcomingReminders() {
+  var container = document.getElementById('reminders-upcoming-list');
+  container.innerHTML = '<div class="loading-msg">Cargando...</div>';
+
+  var res;
+  try {
+    res = await api('/api/portal/reminders/upcoming');
+  } catch (e) {
+    container.innerHTML = '<p style="color:#888;text-align:center;padding:20px">Error al cargar: ' + esc(e.message) + '</p>';
+    return;
+  }
+
+  if (!res || !res.reminders || !res.reminders.length) {
+    container.innerHTML = '<p style="color:#888;text-align:center;padding:20px">No hay recordatorios programados en los próximos 30 días</p>';
+    return;
+  }
+
+  // Group reminders by date
+  var byDate = {};
+  res.reminders.forEach(function(r) {
+    var d = new Date(r.scheduled_for).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(r);
+  });
+
+  container.innerHTML = Object.entries(byDate).map(function(entry) {
+    var date = entry[0];
+    var reminders = entry[1];
+    return '<div class="reminder-group" style="margin-bottom:16px">' +
+      '<h4 style="color:#6b7280;font-size:13px;font-weight:600;text-transform:uppercase;margin-bottom:8px">📅 ' + esc(date) + '</h4>' +
+      reminders.map(function(r) {
+        return '<div class="reminder-row" id="reminder-' + esc(r.id) + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:8px;border:1px solid var(--border);margin-bottom:6px">' +
+          '<span style="flex:1;font-weight:500">' + esc((r.contacts && r.contacts.name) || '—') + '</span>' +
+          '<span style="color:var(--dim);font-size:13px">' + esc(r.service_key.replace(/_/g,' ')) + '</span>' +
+          '<span class="badge bp" style="font-size:12px">' + esc(r.channel) + '</span>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="btn btn-accent btn-sm" onclick="sendReminderNow(\'' + esc(r.id) + '\')">Enviar</button>' +
+            '<button class="btn btn-d btn-sm" onclick="postponeReminder(\'' + esc(r.id) + '\')">Posponer</button>' +
+            '<button class="btn btn-r btn-sm" onclick="cancelReminder(\'' + esc(r.id) + '\')">✕</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+async function loadReminderHistory() {
+  var container = document.getElementById('reminders-history-list');
+  container.innerHTML = '<div class="loading-msg">Cargando...</div>';
+
+  var res;
+  try {
+    res = await api('/api/portal/reminders?status=all&limit=50');
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:20px">Error: ' + esc(e.message) + '</p>';
+    return;
+  }
+
+  var past = (res && res.reminders ? res.reminders : []).filter(function(r) {
+    return ['sent','failed','cancelled'].indexOf(r.status) !== -1;
+  });
+
+  if (!past.length) {
+    container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:20px">Sin historial aún</p>';
+    return;
+  }
+
+  var STATUS_ICONS = { sent: '✅', failed: '❌', cancelled: '⛔' };
+  var rows = past.map(function(r) {
+    return '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:8px">' + (STATUS_ICONS[r.status] || '') + '</td>' +
+      '<td style="padding:8px">' + new Date(r.sent_at || r.updated_at).toLocaleDateString('es-ES') + '</td>' +
+      '<td style="padding:8px">' + esc((r.contacts && r.contacts.name) || '—') + '</td>' +
+      '<td style="padding:8px">' + esc(r.service_key.replace(/_/g,' ')) + '</td>' +
+      '<td style="padding:8px">' + esc(r.channel) + '</td>' +
+      '<td style="padding:8px;color:var(--dim);font-size:12px">' + esc(r.failed_reason || '') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  container.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px">' +
+    '<thead><tr style="border-bottom:2px solid var(--border)">' +
+      '<th style="padding:8px;text-align:left"></th>' +
+      '<th style="padding:8px;text-align:left">Fecha</th>' +
+      '<th style="padding:8px;text-align:left">Cliente</th>' +
+      '<th style="padding:8px;text-align:left">Servicio</th>' +
+      '<th style="padding:8px;text-align:left">Canal</th>' +
+      '<th style="padding:8px;text-align:left;color:var(--dim)">Motivo</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+  '</table></div>';
+}
+
+async function sendReminderNow(id) {
+  if (!confirm('¿Enviar este recordatorio ahora?')) return;
+  try {
+    await api('/api/portal/reminders/' + id + '/send-now', 'POST', {});
+    toast('Recordatorio enviado ✓');
+    loadUpcomingReminders();
+  } catch (e) {
+    toast('Error al enviar: ' + e.message, 'err');
+  }
+}
+
+async function postponeReminder(id) {
+  var days = prompt('¿Cuántos días posponer?', '7');
+  if (!days || isNaN(Number(days))) return;
+  try {
+    await api('/api/portal/reminders/' + id + '/postpone', 'POST', { days: Number(days) });
+    toast('Pospuesto ' + days + ' días ✓');
+    loadUpcomingReminders();
+  } catch (e) {
+    toast('Error al posponer: ' + e.message, 'err');
+  }
+}
+
+async function cancelReminder(id) {
+  if (!confirm('¿Cancelar este recordatorio?')) return;
+  try {
+    await api('/api/portal/reminders/' + id + '/cancel', 'POST', {});
+    toast('Cancelado ✓');
+    loadUpcomingReminders();
+  } catch (e) {
+    toast('Error al cancelar: ' + e.message, 'err');
   }
 }
 

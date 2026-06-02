@@ -284,6 +284,10 @@
       <div class="nav-item"       id="nav-integraciones"     onclick="navigate('integraciones')">
         <span class="nav-icon">🔗</span><span>Integraciones</span>
       </div>
+      <div class="nav-item" data-section="seguimientos" id="nav-seguimientos" onclick="navigate('seguimientos')">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Seguimientos</span>
+      </div>
       <div style="border-top:1px solid var(--border);margin:8px 0"></div>
       <div class="nav-item"       id="nav-configuracion"     onclick="navigate('configuracion')">
         <span class="nav-icon">⚙️</span><span>Configuración</span>
@@ -416,6 +420,33 @@
     <div id="sec-integraciones" class="section">
       <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando integraciones…</div></div>
     </div>
+
+    <section id="sec-seguimientos" class="section hidden">
+      <div class="section-header">
+        <h2>Seguimientos automáticos</h2>
+        <p class="section-desc">Recordatorios programados para tus clientes</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" style="margin-bottom:20px">
+        <button class="tab-btn active" data-tab="proximos">Próximos 30 días</button>
+        <button class="tab-btn" data-tab="historial">Historial</button>
+      </div>
+
+      <!-- Upcoming tab -->
+      <div id="tab-proximos">
+        <div id="reminders-upcoming-list">
+          <div class="loading-msg">Cargando recordatorios...</div>
+        </div>
+      </div>
+
+      <!-- History tab -->
+      <div id="tab-historial" style="display:none">
+        <div id="reminders-history-list">
+          <div class="loading-msg">Cargando historial...</div>
+        </div>
+      </div>
+    </section>
 
   </main>
 </div>
