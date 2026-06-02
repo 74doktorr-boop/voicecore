@@ -239,7 +239,7 @@ async function buildMemoryBlock(contactId, orgId) {
     lines.push(`- Última llamada: ${new Date(ctx.lastCallAt).toLocaleDateString('es-ES')}`);
   }
   if (ctx.lastCallSummary) {
-    lines.push(`- Resumen última llamada: ${ctx.lastCallSummary}`);
+    lines.push(`- Resumen última llamada: ${String(ctx.lastCallSummary).slice(0, 300)}`);
   }
   if (ctx.preferences?.horario) {
     lines.push(`- Prefiere horario: ${ctx.preferences.horario}`);
@@ -249,7 +249,7 @@ async function buildMemoryBlock(contactId, orgId) {
   }
   if (ctx.recentCalls?.length > 1) {
     const prev = ctx.recentCalls.slice(1).map(c =>
-      `  * ${new Date(c.created_at).toLocaleDateString('es-ES')}: ${c.summary}`
+      `  * ${c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : 'fecha desconocida'}: ${c.summary?.slice(0, 200) || ''}`
     ).join('\n');
     lines.push(`- Llamadas previas:\n${prev}`);
   }
