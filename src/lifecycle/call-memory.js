@@ -8,6 +8,9 @@ const { Logger }      = require('../utils/logger');
 
 const log = new Logger('CALL-MEMORY');
 
+const COOLING_OFF_THRESHOLD = 3;
+const COOLING_OFF_DAYS      = 30;
+
 /**
  * Get a contact's memory record.
  * Returns null if not found (cold start — first call).
@@ -52,7 +55,6 @@ async function upsertContactMemory(contactId, orgId, updates) {
   const row = {
     org_id:            orgId,
     contact_id:        contactId,
-    call_count:        (existing?.call_count || 0) + (updates.incrementCallCount ? 1 : 0),
     last_call_at:      updates.last_call_at      ?? existing?.last_call_at      ?? null,
     last_call_summary: updates.last_call_summary ?? existing?.last_call_summary ?? null,
     // Merge: new values overwrite existing keys, existing keys not in updates are kept
@@ -70,6 +72,15 @@ async function upsertContactMemory(contactId, orgId, updates) {
     .upsert(row, { onConflict: 'org_id,contact_id' });
 
   if (error) log.error('upsertContactMemory failed', { err: error.message, contactId });
+
+  // Increment call count via race-safe DB RPC
+  if (updates.incrementCallCount) {
+    const { error: countErr } = await db.client.rpc('increment_call_count', {
+      p_contact_id: contactId,
+      p_org_id:     orgId,
+    });
+    if (countErr) log.warn('incrementCallCount RPC failed', { err: countErr.message });
+  }
 }
 
 /**
@@ -92,10 +103,10 @@ async function incrementFailedAttempts(contactId, orgId) {
  */
 function isCoolingOff(memory) {
   if (!memory) return false;
-  if (memory.failed_attempts < 3) return false;
+  if (memory.failed_attempts < COOLING_OFF_THRESHOLD) return false;
   if (!memory.last_failed_at) return false;
   const daysSince = (Date.now() - new Date(memory.last_failed_at).getTime()) / 86400000;
-  return daysSince < 30;
+  return daysSince < COOLING_OFF_DAYS;
 }
 
 /**
@@ -118,6 +129,10 @@ async function buildCallContext(contactId, orgId) {
     db.client.from('contacts').select('name, phone, sector_data')
       .eq('id', contactId).maybeSingle(),
   ]);
+
+  if (memRes.error)     log.warn('buildCallContext: contact_memory query failed',  { err: memRes.error.message });
+  if (callsRes.error)   log.warn('buildCallContext: call_summaries query failed',  { err: callsRes.error.message });
+  if (contactRes.error) log.warn('buildCallContext: contacts query failed',         { err: contactRes.error.message });
 
   const memory     = memRes.data;
   const recentCalls = callsRes.data || [];
