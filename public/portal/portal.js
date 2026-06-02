@@ -9,6 +9,9 @@ let _token          = null;
 let _orgInfo        = null;  // { id, name, plan, owner_email, phone, ... }
 let _currentSection = 'dashboard';
 
+var _wizardContacts = [];  // cache of contacts loaded for the wizard
+var _wizardFields   = [];  // cache of sector fields for the wizard
+
 // ── API helper ────────────────────────────────────────────────
 async function api(path, method, body) {
   method = method || 'GET';
@@ -1891,6 +1894,8 @@ async function callOutbound(phone, btn) {
 // ============================================================
 
 async function loadSeguimientos() {
+  checkSectorBanner();  // Non-blocking: check if wizard banner should show
+
   // Wire up tab switching
   document.querySelectorAll('#sec-seguimientos .tab-btn').forEach(function(btn) {
     btn.onclick = function() {
@@ -1903,6 +1908,289 @@ async function loadSeguimientos() {
     };
   });
   await loadUpcomingReminders();
+}
+
+// ── Sector Onboarding Wizard ──────────────────────────────────
+
+async function checkSectorBanner() {
+  var bannerEl = document.getElementById('wizard-banner');
+  if (!bannerEl) return;
+  try {
+    var data = await api('/api/portal/contacts/sector-completion');
+    if (!data.wizardNeeded || data.pendingCount === 0) {
+      bannerEl.style.display = 'none';
+      return;
+    }
+    var n = data.pendingCount;
+    bannerEl.innerHTML =
+      '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px">' +
+        '<div style="font-size:22px">💡</div>' +
+        '<div style="flex:1">' +
+          '<div style="font-weight:700;color:#1d4ed8;font-size:14px">Activa los recordatorios automáticos</div>' +
+          '<div style="color:#3b82f6;font-size:13px;margin-top:2px">Completa los datos de ' + n + ' cliente' + (n !== 1 ? 's' : '') + ' para que el sistema empiece a funcionar</div>' +
+        '</div>' +
+        '<button onclick="openSectorWizard()" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Completar →</button>' +
+      '</div>';
+    bannerEl.style.display = 'block';
+  } catch (e) {
+    bannerEl.style.display = 'none';
+  }
+}
+
+async function openSectorWizard() {
+  openModal('<div class="modal-title">Cargando...</div>');
+  try {
+    var data = await api('/api/portal/contacts/sector-completion');
+    if (!data.wizardNeeded) { closeModal(); return; }
+    _wizardContacts = data.contacts.slice();
+    _wizardFields   = data.fields;
+    renderWizardModal(data.sector);
+  } catch (e) {
+    openModal('<div class="modal-title">Error</div><p style="color:#ef4444">' + esc(e.message) + '</p><div class="modal-actions"><button class="btn" onclick="closeModal()">Cerrar</button></div>');
+  }
+}
+
+function renderWizardModal(sectorSlug) {
+  var total = _wizardContacts.length;
+  var done  = _wizardContacts.filter(function(c) { return c._saved || c.status === 'complete'; }).length;
+  var pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+  var sectorLabels = { taller:'Taller', veterinaria:'Veterinaria', gimnasio:'Gimnasio', fisioterapia:'Fisioterapia', psicologia:'Psicología', optica:'Óptica', hotel:'Hotel', academia:'Academia' };
+  var sectorLabel  = sectorLabels[sectorSlug] || sectorSlug;
+
+  var html =
+    '<div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">' +
+      '<div>' +
+        '<div class="modal-title" style="margin-bottom:2px">Datos de sector — ' + esc(sectorLabel) + '</div>' +
+        '<div style="color:#6b7280;font-size:13px">Completa los datos de tus clientes para activar los recordatorios</div>' +
+      '</div>' +
+      '<button onclick="closeWizardModal()" style="background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer;padding:0 0 0 12px">✕</button>' +
+    '</div>' +
+    '<div style="margin:14px 0 4px">' +
+      '<div style="background:#e5e7eb;border-radius:8px;height:8px;overflow:hidden">' +
+        '<div id="wizard-progress-bar" style="background:#2563eb;height:8px;border-radius:8px;transition:width 0.3s;width:' + pct + '%"></div>' +
+      '</div>' +
+      '<div id="wizard-progress-text" style="color:#6b7280;font-size:12px;margin-top:4px">' + done + ' de ' + total + ' completados</div>' +
+    '</div>' +
+    '<div id="wizard-contact-list" style="margin-top:12px;max-height:50vh;overflow-y:auto">' +
+      renderWizardContactList() +
+    '</div>' +
+    '</div>';
+
+  openModal(html);
+
+  var firstIncomplete = null;
+  for (var i = 0; i < _wizardContacts.length; i++) {
+    var c = _wizardContacts[i];
+    if (!c._saved && c.status !== 'complete') { firstIncomplete = c; break; }
+  }
+  if (firstIncomplete) {
+    setTimeout(function() { expandWizardContact(firstIncomplete.id); }, 50);
+  } else {
+    showWizardComplete();
+  }
+}
+
+function renderWizardContactList() {
+  return _wizardContacts.map(function(c) {
+    var isComplete = c._saved || c.status === 'complete';
+    var label = esc(c.name || c.phone || c.id);
+    var statusBadge, rowBg;
+    if (isComplete) {
+      statusBadge = '<span style="color:#16a34a;font-size:12px">✓ completo</span>';
+      rowBg = '#f0fdf4';
+    } else if (c._skipped) {
+      statusBadge = '<span style="color:#9ca3af;font-size:12px">omitido</span>';
+      rowBg = '#f9fafb';
+    } else {
+      statusBadge = '<span style="color:#6b7280;font-size:12px">toca para completar ▸</span>';
+      rowBg = '#fff';
+    }
+    return '<div id="wc-row-' + c.id + '" onclick="expandWizardContact(\'' + c.id + '\')" ' +
+      'style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + rowBg + ';border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer">' +
+      '<span style="font-weight:500;flex:1;font-size:13px">' + label + '</span>' +
+      statusBadge +
+      '</div>' +
+      '<div id="wc-form-' + c.id + '" style="display:none"></div>';
+  }).join('');
+}
+
+function expandWizardContact(contactId) {
+  _wizardContacts.forEach(function(c) {
+    var formEl = document.getElementById('wc-form-' + c.id);
+    if (formEl && c.id !== contactId) formEl.style.display = 'none';
+  });
+
+  var contact = null;
+  for (var i = 0; i < _wizardContacts.length; i++) {
+    if (_wizardContacts[i].id === contactId) { contact = _wizardContacts[i]; break; }
+  }
+  if (!contact) return;
+  if (contact._saved || contact.status === 'complete') return;
+
+  var formEl = document.getElementById('wc-form-' + contactId);
+  if (!formEl) return;
+
+  var sectorData = contact._localData || contact.sectorData || {};
+  var fieldsHtml = _wizardFields.map(function(f) {
+    var currentVal = sectorData[f.key] || '';
+    if (f.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(currentVal)) {
+      var parts = currentVal.split('-');
+      currentVal = parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+    return '<div style="margin-bottom:8px">' +
+      '<label style="display:block;font-size:11px;color:#6b7280;font-weight:600;margin-bottom:3px">' + esc(f.label) + (f.optional ? ' <span style="color:#9ca3af;font-weight:400">(opcional)</span>' : '') + '</label>' +
+      '<input id="wf-' + contactId + '-' + f.key + '" type="' + (f.type === 'date' ? 'text' : f.type) + '" ' +
+        'placeholder="' + esc(f.placeholder) + '" value="' + esc(currentVal) + '" ' +
+        'style="width:100%;border:1px solid #93c5fd;border-radius:6px;padding:7px 10px;font-size:13px;box-sizing:border-box">' +
+    '</div>';
+  }).join('');
+
+  formEl.innerHTML =
+    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:6px">' +
+    fieldsHtml +
+    '<div id="wf-err-' + contactId + '" style="color:#ef4444;font-size:12px;display:none;margin-bottom:6px"></div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">' +
+      '<button onclick="skipWizardContact(\'' + contactId + '\')" style="background:#f3f4f6;border:none;border-radius:6px;padding:7px 14px;font-size:12px;color:#6b7280;cursor:pointer">Omitir</button>' +
+      '<button onclick="saveWizardContact(\'' + contactId + '\')" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">Guardar →</button>' +
+    '</div>' +
+    '</div>';
+  formEl.style.display = 'block';
+
+  var rowEl = document.getElementById('wc-row-' + contactId);
+  if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function saveWizardContact(contactId) {
+  var contact = null;
+  for (var i = 0; i < _wizardContacts.length; i++) {
+    if (_wizardContacts[i].id === contactId) { contact = _wizardContacts[i]; break; }
+  }
+  if (!contact) return;
+
+  var sectorData = {};
+  _wizardFields.forEach(function(f) {
+    var inputEl = document.getElementById('wf-' + contactId + '-' + f.key);
+    if (!inputEl) return;
+    var val = inputEl.value.trim();
+    if (!val) return;
+    if (f.type === 'date' && /^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+      var parts = val.split('/');
+      val = parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+    sectorData[f.key] = val;
+  });
+
+  var requiredMissing = _wizardFields.filter(function(f) {
+    return !f.optional && (!sectorData[f.key] || String(sectorData[f.key]).trim() === '');
+  });
+  if (requiredMissing.length > 0) {
+    var errEl = document.getElementById('wf-err-' + contactId);
+    if (errEl) {
+      errEl.textContent = 'Rellena los campos obligatorios: ' + requiredMissing.map(function(f) { return f.label; }).join(', ');
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    await api('/api/portal/contacts/' + contactId + '/sector-data', 'PUT', { sectorData: sectorData });
+  } catch (e) {
+    var errEl2 = document.getElementById('wf-err-' + contactId);
+    if (errEl2) { errEl2.textContent = 'Error al guardar: ' + esc(e.message); errEl2.style.display = 'block'; }
+    return;
+  }
+
+  contact._saved     = true;
+  contact._localData = sectorData;
+  contact.status     = 'complete';
+
+  var formEl = document.getElementById('wc-form-' + contactId);
+  if (formEl) formEl.style.display = 'none';
+  var rowEl = document.getElementById('wc-row-' + contactId);
+  if (rowEl) {
+    rowEl.style.background = '#f0fdf4';
+    rowEl.style.cursor     = 'default';
+    rowEl.onclick          = null;
+    rowEl.innerHTML = '<span style="font-weight:500;flex:1;font-size:13px">' + esc(contact.name || contact.phone || contact.id) + '</span><span style="color:#16a34a;font-size:12px">✓ guardado</span>';
+  }
+
+  updateWizardProgress();
+  advanceWizardToNext(contactId);
+}
+
+function skipWizardContact(contactId) {
+  var contact = null;
+  for (var i = 0; i < _wizardContacts.length; i++) {
+    if (_wizardContacts[i].id === contactId) { contact = _wizardContacts[i]; break; }
+  }
+  if (contact) contact._skipped = true;
+
+  var formEl = document.getElementById('wc-form-' + contactId);
+  if (formEl) formEl.style.display = 'none';
+  var rowEl = document.getElementById('wc-row-' + contactId);
+  if (rowEl) {
+    rowEl.style.background = '#f9fafb';
+    rowEl.onclick = null;
+    rowEl.innerHTML = '<span style="font-weight:500;flex:1;font-size:13px">' + esc(contact ? (contact.name || contact.phone || contact.id) : contactId) + '</span><span style="color:#9ca3af;font-size:12px">omitido</span>';
+  }
+
+  advanceWizardToNext(contactId);
+}
+
+function advanceWizardToNext(currentId) {
+  var currentIndex = -1;
+  for (var i = 0; i < _wizardContacts.length; i++) {
+    if (_wizardContacts[i].id === currentId) { currentIndex = i; break; }
+  }
+  var next = null;
+  for (var j = currentIndex + 1; j < _wizardContacts.length; j++) {
+    var c = _wizardContacts[j];
+    if (!c._saved && !c._skipped && c.status !== 'complete') { next = c; break; }
+  }
+  if (next) {
+    setTimeout(function() { expandWizardContact(next.id); }, 100);
+  } else {
+    var anyPending = false;
+    for (var k = 0; k < _wizardContacts.length; k++) {
+      var ck = _wizardContacts[k];
+      if (!ck._saved && !ck._skipped && ck.status !== 'complete') { anyPending = true; break; }
+    }
+    if (!anyPending) showWizardComplete();
+  }
+}
+
+function updateWizardProgress() {
+  var total  = _wizardContacts.length;
+  var done   = _wizardContacts.filter(function(c) { return c._saved || c.status === 'complete'; }).length;
+  var pct    = total > 0 ? Math.round((done / total) * 100) : 0;
+  var barEl  = document.getElementById('wizard-progress-bar');
+  var textEl = document.getElementById('wizard-progress-text');
+  if (barEl)  barEl.style.width  = pct + '%';
+  if (textEl) textEl.textContent = done + ' de ' + total + ' completados';
+}
+
+function showWizardComplete() {
+  var listEl = document.getElementById('wizard-contact-list');
+  if (listEl) {
+    listEl.innerHTML =
+      '<div style="text-align:center;padding:24px 0">' +
+        '<div style="font-size:48px;margin-bottom:12px">✅</div>' +
+        '<div style="font-weight:700;font-size:16px;color:#111827;margin-bottom:6px">¡Todo listo!</div>' +
+        '<div style="color:#6b7280;font-size:14px">Los recordatorios se calcularán automáticamente en los próximos minutos.</div>' +
+      '</div>' +
+      '<div class="modal-actions"><button class="btn" onclick="closeWizardModal()">Cerrar</button></div>';
+  }
+  var total  = _wizardContacts.length;
+  var barEl  = document.getElementById('wizard-progress-bar');
+  var textEl = document.getElementById('wizard-progress-text');
+  if (barEl)  barEl.style.width  = '100%';
+  if (textEl) textEl.textContent = total + ' de ' + total + ' completados';
+}
+
+function closeWizardModal() {
+  closeModal();
+  checkSectorBanner();
 }
 
 async function loadUpcomingReminders() {
