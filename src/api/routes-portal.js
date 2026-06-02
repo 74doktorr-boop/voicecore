@@ -797,7 +797,9 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/reminders', portalAuth, async (req, res) => {
     try {
       const db = getDatabase();
-      const { status = 'pending', limit = 50, offset = 0 } = req.query;
+      const { status = 'pending' } = req.query;
+      const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit,  10) || 50));
+      const offset = Math.max(0,              parseInt(req.query.offset, 10) || 0);
 
       let query = db.client.from('scheduled_reminders')
         .select('*, contacts(name, phone)')
@@ -838,7 +840,7 @@ function setupPortalRoutes(app, pipeline, config) {
 
       await db.client.from('scheduled_reminders')
         .update({ status: 'cancelled', failed_reason: 'manual_send_now', updated_at: new Date().toISOString() })
-        .eq('id', req.params.id);
+        .eq('id', req.params.id).eq('org_id', req.businessId);
 
       await scheduleReminder({
         orgId:        req.businessId,
@@ -906,6 +908,12 @@ function setupPortalRoutes(app, pipeline, config) {
       }
       const db    = getDatabase();
       const field = channel === 'whatsapp' ? 'no_whatsapp' : channel === 'sms' ? 'no_sms' : 'no_email';
+      // Verify contact belongs to this org (prevents cross-tenant opt-out)
+      const { data: contactExists } = await db.client.from('contacts')
+        .select('id').eq('id', contactId).eq('org_id', orgId).maybeSingle();
+      if (!contactExists) {
+        return res.status(400).send('Enlace inválido o expirado');
+      }
       await db.client.from('contact_memory')
         .upsert(
           { org_id: orgId, contact_id: contactId, [field]: true, updated_at: new Date().toISOString() },

@@ -1941,14 +1941,24 @@ async function loadUpcomingReminders() {
           '<span style="color:var(--dim);font-size:13px">' + esc(r.service_key.replace(/_/g,' ')) + '</span>' +
           '<span class="badge bp" style="font-size:12px">' + esc(r.channel) + '</span>' +
           '<div style="display:flex;gap:6px">' +
-            '<button class="btn btn-accent btn-sm" onclick="sendReminderNow(\'' + esc(r.id) + '\')">Enviar</button>' +
-            '<button class="btn btn-d btn-sm" onclick="postponeReminder(\'' + esc(r.id) + '\')">Posponer</button>' +
-            '<button class="btn btn-r btn-sm" onclick="cancelReminder(\'' + esc(r.id) + '\')">✕</button>' +
+            '<button class="btn btn-accent btn-sm" data-reminder-id="' + esc(r.id) + '" data-action="send">Enviar</button>' +
+            '<button class="btn btn-d btn-sm" data-reminder-id="' + esc(r.id) + '" data-action="postpone">Posponer</button>' +
+            '<button class="btn btn-r btn-sm" data-reminder-id="' + esc(r.id) + '" data-action="cancel">✕</button>' +
           '</div>' +
         '</div>';
       }).join('') +
     '</div>';
   }).join('');
+
+  container.querySelectorAll('[data-reminder-id]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-reminder-id');
+      var action = btn.getAttribute('data-action');
+      if (action === 'send')     sendReminderNow(id);
+      if (action === 'postpone') postponeReminder(id);
+      if (action === 'cancel')   cancelReminder(id);
+    });
+  });
 }
 
 async function loadReminderHistory() {
