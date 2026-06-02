@@ -42,6 +42,10 @@ create table if not exists call_summaries (
 create index if not exists idx_call_summaries_contact
   on call_summaries (contact_id, org_id, created_at desc);
 
+create index if not exists idx_call_summaries_session
+  on call_summaries (call_session_id)
+  where call_session_id is not null;
+
 -- 3. scheduled_reminders — reminder queue
 create table if not exists scheduled_reminders (
   id              uuid primary key default gen_random_uuid(),
@@ -81,10 +85,12 @@ create table if not exists org_campaigns (
   campaign_name   text not null,
   fire_month      int not null check (fire_month between 1 and 12),
   fire_day        int not null check (fire_day between 1 and 31),
+  -- NOTE: (fire_month=2, fire_day=29..31) is a non-existent date; scheduler matches by date equality so invalid combinations will never fire
   channel         text not null check (channel in ('whatsapp', 'sms', 'email')),
   enabled         boolean not null default true,
   last_fired_year int,
-  created_at      timestamptz not null default now()
+  created_at      timestamptz not null default now(),
+  unique (org_id, service_key, fire_month, fire_day)
 );
 
 -- 6. scheduled_outbounds — HIDDEN, all enabled=false
@@ -112,12 +118,11 @@ create or replace function claim_pending_reminders(
 returns setof scheduled_reminders
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   return query
-  update scheduled_reminders
-  set status = 'sending', updated_at = now()
-  where id in (
+  with claimed as (
     select id from scheduled_reminders
     where status = 'pending'
       and scheduled_for <= p_window_end
@@ -125,7 +130,11 @@ begin
     limit p_limit
     for update skip locked
   )
-  returning *;
+  update scheduled_reminders r
+  set status = 'sending', updated_at = now()
+  from claimed
+  where r.id = claimed.id
+  returning r.*;
 end;
 $$;
 
@@ -137,6 +146,7 @@ create or replace function increment_failed_attempts(
 returns void
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   insert into contact_memory (org_id, contact_id, failed_attempts, last_failed_at, updated_at)
@@ -153,6 +163,7 @@ create or replace function recover_stalled_reminders()
 returns int
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 declare v_count int;
 begin
@@ -164,3 +175,10 @@ begin
   return v_count;
 end;
 $$;
+
+-- NOTE: RLS is intentionally not enabled on these tables.
+-- All access is via the Supabase service role key (bypasses RLS).
+-- Direct PostgREST access using anon/authenticated roles is not exposed.
+-- If PostgREST access is ever enabled for these tables, add RLS policies.
+
+select 'Lifecycle Migration complete ✓ (6 tables + 3 RPCs + indexes)' as result;
