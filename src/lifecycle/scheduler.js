@@ -90,22 +90,22 @@ async function dispatch(reminder, contact, memory) {
   const email = contact?.email;
   const { text, waTemplateName, waComponents, language } = buildMessage(reminder, contact, memory);
 
-  // 1. WhatsApp (primary)
-  if (phone && waConfigured()) {
+  // 1. WhatsApp (primary) — skip if contact has opted out
+  if (phone && waConfigured() && !memory?.no_whatsapp) {
     const result = await sendTemplate(phone, waTemplateName, language, waComponents);
     if (result.ok) return { ok: true, channel: 'whatsapp' };
     log.warn(`WA failed for reminder ${reminder.id}: ${result.error} — trying SMS`);
   }
 
-  // 2. SMS (fallback)
-  if (phone && smsConfigured()) {
+  // 2. SMS (fallback) — skip if contact has opted out
+  if (phone && smsConfigured() && !memory?.no_sms) {
     const result = await sendSMS(phone, text);
     if (result.ok) return { ok: true, channel: 'sms' };
     log.warn(`SMS failed for reminder ${reminder.id}: ${result.error} — trying email`);
   }
 
-  // 3. Email (last resort)
-  if (email) {
+  // 3. Email (last resort) — skip if contact has opted out
+  if (email && !memory?.no_email) {
     const publicUrl = process.env.PUBLIC_URL || 'https://nodeflow.es';
     const ok = await sendEmail({
       to:      email,
@@ -164,12 +164,13 @@ async function processReminders() {
       ]);
       const contactWithOrg = { ...contact, _orgName: org?.name || '' };
 
-      // Skip if a newer appointment was booked after this reminder was created
+      // Skip if a future appointment exists (client already has something booked)
       const { data: newerApt } = await db.client.from('appointments')
         .select('id')
         .eq('org_id', reminder.org_id)
         .eq('contact_id', reminder.contact_id)
-        .gt('created_at', reminder.created_at)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .in('status', ['confirmed', 'pending', 'booked'])
         .limit(1)
         .maybeSingle();
 
@@ -276,6 +277,8 @@ function startLifecycleCron() {
   }, 30 * 60 * 1000);
 
   // Run once immediately after 5 s (allow server to fully initialize)
+  // Set _campaignLastRun before startup so campaigns don't re-fire if process restarts mid-day
+  _campaignLastRun = Date.now();
   setTimeout(() => {
     processReminders().catch(() => {});
     processCampaigns().catch(() => {});
