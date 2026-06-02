@@ -769,8 +769,9 @@ function setupPortalRoutes(app, pipeline, config) {
       const { data: org, error: orgErr } = await db.client
         .from('organizations').select('sector').eq('id', orgId).maybeSingle();
       if (orgErr) return res.status(500).json({ error: orgErr.message });
+      if (!org)   return res.status(404).json({ error: 'Organization not found' });
 
-      const sectorSlug = org?.sector || '';
+      const sectorSlug = org.sector || '';
       const fields     = SECTOR_REQUIRED_FIELDS[sectorSlug];
 
       // Sectors with no manual fields — wizard not needed
