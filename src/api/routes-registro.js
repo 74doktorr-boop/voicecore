@@ -133,6 +133,21 @@ function setupRegistroRoutes(app) {
         }
       }
 
+      // Validación de formato
+      const emailClean = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailClean)) {
+        return res.status(400).json({ error: 'Formato de email inválido' });
+      }
+      const phoneClean = telefono.replace(/[\s\-\(\)\+\.]/g, '');
+      if (!/^\d{7,15}$/.test(phoneClean)) {
+        return res.status(400).json({ error: 'Formato de teléfono inválido' });
+      }
+
+      // Longitud máxima para evitar payloads abusivos
+      if (negocio.length > 120 || contacto.length > 80 || (saludo && saludo.length > 400)) {
+        return res.status(400).json({ error: 'Campos demasiado largos' });
+      }
+
       if (!['negocio', 'pro', 'starter'].includes(plan)) {
         return res.status(400).json({ error: 'Plan inválido' });
       }

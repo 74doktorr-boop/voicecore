@@ -55,7 +55,9 @@ for (const envVar of requiredEnvVars) {
 // ─── Express App ───
 const app = express();
 
-// CORS — permitir llamadas desde cualquier origen (la API key es la seguridad)
+// Ocultar fingerprint del servidor
+app.disable('x-powered-by');
+
 // ─── Security headers (helmet-lite, no extra dep) ───
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
@@ -64,15 +66,38 @@ app.use((req, res, next) => {
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   if (process.env.NODE_ENV === 'production') {
-    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }
   next();
 });
 
+// ─── CORS ──────────────────────────────────────────────────────────────────
+// Rutas de admin: solo desde nodeflow.es (no CORS externo)
+// Rutas de API: abierto porque la API key es el mecanismo de auth (clientes externos)
+const ALLOWED_ORIGINS = [
+  'https://nodeflow.es',
+  'https://www.nodeflow.es',
+  'http://localhost:3001',
+  'http://localhost:3000',
+];
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+
+  // Admin y portal: solo orígenes conocidos
+  if (req.path.startsWith('/api/admin') || req.path.startsWith('/admin')) {
+    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+      return res.status(403).json({ error: 'Origen no permitido' });
+    }
+    if (origin) res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // API pública: abierta (la API key es la seguridad)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+  res.header('Vary', 'Origin');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
