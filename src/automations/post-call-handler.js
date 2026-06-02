@@ -113,10 +113,10 @@ async function handle(callData) {
     bookedAppointment: callData.bookedAppointment || null,
   }).catch(() => {});
 
-  // ── 8. Upsert contact (phone → contacts table) ───────────────────────────────
+  // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
   if (db.enabled && callData.callerNumber) {
-    const apt   = callData.bookedAppointment;
-    const pName = apt?.patientName || null;
+    const apt    = callData.bookedAppointment;
+    const pName  = apt?.patientName || null;
     const pEmail = apt?.email || callData.clientEmail || null;
     db.client.rpc('upsert_contact', {
       p_org_id:       businessId,
@@ -124,28 +124,27 @@ async function handle(callData) {
       p_name:         pName,
       p_email:        pEmail,
       p_last_call_at: callData.endTime || new Date().toISOString(),
+    }).then(() => {
+      // ── 9. Async transcript analysis (fires after upsert committed) ──────────
+      if (callData.transcript?.length > 0) {
+        db.client.from('contacts')
+          .select('id')
+          .eq('org_id', businessId)
+          .eq('phone', callData.callerNumber)
+          .maybeSingle()
+          .then(({ data: contact }) => {
+            if (contact?.id) {
+              processCallAsync({
+                callSessionId: callData.id         || null,
+                contactId:     contact.id,
+                orgId:         businessId,
+                transcript:    callData.transcript || [],
+              }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
+            }
+          })
+          .catch(e => log.warn('contact lookup for transcript analysis failed', { err: e.message }));
+      }
     }).catch(e => log.warn('contact upsert failed', { err: e.message }));
-  }
-
-  // ── 9. Async transcript analysis → call memory ──────────────────────────────
-  if (db.enabled && callData.callerNumber && callData.transcript?.length > 0) {
-    // Resolve contactId from the just-upserted contact
-    db.client.from('contacts')
-      .select('id')
-      .eq('org_id', businessId)
-      .eq('phone', callData.callerNumber)
-      .maybeSingle()
-      .then(({ data: contact }) => {
-        if (contact?.id) {
-          processCallAsync({
-            callSessionId: callData.id         || null,
-            contactId:     contact.id,
-            orgId:         businessId,
-            transcript:    callData.transcript || [],
-          }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
-        }
-      })
-      .catch(() => {});
   }
 }
 
