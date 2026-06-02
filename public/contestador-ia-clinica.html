@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contestador IA para Clínicas Médicas — NodeFlow</title>
+  <meta name="description" content="Contestador IA para clínicas médicas. Atiende llamadas 24/7, gestiona citas y nunca pierde un cliente. Setup en 24h, sin permanencias. Prueba gratis 14 días.">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NodeFlow">
+  <link rel="canonical" href="https://nodeflow.es/contestador-ia-clinica">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nodeflow.es/contestador-ia-clinica">
+  <meta property="og:title" content="Contestador IA para Clínicas Médicas — NodeFlow">
+  <meta property="og:description" content="Atiende el 100% de las llamadas de tu clínica con IA. Setup en 24h, sin permanencias.">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:site_name" content="NodeFlow">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@nodeflow_es">
+  <meta name="twitter:title" content="Contestador IA para Clínicas Médicas — NodeFlow">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "NodeFlow — Contestador IA para Clínicas Médicas",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "url": "https://nodeflow.es/contestador-ia-clinica",
+    "description": "Contestador IA para clínicas médicas que atiende llamadas 24/7, gestiona citas y nunca pierde un cliente.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "description": "Prueba gratuita de 14 días" },
+    "provider": { "@type": "Organization", "name": "NodeFlow", "url": "https://nodeflow.es" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Puede sustituir a la recepcionista?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No la sustituye — la refuerza. NodeFlow atiende las llamadas que recepción no puede coger en hora punta o fuera de horario. Tu equipo puede centrarse en los pacientes presenciales." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cómo gestiona las urgencias?",
+        "acceptedAnswer": { "@type": "Answer", "text": "NodeFlow tiene un protocolo de triaje: evalúa los síntomas descritos, da indicaciones básicas y activa el canal de urgencias si es necesario. Para situaciones no urgentes, gestiona la cita." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puede gestionar varias especialidades?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Sí. NodeFlow conoce todas tus especialidades, médicos y agendas. Dirige cada llamada al especialista correcto y busca disponibilidad en tiempo real." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puedo usar mi número actual?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Sí, sin cambios ni portabilidades." }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cuánto tarda en estar operativo?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Menos de 24 horas. Defines especialidades, médicos, horarios y protocolos. Nosotros configuramos el sistema." }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://nodeflow.es" },
+      { "@type": "ListItem", "position": 2, "name": "Contestador IA para Clínicas Médicas", "item": "https://nodeflow.es/contestador-ia-clinica" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --orange:#f97316;--orange-hover:#ea580c;--bg:#0a0a0b;--card:rgba(255,255,255,0.03);--card-border:rgba(255,255,255,0.06);--text-primary:#f5f5f7;--text-secondary:rgba(255,255,255,0.55);--text-tertiary:rgba(255,255,255,0.35);--glow:rgba(249,115,22,0.15);--radius:16px;--max-w:1120px; }
+    html { scroll-behavior:smooth;-webkit-font-smoothing:antialiased; }
+    body { font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text-primary);line-height:1.6;overflow-x:hidden; }
+    a { color:inherit;text-decoration:none; }
+    .container { width:100%;max-width:var(--max-w);margin:0 auto;padding:0 24px; }
+    .badge { display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:var(--card);border:1px solid var(--card-border);border-radius:100px;font-size:13px;font-weight:500;color:var(--text-secondary); }
+    .badge-dot { width:6px;height:6px;background:var(--orange);border-radius:50%;animation:pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)} }
+    .btn-primary { display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--orange);color:#fff;font-size:15px;font-weight:600;border-radius:12px;border:none;cursor:pointer;transition:background .2s,transform .15s,box-shadow .2s; }
+    .btn-primary:hover { background:var(--orange-hover);transform:translateY(-1px);box-shadow:0 8px 32px var(--glow); }
+    .btn-ghost { display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:transparent;color:var(--text-primary);font-size:15px;font-weight:500;border-radius:12px;border:1px solid var(--card-border);cursor:pointer;transition:border-color .2s,background .2s; }
+    .btn-ghost:hover { border-color:rgba(255,255,255,.15);background:var(--card); }
+    .section-label { display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px; }
+    .section-title { font-size:clamp(28px,5vw,44px);font-weight:800;line-height:1.15;letter-spacing:-.03em;margin-bottom:16px; }
+    .section-subtitle { font-size:clamp(16px,2.5vw,19px);color:var(--text-secondary);line-height:1.65;max-width:600px; }
+    .anim { opacity:0;transform:translateY(30px); }
+    .nav { position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;background:rgba(10,10,11,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--card-border); }
+    .nav-inner { display:flex;align-items:center;justify-content:space-between;max-width:var(--max-w);margin:0 auto;padding:0 24px; }
+    .nav-logo { font-size:20px;font-weight:700;letter-spacing:-.03em; }
+    .nav-logo span { color:var(--orange); }
+    .nav-cta { padding:10px 20px;font-size:14px;background:var(--orange);color:#fff;font-weight:600;border-radius:10px;border:none;cursor:pointer;transition:background .2s; }
+    .nav-cta:hover { background:var(--orange-hover); }
+    .hero { padding:160px 0 100px;text-align:center;position:relative;overflow:hidden; }
+    .hero::before { content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none; }
+    .hero-title { font-size:clamp(36px,7vw,64px);font-weight:800;line-height:1.08;letter-spacing:-.04em;margin-bottom:8px;max-width:800px;margin-left:auto;margin-right:auto; }
+    .hero-title .highlight { background:linear-gradient(135deg,var(--orange),#fb923c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .hero-claim { font-size:clamp(20px,3vw,28px);font-weight:600;margin-bottom:20px;letter-spacing:-.02em; }
+    .hero-sub { font-size:clamp(16px,2vw,19px);color:var(--text-secondary);max-width:560px;margin:0 auto 40px;line-height:1.7; }
+    .hero-buttons { display:flex;gap:12px;justify-content:center;flex-wrap:wrap; }
+    .proof-bar { padding:60px 0;border-top:1px solid var(--card-border);border-bottom:1px solid var(--card-border); }
+    .proof-stats { display:flex;justify-content:center;gap:48px;flex-wrap:wrap; }
+    .proof-stat { text-align:center; }
+    .proof-stat-number { font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.03em; }
+    .proof-stat-number span { color:var(--orange); }
+    .proof-stat-label { font-size:14px;color:var(--text-secondary);margin-top:4px; }
+    .problems,.features { padding:120px 0; }
+    .problems-header,.solution-header,.features-header,.how-header,.faq-header { text-align:center;margin-bottom:64px; }
+    .problems-header .section-subtitle,.solution-header .section-subtitle,.features-header .section-subtitle,.how-header .section-subtitle { margin:0 auto; }
+    .problems-grid,.solution-grid,.features-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:24px; }
+    .problem-card,.solution-card,.feature-card { background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:36px 28px;transition:border-color .3s,transform .2s; }
+    .problem-card:hover,.solution-card:hover { border-color:rgba(249,115,22,.2);transform:translateY(-2px); }
+    .problem-icon,.solution-icon { width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:22px;margin-bottom:20px; }
+    .problem-icon { background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.15); }
+    .solution-icon { background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.15); }
+    .problem-card h3,.solution-card h3,.feature-card h3 { font-size:18px;font-weight:700;margin-bottom:10px;letter-spacing:-.02em; }
+    .problem-card p,.solution-card p,.feature-card p { font-size:15px;color:var(--text-secondary);line-height:1.65; }
+    .problem-stat { display:inline-block;margin-top:16px;padding:6px 14px;background:rgba(239,68,68,.08);border-radius:8px;font-size:13px;font-weight:600;color:#ef4444; }
+    .solution-result { display:inline-block;margin-top:16px;padding:6px 14px;background:rgba(34,197,94,.08);border-radius:8px;font-size:13px;font-weight:600;color:#22c55e; }
+    .solution { padding:120px 0;background:linear-gradient(180deg,rgba(249,115,22,.03) 0%,transparent 100%); }
+    .feature-card { text-align:center;position:relative;overflow:hidden; }
+    .feature-card:hover { border-color:rgba(249,115,22,.2);transform:translateY(-2px); }
+    .feature-emoji { font-size:36px;margin-bottom:20px;display:block; }
+    .feature-tag { display:inline-block;margin-top:16px;padding:4px 12px;background:rgba(249,115,22,.08);border-radius:6px;font-size:12px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.05em; }
+    .how { padding:120px 0;background:linear-gradient(180deg,transparent 0%,rgba(249,115,22,.02) 100%); }
+    .how-steps { display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative; }
+    .how-steps::before { content:'';position:absolute;top:36px;left:calc(16.66% + 16px);right:calc(16.66% + 16px);height:2px;background:linear-gradient(90deg,var(--card-border),var(--orange),var(--card-border));opacity:.3; }
+    .how-step { text-align:center; }
+    .how-step-number { width:72px;height:72px;display:flex;align-items:center;justify-content:center;background:var(--card);border:2px solid var(--card-border);border-radius:50%;font-size:28px;font-weight:800;color:var(--orange);margin:0 auto 24px;position:relative;z-index:1; }
+    .how-step h3 { font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em; }
+    .how-step p { font-size:15px;color:var(--text-secondary);line-height:1.65; }
+    .pricing { padding:120px 0; }
+    .pricing-card { max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:48px 40px;text-align:center;position:relative;overflow:hidden; }
+    .pricing-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--orange),transparent); }
+    .pricing-badge { display:inline-block;padding:6px 14px;background:rgba(249,115,22,.1);border-radius:100px;font-size:13px;font-weight:600;color:var(--orange);margin-bottom:20px; }
+    .pricing-card h3 { font-size:28px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px; }
+    .pricing-card .price-desc { font-size:16px;color:var(--text-secondary);margin-bottom:28px;line-height:1.6; }
+    .pricing-features { list-style:none;text-align:left;margin-bottom:32px; }
+    .pricing-features li { padding:10px 0;font-size:15px;color:var(--text-secondary);display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--card-border); }
+    .pricing-features li:last-child { border-bottom:none; }
+    .pricing-features .check { color:#22c55e;font-size:16px;flex-shrink:0; }
+    .pricing-card .btn-primary { width:100%;justify-content:center; }
+    .pricing-note { font-size:13px;color:var(--text-tertiary);margin-top:16px; }
+    .faq { padding:120px 0;background:linear-gradient(180deg,rgba(249,115,22,.02) 0%,transparent 100%); }
+    .faq-list { max-width:700px;margin:0 auto; }
+    .faq-item { border-bottom:1px solid var(--card-border); }
+    .faq-question { width:100%;padding:24px 0;background:none;border:none;color:var(--text-primary);font-size:17px;font-weight:600;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:inherit;letter-spacing:-.01em; }
+    .faq-question:hover { color:var(--orange); }
+    .faq-icon { font-size:20px;color:var(--text-tertiary);transition:transform .3s;flex-shrink:0;margin-left:16px; }
+    .faq-item.active .faq-icon { transform:rotate(45deg); }
+    .faq-answer { max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease; }
+    .faq-item.active .faq-answer { max-height:300px;padding-bottom:24px; }
+    .faq-answer p { font-size:15px;color:var(--text-secondary);line-height:1.7; }
+    .final-cta { padding:120px 0;text-align:center;position:relative;overflow:hidden; }
+    .final-cta::before { content:'';position:absolute;bottom:-100px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none; }
+    .final-cta .section-title { max-width:650px;margin-left:auto;margin-right:auto; }
+    .final-cta .section-subtitle { margin:0 auto 40px; }
+    .final-cta-buttons { display:flex;gap:12px;justify-content:center;flex-wrap:wrap; }
+    .footer { padding:48px 0;border-top:1px solid var(--card-border); }
+    .footer-inner { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px; }
+    .footer-brand { font-size:18px;font-weight:700;letter-spacing:-.03em; }
+    .footer-brand span { color:var(--orange); }
+    .footer-links,.footer-contact { display:flex;gap:24px;flex-wrap:wrap; }
+    .footer-links a,.footer-contact a { font-size:14px;color:var(--text-secondary);transition:color .2s; }
+    .footer-links a:hover,.footer-contact a:hover { color:var(--text-primary); }
+    .footer-bottom { text-align:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--card-border);font-size:13px;color:var(--text-tertiary); }
+    @media(max-width:768px){.hero{padding:130px 0 80px}.problems-grid,.solution-grid,.features-grid,.how-steps{grid-template-columns:1fr;gap:16px}.how-steps::before{display:none}.proof-stats{gap:32px}.pricing-card{padding:36px 24px}.footer-inner{flex-direction:column;text-align:center}.footer-links,.footer-contact{justify-content:center}}
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="https://nodeflow.es" class="nav-logo">Node<span>Flow</span></a>
+      <a href="/onboarding?sector=clinica" class="nav-cta">Prueba gratis →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="anim"><span class="badge"><span class="badge-dot"></span> Contestador IA para Clínicas Médicas</span></div>
+      <h1 class="hero-title anim" style="margin-top:24px">Tu clínica, atendiendo<br><span class="highlight">cada llamada</span>.</h1>
+      <p class="hero-claim anim">Recepción sin colapsos.</p>
+      <p class="hero-sub anim">NodeFlow gestiona las llamadas de tus pacientes 24/7. Citas, resultados, derivaciones — sin saturar a tu equipo de recepción.</p>
+      <div class="hero-buttons anim">
+        <a href="/onboarding?sector=clinica" class="btn-primary">Prueba 14 días gratis →</a>
+        <a href="#como-funciona" class="btn-ghost">Ver cómo funciona</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="proof-bar">
+    <div class="container">
+      <div class="proof-stats">
+        <div class="proof-stat anim"><div class="proof-stat-number"><span>98%</span></div><div class="proof-stat-label">de llamadas atendidas</div></div>
+        <div class="proof-stat anim"><div class="proof-stat-number">+<span>400</span></div><div class="proof-stat-label">citas gestionadas</div></div>
+        <div class="proof-stat anim"><div class="proof-stat-number"><span>24h</span></div><div class="proof-stat-label">setup completo</div></div>
+        <div class="proof-stat anim"><div class="proof-stat-number"><span>49€</span></div><div class="proof-stat-label">desde /mes</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="problems">
+    <div class="container">
+      <div class="problems-header anim">
+        <span class="section-label">⚡ El problema</span>
+        <h2 class="section-title">Cada llamada perdida<br>es un cliente menos</h2>
+        <p class="section-subtitle">Las llamadas sin respuesta no vuelven. Y cada cliente perdido es un ingreso que va a la competencia.</p>
+      </div>
+      <div class="problems-grid">
+        <div class="problem-card anim">
+          <div class="problem-icon">📞</div>
+          <h3>Recepción colapsada</h3>
+          <p>Recepción no puede atender llamadas, pacientes en sala y consultas a la vez. Las llamadas se pierden o esperan demasiado.</p>
+          <span class="problem-stat">30% de llamadas no atendidas en hora punta</span>
+        </div>
+        <div class="problem-card anim">
+          <div class="problem-icon">🌙</div>
+          <h3>Llamadas fuera de horario</h3>
+          <p>Los pacientes no tienen horario para enfermar. Llaman por la noche, el fin de semana y si no coge nadie, van a urgencias o a otro médico.</p>
+          <span class="problem-stat">40% de llamadas fuera de horario</span>
+        </div>
+        <div class="problem-card anim">
+          <div class="problem-icon">❌</div>
+          <h3>No-shows y huecos vacíos</h3>
+          <p>Las ausencias sin aviso dejan huecos que no se pueden cubrir. Tiempo perdido y pacientes sin atender que lo necesitaban.</p>
+          <span class="problem-stat">15% de citas no se presentan</span>
+        </div></div>
+    </div>
+  </section>
+
+  <section class="solution">
+    <div class="container">
+      <div class="solution-header anim">
+        <span class="section-label">✅ La solución</span>
+        <h2 class="section-title">NodeFlow lo resuelve<br>con una llamada</h2>
+        <p class="section-subtitle">Un asistente de voz con IA que atiende, gestiona citas y nunca pierde un cliente. Automático, preciso y disponible 24/7.</p>
+      </div>
+      <div class="solution-grid">
+        <div class="solution-card anim">
+          <div class="solution-icon">🎙️</div>
+          <h3>Recepción IA 24/7</h3>
+          <p>NodeFlow atiende todas las llamadas que recepción no puede. Gestiona citas, responde preguntas frecuentes y filtra urgencias.</p>
+          <span class="solution-result">→ 0 llamadas perdidas</span>
+        </div>
+        <div class="solution-card anim">
+          <div class="solution-icon">🔀</div>
+          <h3>Triaje inteligente</h3>
+          <p>La IA clasifica las llamadas: urgencia, cita programada, resultado, información. Cada una va al canal correcto sin colapsar recepción.</p>
+          <span class="solution-result">→ Equipo más eficiente</span>
+        </div>
+        <div class="solution-card anim">
+          <div class="solution-icon">🔔</div>
+          <h3>Recordatorios automáticos</h3>
+          <p>NodeFlow llama a los pacientes antes de su cita. Las cancelaciones liberan el hueco a tiempo para asignarlo a otro paciente.</p>
+          <span class="solution-result">→ 80% menos no-shows</span>
+        </div></div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <div class="features-header anim">
+        <span class="section-label">🧠 Funcionalidades</span>
+        <h2 class="section-title">Pensado para<br>clínicas médicas</h2>
+        <p class="section-subtitle">No es un chatbot genérico. NodeFlow entiende tu negocio, tus servicios y a tus clientes.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card anim">
+          <span class="feature-emoji">🏥</span>
+          <h3>Por especialidad</h3>
+          <p>Medicina general, pediatría, traumatología, ginecología… NodeFlow dirige cada llamada al especialista correcto.</p>
+          <span class="feature-tag">Smart Routing</span>
+        </div>
+        <div class="feature-card anim">
+          <span class="feature-emoji">📋</span>
+          <h3>Historial de pacientes</h3>
+          <p>La IA reconoce al paciente, sabe su médico habitual y tiene su historial de citas. Atención personalizada en cada llamada.</p>
+          <span class="feature-tag">Patient Memory</span>
+        </div>
+        <div class="feature-card anim">
+          <span class="feature-emoji">🚨</span>
+          <h3>Protocolo de urgencias</h3>
+          <p>Para síntomas graves, NodeFlow sigue un protocolo específico: da indicaciones básicas y activa el canal de urgencias.</p>
+          <span class="feature-tag">Emergency Protocol</span>
+        </div></div>
+    </div>
+  </section>
+
+  <section class="how" id="como-funciona">
+    <div class="container">
+      <div class="how-header anim">
+        <span class="section-label">⚙️ Cómo funciona</span>
+        <h2 class="section-title">Activo en 24 horas</h2>
+        <p class="section-subtitle">Sin instalaciones. Sin hardware. Tres pasos y ya tienes asistente IA.</p>
+      </div>
+      <div class="how-steps">
+        <div class="how-step anim"><div class="how-step-number">1</div><h3>Define tus servicios</h3><p>Carga tus servicios, precios, profesionales y horarios. En menos de 1 hora.</p></div>
+        <div class="how-step anim"><div class="how-step-number">2</div><h3>Conecta tu número</h3><p>Vincula tu teléfono fijo o móvil en un clic. Sin cambiar de número.</p></div>
+        <div class="how-step anim"><div class="how-step-number">3</div><h3>La IA atiende</h3><p>NodeFlow empieza a gestionar llamadas al instante. Tú solo revisa el panel.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <div class="container">
+      <div class="anim">
+        <div class="pricing-card">
+          <span class="pricing-badge">🔥 Oferta de lanzamiento</span>
+          <h3>Empieza gratis, sin compromiso</h3>
+          <p class="price-desc">14 días de prueba gratuita con todas las funcionalidades. Sin tarjeta de crédito.</p>
+          <ul class="pricing-features">
+            <li><span class="check">✓</span> Atención de llamadas 24/7</li>
+            <li><span class="check">✓</span> Gestión de citas automática</li>
+            <li><span class="check">✓</span> Recordatorios automáticos</li>
+            <li><span class="check">✓</span> Panel de control en tiempo real</li>
+            <li><span class="check">✓</span> Sin cambiar tu número actual</li>
+            <li><span class="check">✓</span> Setup en menos de 24 horas</li>
+            <li><span class="check">✓</span> Soporte prioritario durante el trial</li>
+          </ul>
+          <a href="/onboarding?sector=clinica" class="btn-primary">Prueba 14 días gratis →</a>
+          <p class="pricing-note">Después desde 49€/mes · <a href="https://nodeflow.es/pricing" style="color:var(--orange);text-decoration:underline">Ver todos los planes</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="container">
+      <div class="faq-header anim">
+        <span class="section-label">❓ Preguntas frecuentes</span>
+        <h2 class="section-title">¿Tienes dudas?</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item anim">
+          <button class="faq-question" aria-expanded="false">
+            ¿Puede sustituir a la recepcionista?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>No la sustituye — la refuerza. NodeFlow atiende las llamadas que recepción no puede coger en hora punta o fuera de horario. Tu equipo puede centrarse en los pacientes presenciales.</p>
+          </div>
+        </div>
+        <div class="faq-item anim">
+          <button class="faq-question" aria-expanded="false">
+            ¿Cómo gestiona las urgencias?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>NodeFlow tiene un protocolo de triaje: evalúa los síntomas descritos, da indicaciones básicas y activa el canal de urgencias si es necesario. Para situaciones no urgentes, gestiona la cita.</p>
+          </div>
+        </div>
+        <div class="faq-item anim">
+          <button class="faq-question" aria-expanded="false">
+            ¿Puede gestionar varias especialidades?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Sí. NodeFlow conoce todas tus especialidades, médicos y agendas. Dirige cada llamada al especialista correcto y busca disponibilidad en tiempo real.</p>
+          </div>
+        </div>
+        <div class="faq-item anim">
+          <button class="faq-question" aria-expanded="false">
+            ¿Puedo usar mi número actual?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Sí, sin cambios ni portabilidades.</p>
+          </div>
+        </div>
+        <div class="faq-item anim">
+          <button class="faq-question" aria-expanded="false">
+            ¿Cuánto tarda en estar operativo?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Menos de 24 horas. Defines especialidades, médicos, horarios y protocolos. Nosotros configuramos el sistema.</p>
+          </div>
+        </div></div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="container">
+      <div class="anim">
+        <span class="section-label">🚀 Empieza hoy</span>
+        <h2 class="section-title">¿Listo para que ningún paciente se quede sin atender?</h2>
+        <p class="section-subtitle">Configura NodeFlow en menos de 24 horas y empieza a atender cada llamada con IA.</p>
+        <div class="final-cta-buttons">
+          <a href="/onboarding?sector=clinica" class="btn-primary">Prueba 14 días gratis →</a>
+          <a href="tel:+34900123456" class="btn-ghost">Llámanos</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">Node<span>Flow</span></div>
+        <div class="footer-links">
+          <a href="https://nodeflow.es/privacy">Privacidad</a>
+          <a href="https://nodeflow.es/terms">Términos</a>
+          <a href="https://nodeflow.es/pricing">Precios</a>
+        </div>
+        <div class="footer-contact">
+          <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 NodeFlow. Todos los derechos reservados.</div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js" defer></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      function initAnimations() {
+        if (typeof gsap === 'undefined') return setTimeout(initAnimations, 50);
+        gsap.registerPlugin(ScrollTrigger);
+        document.querySelectorAll('.anim').forEach(function(el) {
+          gsap.fromTo(el, { opacity:0, y:30 }, { opacity:1, y:0, duration:.8, ease:'power3.out', scrollTrigger:{ trigger:el, start:'top 88%', toggleActions:'play none none none' } });
+        });
+      }
+      initAnimations();
+      document.querySelectorAll('.faq-question').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var item = this.closest('.faq-item');
+          var isActive = item.classList.contains('active');
+          document.querySelectorAll('.faq-item').forEach(function(el) { el.classList.remove('active'); el.querySelector('.faq-question').setAttribute('aria-expanded','false'); });
+          if (!isActive) { item.classList.add('active'); this.setAttribute('aria-expanded','true'); }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
