@@ -12,6 +12,7 @@ const { flowManager }        = require('../automations/flow-manager');
 const { scheduler }          = require('../scheduling/scheduler');
 const { getDatabase }        = require('../db/database');
 const { getOrgReminderConfig, scheduleReminder, recalculate } = require('../lifecycle/reminder-engine');
+const { SECTOR_REQUIRED_FIELDS, getCompletionStatus } = require('../lifecycle/sector-fields');
 
 const log = new Logger('ROUTES-PORTAL');
 
@@ -750,6 +751,64 @@ function setupPortalRoutes(app, pipeline, config) {
         .upsert({ org_id: orgId, config: cfg, updated_at: new Date().toISOString() }, { onConflict: 'org_id' });
       if (error) return res.status(500).json({ error: error.message });
       res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============================================================
+  // Lifecycle: Sector Completion (wizard data)
+  // IMPORTANT: Must be registered BEFORE /contacts/:id/sector-data
+  // to prevent Express matching 'sector-completion' as a contact :id
+  // ============================================================
+
+  app.get('/api/portal/contacts/sector-completion', portalAuth, async (req, res) => {
+    try {
+      const db    = getDatabase();
+      const orgId = req.businessId;
+
+      // Get org sector
+      const { data: org, error: orgErr } = await db.client
+        .from('organizations').select('sector').eq('id', orgId).maybeSingle();
+      if (orgErr) return res.status(500).json({ error: orgErr.message });
+
+      const sectorSlug = org?.sector || '';
+      const fields     = SECTOR_REQUIRED_FIELDS[sectorSlug];
+
+      // Sectors with no manual fields — wizard not needed
+      if (!fields || fields.length === 0) {
+        return res.json({ wizardNeeded: false, sector: sectorSlug, fields: [], contacts: [], pendingCount: 0, totalCount: 0 });
+      }
+
+      // Fetch all contacts for this org
+      const { data: contacts, error: contactsErr } = await db.client
+        .from('contacts')
+        .select('id, name, phone, sector_data')
+        .eq('org_id', orgId)
+        .order('name', { ascending: true });
+
+      if (contactsErr) return res.status(500).json({ error: contactsErr.message });
+
+      const list = (contacts || []).map(function(c) {
+        const { status, missing } = getCompletionStatus(sectorSlug, c.sector_data);
+        return {
+          id:         c.id,
+          name:       c.name       || null,
+          phone:      c.phone      || null,
+          sectorData: c.sector_data || {},   // included so wizard can pre-fill existing values
+          status,
+          missing,
+        };
+      });
+
+      const pendingCount = list.filter(function(c) { return c.status !== 'complete'; }).length;
+
+      res.json({
+        wizardNeeded: true,
+        sector:       sectorSlug,
+        fields,
+        contacts:     list,
+        pendingCount,
+        totalCount:   list.length,
+      });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
