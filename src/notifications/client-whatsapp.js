@@ -38,7 +38,9 @@ function sendTemplate(phone, templateName, languageCode, components = []) {
     const accessToken   = process.env.WA_ACCESS_TOKEN;
 
     // Normalize phone: strip spaces, dashes, +
-    const normalizedPhone = String(phone).replace(/[\s\-+]/g, '');
+    let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
+    if (normalizedPhone.startsWith('00')) normalizedPhone = normalizedPhone.slice(2);
+    if (normalizedPhone.length === 9) normalizedPhone = '34' + normalizedPhone;
 
     const payload = JSON.stringify({
       messaging_product: 'whatsapp',
@@ -104,7 +106,9 @@ function sendText(phone, text) {
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
-    const normalizedPhone = String(phone).replace(/[\s\-+]/g, '');
+    let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
+    if (normalizedPhone.startsWith('00')) normalizedPhone = normalizedPhone.slice(2);
+    if (normalizedPhone.length === 9) normalizedPhone = '34' + normalizedPhone;
     const payload = JSON.stringify({
       messaging_product: 'whatsapp',
       to:   normalizedPhone,
@@ -129,17 +133,23 @@ function sendText(phone, text) {
       res.on('end', () => {
         try {
           const json = JSON.parse(body);
-          if (res.statusCode === 200) {
-            resolve({ ok: true, messageId: json.messages?.[0]?.id });
+          if (res.statusCode === 200 && json.messages?.[0]?.id) {
+            log.info(`WA text sent to ${normalizedPhone}`);
+            resolve({ ok: true, messageId: json.messages[0].id });
           } else {
-            resolve({ ok: false, error: json.error?.message || `HTTP ${res.statusCode}` });
+            const errMsg = json.error?.message || `HTTP ${res.statusCode}`;
+            log.warn(`WA text failed to ${normalizedPhone}: ${errMsg}`);
+            resolve({ ok: false, error: errMsg });
           }
         } catch (e) {
           resolve({ ok: false, error: e.message });
         }
       });
     });
-    req.on('error', (e) => resolve({ ok: false, error: e.message }));
+    req.on('error', (e) => {
+      log.warn(`WA text request error: ${e.message}`);
+      resolve({ ok: false, error: e.message });
+    });
     req.write(payload);
     req.end();
   });

@@ -9,6 +9,17 @@ const { Logger } = require('../utils/logger');
 
 const log = new Logger('SMS');
 
+let _twilioClient = null;
+function getTwilioClient() {
+  if (!_twilioClient) {
+    _twilioClient = require('twilio')(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+  }
+  return _twilioClient;
+}
+
 function isConfigured() {
   return !!(
     process.env.TWILIO_ACCOUNT_SID &&
@@ -30,16 +41,15 @@ async function sendSMS(phone, text) {
   }
 
   // Normalize to E.164: ensure starts with +34 for Spain if no country code
-  let normalized = String(phone).replace(/[\s\-().]/g, '');
+  let normalized = String(phone).replace(/[\s\-+() ]/g, '');
+  if (normalized.startsWith('00')) normalized = normalized.slice(2);
   if (!normalized.startsWith('+')) {
+    // Strip leading 34 if present (avoid double country code), then prepend +34
     normalized = '+34' + normalized.replace(/^34/, '');
   }
 
   try {
-    const twilio = require('twilio');
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-    const message = await client.messages.create({
+    const message = await getTwilioClient().messages.create({
       body: text,
       from: process.env.TWILIO_PHONE_NUMBER,
       to:   normalized,
