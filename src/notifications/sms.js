@@ -26,7 +26,7 @@ function isConfigured() {
 async function sendSMS(phone, text) {
   if (!isConfigured()) {
     log.warn('Twilio SMS not configured (TWILIO_ACCOUNT_SID/AUTH_TOKEN/PHONE_NUMBER) — SMS skipped');
-    return { ok: false, reason: 'not_configured' };
+    return { ok: false, error: 'not_configured' };
   }
 
   // Normalize to E.164: ensure starts with +34 for Spain if no country code
