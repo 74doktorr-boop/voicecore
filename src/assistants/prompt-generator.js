@@ -3,6 +3,8 @@
 // Called by routes-assistant.js (on save) and routes-demo.js (on each demo chat).
 'use strict';
 
+const { buildCallContext } = require('../lifecycle/call-memory');
+
 const DAY_NAMES = { mon:'lunes', tue:'martes', wed:'miércoles', thu:'jueves', fri:'viernes', sat:'sábado', sun:'domingo' };
 
 function formatSchedule(schedule) {
@@ -213,4 +215,46 @@ PROHIBIDO:
 - No uses emojis.`.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-module.exports = { generatePrompt };
+/**
+ * Build a memory context block to append to any assistant prompt.
+ * Returns empty string for first-time callers (no history yet).
+ * @param {string} contactId
+ * @param {string} orgId
+ * @returns {Promise<string>}
+ */
+async function buildMemoryBlock(contactId, orgId) {
+  if (!contactId || !orgId) return '';
+  let ctx;
+  try { ctx = await buildCallContext(contactId, orgId); }
+  catch (e) { return ''; } // Never break the call flow
+
+  if (!ctx || ctx.isFirstCall) return '';
+
+  const lines = [
+    '\n\n## Historial del cliente (usa esto para personalizar la conversación)',
+    `- Número de llamadas anteriores: ${ctx.callCount}`,
+  ];
+
+  if (ctx.lastCallAt) {
+    lines.push(`- Última llamada: ${new Date(ctx.lastCallAt).toLocaleDateString('es-ES')}`);
+  }
+  if (ctx.lastCallSummary) {
+    lines.push(`- Resumen última llamada: ${ctx.lastCallSummary}`);
+  }
+  if (ctx.preferences?.horario) {
+    lines.push(`- Prefiere horario: ${ctx.preferences.horario}`);
+  }
+  if (ctx.preferences?.idioma) {
+    lines.push(`- Idioma preferido: ${ctx.preferences.idioma}`);
+  }
+  if (ctx.recentCalls?.length > 1) {
+    const prev = ctx.recentCalls.slice(1).map(c =>
+      `  * ${new Date(c.created_at).toLocaleDateString('es-ES')}: ${c.summary}`
+    ).join('\n');
+    lines.push(`- Llamadas previas:\n${prev}`);
+  }
+
+  return lines.join('\n');
+}
+
+module.exports = { generatePrompt, buildMemoryBlock };
