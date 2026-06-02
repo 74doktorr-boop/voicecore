@@ -1987,7 +1987,7 @@ function renderWizardModal(sectorSlug) {
   if (firstIncomplete) {
     setTimeout(function() { expandWizardContact(firstIncomplete.id); }, 50);
   } else {
-    showWizardComplete();
+    setTimeout(function() { showWizardComplete(); }, 50);
   }
 }
 
@@ -2096,8 +2096,8 @@ async function saveWizardContact(contactId) {
   try {
     await api('/api/portal/contacts/' + contactId + '/sector-data', 'PUT', { sectorData: sectorData });
   } catch (e) {
-    var errEl2 = document.getElementById('wf-err-' + contactId);
-    if (errEl2) { errEl2.textContent = 'Error al guardar: ' + esc(e.message); errEl2.style.display = 'block'; }
+    var errEl = document.getElementById('wf-err-' + contactId);
+    if (errEl) { errEl.textContent = 'Error al guardar: ' + esc(e.message); errEl.style.display = 'block'; }
     return;
   }
 
