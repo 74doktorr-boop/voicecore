@@ -68,13 +68,19 @@ Las variables de producción se configuran en EasyPanel → tu app → Environme
 ### Emails
 | Variable | Estado |
 |----------|--------|
-| `SENDGRID_API_KEY` | Configurado |
-| `FROM_EMAIL` | Configurado |
+| `RESEND_API_KEY` | ✅ Configurado |
+| `FROM_EMAIL` | ✅ Configurado |
 
 ### TTS personalizado (voces vascas)
 | Variable | Estado |
 |----------|--------|
 | `LOCAL_TTS_URL` | ⚠️ Comentado — activar cuando llegue F5-TTS esta semana |
+
+### WhatsApp (recordatorios a clientes — Meta Cloud API)
+| Variable | Estado |
+|----------|--------|
+| `WA_PHONE_NUMBER_ID` | ⚠️ VACÍO — configurar tras verificación Meta Business (ver docs/owner/whatsapp-setup.md) |
+| `WA_ACCESS_TOKEN` | ⚠️ VACÍO — token permanente de sistema Meta |
 
 ### Billing
 | Variable | Estado |
@@ -98,9 +104,16 @@ Panel: https://supabase.com/dashboard/project/fmqhreiumahjpdmeyooh
 | `appointments` | Citas por org |
 | `assistant_config` | Config del asistente por org |
 | `webhook_configs` | Webhooks por org (**pendiente de migración manual**) |
+| `contact_memory` | Historial y preferencias por contacto (lifecycle) |
+| `call_summaries` | Resúmenes inmutables por llamada |
+| `scheduled_reminders` | Cola de recordatorios programados |
+| `org_reminder_config` | Config de intervalos por org |
+| `org_campaigns` | Campañas estacionales |
 
 ### Migraciones pendientes
 - `db/schema-migration-webhooks.sql` — **EJECUTAR MANUALMENTE en Supabase SQL Editor**
+- `db/schema-migration-lifecycle.sql` — **EJECUTAR MANUALMENTE** — 6 nuevas tablas (lifecycle reminders, call memory)
+- `db/schema-migration-lifecycle-patch1.sql` — **EJECUTAR DESPUÉS** del anterior — RPCs adicionales + índice único
 
 ---
 
@@ -141,5 +154,6 @@ Vonage/Twilio → Teléfono del cliente
 post-call-handler.js
   ├── Guarda llamada en Supabase
   ├── Upsert contacto en CRM
-  └── Lanza automaciones (rebooking, etc.)
+  ├── Lanza automaciones (rebooking, etc.)
+  └── Análisis de transcripción async (GPT → contact_memory)
 ```

@@ -45,13 +45,15 @@ nodeflow/
 │   ├── api/                   ← Rutas HTTP (admin, portal, auth, etc.)
 │   ├── core/                  ← Motor de llamadas (STT, LLM, TTS)
 │   ├── automations/           ← Cron: rebooking, recordatorios, fechas críticas
+│   ├── lifecycle/             ← System D: seguimientos automáticos WA/SMS/email + memoria de llamadas
 │   ├── billing/               ← Stripe webhooks
 │   ├── db/                    ← Cliente Supabase
 │   ├── telephony/             ← Vonage / Twilio WebSocket
 │   ├── tts/                   ← TTS (OpenAI, ElevenLabs, F5-TTS)
 │   ├── stt/                   ← STT (Deepgram)
 │   ├── llm/                   ← OpenAI (GPT-4o-mini)
-│   ├── notifications/         ← Email (SendGrid), WhatsApp
+│   ├── notifications/         ← Email (Resend), WhatsApp owner (Callmebot), WhatsApp clientes (Meta), SMS (Twilio)
+│   ├── lifecycle/             ← Motor de recordatorios: call-memory, transcript-analyzer, reminder-engine, scheduler
 │   └── utils/                 ← Utilidades compartidas (leads-utils, etc.)
 │
 ├── scripts/                   ← Scripts operacionales
@@ -121,3 +123,27 @@ curl https://nodeflow.es/health
 | Configurar TWILIO_PHONE_NUMBER | ⚠️ Vacío en .env | Alta (números llegan esta semana) |
 | Activar LOCAL_TTS_URL (F5-TTS) | ⚠️ Comentado en .env | Media (voces vascas esta semana) |
 | Push a producción (PWA + llamadas salientes) | ⏳ Commits locales | Alta |
+
+---
+
+## Sistema de Seguimientos (Lifecycle Reminders)
+
+Sistema de recordatorios automáticos que contacta a clientes por WhatsApp/SMS/email en el momento justo.
+
+| Componente | Archivo |
+|-----------|---------|
+| Memoria de contacto | `src/lifecycle/call-memory.js` |
+| Análisis de transcripciones | `src/lifecycle/transcript-analyzer.js` |
+| Motor de recordatorios | `src/lifecycle/reminder-engine.js` |
+| Planificador (cron 30min) | `src/lifecycle/scheduler.js` |
+| WhatsApp clientes (Meta API) | `src/notifications/client-whatsapp.js` |
+| SMS clientes (Twilio) | `src/notifications/sms.js` |
+| API portal | `src/api/routes-portal.js` (endpoints `/reminder-*`, `/contacts/:id/sector-data`) |
+| UI portal | `public/portal/portal.js` (sección Seguimientos) |
+| Docs por sector | `docs/sectores/` (11 archivos) |
+| Guía cliente | `docs/clientes/guia-seguimientos.md` |
+| Setup WhatsApp | `docs/owner/whatsapp-setup.md` |
+
+**Migraciones requeridas (manuales en Supabase):**
+1. `db/schema-migration-lifecycle.sql`
+2. `db/schema-migration-lifecycle-patch1.sql`
