@@ -45,7 +45,8 @@ function resolveApiKey(req) {
  */
 function requireAuth(config = {}) {
   const db = getDatabase();
-  const legacyApiKey = config.apiKey || process.env.API_KEY || 'voicecore-dev';
+  const legacyApiKey = config.apiKey || process.env.API_KEY;
+  if (!legacyApiKey) throw new Error('API_KEY no configurada — el servidor no puede arrancar sin ella');
 
   return async (req, res, next) => {
     const apiKey = resolveApiKey(req);

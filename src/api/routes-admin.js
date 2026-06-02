@@ -300,7 +300,8 @@ function setupAdminRoutes(app, config, assistantManager) {
     const header   = req.headers['authorization'] || '';
     const token    = header.replace('Bearer ', '').trim();
     const apiKey   = req.headers['x-api-key'] || req.query.apiKey || '';
-    const legacyKey = config.apiKey || process.env.API_KEY || 'voicecore-dev';
+    const legacyKey = config.apiKey || process.env.API_KEY;
+    if (!legacyKey) return res.status(500).json({ error: 'API_KEY no configurada en el servidor' });
 
     const isAdminToken = token && _validTokens.has(token);
     const isLegacyKey  = apiKey && apiKey === legacyKey;
@@ -345,8 +346,10 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
 
     if (!db.enabled) {
-      if (token === (config.apiKey || 'voicecore-dev') || sessionEmail === 'dev@nodeflow.es') {
-        return res.json({ id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'dev@nodeflow.es' });
+      // Sin BD activa: solo permite la API key de producción, nunca un fallback hardcodeado
+      const prodKey = config.apiKey || process.env.API_KEY;
+      if (prodKey && token === prodKey) {
+        return res.json({ id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'unai@nodeflow.es' });
       }
       return res.status(401).json({ error: 'No autorizado' });
     }
