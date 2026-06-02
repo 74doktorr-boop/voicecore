@@ -408,6 +408,10 @@ flowManager.loadFromDB()
 const { startRebookingCron }  = require('./src/scheduling/rebooking-cron');
 startRebookingCron();
 
+// System D: lifecycle reminders cron
+const { startLifecycleCron } = require('./src/lifecycle/scheduler');
+startLifecycleCron();
+
 // System C: load critical dates from Supabase on startup
 const { criticalDatesStore }  = require('./src/scheduling/critical-dates');
 criticalDatesStore.loadFromDB().catch(e => log.warn('Critical dates DB load failed:', e.message));
