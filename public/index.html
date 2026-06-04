@@ -908,10 +908,34 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
       <p>Cada funcionalidad diseñada para que tu negocio funcione solo.</p>
     </div>
     <div class="superpowers-grid reveal">
-      <div class="superpower-card">
-        <span class="sp-icon">🧠</span>
-        <h3>Memoria Persistente</h3>
-        <p>"Hola María, la última vez pediste mesa para 4 sin gluten." La IA recuerda cada conversación anterior.</p>
+      <div class="superpower-card" style="grid-column:span 2;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(0,206,201,.05));border-color:rgba(124,58,237,.25);">
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <span class="sp-icon">🧠</span>
+            <h3>Memoria de Clientes</h3>
+            <p>La IA recuerda a cada persona que llama — nombre, historial, preferencias y sensibilidades. Cada llamada es más personal que la anterior.</p>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);"><span style="color:var(--accent-l)">✓</span> Nombre y teléfono reconocidos automáticamente</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);"><span style="color:var(--accent-l)">✓</span> Resumen de la última llamada disponible en tiempo real</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);"><span style="color:var(--accent-l)">✓</span> Preferencias guardadas (horario favorito, servicio habitual...)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);"><span style="color:var(--accent-l)">✓</span> Sensibilidades registradas (alergias, movilidad reducida...)</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);"><span style="color:var(--accent-l)">✓</span> Periodo de enfriamiento inteligente — nunca molesta en exceso</div>
+            </div>
+          </div>
+          <div style="background:rgba(0,0,0,.3);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:16px 18px;min-width:240px;max-width:300px;">
+            <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Ficha de cliente · IA</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--white);margin-bottom:10px;">📞 María García · +34 612 xxx xxx</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:.75rem;color:rgba(255,255,255,.55);"><span style="color:var(--accent-l);font-weight:600;">Última llamada:</span> hace 18 días — reservó mesa para 4</div>
+              <div style="font-size:.75rem;color:rgba(255,255,255,.55);"><span style="color:var(--accent-l);font-weight:600;">Preferencia:</span> terraza, sin gluten, mesa junto a la ventana</div>
+              <div style="font-size:.75rem;color:rgba(255,255,255,.55);"><span style="color:var(--accent-l);font-weight:600;">Historial:</span> 7 visitas · cliente habitual</div>
+              <div style="font-size:.75rem;color:rgba(255,255,255,.55);"><span style="color:#4ade80;font-weight:600;">Estado:</span> activa · sin restricciones de contacto</div>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(124,58,237,.1);border-radius:8px;font-size:.75rem;font-style:italic;color:rgba(255,255,255,.7);line-height:1.5;">
+              "Hola María, bienvenida de nuevo. ¿Quieres la terraza para el sábado, como la última vez?"
+            </div>
+          </div>
+        </div>
       </div>
       <div class="superpower-card">
         <span class="sp-icon">📚</span>
@@ -951,7 +975,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
     <div class="section-header reveal">
       <div class="section-label">Automatizaciones</div>
       <h2>Tu negocio trabajando solo.<br><span class="gradient-text">Incluso cuando duermes.</span></h2>
-      <p>NodeFlow no solo atiende llamadas — actúa después. Tres sistemas automáticos que fidelizan clientes sin que muevas un dedo.</p>
+      <p>NodeFlow no solo atiende llamadas — actúa después. Cuatro sistemas automáticos que fidelizan clientes sin que muevas un dedo.</p>
     </div>
 
     <!-- System A -->
@@ -1006,13 +1030,33 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
         <div class="threshold-item"><span class="th-sector">Veterinaria</span><span class="th-days">365 días</span></div>
       </div>
       <div class="auto-rebooking-example">
-        <div class="rebooking-bubble">
-          <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">Mensaje automático · Peluquería</div>
-          "Hola Ana, ya hace más de un mes desde tu última visita 😊 Si quieres, te reservo cita esta semana. ¿Qué día te va mejor?"
+        <div style="display:flex;flex-direction:column;gap:10px;flex:1;">
+          <div class="rebooking-bubble">
+            <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">💇 Peluquería · Castellano</div>
+            "Hola Ana, ya hace más de un mes desde tu última visita 😊 Tu melena te llama. ¿Te reservo cita esta semana?"
+          </div>
+          <div class="rebooking-bubble" style="background:rgba(0,206,201,.08);border-color:rgba(0,206,201,.2);">
+            <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">🐾 Veterinaria · Euskera</div>
+            "Kaixo Mikel! Urte bat igaro da zure txakurraren azken bisita egin genuenetik. Osasun-azterketa bat gomendatzen dizugu."
+          </div>
+          <div class="rebooking-bubble" style="background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.2);">
+            <div style="font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">🏋️ Gimnasio · Castellano</div>
+            "¡Te echamos de menos! Llevamos tiempo sin verte. Recuerda que estamos aquí para ayudarte con tus objetivos 💪"
+          </div>
         </div>
-        <div class="rebooking-stat">
-          <div class="rbs-num">60%</div>
-          <div class="rbs-label">de clientes reactivados<br>en el primer mes</div>
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;min-width:140px;">
+          <div class="rebooking-stat">
+            <div class="rbs-num">60%</div>
+            <div class="rbs-label">clientes reactivados<br>en el primer mes</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.4rem;font-weight:800;color:#60a5fa;">30+</div>
+            <div style="font-size:.72rem;color:var(--text-2);line-height:1.3;">sectores con<br>mensajes propios</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--accent-l);">ES · EU · GL</div>
+            <div style="font-size:.72rem;color:var(--text-2);line-height:1.3;">trilingüe<br>automático</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1056,6 +1100,56 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
           <div class="cd-icon">🏠</div>
           <div class="cd-title">Inmobiliaria</div>
           <div class="cd-dates">Vencimiento contrato · Revisión IPC · Cert. energético</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- System D — No-show recovery -->
+    <div class="auto-row reveal" style="margin-top:32px;">
+      <div class="auto-badge" style="background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);">
+        <span style="color:#fb923c;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;">Sistema D · Recuperación de no-shows</span>
+      </div>
+      <h3 style="font-size:1.55rem;margin:10px 0 8px;">El cliente faltó a su cita. <span style="color:#fb923c;">La IA ya le está escribiendo.</span></h3>
+      <p style="color:var(--text);max-width:620px;margin-bottom:22px;">Cuando un cliente no se presenta, NodeFlow detecta la ausencia y envía automáticamente un email de recuperación personalizado. Sin gestión manual, sin clientes perdidos.</p>
+      <div class="auto-cards-row">
+        <div class="auto-card">
+          <div class="auto-icon">📅</div>
+          <div>
+            <div class="auto-card-title">Ausencia detectada</div>
+            <div class="auto-card-desc">La IA sabe que el cliente no llegó a su hora reservada</div>
+          </div>
+        </div>
+        <div class="auto-arrow">→</div>
+        <div class="auto-card">
+          <div class="auto-icon" style="font-size:1.2rem;">✉️</div>
+          <div>
+            <div class="auto-card-title">Email automático al cliente</div>
+            <div class="auto-card-desc">"Te echamos de menos hoy — ¿reagendamos para esta semana?"</div>
+          </div>
+        </div>
+        <div class="auto-arrow">→</div>
+        <div class="auto-card">
+          <div class="auto-icon">🔄</div>
+          <div>
+            <div class="auto-card-title">Hueco rellenado</div>
+            <div class="auto-card-desc">La IA puede ofrecer ese hueco libre a clientes en lista de espera</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);border-radius:10px;padding:14px 18px;flex:1;min-width:200px;">
+          <div style="font-size:1.6rem;font-weight:800;color:#fb923c;">35%</div>
+          <div style="font-size:.78rem;color:var(--text-2);margin-top:2px;">de no-shows recuperados<br>con el primer email</div>
+        </div>
+        <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);border-radius:10px;padding:14px 18px;flex:1;min-width:200px;">
+          <div style="font-size:1.6rem;font-weight:800;color:#fb923c;">&lt; 5 min</div>
+          <div style="font-size:.78rem;color:var(--text-2);margin-top:2px;">desde la ausencia<br>hasta el email enviado</div>
+        </div>
+        <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);border-radius:10px;padding:14px 18px;flex:1;min-width:200px;">
+          <div style="font-size:1.6rem;font-weight:800;color:#fb923c;">0€</div>
+          <div style="font-size:.78rem;color:var(--text-2);margin-top:2px;">de coste adicional<br>incluido en tu plan</div>
         </div>
       </div>
     </div>
