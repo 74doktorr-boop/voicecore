@@ -556,6 +556,160 @@ async function sendWelcomePortalEmail(registro, magicToken) {
   return sendEmail({ to: registro.email, subject, html, text });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// sendActivacion — Email enviado por Unai cuando el asistente está listo
+// Incluye el número asignado + guía de desvío por operador
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendActivacion(registro, numeroNodeflow) {
+  if (!registro?.email) { log.warn('sendActivacion: email nulo'); return false; }
+  const nombre   = (registro.contacto || 'Cliente').split(' ')[0];
+  const numLimpio = numeroNodeflow.replace(/\s/g, '');
+  const numMostrar = numeroNodeflow;
+  const subject  = `✅ Tu asistente NodeFlow está listo — activa el desvío ahora`;
+
+  const html = `
+<!DOCTYPE html><html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:32px 16px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+  <!-- HEADER -->
+  <tr><td style="background:#ffffff;border-radius:16px 16px 0 0;padding:24px 32px;border-bottom:3px solid #7c3aed;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td>
+        <div style="font-size:20px;font-weight:900;letter-spacing:-.04em;color:#0f0f23;">node<span style="color:#7c3aed;">flow</span></div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Tu asistente está listo</div>
+      </td>
+      <td align="right" style="font-size:28px;">✅</td>
+    </tr></table>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="background:#ffffff;padding:32px 32px 24px;">
+
+    <p style="font-size:16px;font-weight:700;color:#0f0f23;margin:0 0 8px;">Hola ${esc(nombre)},</p>
+    <p style="font-size:15px;color:#334155;margin:0 0 24px;line-height:1.7;">
+      Tu asistente de voz para <strong>${esc(registro.negocio)}</strong> ya está configurado y listo.
+      Solo falta un paso: activar el desvío de llamadas.
+    </p>
+
+    <!-- Número asignado -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf5ff;border-radius:12px;margin:0 0 28px;">
+      <tr><td style="padding:20px 24px;text-align:center;">
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Tu número NodeFlow</div>
+        <div style="font-size:32px;font-weight:900;color:#0f0f23;letter-spacing:2px;">${esc(numMostrar)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:6px;">Las llamadas de tus clientes llegarán a este número</div>
+      </td></tr>
+    </table>
+
+    <!-- Cómo activar el desvío -->
+    <p style="font-size:15px;font-weight:700;color:#0f0f23;margin:0 0 12px;">📲 Cómo activar el desvío en 30 segundos</p>
+    <p style="font-size:14px;color:#475569;margin:0 0 16px;line-height:1.6;">
+      Desde tu teléfono de empresa, marca el código de tu operador y todas las llamadas irán directamente a tu asistente IA:
+    </p>
+
+    <!-- Tabla operadores -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;margin:0 0 20px;border:1px solid #e8e8f0;">
+      <tr style="background:#f8f8fb;">
+        <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Operador</td>
+        <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Código a marcar</td>
+      </tr>
+      ${[
+        ['Movistar / O2',    `**21*${numLimpio}#`],
+        ['Vodafone',         `**21*${numLimpio}#`],
+        ['Orange',           `*21*${numLimpio}#`],
+        ['Jazztel',          `**21*${numLimpio}#`],
+        ['Yoigo',            `**21*${numLimpio}#`],
+        ['MásMóvil / Pepephone', `**21*${numLimpio}#`],
+        ['Euskaltel',        `**21*${numLimpio}#`],
+        ['R (Galicia)',      `**21*${numLimpio}#`],
+      ].map(([op, code], i) => `
+      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f8fb'};">
+        <td style="padding:10px 14px;font-size:14px;color:#334155;">${op}</td>
+        <td style="padding:10px 14px;font-family:monospace;font-size:14px;font-weight:700;color:#7c3aed;">${code}</td>
+      </tr>`).join('')}
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border-left:4px solid #059669;border-radius:0 10px 10px 0;margin:0 0 24px;">
+      <tr><td style="padding:14px 18px;">
+        <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#14532d;">Para desactivar el desvío</p>
+        <p style="margin:0;font-size:13px;color:#166534;font-family:monospace;">##21#</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#15803d;">Marca este código desde tu teléfono cuando quieras recibir las llamadas tú directamente.</p>
+      </td></tr>
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:0 10px 10px 0;margin:0 0 28px;">
+      <tr><td style="padding:14px 18px;">
+        <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#78350f;">⚠️ Si tienes fijo de empresa (DECT / centralita)</p>
+        <p style="margin:0;font-size:13px;color:#92400e;line-height:1.6;">El desvío se configura desde el menú de la centralita, no desde el teléfono. Escríbenos y te ayudamos en 5 minutos.</p>
+      </td></tr>
+    </table>
+
+    <!-- Pasos siguientes -->
+    <p style="font-size:14px;font-weight:700;color:#0f0f23;margin:0 0 12px;">Una vez activo el desvío:</p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${[
+        ['1', 'Llama a tu propio número', 'Comprueba que el asistente coge la llamada y suena como esperabas.'],
+        ['2', 'Dinos que funciona', 'Mándanos un WhatsApp confirmando que todo va bien.'],
+        ['3', 'Listo', 'Tu asistente ya está atendiendo llamadas de clientes reales.'],
+      ].map(([n, t, d]) => `
+      <tr>
+        <td style="vertical-align:top;padding:0 12px 14px 0;width:32px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px;">${n}</div>
+        </td>
+        <td style="vertical-align:top;padding-bottom:14px;">
+          <div style="font-size:14px;font-weight:600;color:#0f0f23;margin-bottom:2px;">${t}</div>
+          <div style="font-size:13px;color:#64748b;line-height:1.5;">${d}</div>
+        </td>
+      </tr>`).join('')}
+    </table>
+
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#f8f8fb;border-radius:0 0 16px 16px;padding:20px 32px;border-top:1px solid #e8e8f0;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="vertical-align:middle;padding-right:14px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7);text-align:center;line-height:40px;font-size:18px;">U</div>
+      </td>
+      <td style="vertical-align:middle;">
+        <div style="font-size:14px;font-weight:700;color:#0f0f23;">Unai Sánchez</div>
+        <div style="font-size:12px;color:#64748b;">Fundador · NodeFlow IA</div>
+        <div style="font-size:12px;color:#7c3aed;">
+          <a href="https://wa.me/34666351319" style="color:#7c3aed;text-decoration:none;">WhatsApp directo</a>
+          &nbsp;·&nbsp;
+          <a href="https://nodeflow.es" style="color:#7c3aed;text-decoration:none;">nodeflow.es</a>
+        </div>
+      </td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
+
+  const text = [
+    `✅ Tu asistente NodeFlow está listo, ${nombre}.`,
+    ``,
+    `Tu número NodeFlow: ${numMostrar}`,
+    ``,
+    `CÓMO ACTIVAR EL DESVÍO:`,
+    `Desde tu teléfono, marca:`,
+    `  **21*${numLimpio}#`,
+    `(funciona en Movistar, Vodafone, Orange, Jazztel, Yoigo, MásMóvil, Euskaltel)`,
+    ``,
+    `Para desactivar: ##21#`,
+    ``,
+    `Una vez activo, llama a tu propio número para comprobar que funciona.`,
+    `Cualquier duda: WhatsApp +34 666 351 319`,
+  ].join('\n');
+
+  return sendEmail({ to: registro.email, subject, html, text });
+}
+
 async function sendMagicLinkEmail(email, magicToken) {
   const publicUrl  = process.env.PUBLIC_URL || 'https://nodeflow.es';
   const portalLink = `${publicUrl}/portal?token=${encodeURIComponent(magicToken)}`;
@@ -584,6 +738,7 @@ module.exports = {
   notifyNuevoCliente,
   sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
   sendAcknowledgement,
+  sendActivacion,
   notifyNuevoLead,
   sendWelcomePortalEmail,
   sendMagicLinkEmail,

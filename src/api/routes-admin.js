@@ -8,7 +8,7 @@ const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
 const { verifySessionToken, generateMagicToken } = require('./routes-auth');
 const { getAnalytics } = require('../analytics/engine');
-const { sendMagicLinkEmail } = require('../notifications/email');
+const { sendMagicLinkEmail, sendActivacion } = require('../notifications/email');
 
 const log = new Logger('ADMIN');
 
@@ -278,6 +278,47 @@ function setupAdminRoutes(app, config, assistantManager) {
       res.json({ ok: true, sentTo: org.owner_email });
     } catch (e) {
       log.error('send-magic-link error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Activar cliente: asignar número + enviar email con guía de desvío ────────
+  app.post('/api/admin/activar-cliente', adminAuth, async (req, res) => {
+    try {
+      const { orgId, numeroNodeflow } = req.body;
+      if (!orgId)          return res.status(400).json({ error: 'orgId requerido' });
+      if (!numeroNodeflow) return res.status(400).json({ error: 'numeroNodeflow requerido' });
+
+      const db = getDatabase();
+      const { data: org } = await db.client
+        .from('organizations')
+        .select('id, owner_email, owner_name, name, plan, sector, phone, automation_config')
+        .eq('id', orgId).single();
+      if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
+
+      // 1. Guardar el número NodeFlow en la org
+      const merged = {
+        ...(org.automation_config || {}),
+        config: { ...((org.automation_config || {}).config || {}), nodeflowNumber: numeroNodeflow },
+      };
+      await db.client.from('organizations')
+        .update({ automation_config: merged, is_active: true })
+        .eq('id', orgId);
+
+      // 2. Enviar email de activación con guía de desvío
+      const registro = {
+        email:    org.owner_email,
+        contacto: org.owner_name || org.name,
+        negocio:  org.name,
+        plan:     org.plan,
+        sector:   org.sector,
+      };
+      await sendActivacion(registro, numeroNodeflow);
+
+      log.info(`Cliente activado: ${org.name} → ${numeroNodeflow}`);
+      res.json({ ok: true, org: org.name, numero: numeroNodeflow, emailSentTo: org.owner_email });
+    } catch (e) {
+      log.error('activar-cliente error', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });
