@@ -210,6 +210,26 @@ function timeAgo(isoStr) {
   return 'hace ' + Math.floor(h / 24) + 'd';
 }
 
+// ── KPI trend arrow ───────────────────────────────────────────
+function kpiTrend(current, prev) {
+  var style = 'font-size:11px;margin-top:3px;';
+  if (prev === undefined || prev === null || prev === false) {
+    return '<div style="' + style + 'color:var(--dim)">— vs sem. anterior</div>';
+  }
+  current = Number(current) || 0;
+  prev    = Number(prev)    || 0;
+  if (prev === 0 && current === 0) {
+    return '<div style="' + style + 'color:var(--dim)">— vs sem. anterior</div>';
+  }
+  if (current >= prev) {
+    var diff = current - prev;
+    return '<div style="' + style + 'color:var(--green2)">↑ +' + diff + ' vs sem. anterior</div>';
+  } else {
+    var diff2 = prev - current;
+    return '<div style="' + style + 'color:var(--red)">↓ -' + diff2 + ' vs sem. anterior</div>';
+  }
+}
+
 // ── Format date DD/MM/YYYY ────────────────────────────────────
 function fmtDate(str) {
   if (!str) return '—';
@@ -280,10 +300,10 @@ async function loadDashboard() {
     '</div>' +
     '<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Hoy</div>' +
     '<div class="kpi-grid">' +
-      '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.callCount || 0) + '</div><div class="kpi-sub">hoy</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Reservas</div><div class="kpi-val" style="color:var(--green2)">' + (d.today.bookedToday || 0) + '</div><div class="kpi-sub">' + (d.today.convRate || 0) + '% conversión</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Emails enviados</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.emailsSent || 0) + '</div><div class="kpi-sub">confirmaciones</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Horas ahorradas</div><div class="kpi-val" style="color:#60a5fa">' + (d.today.hoursSaved || 0) + 'h</div><div class="kpi-sub">vs atención manual</div></div>' +
+      '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.callCount || 0) + '</div><div class="kpi-sub">hoy</div>' + kpiTrend(d.today.callCount, d.prevWeek && d.prevWeek.callCount) + '</div>' +
+      '<div class="kpi"><div class="kpi-label">Reservas</div><div class="kpi-val" style="color:var(--green2)">' + (d.today.bookedToday || 0) + '</div><div class="kpi-sub">' + (d.today.convRate || 0) + '% conversión</div>' + kpiTrend(d.today.bookedToday, d.prevWeek && d.prevWeek.bookedToday) + '</div>' +
+      '<div class="kpi"><div class="kpi-label">Emails enviados</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.emailsSent || 0) + '</div><div class="kpi-sub">confirmaciones</div>' + kpiTrend(d.today.emailsSent, d.prevWeek && d.prevWeek.emailsSent) + '</div>' +
+      '<div class="kpi"><div class="kpi-label">Horas ahorradas</div><div class="kpi-val" style="color:#60a5fa">' + (d.today.hoursSaved || 0) + 'h</div><div class="kpi-sub">vs atención manual</div>' + kpiTrend(d.today.hoursSaved, d.prevWeek && d.prevWeek.hoursSaved) + '</div>' +
     '</div>' +
     '<div class="two-col">' +
       '<div class="card"><div class="card-title">🗓️ Próximas citas</div>' +
@@ -296,6 +316,25 @@ async function loadDashboard() {
         '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'llamadas\')">Ver llamadas →</button>' +
       '</div>' +
     '</div>';
+
+  // ── Setup checklist banner (show when 0 total calls and not dismissed) ──
+  if (localStorage.getItem('nf_banner_dismissed') !== '1') {
+    var totalCallsToday = (d.today && d.today.callCount) || 0;
+    if (totalCallsToday === 0) {
+      var bannerHTML =
+        '<div id="setup-banner" style="background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.06));border:1px solid rgba(108,92,231,.25);border-radius:14px;padding:20px 24px;margin-bottom:24px;">' +
+          '<div style="font-size:13px;font-weight:700;color:#a29bfe;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">🚀 Primeros pasos</div>' +
+          '<div style="display:flex;flex-direction:column;gap:10px;" id="setup-steps">' +
+            '<div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>' +
+            '<div class="setup-step" data-step="2" onclick="showSection(\'sec-asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente</strong> — nombre, voz e idioma → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
+            '<div class="setup-step" data-step="3">📞 Prueba de llamada pendiente — Unai te llamará en las próximas horas</div>' +
+            '<div class="setup-step" data-step="4">🔀 Activar desvío de llamadas — último paso para estar en marcha</div>' +
+          '</div>' +
+          '<button onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>' +
+        '</div>';
+      sec.insertAdjacentHTML('afterbegin', bannerHTML);
+    }
+  }
 }
 
 // ── Llamadas ──────────────────────────────────────────────────
@@ -1134,6 +1173,44 @@ function switchAsistenteTab(tab) {
   });
 }
 
+// ── Voice preview ──────────────────────────────────────────────
+var _voicePreviewAudio = null;
+
+function _onVoiceChange() {
+  var voiceEl = document.getElementById('asis-voice');
+  if (!voiceEl) return;
+  var voice = voiceEl.value;
+  var statusEl = document.getElementById('portal-demo-status');
+  if (statusEl) {
+    statusEl.textContent = '⏳ Cargando vista previa de voz…';
+  }
+  if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
+
+  var previewText = 'Hola, soy tu asistente virtual. Puedo ayudarte con reservas, información y mucho más.';
+  fetch('/api/demo/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+    body: JSON.stringify({ text: previewText, voice: voice }),
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.blob();
+  })
+  .then(function(blob) {
+    _voicePreviewAudio = new Audio(URL.createObjectURL(blob));
+    if (statusEl) statusEl.textContent = '🔊 Reproduciendo voz ' + voice + '…';
+    _voicePreviewAudio.onended = function() {
+      if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente';
+    };
+    _voicePreviewAudio.play().catch(function() {
+      if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada';
+    });
+  })
+  .catch(function() {
+    if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada';
+  });
+}
+
 function renderAsistenteForm() {
   var c = _asisConfig;
   var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
@@ -1143,6 +1220,13 @@ function renderAsistenteForm() {
   setVal('asis-first', c.firstMessage || '');
   setVal('asis-extra', c.extraInfo || '');
   setVal('asis-voice', c.voice || 'nova');
+
+  // Attach voice preview listener (remove old one first to avoid duplicates)
+  var voiceEl = document.getElementById('asis-voice');
+  if (voiceEl) {
+    voiceEl.removeEventListener('change', _onVoiceChange);
+    voiceEl.addEventListener('change', _onVoiceChange);
+  }
 
   // Schedule grid
   var sched = c.schedule || {};
@@ -1430,8 +1514,15 @@ async function saveAsistente() {
     _asisConfig = Object.assign(_asisConfig, config);
     var genEl = document.getElementById('asis-generated-prompt');
     if (genEl && data.prompt) genEl.textContent = data.prompt;
-    toast('Asistente guardado ✓');
-  } catch (e) { toast(e.message, 'err'); }
+    // Update sidebar assistant name if changed
+    if (config.assistantName) {
+      var bizEl = document.getElementById('sidebarBiz');
+      if (bizEl && _orgInfo) {
+        // Keep business name in sidebar, not assistant name
+      }
+    }
+    toast('✅ Configuración guardada');
+  } catch (e) { toast('❌ Error al guardar: ' + e.message, 'err'); }
 }
 
 // ── Portal voice demo ──────────────────────────────────────────────
@@ -2206,7 +2297,13 @@ async function loadUpcomingReminders() {
   }
 
   if (!res || !res.reminders || !res.reminders.length) {
-    container.innerHTML = '<p style="color:#888;text-align:center;padding:20px">No hay recordatorios programados en los próximos 30 días</p>';
+    container.innerHTML =
+      '<div class="empty-state" style="padding:48px 24px">' +
+        '<div class="empty-state-icon">🔄</div>' +
+        '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Seguimientos automáticos</div>' +
+        '<div class="empty-state-text" style="max-width:480px;margin:0 auto">Cuando tus clientes lleven más días sin visitar tu negocio que el umbral de tu sector, NodeFlow les enviará automáticamente un mensaje personalizado para invitarles a volver. Los seguimientos aparecerán aquí.</div>' +
+        '<div style="margin-top:14px;font-size:12px;color:var(--muted)">El sistema se activa automáticamente según los umbrales de tu sector</div>' +
+      '</div>';
     return;
   }
 

@@ -214,6 +214,10 @@
       .kpi-grid{grid-template-columns:repeat(2,1fr)}
       .auto-grid{grid-template-columns:1fr}
     }
+    /* ── Setup checklist banner ── */
+    .setup-step{padding:8px 12px;border-radius:8px;font-size:13px;color:var(--text)}
+    .setup-step.done{color:var(--green2);opacity:.7}
+
     .btn-subtab{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s}
     .btn-subtab.active{background:var(--card);color:var(--text)}
     .asis-panel{display:block}.asis-panel.hidden{display:none}
@@ -311,6 +315,16 @@
   <main class="main-content">
 
     <div id="sec-dashboard" class="section active">
+      <div id="setup-banner" style="background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.06));border:1px solid rgba(108,92,231,.25);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:none;">
+        <div style="font-size:13px;font-weight:700;color:#a29bfe;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">🚀 Primeros pasos</div>
+        <div style="display:flex;flex-direction:column;gap:10px;" id="setup-steps">
+          <div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>
+          <div class="setup-step" data-step="2" onclick="showSection('sec-asistente')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente</strong> — nombre, voz e idioma → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>
+          <div class="setup-step" data-step="3">📞 Prueba de llamada pendiente — Unai te llamará en las próximas horas</div>
+          <div class="setup-step" data-step="4">🔀 Activar desvío de llamadas — último paso para estar en marcha</div>
+        </div>
+        <button onclick="document.getElementById('setup-banner').style.display='none';localStorage.setItem('nf_banner_dismissed','1')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>
+      </div>
       <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando dashboard…</div></div>
     </div>
 
