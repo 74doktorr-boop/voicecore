@@ -153,6 +153,25 @@
     .logo em{color:var(--accent-l);font-style:normal}
     .logo-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
+    /* Countdown */
+    .countdown-box{
+      background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);
+      border-radius:12px;padding:12px 16px;margin-bottom:20px;
+      font-size:13px;color:var(--dim);text-align:center;
+    }
+    .countdown-box strong{color:var(--accent-l);font-size:15px}
+
+    /* Extra action buttons */
+    .btn-config{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      background:rgba(108,92,231,0.15);color:var(--accent-l);
+      border:1px solid rgba(108,92,231,0.35);
+      padding:13px 28px;border-radius:12px;
+      font-size:14px;font-weight:700;text-decoration:none;
+      width:100%;margin-top:10px;transition:all .2s;
+    }
+    .btn-config:hover{background:rgba(108,92,231,0.25);transform:translateY(-2px)}
+
     /* Confetti particles */
     .confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
     .c{
@@ -190,6 +209,11 @@
   <p class="sub" id="subText">
     Tu suscripción está activa. En las próximas horas recibirás un email y te contactamos para terminar de configurar tu asistente.
   </p>
+
+  <!-- Countdown timer -->
+  <div class="countdown-box" id="countdownBox">
+    ⏱️ Tu asistente estará listo en aproximadamente <strong id="countdownDisplay">—</strong>
+  </div>
 
   <!-- Email enviado -->
   <div class="email-info" id="emailInfo">
@@ -233,9 +257,14 @@
     ⚡ Ir a mi portal de cliente →
   </a>
 
-  <!-- CTA WhatsApp -->
-  <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20acabo%20de%20contratar%20NodeFlow%20y%20quería%20saludar" class="btn-wa" style="margin-top:10px" target="_blank">
-    💬 Escríbeme por WhatsApp — soy Unai
+  <!-- Config CTA -->
+  <a href="/portal#asistente" class="btn-config">
+    ⚙️ Mientras tanto, configura tu voz
+  </a>
+
+  <!-- CTA WhatsApp directo Unai -->
+  <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20acabo%20de%20contratar%20NodeFlow" class="btn-wa" style="margin-top:10px" target="_blank">
+    💬 Hablar con Unai ahora
   </a>
   <a href="https://nodeflow.es" class="btn-home">← Volver a nodeflow.es</a>
 
@@ -287,10 +316,68 @@
       .catch(() => {});
   }
 
+  // Guardar copia en sessionStorage antes de limpiar
+  if (regId) sessionStorage.setItem('nf_reg_id_bak', regId);
+
   // Limpiar localStorage
   localStorage.removeItem('nf_reg_id');
   localStorage.removeItem('nf_reg_negocio');
   localStorage.removeItem('nf_reg_plan');
+})();
+
+// ── Countdown timer (24h desde primer acceso) ──
+(function () {
+  const KEY = 'nf_gracias_ts';
+  if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, Date.now().toString());
+  const start = parseInt(localStorage.getItem(KEY), 10);
+  const TARGET_MS = 24 * 60 * 60 * 1000;
+
+  function update() {
+    const elapsed = Date.now() - start;
+    const remaining = Math.max(0, TARGET_MS - elapsed);
+    const h = Math.floor(remaining / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const el = document.getElementById('countdownDisplay');
+    if (el) el.textContent = remaining === 0 ? '¡listo!' : `${h}h ${m}min`;
+  }
+  update();
+  setInterval(update, 60000);
+})();
+
+// ── Polling onboarding-status ──
+(function () {
+  const regId = sessionStorage.getItem('nf_reg_id_bak');
+
+  if (!regId) return;
+
+  const steps = document.querySelectorAll('.steps .step');
+  // steps[1] = step 2 (configured), steps[2] = step 3 (tested)
+
+  function applyStatus(data) {
+    if (data.configured && steps[1]) {
+      steps[1].classList.remove('active');
+      steps[1].classList.add('done');
+      const num = steps[1].querySelector('.step-num');
+      if (num) num.textContent = '✓';
+      const tag = steps[1].querySelector('.step-tag');
+      if (tag) { tag.className = 'step-tag tag-done'; tag.textContent = 'Hecho'; }
+    }
+    if (data.tested && steps[2]) {
+      steps[2].classList.add('done');
+      const tag = steps[2].querySelector('.step-tag');
+      if (tag) { tag.className = 'step-tag tag-done'; tag.textContent = 'Hecho'; }
+    }
+  }
+
+  function poll() {
+    fetch(`/api/portal/onboarding-status?registroId=${encodeURIComponent(regId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) applyStatus(data); })
+      .catch(() => {});
+  }
+
+  poll();
+  setInterval(poll, 30000);
 })();
 
 // ── Confetti ──
