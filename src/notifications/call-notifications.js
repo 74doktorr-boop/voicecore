@@ -186,9 +186,30 @@ async function sendCallSummaryToOwner(callData, config) {
 
 // ── 3. Follow-up email to client (info calls only) ────────────────────────────
 
+const SECTOR_COLORS = {
+  peluqueria: '#7c3aed', estetica: '#db2777', dental: '#0891b2',
+  clinica: '#059669', veterinaria: '#d97706', taller: '#475569',
+  gimnasio: '#7c3aed', fisioterapia: '#0284c7', optica: '#7c3aed',
+  psicologia: '#6d28d9', restaurante: '#dc2626', farmacia: '#059669',
+  default: '#7c3aed',
+};
+
+const SECTOR_FOLLOWUP = {
+  peluqueria:   { body: 'Si tienes alguna duda sobre el servicio o quieres reservar otra cita, llámanos o escríbenos directamente.', ctaBook: 'Reservar cita →' },
+  estetica:     { body: 'Cuando quieras retomar tu tratamiento o reservar una nueva sesión, aquí estaremos.', ctaBook: 'Reservar sesión →' },
+  dental:       { body: 'Cualquier duda sobre tu tratamiento o para pedir cita, contacta con nosotros cuando quieras.', ctaBook: 'Pedir cita →' },
+  clinica:      { body: 'Si tienes alguna pregunta sobre tu consulta o quieres pedir cita, estamos disponibles.', ctaBook: 'Pedir cita →' },
+  veterinaria:  { body: 'Si tu mascota necesita algo más o quieres reservar una revisión, aquí estamos.', ctaBook: 'Reservar revisión →' },
+  taller:       { body: 'Si tienes alguna duda sobre el presupuesto o quieres traer el coche, llámanos.', ctaBook: 'Pedir cita →' },
+  gimnasio:     { body: 'Si quieres apuntarte, probar una clase o tienes alguna pregunta, aquí estamos.', ctaBook: 'Reservar clase →' },
+  fisioterapia: { body: 'Si quieres reservar tu primera cita o tienes dudas sobre el tratamiento, llámanos.', ctaBook: 'Reservar cita →' },
+  restaurante:  { body: 'Para reservas o cualquier consulta, contáctanos cuando quieras.', ctaBook: 'Hacer reserva →' },
+  default:      { body: 'Si necesitas algo más o quieres reservar una cita, aquí estamos para ayudarte.', ctaBook: 'Contactar →' },
+};
+
 /**
- * @param {object} callData  - session.toJSON()
- * @param {object} config    - { name, ownerPhone, language }
+ * @param {object} callData  - session.toJSON() - { clientEmail, clientName?, callerNumber }
+ * @param {object} config    - { name, ownerPhone, language, sector }
  */
 async function sendCallFollowUpEmail(callData, config) {
   if (!callData?.clientEmail) {
@@ -196,29 +217,81 @@ async function sendCallFollowUpEmail(callData, config) {
     return false;
   }
 
-  const bizName = esc(config?.name || 'nuestro negocio');
-  const phone   = esc(config?.ownerPhone || '');
+  const lang     = config?.language || 'es';
+  const sector   = config?.sector   || 'default';
+  const color    = SECTOR_COLORS[sector] || SECTOR_COLORS.default;
+  const copy     = SECTOR_FOLLOWUP[sector] || SECTOR_FOLLOWUP.default;
+  const bizName  = esc(config?.name || 'nuestro negocio');
+  const rawName  = firstName(callData.clientName || '');
+  const name     = rawName ? esc(rawName) : null;
+  const phone    = (config?.ownerPhone || '').replace(/[^0-9+\-\s]/g, '');
 
-  const html = `
-<!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;margin:0;padding:0;">
-<div style="max-width:480px;margin:32px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);">
-  <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:24px 28px;">
-    <div style="font-size:20px;font-weight:800;color:#fff;">NodeFlow</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:2px;">Gracias por tu llamada</div>
-  </div>
-  <div style="padding:24px 28px;">
-    <p style="color:#e2e8f0;font-size:15px;margin:0 0 16px;">Hemos atendido tu consulta a <strong>${bizName}</strong>. Si necesitas algo más, estamos aquí.</p>
-    <a href="tel:${phone.replace(/\s/g,'')}" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:10px;">📞 Llamar ahora</a>
-    <p style="color:#475569;font-size:11px;text-align:center;margin:0;">Este mensaje fue generado automáticamente por NodeFlow IA</p>
-  </div>
-</div>
+  const greeting = lang === 'eu'
+    ? (name ? `Kaixo ${name}` : 'Kaixo')
+    : (name ? `Hola ${name}` : 'Hola');
+
+  const waText = encodeURIComponent(lang === 'eu'
+    ? `Kaixo, ${bizName}-ri buruz informazioa nahi nuke.`
+    : `Hola, he llamado antes a ${config?.name || 'vuestro negocio'} y tenía una consulta.`);
+  const waLink = phone ? `https://wa.me/34${phone.replace(/\D/g,'')}?text=${waText}` : '';
+
+  const subject = lang === 'eu'
+    ? `Eskerrik asko deitu izanagatik — ${config?.name || ''}`
+    : `Gracias por llamar a ${config?.name || 'nosotros'}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f8;padding:32px 16px;">
+<tr><td align="center">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+
+    <tr><td style="background:linear-gradient(135deg,${color},${color}cc);border-radius:16px 16px 0 0;padding:24px 28px;">
+      <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;">${bizName}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:3px;">
+        ${lang === 'eu' ? 'Eskerrik asko deitu izanagatik' : 'Gracias por tu llamada'}
+      </div>
+    </td></tr>
+
+    <tr><td style="background:#ffffff;padding:26px 28px 22px;">
+      <p style="font-size:16px;font-weight:700;color:#0f0f23;margin:0 0 10px;">${greeting} 👋</p>
+      <p style="font-size:15px;color:#334155;line-height:1.7;margin:0 0 24px;">
+        ${lang === 'eu'
+          ? `Zure deia jasota dugu. ${esc(copy.body.replace('Cuando quieras', 'Nahi duzunean').replace('aquí estamos', 'hemen gaude').replace('llámanos', 'deitu iezaguzu'))}`
+          : esc(copy.body)}
+      </p>
+
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          ${phone ? `<td style="padding-right:10px;">
+            <table cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background:${color};">
+              <a href="tel:${phone.replace(/\s/g,'')}" style="display:inline-block;padding:13px 22px;color:#fff;text-decoration:none;font-size:14px;font-weight:700;">📞 ${lang === 'eu' ? 'Deitu' : copy.ctaBook}</a>
+            </td></tr></table>
+          </td>` : ''}
+          ${waLink ? `<td>
+            <table cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background:#25d366;">
+              <a href="${waLink}" style="display:inline-block;padding:13px 20px;color:#fff;text-decoration:none;font-size:14px;font-weight:700;">💬 WhatsApp</a>
+            </td></tr></table>
+          </td>` : ''}
+        </tr>
+      </table>
+    </td></tr>
+
+    <tr><td style="background:#f8f8fb;border-radius:0 0 16px 16px;padding:14px 28px;border-top:1px solid #e8e8f0;">
+      <p style="font-size:11px;color:#94a3b8;margin:0;">
+        ${lang === 'eu' ? 'NodeFlow IAk sortutako mezua automatikoki' : 'Mensaje generado automáticamente por'} <a href="https://nodeflow.es" style="color:${color};text-decoration:none;">NodeFlow IA</a>
+      </p>
+    </td></tr>
+
+  </table>
+</td></tr>
+</table>
 </body></html>`;
 
-  return sendEmail({
-    to:      callData.clientEmail,
-    subject: `Gracias por llamar a ${config?.name || 'nosotros'}`,
-    html,
-  });
+  const text = `${greeting},\n\n${copy.body}\n\n${phone ? `📞 ${phone}` : ''}\n${waLink ? `💬 WhatsApp: ${waLink}` : ''}\n\n— ${config?.name || 'NodeFlow'}`;
+
+  return sendEmail({ to: callData.clientEmail, subject, html, text });
 }
 
 module.exports = { sendBookingConfirmationEmail, sendCallSummaryToOwner, sendCallFollowUpEmail };

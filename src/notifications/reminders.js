@@ -82,7 +82,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
           <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">A túa cita</p>
           <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}h</p>
           <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">🗓️ ${serviceH}</p>
           ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
         </div>
 
@@ -119,7 +119,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
           <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">Zure hitzordua</p>
           <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}etan</p>
           <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
-          <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
+          <p style="margin:0 0 8px 0;font-size:15px;">🗓️ ${serviceH}</p>
           ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
         </div>
 
@@ -155,7 +155,7 @@ async function sendAppointmentReminder(appointment, businessConfig) {
         <p style="color:#666680;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px 0;">Tu cita</p>
         <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;">📅 ${dateStr} · ${appointment.time}h</p>
         <p style="margin:0 0 8px 0;font-size:15px;">🏪 ${bizNameH}</p>
-        <p style="margin:0 0 8px 0;font-size:15px;">✂️ ${serviceH}</p>
+        <p style="margin:0 0 8px 0;font-size:15px;">🗓️ ${serviceH}</p>
         ${appointment.price ? `<p style="margin:0;font-size:14px;color:#a0a0b8;">💶 ${appointment.price}€</p>` : ''}
       </div>
 
