@@ -434,6 +434,108 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Portal: GET /api/portal/calls — lista de llamadas del cliente ──────────
+  app.get('/api/portal/calls', async (req, res) => {
+    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
+
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ calls: [], total: 0 });
+
+    try {
+      // Resolver org igual que en /me
+      let org = null;
+      try {
+        const payload = verifySessionToken(token);
+        const { data } = await db.client
+          .from('organizations').select('id')
+          .eq('owner_email', payload.email.trim().toLowerCase())
+          .eq('is_active', true).order('created_at', { ascending: false }).limit(1).single();
+        org = data;
+      } catch (_) {
+        org = await db.getOrgByApiKey(token);
+      }
+      if (!org) return res.status(401).json({ error: 'No autorizado' });
+
+      const limit  = Math.min(parseInt(req.query.limit  || '50'), 100);
+      const offset = parseInt(req.query.offset || '0');
+
+      const calls = await db.getCalls(org.id, { limit, offset });
+
+      // Devolver sólo los campos que el portal necesita (no exponer métricas internas)
+      const safe = calls.map(c => {
+        const durSec = c.duration_ms ? Math.round(c.duration_ms / 1000) : 0;
+        // Extract client email from transcript metrics if available
+        const clientEmail = c.metrics?.clientEmail || c.metrics?.bookedAppointment?.email || null;
+        return {
+          callId:       c.id,
+          callSid:      c.call_sid || c.id,
+          startedAt:    c.started_at,
+          endedAt:      c.ended_at,
+          duration:     durSec,
+          callerNumber: c.caller_number ? c.caller_number.replace(/(\+\d{2})\d{3,}(\d{3})$/, '$1***$2') : 'Desconocido',
+          outcome:      c.metrics?.outcome || 'unknown',
+          booked:       !!(c.metrics?.booked || c.metrics?.outcome === 'booked'),
+          turnCount:    c.turn_count || 0,
+          transcript:   c.transcript || [],
+          appointment:  c.metrics?.bookedAppointment || null,
+          clientEmail:  clientEmail,
+        };
+      });
+
+      res.json({ calls: safe, count: safe.length, total: safe.length, offset });
+    } catch (e) {
+      log.error('Portal /calls error', { error: e.message });
+      res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
+  // ─── Portal: GET /api/portal/calls/:id/transcript ───────────────────────────
+  app.get('/api/portal/calls/:id/transcript', async (req, res) => {
+    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
+
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ transcript: [], duration: 0 });
+
+    try {
+      let org = null;
+      try {
+        const payload = verifySessionToken(token);
+        const { data } = await db.client
+          .from('organizations').select('id')
+          .eq('owner_email', payload.email.trim().toLowerCase())
+          .eq('is_active', true).order('created_at', { ascending: false }).limit(1).single();
+        org = data;
+      } catch (_) {
+        org = await db.getOrgByApiKey(token);
+      }
+      if (!org) return res.status(401).json({ error: 'No autorizado' });
+
+      // Look up call by id OR call_sid (portal.js uses callSid)
+      const { data: call } = await db.client
+        .from('calls').select('id, call_sid, transcript, duration_ms, turn_count, metrics, started_at')
+        .eq('org_id', org.id)
+        .or(`id.eq.${req.params.id},call_sid.eq.${req.params.id}`)
+        .single();
+
+      if (!call) return res.status(404).json({ error: 'Llamada no encontrada' });
+
+      res.json({
+        callId:     call.id,
+        transcript: call.transcript || [],
+        duration:   call.duration_ms ? Math.round(call.duration_ms / 1000) : 0,
+        turnCount:  call.turn_count || 0,
+        outcome:    call.metrics?.outcome || 'unknown',
+        startedAt:  call.started_at,
+        appointment: call.metrics?.bookedAppointment || null,
+      });
+    } catch (e) {
+      log.error('Portal /calls/:id/transcript error', { error: e.message });
+      res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 

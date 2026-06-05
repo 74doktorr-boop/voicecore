@@ -187,6 +187,28 @@
     .transcript-role{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
     .transcript-text{font-size:13px;line-height:1.5;color:var(--text)}
 
+    /* ── Llamadas ── */
+    .call-filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+    .call-filter-btn.active,.call-filter-btn:hover{background:rgba(108,92,231,.15);border-color:rgba(108,92,231,.4);color:var(--accent-l)}
+    .call-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:border-color .2s}
+    .call-card:hover{border-color:rgba(108,92,231,.3)}
+    .call-card-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+    .call-outcome{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+    .call-outcome.booked{background:rgba(0,206,201,.15);color:#00cec9}
+    .call-outcome.info{background:rgba(162,155,254,.15);color:var(--accent-l)}
+    .call-outcome.abandoned{background:rgba(231,76,60,.12);color:#e74c3c}
+    .call-outcome.unknown{background:rgba(255,255,255,.07);color:var(--dim)}
+    .call-meta{flex:1;min-width:0}
+    .call-date{font-size:13px;font-weight:600;color:var(--text)}
+    .call-detail{font-size:11px;color:var(--dim);margin-top:2px}
+    .call-chevron{color:var(--dim);font-size:16px;transition:transform .3s;flex-shrink:0}
+    .call-card.open .call-chevron{transform:rotate(180deg)}
+    .call-transcript{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+    .call-card.open .call-transcript{display:block}
+    .apt-box{background:rgba(0,206,201,.08);border:1px solid rgba(0,206,201,.2);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+    .apt-box-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#00cec9;margin-bottom:6px}
+    .apt-detail{font-size:13px;color:var(--text);margin-bottom:3px}
+
     /* ── Contact profile ── */
     .profile-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
     .profile-avatar{width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
