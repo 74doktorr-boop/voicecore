@@ -758,4 +758,31 @@
   <url><loc>https://nodeflow.es/contestador-ia-taller</loc><lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://nodeflow.es/contestador-ia-fisioterapia</loc><lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://nodeflow.es/contestador-ia-clinica</loc><lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://nodeflow.es/contestador-ia-gimnasio</loc><lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url></urlset>
+  <url><loc>https://nodeflow.es/contestador-ia-gimnasio</loc><lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <!-- ── Sector + Ciudad landing pages (24 pages — 2026-06-05) ── -->
+  <url><loc>https://nodeflow.es/peluquerias/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/peluquerias/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/peluquerias/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/dental/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/dental/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/dental/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/estetica/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/estetica/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/estetica/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/veterinarias/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/veterinarias/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/veterinarias/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/fisioterapia/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/fisioterapia/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/fisioterapia/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/psicologia/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/psicologia/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/psicologia/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/talleres/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/talleres/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/talleres/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/gimnasios/bilbao</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/gimnasios/donostia</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://nodeflow.es/gimnasios/vitoria</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+</urlset>
