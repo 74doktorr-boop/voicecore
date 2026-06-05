@@ -82,6 +82,7 @@ function navigate(section) {
   else if (section === 'facturacion')      loadFacturacion();
   else if (section === 'integraciones')    loadIntegraciones();
   else if (section === 'seguimientos')     loadSeguimientos();
+  else if (section === 'ayuda')            loadAyuda();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -2424,6 +2425,176 @@ async function cancelReminder(id) {
   } catch (e) {
     toast('Error al cancelar: ' + e.message, 'err');
   }
+}
+
+// ── Ayuda / FAQ ───────────────────────────────────────────────
+var FAQ_DATA = [
+  {
+    group: '📲 Desvío de llamadas',
+    items: [
+      {
+        q: '¿Cómo activo el desvío para que mi asistente coja las llamadas?',
+        a: '<p>Desde tu teléfono de empresa, marca el código de tu operador y pulsa llamar:</p>' +
+           '<ul>' +
+           '<li><strong>Movistar, Vodafone, Jazztel, Yoigo, MásMóvil, Euskaltel:</strong> <code>**21*NÚMERO_NODEFLOW#</code></li>' +
+           '<li><strong>Orange:</strong> <code>*21*NÚMERO_NODEFLOW#</code></li>' +
+           '</ul>' +
+           '<p>Sustituye NÚMERO_NODEFLOW por el número que te enviamos en el email de activación. Si no lo tienes a mano, escríbenos por WhatsApp.</p>',
+      },
+      {
+        q: '¿Cómo desactivo el desvío para recibir yo las llamadas?',
+        a: '<p>Desde tu teléfono, marca: <code>##21#</code> y pulsa llamar.</p>' +
+           '<p>Las llamadas volverán a llegar directamente a tu teléfono. Puedes activar y desactivar el desvío tantas veces como quieras, sin coste.</p>',
+      },
+      {
+        q: 'Tengo centralita o teléfono fijo de empresa. ¿Cómo lo configuro?',
+        a: '<p>Las centralitas (DECT, Grandstream, Panasonic, Asterisk...) no usan los códigos GSM estándar. La configuración se hace desde el menú web de la centralita.</p>' +
+           '<p>Escríbenos por WhatsApp indicando la marca y modelo de tu centralita y te ayudamos en 5 minutos.</p>',
+      },
+      {
+        q: '¿Qué pasa si el asistente no puede contestar?',
+        a: '<p>Si por algún motivo técnico el asistente no está disponible, la llamada no queda sin contestar — se redirige de vuelta a tu número habitual de forma automática.</p>',
+      },
+    ],
+  },
+  {
+    group: '🤖 Configuración del asistente',
+    items: [
+      {
+        q: '¿Puedo cambiar lo que dice el asistente al contestar?',
+        a: '<p>Sí, desde el portal ve a <strong>Asistente → Básico</strong> y modifica el campo "Mensaje de bienvenida". Los cambios se aplican en menos de 5 minutos sin reiniciar nada.</p>',
+      },
+      {
+        q: '¿Cómo añado información sobre mi negocio (precios, servicios, horario)?',
+        a: '<p>En <strong>Asistente → Contenido</strong> puedes añadir toda la información adicional que quieras que el asistente conozca: precios, servicios disponibles, cómo llegar, parking, seguros aceptados, etc.</p>' +
+           '<p>Cuanta más información añadas, mejor y más preciso será el asistente con tus clientes.</p>',
+      },
+      {
+        q: '¿Puedo cambiar el horario de atención?',
+        a: '<p>Sí, en <strong>Asistente → Horario</strong> configuras los días y horas en que quieres que el asistente esté activo. Fuera de ese horario puedes elegir si coge las llamadas igualmente o las deja pasar.</p>',
+      },
+      {
+        q: '¿Puedo cambiar la voz del asistente?',
+        a: '<p>Sí, en <strong>Asistente → Voz</strong> puedes escuchar las voces disponibles y cambiar la que suena en las llamadas. El cambio tarda menos de 5 minutos en aplicarse.</p>',
+      },
+      {
+        q: '¿El asistente habla en euskera?',
+        a: '<p>Sí. Si tu negocio es del País Vasco puedes activar el modo bilingüe español+euskera en <strong>Asistente → Básico → Idioma</strong>. El asistente detecta automáticamente el idioma del llamante y responde en el mismo.</p>',
+      },
+    ],
+  },
+  {
+    group: '📞 Llamadas y transcripciones',
+    items: [
+      {
+        q: '¿Dónde veo el historial de llamadas?',
+        a: '<p>En el menú lateral, sección <strong>Llamadas</strong>. Verás todas las llamadas con fecha, duración, resultado y si se gestionó una cita.</p>' +
+           '<p>Haz clic en el icono 💬 de cualquier llamada para leer la transcripción completa de la conversación.</p>',
+      },
+      {
+        q: '¿Las transcripciones son exactas?',
+        a: '<p>El asistente usa tecnología de reconocimiento de voz de alta precisión. En condiciones normales de llamada la precisión supera el 95%.</p>' +
+           '<p>En llamadas con mucho ruido de fondo o acentos muy marcados puede haber pequeños errores en la transcripción, aunque el asistente sigue funcionando correctamente.</p>',
+      },
+      {
+        q: '¿El asistente puede reservar citas directamente?',
+        a: '<p>Sí, si tienes Google Calendar conectado el asistente puede consultar disponibilidad y reservar citas directamente durante la llamada. Las citas aparecen automáticamente en tu calendario y en el portal.</p>' +
+           '<p>Para conectar Google Calendar ve a <strong>Integraciones</strong> en el menú lateral.</p>',
+      },
+      {
+        q: '¿Qué pasa si el llamante quiere hablar con una persona real?',
+        a: '<p>Si el llamante pide explícitamente hablar con una persona, el asistente le indica que en ese momento no es posible pero que puede dejar un mensaje o reservar una llamada de vuelta. Tú recibirás una notificación inmediata.</p>',
+      },
+    ],
+  },
+  {
+    group: '💳 Facturación y suscripción',
+    items: [
+      {
+        q: '¿Cuándo se cobra la suscripción?',
+        a: '<p>El cobro es mensual, el mismo día del mes en que activaste el servicio. Recibirás un email de factura cada mes en la dirección con la que te registraste.</p>',
+      },
+      {
+        q: '¿Puedo cancelar en cualquier momento?',
+        a: '<p>Sí, sin permanencia ni penalización. Puedes cancelar desde <strong>Facturación</strong> en el portal o escribiéndonos por WhatsApp. El servicio seguirá activo hasta el final del período pagado.</p>',
+      },
+      {
+        q: '¿Qué incluye el plan Negocio (49€/mes)?',
+        a: '<ul>' +
+           '<li>Hasta 500 minutos de llamadas atendidas al mes</li>' +
+           '<li>Asistente de voz personalizado con tu información</li>' +
+           '<li>Recordatorios automáticos de citas</li>' +
+           '<li>Emails post-llamada y recuperación de no-shows</li>' +
+           '<li>Portal con historial de llamadas y transcripciones</li>' +
+           '<li>Soporte directo por WhatsApp</li>' +
+           '</ul>',
+      },
+      {
+        q: '¿Qué pasa si supero los 500 minutos del plan Negocio?',
+        a: '<p>Te avisaremos cuando te acerques al límite. Si lo superas, el asistente seguirá funcionando y te contactaremos para ajustar el plan al volumen real de llamadas de tu negocio.</p>',
+      },
+    ],
+  },
+  {
+    group: '🔧 Problemas y soporte',
+    items: [
+      {
+        q: 'El asistente no suena cuando alguien llama. ¿Qué hago?',
+        a: '<p>Comprueba estos puntos en orden:</p>' +
+           '<ul>' +
+           '<li>¿Está activo el desvío? Llama a tu propio número desde otro teléfono para verificar.</li>' +
+           '<li>¿El número de NodeFlow que tienes en el código de desvío coincide con el que te enviamos?</li>' +
+           '<li>Si tienes centralita, ¿está configurado el desvío desde el panel de la centralita?</li>' +
+           '</ul>' +
+           '<p>Si nada de esto resuelve el problema, escríbenos por WhatsApp con tu nombre de negocio y lo miramos en el momento.</p>',
+      },
+      {
+        q: 'El asistente dice cosas incorrectas sobre mi negocio.',
+        a: '<p>Ve a <strong>Asistente → Contenido</strong> y corrige o amplía la información. Los cambios se aplican en menos de 5 minutos.</p>' +
+           '<p>Cuanto más detallada sea la información que añadas (precios exactos, servicios con nombres concretos, horarios especiales), más preciso será el asistente.</p>',
+      },
+      {
+        q: '¿Cómo contacto con soporte?',
+        a: '<p>La forma más rápida es WhatsApp al <strong>+34 666 351 319</strong>. Unai responde en menos de 2 horas en horario laboral (L-V 9h-19h).</p>' +
+           '<p>También puedes escribir a <a href="mailto:unai@nodeflow.es" style="color:var(--accent-l)">unai@nodeflow.es</a> si prefieres email.</p>',
+      },
+    ],
+  },
+];
+
+function loadAyuda() {
+  var container = document.getElementById('faq-list');
+  if (!container) return;
+
+  var html = '';
+  for (var g = 0; g < FAQ_DATA.length; g++) {
+    var group = FAQ_DATA[g];
+    html += '<div class="faq-group">';
+    html += '<div class="faq-group-title">' + group.group + '</div>';
+    for (var i = 0; i < group.items.length; i++) {
+      var item = group.items[i];
+      var id = 'faq-' + g + '-' + i;
+      html += '<div class="faq-item" id="' + id + '">' +
+        '<button class="faq-q" onclick="toggleFaq(\'' + id + '\')">' +
+          '<span>' + esc(item.q) + '</span>' +
+          '<span class="faq-icon">+</span>' +
+        '</button>' +
+        '<div class="faq-a"><div>' + item.a + '</div></div>' +
+        '</div>';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function toggleFaq(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var isOpen = el.classList.contains('open');
+  // Cerrar todos
+  document.querySelectorAll('.faq-item.open').forEach(function(x) { x.classList.remove('open'); });
+  // Abrir el pulsado si estaba cerrado
+  if (!isOpen) el.classList.add('open');
 }
 
 // ── Service Worker (PWA) ──────────────────────────────────────

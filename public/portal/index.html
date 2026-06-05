@@ -187,6 +187,21 @@
     .transcript-role{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
     .transcript-text{font-size:13px;line-height:1.5;color:var(--text)}
 
+    /* ── FAQ ── */
+    .faq-group{margin-bottom:24px}
+    .faq-group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-l);margin-bottom:10px;padding-left:4px}
+    .faq-item{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
+    .faq-item:hover{border-color:rgba(108,92,231,.3)}
+    .faq-q{width:100%;background:none;border:none;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer;text-align:left;color:var(--text);font-size:14px;font-weight:600;font-family:inherit}
+    .faq-icon{color:var(--accent-l);font-size:18px;transition:transform .3s;flex-shrink:0}
+    .faq-item.open .faq-icon{transform:rotate(45deg)}
+    .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .3s}
+    .faq-item.open .faq-a{max-height:600px;padding:0 18px 16px}
+    .faq-a p{font-size:13px;color:var(--dim);line-height:1.7;margin:0 0 8px}
+    .faq-a p:last-child{margin-bottom:0}
+    .faq-a code{font-family:monospace;font-size:13px;color:var(--accent-l);background:rgba(108,92,231,.1);padding:2px 6px;border-radius:4px}
+    .faq-a ul{padding-left:18px;color:var(--dim);font-size:13px;line-height:1.8;margin:4px 0}
+
     /* ── Llamadas ── */
     .call-filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
     .call-filter-btn.active,.call-filter-btn:hover{background:rgba(108,92,231,.15);border-color:rgba(108,92,231,.4);color:var(--accent-l)}
@@ -315,6 +330,9 @@
         <span class="nav-label">Seguimientos</span>
       </div>
       <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+      <div class="nav-item"       id="nav-ayuda"             onclick="navigate('ayuda')">
+        <span class="nav-icon">❓</span><span>Ayuda</span>
+      </div>
       <div class="nav-item"       id="nav-configuracion"     onclick="navigate('configuracion')">
         <span class="nav-icon">⚙️</span><span>Configuración</span>
       </div>
@@ -444,6 +462,29 @@
         <button class="btn btn-accent" onclick="saveAsistente()">Guardar asistente</button>
       </div>
     </section>
+
+    <!-- ── AYUDA / FAQ ── -->
+    <div id="sec-ayuda" class="section">
+      <div class="section-header">
+        <h2 class="section-title">❓ Ayuda y preguntas frecuentes</h2>
+        <p class="section-sub">Todo lo que necesitas saber para sacarle el máximo partido a NodeFlow</p>
+      </div>
+
+      <!-- Contacto rápido -->
+      <div style="background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:2px">¿Algo no funciona como esperabas?</div>
+          <div style="font-size:12px;color:var(--dim)">Unai responde en menos de 2 horas en horario laboral</div>
+        </div>
+        <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20tengo%20una%20duda%20con%20NodeFlow" target="_blank"
+           style="background:#25d366;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap">
+          💬 WhatsApp directo
+        </a>
+      </div>
+
+      <!-- FAQ accordion -->
+      <div id="faq-list"></div>
+    </div>
 
     <div id="sec-configuracion" class="section">
       <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando configuración…</div></div>
