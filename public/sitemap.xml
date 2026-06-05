@@ -5,7 +5,7 @@
   <!-- ── Homepage ── -->
   <url>
     <loc>https://nodeflow.es</loc>
-    <lastmod>2026-06-04</lastmod>
+    <lastmod>2026-06-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://nodeflow.es"/>
@@ -260,7 +260,7 @@
   <!-- ── Blog ── -->
   <url>
     <loc>https://nodeflow.es/blog</loc>
-    <lastmod>2026-06-04</lastmod>
+    <lastmod>2026-06-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -745,7 +745,7 @@
   <url><loc>https://nodeflow.es/blog/asistente-ia-optica-bilbao</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <url><loc>https://nodeflow.es/blog/recepcionista-ia-autoescuela-bilbao</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <url><loc>https://nodeflow.es/blog/asistente-ia-inmobiliaria-bilbao</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://nodeflow.es/blog/asistente-ia-abogados-bilbao</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://nodeflow.es/blog/asistente-ia-abogados-bilbao</loc><lastmod>2026-06-06</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <url><loc>https://nodeflow.es/blog/asistente-ia-fisioterapia-vitoria</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <url><loc>https://nodeflow.es/blog/asistente-ia-dental-vitoria</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
   <url><loc>https://nodeflow.es/blog/asistente-ia-centros-pilates-espana</loc><lastmod>2026-06-04</lastmod><changefreq>yearly</changefreq><priority>0.7</priority></url>
