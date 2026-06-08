@@ -443,31 +443,46 @@ async function processReminders() {
 
 ## Canales de notificación
 
-### Email — canal primario MVP
+### Prioridad de canales
 
-- Proveedor: **Resend** (ya configurado, `src/notifications/email.js`)
-- Templates HTML multilingüe (es / eu / gl) siguiendo el estilo visual existente del proyecto
-- Opt-out: enlace en el footer de cada email → endpoint `GET /api/unsubscribe?contact=:id&org=:id&channel=email` → marca `no_email = true`
-- Todo reminder incluye un footer: *"Para no recibir más recordatorios de [negocio]: [enlace]"*
+El teléfono del cliente es el canal principal. El orden de dispatch es:
 
-### WhatsApp — canal secundario
+1. **WhatsApp** (primario) — si `wa_opted_in = true` y proveedor configurado → ~€0.02/conversación
+2. **SMS** (fallback) — si WA falla o no hay opt-in WA, pero sí número → ~€0.05/SMS via Twilio
+3. **Email** (terciario) — si no hay número o falla el canal telefónico
 
-> ⚠️ **El `src/notifications/whatsapp.js` actual usa Callmebot y solo envía al teléfono del owner. No sirve para clientes.**
+### WhatsApp — canal primario
 
-Para mensajes a clientes se crea `src/notifications/client-whatsapp.js` con soporte para:
-- **Twilio WA API** (recomendado — separado de voz, no afectado por el bloqueo de Vonage)
-- **UltraMsg** como alternativa más simple (~€15/mes)
+> ⚠️ **El `src/notifications/whatsapp.js` actual usa Callmebot y solo envía al owner. No sirve para clientes.**
+
+Para mensajes a clientes: `src/notifications/client-whatsapp.js` via **Meta WhatsApp Cloud API** (gratis hasta 1.000 conversaciones/mes; mensajes de utilidad ~€0.02).
+
+Setup (una sola vez para toda la plataforma NodeFlow):
+1. Meta Business Manager → crear app → añadir producto WhatsApp
+2. Verificar negocio NodeFlow (~1-3 días)
+3. Número dedicado NodeFlow → obtener `WA_PHONE_NUMBER_ID`
+4. Crear y aprobar plantillas de utilidad en Meta (~24h)
+
+Endpoint Meta: `POST https://graph.facebook.com/v19.0/{WA_PHONE_NUMBER_ID}/messages`
 
 Requiere opt-in del cliente. El asistente pregunta en la primera llamada:
 > *"¿Le parece bien que le enviemos recordatorios por WhatsApp? Son solo avisos útiles, sin publicidad."*
 
-Se guarda `wa_opted_in: true` en `contacts`. Sin opt-in, el sistema usa email como fallback automático y silencioso.
+Se guarda `wa_opted_in: true` en `contacts`. Sin opt-in → fallback automático a SMS o email.
 
-**MVP**: si `WHATSAPP_CLIENT_PROVIDER` no está configurado en `.env`, todos los recordatorios van por email independientemente del canal configurado.
+**Si `WA_PHONE_NUMBER_ID` no está en `.env`**: canal WA se salta, siguiente en prioridad.
 
-### SMS — canal futuro
+### SMS — canal fallback
 
-Se activa cuando la situación de telefonía esté resuelta. Campo `sms_opted_in` en contacts. Por ahora no se implementa.
+Twilio SMS (credenciales ya presentes en codebase: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`). SMS es independiente de las llamadas de voz — funciona aunque Vonage gestione la voz.
+
+Nuevo `src/notifications/sms.js`. Si `TWILIO_PHONE_NUMBER` no está en `.env`: canal SMS se salta.
+
+### Email — canal terciario
+
+- Proveedor: **Resend** (ya configurado, `src/notifications/email.js`)
+- Templates HTML multilingüe (es / eu / gl)
+- Opt-out: enlace en footer → `GET /api/portal/unsubscribe?c=:contactId&o=:orgId&ch=email` → `no_email = true`
 
 ---
 
