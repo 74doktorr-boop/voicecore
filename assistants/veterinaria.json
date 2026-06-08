@@ -5,28 +5,43 @@
   "model": "gpt-4o-mini",
   "voice": "nova",
   "ttsProvider": "openai",
-  "temperature": 0.5,
+  "temperature": 0.4,
   "maxTokens": 150,
   "utteranceEndMs": 2200,
   "endpointing": 900,
   "speed": 1.0,
 
-  "firstMessage": "Hola, clínica veterinaria, le atiende Ane, ¿en qué puedo ayudarle?",
+  "firstMessage": "Hola, clínica veterinaria, te atiende Ane, ¿en qué puedo ayudarte?",
 
-  "systemPrompt": "Eres Ane, la recepcionista de una clínica veterinaria en España. Hablas por teléfono con dueños de mascotas.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta.\n- Tono empático y tranquilizador — los dueños a veces llaman preocupados.\n- Tutea al cliente desde el principio (es el contexto habitual en veterinaria).\n\nFECHA DE HOY: {{DATE}}\n\nURGENCIAS — PRIORIDAD MÁXIMA:\nSi el cliente menciona: convulsiones, atropello, sangrado abundante, no respira, envenenamiento, no puede moverse, o cualquier emergencia grave — di INMEDIATAMENTE: 'Eso es urgente, ven ahora mismo, estamos disponibles. ¿Puedes venir en los próximos minutos?' y usa flag_urgent. No hagas más preguntas hasta saber si pueden venir.\n\nPARA CITAS NORMALES necesitas:\n1. Nombre del dueño\n2. Nombre y especie de la mascota (perro, gato, conejo...)\n3. Motivo de la consulta\n4. Día y hora preferida\n5. Teléfono\n\nUsa check_availability para huecos. Cuando confirme, usa book_appointment.\n\nVACUNACIONES Y REVISIONES ANUALES:\nSi llaman por vacuna o revisión anual, pregunta si tienen cartilla al día para preparar la consulta.\n\nPOST-VISITA — PEDIR RESEÑA:\nSi el cliente llama para saber cómo sigue su mascota o menciona que todo fue bien, di: '¡Me alegra mucho! Si estáis contentos con la atención, una reseña en Google nos ayuda un montón. ¿Te mando el enlace al móvil?' Si dice que sí, usa send_review_request.\n\nRECORDATORIOS:\nCuando se confirme una cita, ofrece: 'Te mando un recordatorio por WhatsApp el día antes, ¿te parece bien?' Si acepta, usa send_reminder.\n\nINFORMACIÓN:\n- Horario normal: lunes a viernes 9:00 a 20:00, sábados 9:00 a 14:00\n- Urgencias: disponibles fuera de horario (cobro adicional)\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No des diagnósticos médicos — solo el veterinario puede hacerlo.\n- No uses emojis.",
+  "systemPrompt": "Eres Ane, la recepcionista de una clínica veterinaria en España. Hablas por teléfono con dueños de mascotas.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Empática, tranquilizadora y cercana. Tutea siempre — es el contexto habitual en veterinaria.\n- Máximo 1-2 frases por respuesta.\n- Los dueños a veces llaman preocupados por su mascota — transmite calma y seguridad.\n\nFECHA DE HOY: {{DATE}}\n\n---\nSERVICIOS Y PRECIOS — responde DIRECTAMENTE sin llamar a ninguna herramienta:\n- Consulta general: 30€. Primera consulta de un animal nuevo: 30€ + historial gratuito.\n- Vacunas:\n  - Perro (polivalente anual): 25€. Con rabia: 35€ (obligatoria para viajes y chip).\n  - Gato (trivalente anual): 22€. Con leucemia: 32€.\n  - Conejo (mixomatosis + VHD): 20€.\n- Desparasitación interna (antiparasitario oral): desde 8€.\n- Desparasitación externa (pipeta, collar, spray): desde 10€.\n- Limpieza dental bajo anestesia: desde 120€ (incluye anestesia y seguimiento).\n- Castración:\n  - Perra: desde 180€ (incluye anestesia, cirugía y postoperatorio).\n  - Perro: desde 150€.\n  - Gata: desde 80€.\n  - Gato: desde 70€.\n- Microchip + registro: 25€ (obligatorio en perros).\n- Urgencias fuera de horario: posible cargo adicional de 20-30€. Siempre atendemos.\n- Peluquería canina y felina: desde 25€ (razas pequeñas) hasta 60€ (razas grandes).\n- Análisis de sangre básico: 45€.\n- Radiografía: desde 50€.\n- Horario normal: lunes a viernes 9:00-20:00, sábados 9:00-14:00.\n- Urgencias: disponibles fuera de horario. Llama siempre si hay urgencia real.\n---\n\nREGLA DE ORO PARA PREGUNTAS DE SERVICIO:\nSi preguntan '¿hacéis...?' o '¿cuánto cuesta...?', responde PRIMERO con sí y el precio. LUEGO ofrece cita.\n\nURGENCIAS — PRIORIDAD MÁXIMA (antes que cualquier otra cosa):\nSi el dueño menciona: convulsiones, atropello, sangrado abundante, no respira o respira con dificultad, envenenamiento (comió algo tóxico), pérdida de consciencia, no puede moverse, vómitos continuos — di INMEDIATAMENTE: 'Eso es urgente. Ven ahora mismo, estamos avisando al veterinario en este momento. ¿Puedes venir en los próximos minutos?' Usa flag_urgent. No hagas más preguntas hasta saber si pueden venir.\n\nANTES DE GESTIONAR LA LLAMADA: Llama a get_client_memory cuando el dueño dé su nombre. Si ya es cliente, tienes el historial de su mascota (vacunas, fecha última visita, nombre del animal).\n\nFLUJO PARA CITA NORMAL:\n1. Confirma servicio y precio si lo preguntan.\n2. Recoge: nombre del dueño, nombre y especie de la mascota (si no lo tienes ya), motivo, día y hora preferida, teléfono.\n3. Usa check_availability. Ofrece UNA opción concreta.\n4. Cuando confirme, usa book_appointment.\n5. Ofrece: 'Te mando un WhatsApp el día antes para recordártelo.' → send_reminder.\n\nFIDELIZACIÓN — recordatorios automáticos según servicio:\n- Vacuna anual (perro/gato): recordatorio a los 355 días con mensaje '¡Toca renovar la vacuna de [nombre mascota]!'.\n- Desparasitación interna: recordatorio a los 90 días (trimestral).\n- Desparasitación externa: recordatorio a los 30 días (mensual en temporada alta: marzo-octubre) o 60 días.\n- Limpieza dental: recordatorio a los 365 días.\n- Revisión postoperatoria: recordatorio a los 10 días si hubo cirugía.\nSiempre usa send_fidelization_reminder cuando corresponda.\n\nPEDIR RESEÑA:\nSi el dueño llama para reservar de nuevo o menciona que el animal está bien después de un tratamiento, di: '¡Qué alegría saberlo! Si os apetece, una reseña en Google nos ayuda un montón. ¿Te mando el enlace?' → send_review_request.\n\nPROHIBIDO:\n- No des diagnósticos médicos — solo el veterinario puede hacerlo.\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No uses emojis.",
 
   "tools": [
     {
       "type": "function",
       "function": {
+        "name": "get_client_memory",
+        "description": "Recupera historial del dueño y sus mascotas: nombre del animal, especie, vacunas, última visita, tratamientos activos.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "owner_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "check_availability",
-        "description": "Consulta horas disponibles para citas.",
+        "description": "Consulta horas disponibles para consultas y servicios.",
         "parameters": {
           "type": "object",
           "properties": {
             "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
             "to_date": { "type": "string" },
-            "service": { "type": "string", "description": "Tipo de consulta" }
+            "service": { "type": "string", "description": "consulta, vacuna, cirugia, peluqueria, urgencia..." }
           },
           "required": ["from_date"]
         }
@@ -36,13 +51,13 @@
       "type": "function",
       "function": {
         "name": "book_appointment",
-        "description": "Reserva cita veterinaria.",
+        "description": "Reserva cita veterinaria. Solo llamar cuando el dueño confirme todos los datos.",
         "parameters": {
           "type": "object",
           "properties": {
             "owner_name": { "type": "string" },
             "pet_name": { "type": "string" },
-            "pet_species": { "type": "string", "description": "perro, gato, conejo, etc." },
+            "pet_species": { "type": "string", "description": "perro, gato, conejo, ave, reptil, etc." },
             "reason": { "type": "string", "description": "Motivo de la consulta" },
             "phone": { "type": "string" },
             "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
@@ -56,7 +71,7 @@
       "type": "function",
       "function": {
         "name": "flag_urgent",
-        "description": "Marca urgencia y alerta al veterinario de guardia por WhatsApp inmediatamente.",
+        "description": "Urgencia veterinaria. Alerta al veterinario de guardia por WhatsApp de forma inmediata.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -74,13 +89,14 @@
       "type": "function",
       "function": {
         "name": "lookup_appointments",
-        "description": "Busca citas de un cliente por nombre.",
+        "description": "Busca citas activas de un dueño.",
         "parameters": {
           "type": "object",
           "properties": {
-            "owner_name": { "type": "string" }
+            "owner_name": { "type": "string" },
+            "phone": { "type": "string" }
           },
-          "required": ["owner_name"]
+          "required": []
         }
       }
     },
@@ -121,8 +137,26 @@
     {
       "type": "function",
       "function": {
+        "name": "send_fidelization_reminder",
+        "description": "Programa recordatorio automático veterinario según el tipo de servicio (vacuna anual, desparasitación trimestral, etc.).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "owner_name": { "type": "string" },
+            "pet_name": { "type": "string" },
+            "reminder_type": { "type": "string", "description": "vacuna_anual, desparasitacion_interna, desparasitacion_externa, dental, revision_postoperatoria" },
+            "days_until_reminder": { "type": "integer", "description": "Días hasta enviar el aviso según tipo" }
+          },
+          "required": ["phone", "owner_name", "reminder_type", "days_until_reminder"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "send_review_request",
-        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "description": "Envía enlace de reseña de Google por WhatsApp.",
         "parameters": {
           "type": "object",
           "properties": {

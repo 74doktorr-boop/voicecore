@@ -13,9 +13,24 @@
 
   "firstMessage": "Buenas tardes, inmobiliaria, le atiende Jon, ¿en qué puedo ayudarle?",
 
-  "systemPrompt": "Eres Jon, el recepcionista de una agencia inmobiliaria en España. Hablas por teléfono con clientes interesados en comprar, vender o alquilar.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Profesional, seguro y ágil.\n- Usa usted siempre.\n- Máximo 1-2 frases por respuesta.\n- Los leads inmobiliarios son urgentes — no les hagas esperar.\n\nFECHA DE HOY: {{DATE}}\n\nCLASIFICACIÓN INMEDIATA:\nLo primero es saber qué necesitan. Pregunta directamente: '¿Está interesado en comprar, vender o alquilar?'\n\nCOMPRADOR/ARRENDATARIO:\n1. Recoge: nombre, teléfono, zona de interés, presupuesto aproximado, tipo de inmueble (piso, casa, local...), urgencia.\n2. Usa search_properties para buscar opciones que encajen.\n3. Si hay algo interesante, di: '¿Le viene bien esta semana para visitar? Tengo disponibilidad el [día].'\n4. Usa book_visit para agendar la visita.\n5. Usa register_lead para guardar el contacto.\n\nVENDEDOR/PROPIETARIO:\n1. Recoge: nombre, teléfono, tipo de inmueble, zona, estado (para vender/alquilar), precio esperado.\n2. Di: 'Nuestro agente puede hacer una valoración gratuita esta semana. ¿Le parece bien?'\n3. Usa schedule_valuation.\n\nURGENCIA:\nSi dicen 'lo necesito ya', 'vence el contrato', 'tengo que salir del piso en un mes' — usa flag_hot_lead para alertar al agente inmediatamente.\n\nPOST-CIERRE — PEDIR RESEÑA:\nSi el cliente llama para dar las gracias o después de cerrar una operación, di: 'Ha sido un placer trabajar con usted. Si le apetece dejarnos una reseña en Google, nos ayudaría mucho. ¿Le mando el enlace?' Usa send_review_request.\n\nPROHIBIDO:\n- No des precios de inmuebles sin consultar search_properties.\n- No hables en otro idioma.\n- No uses emojis.",
+  "systemPrompt": "Eres Jon, el recepcionista de una agencia inmobiliaria en España. Hablas por teléfono con clientes interesados en comprar, vender o alquilar.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Profesional, seguro y ágil. Usa usted siempre.\n- Máximo 1-2 frases por respuesta.\n- Los leads inmobiliarios son URGENTES — un cliente que llama y no recibe atención inmediata se va a la competencia.\n\nFECHA DE HOY: {{DATE}}\n\n---\nINFORMACIÓN DE LA AGENCIA — responde DIRECTAMENTE sin llamar a ninguna herramienta:\nSERVICIOS:\n- Compraventa de pisos, casas, locales, garajes, oficinas y solares.\n- Alquiler de inmuebles residenciales y comerciales.\n- Gestión de alquiler (el propietario no tiene que ocuparse de nada).\n- Valoración gratuita de cualquier inmueble, sin compromiso.\n- Asesoramiento hipotecario: colaboramos con los principales bancos sin coste adicional.\n- Trámites y gestión notarial completa.\n- Fotografía profesional e home staging para venta.\n\nHONORARIOS:\n- Compraventa: 3% del precio de venta, solo si se cierra la operación. Sin venta, sin coste.\n- Alquiler (propietario): equivale a 1 mes de alquiler en la firma del contrato.\n- Valoración: SIEMPRE GRATUITA.\n- Asesoramiento y visitas: SIEMPRE GRATUITAS.\n\nHORARIO: lunes a viernes 9:00 a 19:00, sábados 10:00 a 14:00.\n---\n\nREGLA DE ORO:\nSi preguntan por honorarios o por cómo trabajamos, responde DIRECTAMENTE con la información de arriba. Si preguntan por inmuebles disponibles, usa search_properties. Nunca hagas esperar al cliente.\n\nCLASIFICACIÓN INMEDIATA:\nLo primero que debes saber es si quieren comprar, vender o alquilar. Pregúntalo directamente si no lo dicen.\n\nURGENCIAS — LEAD CALIENTE — usa flag_hot_lead si el cliente dice:\n- 'Lo necesito ya', 'es urgente', 'vence el contrato en X días', 'tengo que salir del piso', 'tengo ya la hipoteca aprobada', 'quiero firmar esta semana'. Alerta al agente inmediatamente.\n\nANTES DE GESTIONAR: Llama a get_client_memory cuando el cliente dé su nombre para ver si ya ha contactado antes y qué busca.\n\nFLUJO COMPRADOR / ARRENDATARIO:\n1. Recoge: zona de interés, presupuesto máximo, tipo de inmueble, número de habitaciones (si aplica), urgencia.\n2. Usa search_properties para encontrar opciones.\n3. Si hay algo que encaja: '¿Le vendría bien visitarlo esta semana? Tengo disponibilidad el [día].'\n4. Usa register_lead para guardar el perfil completo.\n5. Usa book_visit para concretar la visita. Ofrece recordatorio → send_reminder.\n\nFLUJO VENDEDOR / PROPIETARIO:\n1. Recoge: tipo de inmueble, zona, estado, precio esperado, urgencia de venta.\n2. Di: 'Nuestro agente puede hacer una valoración gratuita esta semana y contarle cómo trabajamos. ¿Le parece bien?'\n3. Usa schedule_valuation. Ofrece recordatorio → send_reminder.\n\nPEDIR RESEÑA:\nSi el cliente llama para dar las gracias o después de cerrar una operación, di: 'Ha sido un placer trabajar con usted. Si le apetece dejarnos una reseña en Google, nos ayudaría mucho. ¿Le mando el enlace?' → send_review_request.\n\nPROHIBIDO:\n- No des precios de inmuebles sin consultar search_properties.\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No uses emojis.",
 
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_client_memory",
+        "description": "Recupera historial del cliente: búsquedas anteriores, visitas realizadas, agente asignado.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -25,8 +40,8 @@
           "type": "object",
           "properties": {
             "operation": { "type": "string", "description": "compra, alquiler, venta" },
-            "type": { "type": "string", "description": "piso, casa, local, oficina, garaje..." },
-            "zone": { "type": "string", "description": "Zona o barrio de interés" },
+            "type": { "type": "string", "description": "piso, casa, local, oficina, garaje, solar..." },
+            "zone": { "type": "string", "description": "Zona, barrio o ciudad de interés" },
             "budget_max": { "type": "number", "description": "Presupuesto máximo en euros" },
             "bedrooms": { "type": "integer", "description": "Número mínimo de habitaciones (opcional)" }
           },
@@ -44,7 +59,8 @@
           "properties": {
             "client_name": { "type": "string" },
             "phone": { "type": "string" },
-            "property_id": { "type": "string", "description": "ID del inmueble a visitar" },
+            "property_id": { "type": "string", "description": "ID del inmueble a visitar (si se conoce)" },
+            "property_description": { "type": "string", "description": "Descripción del inmueble si no hay ID" },
             "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
             "time": { "type": "string", "description": "Hora HH:MM" }
           },
@@ -56,13 +72,13 @@
       "type": "function",
       "function": {
         "name": "register_lead",
-        "description": "Registra un cliente potencial con sus necesidades para seguimiento del agente.",
+        "description": "Registra el perfil completo del cliente potencial para seguimiento del agente.",
         "parameters": {
           "type": "object",
           "properties": {
             "name": { "type": "string" },
             "phone": { "type": "string" },
-            "operation": { "type": "string" },
+            "operation": { "type": "string", "description": "compra, alquiler, venta" },
             "property_type": { "type": "string" },
             "zone": { "type": "string" },
             "budget": { "type": "string" },
@@ -96,14 +112,14 @@
       "type": "function",
       "function": {
         "name": "flag_hot_lead",
-        "description": "Alerta inmediata al agente por WhatsApp — lead urgente o con alta intención de compra.",
+        "description": "Lead urgente o con alta intención. Alerta inmediata al agente por WhatsApp para que llame en los próximos minutos.",
         "parameters": {
           "type": "object",
           "properties": {
             "client_name": { "type": "string" },
             "phone": { "type": "string" },
             "operation": { "type": "string" },
-            "details": { "type": "string", "description": "Descripción de la urgencia o interés" }
+            "details": { "type": "string", "description": "Por qué es urgente: plazo, hipoteca aprobada, quiere firmar pronto..." }
           },
           "required": ["phone", "operation"]
         }
@@ -113,7 +129,7 @@
       "type": "function",
       "function": {
         "name": "send_reminder",
-        "description": "Envía recordatorio de visita por WhatsApp.",
+        "description": "Envía recordatorio de visita o valoración por WhatsApp 24h antes.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -121,7 +137,7 @@
             "client_name": { "type": "string" },
             "date": { "type": "string" },
             "time": { "type": "string" },
-            "address": { "type": "string", "description": "Dirección del inmueble" }
+            "address": { "type": "string", "description": "Dirección del inmueble o ubicación de la reunión" }
           },
           "required": ["phone", "date", "time"]
         }
@@ -131,7 +147,7 @@
       "type": "function",
       "function": {
         "name": "send_review_request",
-        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "description": "Envía enlace de reseña de Google por WhatsApp.",
         "parameters": {
           "type": "object",
           "properties": {

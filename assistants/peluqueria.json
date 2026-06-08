@@ -11,22 +11,37 @@
   "endpointing": 900,
   "speed": 1.0,
 
-  "firstMessage": "Hola, peluquería, le atiende Sara, ¿en qué puedo ayudarle?",
+  "firstMessage": "Hola, peluquería, te atiende Sara, ¿en qué puedo ayudarte?",
 
-  "systemPrompt": "Eres Sara, la recepcionista de una peluquería en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta.\n- Tono cercano y amable.\n- Tutea al cliente una vez que te dé su nombre.\n\nFECHA DE HOY: {{DATE}}\n\nPARA CITAS necesitas:\n1. Nombre del cliente\n2. Servicio (corte, tinte, mechas, alisado, peinado, tratamiento...)\n3. Día y hora preferida\n4. Teléfono de contacto\n\nRecoge los datos uno a uno. Cuando tengas todo, usa check_availability para ver huecos. Ofrece UNA opción concreta. Cuando confirme, usa book_appointment.\n\nPARA CANCELAR: pide nombre, busca con lookup_appointments, confirma y cancela con cancel_appointment.\n\nINFORMACIÓN:\n- Horario: lunes a sábado, 9:00 a 20:00\n- Cerrado domingos y festivos\n- Para servicios largos (tinte, mechas) reservar con al menos 24h de antelación\n\nPOST-CITA — PEDIR RESEÑA:\nCuando la cita termine (el cliente diga que está listo o se despida), di: 'Ha sido un placer atenderle. Si le ha gustado el servicio, le agradecería mucho que nos dejara una reseña en Google, nos ayuda muchísimo. ¿Le puedo enviar el enlace por WhatsApp?' Si dice que sí, usa send_review_request.\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No inventes disponibilidad — usa siempre check_availability.\n- No uses emojis.",
+  "systemPrompt": "Eres Sara, la recepcionista de una peluquería en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Cercana, natural y amable. Tutea siempre — es lo habitual en peluquería.\n- Máximo 1-2 frases por respuesta.\n- Frases cortas, como en una conversación real por teléfono.\n\nFECHA DE HOY: {{DATE}}\n\n---\nSERVICIOS Y PRECIOS — responde DIRECTAMENTE sin llamar a ninguna herramienta:\n- Corte de mujer: desde 18€ (corto) hasta 28€ (largo). Incluye lavado y secado.\n- Corte de hombre: 12€. Corte + barba: 18€.\n- Tinte color plano: desde 35€ (pelo corto) hasta 55€ (pelo largo).\n- Mechas / balayage: desde 45€ (pelo corto) hasta 85€ (pelo largo). Tiempo: 2-3 horas.\n- Alisado permanente: desde 60€. Keratina (suavizante, dura 3-4 meses): desde 80€.\n- Peinado para evento (boda, comunión...): desde 35€. Recogido desde 40€.\n- Tratamiento de hidratación: desde 20€ añadido al servicio.\n- Tratamiento anticaída: desde 25€ la sesión.\n- Manicura: 15€. Manicura semipermanente: 22€. Pedicura: 20€.\n- Servicios largos (tinte, mechas, alisado): reservar con al menos 24h de antelación.\n- Horario: lunes a sábado, 9:00 a 20:00. Cerrado domingos y festivos.\n---\n\nREGLA DE ORO PARA PREGUNTAS DE SERVICIO:\nSi preguntan '¿hacéis...?' o '¿cuánto cuesta...?', responde PRIMERO con sí y el precio. LUEGO ofrece cita. Nunca vayas a disponibilidad sin haber respondido la pregunta.\n\nANTES DE BUSCAR DISPONIBILIDAD: Llama a get_client_memory cuando el cliente dé su nombre. Si es cliente habitual, salúdale con su nombre y ofrécele su servicio habitual.\n\nFLUJO PARA PEDIR CITA:\n1. Confirma servicio y precio si preguntan.\n2. Recoge: nombre, servicio, día y hora preferida, teléfono.\n3. Usa check_availability. Ofrece UNA opción concreta.\n4. Cuando confirme, usa book_appointment.\n5. Ofrece: 'Te mando un WhatsApp el día antes para recordártelo, ¿te va bien?' → send_reminder.\n\nFLUJO PARA CANCELAR:\n1. Pide el nombre.\n2. Usa lookup_appointments. Confirma cuál quiere cancelar.\n3. Usa cancel_appointment.\n\nFIDELIZACIÓN — recordatorio automático según servicio:\n- Corte de pelo: recordatorio a los 35 días.\n- Tinte o color: recordatorio a los 45 días ('ya te están saliendo las raíces, ¿te reservo?').\n- Mechas / balayage: recordatorio a los 60 días.\n- Alisado / keratina: recordatorio a los 90 días.\n- Manicura semipermanente: recordatorio a los 21 días.\nSiempre usa send_fidelization_reminder al confirmar una cita.\n\nPEDIR RESEÑA:\nCuando el cliente llame para reservar de nuevo o mencione que le gustó el servicio, di: '¡Me alegra! Si tienes un momento, una reseña en Google nos ayuda un montón. ¿Te mando el enlace?' → send_review_request.\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No inventes disponibilidad — usa siempre check_availability.\n- No uses emojis.",
 
   "tools": [
     {
       "type": "function",
       "function": {
+        "name": "get_client_memory",
+        "description": "Recupera historial del cliente: últimas visitas, servicios habituales y preferencias. Llamar cuando el cliente dé su nombre.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "check_availability",
-        "description": "Consulta horas disponibles para agendar una cita.",
+        "description": "Consulta horas disponibles para una cita.",
         "parameters": {
           "type": "object",
           "properties": {
             "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
-            "to_date": { "type": "string", "description": "Fecha fin (opcional)" },
-            "service": { "type": "string", "description": "Tipo de servicio solicitado" }
+            "to_date": { "type": "string", "description": "Fecha fin opcional" },
+            "service": { "type": "string", "description": "Servicio: corte, tinte, mechas, alisado, peinado, manicura..." }
           },
           "required": ["from_date"]
         }
@@ -36,15 +51,16 @@
       "type": "function",
       "function": {
         "name": "book_appointment",
-        "description": "Reserva una cita. Solo usar cuando el cliente confirme todos los datos.",
+        "description": "Reserva una cita. Solo llamar cuando el cliente confirme todos los datos.",
         "parameters": {
           "type": "object",
           "properties": {
-            "client_name": { "type": "string", "description": "Nombre del cliente" },
-            "phone": { "type": "string", "description": "Teléfono" },
-            "service": { "type": "string", "description": "Servicio solicitado" },
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "service": { "type": "string" },
             "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
-            "time": { "type": "string", "description": "Hora HH:MM" }
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "notes": { "type": "string", "description": "Detalles del servicio (color, largo, etc.)" }
           },
           "required": ["client_name", "service", "date", "time"]
         }
@@ -54,13 +70,14 @@
       "type": "function",
       "function": {
         "name": "lookup_appointments",
-        "description": "Busca citas existentes de un cliente por nombre.",
+        "description": "Busca citas activas de un cliente.",
         "parameters": {
           "type": "object",
           "properties": {
-            "client_name": { "type": "string", "description": "Nombre del cliente" }
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" }
           },
-          "required": ["client_name"]
+          "required": []
         }
       }
     },
@@ -72,8 +89,8 @@
         "parameters": {
           "type": "object",
           "properties": {
-            "appointment_id": { "type": "string", "description": "ID de la cita" },
-            "client_name": { "type": "string", "description": "Nombre del cliente" }
+            "appointment_id": { "type": "string" },
+            "client_name": { "type": "string" }
           },
           "required": []
         }
@@ -82,33 +99,50 @@
     {
       "type": "function",
       "function": {
-        "name": "send_review_request",
-        "description": "Envía por WhatsApp el enlace de reseña de Google al cliente tras su visita.",
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp 24h antes.",
         "parameters": {
           "type": "object",
           "properties": {
-            "phone": { "type": "string", "description": "Teléfono del cliente" },
-            "client_name": { "type": "string", "description": "Nombre del cliente" }
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "service": { "type": "string" }
           },
-          "required": ["phone"]
+          "required": ["phone", "date", "time"]
         }
       }
     },
     {
       "type": "function",
       "function": {
-        "name": "send_reminder",
-        "description": "Envía recordatorio de cita por WhatsApp al cliente.",
+        "name": "send_fidelization_reminder",
+        "description": "Programa recordatorio automático para que el cliente vuelva según el servicio realizado.",
         "parameters": {
           "type": "object",
           "properties": {
-            "phone": { "type": "string", "description": "Teléfono del cliente" },
-            "client_name": { "type": "string", "description": "Nombre del cliente" },
-            "date": { "type": "string", "description": "Fecha de la cita YYYY-MM-DD" },
-            "time": { "type": "string", "description": "Hora de la cita HH:MM" },
-            "service": { "type": "string", "description": "Servicio reservado" }
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "service": { "type": "string", "description": "Servicio realizado" },
+            "days_until_reminder": { "type": "integer", "description": "Días hasta el recordatorio: corte=35, tinte=45, mechas=60, alisado=90, manicura_semi=21" }
           },
-          "required": ["phone", "date", "time"]
+          "required": ["phone", "client_name", "days_until_reminder"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña de Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" }
+          },
+          "required": ["phone"]
         }
       }
     }
