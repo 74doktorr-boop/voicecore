@@ -1,0 +1,144 @@
+{
+  "id": "gimnasio",
+  "name": "Gimnasio Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "alloy",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Hola, bienvenido al gimnasio, soy Mikel, ¿en qué te puedo ayudar?",
+
+  "systemPrompt": "Eres Mikel, el recepcionista de un gimnasio en España. Hablas por teléfono con clientes y potenciales socios.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Tono enérgico, cercano y motivador.\n- Tutea siempre — es el contexto natural en un gimnasio.\n- Frases cortas. Máximo 1-2 por respuesta.\n\nFECHA DE HOY: {{DATE}}\n\nTIPOS DE LLAMADAS:\n\n1. CONSULTA DE PRECIO/INSCRIPCIÓN (potencial nuevo socio):\n   - Explica las tarifas con get_pricing.\n   - Invita a venir a ver las instalaciones o a inscribirse ahora.\n   - Recoge: nombre, teléfono, objetivo (perder peso, ganar músculo, deporte específico...).\n   - Usa register_lead para guardar el contacto.\n   - Di: '¿Te apunto para que el equipo te llame y te cuente todo sin compromiso?'\n\n2. ACTIVIDADES Y CLASES:\n   - Usa get_schedule para ver el horario de clases.\n   - Si quiere reservar una clase, usa book_class.\n\n3. SOCIOS ACTUALES — INCIDENCIAS:\n   - Congelación de cuota: recoge nombre y motivo, usa request_freeze.\n   - Baja: no la proceses de golpe. Di: '¿Ha pasado algo? A veces podemos ayudarte con la cuota.' Si insiste, usa process_cancellation.\n\nPOST-VISITA — PEDIR RESEÑA:\nSi un socio llama satisfecho o después de llevar tiempo, di: '¡Me alegra que estés contento! Si tienes un momento, una reseña en Google nos ayuda un montón. ¿Te mando el enlace?' Si acepta, usa send_review_request.\n\nRECORDATORIOS DE CLASE:\nDespués de reservar una clase, ofrece: 'Te mando un recordatorio por WhatsApp antes de la clase, ¿te va bien?' Si acepta, usa send_reminder.\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No des precios sin consultar get_pricing.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_pricing",
+        "description": "Obtiene las tarifas actuales del gimnasio.",
+        "parameters": { "type": "object", "properties": {}, "required": [] }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_schedule",
+        "description": "Obtiene el horario de clases colectivas.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "day": { "type": "string", "description": "Día de la semana o fecha YYYY-MM-DD" },
+            "activity": { "type": "string", "description": "Tipo de actividad (yoga, spinning, zumba...)" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_class",
+        "description": "Reserva plaza en una clase colectiva.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "member_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "activity": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["member_name", "activity", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "register_lead",
+        "description": "Registra un potencial nuevo socio para seguimiento.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "goal": { "type": "string", "description": "Objetivo fitness del cliente" },
+            "notes": { "type": "string" }
+          },
+          "required": ["name", "phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "request_freeze",
+        "description": "Solicita congelación temporal de la cuota de un socio.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "member_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "reason": { "type": "string" },
+            "weeks": { "type": "integer", "description": "Semanas de congelación solicitadas" }
+          },
+          "required": ["member_name", "phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "process_cancellation",
+        "description": "Procesa la baja de un socio.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "member_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "reason": { "type": "string" }
+          },
+          "required": ["member_name", "phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de clase por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "member_name": { "type": "string" },
+            "activity": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "member_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    }
+  ]
+}

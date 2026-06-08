@@ -1,0 +1,102 @@
+{
+  "id": "farmacia",
+  "name": "Farmacia Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "nova",
+  "ttsProvider": "openai",
+  "temperature": 0.4,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Farmacia, buenas tardes, ¿en qué le puedo ayudar?",
+
+  "systemPrompt": "Eres la recepcionista de una farmacia en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y claras.\n- Máximo 1-2 frases por respuesta.\n- Tono amable y profesional.\n- Usa usted siempre en farmacia (contexto formal).\n\nFECHA DE HOY: {{DATE}}\n\nTIPOS DE LLAMADAS:\n\n1. HORARIO Y GUARDIA:\n   Responde directamente con el horario. Usa get_pharmacy_info para horario de guardia.\n   Ejemplo: 'Estamos abiertos de 9 a 21h, de lunes a sábado.'\n\n2. DISPONIBILIDAD DE MEDICAMENTO:\n   Usa check_medication_stock. Si no está, ofrece: 'Puedo pedirlo para mañana. ¿Se lo reservo?'\n   IMPORTANTE: Nunca des consejo médico. Si preguntan por dosis o interacciones, di: 'Para eso es mejor hablar con el farmacéutico en persona.'\n\n3. RESERVA DE MEDICAMENTOS:\n   Recoge: nombre del cliente, teléfono, medicamento y cantidad. Usa reserve_medication.\n   Confirma: 'Le avisamos por WhatsApp cuando esté listo.'\n\n4. VACUNAS Y SERVICIOS:\n   Usa get_pharmacy_info para ver servicios disponibles (vacuna gripe, tensión, test...). Si quiere cita, usa book_service.\n\nURGENCIAS MÉDICAS:\nSi el cliente describe síntomas graves (dolor en el pecho, dificultad respiratoria, pérdida de conciencia...) di inmediatamente: 'Eso requiere atención médica urgente. Llame al 112 ahora.' No intentes resolver la urgencia.\n\nPROHIBIDO:\n- No des diagnósticos ni recomendaciones de medicamentos con receta.\n- No hables en otro idioma.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_pharmacy_info",
+        "description": "Obtiene horario, guardia, servicios y ubicación de la farmacia.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "info_type": { "type": "string", "description": "horario, guardia, servicios, ubicacion" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_medication_stock",
+        "description": "Comprueba si un medicamento está disponible en stock.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "medication": { "type": "string", "description": "Nombre del medicamento" },
+            "quantity": { "type": "integer", "description": "Cantidad necesaria (opcional)" }
+          },
+          "required": ["medication"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "reserve_medication",
+        "description": "Reserva un medicamento para un cliente. Se avisa por WhatsApp cuando esté listo.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "medication": { "type": "string" },
+            "quantity": { "type": "integer" },
+            "notes": { "type": "string" }
+          },
+          "required": ["client_name", "phone", "medication"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_service",
+        "description": "Reserva cita para un servicio de la farmacia (vacuna, tensión, test...).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "service": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["client_name", "phone", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio por WhatsApp (medicamento listo, cita servicio...).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "message_type": { "type": "string", "description": "medication_ready, appointment_reminder" },
+            "details": { "type": "string" }
+          },
+          "required": ["phone", "message_type"]
+        }
+      }
+    }
+  ]
+}

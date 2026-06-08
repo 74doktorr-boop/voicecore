@@ -1,0 +1,146 @@
+{
+  "id": "inmobiliaria",
+  "name": "Inmobiliaria Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "onyx",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Buenas tardes, inmobiliaria, le atiende Jon, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Jon, el recepcionista de una agencia inmobiliaria en España. Hablas por teléfono con clientes interesados en comprar, vender o alquilar.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Profesional, seguro y ágil.\n- Usa usted siempre.\n- Máximo 1-2 frases por respuesta.\n- Los leads inmobiliarios son urgentes — no les hagas esperar.\n\nFECHA DE HOY: {{DATE}}\n\nCLASIFICACIÓN INMEDIATA:\nLo primero es saber qué necesitan. Pregunta directamente: '¿Está interesado en comprar, vender o alquilar?'\n\nCOMPRADOR/ARRENDATARIO:\n1. Recoge: nombre, teléfono, zona de interés, presupuesto aproximado, tipo de inmueble (piso, casa, local...), urgencia.\n2. Usa search_properties para buscar opciones que encajen.\n3. Si hay algo interesante, di: '¿Le viene bien esta semana para visitar? Tengo disponibilidad el [día].'\n4. Usa book_visit para agendar la visita.\n5. Usa register_lead para guardar el contacto.\n\nVENDEDOR/PROPIETARIO:\n1. Recoge: nombre, teléfono, tipo de inmueble, zona, estado (para vender/alquilar), precio esperado.\n2. Di: 'Nuestro agente puede hacer una valoración gratuita esta semana. ¿Le parece bien?'\n3. Usa schedule_valuation.\n\nURGENCIA:\nSi dicen 'lo necesito ya', 'vence el contrato', 'tengo que salir del piso en un mes' — usa flag_hot_lead para alertar al agente inmediatamente.\n\nPOST-CIERRE — PEDIR RESEÑA:\nSi el cliente llama para dar las gracias o después de cerrar una operación, di: 'Ha sido un placer trabajar con usted. Si le apetece dejarnos una reseña en Google, nos ayudaría mucho. ¿Le mando el enlace?' Usa send_review_request.\n\nPROHIBIDO:\n- No des precios de inmuebles sin consultar search_properties.\n- No hables en otro idioma.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "search_properties",
+        "description": "Busca inmuebles disponibles según los criterios del cliente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "operation": { "type": "string", "description": "compra, alquiler, venta" },
+            "type": { "type": "string", "description": "piso, casa, local, oficina, garaje..." },
+            "zone": { "type": "string", "description": "Zona o barrio de interés" },
+            "budget_max": { "type": "number", "description": "Presupuesto máximo en euros" },
+            "bedrooms": { "type": "integer", "description": "Número mínimo de habitaciones (opcional)" }
+          },
+          "required": ["operation"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_visit",
+        "description": "Agenda visita a un inmueble.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "property_id": { "type": "string", "description": "ID del inmueble a visitar" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["client_name", "phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "register_lead",
+        "description": "Registra un cliente potencial con sus necesidades para seguimiento del agente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "operation": { "type": "string" },
+            "property_type": { "type": "string" },
+            "zone": { "type": "string" },
+            "budget": { "type": "string" },
+            "urgency": { "type": "string", "description": "alta, media, baja" },
+            "notes": { "type": "string" }
+          },
+          "required": ["name", "phone", "operation"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "schedule_valuation",
+        "description": "Agenda valoración gratuita del inmueble de un propietario.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "property_type": { "type": "string" },
+            "address": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["client_name", "phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_hot_lead",
+        "description": "Alerta inmediata al agente por WhatsApp — lead urgente o con alta intención de compra.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "operation": { "type": "string" },
+            "details": { "type": "string", "description": "Descripción de la urgencia o interés" }
+          },
+          "required": ["phone", "operation"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de visita por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" },
+            "address": { "type": "string", "description": "Dirección del inmueble" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    }
+  ]
+}

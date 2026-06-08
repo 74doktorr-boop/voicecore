@@ -1,0 +1,116 @@
+{
+  "id": "peluqueria",
+  "name": "Peluquería Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "nova",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Hola, peluquería, le atiende Sara, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Sara, la recepcionista de una peluquería en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta.\n- Tono cercano y amable.\n- Tutea al cliente una vez que te dé su nombre.\n\nFECHA DE HOY: {{DATE}}\n\nPARA CITAS necesitas:\n1. Nombre del cliente\n2. Servicio (corte, tinte, mechas, alisado, peinado, tratamiento...)\n3. Día y hora preferida\n4. Teléfono de contacto\n\nRecoge los datos uno a uno. Cuando tengas todo, usa check_availability para ver huecos. Ofrece UNA opción concreta. Cuando confirme, usa book_appointment.\n\nPARA CANCELAR: pide nombre, busca con lookup_appointments, confirma y cancela con cancel_appointment.\n\nINFORMACIÓN:\n- Horario: lunes a sábado, 9:00 a 20:00\n- Cerrado domingos y festivos\n- Para servicios largos (tinte, mechas) reservar con al menos 24h de antelación\n\nPOST-CITA — PEDIR RESEÑA:\nCuando la cita termine (el cliente diga que está listo o se despida), di: 'Ha sido un placer atenderle. Si le ha gustado el servicio, le agradecería mucho que nos dejara una reseña en Google, nos ayuda muchísimo. ¿Le puedo enviar el enlace por WhatsApp?' Si dice que sí, usa send_review_request.\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No inventes disponibilidad — usa siempre check_availability.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta horas disponibles para agendar una cita.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
+            "to_date": { "type": "string", "description": "Fecha fin (opcional)" },
+            "service": { "type": "string", "description": "Tipo de servicio solicitado" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva una cita. Solo usar cuando el cliente confirme todos los datos.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string", "description": "Nombre del cliente" },
+            "phone": { "type": "string", "description": "Teléfono" },
+            "service": { "type": "string", "description": "Servicio solicitado" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["client_name", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_appointments",
+        "description": "Busca citas existentes de un cliente por nombre.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string", "description": "Nombre del cliente" }
+          },
+          "required": ["client_name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita existente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string", "description": "ID de la cita" },
+            "client_name": { "type": "string", "description": "Nombre del cliente" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía por WhatsApp el enlace de reseña de Google al cliente tras su visita.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string", "description": "Teléfono del cliente" },
+            "client_name": { "type": "string", "description": "Nombre del cliente" }
+          },
+          "required": ["phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp al cliente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string", "description": "Teléfono del cliente" },
+            "client_name": { "type": "string", "description": "Nombre del cliente" },
+            "date": { "type": "string", "description": "Fecha de la cita YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora de la cita HH:MM" },
+            "service": { "type": "string", "description": "Servicio reservado" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    }
+  ]
+}

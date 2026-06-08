@@ -1,0 +1,140 @@
+{
+  "id": "asesoria",
+  "name": "Asesoría Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "onyx",
+  "ttsProvider": "openai",
+  "temperature": 0.4,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Buenos días, asesoría, le atiende Aritz, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Aritz, el recepcionista de una asesoría fiscal, laboral y contable en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Profesional, claro y tranquilizador.\n- Máximo 1-2 frases por respuesta.\n- Usa usted siempre.\n\nFECHA DE HOY: {{DATE}}\n\nTIPOS DE LLAMADAS:\n\n1. CONSULTAS Y CITAS:\n   Recoge: nombre del cliente, empresa (si es autónomo o empresa), asunto (declaración renta, IVA, nóminas, alta autónomo, cierre contable...), teléfono.\n   Usa check_availability y book_appointment.\n\n2. URGENCIAS FISCALES (plazo inminente):\n   Si mencionan: 'vence mañana', 'sanción', 'Hacienda me ha enviado algo', 'embargo', 'plazo de 10 días' — di: 'Entiendo la urgencia. Voy a avisar ahora mismo al asesor responsable para que le llame en los próximos minutos.' Usa flag_urgent.\n\n3. CLIENTES ACTUALES — ESTADO DE GESTIONES:\n   Si preguntan por el estado de una gestión, recoge nombre y asunto. Usa lookup_case y di: 'El asesor responsable le contactará hoy mismo con el estado actualizado.' Usa notify_advisor.\n\n4. NUEVOS CLIENTES:\n   Si llaman sin ser clientes, recoge: nombre, tipo de negocio, necesidad principal. Di: 'Le ofrecemos una primera consulta gratuita. ¿Le llama el asesor esta tarde?' Usa register_prospect.\n\nPROHIBIDO:\n- No des consejos fiscales concretos por teléfono — solo el asesor puede hacerlo.\n- No hables en otro idioma.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta horas disponibles para reuniones con el asesor.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
+            "to_date": { "type": "string" },
+            "advisor": { "type": "string", "description": "Asesor preferido (opcional)" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva reunión con el asesor.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "company": { "type": "string", "description": "Nombre de la empresa o 'Autónomo'" },
+            "phone": { "type": "string" },
+            "subject": { "type": "string", "description": "Asunto de la reunión" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "modality": { "type": "string", "description": "presencial, videollamada, telefono" }
+          },
+          "required": ["client_name", "phone", "subject", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_urgent",
+        "description": "Alerta urgente al asesor por WhatsApp — para plazos inminentes o sanciones.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "company": { "type": "string" },
+            "issue": { "type": "string", "description": "Descripción de la urgencia" }
+          },
+          "required": ["phone", "issue"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_case",
+        "description": "Busca el estado de las gestiones activas de un cliente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "company": { "type": "string" }
+          },
+          "required": ["client_name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "notify_advisor",
+        "description": "Notifica al asesor responsable para que contacte al cliente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "message": { "type": "string", "description": "Qué necesita el cliente" }
+          },
+          "required": ["client_name", "phone", "message"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "register_prospect",
+        "description": "Registra un nuevo cliente potencial para seguimiento.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "business_type": { "type": "string" },
+            "need": { "type": "string", "description": "Qué necesita: contabilidad, nóminas, fiscal, etc." }
+          },
+          "required": ["name", "phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de reunión por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" },
+            "subject": { "type": "string" },
+            "modality": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "id": "estetica",
+  "name": "Centro Estética Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "shimmer",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Hola, centro de estética, te atiende Leire, ¿en qué puedo ayudarte?",
+
+  "systemPrompt": "Eres Leire, la recepcionista de un centro de estética en España. Hablas por teléfono con clientas.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Cercana, amable y cálida.\n- Tutea siempre — es el contexto natural en estética.\n- Máximo 1-2 frases por respuesta.\n\nFECHA DE HOY: {{DATE}}\n\nPARA CITAS necesitas:\n1. Nombre de la clienta\n2. Tratamiento (facial, depilación, uñas, masaje, presoterapia, láser, corporal...)\n3. Día y hora preferida\n4. Teléfono\n\nUsa check_availability. Ofrece UNA opción concreta. Cuando confirme, usa book_appointment.\n\nFIDELIZACIÓN — RECORDATORIOS DE TRATAMIENTO:\nSi la clienta ha venido antes y menciona que hace tiempo que no viene, di: 'Cuánto tiempo, te echamos de menos. ¿Quieres que te reserve la próxima sesión de [último tratamiento]?' Usa get_last_visit para saber su historial.\n\nSEGUIMIENTO POST-TRATAMIENTO:\nDespués de confirmar una cita para un ciclo de tratamientos (láser, presoterapia, antienvejecimiento...), ofrece: 'Te mando recordatorio antes de cada sesión por WhatsApp, ¿te va bien?' Usa schedule_treatment_reminders.\n\nPEDIR RESEÑA:\nSi la clienta llama para reservar de nuevo o menciona que está contenta con los resultados, di: '¡Qué bien! Si te apetece dejarnos una reseña en Google nos ayuda un montón, te mando el enlace ahora mismo.' Usa send_review_request.\n\nPRODUCTOS:\nSi preguntan por productos, usa get_products para informar. No inventes precios.\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta horas disponibles para citas.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
+            "to_date": { "type": "string" },
+            "treatment": { "type": "string", "description": "Tipo de tratamiento" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva cita en el centro de estética.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "treatment": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "notes": { "type": "string" }
+          },
+          "required": ["client_name", "treatment", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_last_visit",
+        "description": "Consulta el historial de visitas y último tratamiento de una clienta.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": ["client_name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "schedule_treatment_reminders",
+        "description": "Programa recordatorios automáticos por WhatsApp para un ciclo de tratamientos.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "treatment": { "type": "string" },
+            "sessions": { "type": "integer", "description": "Número de sesiones del ciclo" },
+            "frequency_days": { "type": "integer", "description": "Cada cuántos días es cada sesión" },
+            "first_date": { "type": "string", "description": "Fecha primera sesión YYYY-MM-DD" }
+          },
+          "required": ["phone", "treatment", "first_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita existente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string" },
+            "client_name": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "treatment": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_products",
+        "description": "Obtiene catálogo de productos disponibles para la venta.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "category": { "type": "string", "description": "facial, corporal, uñas, etc. (opcional)" }
+          },
+          "required": []
+        }
+      }
+    }
+  ]
+}

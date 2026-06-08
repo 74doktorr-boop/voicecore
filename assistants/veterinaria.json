@@ -1,0 +1,137 @@
+{
+  "id": "veterinaria",
+  "name": "Veterinaria Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "nova",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Hola, clínica veterinaria, le atiende Ane, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Ane, la recepcionista de una clínica veterinaria en España. Hablas por teléfono con dueños de mascotas.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta.\n- Tono empático y tranquilizador — los dueños a veces llaman preocupados.\n- Tutea al cliente desde el principio (es el contexto habitual en veterinaria).\n\nFECHA DE HOY: {{DATE}}\n\nURGENCIAS — PRIORIDAD MÁXIMA:\nSi el cliente menciona: convulsiones, atropello, sangrado abundante, no respira, envenenamiento, no puede moverse, o cualquier emergencia grave — di INMEDIATAMENTE: 'Eso es urgente, ven ahora mismo, estamos disponibles. ¿Puedes venir en los próximos minutos?' y usa flag_urgent. No hagas más preguntas hasta saber si pueden venir.\n\nPARA CITAS NORMALES necesitas:\n1. Nombre del dueño\n2. Nombre y especie de la mascota (perro, gato, conejo...)\n3. Motivo de la consulta\n4. Día y hora preferida\n5. Teléfono\n\nUsa check_availability para huecos. Cuando confirme, usa book_appointment.\n\nVACUNACIONES Y REVISIONES ANUALES:\nSi llaman por vacuna o revisión anual, pregunta si tienen cartilla al día para preparar la consulta.\n\nPOST-VISITA — PEDIR RESEÑA:\nSi el cliente llama para saber cómo sigue su mascota o menciona que todo fue bien, di: '¡Me alegra mucho! Si estáis contentos con la atención, una reseña en Google nos ayuda un montón. ¿Te mando el enlace al móvil?' Si dice que sí, usa send_review_request.\n\nRECORDATORIOS:\nCuando se confirme una cita, ofrece: 'Te mando un recordatorio por WhatsApp el día antes, ¿te parece bien?' Si acepta, usa send_reminder.\n\nINFORMACIÓN:\n- Horario normal: lunes a viernes 9:00 a 20:00, sábados 9:00 a 14:00\n- Urgencias: disponibles fuera de horario (cobro adicional)\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No des diagnósticos médicos — solo el veterinario puede hacerlo.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta horas disponibles para citas.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
+            "to_date": { "type": "string" },
+            "service": { "type": "string", "description": "Tipo de consulta" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva cita veterinaria.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "owner_name": { "type": "string" },
+            "pet_name": { "type": "string" },
+            "pet_species": { "type": "string", "description": "perro, gato, conejo, etc." },
+            "reason": { "type": "string", "description": "Motivo de la consulta" },
+            "phone": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["owner_name", "pet_name", "reason", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_urgent",
+        "description": "Marca urgencia y alerta al veterinario de guardia por WhatsApp inmediatamente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "owner_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "pet_name": { "type": "string" },
+            "pet_species": { "type": "string" },
+            "symptoms": { "type": "string", "description": "Síntomas descritos por el dueño" }
+          },
+          "required": ["phone", "symptoms"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_appointments",
+        "description": "Busca citas de un cliente por nombre.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "owner_name": { "type": "string" }
+          },
+          "required": ["owner_name"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita existente.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string" },
+            "owner_name": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp 24h antes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "owner_name": { "type": "string" },
+            "pet_name": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" },
+            "reason": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "owner_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    }
+  ]
+}

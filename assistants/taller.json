@@ -1,0 +1,122 @@
+{
+  "id": "taller",
+  "name": "Taller Mecánico Agent",
+  "language": "es",
+  "model": "gpt-4o-mini",
+  "voice": "echo",
+  "ttsProvider": "openai",
+  "temperature": 0.5,
+  "maxTokens": 150,
+  "utteranceEndMs": 2200,
+  "endpointing": 900,
+  "speed": 1.0,
+
+  "firstMessage": "Hola, taller, le atiende Iñaki, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Iñaki, el recepcionista de un taller mecánico en España. Hablas por teléfono con clientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como un profesional del taller por teléfono. Directo, amable, sin rodeos.\n- Máximo 1-2 frases por respuesta.\n- Tono cercano y de confianza.\n\nFECHA DE HOY: {{DATE}}\n\nPARA CITAS/PRESUPUESTOS necesitas:\n1. Nombre del cliente\n2. Matrícula del vehículo\n3. Marca y modelo del coche\n4. Avería o servicio (ITV, revisión, frenos, aceite, diagnosis...)\n5. Día y hora preferida\n6. Teléfono de contacto\n\nRecoge los datos de forma natural. Usa check_availability para ver huecos. Cuando confirme, usa book_appointment.\n\nURGENCIAS: Si el cliente menciona avería en carretera, humo, frenos que fallan o cualquier urgencia de seguridad, di: 'Entendido, eso es urgente. ¿Puede traerlo ahora mismo o necesita grúa?' y usa flag_urgent.\n\nPRESUPUESTOS: Si solo quiere un presupuesto sin traer el coche, recoge: nombre, teléfono, marca/modelo, avería. Usa request_quote.\n\nPOST-SERVICIO — PEDIR RESEÑA:\nSi el cliente llama para agradecer el trabajo o menciona que ya recogió el coche, di: 'Me alegra que todo haya ido bien. Si le ha gustado el servicio, nos ayudaría mucho una reseña en Google. ¿Le mando el enlace al móvil?' Si dice que sí, usa send_review_request.\n\nINFORMACIÓN:\n- Horario: lunes a viernes 8:00 a 18:00, sábados 8:00 a 13:00\n- Cerrado domingos\n\nPROHIBIDO:\n- No hables en otro idioma.\n- No repitas preguntas ya respondidas.\n- No inventes disponibilidad.\n- No uses emojis.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta horas disponibles en el taller.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio YYYY-MM-DD" },
+            "to_date": { "type": "string", "description": "Fecha fin (opcional)" },
+            "service": { "type": "string", "description": "Tipo de servicio" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva cita en el taller. Solo cuando el cliente confirme todos los datos.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "vehicle": { "type": "string", "description": "Marca, modelo y matrícula" },
+            "service": { "type": "string", "description": "Trabajo a realizar" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" }
+          },
+          "required": ["client_name", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "request_quote",
+        "description": "Registra una solicitud de presupuesto sin cita.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "vehicle": { "type": "string" },
+            "issue": { "type": "string", "description": "Descripción de la avería o servicio" }
+          },
+          "required": ["client_name", "phone", "issue"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_urgent",
+        "description": "Marca la llamada como urgencia y alerta al mecánico por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "issue": { "type": "string", "description": "Descripción de la urgencia" },
+            "location": { "type": "string", "description": "Dónde está el vehículo (opcional)" }
+          },
+          "required": ["phone", "issue"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña Google por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "client_name": { "type": "string" },
+            "date": { "type": "string" },
+            "time": { "type": "string" },
+            "service": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    }
+  ]
+}
