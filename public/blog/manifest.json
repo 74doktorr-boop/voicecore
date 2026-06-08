@@ -39,9 +39,25 @@
     "estadisticas-llamadas-perdidas-pymes-espana",
     "recepcionista-ia-asesorias-gestoras-espana",
     "asistente-ia-restaurante-vitoria",
-    "recepcionista-ia-fisioterapia-bilbao"
+    "recepcionista-ia-fisioterapia-bilbao",
+    "asistente-ia-fisioterapia-donostia"
   ],
   "posts": [
+    {
+      "slug": "asistente-ia-fisioterapia-donostia",
+      "title": "Asistente IA para Fisioterapia en Donostia: Automatización Eficaz",
+      "metaTitle": "Asistente IA para clínicas de fisioterapia en Donostia",
+      "description": "Automatiza citas y gestiona seguros con asistente IA en Donostia. Descubre cómo en nodeflow.es.",
+      "date": "2026-06-08",
+      "keywords": [
+        "asistente IA fisioterapia Donostia",
+        "recepcionista virtual fisio San Sebastián",
+        "automatizar citas rehabilitación Gipuzkoa"
+      ],
+      "sector": "fisioterapia",
+      "city": "donostia",
+      "readingMinutes": 7
+    },
     {
       "slug": "recepcionista-ia-fisioterapia-bilbao",
       "title": "Recepcionista IA para Fisioterapia en Bilbao: Eficiencia y Comodidad",
