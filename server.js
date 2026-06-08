@@ -15,6 +15,7 @@ const { VoicePipeline } = require('./src/core/voice-pipeline');
 const { AssistantManager } = require('./src/assistants/manager');
 const { setupTwilioStreams } = require('./src/telephony/twilio-streams');
 const { setupVonageStreams } = require('./src/telephony/vonage-handler');
+const { setupTelnyxStreams } = require('./src/telephony/telnyx-handler');
 const { setupRoutes } = require('./src/api/routes');
 const { TTSRouter } = require('./src/tts/router');
 const { LLMRouter } = require('./src/llm/router');
@@ -301,6 +302,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'), {
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });        // Twilio
 const wssVonage = new WebSocketServer({ noServer: true });   // Vonage
+const wssTelnyx = new WebSocketServer({ noServer: true });   // Telnyx
 const wssBrowser = new WebSocketServer({ noServer: true });  // Browser demo
 
 // Manual upgrade to support query params in paths
@@ -312,6 +314,8 @@ server.on('upgrade', (request, socket, head) => {
     wss.handleUpgrade(request, socket, head, (ws) => { wss.emit('connection', ws, request); });
   } else if (pathname === '/vonage-stream') {
     wssVonage.handleUpgrade(request, socket, head, (ws) => { wssVonage.emit('connection', ws, request); });
+  } else if (pathname === '/telnyx-stream') {
+    wssTelnyx.handleUpgrade(request, socket, head, (ws) => { wssTelnyx.emit('connection', ws, request); });
   } else if (pathname === '/ws/talk') {
     wssBrowser.handleUpgrade(request, socket, head, (ws) => { wssBrowser.emit('connection', ws, request); });
   } else {
@@ -382,6 +386,9 @@ setupTwilioStreams(wss, pipeline, assistantManager);
 
 // Setup Vonage Voice API WebSocket handler
 setupVonageStreams(wssVonage, pipeline, assistantManager);
+
+// Setup Telnyx Media Streams WebSocket handler (+34 946 91 02 75)
+setupTelnyxStreams(wssTelnyx, pipeline, assistantManager);
 
 // Setup Browser Talk handler
 const browserHandler = new BrowserCallHandler(assistantManager);
@@ -536,7 +543,7 @@ app.use('/api/critical-dates', criticalDatesRouter);
 // ─── 404 handler ───
 app.use((req, res) => {
   // API routes → JSON
-  if (req.path.startsWith('/api/') || req.path.startsWith('/voice/') || req.path.startsWith('/vonage/')) {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/voice/') || req.path.startsWith('/vonage/') || req.path.startsWith('/telnyx/')) {
     return res.status(404).json({ error: 'Not found' });
   }
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));

@@ -6,6 +6,7 @@
 const { Logger } = require('../utils/logger');
 const { generateTwiML } = require('../telephony/twilio-streams');
 const { generateNCCO } = require('../telephony/vonage-handler');
+const { generateTeXML } = require('../telephony/telnyx-handler');
 const { requireAuth, rateLimit, checkUsageLimits, PLAN_LIMITS } = require('../auth/middleware');
 const { getDatabase } = require('../db/database');
 
@@ -99,6 +100,38 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     log.call(`[Vonage] Event: ${req.body?.status || 'unknown'}`, {
       uuid: req.body?.uuid,
       duration: req.body?.duration,
+    });
+    res.status(200).end();
+  });
+
+  // ─── Telnyx Webhooks (TeXML — same as TwiML) ───
+  // Configure in Telnyx dashboard:
+  //   Voice → Connection → Webhook URL: https://xmehd4.easypanel.host/voice/telnyx
+  //   Webhook HTTP Method: POST
+  //
+  // Optional: set TELNYX_API_KEY in .env to enable outbound calls via API
+  app.post('/voice/telnyx', (req, res) => {
+    const assistantId = req.query.assistantId || null;
+    const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
+    const callerNumber = req.body?.From || req.body?.from || 'unknown';
+    const calledNumber = req.body?.To   || req.body?.to   || 'unknown';
+    log.call(`[Telnyx] Inbound call from ${callerNumber} → ${calledNumber} | assistant: ${assistantId || 'default'}`);
+    res.type('text/xml').send(generateTeXML(wsUrl, assistantId));
+  });
+
+  app.post('/voice/telnyx/:assistantId', (req, res) => {
+    const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
+    const callerNumber = req.body?.From || req.body?.from || 'unknown';
+    log.call(`[Telnyx] Inbound call from ${callerNumber} → assistant: ${req.params.assistantId}`);
+    res.type('text/xml').send(generateTeXML(wsUrl, req.params.assistantId));
+  });
+
+  // Telnyx status webhook (call state changes)
+  app.post('/telnyx/status', (req, res) => {
+    const payload = req.body?.data || req.body;
+    log.call(`[Telnyx] Status: ${payload?.event_type || 'unknown'}`, {
+      call_control_id: payload?.payload?.call_control_id,
+      call_duration: payload?.payload?.call_duration,
     });
     res.status(200).end();
   });
