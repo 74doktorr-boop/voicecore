@@ -360,9 +360,9 @@ async function loadDashboard() {
           '<div style="font-size:13px;font-weight:700;color:#a29bfe;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">🚀 Primeros pasos</div>' +
           '<div style="display:flex;flex-direction:column;gap:10px;" id="setup-steps">' +
             '<div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>' +
-            '<div class="setup-step" data-step="2" onclick="showSection(\'sec-asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente</strong> — nombre, voz e idioma → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
-            '<div class="setup-step" data-step="3">📞 Prueba de llamada pendiente — Unai te llamará en las próximas horas</div>' +
-            '<div class="setup-step" data-step="4">🔀 Activar desvío de llamadas — último paso para estar en marcha</div>' +
+            '<div class="setup-step" data-step="2" onclick="navigate(\'asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente IA</strong> — nombre, voz, idioma y servicios → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
+            '<div class="setup-step" data-step="3" onclick="navigate(\'configuracion\')" style="cursor:pointer;">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
+            '<div class="setup-step" data-step="4">📞 <strong>Activa el desvío de llamadas</strong> — redirige tu número al asistente IA para empezar a recibir llamadas</div>' +
           '</div>' +
           '<button onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>' +
         '</div>';
@@ -449,17 +449,35 @@ async function loadCalls(outcome, from, to) {
 }
 
 // ── Citas ─────────────────────────────────────────────────────
-async function loadCitas() {
-  var sec = document.getElementById('sec-citas');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando citas…</div></div>';
+var _citasData = [];
+var _citasFilterStatus = 'todas';
+var _citasSearch = '';
 
-  var data;
+async function loadCitas(statusFilter, search) {
+  _citasFilterStatus = statusFilter || _citasFilterStatus || 'todas';
+  _citasSearch       = (search !== undefined) ? search : (_citasSearch || '');
+
+  var sec = document.getElementById('sec-citas');
+  if (!_citasData.length) {
+    sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando citas…</div></div>';
+  }
+
   try {
-    data = await api('/api/portal/appointments');
+    var data = await api('/api/portal/appointments');
+    _citasData = data.appointments || [];
   } catch (e) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
   }
+
+  renderCitas();
+}
+
+function renderCitas() {
+  var sec = document.getElementById('sec-citas');
+  if (!sec) return;
+
+  var today = new Date().toLocaleDateString('sv-SE');
 
   var STATUS_BADGE = {
     confirmed: '<span class="badge bg">✓ Confirmada</span>',
@@ -467,10 +485,22 @@ async function loadCitas() {
     pending:   '<span class="badge by">Pendiente</span>',
   };
 
+  var filtered = _citasData.filter(function(a) {
+    if (_citasFilterStatus !== 'todas' && a.status !== _citasFilterStatus) return false;
+    if (_citasSearch) {
+      var q = _citasSearch.toLowerCase();
+      if (!(a.patientName || '').toLowerCase().includes(q) &&
+          !(a.phone || '').includes(q) &&
+          !(a.service || '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
   var rows = '';
-  if (data.appointments && data.appointments.length > 0) {
-    for (var i = 0; i < data.appointments.length; i++) {
-      var a = data.appointments[i];
+  if (filtered.length > 0) {
+    for (var i = 0; i < filtered.length; i++) {
+      var a = filtered[i];
+      var isToday = a.date === today;
       var badge   = STATUS_BADGE[a.status] || STATUS_BADGE.pending;
       var safeId  = esc(a.id);
       var safeName = esc(a.patientName).replace(/'/g, "\\'");
@@ -478,17 +508,17 @@ async function loadCitas() {
         ? '<button class="btn btn-d btn-sm" onclick="openEditCita(\'' + safeId + '\')">✏️</button> ' +
           '<button class="btn btn-r btn-sm" onclick="cancelCitaConfirm(\'' + safeId + '\',\'' + safeName + '\')">✕</button>'
         : '';
-      rows += '<tr>' +
-        '<td>' + fmtDate(a.date) + '</td>' +
+      rows += '<tr' + (isToday ? ' style="background:rgba(108,92,231,0.08)"' : '') + '>' +
+        '<td>' + (isToday ? '<strong style="color:var(--accent-l)">Hoy</strong>' : fmtDate(a.date)) + '</td>' +
         '<td><strong>' + esc(a.time) + '</strong></td>' +
         '<td>' + esc(a.patientName) + '</td>' +
         '<td>' + esc(a.phone || '—') + '</td>' +
-        '<td>' + esc(a.service) + '</td>' +
+        '<td>' + esc(a.service) + (a.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ' + esc(a.notes) + '</div>' : '') + '</td>' +
         '<td>' + badge + '</td>' +
         '<td style="white-space:nowrap">' + actions + '</td></tr>';
     }
   } else {
-    rows = '<tr class="empty-row"><td colspan="7">No hay citas registradas</td></tr>';
+    rows = '<tr class="empty-row"><td colspan="7">' + (_citasSearch || _citasFilterStatus !== 'todas' ? 'Sin resultados con este filtro' : 'No hay citas registradas') + '</td></tr>';
   }
 
   sec.innerHTML =
@@ -496,9 +526,21 @@ async function loadCitas() {
       '<div class="section-title">🗓️ Citas</div>' +
       '<button class="btn btn-accent" onclick="openNewCita()">+ Nueva cita</button>' +
     '</div>' +
+    '<div class="filter-bar">' +
+      '<input class="search-input" id="citasSearch" placeholder="Buscar cliente, teléfono o servicio…" value="' + esc(_citasSearch) + '"' +
+        ' oninput="_citasSearch=this.value;renderCitas()" style="flex:1;min-width:180px">' +
+      '<label style="font-size:12px;color:var(--dim)">Estado:</label>' +
+      '<select id="citasStatus" onchange="_citasFilterStatus=this.value;renderCitas()">' +
+        '<option value="todas"' + (_citasFilterStatus==='todas'?' selected':'') + '>Todas</option>' +
+        '<option value="confirmed"' + (_citasFilterStatus==='confirmed'?' selected':'') + '>Confirmadas</option>' +
+        '<option value="pending"' + (_citasFilterStatus==='pending'?' selected':'') + '>Pendientes</option>' +
+        '<option value="cancelled"' + (_citasFilterStatus==='cancelled'?' selected':'') + '>Canceladas</option>' +
+      '</select>' +
+    '</div>' +
     '<div class="table-wrap"><table>' +
       '<thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>';
+      '<tbody>' + rows + '</tbody></table></div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-top:12px">' + filtered.length + ' citas' + (_citasData.length !== filtered.length ? ' (de ' + _citasData.length + ' total)' : '') + '</div>';
 }
 
 function openNewCita() {
@@ -517,6 +559,8 @@ function openNewCita() {
       '<input class="form-input" id="mDate" type="date" value="' + today + '"></div>' +
     '<div class="form-group"><label class="form-label">Hora *</label>' +
       '<input class="form-input" id="mTime" type="time"></div>' +
+    '<div class="form-group"><label class="form-label">Notas internas</label>' +
+      '<textarea class="form-input" id="mNotes" rows="2" placeholder="Primera visita, alergias, observaciones…"></textarea></div>' +
     '<div class="modal-actions">' +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
       '<button class="btn btn-accent" onclick="submitNewCita()">Guardar cita</button>' +
@@ -532,6 +576,7 @@ async function submitNewCita() {
     service:     document.getElementById('mService').value.trim(),
     date:        document.getElementById('mDate').value,
     time:        document.getElementById('mTime').value,
+    notes:       document.getElementById('mNotes').value.trim() || undefined,
   };
   if (!body.patientName || !body.service || !body.date || !body.time) {
     toast('Rellena todos los campos obligatorios', 'err');
@@ -541,6 +586,7 @@ async function submitNewCita() {
     await api('/api/portal/appointments', 'POST', body);
     closeModal();
     toast('Cita creada correctamente');
+    _citasData = [];
     loadCitas();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -548,16 +594,19 @@ async function submitNewCita() {
 }
 
 async function openEditCita(id) {
-  var data;
+  var apt;
   try {
-    data = await api('/api/portal/appointments');
+    var res = await api('/api/portal/appointments/' + id);
+    apt = res.appointment || res;
   } catch (e) {
-    toast('Error al cargar cita: ' + e.message, 'err');
-    return;
-  }
-  var apt = null;
-  for (var i = 0; i < data.appointments.length; i++) {
-    if (data.appointments[i].id === id) { apt = data.appointments[i]; break; }
+    // Fallback: buscar en la lista completa
+    try {
+      var data = await api('/api/portal/appointments');
+      apt = null;
+      for (var i = 0; i < data.appointments.length; i++) {
+        if (data.appointments[i].id === id) { apt = data.appointments[i]; break; }
+      }
+    } catch (e2) { toast('Error al cargar cita: ' + e2.message, 'err'); return; }
   }
   if (!apt) { toast('Cita no encontrada', 'err'); return; }
 
@@ -575,6 +624,8 @@ async function openEditCita(id) {
       '<input class="form-input" id="eDate" type="date" value="' + esc(apt.date || '') + '"></div>' +
     '<div class="form-group"><label class="form-label">Hora *</label>' +
       '<input class="form-input" id="eTime" type="time" value="' + esc(apt.time || '') + '"></div>' +
+    '<div class="form-group"><label class="form-label">Notas internas</label>' +
+      '<textarea class="form-input" id="eNotes" rows="2" placeholder="Primera visita, alergias, observaciones…">' + esc(apt.notes || '') + '</textarea></div>' +
     '<div class="modal-actions">' +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
       '<button class="btn btn-accent" onclick="submitEditCita(\'' + esc(id) + '\')">Guardar cambios</button>' +
@@ -590,6 +641,7 @@ async function submitEditCita(id) {
     service:     document.getElementById('eService').value.trim(),
     date:        document.getElementById('eDate').value,
     time:        document.getElementById('eTime').value,
+    notes:       document.getElementById('eNotes')?.value?.trim() || undefined,
   };
   if (!body.patientName || !body.service || !body.date || !body.time) {
     toast('Rellena todos los campos obligatorios', 'err');
@@ -599,6 +651,7 @@ async function submitEditCita(id) {
     await api('/api/portal/appointments/' + id, 'PATCH', body);
     closeModal();
     toast('Cita actualizada');
+    _citasData = [];
     loadCitas();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -623,6 +676,7 @@ async function submitCancelCita(id) {
     await api('/api/portal/appointments/' + id, 'DELETE');
     closeModal();
     toast('Cita cancelada');
+    _citasData = [];
     loadCitas();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -735,7 +789,7 @@ async function loadAutomatizaciones() {
       // Reminders card
       '<div class="auto-card"><div class="auto-row"><div>' +
         '<div class="auto-name">🔔 Recordatorios de cita</div>' +
-        '<div class="auto-desc">Email al cliente antes de su cita</div>' +
+        '<div class="auto-desc">WhatsApp + email al cliente antes de su cita</div>' +
       '</div><label class="toggle"><input type="checkbox" id="togReminders" ' + (rem.enabled !== false ? 'checked' : '') +
         ' onchange="patchAuto(\'reminders\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
       '<div class="auto-footer"><span class="auto-label">Horas antes:</span><div class="auto-hours">' +
@@ -744,7 +798,7 @@ async function loadAutomatizaciones() {
       // Reviews card
       '<div class="auto-card"><div class="auto-row"><div>' +
         '<div class="auto-name">⭐ Solicitud de reseña</div>' +
-        '<div class="auto-desc">Email pidiendo reseña Google tras la cita</div>' +
+        '<div class="auto-desc">WhatsApp + email pidiendo reseña Google tras la cita</div>' +
       '</div><label class="toggle"><input type="checkbox" id="togReviews" ' + (rev.enabled !== false ? 'checked' : '') +
         ' onchange="patchAuto(\'reviews\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
       '<div class="auto-footer"><span class="auto-label">Horas después:</span><div class="auto-hours">' +

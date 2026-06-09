@@ -182,14 +182,23 @@ function setupPortalRoutes(app, pipeline, config) {
   // ── POST /api/portal/appointments ─────────────────────────
   app.post('/api/portal/appointments', portalAuth, (req, res) => {
     const { businessId } = req;
-    const { patientName, phone, email, service, date, time } = req.body;
+    const { patientName, phone, email, service, date, time, notes } = req.body;
     if (!patientName || !service || !date || !time) {
       return res.status(400).json({ error: 'patientName, service, date y time son obligatorios' });
     }
-    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time });
+    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes });
     if (!result.success) return res.status(409).json({ error: result.error });
     log.info(`Portal: appointment created ${result.appointment.id} for ${patientName}`);
     res.json({ ok: true, appointment: result.appointment });
+  });
+
+  // ── GET /api/portal/appointments/:id ─────────────────────
+  app.get('/api/portal/appointments/:id', portalAuth, (req, res) => {
+    const { businessId } = req;
+    const apt = scheduler.appointments.get(req.params.id);
+    if (!apt) return res.status(404).json({ error: 'Cita no encontrada' });
+    if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
+    res.json({ appointment: apt });
   });
 
   // ── PATCH /api/portal/appointments/:id ────────────────────

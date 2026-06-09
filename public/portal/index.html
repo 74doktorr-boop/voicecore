@@ -154,7 +154,9 @@
 
     /* ── Filter bar ── */
     .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
-    .filter-bar select,.filter-bar input[type=date]{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+    .filter-bar select,.filter-bar input[type=date],.filter-bar input[type=text]{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+    .filter-bar .search-input{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+    .filter-bar .search-input:focus{border-color:var(--accent)}
 
     /* ── Toast ── */
     #toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:400;pointer-events:none}
