@@ -208,14 +208,8 @@
   <!-- Panel derecho -->
   <div class="panel">
 
-    <div class="panel-section">
-      <div class="panel-title">Lo que hace automáticamente</div>
-      <div class="feature-item"><span class="feature-icon">📅</span><div class="feature-text"><strong>Gestión de citas</strong>Agenda, modifica y cancela sin que nadie intervenga</div></div>
-      <div class="feature-item"><span class="feature-icon">💬</span><div class="feature-text"><strong>Recordatorios WhatsApp</strong>Al cliente 24h antes. Cero ausencias</div></div>
-      <div class="feature-item"><span class="feature-icon">⭐</span><div class="feature-text"><strong>Reseñas Google</strong>Las pide automáticamente tras cada visita</div></div>
-      <div class="feature-item"><span class="feature-icon">🧠</span><div class="feature-text"><strong>Memoria de clientes</strong>Recuerda historial, nombre y preferencias</div></div>
-      <div class="feature-item"><span class="feature-icon">🔔</span><div class="feature-text"><strong>Alerta al negocio</strong>WhatsApp en tiempo real de cada llamada</div></div>
-      <div class="feature-item"><span class="feature-icon">🔄</span><div class="feature-text"><strong>Fidelización</strong>Recuerda cuándo tiene que volver cada cliente</div></div>
+    <div class="panel-section" id="featuresPanel">
+      <!-- Se rellena dinámicamente por setSector() -->
     </div>
 
     <div class="panel-section">
@@ -232,10 +226,11 @@
       <div class="panel-title">Conectar con tu servidor</div>
       <div class="api-config">
         <div class="api-label">URL del servidor (opcional)</div>
-        <input class="api-input" id="serverUrl" placeholder="https://xmehd4.easypanel.host" value="https://xmehd4.easypanel.host">
+        <input class="api-input" id="serverUrl" placeholder="https://nodeflow.es" value="https://nodeflow.es">
         <div class="api-label" style="margin-top:8px">Token de acceso</div>
         <input class="api-input" id="serverToken" type="password" placeholder="demo token o admin token">
         <button class="api-btn" onclick="testConnection()">Verificar conexión</button>
+        <div id="connStatus" style="font-size:11px;color:var(--dim);margin-top:6px;min-height:14px;"></div>
       </div>
     </div>
 
@@ -598,8 +593,10 @@ Hoy es ${_hoy}.`
 let currentSector = 'dental';
 let conversationHistory = [];
 let isTyping = false;
-let lastServiceKey = null;   // ← contexto: último servicio mencionado por el bot
-const OPENAI_KEY = '';        // Se puede configurar o usar servidor
+let lastServiceKey = null;
+let userMsgCount = 0;        // rate-limit: max mensajes por sesión de sector
+const MAX_DEMO_MSGS = 20;    // máx mensajes de usuario por sector antes de CTA
+const OPENAI_KEY = '';
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -619,12 +616,14 @@ function setSector(btn, sector, emoji, name, biz) {
   document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentSector = sector;
-  lastServiceKey = null;        // resetear contexto al cambiar de sector
+  lastServiceKey = null;
   conversationHistory = [];
+  userMsgCount = 0;
   document.getElementById('avatarEmoji').textContent = emoji;
   document.getElementById('assistantName').textContent = `${name} · ${biz}`;
   document.getElementById('messages').innerHTML = '';
   updateQuickReplies(sector);
+  updateFeaturesPanel(sector);
   setTimeout(() => addBotMessage(SECTORS[sector].greeting), 300);
 }
 
@@ -638,6 +637,33 @@ function updateQuickReplies(sector) {
 function sendQuick(btn) {
   document.getElementById('chatInput').value = btn.dataset.msg;
   sendMsg();
+}
+
+// ── Features dinámicas por sector ─────────────────────────────────────────────
+const SECTOR_FEATURES = {
+  dental:      [['📅','Gestión de citas','Agenda, modifica y cancela sin que nadie intervenga'],['💬','Recordatorios WhatsApp','Al paciente 24h antes. Cero ausencias y olvidos'],['⭐','Reseñas Google','Las pide automáticamente tras cada visita'],['🔄','Fidelización','Avisa cuando toca la revisión anual o siguiente limpieza'],['🔔','Alerta al negocio','WhatsApp al dentista con cada llamada importante'],['🧠','Memoria de pacientes','Recuerda nombre, historial y tratamientos anteriores']],
+  restaurante: [['📅','Reservas automáticas','Toma reservas 24h, cualquier día, sin perder ninguna'],['💬','Confirmación por WhatsApp','El cliente recibe confirmación y recordatorio el día antes'],['🔔','Alerta al restaurante','Notificación inmediata al equipo de cada nueva reserva'],['🍽️','Gestión de grupos','Maneja mesas grandes y salones privados sin esfuerzo'],['⭐','Reseñas Google','Las solicita automáticamente tras la visita'],['🧠','Historial de clientes','Recuerda preferencias, alergias y ocasiones especiales']],
+  peluqueria:  [['📅','Citas 24/7','El cliente pide cita a cualquier hora, incluso de noche'],['💬','Recordatorio WhatsApp','24h antes con el nombre del estilista asignado'],['🔄','Aviso de vuelta','El sistema recuerda cuándo toca corte o tinte al cliente'],['⭐','Reseñas Google','Petición automática tras cada servicio'],['🔔','Agenda del día','Resumen de citas del día por WhatsApp cada mañana'],['🧠','Historial de servicio','Recuerda qué se hizo, con qué producto y cuándo']],
+  taller:      [['📅','Citas para revisiones','Gestiona revisiones, ITV y cambios de aceite sin llamadas'],['🔔','Alerta urgente','WhatsApp inmediato al mecánico si es avería o urgencia'],['💬','Seguimiento de reparación','El cliente recibe notificación cuando el coche está listo'],['⭐','Reseñas Google','Petición automática al recoger el vehículo'],['🔄','Revisiones programadas','Avisa al cliente cuando le toca el siguiente mantenimiento'],['🧠','Historial del vehículo','Recuerda matrícula, modelo y reparaciones anteriores']],
+  veterinaria: [['📅','Citas veterinarias','Agenda consultas, vacunas y revisiones automáticamente'],['🔔','Alerta urgente','Aviso inmediato al veterinario si es una emergencia'],['💬','Recordatorio de vacunas','WhatsApp cuando toca la vacuna anual de la mascota'],['⭐','Reseñas Google','Las pide tras cada visita satisfactoria'],['🔄','Seguimiento de tratamientos','Recuerda cuándo toca la siguiente dosis o revisión'],['🧠','Ficha de la mascota','Recuerda nombre, raza, peso y historial clínico']],
+  estetica:    [['📅','Citas de tratamientos','Agenda sesiones de láser, faciales y masajes 24h'],['🔄','Ciclo de sesiones','Programa automáticamente las 6 sesiones de láser una a una'],['💬','Recordatorios WhatsApp','Antes de cada sesión del ciclo, con instrucciones previas'],['⭐','Reseñas Google','Petición automática cuando el tratamiento termina'],['🔔','Alerta a la estética','Notificación de cada nueva cita o cancelación'],['🧠','Historial de tratamientos','Recuerda la piel, preferencias y evolución de cada clienta']],
+  gimnasio:    [['📅','Clases y reservas','El socio reserva plaza en clases directamente'],['🔄','Retención de bajas','El asistente siempre ofrece congelar antes de dar de baja'],['💬','Recordatorio de cuota','WhatsApp antes del cobro mensual. Menos impagos'],['⭐','Reseñas Google','Petición automática a socios satisfechos'],['🔔','Alerta al gimnasio','Notificación de nuevas altas o solicitudes de baja'],['🧠','Perfil del socio','Recuerda tarifa, clases favoritas y fecha de alta']],
+  asesoria:    [['🚨','Alertas fiscales urgentes','Detecta urgencias y avisa al asesor en minutos'],['📅','Citas de asesoramiento','Agenda primeras consultas y reuniones de seguimiento'],['💬','Recordatorios de plazos','WhatsApp al cliente antes de cada plazo fiscal clave'],['🔔','Alerta al asesor','Notificación inmediata de nuevos clientes o urgencias'],['⭐','Reseñas Google','Las pide tras cada servicio completado'],['🧠','Historial del cliente','Recuerda tipo de empresa, régimen y gestiones anteriores']],
+  farmacia:    [['🚨','Triaje de urgencias','Deriva al 112 o al médico según la gravedad al instante'],['💬','Consultas sin espera','Resuelve dudas de stock, horario y servicios 24h'],['📅','Reserva de medicamentos','El cliente reserva y recoge cuando le viene bien'],['⭐','Reseñas Google','Las pide automáticamente a clientes satisfechos'],['🔔','Alerta al farmacéutico','Notificación de consultas que requieren atención'],['🧠','Historial de consultas','Recuerda medicación habitual y preferencias del cliente']],
+  inmobiliaria:[['🚨','Lead urgente','Detecta hipotecas aprobadas y avisa al agente en segundos'],['📅','Visitas automáticas','Agenda visitas a pisos sin intervención del agente'],['💬','Seguimiento por WhatsApp','Confirma visita, envía dirección y recuerda al comprador'],['⭐','Reseñas Google','Petición automática tras cerrar cada operación'],['🔔','Alerta al agente','Notificación inmediata de cada nuevo lead o solicitud'],['🧠','Perfil del comprador','Recuerda zona, presupuesto y preferencias de cada cliente']],
+  fisioterapia:[['📅','Citas y ciclos','Agenda sesiones individuales y ciclos completos'],['🔄','Seguimiento de ciclo','Recuerda la siguiente cita del tratamiento sin que pidas nada'],['💬','Recordatorio WhatsApp','24h antes con indicaciones previas a la sesión'],['⭐','Reseñas Google','Las solicita cuando el paciente completa su tratamiento'],['🔔','Alerta a la clínica','Notificación de nuevas citas y urgencias por lesión'],['🧠','Historial del paciente','Recuerda lesión, evolución y fisioterapeuta asignado']],
+  psicologo:   [['🚨','Detección de crisis','Identifica urgencias y avisa al psicólogo en minutos'],['📅','Citas confidenciales','Agenda sin preguntar el motivo. Máxima discreción'],['💬','Recordatorio discreto','WhatsApp 24h antes, sin mencionar el contenido de la sesión'],['🔔','Alerta al psicólogo','Aviso inmediato si detecta una situación de riesgo'],['⭐','Reseñas Google','Las solicita de forma delicada cuando el cliente lo indica'],['🧠','Historial de sesiones','Recuerda tipo de terapia, frecuencia y terapeuta asignado']],
+  abogado:     [['🚨','Alertas legales urgentes','Detecta plazos judiciales inminentes y avisa en segundos'],['📅','Citas de consulta','Agenda primeras consultas y reuniones del expediente'],['💬','Seguimiento del caso','Actualiza al cliente por WhatsApp sin llamadas innecesarias'],['🔔','Alerta al abogado','Notificación inmediata de nuevos casos o urgencias'],['⭐','Reseñas Google','Las pide tras resolución satisfactoria del caso'],['🧠','Ficha del cliente','Recuerda área legal, estado del caso y contactos]']],
+  clinica:     [['🚨','Triaje de urgencias','Deriva al 112 o busca hueco urgente según síntomas'],['📅','Citas por especialidad','Agenda con el especialista correcto desde la primera llamada'],['💬','Recordatorio WhatsApp','Con indicaciones previas (ayuno, documentos, etc.)'],['⭐','Reseñas Google','Las pide automáticamente tras cada visita satisfactoria'],['🔔','Alerta a la clínica','Notificación de cada nueva cita y urgencias del día'],['🧠','Historial del paciente','Recuerda especialidades visitadas, médico y fecha']],
+};
+
+function updateFeaturesPanel(sector) {
+  const panel = document.getElementById('featuresPanel');
+  const features = SECTOR_FEATURES[sector] || SECTOR_FEATURES.dental;
+  panel.innerHTML = `<div class="panel-title">Lo que hace automáticamente</div>` +
+    features.map(([icon, title, desc]) =>
+      `<div class="feature-item"><span class="feature-icon">${icon}</span><div class="feature-text"><strong>${title}</strong>${desc}</div></div>`
+    ).join('');
 }
 
 // ── Mensajes ─────────────────────────────────────────────────────────────────
@@ -776,8 +802,25 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text || isTyping) return;
 
+  // Rate limit: after MAX_DEMO_MSGS show CTA instead of replying
+  if (userMsgCount >= MAX_DEMO_MSGS) {
+    input.value = '';
+    addUserMessage(text);
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<div class="msg-bubble" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);">
+      ✨ Has visto todo lo que puede hacer el asistente. ¿Quieres instalarlo en tu negocio?<br><br>
+      <a href="https://nodeflow.es/onboarding" target="_blank" style="display:inline-block;background:var(--accent);color:#000;font-weight:700;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:13px;margin-top:4px;">Empezar gratis 7 días →</a>
+    </div><div class="msg-time">${new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return;
+  }
+
   input.value = '';
   addUserMessage(text);
+  userMsgCount++;
   isTyping = true;
   document.getElementById('sendBtn').disabled = true;
   showTyping();
@@ -789,7 +832,13 @@ async function sendMsg() {
     _updateLastServiceFromReply(reply);  // actualizar contexto para follow-ups
   } catch (e) {
     hideTyping();
-    addBotMessage('Lo siento, ha habido un problema técnico. Por favor, inténtelo de nuevo.');
+    if (e?.message === 'no_service') {
+      addBotMessage('⚠️ Para usar la demo necesitas introducir el token de acceso en el panel de la derecha y verificar la conexión.');
+    } else if (e?.message === 'timeout') {
+      addBotMessage('⏱️ El servidor tardó demasiado en responder. Por favor, inténtalo de nuevo en un momento.');
+    } else {
+      addBotMessage('⚠️ Ha habido un error al conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
+    }
   }
 
   isTyping = false;
@@ -846,13 +895,20 @@ async function getAIResponse(userMsg) {
         const data = await res.json();
         if (data.reply) return data.reply;
       }
-    } catch(_) { /* Fallback a OpenAI directo */ }
+    } catch(e) {
+      // Server timeout or network error — show clear message, don't fake a response
+      if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+        throw new Error('timeout');
+      }
+      // Other server error — fall through to direct OpenAI if key available
+    }
   }
 
   // ── Fallback: OpenAI directo si hay key configurada ─────────────────────────
   const apiKey = localStorage.getItem('openai_key') || OPENAI_KEY;
   if (!apiKey) {
-    return getFallbackResponse(userMsg, currentSector);
+    // No server, no key — show honest error instead of fake response
+    throw new Error('no_service');
   }
 
   // conversationHistory already has the current user message — do NOT duplicate it
@@ -1375,18 +1431,28 @@ function _updateLastServiceFromReply(replyText) {
   }
 }
 
-// ── Config OpenAI key ─────────────────────────────────────────────────────────
+// ── Verificar conexión (sin prompt() — feedback inline) ───────────────────────
 function testConnection() {
   const url = document.getElementById('serverUrl').value.trim();
-  fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) })
-    .then(r => r.json())
-    .then(d => alert(`✅ Servidor conectado\nStatus: ${d.status}\nAsistentes: ${d.assistants}\nLlamadas activas: ${d.activeCalls}`))
+  const btn = document.querySelector('.api-btn');
+  const statusEl = document.getElementById('connStatus');
+  btn.textContent = 'Verificando…';
+  btn.disabled = true;
+  fetch(`${url}/health`, { signal: AbortSignal.timeout(6000) })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      btn.textContent = '✅ Conectado';
+      btn.style.color = '#22c55e';
+      btn.style.borderColor = '#22c55e';
+      if (statusEl) statusEl.textContent = `${d.assistants} asistentes · ${d.activeCalls} llamadas activas`;
+      setTimeout(() => { btn.textContent = 'Verificar conexión'; btn.style.color = ''; btn.style.borderColor = ''; btn.disabled = false; }, 3000);
+    })
     .catch(() => {
-      const key = prompt('Servidor no disponible. Introduce tu OpenAI API Key para usar la demo en modo local:');
-      if (key && key.startsWith('sk-')) {
-        localStorage.setItem('openai_key', key);
-        alert('✅ API Key guardada. La demo funcionará con IA real.');
-      }
+      btn.textContent = '❌ Sin conexión';
+      btn.style.color = '#ef4444';
+      btn.style.borderColor = '#ef4444';
+      if (statusEl) statusEl.textContent = 'Servidor no disponible. Comprueba la URL y el token.';
+      setTimeout(() => { btn.textContent = 'Verificar conexión'; btn.style.color = ''; btn.style.borderColor = ''; btn.disabled = false; if(statusEl) statusEl.textContent=''; }, 4000);
     });
 }
 </script>
