@@ -112,9 +112,17 @@
   .api-btn:hover { background:rgba(34,211,238,0.18); }
 
   /* ── Responsive ── */
+  /* ── Sector chips (móvil) ── */
+  .sector-chips { display:none; padding:10px 12px; border-bottom:1px solid var(--border); overflow-x:auto; white-space:nowrap; gap:8px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .sector-chips::-webkit-scrollbar { display:none; }
+  .sector-chip { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; background:var(--card2); border:1px solid var(--border); border-radius:20px; font-size:12px; font-weight:600; color:var(--dim); cursor:pointer; white-space:nowrap; transition:all .15s; flex-shrink:0; }
+  .sector-chip:hover { border-color:rgba(34,211,238,0.3); color:var(--text); }
+  .sector-chip.active { background:rgba(34,211,238,0.1); border-color:rgba(34,211,238,0.4); color:var(--accent); }
+
   @media (max-width: 900px) {
     .layout { grid-template-columns:1fr; }
     .sidebar, .panel { display:none; }
+    .sector-chips { display:flex; }
   }
 </style>
 </head>
@@ -127,6 +135,20 @@
     <div class="badge">● En vivo</div>
   </div>
 </header>
+
+<!-- Sector chips — solo visible en móvil -->
+<div class="sector-chips" id="sectorChips">
+  <div class="sector-chip active" onclick="setSectorChip(this,'dental','🦷','María','Clínica Dental Demo')">🦷 Dental</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'restaurante','🍽️','Laura','Restaurante Demo')">🍽️ Restaurante</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'peluqueria','✂️','Sara','Peluquería Demo')">✂️ Peluquería</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'taller','🔧','Iñaki','Taller Demo')">🔧 Taller</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'veterinaria','🐾','Ane','Veterinaria Demo')">🐾 Veterinaria</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'estetica','💅','Leire','Estética Demo')">💅 Estética</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'gimnasio','💪','Mikel','Gimnasio Demo')">💪 Gimnasio</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'asesoria','📋','Aritz','Asesoría Demo')">📋 Asesoría</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'farmacia','💊','—','Farmacia Demo')">💊 Farmacia</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'fisioterapia','🦴','Ainhoa','Fisioterapia Demo')">🦴 Fisio</div>
+</div>
 
 <div class="layout">
 
@@ -612,9 +634,29 @@ window.onload = () => {
   setSector(document.querySelector('.sector-btn.active'), 'dental', '🦷', 'María', 'Clínica Dental Demo');
 };
 
+function setSectorChip(chip, sector, emoji, name, biz) {
+  // Sincronizar chip activo en móvil
+  document.querySelectorAll('.sector-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  // Sincronizar sidebar en desktop si está visible
+  document.querySelectorAll('.sector-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sector === sector);
+  });
+  // Reusar la lógica común
+  _applySector(sector, emoji, name, biz);
+}
+
 function setSector(btn, sector, emoji, name, biz) {
   document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  // Sincronizar chips en móvil
+  document.querySelectorAll('.sector-chip').forEach(c => {
+    c.classList.toggle('active', c.getAttribute('onclick').includes("'" + sector + "'"));
+  });
+  _applySector(sector, emoji, name, biz);
+}
+
+function _applySector(sector, emoji, name, biz) {
   currentSector = sector;
   lastServiceKey = null;
   conversationHistory = [];
