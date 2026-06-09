@@ -250,8 +250,12 @@ class SchedulingSystem {
       setImmediate(async () => {
         try {
           const { sendTemplate, isConfigured } = require('../notifications/client-whatsapp');
-          if (!isConfigured()) return;
-          const { formatDate } = require('../notifications/reminders');
+          const { getWaCredentials }            = require('../whatsapp/accounts');
+
+          // Credenciales del negocio (multi-tenant) o globales como fallback
+          const credentials = businessId ? await getWaCredentials(businessId) : null;
+          if (!credentials && !isConfigured()) return;
+
           const config  = this.getBusinessConfig(businessId);
           const bizName = config?.name || 'el negocio';
           const name    = patientName.split(' ')[0];
@@ -267,6 +271,7 @@ class SchedulingSystem {
                 const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
                 return `${days[dt.getDay()]} ${d} de ${months[m-1]}`;
               })();
+
           await sendTemplate(appointment.phone, 'nodeflow_cita_confirmada', lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es', [
             {
               type: 'body',
@@ -278,8 +283,8 @@ class SchedulingSystem {
                 { type: 'text', text: appointment.service },
               ],
             },
-          ]);
-          log.info(`WA booking confirmation sent → ${id} (${appointment.phone})`);
+          ], credentials);
+          log.info(`WA booking confirmation sent → ${id} (${appointment.phone}) [${credentials ? 'business' : 'global'}]`);
         } catch (e) {
           log.warn(`WA booking confirmation failed for ${id}: ${e.message}`);
         }

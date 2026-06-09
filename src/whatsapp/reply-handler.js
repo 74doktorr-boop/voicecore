@@ -16,10 +16,11 @@
 //   4. Alerta urgente al negocio con WhatsApp
 // ============================================================
 
-const { Logger }    = require('../utils/logger');
-const { scheduler } = require('../scheduling/scheduler');
-const { sendText }  = require('../notifications/client-whatsapp');
-const { sendWhatsApp } = require('../notifications/whatsapp'); // owner Callmebot fallback
+const { Logger }           = require('../utils/logger');
+const { scheduler }        = require('../scheduling/scheduler');
+const { sendText }         = require('../notifications/client-whatsapp');
+const { sendWhatsApp }     = require('../notifications/whatsapp'); // owner Callmebot fallback
+const { getWaCredentials } = require('./accounts');
 
 const log = new Logger('WA-REPLY');
 
@@ -67,9 +68,9 @@ function humanDate(dateStr) {
 }
 
 // ── Alerta al dueño del negocio ───────────────────────────────────────────────
-async function alertOwner(apt, action) {
-  const bizName = getBusinessName(apt.businessId);
-  const cfg     = scheduler.getBusinessConfig(apt.businessId);
+async function alertOwner(apt, action, credentials = null) {
+  const bizName    = getBusinessName(apt.businessId);
+  const cfg        = scheduler.getBusinessConfig(apt.businessId);
   const ownerPhone = cfg?.ownerPhone || process.env.OWNER_PHONE;
 
   const icon = action === 'confirmed' ? '✅' : '❌';
@@ -84,14 +85,14 @@ async function alertOwner(apt, action) {
     `━━━━━━━━━━━━━━\n` +
     `🤖 NodeFlow IA — ${bizName}`;
 
-  // Intentar enviar por Meta WA al dueño, fallback a Callmebot
+  // Intentar enviar por Meta WA al dueño (con credenciales del negocio si existen)
   if (ownerPhone) {
     try {
-      const result = await sendText(ownerPhone, msg);
+      const result = await sendText(ownerPhone, msg, credentials);
       if (result.ok) return;
     } catch (_) {}
   }
-  // Fallback: Callmebot (solo alertas del dueño, no necesita templates)
+  // Fallback: Callmebot (no necesita credenciales WA)
   await sendWhatsApp(msg).catch(e => log.warn(`Owner alert fallback error: ${e.message}`));
 }
 
@@ -101,12 +102,14 @@ async function handleReply({ from, type, payload }) {
 
   if (!apt) {
     log.warn(`Reply from ${from} but no upcoming appointment found`);
-    // Respuesta amable al cliente aunque no encontremos la cita
     await sendText(from,
       '¡Gracias por tu mensaje! No hemos encontrado ninguna cita próxima asociada a tu número. Si necesitas ayuda, llámanos directamente. 😊'
     ).catch(() => {});
     return;
   }
+
+  // Credenciales del negocio para que la respuesta salga desde el número del negocio
+  const credentials = apt.businessId ? await getWaCredentials(apt.businessId).catch(() => null) : null;
 
   const bizName = getBusinessName(apt.businessId);
   const name    = apt.patientName?.split(' ')[0] || 'cliente';
@@ -114,9 +117,9 @@ async function handleReply({ from, type, payload }) {
   // ── CONFIRMAR ──────────────────────────────────────────────────────────────
   if (payload.toUpperCase().includes('CONFIRMAR') || payload.toUpperCase() === 'SI' || payload.toUpperCase() === 'SÍ' || payload.toUpperCase() === 'OK') {
     if (apt.wa_confirmed) {
-      // Ya confirmó antes — respuesta informativa, no volver a confirmar
       await sendText(from,
-        `${name}, tu cita ya estaba confirmada 👍 Te esperamos el *${humanDate(apt.date)}* a las *${apt.time}h*. ¡Hasta pronto!`
+        `${name}, tu cita ya estaba confirmada 👍 Te esperamos el *${humanDate(apt.date)}* a las *${apt.time}h*. ¡Hasta pronto!`,
+        credentials
       ).catch(() => {});
       return;
     }
@@ -128,10 +131,11 @@ async function handleReply({ from, type, payload }) {
       `¡Perfecto, ${name}! ✅ Tu cita en *${bizName}* está confirmada.\n\n` +
       `📅 *${humanDate(apt.date)}* · *${apt.time}h*\n` +
       `🗓️ ${apt.service}\n\n` +
-      `Te esperamos. Si surge algo y necesitas cancelar, escríbenos aquí mismo. ¡Hasta pronto! 👋`
+      `Te esperamos. Si surge algo y necesitas cancelar, escríbenos aquí mismo. ¡Hasta pronto! 👋`,
+      credentials
     ).catch(e => log.warn(`WA confirm reply error: ${e.message}`));
 
-    await alertOwner(apt, 'confirmed');
+    await alertOwner(apt, 'confirmed', credentials);
     return;
   }
 
@@ -139,7 +143,8 @@ async function handleReply({ from, type, payload }) {
   if (payload.toUpperCase().includes('CANCELAR') || payload.toUpperCase().includes('ANULAR') || payload.toUpperCase().includes('NO PUEDO')) {
     if (apt.status === 'cancelled') {
       await sendText(from,
-        `${name}, tu cita ya estaba cancelada. Si quieres reservar otra, llámanos o escríbenos. 😊`
+        `${name}, tu cita ya estaba cancelada. Si quieres reservar otra, llámanos o escríbenos. 😊`,
+        credentials
       ).catch(() => {});
       return;
     }
@@ -151,10 +156,11 @@ async function handleReply({ from, type, payload }) {
 
     await sendText(from,
       `Entendido, ${name}. ❌ Tu cita del *${humanDate(apt.date)}* a las *${apt.time}h* en *${bizName}* ha sido cancelada.\n\n` +
-      `Cuando quieras volver a reservar, llámanos o escríbenos aquí. ¡Hasta pronto! 👋`
+      `Cuando quieras volver a reservar, llámanos o escríbenos aquí. ¡Hasta pronto! 👋`,
+      credentials
     ).catch(e => log.warn(`WA cancel reply error: ${e.message}`));
 
-    await alertOwner(apt, 'cancelled');
+    await alertOwner(apt, 'cancelled', credentials);
     return;
   }
 

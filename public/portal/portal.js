@@ -91,6 +91,39 @@ async function initAuth() {
   var params     = new URLSearchParams(window.location.search);
   var magicToken = params.get('token');
 
+  // ── WhatsApp callback (360dialog Embedded Signup redirect) ────────────────
+  // Cuando el negocio completa el Embedded Signup, 360dialog redirige al backend
+  // que a su vez redirige aquí con ?client_id=...&state=...
+  // Si hay client_id en la URL, intercambiar el código con el backend.
+  var waClientId = params.get('client_id');
+  var waState    = params.get('state');
+  if (waClientId) {
+    window.history.replaceState({}, '', '/portal');
+    _token = localStorage.getItem(SESSION_KEY);
+    if (_token) {
+      // Completar la conexión WA en background, luego navegar a Integraciones
+      (async function() {
+        try {
+          showToast('⏳ Conectando WhatsApp…');
+          var r = await api('/api/portal/whatsapp/connect', {
+            method: 'POST',
+            body: JSON.stringify({ client_id: waClientId }),
+          });
+          if (r.ok) {
+            showToast('✅ WhatsApp conectado: ' + (r.phoneNumber || ''));
+          } else {
+            showToast('⚠️ Error al conectar WhatsApp: ' + (r.error || 'desconocido'), 'warn');
+          }
+        } catch (e) {
+          showToast('⚠️ Error al conectar WhatsApp: ' + e.message, 'warn');
+        }
+        navigate('integraciones');
+      })();
+      // Continuar con el flujo normal de autenticación (token ya en localStorage)
+      // El callback WA se procesa en background — no interrumpir el login
+    }
+  }
+
   if (magicToken) {
     try {
       var resp = await fetch('/api/auth/verify?token=' + encodeURIComponent(magicToken));

@@ -8,6 +8,7 @@
 const { Logger } = require('../utils/logger');
 const { sendEmail } = require('./email');
 const { sendTemplate, sendText, isConfigured: waIsConfigured } = require('./client-whatsapp');
+const { getWaCredentials } = require('../whatsapp/accounts');
 
 const log = new Logger('REMINDERS');
 
@@ -380,13 +381,18 @@ function madridDateTimeToMs(dateStr, timeStr) {
 // Template: nodeflow_cita_recordatorio (botones CONFIRMAR / CANCELAR)
 // Variables esperadas en el cuerpo: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
 async function sendWaReminder(apt, config) {
-  if (!apt.phone || !waIsConfigured()) return false;
-  const lang        = config?.language || 'es';
-  const name        = firstName(apt.patientName);
+  if (!apt.phone) return false;
+
+  // Obtener credenciales del negocio (multi-tenant) o caer en globales
+  const credentials = apt.businessId ? await getWaCredentials(apt.businessId) : null;
+  if (!credentials && !waIsConfigured()) return false;
+
+  const lang         = config?.language || 'es';
+  const name         = firstName(apt.patientName);
   const businessName = config?.name || 'el negocio';
-  const dateStr     = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
+  const dateStr      = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
   const templateName = 'nodeflow_cita_recordatorio';
-  const langCode    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+  const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
   try {
     const result = await sendTemplate(apt.phone, templateName, langCode, [
@@ -400,11 +406,12 @@ async function sendWaReminder(apt, config) {
           { type: 'text', text: apt.service },
         ],
       },
-    ]);
+    ], credentials);
     if (result?.ok) {
-      log.info(`WA reminder sent → ${apt.id} (${apt.phone})`);
+      log.info(`WA reminder sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
       return true;
     }
+    log.warn(`WA reminder not ok for ${apt.id}: ${result?.error}`);
   } catch (e) {
     log.warn(`WA reminder failed for ${apt.id}: ${e.message}`);
   }
@@ -415,15 +422,20 @@ async function sendWaReminder(apt, config) {
 // Template: nodeflow_resena (botón Dejar reseña)
 // Variables: {{1}}=nombre, {{2}}=negocio, {{3}}=url_resena
 async function sendWaReview(apt, config) {
-  if (!apt.phone || !waIsConfigured()) return false;
-  const name        = firstName(apt.patientName);
+  if (!apt.phone) return false;
+
+  // Obtener credenciales del negocio (multi-tenant) o caer en globales
+  const credentials = apt.businessId ? await getWaCredentials(apt.businessId) : null;
+  if (!credentials && !waIsConfigured()) return false;
+
+  const name         = firstName(apt.patientName);
   const businessName = config?.name || 'el negocio';
-  const lang        = config?.language || 'es';
-  const reviewUrl   = config?.automations?.config?.reviewUrl
+  const lang         = config?.language || 'es';
+  const reviewUrl    = config?.automations?.config?.reviewUrl
     || (config?.googlePlaceId ? `${GOOGLE_REVIEW_BASE}${config.googlePlaceId}` : null)
     || `https://www.google.com/search?q=${encodeURIComponent(businessName + ' opiniones')}`;
   const templateName = 'nodeflow_resena';
-  const langCode    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+  const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
   try {
     const result = await sendTemplate(apt.phone, templateName, langCode, [
@@ -435,11 +447,12 @@ async function sendWaReview(apt, config) {
           { type: 'text', text: reviewUrl },
         ],
       },
-    ]);
+    ], credentials);
     if (result?.ok) {
-      log.info(`WA review sent → ${apt.id} (${apt.phone})`);
+      log.info(`WA review sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
       return true;
     }
+    log.warn(`WA review not ok for ${apt.id}: ${result?.error}`);
   } catch (e) {
     log.warn(`WA review failed for ${apt.id}: ${e.message}`);
   }
