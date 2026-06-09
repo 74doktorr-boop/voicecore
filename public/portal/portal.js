@@ -2628,11 +2628,25 @@ async function sendReminderNow(id) {
   }
 }
 
-async function postponeReminder(id) {
-  var days = prompt('¿Cuántos días posponer?', '7');
-  if (!days || isNaN(Number(days))) return;
+function postponeReminder(id) {
+  openModal(
+    '<div class="modal-title">⏰ Posponer recordatorio</div>' +
+    '<div class="form-group"><label class="form-label">¿Cuántos días posponer?</label>' +
+      '<input class="form-input" id="postponeDays" type="number" min="1" max="90" value="7"></div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="submitPostponeReminder(\'' + esc(id) + '\')">Posponer</button>' +
+    '</div>'
+  );
+}
+
+async function submitPostponeReminder(id) {
+  var daysEl = document.getElementById('postponeDays');
+  var days = daysEl ? parseInt(daysEl.value) : 7;
+  if (!days || days < 1) { toast('Introduce un número de días válido', 'err'); return; }
   try {
-    await api('/api/portal/reminders/' + id + '/postpone', 'POST', { days: Number(days) });
+    await api('/api/portal/reminders/' + id + '/postpone', 'POST', { days });
+    closeModal();
     toast('Pospuesto ' + days + ' días ✓');
     loadUpcomingReminders();
   } catch (e) {
