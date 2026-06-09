@@ -7,6 +7,7 @@
 
 const { Logger } = require('../utils/logger');
 const { sendEmail } = require('./email');
+const { sendTemplate, sendText, isConfigured: waIsConfigured } = require('./client-whatsapp');
 
 const log = new Logger('REMINDERS');
 
@@ -375,8 +376,79 @@ function madridDateTimeToMs(dateStr, timeStr) {
   return localAsUtc + offsetMs; // UTC timestamp for the Madrid local datetime
 }
 
+// ── WhatsApp: envía recordatorio de cita via Meta template ───────────────────
+// Template: nodeflow_cita_recordatorio (botones CONFIRMAR / CANCELAR)
+// Variables esperadas en el cuerpo: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
+async function sendWaReminder(apt, config) {
+  if (!apt.phone || !waIsConfigured()) return false;
+  const lang        = config?.language || 'es';
+  const name        = firstName(apt.patientName);
+  const businessName = config?.name || 'el negocio';
+  const dateStr     = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
+  const templateName = 'nodeflow_cita_recordatorio';
+  const langCode    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+
+  try {
+    const result = await sendTemplate(apt.phone, templateName, langCode, [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: name },
+          { type: 'text', text: businessName },
+          { type: 'text', text: dateStr },
+          { type: 'text', text: apt.time },
+          { type: 'text', text: apt.service },
+        ],
+      },
+    ]);
+    if (result?.ok) {
+      log.info(`WA reminder sent → ${apt.id} (${apt.phone})`);
+      return true;
+    }
+  } catch (e) {
+    log.warn(`WA reminder failed for ${apt.id}: ${e.message}`);
+  }
+  return false;
+}
+
+// ── WhatsApp: envía solicitud de reseña via Meta template ────────────────────
+// Template: nodeflow_resena (botón Dejar reseña)
+// Variables: {{1}}=nombre, {{2}}=negocio, {{3}}=url_resena
+async function sendWaReview(apt, config) {
+  if (!apt.phone || !waIsConfigured()) return false;
+  const name        = firstName(apt.patientName);
+  const businessName = config?.name || 'el negocio';
+  const lang        = config?.language || 'es';
+  const reviewUrl   = config?.automations?.config?.reviewUrl
+    || (config?.googlePlaceId ? `${GOOGLE_REVIEW_BASE}${config.googlePlaceId}` : null)
+    || `https://www.google.com/search?q=${encodeURIComponent(businessName + ' opiniones')}`;
+  const templateName = 'nodeflow_resena';
+  const langCode    = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+
+  try {
+    const result = await sendTemplate(apt.phone, templateName, langCode, [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: name },
+          { type: 'text', text: businessName },
+          { type: 'text', text: reviewUrl },
+        ],
+      },
+    ]);
+    if (result?.ok) {
+      log.info(`WA review sent → ${apt.id} (${apt.phone})`);
+      return true;
+    }
+  } catch (e) {
+    log.warn(`WA review failed for ${apt.id}: ${e.message}`);
+  }
+  return false;
+}
+
 // ── Cron check: reminders ─────────────────────────────────────────────────────
-// Sends reminder to appointments in the configured window (default 24h ±4h)
+// Canal primario: WhatsApp (template con botones CONFIRMAR/CANCELAR)
+// Canal secundario: Email (fallback si WA no configurado o cliente sin teléfono)
 // flowManager is optional — if omitted, defaults apply for all businesses
 
 async function checkAndSendReminders(scheduler, flowManager = null) {
@@ -384,7 +456,9 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
   let sent = 0;
 
   for (const [, apt] of scheduler.appointments) {
-    if (apt.status === 'cancelled' || apt.reminder_sent || !apt.email) continue;
+    // Necesita al menos email O teléfono para enviar algo
+    if (apt.status === 'cancelled' || apt.reminder_sent) continue;
+    if (!apt.email && !apt.phone) continue;
 
     // Skip if reminders disabled for this business
     if (flowManager && !flowManager.isEnabled(apt.businessId, 'reminders')) continue;
@@ -402,7 +476,14 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
       const config       = flowManager
         ? flowManager.mergeConfig(apt.businessId, schedulerCfg)
         : schedulerCfg;
-      const ok = await sendAppointmentReminder(apt, config);
+
+      // Canal 1: WhatsApp (template con botones — necesita aprobación Meta)
+      let ok = await sendWaReminder(apt, config);
+      // Canal 2: Email (siempre intentarlo como complementario o fallback)
+      if (apt.email) {
+        const emailOk = await sendAppointmentReminder(apt, config);
+        ok = ok || emailOk;
+      }
       if (ok) { apt.reminder_sent = true; sent++; }
     }
   }
@@ -412,14 +493,15 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
 }
 
 // ── Cron check: review requests ───────────────────────────────────────────────
-// Sends review request to appointments completed in the configured window (default 24h ±12h)
-
+// Canal primario: WhatsApp (template con botón reseña)
+// Canal secundario: Email
 async function checkAndSendReviews(scheduler, flowManager = null) {
   const now = Date.now();
   let sent = 0;
 
   for (const [, apt] of scheduler.appointments) {
-    if (apt.status === 'cancelled' || apt.review_requested || !apt.email) continue;
+    if (apt.status === 'cancelled' || apt.review_requested) continue;
+    if (!apt.email && !apt.phone) continue;
 
     // Skip if reviews disabled for this business
     if (flowManager && !flowManager.isEnabled(apt.businessId, 'reviews')) continue;
@@ -437,7 +519,14 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
       const config       = flowManager
         ? flowManager.mergeConfig(apt.businessId, schedulerCfg)
         : schedulerCfg;
-      const ok = await sendReviewRequest(apt, config);
+
+      // Canal 1: WhatsApp
+      let ok = await sendWaReview(apt, config);
+      // Canal 2: Email (complementario o fallback)
+      if (apt.email) {
+        const emailOk = await sendReviewRequest(apt, config);
+        ok = ok || emailOk;
+      }
       if (ok) { apt.review_requested = true; sent++; }
     }
   }
@@ -449,7 +538,12 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
 module.exports = {
   sendAppointmentReminder,
   sendReviewRequest,
+  sendWaReminder,
+  sendWaReview,
   generateWhatsAppConfirmation,
   checkAndSendReminders,
   checkAndSendReviews,
+  formatDate,
+  formatDateGl,
+  formatDateEu,
 };

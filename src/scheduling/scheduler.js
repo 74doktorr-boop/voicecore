@@ -243,6 +243,49 @@ class SchedulingSystem {
     this.appointments.set(id, appointment);
     log.info(`Appointment booked: ${id} - ${patientName} on ${date} at ${time}`);
 
+    // ── WhatsApp: confirmación inmediata al cliente ───────────────────────────
+    // Template: nodeflow_cita_confirmada (sin botones — solo información)
+    // Fire-and-forget: no bloquea la respuesta de reserva
+    if (appointment.phone) {
+      setImmediate(async () => {
+        try {
+          const { sendTemplate, isConfigured } = require('../notifications/client-whatsapp');
+          if (!isConfigured()) return;
+          const { formatDate } = require('../notifications/reminders');
+          const config  = this.getBusinessConfig(businessId);
+          const bizName = config?.name || 'el negocio';
+          const name    = patientName.split(' ')[0];
+          const lang    = config?.language || 'es';
+          const dateStr = lang === 'gl'
+            ? new Date(date).toLocaleDateString('gl-ES', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Madrid' })
+            : lang === 'eu'
+            ? new Date(date).toLocaleDateString('eu-ES', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Madrid' })
+            : (() => {
+                const [y,m,d] = date.split('-').map(Number);
+                const dt = new Date(y, m-1, d);
+                const days   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+                const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                return `${days[dt.getDay()]} ${d} de ${months[m-1]}`;
+              })();
+          await sendTemplate(appointment.phone, 'nodeflow_cita_confirmada', lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es', [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: name },
+                { type: 'text', text: bizName },
+                { type: 'text', text: dateStr },
+                { type: 'text', text: time },
+                { type: 'text', text: appointment.service },
+              ],
+            },
+          ]);
+          log.info(`WA booking confirmation sent → ${id} (${appointment.phone})`);
+        } catch (e) {
+          log.warn(`WA booking confirmation failed for ${id}: ${e.message}`);
+        }
+      });
+    }
+
     return {
       success: true,
       appointment: {

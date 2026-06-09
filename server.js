@@ -13,7 +13,6 @@ const fs = require('fs');
 const { Logger } = require('./src/utils/logger');
 const { VoicePipeline } = require('./src/core/voice-pipeline');
 const { AssistantManager } = require('./src/assistants/manager');
-const { setupTwilioStreams } = require('./src/telephony/twilio-streams');
 const { setupVonageStreams } = require('./src/telephony/vonage-handler');
 const { setupTelnyxStreams } = require('./src/telephony/telnyx-handler');
 const { setupRoutes } = require('./src/api/routes');
@@ -354,9 +353,6 @@ const config = {
   deepgramApiKey: process.env.DEEPGRAM_API_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY,
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
-  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
-  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
-  twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
   publicUrl: process.env.PUBLIC_URL || `http://localhost:${PORT}`,
   apiKey: process.env.API_KEY || 'voicecore-dev',
   // BUG-25 FOLLOW-UP: Do NOT default to 'admin' — routes-admin.js will reject
@@ -384,9 +380,6 @@ const assistantManager = new AssistantManager();
 // Load assistants and enable hot-reload
 assistantManager.loadAll();
 assistantManager.enableHotReload();
-
-// Setup Twilio WebSocket handler
-setupTwilioStreams(wss, pipeline, assistantManager);
 
 // Setup Vonage Voice API WebSocket handler
 setupVonageStreams(wssVonage, pipeline, assistantManager);
@@ -433,6 +426,10 @@ setupAutomationRoutes(app);
 setupFlowRoutes(app);
 setupCalendarRoutes(app, config);
 setupWebhookRoutes(app);
+
+// Setup WhatsApp bidireccional webhook (Meta Cloud API)
+const { setupWhatsAppWebhook } = require('./src/api/routes-whatsapp');
+setupWhatsAppWebhook(app);
 
 // Load per-business flows from DB, then start cron
 flowManager.loadFromDB()
