@@ -431,6 +431,10 @@ setupWebhookRoutes(app);
 const { setupWhatsAppWebhook } = require('./src/api/routes-whatsapp');
 setupWhatsAppWebhook(app);
 
+// Setup WhatsApp Connect — 360dialog Embedded Signup (multi-tenant)
+const { setupWhatsAppConnectRoutes } = require('./src/api/routes-whatsapp-connect');
+setupWhatsAppConnectRoutes(app);
+
 // Load per-business flows from DB, then start cron
 flowManager.loadFromDB()
   .then(n => { if (n > 0) log.info(`${n} flows cargados desde DB`); })

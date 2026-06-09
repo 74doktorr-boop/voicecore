@@ -12,6 +12,8 @@ const log = new Logger('CLIENT-WA');
 
 const META_API_VERSION = 'v19.0';
 const META_API_BASE    = 'graph.facebook.com';
+// 360dialog usa base URL diferente cuando el negocio tiene WABA propio
+const DIALOG360_API_BASE = 'waba.360dialog.io';
 
 function isConfigured() {
   return !!(process.env.WA_PHONE_NUMBER_ID && process.env.WA_ACCESS_TOKEN);
@@ -21,21 +23,29 @@ function isConfigured() {
  * Send a WhatsApp template message to a client.
  * Templates must be pre-approved by Meta (category: UTILITY).
  *
- * @param {string} phone  - International format without +: "34612345678"
- * @param {string} templateName - Approved template name
- * @param {string} languageCode - "es" | "eu" | "gl"
- * @param {Array}  components   - Template variable components
+ * @param {string} phone         - International format without +: "34612345678"
+ * @param {string} templateName  - Approved template name
+ * @param {string} languageCode  - "es" | "eu" | "gl"
+ * @param {Array}  components    - Template variable components
+ * @param {object} [credentials] - Optional: { phoneNumberId, accessToken, apiBase }
+ *   Si se pasa, usa las credenciales del negocio (multi-tenant).
+ *   Si no, usa las env vars globales (NodeFlow propio).
  * @returns {Promise<{ok: boolean, messageId?: string, error?: string}>}
  */
-function sendTemplate(phone, templateName, languageCode, components = []) {
+function sendTemplate(phone, templateName, languageCode, components = [], credentials = null) {
   return new Promise((resolve) => {
-    if (!isConfigured()) {
+    // Determinar credenciales: negocio propio > env vars globales
+    const phoneNumberId = credentials?.phoneNumberId || process.env.WA_PHONE_NUMBER_ID;
+    const accessToken   = credentials?.accessToken   || process.env.WA_ACCESS_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
       log.warn('WA_PHONE_NUMBER_ID or WA_ACCESS_TOKEN not set — WA skipped');
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
-    const phoneNumberId = process.env.WA_PHONE_NUMBER_ID;
-    const accessToken   = process.env.WA_ACCESS_TOKEN;
+    // 360dialog: auth via D360-API-KEY header; Meta: Bearer token
+    const is360dialog = !!(credentials?.apiBase?.includes('360dialog'));
+    const hostname    = is360dialog ? DIALOG360_API_BASE : META_API_BASE;
 
     // Normalize phone: strip spaces, dashes, +
     let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
@@ -54,12 +64,16 @@ function sendTemplate(phone, templateName, languageCode, components = []) {
     });
 
     const options = {
-      hostname: META_API_BASE,
-      path:     `/${META_API_VERSION}/${phoneNumberId}/messages`,
-      method:   'POST',
-      headers:  {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type':  'application/json',
+      hostname,
+      path:    is360dialog
+        ? `/v1/messages`                                      // 360dialog path
+        : `/${META_API_VERSION}/${phoneNumberId}/messages`,  // Meta Cloud API path
+      method:  'POST',
+      headers: {
+        ...(is360dialog
+          ? { 'D360-API-KEY': accessToken }                  // 360dialog auth
+          : { 'Authorization': `Bearer ${accessToken}` }),   // Meta auth
+        'Content-Type':   'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
     };
@@ -99,12 +113,22 @@ function sendTemplate(phone, templateName, languageCode, components = []) {
  * Send a free-text WhatsApp message.
  * Only works within 24h of the last client-initiated message.
  * For lifecycle reminders (business-initiated) use sendTemplate instead.
+ *
+ * @param {string} phone
+ * @param {string} text
+ * @param {object} [credentials] - Optional: { phoneNumberId, accessToken, apiBase }
  */
-function sendText(phone, text) {
+function sendText(phone, text, credentials = null) {
   return new Promise((resolve) => {
-    if (!isConfigured()) {
+    const phoneNumberId = credentials?.phoneNumberId || process.env.WA_PHONE_NUMBER_ID;
+    const accessToken   = credentials?.accessToken   || process.env.WA_ACCESS_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
       return resolve({ ok: false, reason: 'not_configured' });
     }
+
+    const is360dialog = !!(credentials?.apiBase?.includes('360dialog'));
+    const hostname    = is360dialog ? DIALOG360_API_BASE : META_API_BASE;
 
     let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
     if (normalizedPhone.startsWith('00')) normalizedPhone = normalizedPhone.slice(2);
@@ -117,11 +141,15 @@ function sendText(phone, text) {
     });
 
     const options = {
-      hostname: META_API_BASE,
-      path:     `/${META_API_VERSION}/${process.env.WA_PHONE_NUMBER_ID}/messages`,
-      method:   'POST',
-      headers:  {
-        'Authorization':  `Bearer ${process.env.WA_ACCESS_TOKEN}`,
+      hostname,
+      path:    is360dialog
+        ? `/v1/messages`
+        : `/${META_API_VERSION}/${phoneNumberId}/messages`,
+      method:  'POST',
+      headers: {
+        ...(is360dialog
+          ? { 'D360-API-KEY': accessToken }
+          : { 'Authorization': `Bearer ${accessToken}` }),
         'Content-Type':   'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
