@@ -229,6 +229,10 @@ app.get(['/guias', '/guias/'], serveGitHubPage('/guias/index.html', path.join(__
   app.get([`/guias/${slug}`, `/guias/${slug}/`], serveGitHubPage(`/guias/${slug}/index.html`, file));
 });
 
+// ─── Demo interactiva ───
+app.get(['/demo.html', '/demo', '/demo/'],
+  serveGitHubPage('/demo.html', path.join(__dirname, 'public', 'demo.html')));
+
 // ─── Onboarding (conversión) ───
 app.get(['/onboarding.html', '/onboarding', '/onboarding/'],
   serveGitHubPage('/onboarding.html', path.join(__dirname, 'public', 'onboarding.html')));
