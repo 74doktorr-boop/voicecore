@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow IA — Demo Interactiva</title>
+<style>
+  :root {
+    --bg: #07070e;
+    --card: #0f0f1a;
+    --card2: #13131f;
+    --accent: #22d3ee;
+    --accent2: #6c5ce7;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e8e8f0;
+    --dim: #8888a8;
+    --border: rgba(255,255,255,0.07);
+    --muted: #1e1e2e;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── Header ── */
+  header { padding:18px 32px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
+  .logo span { color:var(--accent); }
+  .badge { background:rgba(34,211,238,0.12); color:var(--accent); font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; border:1px solid rgba(34,211,238,0.2); }
+
+  /* ── Layout ── */
+  .layout { display:grid; grid-template-columns:280px 1fr 320px; height:calc(100vh - 61px); overflow:hidden; }
+
+  /* ── Sidebar sectores ── */
+  .sidebar { border-right:1px solid var(--border); overflow-y:auto; padding:16px 12px; }
+  .sidebar-title { font-size:11px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; padding:8px 12px 12px; }
+  .sector-btn { width:100%; text-align:left; background:none; border:none; color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500; display:flex; align-items:center; gap:10px; transition:background 0.15s; margin-bottom:2px; }
+  .sector-btn:hover { background:var(--muted); }
+  .sector-btn.active { background:rgba(34,211,238,0.1); color:var(--accent); }
+  .sector-btn .icon { font-size:16px; width:22px; text-align:center; }
+  .sector-btn .lbl { flex:1; }
+  .sector-btn .price { font-size:11px; color:var(--dim); font-weight:400; }
+  .sector-btn.active .price { color:rgba(34,211,238,0.6); }
+
+  /* ── Chat principal ── */
+  .chat-area { display:flex; flex-direction:column; height:100%; }
+  .chat-header { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+  .avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg, var(--accent2), var(--accent)); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .chat-meta { flex:1; }
+  .chat-name { font-size:15px; font-weight:600; }
+  .chat-sub  { font-size:12px; color:var(--dim); }
+  .status-dot { width:8px; height:8px; background:var(--green); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .messages { flex:1; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:12px; }
+  .messages::-webkit-scrollbar { width:4px; }
+  .messages::-webkit-scrollbar-track { background:transparent; }
+  .messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+  .msg { max-width:72%; display:flex; flex-direction:column; gap:4px; }
+  .msg.bot { align-self:flex-start; }
+  .msg.user { align-self:flex-end; }
+  .msg-bubble { padding:11px 15px; border-radius:16px; font-size:14px; line-height:1.55; }
+  .msg.bot .msg-bubble { background:var(--card2); border:1px solid var(--border); border-bottom-left-radius:4px; }
+  .msg.user .msg-bubble { background:linear-gradient(135deg, #1a1a3e, #1e1e4e); border:1px solid rgba(108,92,231,0.3); border-bottom-right-radius:4px; color:#c4c4f4; }
+  .msg-time { font-size:10px; color:var(--dim); padding:0 4px; }
+  .msg.user .msg-time { text-align:right; }
+
+  .typing { display:flex; gap:4px; align-items:center; padding:14px 16px; }
+  .typing span { width:7px; height:7px; background:var(--dim); border-radius:50%; animation:bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay:0.2s; }
+  .typing span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  .input-row { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; }
+  .chat-input { flex:1; background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; color:var(--text); font-size:14px; font-family:inherit; outline:none; resize:none; height:46px; transition:border-color 0.2s; }
+  .chat-input:focus { border-color:rgba(34,211,238,0.3); }
+  .chat-input::placeholder { color:var(--dim); }
+  .send-btn { background:var(--accent); color:#000; border:none; border-radius:12px; width:46px; height:46px; cursor:pointer; font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:opacity 0.2s; flex-shrink:0; }
+  .send-btn:hover { opacity:0.85; }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* ── Quick replies ── */
+  .quick-replies { padding:8px 24px 0; display:flex; flex-wrap:wrap; gap:6px; }
+  .qr { background:var(--muted); border:1px solid var(--border); color:var(--dim); font-size:12px; padding:6px 12px; border-radius:20px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+  .qr:hover { background:rgba(34,211,238,0.08); color:var(--accent); border-color:rgba(34,211,238,0.2); }
+
+  /* ── Panel derecho ── */
+  .panel { border-left:1px solid var(--border); overflow-y:auto; padding:20px 18px; display:flex; flex-direction:column; gap:20px; }
+  .panel-section { }
+  .panel-title { font-size:11px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }
+  .feature-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .feature-item:last-child { border-bottom:none; }
+  .feature-icon { font-size:16px; margin-top:1px; flex-shrink:0; }
+  .feature-text { font-size:12px; color:var(--dim); line-height:1.5; }
+  .feature-text strong { color:var(--text); font-size:13px; display:block; margin-bottom:2px; }
+
+  .price-box { background:var(--muted); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+  .price-val { font-size:28px; font-weight:800; color:var(--accent); }
+  .price-period { font-size:12px; color:var(--dim); margin-top:2px; }
+  .price-note { font-size:11px; color:var(--dim); margin-top:8px; }
+
+  .cta-main { display:block; background:var(--accent); color:#000; font-weight:700; font-size:14px; text-align:center; padding:13px; border-radius:12px; text-decoration:none; margin-top:4px; transition:opacity 0.2s; }
+  .cta-main:hover { opacity:0.85; }
+  .cta-sec { display:block; background:none; border:1px solid var(--border); color:var(--dim); font-size:13px; text-align:center; padding:11px; border-radius:12px; text-decoration:none; margin-top:8px; cursor:pointer; transition:all 0.15s; }
+  .cta-sec:hover { border-color:rgba(34,211,238,0.3); color:var(--accent); }
+
+  .api-config { background:var(--muted); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .api-label { font-size:11px; color:var(--dim); margin-bottom:6px; }
+  .api-input { width:100%; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:12px; font-family:monospace; outline:none; }
+  .api-btn { width:100%; margin-top:8px; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.2); color:var(--accent); font-size:12px; padding:8px; border-radius:8px; cursor:pointer; transition:all 0.15s; }
+  .api-btn:hover { background:rgba(34,211,238,0.18); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns:1fr; }
+    .sidebar, .panel { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Node<span>Flow</span> IA</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:12px;color:var(--dim);">Demo interactiva</span>
+    <div class="badge">● En vivo</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar sectores -->
+  <div class="sidebar">
+    <div class="sidebar-title">Sector</div>
+    <button class="sector-btn active" onclick="setSector(this,'dental','🦷','María','Clínica Dental Demo')" data-sector="dental">
+      <span class="icon">🦷</span><span class="lbl">Dental</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'restaurante','🍽️','Laura','Restaurante Demo')" data-sector="restaurante">
+      <span class="icon">🍽️</span><span class="lbl">Restaurante</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'peluqueria','✂️','Sara','Peluquería Demo')" data-sector="peluqueria">
+      <span class="icon">✂️</span><span class="lbl">Peluquería</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'taller','🔧','Iñaki','Taller Mecánico Demo')" data-sector="taller">
+      <span class="icon">🔧</span><span class="lbl">Taller</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'veterinaria','🐾','Ane','Clínica Veterinaria Demo')" data-sector="veterinaria">
+      <span class="icon">🐾</span><span class="lbl">Veterinaria</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'estetica','💅','Leire','Centro Estética Demo')" data-sector="estetica">
+      <span class="icon">💅</span><span class="lbl">Estética</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'gimnasio','💪','Mikel','Gimnasio Demo')" data-sector="gimnasio">
+      <span class="icon">💪</span><span class="lbl">Gimnasio</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'asesoria','📋','Aritz','Asesoría Demo')" data-sector="asesoria">
+      <span class="icon">📋</span><span class="lbl">Asesoría</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'farmacia','💊','—','Farmacia Demo')" data-sector="farmacia">
+      <span class="icon">💊</span><span class="lbl">Farmacia</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'inmobiliaria','🏠','Jon','Inmobiliaria Demo')" data-sector="inmobiliaria">
+      <span class="icon">🏠</span><span class="lbl">Inmobiliaria</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'fisioterapia','🦴','Ainhoa','Fisioterapia Demo')" data-sector="fisioterapia">
+      <span class="icon">🦴</span><span class="lbl">Fisioterapia</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'psicologo','🧠','Iker','Psicología Demo')" data-sector="psicologo">
+      <span class="icon">🧠</span><span class="lbl">Psicología</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'abogado','⚖️','Amaia','Bufete Demo')" data-sector="abogado">
+      <span class="icon">⚖️</span><span class="lbl">Abogado</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'clinica','🏥','Nerea','Clínica Médica Demo')" data-sector="clinica">
+      <span class="icon">🏥</span><span class="lbl">Clínica Médica</span><span class="price">49€/mes</span>
+    </button>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="avatar" id="avatarEmoji">🦷</div>
+      <div class="chat-meta">
+        <div class="chat-name" id="assistantName">María · Clínica Dental Demo</div>
+        <div class="chat-sub">Asistente de voz IA · NodeFlow</div>
+      </div>
+      <div class="status-dot" title="Online"></div>
+      <button id="voiceToggleBtn" onclick="toggleVoice()" title="Activar/desactivar voz del asistente"
+        style="background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
+        >🔊</button>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="quick-replies" id="quickReplies"></div>
+
+    <div class="input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="Escribe o habla como si fueras el cliente..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+      <button id="micBtn" onclick="toggleMic()" title="Hablar (mantén pulsado o haz clic para grabar)"
+        style="background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);border-radius:10px;padding:0 12px;height:46px;cursor:pointer;font-size:18px;color:var(--dim);transition:all 0.2s;"
+        >🎤</button>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+
+  <!-- Panel derecho -->
+  <div class="panel">
+
+    <div class="panel-section">
+      <div class="panel-title">Lo que hace automáticamente</div>
+      <div class="feature-item"><span class="feature-icon">📅</span><div class="feature-text"><strong>Gestión de citas</strong>Agenda, modifica y cancela sin que nadie intervenga</div></div>
+      <div class="feature-item"><span class="feature-icon">💬</span><div class="feature-text"><strong>Recordatorios WhatsApp</strong>Al cliente 24h antes. Cero ausencias</div></div>
+      <div class="feature-item"><span class="feature-icon">⭐</span><div class="feature-text"><strong>Reseñas Google</strong>Las pide automáticamente tras cada visita</div></div>
+      <div class="feature-item"><span class="feature-icon">🧠</span><div class="feature-text"><strong>Memoria de clientes</strong>Recuerda historial, nombre y preferencias</div></div>
+      <div class="feature-item"><span class="feature-icon">🔔</span><div class="feature-text"><strong>Alerta al negocio</strong>WhatsApp en tiempo real de cada llamada</div></div>
+      <div class="feature-item"><span class="feature-icon">🔄</span><div class="feature-text"><strong>Fidelización</strong>Recuerda cuándo tiene que volver cada cliente</div></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="price-box">
+        <div class="price-val">49€</div>
+        <div class="price-period">al mes · todo incluido</div>
+        <div class="price-note">Sin permanencia · Instalado en 24h</div>
+      </div>
+      <a href="https://nodeflow.es/onboarding" target="_blank" class="cta-main" style="margin-top:12px;">Probar 7 días gratis →</a>
+      <a href="https://wa.me/34666351319?text=Hola Unai, he visto la demo de NodeFlow y me interesa" target="_blank" class="cta-sec">WhatsApp: 666 351 319</a>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Conectar con tu servidor</div>
+      <div class="api-config">
+        <div class="api-label">URL del servidor (opcional)</div>
+        <input class="api-input" id="serverUrl" placeholder="https://xmehd4.easypanel.host" value="https://xmehd4.easypanel.host">
+        <div class="api-label" style="margin-top:8px">Token de acceso</div>
+        <input class="api-input" id="serverToken" type="password" placeholder="demo token o admin token">
+        <button class="api-btn" onclick="testConnection()">Verificar conexión</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Utilidades globales ───────────────────────────────────────────────────────
+const _hoy = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+
+function _saludo() {
+  const h = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',hour12:false,timeZone:'Europe/Madrid'}).slice(0,2);
+  const n = parseInt(h, 10);
+  return n >= 6 && n < 14 ? 'Buenos días' : n >= 14 && n < 21 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+const SECTORS = {
+  dental: {
+    emoji: '🦷', name: 'María', biz: 'Clínica Dental Demo',
+    get greeting() { return `${_saludo()}, clínica dental, le atiende María, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero pedir cita','¿Cuál es el horario?','¿Hacéis blanqueamiento?','¿Cuánto cuesta un implante?'],
+    systemPrompt: `Eres María, recepcionista de una clínica dental en España. Hablas por teléfono con pacientes.
+ESTILO: español natural y coloquial, frases cortas (máximo 2), tono cálido y profesional. Usa USTED.
+REGLA DE ORO: Si preguntan por un servicio o precio, RESPONDE PRIMERO con la info y el precio, LUEGO ofrece cita. Nunca digas "déjame mirar disponibilidad" si no han pedido cita.
+SERVICIOS Y PRECIOS (responde directamente, sin rodeos):
+- Revisión/valoración: GRATIS primera visita
+- Limpieza dental: 60€, unos 45 minutos
+- Empaste: 40-80€ según tamaño y ubicación
+- Extracción simple: desde 50€
+- Blanqueamiento en clínica: 180€, 1 hora con luz LED, hasta 8 tonos más blanco
+- Blanqueamiento kit para casa: 90€, férulas personalizadas, 2 semanas nocturnas
+- Ortodoncia: consulta GRATIS, tratamiento desde 1.500€ (brackets o Invisalign)
+- Implante dental: desde 800€ por pieza, incluye corona
+- Carillas de porcelana: 350€ por pieza
+HORARIO: lunes a viernes 9-20h, sábados 9-14h.
+Al confirmar cita: menciona recordatorio WhatsApp 24h antes y reseña Google después de la visita.
+Hoy es ${_hoy}.`
+  },
+  restaurante: {
+    emoji: '🍽️', name: 'Laura', biz: 'Restaurante Demo',
+    get greeting() { return `${_saludo()}, restaurante, le atiende Laura, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero reservar mesa','¿Tenéis hueco esta noche?','Somos 6 personas','¿Cuál es el menú del día?'],
+    systemPrompt: `Eres Laura, recepcionista de un restaurante en el País Vasco. Hablas por teléfono con clientes.
+ESTILO: español natural, frases cortas, tono cálido. Usa USTED.
+REGLA DE ORO: Si preguntan por el menú, precio o disponibilidad, responde PRIMERO con la info, LUEGO gestiona la reserva.
+INFORMACIÓN DEL RESTAURANTE:
+- Menú del día (L-V): 13€, incluye primero, segundo, postre, pan y bebida
+- Carta: entrantes 6-14€, carnes 14-28€, pescados 15-18€, postres 4-5€
+- Horario comidas: 13:00-15:30h. Cenas: 20:30-23:00h. Cerrado lunes noche y domingos noche.
+- Terraza disponible (según tiempo). Salón privado para grupos +15 personas.
+- Aparcamiento público a 100m.
+- Animales: solo en terraza.
+Para reserva necesitas: nombre, número de personas, día y hora, teléfono.
+Al confirmar: ofrece recordatorio WhatsApp el día antes.
+Hoy es ${_hoy}.`
+  },
+  peluqueria: {
+    emoji: '✂️', name: 'Sara', biz: 'Peluquería Demo',
+    get greeting() { return `${_saludo()}, peluquería, te atiende Sara, ¿en qué puedo ayudarte?`; },
+    quickReplies: ['Quiero pedir cita para un corte','¿Cuánto cuesta un mechas?','Quiero hacer un tinte','¿Hacéis alisado?'],
+    systemPrompt: `Eres Sara, recepcionista de una peluquería. Hablas por teléfono con clientes.
+ESTILO: español natural y cercano, frases cortas, TUTEA siempre.
+REGLA DE ORO: Si preguntan por un servicio o precio, di el precio PRIMERO. Luego ofrece cita.
+SERVICIOS Y PRECIOS:
+- Corte mujer: desde 18€ (corto) hasta 28€ (largo)
+- Corte hombre: desde 12€
+- Tinte color plano: desde 35€ pelo corto, 55€ pelo largo
+- Mechas/balayage: desde 45€ pelo corto, 85€ pelo largo (incluye tónico)
+- Alisado permanente: desde 60€
+- Keratina brasileña: desde 80€ (dura 3-4 meses, elimina el frizz)
+- Peinado evento/boda: desde 35€
+- Manicura clásica: 15€. Semipermanente: 22€ (dura 3 semanas)
+- Tratamiento hidratación profunda: 30€
+HORARIO: lunes a sábado 9-20h.
+Al confirmar cita: ofrece recordatorio WhatsApp y recuerda que el sistema avisa cuando toca volver.
+Hoy es ${_hoy}.`
+  },
+  taller: {
+    emoji: '🔧', name: 'Iñaki', biz: 'Taller Mecánico Demo',
+    get greeting() { return `${_saludo()}, taller, le atiende Iñaki, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero traer el coche','¿Hacéis revisión pre-ITV?','Tengo una avería urgente','¿Cuánto cuesta un cambio de aceite?'],
+    systemPrompt: `Eres Iñaki, recepcionista de un taller mecánico. Hablas por teléfono con clientes.
+ESTILO: directo y profesional, frases cortas. Usa USTED.
+REGLA DE ORO: Si preguntan precio o servicio, responde PRIMERO con el precio. Si hay urgencia (avería, humo, frenos), alerta INMEDIATA.
+SERVICIOS Y PRECIOS:
+- Cambio de aceite y filtros: desde 40€ (mineral), desde 55€ (sintético). Incluye revisión básica.
+- Revisión pre-ITV: 30€. Detectamos todo lo que puede hacer fallar la ITV.
+- Frenos: revisión gratis. Pastillas desde 60€ el eje. Discos desde 80€ el eje.
+- Neumáticos: venta y montaje de todas las marcas. Pídame la medida y le doy precio.
+- Cambio de distribución: desde 250€ según vehículo. Muy importante hacerla cada 120.000km.
+- Climatización: carga de gas desde 50€. Revisión completa 65€.
+- Diagnóstico electrónico: 25€. Se descuenta si hace la reparación.
+- Revisión general: desde 60€. Incluye 30 puntos de control.
+- Presupuesto siempre GRATIS y sin compromiso.
+HORARIO: L-V 8-18h, S 8-13h. Grúa 24h para urgencias.
+Hoy es ${_hoy}.`
+  },
+  veterinaria: {
+    emoji: '🐾', name: 'Ane', biz: 'Clínica Veterinaria Demo',
+    get greeting() { return `${_saludo()}, clínica veterinaria, te atiende Ane, ¿en qué puedo ayudarte?`; },
+    quickReplies: ['Quiero pedir cita','Mi perro está muy malo','¿Hacéis urgencias?','Quiero vacunar a mi gato'],
+    systemPrompt: `Eres Ane, recepcionista de una clínica veterinaria. Hablas por teléfono con dueños de mascotas.
+ESTILO: empático, cálido y tranquilizador, frases cortas. TUTEA siempre.
+URGENCIAS ABSOLUTAS (di INMEDIATAMENTE "ven ahora, estamos avisando al veterinario"): convulsiones, atropello, no respira, sangrado intenso, envenenamiento.
+REGLA DE ORO: Si preguntan por servicio o precio, responde PRIMERO con la info. Luego ofrece cita.
+SERVICIOS Y PRECIOS:
+- Consulta general: 30€
+- Vacuna triple canina (moquillo, parvo, hepatitis): 25€. Anual.
+- Vacuna rabia: 18€. Obligatoria para viajar.
+- Vacuna leucemia felina: 22€. Anual.
+- Desparasitación interna (pastilla): desde 8€ según peso
+- Desparasitación externa (pipeta/collar): desde 12€
+- Castración perra: 180€. Castración perro: 150€.
+- Castración gata: 80€. Castración gato: 70€.
+- Limpieza dental bajo anestesia: 120€ perros, 90€ gatos.
+- Microchip: 20€ (obligatorio en perros).
+- Urgencias 24h: recargo 20€ fuera de horario.
+HORARIO: L-V 9-20h, S 9-13h. Urgencias 24h.
+Hoy es ${_hoy}.`
+  },
+  estetica: {
+    emoji: '💅', name: 'Leire', biz: 'Centro Estética Demo',
+    get greeting() { return `${_saludo()}, centro de estética, te atiende Leire, ¿en qué puedo ayudarte?`; },
+    quickReplies: ['¿Hacéis depilación láser?','Quiero un facial antiedad','¿Cuánto cuesta la presoterapia?','Quiero reservar masaje'],
+    systemPrompt: `Eres Leire, recepcionista de un centro de estética. Hablas por teléfono con clientas.
+ESTILO: cálido, cercano y entusiasta. Frases cortas. TUTEA siempre.
+REGLA DE ORO: Si preguntan por servicio o precio, responde PRIMERO con el precio y los detalles. Luego ofrece cita.
+SERVICIOS Y PRECIOS:
+FACIALES: Limpieza profunda 40€ (60 min). Hidratación ácido hialurónico 65€ (60 min). Tratamiento antiedad con radiofrecuencia 65€ (75 min, recomendado desde los 30). Peeling químico 55€ (no en verano).
+DEPILACIÓN: Cera desde 8€ zona pequeña. Láser desde 20€ zona pequeña, piernas completas pack 6 sesiones 399€. Para láser se necesitan mínimo 6 sesiones espaciadas 45 días.
+CORPORALES: Masaje relajante aromaterapia 40€ (60 min). Masaje deportivo 50€. Presoterapia 30€/sesión, bono 10 sesiones 250€ (drenaje y circulación). Cavitación + radiofrecuencia 50€.
+MANOS Y PIES: Manicura clásica 15€. Semipermanente 22€ (dura 3 semanas). Pedicura 22€.
+MICROPIGMENTACIÓN: Cejas 180€ (dura 1-2 años). Labios 150€.
+HORARIO: L-S 9-20h.
+Al confirmar tratamiento de ciclo (láser, cavitación): menciona que el sistema programará recordatorio para cada sesión.
+Hoy es ${_hoy}.`
+  },
+  gimnasio: {
+    emoji: '💪', name: 'Mikel', biz: 'Gimnasio Demo',
+    get greeting() { return `${_saludo()}, gimnasio, soy Mikel, ¿en qué te puedo ayudar?`; },
+    quickReplies: ['¿Cuánto cuesta la cuota?','¿Qué clases tenéis?','Quiero apuntarme','Quiero congelar mi cuota'],
+    systemPrompt: `Eres Mikel, recepcionista de un gimnasio. Hablas por teléfono con socios y potenciales clientes.
+ESTILO: enérgico, motivador y cercano. Frases cortas. TUTEA siempre.
+REGLA DE ORO: Si preguntan precio o clases, responde PRIMERO con la info. Para bajas: siempre intenta retener antes.
+TARIFAS:
+- Mensual: 35€/mes (acceso ilimitado + clases incluidas)
+- Trimestral: 90€ (ahorro de 15€)
+- Anual: 300€ (ahorro de 120€)
+- Tarifa reducida (desempleados, jubilados, estudiantes): 25€/mes
+- Familiar (2 personas): 55€/mes
+- Entrenador personal: 35€/sesión, bono 10 sesiones 280€
+CLASES (todas incluidas en cuota):
+- Yoga: martes y jueves 19:30h, sábados 10:00h
+- Spinning: L/X/V a las 8:00h y 19:00h
+- Zumba: martes y jueves 20:30h
+- Pilates: lunes y miércoles 18:00h
+- Crossfit: L-V 7:30h y 20:00h
+INSTALACIONES: piscina 25m, sauna, sala de musculación, sala cardio, vestuarios.
+HORARIO: L-V 7-23h, S 9-21h, D 10-14h.
+RETENCIÓN EN BAJAS: Siempre ofrece congelación (hasta 3 meses gratis al año) o tarifa reducida antes de procesar la baja.
+Hoy es ${_hoy}.`
+  },
+  asesoria: {
+    emoji: '📋', name: 'Aritz', biz: 'Asesoría Demo',
+    get greeting() { return `${_saludo()}, asesoría, le atiende Aritz, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero hablar con un asesor','Tengo un plazo fiscal urgente','Quiero darme de alta como autónomo','¿Cuánto cobráis?'],
+    systemPrompt: `Eres Aritz, recepcionista de una asesoría fiscal, laboral y contable. Hablas por teléfono con clientes.
+ESTILO: profesional y tranquilizador. Frases cortas. Usa USTED.
+URGENCIAS ABSOLUTAS (avisa AL MOMENTO al asesor): "vence mañana", "sanción", "embargo", "Hacienda me ha enviado carta", "inspección".
+REGLA DE ORO: Si preguntan por servicio o precio, responde PRIMERO. NUNCA des consejos fiscales concretos — eso es del asesor.
+SERVICIOS Y PRECIOS:
+- Gestión autónomo (todo incluido: IVA, IRPF, SS): desde 50€/mes
+- Gestión empresa pyme (contabilidad + fiscal + laboral): desde 120€/mes según volumen
+- Declaración de la renta particular: desde 40€
+- Alta de autónomo (trámite único): 80€
+- Constitución SL: desde 800€ (incluye notaría y registro)
+- Nóminas: desde 15€/nómina
+- Primera consulta: SIEMPRE GRATUITA
+PLAZOS FISCALES CLAVE: IVA trimestral (enero/abril/julio/octubre). Renta (abril-junio). Cierre anual (enero).
+HORARIO: L-V 9-18h. Para urgencias fiscales, atención fuera de horario.
+Hoy es ${_hoy}.`
+  },
+  farmacia: {
+    emoji: '💊', name: 'Farmacia', biz: 'Farmacia Demo',
+    get greeting() { return `${_saludo()}, farmacia, ¿en qué le puedo ayudar?`; },
+    quickReplies: ['¿Tenéis ibuprofeno 600?','¿A qué hora cerráis?','Quiero reservar un medicamento','¿Estáis de guardia esta noche?'],
+    systemPrompt: `Eres la recepcionista de una farmacia. Hablas por teléfono con clientes.
+ESTILO: amable, clara y profesional. Frases cortas. Usa USTED.
+URGENCIAS MÉDICAS (di INMEDIATAMENTE "llame al 112 ahora"): dolor en el pecho, dificultad respiratoria, pérdida de consciencia, convulsiones, sospecha de ictus.
+REGLA DE ORO: Para medicamentos comunes dí directamente que sí los tienes. Para específicos o con receta, consulta stock. NUNCA des consejos de dosis o interacciones.
+MEDICAMENTOS SIN RECETA QUE SIEMPRE TENEMOS:
+Ibuprofeno 400 y 600mg, Paracetamol 500mg y 1g, Omeprazol 20mg, Loratadina, Cetirizina, Almax, Gaviscon, Frenadol, Couldina, Vitamina C/D/B, Suero oral.
+SERVICIOS GRATUITOS SIN CITA: medición tensión, glucosa, temperatura. Gestión recetas electrónicas (solo DNI).
+SERVICIOS CON CITA: vacuna gripe 15€ (oct-ene), test COVID/embarazo desde 8€, seguimiento farmacoterapéutico gratuito.
+RECETAS: Electrónica con DNI o tarjeta sanitaria. Papel en persona.
+HORARIO: L-S 9-21h. Domingos solo si estamos de guardia.
+Si no hay stock: ofrecer pedido para mañana.
+Hoy es ${_hoy}.`
+  },
+  inmobiliaria: {
+    emoji: '🏠', name: 'Jon', biz: 'Inmobiliaria Demo',
+    get greeting() { return `${_saludo()}, inmobiliaria, le atiende Jon, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Busco piso en Bilbao','Quiero vender mi casa','¿Cuánto cobráis de comisión?','Quiero una valoración gratuita'],
+    systemPrompt: `Eres Jon, recepcionista de una inmobiliaria. Hablas por teléfono con clientes.
+ESTILO: profesional, ágil y confiado. Frases cortas. Usa USTED. Los leads son URGENTES — quien llama y no recibe atención se va a la competencia.
+REGLA DE ORO: Responde PRIMERO a lo que preguntan (honorarios, cómo funciona). LUEGO recoge datos. Si es lead urgente (hipoteca aprobada, contrato vence pronto), alerta AL MOMENTO al agente.
+SERVICIOS Y HONORARIOS:
+- Compraventa: 3% del precio de venta, SOLO si se cierra la operación. Si no se vende, no cobramos nada.
+- Alquiler (propietario): equivale a 1 mes de alquiler al firmar.
+- Valoración: SIEMPRE GRATUITA, sin compromiso.
+- Visitas: SIEMPRE GRATUITAS.
+- Gestión hipotecaria: colaboramos con los mejores bancos SIN COSTE adicional.
+- Trámites notariales: gestión completa incluida en los honorarios.
+PARA COMPRADORES: pide zona, presupuesto máximo, tipo (piso/casa/local), habitaciones, urgencia.
+PARA VENDEDORES: agenda valoración gratuita esta semana. Pide tipo, zona, precio esperado.
+HORARIO: L-V 9-19h, S 10-14h.
+Hoy es ${_hoy}.`
+  },
+
+  fisioterapia: {
+    emoji: '🦴', name: 'Ainhoa', biz: 'Fisioterapia Demo',
+    get greeting() { return `${_saludo()}, clínica de fisioterapia, le atiende Ainhoa, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero pedir cita','¿Cuánto cuesta una sesión?','¿Hacéis osteopatía?','Tengo una lesión de espalda'],
+    systemPrompt: `Eres Ainhoa, recepcionista de una clínica de fisioterapia en el País Vasco. Hablas por teléfono con pacientes.
+ESTILO: cálido, profesional y tranquilizador. Frases cortas. Usa USTED.
+REGLA DE ORO: Si preguntan por un servicio o precio, RESPONDE PRIMERO con la información y el precio. LUEGO ofrece cita. Nunca vayas directamente a disponibilidad sin responder la pregunta.
+SERVICIOS Y PRECIOS:
+- Primera valoración: GRATUITA, 30 minutos
+- Sesión individual fisioterapia: 45€, 45-60 min
+- Bono 5 sesiones: 200€ (ahorro 25€)
+- Bono 10 sesiones: 380€ (ahorro 70€)
+- Fisioterapia deportiva: 50€/sesión
+- Masaje terapéutico descontracturante: 40€, 45 min
+- Osteopatía: 55€/sesión, 60 min
+- Drenaje linfático manual: 50€, 60 min
+- Pilates terapéutico (grupos máx 6): 15€/clase, bono mensual 8 clases 100€
+- Vendaje neuromuscular (kinesiotaping): 15€ adicional por zona
+- Suelo pélvico: 55€/sesión, con fisioterapeuta especializada
+HORARIO: lunes a viernes 8:30-20:30h, sábados 9:00-14:00h.
+Al confirmar tratamiento de ciclo: el sistema avisa cuando toca la siguiente sesión.
+Hoy es ${_hoy}.`
+  },
+
+  psicologo: {
+    emoji: '🧠', name: 'Iker', biz: 'Psicología Demo',
+    get greeting() { return `${_saludo()}, consulta de psicología, le atiende Iker, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero pedir cita','¿Cuánto cuesta la primera consulta?','¿Hacéis terapia de pareja?','¿Se puede online?'],
+    systemPrompt: `Eres Iker, recepcionista de una consulta de psicología. Hablas por teléfono con personas que buscan ayuda psicológica.
+ESTILO: extremadamente empático, cálido y tranquilizador. Nunca juzgas. Frases cortas. Usa USTED, con mucha delicadeza.
+TONO ESPECIAL: Muchos clientes llaman en un momento difícil. Tu voz es la primera impresión. Transmite que están en el lugar correcto.
+URGENCIAS: Si la persona menciona pensamientos de hacerse daño, crisis grave o riesgo inmediato → di INMEDIATAMENTE: "Entiendo, está en buenas manos. Voy a avisar ahora mismo al psicólogo para que le llame en los próximos minutos." y alerta urgente.
+REGLA DE ORO: Responde primero a las preguntas sobre servicios y precios, luego ofrece cita. NUNCA preguntes el motivo de consulta por teléfono — eso lo trata directamente el psicólogo.
+SERVICIOS Y PRECIOS:
+- Primera consulta de evaluación: 60€, 60 minutos
+- Sesión individual adulto: 65€, 50 minutos
+- Bono mensual 4 sesiones: 240€ (ahorro 20€)
+- Sesión de pareja: 80€, 60 minutos
+- Sesión infantil/adolescente: 60€, 45 minutos
+- Sesión online (videollamada): mismo precio que presencial
+- Informe psicológico: desde 150€ según tipo
+- Especialidades: ansiedad, depresión, duelo, relaciones de pareja, TDA, fobias, trastornos alimentarios
+HORARIO: lunes a viernes 9:00-21:00h (también tardes para compatibilidad laboral).
+CANCELACIONES: política de 24h de antelación, informar al confirmar.
+Hoy es ${_hoy}.`
+  },
+
+  abogado: {
+    emoji: '⚖️', name: 'Amaia', biz: 'Bufete Demo',
+    get greeting() { return `${_saludo()}, bufete de abogados, le atiende Amaia, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero hablar con un abogado','Tengo un despido','Me han notificado un juicio','¿Cuánto cobráis?'],
+    systemPrompt: `Eres Amaia, recepcionista de un bufete de abogados. Hablas por teléfono con clientes.
+ESTILO: profesional, tranquilizador y confiado. Usa USTED siempre. Transmite que el equipo lo tiene bajo control.
+URGENCIAS LEGALES ABSOLUTAS (avisa INMEDIATAMENTE al abogado): detenido, orden de alejamiento urgente, desahucio mañana, notificación judicial con plazo de hoy/mañana, inspección en curso → flag_urgent.
+REGLA DE ORO: Responde PRIMERO a lo que preguntan (honorarios, áreas, cómo funciona). LUEGO recoge datos. NUNCA des consejo jurídico concreto — eso es trabajo del abogado.
+ÁREAS Y HONORARIOS ORIENTATIVOS:
+- Primera consulta: 80€, 45 minutos. Gratuita si el caso se acepta en las áreas de accidentes y laboral.
+- Derecho laboral (despidos, ERE, reclamaciones): desde 300€ o % de lo recuperado.
+- Derecho de familia (divorcios, custodias): desde 800€ mutuo acuerdo, desde 1.500€ contencioso.
+- Herencias y testamentos: desde 600€.
+- Accidentes de tráfico: SIN COSTE INICIAL, honorarios sobre la indemnización obtenida.
+- Reclamación de deudas: desde 200€ o porcentaje.
+- Derecho inmobiliario (contratos, desahucios): desde 400€.
+- Constitución de empresas y mercantil: desde 500€.
+- Extranjería e inmigración: desde 300€.
+- Derecho penal: consultar según caso.
+HORARIO: lunes a viernes 9:00-19:00h.
+Hoy es ${_hoy}.`
+  },
+
+  clinica: {
+    emoji: '🏥', name: 'Nerea', biz: 'Clínica Médica Demo',
+    get greeting() { return `${_saludo()}, clínica médica, le atiende Nerea, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero pedir cita con el médico','¿Cuánto cuesta una consulta?','Necesito análisis de sangre','Urgencia: me encuentro mal'],
+    systemPrompt: `Eres Nerea, recepcionista de una clínica médica privada. Hablas por teléfono con pacientes.
+ESTILO: profesional, cálido y eficiente. Usa USTED. Máximo 1-2 frases.
+URGENCIAS VITALES (di INMEDIATAMENTE "llame al 112 ahora"): dolor en el pecho irradiado, dificultad respiratoria grave, pérdida de consciencia, convulsiones, sospecha de ictus.
+URGENCIAS DE CLÍNICA (buscar hueco hoy): fiebre alta, dolor intenso que no mejora, herida que puede necesitar puntos → flag_urgent para buscar hueco urgente en el día.
+REGLA DE ORO: Si preguntan por servicio o precio, RESPONDE PRIMERO con la información. LUEGO ofrece cita.
+ESPECIALIDADES Y PRECIOS:
+- Médico de familia / medicina general: 50€, 20 min
+- Pediatría: 55€, 20 min
+- Ginecología: 70€, 30 min
+- Cardiología: 90€ (incluye ECG básico), 30 min
+- Dermatología: 70€, 20 min
+- Traumatología: 70€, 20 min
+- Psiquiatría: 90€, 30 min
+- Nutrición y dietética: 60€ primera visita, 40€ seguimiento
+- Análisis de sangre completo: 45€ (resultado 24-48h)
+- Radiografía: desde 35€
+- Electrocardiograma (ECG): 30€
+- Ecografía: desde 60€ según zona
+- Certificados médicos (carnet conducir, deporte, laboral): 40€
+- Vacunación (gripe, viaje, COVID): desde 15€
+HORARIO: lunes a viernes 8:00-20:00h, sábados 9:00-14:00h.
+Hoy es ${_hoy}.`
+  }
+};
+
+// ── Estado ───────────────────────────────────────────────────────────────────
+let currentSector = 'dental';
+let conversationHistory = [];
+let isTyping = false;
+let lastServiceKey = null;   // ← contexto: último servicio mencionado por el bot
+const OPENAI_KEY = '';        // Se puede configurar o usar servidor
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  // Restore persisted server token
+  const savedToken = localStorage.getItem('server_token');
+  if (savedToken) document.getElementById('serverToken').value = savedToken;
+  // Persist token whenever it changes
+  document.getElementById('serverToken').addEventListener('change', () => {
+    const t = document.getElementById('serverToken').value.trim();
+    if (t) localStorage.setItem('server_token', t);
+    else localStorage.removeItem('server_token');
+  });
+  setSector(document.querySelector('.sector-btn.active'), 'dental', '🦷', 'María', 'Clínica Dental Demo');
+};
+
+function setSector(btn, sector, emoji, name, biz) {
+  document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSector = sector;
+  lastServiceKey = null;        // resetear contexto al cambiar de sector
+  conversationHistory = [];
+  document.getElementById('avatarEmoji').textContent = emoji;
+  document.getElementById('assistantName').textContent = `${name} · ${biz}`;
+  document.getElementById('messages').innerHTML = '';
+  updateQuickReplies(sector);
+  setTimeout(() => addBotMessage(SECTORS[sector].greeting), 300);
+}
+
+function updateQuickReplies(sector) {
+  const qr = document.getElementById('quickReplies');
+  qr.innerHTML = SECTORS[sector].quickReplies.map(r =>
+    `<button class="qr" data-msg="${r.replace(/"/g,'&quot;')}" onclick="sendQuick(this)">${r}</button>`
+  ).join('');
+}
+
+function sendQuick(btn) {
+  document.getElementById('chatInput').value = btn.dataset.msg;
+  sendMsg();
+}
+
+// ── Mensajes ─────────────────────────────────────────────────────────────────
+// ── Web Speech API STT (Reconocimiento de voz del usuario) ───────────────────
+let _recognition = null;
+let _micActive   = false;
+
+function _initSTT() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  _recognition = new SpeechRecognition();
+  _recognition.lang       = 'es-ES';
+  _recognition.continuous = false;
+  _recognition.interimResults = true;
+
+  _recognition.onstart = () => {
+    _micActive = true;
+    window.speechSynthesis?.cancel(); // stop TTS when user speaks
+    const btn = document.getElementById('micBtn');
+    if (btn) { btn.textContent = '⏹'; btn.style.color = '#ef4444'; btn.style.borderColor = '#ef4444'; }
+  };
+
+  _recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('chatInput').value = transcript;
+    if (e.results[e.results.length - 1].isFinal) {
+      _stopMic();
+      setTimeout(() => sendMsg(), 120);
+    }
+  };
+
+  _recognition.onerror = () => _stopMic();
+  _recognition.onend   = () => _stopMic();
+}
+_initSTT();
+
+function _stopMic() {
+  _micActive = false;
+  const btn = document.getElementById('micBtn');
+  if (btn) { btn.textContent = '🎤'; btn.style.color = 'var(--dim)'; btn.style.borderColor = 'rgba(108,92,231,0.2)'; }
+}
+
+function toggleMic() {
+  if (!_recognition) { alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome.'); return; }
+  if (_micActive) { _recognition.stop(); return; }
+  try { _recognition.start(); } catch (_) {}
+}
+
+// ── Web Speech API TTS ────────────────────────────────────────────────────────
+let _voiceEnabled = true;
+let _ttsVoice     = null;
+let _ttsSpeaking  = false;
+
+function _initTTS() {
+  if (!window.speechSynthesis) return;
+  function _pickVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return;
+    // Prefer a Spanish (Spain) voice; fallback to any Spanish, then any
+    _ttsVoice =
+      voices.find(v => v.lang === 'es-ES' && v.name.includes('Google'))  ||
+      voices.find(v => v.lang === 'es-ES')                                ||
+      voices.find(v => v.lang.startsWith('es'))                           ||
+      voices[0] || null;
+  }
+  _pickVoice();
+  window.speechSynthesis.onvoiceschanged = _pickVoice;
+}
+_initTTS();
+
+function toggleVoice() {
+  _voiceEnabled = !_voiceEnabled;
+  const btn = document.getElementById('voiceToggleBtn');
+  btn.textContent = _voiceEnabled ? '🔊' : '🔇';
+  btn.style.opacity = _voiceEnabled ? '1' : '0.45';
+  if (!_voiceEnabled) window.speechSynthesis?.cancel();
+}
+
+function speakText(text) {
+  if (!_voiceEnabled || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); // stop any ongoing speech
+  // Strip markdown-like bold/asterisks for cleaner TTS
+  const clean = text.replace(/\*+/g, '').replace(/[_~`]/g, '').trim();
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang  = 'es-ES';
+  utt.rate  = 1.05;
+  utt.pitch = 1.0;
+  if (_ttsVoice) utt.voice = _ttsVoice;
+  utt.onstart = () => { _ttsSpeaking = true; };
+  utt.onend   = () => { _ttsSpeaking = false; };
+  utt.onerror = () => { _ttsSpeaking = false; };
+  window.speechSynthesis.speak(utt);
+}
+
+function addBotMessage(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  const now = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-time">${now}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  conversationHistory.push({role:'assistant', content:text});
+  speakText(text); // 🔊 speak each bot response
+}
+
+function addUserMessage(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  const now = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-time">${now}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  conversationHistory.push({role:'user', content:text});
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+// ── Enviar mensaje ────────────────────────────────────────────────────────────
+async function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  input.value = '';
+  addUserMessage(text);
+  isTyping = true;
+  document.getElementById('sendBtn').disabled = true;
+  showTyping();
+
+  try {
+    const reply = await getAIResponse(text);
+    hideTyping();
+    addBotMessage(reply);
+    _updateLastServiceFromReply(reply);  // actualizar contexto para follow-ups
+  } catch (e) {
+    hideTyping();
+    addBotMessage('Lo siento, ha habido un problema técnico. Por favor, inténtelo de nuevo.');
+  }
+
+  isTyping = false;
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+// ── Llamada a la IA ───────────────────────────────────────────────────────────
+// Mapa sector demo → assistantId en el servidor
+const SECTOR_TO_ASSISTANT = {
+  dental:       'demo-clinic',
+  restaurante:  'restaurante',
+  peluqueria:   'peluqueria',
+  taller:       'taller',
+  veterinaria:  'veterinaria',
+  estetica:     'estetica',
+  gimnasio:     'gimnasio',
+  asesoria:     'asesoria',
+  farmacia:     'farmacia',
+  inmobiliaria: 'inmobiliaria',
+  fisioterapia: 'fisioterapia',
+  psicologo:    'psicologo',
+  abogado:      'abogado',
+  clinica:      'clinica-medica',
+};
+
+async function getAIResponse(userMsg) {
+  const sector = SECTORS[currentSector];
+  const serverUrl = (document.getElementById('serverUrl').value || '').trim();
+
+  // ── Intenta con el servidor NodeFlow primero (formato correcto) ─────────────
+  if (serverUrl) {
+    try {
+      // Construir messages array en formato OpenAI para el servidor
+      const assistantId = SECTOR_TO_ASSISTANT[currentSector] || currentSector;
+      const sysPrompt   = sector.systemPrompt.replace('{{DATE}}', _hoy);
+      const messages    = [
+        { role: 'system', content: sysPrompt },
+        ...conversationHistory.slice(-10),
+        { role: 'user', content: userMsg },
+      ];
+      const serverToken = (document.getElementById('serverToken').value || '').trim();
+      const res = await fetch(`${serverUrl}/api/demo/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(serverToken ? { 'Authorization': `Bearer ${serverToken}` } : {}),
+        },
+        body: JSON.stringify({ botId: assistantId, messages }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.reply) return data.reply;
+      }
+    } catch(_) { /* Fallback a OpenAI directo */ }
+  }
+
+  // ── Fallback: OpenAI directo si hay key configurada ─────────────────────────
+  const apiKey = localStorage.getItem('openai_key') || OPENAI_KEY;
+  if (!apiKey) {
+    return getFallbackResponse(userMsg, currentSector);
+  }
+
+  const messages = [
+    { role: 'system', content: sector.systemPrompt.replace('{{DATE}}', _hoy) },
+    ...conversationHistory.slice(-8),
+    { role: 'user', content: userMsg }
+  ];
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 350, temperature: 0.5 })
+  });
+
+  if (!res.ok) {
+    // Si el error es de autenticación, limpiar la key para no volver a intentarlo
+    if (res.status === 401) localStorage.removeItem('openai_key');
+    return getFallbackResponse(userMsg, currentSector);
+  }
+  const data = await res.json();
+  return data.choices[0]?.message?.content?.trim() || getFallbackResponse(userMsg, currentSector);
+}
+
+// ── Base de conocimiento por sector ──────────────────────────────────────────
+// Cada servicio tiene: respuesta corta inicial + detalle expandido para follow-up
+const SECTOR_KB = {
+  dental: {
+    horario: 'Estamos abiertos de lunes a viernes de 9 a 20h y los sábados de 9 a 14h. La primera visita de valoración es siempre gratuita.',
+    tuteaUsted: 'usted',
+    precios: 'Blanqueamiento desde 90€, limpiezas 60€, empastes desde 40€, implantes desde 800€. Para presupuesto exacto lo mejor es una valoración gratuita.',
+    servicios: {
+      blanqueamiento: {
+        respuesta: 'Sí, hacemos blanqueamiento dental. En clínica desde 180€ y el kit para casa desde 90€. ¿Le interesa saber más o le agendo una consulta?',
+        detalle: 'El blanqueamiento en clínica lo realiza el dentista en una sola sesión de una hora usando luz LED activadora: conseguimos hasta 8 tonos más blancos y los resultados se ven el mismo día. El kit para casa incluye férulas personalizadas que se llevan por las noches durante dos semanas y es más gradual, ideal si tiene los dientes sensibles. Ambas opciones son seguras y no dañan el esmalte. ¿Le agendo una primera valoración gratuita para que el dentista le recomiende cuál se adapta mejor a usted?'
+      },
+      ortodoncia: {
+        respuesta: 'Sí, trabajamos con ortodoncia tradicional y Invisalign. La consulta inicial es gratuita. ¿Cuándo le vendría bien venir a verlo?',
+        detalle: 'Tenemos ortodoncia con brackets metálicos y estéticos, y también Invisalign que son los alineadores transparentes removibles. El precio del tratamiento completo empieza desde 1.500€ y depende de la complejidad del caso. La consulta inicial es completamente gratuita y sin compromiso. ¿Le busco un hueco esta semana para que el ortodoncista lo valore?'
+      },
+      limpieza: {
+        respuesta: 'Sí, hacemos limpiezas dentales por 60€, unos 45 minutos. ¿Le busco hueco?',
+        detalle: 'La limpieza dental incluye eliminación de sarro y manchas con ultrasonidos, pulido y fluorización. Dura unos 45 minutos y recomendamos hacerla una o dos veces al año. El precio es de 60€. Al terminar el dentista aprovecha para hacer una revisión rápida sin coste adicional. ¿Le agendo una cita?'
+      },
+      empaste: {
+        respuesta: 'Sí, hacemos empastes. Precio entre 40 y 80€ según el tamaño. ¿Quiere que le valore el dentista?',
+        detalle: 'Los empastes los hacemos en composite del color del diente, totalmente estéticos. El precio varía entre 40€ para una caries pequeña y hasta 80€ para una más grande o en zona molar. Si es muy profunda puede necesitar tratamiento de conductos, pero eso lo valora el dentista en la primera visita. ¿Le busco cita para que lo vea?'
+      },
+      revision: {
+        respuesta: 'Sí, la primera visita de valoración es completamente gratuita. ¿Cuándo le vendría bien?',
+        detalle: 'En la primera revisión gratuita el dentista examina toda la boca, hace una ortopantomografía si hace falta y le explica qué necesita y qué costaría. Sin compromiso de nada. Le dura unos 30 minutos. ¿Le busco hueco esta semana?'
+      },
+      extraccion: {
+        respuesta: 'Sí, hacemos extracciones desde 50€ según complejidad. ¿Quiere que lo vea el dentista primero?',
+        detalle: 'Las extracciones simples están desde 50€. Si es una muela del juicio incluida puede ser algo más complejo, en ese caso el dentista le da un presupuesto exacto antes. Hacemos la extracción con anestesia local y en la mayoría de casos dura entre 20 y 40 minutos. ¿Le agendo una primera visita gratuita para valorarlo?'
+      },
+      implante: {
+        respuesta: 'Sí, realizamos implantes. El precio está desde 800€ por pieza, incluida la corona. ¿Le agendo una valoración gratuita?',
+        detalle: 'Un implante dental es la solución más duradera para sustituir un diente perdido. El precio completo (implante + corona de porcelana) está desde 800€ por pieza, aunque depende del caso. El proceso dura entre 3 y 6 meses. La primera valoración es gratuita y en ella el dentista le hace un escáner y le explica exactamente qué necesita y qué costaría. ¿Cuándo le viene bien venir?'
+      },
+      urgencia: {
+        respuesta: '🚨 Entendido, es una urgencia. ¿Puede venir ahora? Estamos avisando al dentista en este momento.',
+        detalle: '🚨 Llame directamente al 944 00 00 00 y dígales que es urgente. Si hay dolor muy fuerte o traumatismo con sangrado, vengan directamente. Estamos avisando al equipo.'
+      },
+    },
+  },
+  restaurante: {
+    horario: 'Comidas de 13:00 a 15:30h y cenas de 20:30 a 23:00h. Cerramos los lunes noche y domingos noche.',
+    tuteaUsted: 'usted',
+    precios: 'Menú del día 13€. Carta desde 12€ el plato. Vinos desde 12€ la botella.',
+    servicios: {
+      reserva:     { respuesta: 'Por supuesto, ¿para cuántas personas y qué día tiene en mente?', detalle: 'Para hacer la reserva necesito el nombre, el número de personas, el día y la hora y un teléfono de contacto. ¿Me lo dice?' },
+      menu:        { respuesta: 'El menú del día son 13€, de lunes a viernes. Incluye primero, segundo, postre, pan y bebida. ¿Le interesa reservar?', detalle: 'El menú del día cambia cada día y tiene tres opciones en cada plato. También tenemos carta con productos de temporada: entrantes desde 6€, carnes de 14 a 28€, pescados de 15 a 18€. Los vinos desde 12€ la botella. ¿Hacemos una reserva?' },
+      alergias:    { respuesta: 'Sin problema, indicándonos la alergia con antelación preparamos alternativas. ¿Me dice para cuántos y qué día?', detalle: 'Trabajamos con todos los alérgenos y podemos adaptar prácticamente cualquier plato. Solo necesitamos saberlo al hacer la reserva para avisar a cocina. ¿Para cuántas personas y qué día sería?' },
+      terraza:     { respuesta: 'Sí tenemos terraza, aunque depende del tiempo. Se puede reservar. ¿Para cuándo sería?', detalle: 'La terraza tiene capacidad para 20 personas. Los animales solo se permiten en terraza. Para garantizarla indicádnoslo al hacer la reserva.' },
+      privado:     { respuesta: 'Sí, tenemos salón privado para grupos desde 15 personas. ¿Para cuántos serían?', detalle: 'El salón privado tiene capacidad para hasta 40 personas. Para grupos podemos preparar un menú cerrado con precio por persona. ¿Le mando información detallada?' },
+      precio:      { respuesta: 'Menú del día 13€. Carta desde 12€ el plato. Vinos desde 12€. ¿Le hacemos una reserva?', detalle: 'El menú del día son 13€ completo con bebida. En la carta los entrantes van de 6 a 14€, las carnes de 14 a 28€ y los pescados de 15 a 18€. También tenemos menú degustación de temporada a 35€ por persona. ¿Le interesa?' },
+    },
+  },
+  peluqueria: {
+    horario: 'Estamos abiertas de lunes a sábado de 9 a 20h.',
+    tuteaUsted: 'tutea',
+    precios: 'Corte mujer 18€, hombre 12€. Tinte desde 35€. Mechas desde 45€. Alisado desde 60€. Keratina desde 80€.',
+    servicios: {
+      corte:      { respuesta: 'Claro, corte de mujer desde 18€ y de hombre desde 12€. ¿Te busco hueco esta semana?', detalle: 'El corte de mujer incluye lavado, corte y secado, desde 18€ para pelo corto y hasta 28€ para largo. En hombre es corte y estilo desde 12€. Si quieres aportar una foto de referencia nos ayuda mucho para conseguir exactamente lo que buscas. ¿Cuándo te viene bien?' },
+      tinte:      { respuesta: 'Sí, tintes desde 35€ según el largo. ¿Cómo tienes el pelo para darte precio exacto?', detalle: 'Para pelo corto el tinte color plano está desde 35€, para medio desde 45€ y para largo desde 55€. Incluye lavado, aplicación, tiempo de proceso y secado. Si además quieres tratamiento de brillo lo dejamos perfecto. ¿Cuándo quieres venir?' },
+      mechas:     { respuesta: 'Sí, mechas desde 45€ polo corto y hasta 85€ para largo. Incluye tónico. ¿Te interesa?', detalle: 'Hacemos mechas clásicas, balayage y babylights. Para pelo corto desde 45€, medio desde 60€ y largo hasta 85€, siempre incluyendo tónico y acondicionamiento. El proceso dura entre 2 y 3 horas. Si quieres un look específico dime cuál y te digo si lo podemos conseguir. ¿Cuándo te busco cita?' },
+      alisado:    { respuesta: 'Sí, alisado permanente desde 60€ y keratina brasileña desde 80€. ¿Cuál te interesa?', detalle: 'El alisado permanente dura unos 6 meses y deja el pelo completamente liso desde 60€. La keratina brasileña elimina el frizz y reduce mucho el volumen, dura 3-4 meses y puedes lavarte el pelo cuando quieras, desde 80€. Para ambas necesitamos saber el largo exacto para darte precio final. ¿Cuándo vienes?' },
+      peinado:    { respuesta: 'Sí, peinados para eventos desde 35€. ¿Es para qué ocasión?', detalle: 'Hacemos recogidos, semirecogidos y ondas para bodas, comuniones o cualquier evento desde 35€. Para bodas recomendamos hacer una prueba previa a 25€ que se descuenta del día. Si me dices la fecha te busco hueco.' },
+      manicura:   { respuesta: 'Sí, manicura clásica 15€ y semipermanente 22€, que dura 3 semanas. ¿Cuándo te viene bien?', detalle: 'La manicura clásica incluye limado, cutículas y esmalte normal, 15€. La semipermanente dura 3 semanas sin astillarse, 22€. También tenemos pedicura desde 20€ y semipermanente pies desde 28€. ¿Te busco hueco?' },
+      tratamiento: { respuesta: 'Sí, tenemos tratamientos de hidratación, keratina, anticaída... ¿Cuál necesitas?', detalle: 'Para pelo dañado: hidratación profunda con mascarilla profesional, 30€. Para frizz o rebelde: keratina express desde 45€. Para caída: tratamiento con ampollas anticaída, 40€ la sesión (recomendamos ciclo de 4). Dime cuál te preocupa más y te digo cuál es el mejor.' },
+    },
+  },
+  taller: {
+    horario: 'Abiertos de lunes a viernes de 8 a 18h y sábados de 8 a 13h. Grúa 24h para urgencias.',
+    tuteaUsted: 'usted',
+    precios: 'Cambio aceite desde 40€. Pre-ITV 30€. Frenos desde 60€ el eje. Revisión general desde 60€. Presupuesto siempre gratis.',
+    servicios: {
+      aceite:       { respuesta: 'Sí, cambio de aceite y filtros desde 40€. ¿Quiere traer el coche esta semana?', detalle: 'El cambio de aceite incluye vaciado, filtro de aceite y filtro de aire, más revisión visual básica gratuita. El precio depende del tipo de aceite: mineral desde 40€, semisintético desde 48€, sintético completo desde 55€. Tardamos menos de una hora. ¿Le busco cita?' },
+      itv:          { respuesta: 'Sí, revisión pre-ITV por 30€ para que llegue sin sorpresas. ¿Le busco cita?', detalle: 'En la revisión pre-ITV comprobamos los 50 puntos que inspecciona la ITV: frenos, luces, emisiones, dirección, neumáticos, suspensión, etc. Si encontramos algo a corregir se lo presupuestamos antes de tocarlo. El coste es de 30€ y se descuenta si hace la reparación aquí. ¿Cuándo trae el coche?' },
+      frenos:       { respuesta: 'Sí, revisamos frenos. Pastillas desde 60€ el eje. ¿Lo trae a revisar?', detalle: 'La revisión de frenos es gratuita. Si hay que cambiar: pastillas delanteras o traseras desde 60€ el eje, discos desde 80€ el eje, o frenos completos (discos + pastillas) desde 130€ el eje. El precio exacto depende de la marca del vehículo. Siempre le damos presupuesto antes de empezar. ¿Cuándo lo trae?' },
+      neumaticos:   { respuesta: 'Sí, vendemos y montamos neumáticos de todas las marcas. ¿Me dice la medida para darle precio?', detalle: 'Trabajamos con Michelin, Bridgestone, Continental, Goodyear y marcas económicas de calidad. El montaje y equilibrado está incluido en el precio. Dígame la medida (está en el lateral del neumático, por ejemplo 205/55R16) y le doy precio inmediatamente.' },
+      climatizacion:{ respuesta: 'Sí, carga de gas y revisión del climatizador desde 50€. ¿Le busco cita?', detalle: 'La revisión incluye comprobación de fugas, estado del filtro de habitáculo y carga de gas refrigerante. El servicio completo cuesta 65€. Si solo necesita rellenar gas sin revisión completa, desde 50€. En verano recomendamos hacerlo antes de que llegue el calor. ¿Cuándo lo trae?' },
+      revision:     { respuesta: 'Sí, revisión general desde 60€, 30 puntos de control. ¿Cuántos kilómetros tiene el coche?', detalle: 'La revisión general de 30 puntos incluye frenos, suspensión, dirección, escape, niveles, filtros, luces y neumáticos. El precio base es 60€ e incluye informe escrito. Si el coche lleva más de 100.000km o hace tiempo que no lo revisan, puede salir a cuenta. ¿Lo trae esta semana?' },
+      averia:       { respuesta: '🚨 Entendido. ¿Dónde está exactamente? Mandamos al mecánico ahora mismo.', detalle: '🚨 Si está en carretera, póngase en el arcén y encienda los intermitentes. Dígame la matrícula y la ubicación exacta y coordinamos la grúa. ¿Está en autopista o carretera nacional?' },
+      presupuesto:  { respuesta: 'Sin problema, el presupuesto es siempre gratuito y sin compromiso. ¿Qué le pasa al coche?', detalle: 'Tráigalo cuando quiera y le hacemos un diagnóstico y presupuesto sin coste. Si es un problema eléctrico hacemos diagnóstico con escáner por 25€ que se descuenta de la reparación. ¿Qué síntomas tiene el coche exactamente?' },
+    },
+  },
+  veterinaria: {
+    horario: 'Abiertos de lunes a viernes de 9 a 20h y sábados de 9 a 13h. Urgencias 24h.',
+    tuteaUsted: 'tutea',
+    precios: 'Consulta 30€. Vacunas desde 15€. Castración perros desde 150€, gatos desde 80€. Limpieza dental 120€.',
+    servicios: {
+      vacuna:      { respuesta: 'Sí, vacunamos desde 15€. ¿Qué animal tienes y te digo cuál necesita?', detalle: 'Para perros la vacuna anual (triple: moquillo, parvo y hepatitis) cuesta 25€. La rabia 18€ y es obligatoria para viajar. Para gatos la leucemia felina 22€ y la cuádruple 28€. También hacemos el microchip (20€, obligatorio en perros) y el pasaporte europeo de mascotas (25€). ¿Para qué animal es y cuándo fue la última vacuna?' },
+      revision:    { respuesta: 'Sí, consulta general 30€. ¿Para qué animal es?', detalle: 'La consulta incluye exploración completa, peso y valoración del estado general. El veterinario te explicará todo detalladamente. Si hace falta pruebas (analítica, radiografía) se presupuesta aparte. ¿Cuándo quieres que lo vea?' },
+      urgencia:    { respuesta: '🚨 Entendido, es urgente. Venid ahora mismo, estamos avisando al veterinario. ¿Qué le pasa exactamente?', detalle: '🚨 Venid AHORA. Nuestro número de urgencias es el 944 00 00 00. Estamos 24 horas. Si el animal está inconsciente o no respira, envuelvedlo en una manta y venid lo antes posible.' },
+      castrar:     { respuesta: 'Sí, castración perros desde 150€ y gatos desde 80€. Incluye anestesia y seguimiento. ¿Quieres cita para valoración previa?', detalle: 'Para la castración hacemos primero una analítica preoperatoria (25€) para ver que está en condiciones de operar. El día de la intervención hacemos la cirugía y el animal se queda observado hasta la tarde. A los 10 días quitamos los puntos. Perros: machos 150€, hembras 180€. Gatos: machos 70€, hembras 80€. Todo incluye anestesia y medicación postoperatoria. ¿Cuándo quieres la cita de valoración?' },
+      desparasitar: { respuesta: 'Sí, antiparasitarios internos desde 8€ y externos desde 12€. ¿Lo traes o prefieres cita?', detalle: 'Para parásitos internos (lombrices) damos comprimidos que se administran en casa, desde 8€ según el peso. Para externos (pulgas, garrapatas) tenemos pipetas, collares y comprimidos (el comprimido Nexgard es el más cómodo, actúa 30 días, desde 12€). Recomendamos desparasitar internamente cada 3 meses y externamente mensualmente. ¿Qué animal tienes?' },
+      dentadura:   { respuesta: 'Sí, limpieza dental bajo anestesia desde 120€ en perros y 90€ en gatos. ¿Quieres cita?', detalle: 'La limpieza dental se hace bajo anestesia general para hacerla correctamente y sin estrés para el animal. Incluye eliminación de sarro, pulido y extracción de piezas muy dañadas si las hubiera (si hay muchas extracciones puede haber un coste adicional que te avisamos antes). ¿Cuándo quieres traerlo para que lo valore el veterinario?' },
+      peluqueria:  { respuesta: 'Sí, peluquería canina desde 25€ según tamaño. ¿Quieres cita?', detalle: 'El baño y corte incluye baño con champú profesional, secado, cepillado y corte estético. Los precios van desde 25€ para razas pequeñas hasta 65€ para razas grandes o perros con pelo muy enredado. También hacemos limpieza de orejas y corte de uñas incluido. ¿De qué raza es tu perro?' },
+    },
+  },
+  estetica: {
+    horario: 'Estamos abiertas de lunes a sábado de 9 a 20h.',
+    tuteaUsted: 'tutea',
+    precios: 'Faciales desde 40€. Masajes desde 40€. Depilación láser desde 20€. Presoterapia 30€/sesión. Manicura 15€.',
+    servicios: {
+      facial:      { respuesta: 'Sí, faciales desde 40€. ¿Cuál te interesa: hidratación, antiedad o limpieza profunda?', detalle: 'Tenemos tres faciales principales: Limpieza profunda con extracción de puntos negros, 40€ (60 min). Hidratación profunda con ácido hialurónico tópico, 65€ (60 min), ideal para piel seca o apagada. Tratamiento antiedad con radiofrecuencia, 65€ (75 min), estimula el colágeno y reafirma, recomendado desde los 30. También hacemos peeling químico 55€ (no en meses de verano). ¿Cuál te encaja más?' },
+      laser:       { respuesta: 'Sí, depilación láser desde 20€ zona pequeña. ¿Para qué zona te interesa?', detalle: 'Hacemos láser de diodo, el más efectivo para todos los tonos de piel. Para zonas pequeñas (labio, axilas, bikini línea) desde 20€/sesión. Para piernas completas el pack de 6 sesiones son 399€. Necesitas entre 6 y 8 sesiones espaciadas 45 días. No se puede hacer con piel bronceada. ¿Para qué zona y cuándo te viene bien la primera?' },
+      masaje:      { respuesta: 'Sí, masaje relajante aromaterapia 40€ y deportivo/descontracturante 50€, 60 minutos. ¿Cuándo te busco hueco?', detalle: 'El masaje relajante de aromaterapia usa aceites esenciales y técnica sueca, ideal para desconectar y reducir el estrés, 40€. El deportivo trabaja contracturas y tensiones musculares profundas con más presión, 50€. También tenemos drenaje linfático manual para circulación y retención de líquidos a 60€. ¿Cuál te apetece más?' },
+      presoterapia: { respuesta: 'Sí, presoterapia 30€/sesión, bono 10 sesiones 250€. ¿Te explico en qué consiste?', detalle: 'La presoterapia es un tratamiento de drenaje linfático con unas botas neumáticas que hacen presión secuencial. Mejora la circulación, reduce la retención de líquidos y alivia el cansancio de piernas. Dura 45 minutos y es totalmente indolora. Para mejores resultados recomendamos mínimo 10 sesiones, de ahí el bono. ¿Cuándo te busco la primera?' },
+      manicura:    { respuesta: 'Sí, manicura clásica 15€ y semipermanente 22€, que dura 3 semanas. ¿Cuándo te viene bien?', detalle: 'La manicura clásica incluye limado, hidratación de cutículas y esmalte normal, 15€. La semipermanente incluye todo lo anterior más aplicación de esmalte de larga duración (dura 3 semanas sin astillarse), 22€. También tenemos pedicura clásica 22€ y semipermanente 28€. ¿Te busco cita?' },
+      depilacion:  { respuesta: 'Sí, depilación con cera desde 8€ y láser desde 20€. ¿Con cuál te interesa?', detalle: 'Con cera: zona pequeña (labio, cejas, axilas) desde 8€, ingles desde 12€, piernas medias desde 18€, piernas completas desde 28€. Con láser: resultados permanentes, necesitas entre 6 y 8 sesiones, zona pequeña desde 20€/sesión o pack de 6. Si vas a empezar un tratamiento láser te recomiendo que vengas a una valoración gratuita primero. ¿Qué zona tienes en mente?' },
+      cavitacion:  { respuesta: 'Sí, cavitación + radiofrecuencia 50€/sesión para reducción de medidas. ¿Quieres que te explique el tratamiento?', detalle: 'La cavitación usa ultrasonidos para romper las células de grasa localizadas y la radiofrecuencia reafirma la piel en la zona. Se hace conjuntamente en 60 minutos. Se nota diferencia desde la primera sesión aunque recomendamos un ciclo de 10 (bono 10 sesiones a 400€). Funciona mejor combinado con hábitos saludables. ¿Para qué zona te interesa: abdomen, muslos, brazos?' },
+      micropigmentacion: { respuesta: 'Sí, micropigmentación de cejas 180€ y labios 150€. ¿Quieres que te explique cómo funciona?', detalle: 'La micropigmentación es un tatuaje cosmético semipermanente que dura entre 1 y 2 años. Para cejas rellenamos y definimos el arco con un acabado pelo a pelo muy natural, 180€. Para labios perfilamos y damos color, 150€. Incluye una sesión de retoque al mes. Antes de hacerla hacemos una consulta gratuita de diseño. ¿Te explico mejor o quieres pedir esa consulta?' },
+    },
+  },
+  gimnasio: {
+    horario: 'L-V de 7 a 23h, sábados de 9 a 21h, domingos de 10 a 14h.',
+    tuteaUsted: 'tutea',
+    precios: 'Mensual 35€, trimestral 90€, anual 300€. Entrenador personal 35€/sesión.',
+    servicios: {
+      precio:    { respuesta: 'La cuota mensual está desde 35€ al mes, todo incluido con clases. También trimestral 90€ o anual 300€. ¿Quieres venir a verlo?', detalle: 'Cuota mensual 35€ (acceso ilimitado a sala + todas las clases). Trimestral 90€ (ahorras 15€). Anual 300€ (ahorras 120€). Tenemos también tarifa reducida 25€/mes para desempleados, jubilados y estudiantes con carnet, y familiar para 2 personas a 55€/mes. ¿Te interesa alguna en concreto?' },
+      yoga:      { respuesta: 'Sí, yoga martes y jueves a las 19:30h y sábados a las 10:00h. Incluido en cuota. ¿Te apunto?', detalle: 'Las clases de yoga las imparte Amaia, con 8 años de experiencia. Martes y jueves a las 19:30h y sábados a las 10:00h. Están incluidas en la cuota sin coste adicional. El nivel es de iniciación a intermedio. Si es tu primera vez no necesitas experiencia previa. ¿Cuándo quieres venir?' },
+      spinning:  { respuesta: 'Sí, spinning lunes, miércoles y viernes a las 8h y 19h. Incluido en cuota. ¿Te apunto?', detalle: 'Las clases de spinning duran 45 minutos y las imparte un monitor certificado. Lunes, miércoles y viernes a las 8:00h y 19:00h. Son de alta intensidad cardiovascular, muy efectivas para quemar calorías. Si nunca has hecho spinning te recomendamos la sesión de las 19h del miércoles donde el grupo es más mixto en nivel. ¿Te apunto?' },
+      zumba:     { respuesta: 'Sí, zumba martes y jueves a las 20:30h. Incluido en cuota. ¿Te apunto?', detalle: 'La clase de zumba dura una hora con música latina y coreografías fáciles de seguir. Martes y jueves a las 20:30h. No hace falta saber bailar, es para todos los niveles y se pasa muy bien. Está incluida en cualquier cuota. ¿Te busco el próximo martes?' },
+      personal:  { respuesta: 'Sí, entrenador personal 35€/sesión o bono de 10 sesiones por 280€. ¿Quieres que te contacte uno?', detalle: 'Tenemos 4 entrenadores personales especializados en distintas áreas: pérdida de peso, ganancia muscular, rehabilitación y deporte de alto rendimiento. La sesión suelta son 35€ y el bono de 10 sesiones 280€ (ahorras 70€). Hacemos primero una valoración física gratuita para diseñar tu plan. ¿Te pongo en contacto con alguno?' },
+      congelar:  { respuesta: 'Sin problema, podemos congelar tu cuota hasta 3 meses al año. ¿Cuándo lo necesitas?', detalle: 'La congelación de cuota está disponible hasta 3 meses al año totalmente gratuita. Solo necesitamos saber cuándo quieres empezar y cuándo vas a volver. La cuota se reanuda automáticamente. Si la necesitas más de 3 meses hablamos. ¿Para cuándo sería?' },
+      baja:      { respuesta: 'Entiendo. ¿Puedo preguntarte el motivo? Quizás puedo ofrecerte algo que te venga mejor.', detalle: 'Si es por tema económico tenemos la tarifa reducida de 25€/mes, que es casi la mitad. Si es por falta de tiempo, puedes congelar la cuota hasta 3 meses gratis y retomarla cuando puedas. Si es por otro motivo cuéntame y vemos qué podemos hacer. ¿Qué es lo que te ha llevado a pensarlo?' },
+      piscina:   { respuesta: 'Sí, tenemos piscina de 25m incluida en la cuota, todos los días. ¿Quieres más info?', detalle: 'La piscina de 25 metros tiene 4 calles y está disponible todos los días en horario de apertura del gimnasio. El acceso está incluido en cualquier cuota sin coste adicional. También damos clases de natación para adultos y niños (consultar precio aparte). ¿Cuándo quieres venir a verlo?' },
+    },
+  },
+  asesoria: {
+    horario: 'Atendemos de lunes a viernes de 9 a 18h. Para urgencias fiscales, disponibilidad fuera de horario.',
+    tuteaUsted: 'usted',
+    precios: 'Autónomo desde 50€/mes. Empresa desde 120€/mes. Renta desde 40€. Primera consulta siempre gratuita.',
+    servicios: {
+      autonomo:  { respuesta: 'Sí, tramitamos el alta de autónomo. Hacienda + Seguridad Social, todo incluido. ¿Cuándo va a empezar?', detalle: 'El alta de autónomo incluye alta censal en Hacienda (modelo 036 o 037), alta en el Régimen Especial de Trabajadores Autónomos (RETA) y asesoramiento sobre la actividad económica. Coste único 80€. El proceso tarda 1-2 días laborables. A partir del alta, la gestión mensual (IVA, IRPF, seguros sociales) está desde 50€/mes todo incluido. ¿Le agendo una consulta gratuita para explicárselo?' },
+      sl:        { respuesta: 'Sí, constituimos SL. Proceso en 5-15 días, desde 800€. ¿Quiere que le expliquemos los pasos?', detalle: 'Para constituir una SL necesita: capital mínimo de 1€ (aunque recomendamos al menos 3.000€), nombre de la sociedad, objeto social y reparto de participaciones. Nosotros gestionamos notaría, registro mercantil y alta fiscal. El coste total (honorarios + notaría + registro) está desde 800€. Le recomendamos una consulta gratuita previa para ver si realmente le conviene SL o si le basta con autónomo. ¿Cuándo le viene bien?' },
+      nominas:   { respuesta: 'Sí, gestionamos nóminas. Precio desde 15€/nómina según volumen. ¿Cuántos trabajadores tiene?', detalle: 'La gestión de nóminas incluye elaboración de nóminas, seguros sociales mensuales (TC1 y TC2), contratos laborales, comunicación de altas y bajas a la Seguridad Social y certificados de retenciones anuales. Precio desde 15€ por nómina al mes. Para más de 5 trabajadores le hacemos precio cerrado mensual. ¿Quiere que le preparemos una propuesta?' },
+      impuestos: { respuesta: 'Sí, presentamos todos los impuestos. ¿Es autónomo o empresa?', detalle: 'Para autónomos: IVA trimestral (303), IRPF trimestral (130/131) y resúmenes anuales (390, 190). Para empresas: todo lo anterior más Impuesto de Sociedades (200) anual y cuentas anuales. También renta de particulares desde 40€. Todo está incluido en nuestra cuota mensual. La primera consulta para valorar su caso es gratuita. ¿Cuándo le viene bien?' },
+      precio:    { respuesta: 'Autónomo desde 50€/mes todo incluido. Empresa desde 120€/mes. Primera consulta gratis. ¿Quiere que le llamemos?', detalle: 'Gestión de autónomo (IVA, IRPF, seguros sociales, asesoramiento) desde 50€/mes. Empresa pyme (contabilidad + fiscal + laboral) desde 120€/mes según volumen de facturas y empleados. Declaración de renta individual desde 40€. Constitución de SL desde 800€ (trámite único). Primera consulta siempre gratuita y sin compromiso. ¿Le agendo una llamada con el asesor?' },
+      urgencia:  { respuesta: '🚨 Entendido, es urgente. Estoy alertando al asesor responsable ahora mismo. ¿Cuál es el plazo exacto?', detalle: '🚨 El asesor le llamará en los próximos 15 minutos. Mientras tanto, si tiene una notificación de Hacienda, no responda sin consultarnos. Si tiene el número de referencia del expediente, tenerlo a mano nos ayudará.' },
+      herencia:  { respuesta: 'Sí, tramitamos herencias y sucesiones. ¿Quiere que le llamemos para explicar el proceso?', detalle: 'La tramitación de herencias incluye inventario de bienes, cálculo del impuesto de sucesiones, presentación ante la AEAT y registro de bienes a nombre de los herederos. El coste depende del valor de la herencia y la comunidad autónoma. Le recomendamos una consulta gratuita inicial para valorar el caso. ¿Le agendo con nuestro especialista?' },
+    },
+  },
+  farmacia: {
+    horario: 'Abiertos de lunes a sábado de 9 a 21h. Domingos solo si estamos de guardia.',
+    tuteaUsted: 'usted',
+    precios: 'La mayoría de servicios básicos son gratuitos. Medicamentos según precio oficial.',
+    servicios: {
+      ibuprofeno:  { respuesta: 'Sí, tenemos ibuprofeno 400mg y 600mg. ¿Lo necesita ahora?', detalle: 'Tenemos ibuprofeno 400mg y 600mg en comprimidos, granulado y sobres. La presentación de 20 comprimidos 400mg cuesta aproximadamente 2,20€, y el 600mg con receta tiene precio regulado. Si necesita ibuprofeno para niños (suspensión) también lo tenemos. ¿Cuántos necesita o prefiere que le aparte uno?' },
+      paracetamol: { respuesta: 'Sí, paracetamol en varias presentaciones. ¿Es para adulto o niño?', detalle: 'Para adultos: comprimidos 500mg y 1g, también en sobres efervescentes. Para niños: suspensión oral con dosificador por peso. El paracetamol es de venta libre sin receta. ¿Cuánto necesita?' },
+      receta:      { respuesta: 'Con receta electrónica solo necesita el DNI o tarjeta sanitaria. Receta papel, tráigala en persona.', detalle: 'La receta electrónica está disponible en todas las farmacias de España. Solo necesita su DNI o tarjeta sanitaria y accedemos directamente al sistema. Si tiene receta en papel (del médico privado, por ejemplo), tráigala físicamente. ¿Necesita algún medicamento concreto?' },
+      guardia:     { respuesta: 'La farmacia de guardia más cercana esta noche está en Calle Mayor 14. Teléfono: 944 00 00 00.', detalle: 'Puede consultar la farmacia de guardia más cercana en cualquier momento en el 010 o en la web del Colegio Oficial de Farmacéuticos de su provincia. Las farmacias de guardia están abiertas 24 horas.' },
+      tension:     { respuesta: 'Sí, medimos la tensión gratuitamente sin cita, cuando quiera venir.', detalle: 'La medición de tensión arterial es un servicio gratuito que ofrecemos a cualquier persona. Solo tiene que acercarse al mostrador en cualquier momento del día. También hacemos medición de glucosa en sangre (glucómetro) y temperatura sin cita y sin coste. ¿Necesita algo más?' },
+      reserva:     { respuesta: 'Sin problema, lo reservo para mañana. ¿Me dice el medicamento exacto y el nombre?', detalle: 'Si el medicamento no está en stock lo pedimos al distribuidor y llega mañana antes del mediodía. Necesito el nombre exacto del medicamento, el laboratorio si lo sabe, la dosis y su nombre para avisarle cuando llegue. ¿Me lo dice?' },
+      vacuna:      { respuesta: 'Sí, vacunas de gripe (15€), viajero y COVID. ¿Cuál necesita?', detalle: 'Vacuna de gripe: 15€, temporada octubre-enero. Vacunas del viajero: depende del destino (fiebre tifoidea, hepatitis A, meningitis...), pídame cita y le digo exactamente cuáles necesita. COVID: actualización bivalente disponible. ¿Para cuál le hago cita?' },
+    },
+  },
+  inmobiliaria: {
+    horario: 'Atendemos de lunes a viernes de 9 a 19h y sábados de 10 a 14h.',
+    tuteaUsted: 'usted',
+    precios: 'Honorarios compraventa: 3% solo en éxito. Valoración y visitas siempre gratuitas.',
+    servicios: {
+      comprar:    { respuesta: '¿En qué zona está buscando y cuál sería el presupuesto? Le cuento lo que tenemos ahora.', detalle: 'Para encontrar el piso ideal necesito saber: zona o barrio de preferencia, presupuesto máximo, tipo (piso, casa, local), número de habitaciones mínimo y si tiene ya hipoteca aprobada o necesita financiación. Con esos datos le muestro las opciones disponibles y concertamos visitas. Las visitas son siempre gratuitas. ¿Me da esos datos?' },
+      vender:     { respuesta: 'Hacemos valoraciones gratuitas y sin compromiso. ¿Es piso, casa o local y en qué zona?', detalle: 'El proceso de venta con nosotros incluye: valoración gratuita de mercado, reportaje fotográfico profesional, anuncio en Idealista, Fotocasa y nuestra web, gestión de visitas, negociación y acompañamiento hasta la firma notarial. Honorarios solo si se vende: 3% del precio de venta. ¿Cuándo puedo ir a ver el inmueble para hacer la valoración?' },
+      alquilar:   { respuesta: '¿Busca alquilar un piso o tiene uno para poner en alquiler? Le explico cómo trabajamos.', detalle: 'Si busca alquilar: le ayudamos a encontrar el piso adecuado en la zona que busca, gestionamos los trámites y revisamos el contrato. Si tiene piso para alquilar: buscamos inquilinos solventes, gestionamos contrato, fianzas y toda la gestión mensual. Honorarios: 1 mes de alquiler al firmar. ¿Cuál es su situación?' },
+      valoracion: { respuesta: 'La valoración es completamente gratuita y sin compromiso. ¿Cuándo podríamos visitarlo?', detalle: 'El agente va al inmueble, lo inspecciona en unos 30-45 minutos y en 24-48 horas le envía un informe de valoración detallado con el precio de mercado recomendado, análisis de la zona y tiempo estimado de venta. Todo completamente gratis. ¿Qué día le viene bien esta semana?' },
+      honorarios: { respuesta: 'Compraventa: 3% solo si se cierra la operación. Valoración y visitas siempre gratis.', detalle: 'Para compraventa, los honorarios son del 3% del precio de venta final y solo se cobran cuando se firma ante notario. Si el inmueble no se vende no hay ningún coste. Para alquiler, equivale a 1 mes de alquiler al firmar el contrato. Valoraciones, visitas y asesoramiento hipotecario son siempre gratuitos. ¿Quiere más información sobre algún servicio concreto?' },
+      hipoteca:   { respuesta: 'Sí, colaboramos con los principales bancos sin coste adicional. ¿Tiene ya oferta o está empezando?', detalle: 'Nuestro equipo hipotecario negocia con BBVA, Santander, CaixaBank, Kutxabank y otros para conseguirle las mejores condiciones. El servicio no tiene coste adicional para usted. Si ya tiene hipoteca aprobada agilizamos la firma. Si empieza de cero le hacemos un estudio de viabilidad gratuito. ¿Cuánto necesitaría financiar y cuál es su situación laboral?' },
+      visita:     { respuesta: 'Por supuesto, ¿cuándo le vendría bien? Nos adaptamos a su horario, incluso fines de semana.', detalle: 'Las visitas son gratuitas y nos adaptamos completamente a su horario, incluyendo tardes, fines de semana y festivos. Solo necesito el día y la hora que le venga mejor y le confirmo disponibilidad en el inmueble. ¿Tiene algún piso en mente o quiere que le propongamos opciones primero?' },
+    },
+  },
+
+  fisioterapia: {
+    horario: 'Estamos abiertos de lunes a viernes de 8:30 a 20:30h y los sábados de 9 a 14h.',
+    tuteaUsted: 'usted',
+    precios: 'Primera valoración gratuita. Sesión desde 45€, bonos desde 200€ (5 sesiones). Osteopatía 55€.',
+    servicios: {
+      valoracion:    { respuesta: 'La primera valoración es completamente gratuita, dura 30 minutos y la hace el fisioterapeuta para ver exactamente qué necesita. ¿Le busco hueco esta semana?', detalle: 'En la valoración inicial el fisioterapeuta hace una exploración completa, ve el rango de movimiento, evalúa la zona afectada y le diseña un plan de tratamiento personalizado. Sin ningún coste. ¿Cuándo le vendría bien venir?' },
+      sesion:        { respuesta: 'Sí, la sesión individual de fisioterapia cuesta 45€ y dura entre 45 y 60 minutos. ¿Le busco hueco?', detalle: 'La sesión incluye técnicas manuales (masoterapia, movilizaciones), electroterapia si la fisioterapeuta lo considera necesario, y ejercicios específicos para casa. Los bonos salen más a cuenta: 5 sesiones por 200€ (ahorro 25€) o 10 sesiones por 380€ (ahorro 70€). ¿Qué le parece mejor?' },
+      bono:          { respuesta: 'Sí, tenemos bono de 5 sesiones por 200€ (ahorra 25€) y bono de 10 sesiones por 380€ (ahorra 70€). ¿Cuál le interesa?', detalle: 'Los bonos no tienen caducidad. El bono de 10 sesiones es el más popular para tratamientos de espalda, hombro o rodilla donde normalmente se necesitan entre 6 y 10 sesiones. ¿Quiere empezar con la valoración gratuita primero para que el fisio le diga cuántas sesiones va a necesitar?' },
+      osteopatia:    { respuesta: 'Sí, hacemos osteopatía. La sesión cuesta 55€ y dura 60 minutos. ¿Le busco cita?', detalle: 'La osteopatía trabaja el cuerpo de forma global: manipulaciones vertebrales, tejidos blandos y trabajo visceral. Es especialmente eficaz para cervicales, lumbares, hernias de disco y dolores de cabeza tensionales. El osteópata hace primero una evaluación y luego el tratamiento en la misma sesión. ¿Cuándo le viene bien?' },
+      masaje:        { respuesta: 'Sí, masaje terapéutico descontracturante 40€, 45 minutos. ¿Le busco hueco?', detalle: 'El masaje terapéutico se centra en las zonas de tensión y contracturas. No es un masaje de relax sino trabajo muscular profundo para aliviar dolor y tensión. Si tiene una zona concreta de dolor (cervicales, espalda, piernas) dígame cuál para asignarle el fisioterapeuta más adecuado.' },
+      drenaje:       { respuesta: 'Sí, drenaje linfático manual 50€, 60 minutos. ¿Le busco cita?', detalle: 'El drenaje linfático es una técnica manual suave que mejora la circulación linfática, reduce la retención de líquidos e inflamación. Muy indicado post-operatorio, embarazo, piernas cansadas y linfedema. La sesión dura 60 minutos. Recomendamos ciclos de 6-10 sesiones para mejores resultados.' },
+      pilates:       { respuesta: 'Sí, clases de pilates terapéutico en grupos de máximo 6 personas. 15€/clase, bono mensual 8 clases por 100€. ¿Le busco hueco?', detalle: 'Las clases de pilates terapéutico son diseñadas por el fisioterapeuta para cada grupo según las necesidades. Grupos máximos de 6 personas para atención personalizada. Incluye trabajo de suelo pélvico, control lumbar y respiración. ¿Tiene alguna patología específica para recomendarle el grupo más adecuado?' },
+      vendaje:       { respuesta: 'Sí, kinesiotaping o vendaje neuromuscular 15€ adicional por zona. Se puede combinar con la sesión. ¿Le interesa?', detalle: 'El kinesiotaping son las cintas de colores que se aplican sobre la piel para dar soporte muscular y articular sin limitar el movimiento. Duran entre 3 y 5 días puestas, incluso mojadas. Muy útil para lesiones deportivas, inestabilidad de tobillo, tendinitis y apoyo durante el tratamiento.' },
+      suelo_pelvico: { respuesta: 'Sí, tratamiento de suelo pélvico por 55€/sesión, con nuestra fisioterapeuta especializada. ¿Quiere más información?', detalle: 'El tratamiento de suelo pélvico lo realiza una fisioterapeuta especializada. Está indicado para incontinencia urinaria, dolor pélvico, prolapso, recuperación postparto, dolor en relaciones y disfunciones sexuales. Es un tratamiento íntimo y confidencial. La primera sesión siempre incluye evaluación. ¿Le busco cita con la especialista?' },
+    },
+  },
+
+  psicologo: {
+    horario: 'Atendemos de lunes a viernes de 9:00 a 21:00h, incluyendo tardes para compatibilidad con el trabajo.',
+    tuteaUsted: 'usted',
+    precios: 'Primera consulta 60€. Sesión individual 65€. Bono mensual 4 sesiones 240€. Pareja 80€.',
+    servicios: {
+      primera:    { respuesta: 'La primera consulta de evaluación cuesta 60€ y dura 60 minutos. Es para conocerse, sin compromiso de continuar. ¿Le busco hueco?', detalle: 'En la primera consulta el psicólogo escucha la situación, hace una evaluación inicial y le explica cómo podría trabajarse. No tiene que preparar nada, solo venir y hablar con naturalidad. Es confidencial y sin ningún tipo de juicio. ¿Qué día y hora le vendría mejor?' },
+      individual: { respuesta: 'La sesión individual de adultos cuesta 65€ y dura 50 minutos. También tenemos bono mensual de 4 sesiones por 240€. ¿Le busco cita?', detalle: 'Las sesiones tienen una frecuencia que define el psicólogo según el caso, generalmente semanal al inicio. El bono mensual de 4 sesiones sale a 60€/sesión en lugar de 65€. No caduca. La terapia es completamente confidencial y personalizada. ¿Prefiere venir en horario de mañana o de tarde?' },
+      pareja:     { respuesta: 'Sí, hacemos terapia de pareja. La sesión cuesta 80€ y dura 60 minutos. ¿Le busco cita para los dos?', detalle: 'La terapia de pareja la realizamos con ambas personas presentes. El objetivo no es determinar quién tiene razón, sino mejorar la comunicación y resolver los conflictos de forma constructiva. Las sesiones suelen ser cada 1-2 semanas. ¿Cuándo podrían venir los dos?' },
+      infantil:   { respuesta: 'Sí, hacemos psicología infantil y de adolescentes. La sesión cuesta 60€, 45 minutos. ¿Quiere información sobre cómo funciona?', detalle: 'Las sesiones infantiles se adaptan completamente a la edad: juego terapéutico para niños, y un enfoque más conversacional para adolescentes. En los primeros 12 años siempre se hace también una sesión de orientación a los padres incluida en el precio. ¿Me dice la edad del menor para asignarle el especialista adecuado?' },
+      online:     { respuesta: 'Sí, hacemos sesiones online por videollamada al mismo precio que presencial. ¿Le interesa?', detalle: 'Las sesiones online se realizan por videollamada segura y cifrada. Tienen la misma calidad y confidencialidad que las presenciales. Solo necesita un lugar tranquilo, auriculares y buena conexión. Son muy útiles para personas con movilidad reducida, trabajo incompatible con los horarios presenciales o que viven fuera de la ciudad.' },
+      bono:       { respuesta: 'Sí, el bono mensual son 4 sesiones por 240€ en lugar de 260€ (ahorro 20€). Sin caducidad. ¿Le interesa?', detalle: 'El bono de 4 sesiones no tiene fecha de caducidad y se puede usar a cualquier ritmo. La mayoría de nuestros pacientes vienen cada semana, así el bono dura un mes. Es la opción más cómoda si se plantea comenzar un proceso terapéutico. ¿Empezamos con la primera consulta de evaluación a 60€ y luego decide?' },
+      informe:    { respuesta: 'Sí, hacemos informes psicológicos desde 150€ según el tipo. ¿Para qué lo necesita?', detalle: 'Realizamos informes para custodia y procedimientos judiciales de familia, para discapacidad e incapacidad laboral, para colegios y centros educativos, y para uso personal. El precio varía según la complejidad: desde 150€ para un informe sencillo hasta 400€ para un informe pericial completo. ¿Le explico los pasos?' },
+    },
+  },
+
+  abogado: {
+    horario: 'Atendemos de lunes a viernes de 9:00 a 19:00h. Para urgencias legales, disponibilidad inmediata.',
+    tuteaUsted: 'usted',
+    precios: 'Primera consulta 80€. Gratuita en accidentes y laboral si se acepta el caso. Honorarios según área.',
+    servicios: {
+      laboral:      { respuesta: 'Sí, llevamos casos laborales: despidos, ERTEs, reclamaciones de cantidad. Primera consulta 80€ o gratuita si se acepta el caso. ¿Le busco cita?', detalle: 'En derecho laboral trabajamos despidos disciplinarios y objetivos, ERTEs, reclamación de salarios impagados, acoso laboral, incapacidades y accidentes de trabajo. Los honorarios suelen ser un porcentaje de lo que se recupera (entre el 15 y el 25%) o un fijo desde 300€. La primera consulta es gratuita si el caso se acepta. ¿Quiere que le llamemos hoy para valorarlo?' },
+      familia:      { respuesta: 'Sí, llevamos derecho de familia: divorcios, custodias, herencias. Desde 800€ mutuo acuerdo, 1.500€ contencioso. ¿Le busco cita?', detalle: 'En familia gestionamos divorcios (mutuo acuerdo desde 800€, contencioso desde 1.500€), custodias y regímenes de visita, pensiones de alimentos y compensatorias, y modificación de medidas existentes. La primera consulta le orientamos sobre cuál es el mejor camino según su caso. ¿Le viene bien esta semana?' },
+      herencia:     { respuesta: 'Sí, tramitamos herencias y testamentos desde 600€. ¿Quiere que le llamemos para explicarle el proceso?', detalle: 'La tramitación de herencia incluye: certificado de últimas voluntades, acta notarial de declaración de herederos si no hay testamento, inventario de bienes, liquidación del impuesto de sucesiones y adjudicación. El precio depende del patrimonio y la complejidad. La primera consulta es gratuita para valorar el caso. ¿Cuándo le viene bien?' },
+      accidente:    { respuesta: 'Sí, reclamaciones de accidente de tráfico SIN COSTE INICIAL. Solo cobramos si ganamos, un porcentaje de la indemnización. ¿Quiere que lo valoremos?', detalle: 'En accidentes de tráfico no hay ningún coste hasta que se cobra la indemnización. Nuestro porcentaje es del 20% de lo recuperado. Cuanto antes actuamos, mejor: recopilamos pruebas, informes médicos y negociamos con la compañía aseguradora. Si no hay acuerdo, vamos a juicio. ¿Cuándo fue el accidente y tiene los datos del parte?' },
+      deudas:       { respuesta: 'Sí, reclamación de deudas desde 200€ o porcentaje de lo recuperado. ¿De qué cantidad estamos hablando?', detalle: 'Para deudas menores de 2.000€ usamos el proceso monitorio, rápido y económico. Para importes mayores, demanda civil ordinaria. Los honorarios van desde 200€ para casos sencillos hasta un porcentaje pactado para cantidades grandes. Le decimos la viabilidad en la primera consulta.' },
+      inmobiliario: { respuesta: 'Sí, derecho inmobiliario: contratos, desahucios, compraventas. Desde 400€ según el caso. ¿Le busco cita?', detalle: 'Gestionamos revisión y redacción de contratos de arrendamiento, desahucios por impago o expiración de contrato, reclamación de fianza, problemas con comunidades de propietarios y defectos en viviendas compradas. Los plazos judiciales para desahucios dependen del juzgado, orientativamente entre 4 y 8 meses. ¿Quiere que lo valoremos?' },
+      mercantil:    { respuesta: 'Sí, constitución de empresas y derecho mercantil desde 500€. ¿Qué necesita?', detalle: 'Constituimos SL y SA, redactamos contratos mercantiles, gestionamos juntas de socios, modificaciones estatutarias, disoluciones y liquidaciones. También contratos con proveedores, clientes y distribuidores. Si está empezando un negocio, le recomendamos una primera consulta gratuita para ver qué estructura le conviene.' },
+      extranjeria:  { respuesta: 'Sí, extranjería e inmigración desde 300€. ¿Qué tipo de gestión necesita?', detalle: 'Gestionamos permisos de residencia y trabajo, reagrupación familiar, nacionalidad española, visados y renovaciones. También recursos contra resoluciones desfavorables. El plazo de los procedimientos varía mucho según la administración, pero le mantenemos informado en todo momento. ¿Cuál es su situación concreta?' },
+      penal:        { respuesta: 'Sí, llevamos defensa penal. Los honorarios se valoran según el caso en la primera consulta. ¿Me da más detalles?', detalle: 'Llevamos defensa en todo tipo de procedimientos penales: delitos contra la propiedad, violencia, tráfico, económicos y fiscales. Si hay detención o juicio inminente, activamos el protocolo de urgencia y un abogado le llama en los próximos minutos. ¿Cuál es la situación?' },
+    },
+  },
+
+  clinica: {
+    horario: 'Estamos abiertos de lunes a viernes de 8:00 a 20:00h y los sábados de 9:00 a 14:00h.',
+    tuteaUsted: 'usted',
+    precios: 'Médico general 50€. Especialidades desde 55€. Análisis de sangre 45€. Certificados 40€.',
+    servicios: {
+      medicina_general: { respuesta: 'Sí, médico de familia disponible. La consulta cuesta 50€ y dura 20 minutos. ¿Le busco cita?', detalle: 'El médico de familia atiende cualquier problema de salud general: resfriados, infecciones, dolores, tensión, revisiones de medicación, derivaciones a especialistas. Si llama antes de las 12:00h podemos intentar darle hueco para hoy mismo. ¿Para qué es la consulta aproximadamente?' },
+      pediatria:        { respuesta: 'Sí, tenemos pediatría. La consulta cuesta 55€ y dura 20 minutos. ¿Le busco cita?', detalle: 'Nuestro pediatra atiende desde recién nacidos hasta los 14 años: enfermedades comunes, revisiones del niño sano, vacunas, problemas de crecimiento y desarrollo. Para urgencias pediátricas intentamos atender el mismo día si llama antes de mediodía. ¿Cuántos años tiene el menor?' },
+      ginecologia:      { respuesta: 'Sí, tenemos ginecología. La consulta cuesta 70€ y dura 30 minutos. ¿Le busco cita?', detalle: 'La ginecóloga realiza revisiones ginecológicas completas con citología, ecografía transvaginal si es necesario, seguimiento del embarazo, planificación familiar y menopausia. Para resultados de citología o seguimiento del embarazo normalmente podemos darle cita en menos de una semana. ¿Para qué necesita la consulta?' },
+      cardiologia:      { respuesta: 'Sí, cardiología a 90€, incluye electrocardiograma básico, 30 minutos. ¿Le busco cita?', detalle: 'La consulta de cardiología incluye historia clínica, auscultación, ECG de 12 derivaciones y valoración de factores de riesgo. Si tiene palpitaciones, dolor en el pecho, falta de aire o presión alta que no se controla, le recomendamos que consulte cuanto antes. ¿Cuándo sería posible para usted?' },
+      dermatologia:     { respuesta: 'Sí, dermatología a 70€, 20 minutos. ¿Le busco cita?', detalle: 'El dermatólogo atiende lunares (revisión completa con dermatoscopio), acné, eccemas, psoriasis, hongos, verrugas y cualquier lesión cutánea. Si tiene algún lunar que ha cambiado de forma, color o tamaño, le recomendamos no esperar. ¿Para qué necesita la consulta?' },
+      traumatologia:    { respuesta: 'Sí, traumatología a 70€, 20 minutos. ¿Le busco cita?', detalle: 'El traumatólogo atiende problemas de huesos, articulaciones, músculos y tendones: esguinces, fracturas, artrosis, hernias de disco, problemas de hombro, rodilla y cadera. Puede solicitar radiografía en la misma clínica. Si la lesión es reciente y tiene mucho dolor, intentamos darle cita urgente hoy. ¿Qué zona tiene afectada?' },
+      analisis:         { respuesta: 'Sí, análisis de sangre completo 45€, resultado en 24-48 horas. ¿Le busco cita?', detalle: 'El análisis completo incluye hemograma, bioquímica básica (glucosa, colesterol, triglicéridos, transaminasas, creatinina), tiroides y proteína C reactiva. En ayunas de 8 horas mínimo. Hay extracción por las mañanas de 8:00 a 10:00h sin cita previa. ¿O prefiere con cita a una hora concreta?' },
+      ecografia:        { respuesta: 'Sí, ecografías desde 60€ según la zona. ¿Para qué zona necesita la ecografía?', detalle: 'Realizamos ecografías abdominales (60€), pélvicas (60€), musculoesqueléticas (60€), tiroideas (55€) y de partes blandas. Los resultados los entrega el médico en la misma consulta o al día siguiente. ¿Tiene indicación médica o la consulta es a título particular?' },
+      certificado:      { respuesta: 'Sí, certificados médicos a 40€: carnet de conducir, deporte, laboral, nupcial. ¿Cuál necesita?', detalle: 'Emitimos todos los certificados médicos oficiales: reconocimiento para carnet de conducir o armas (incluye tensión, agudeza visual y valoración psíquica), aptitud para práctica deportiva, baja/alta laboral y otros. Para el carnet de conducir no necesita cita, puede venir directamente cualquier día antes de las 12:00h.' },
+      vacuna:           { respuesta: 'Sí, vacunamos. Gripe 15€, viajero y COVID según vacuna. ¿Cuál necesita?', detalle: 'Administramos vacuna de gripe (temporada oct-ene, 15€), vacunas del viajero según destino (consultar según país), y actualización COVID. Para las del viajero pida cita con al menos 4 semanas antes del viaje para que haga efecto. ¿Adónde viaja o qué vacuna necesita?' },
+    },
+  },
+};
+
+// ── Respuestas de fallback (sin API) — con memoria de contexto ────────────────
+function getFallbackResponse(msg, sectorKey) {
+  const m = msg.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .trim();
+
+  const kb     = SECTOR_KB[sectorKey] || {};
+  const svcs   = kb.servicios || {};
+  const usted  = kb.tuteaUsted !== 'tutea';
+
+  // Helper: devuelve respuesta corta o larga según disponibilidad
+  function r(key, usarDetalle = false) {
+    const svc = svcs[key];
+    if (!svc) return null;
+    if (typeof svc === 'string') return svc;
+    lastServiceKey = key;
+    return usarDetalle && svc.detalle ? svc.detalle : svc.respuesta;
+  }
+
+  // ── CAPA 0: Follow-up contextual — "dame más info", "cuéntame", "explícame" ─
+  const esFollowUp = /mas info|dame mas|mas detalle|cuentame|explica|como funciona|en que consiste|y que incluye|que ventajas|es bueno|merece la pena|es caro|vale la pena|que diferencia|y eso que es|por que|para que sirve/.test(m);
+  if (esFollowUp && lastServiceKey && svcs[lastServiceKey]) {
+    const svc = svcs[lastServiceKey];
+    if (typeof svc === 'object' && svc.detalle) return svc.detalle;
+  }
+
+  // ── CAPA 1: Urgencia ────────────────────────────────────────────────────────
+  if (/urgent|emergen|convuls|no respira|atropell|sangr mucho|dolor.*pecho|muy mal|desmay|accidente|no se mueve/.test(m)) {
+    return r('urgencia') || (usted
+      ? '🚨 Entendido, es una urgencia. Estamos alertando al responsable ahora mismo. ¿Puede venir?'
+      : '🚨 Entendido, ven ahora mismo. Estamos avisando al equipo.');
+  }
+
+  // ── CAPA 2: Matching directo por clave (word-boundary para evitar falsos positivos) ──
+  for (const key of Object.keys(svcs)) {
+    // Usa regex con word-boundary para que 'revision' no matchee 'prevision'
+    if (new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(m)) return r(key);
+  }
+
+  // ── CAPA 3: Semántica por sector ────────────────────────────────────────────
+  let matched = null;
+  switch (sectorKey) {
+    case 'dental':
+      if (/blanc|white|blanque/.test(m))              matched = r('blanqueamiento');
+      else if (/ortod|bracket|invisalign|alinea/.test(m)) matched = r('ortodoncia');
+      else if (/limpie|higiene|sarro/.test(m))        matched = r('limpieza');
+      else if (/empast|cari|carie|agujero|relleno/.test(m)) matched = r('empaste');
+      else if (/implant/.test(m))                     matched = r('implante');
+      else if (/sacar|extra|muela.*juicio|cordal/.test(m)) matched = r('extraccion');
+      else if (/carill|veneer|porcelan/.test(m))      matched = r('implante'); // carillas → implante info
+      else if (/revisi|valoraci|primera visita|gratis/.test(m)) matched = r('revision');
+      break;
+    case 'peluqueria':
+      if (/color|tint|rubio|moreno|rojizo|castano/.test(m)) matched = r('tinte');
+      else if (/mecha|balay|reflex|highlight/.test(m)) matched = r('mechas');
+      else if (/alis|keratin|frizz|liso/.test(m))    matched = r('alisado');
+      else if (/boda|evento|recogido|peinado/.test(m)) matched = r('peinado');
+      else if (/uña|manicur|pedicur/.test(m))        matched = r('manicura');
+      else if (/tratamiento|hidrat|caida|anticaida/.test(m)) matched = r('tratamiento');
+      break;
+    case 'taller':
+      if (/freno|pastilla|disco|frenar/.test(m))     matched = r('frenos');
+      else if (/neumatic|rueda|goma|pinchaz/.test(m)) matched = r('neumaticos');
+      else if (/aire.*acondicionado|ac|climatiz|calor/.test(m)) matched = r('climatizacion');
+      else if (/distribuc|correa|cadena.*distribuc/.test(m)) matched = r('revision');
+      else if (/averiad|no arranca|humo|raro|extrano|quemado/.test(m)) matched = r('averia');
+      else if (/presupuest/.test(m))                 matched = r('presupuesto');
+      break;
+    case 'veterinaria':
+      if (/vacun/.test(m))                           matched = r('vacuna');
+      else if (/castr|esteriliz|operar/.test(m))     matched = r('castrar');
+      else if (/desparasit|pulga|garrapata|piojo/.test(m)) matched = r('desparasitar');
+      else if (/diente|dent|boca|aliento/.test(m))   matched = r('dentadura');
+      else if (/pelo|baño|corte|aseo|groomin/.test(m)) matched = r('peluqueria');
+      else if (/microchip|chip|pasaporte/.test(m))   matched = r('vacuna');
+      break;
+    case 'estetica':
+      if (/laser|ipl|fotodepil/.test(m))             matched = r('laser');
+      else if (/facial|cara|piel|acne|hidrat|antiedad/.test(m)) matched = r('facial');
+      else if (/depilar|vello|cera|depilac/.test(m)) matched = r('depilacion');
+      else if (/presos|drenaje|pierna|circ/.test(m)) matched = r('presoterapia');
+      else if (/cavit|radiof|grasa|reducir|celulitis/.test(m)) matched = r('cavitacion');
+      else if (/masaje|relax|descontractur|musculo/.test(m)) matched = r('masaje');
+      else if (/manicur|pedicur|uña|semiperm/.test(m)) matched = r('manicura');
+      else if (/micropigment|microblading|tatuaje.*ceja/.test(m)) matched = r('micropigmentacion');
+      break;
+    case 'gimnasio':
+      if (/cuota|precio|cobr|tarifa|cuanto|bono|membresia/.test(m)) matched = r('precio');
+      else if (/baja|cancel|darme de baja|quiero salir/.test(m)) matched = r('baja');
+      else if (/congelar|congel|pausar|parar/.test(m)) matched = r('congelar');
+      else if (/piscin|nadar|natacion/.test(m))      matched = r('piscina');
+      else if (/personal|trainer|entrenador/.test(m)) matched = r('personal');
+      else if (/yoga/.test(m))                       matched = r('yoga');
+      else if (/spinning|ciclo|bici/.test(m))        matched = r('spinning');
+      else if (/zumba|baile|dance/.test(m))          matched = r('zumba');
+      break;
+    case 'asesoria':
+      if (/autonom|alta.*autonom|darme.*alta/.test(m)) matched = r('autonomo');
+      else if (/sl|slu|sociedad.*limit|empresa|constituir/.test(m)) matched = r('sl');
+      else if (/nomin|sueldo|trabajador|empleado|contrato/.test(m)) matched = r('nominas');
+      else if (/iva|irpf|declaracion|impuest|trimest|renta|hacienda/.test(m)) matched = r('impuestos');
+      else if (/herencia|sucesion|testamento|difunto/.test(m)) matched = r('herencia');
+      else if (/cuanto|precio|honor|cobr|tarifa/.test(m)) matched = r('precio');
+      break;
+    case 'farmacia':
+      if (/ibuprofeno|ibupro/.test(m))               matched = r('ibuprofeno');
+      else if (/paracetamol|panadrex|efferalgan/.test(m)) matched = r('paracetamol');
+      else if (/receta/.test(m))                     matched = r('receta');
+      else if (/guardia|noche|24h|cerrad/.test(m))   matched = r('guardia');
+      else if (/tension|presion|hipertens|medir/.test(m)) matched = r('tension');
+      else if (/reserv|pedid|encarg|encarg/.test(m)) matched = r('reserva');
+      else if (/vacuna|gripe|covid/.test(m))         matched = r('vacuna');
+      break;
+    case 'inmobiliaria':
+      if (/comprar|busco.*piso|busco.*casa|quiero.*piso|quiero.*casa/.test(m)) matched = r('comprar');
+      else if (/vender|vendo|quiero.*vender/.test(m)) matched = r('vender');
+      else if (/alquil/.test(m))                     matched = r('alquilar');
+      else if (/valoraci|valorar|cuanto vale|tasar/.test(m)) matched = r('valoracion');
+      else if (/hipoteca|banco|financiac|prestamo/.test(m)) matched = r('hipoteca');
+      else if (/honorar|comision|cuanto cobr|porcentaje/.test(m)) matched = r('honorarios');
+      else if (/visita|ver.*piso|ver.*casa|ensenar/.test(m)) matched = r('visita');
+      break;
+    case 'fisioterapia':
+      if (/primera.*valora|valora.*gratis|primer.*visita/.test(m)) matched = r('valoracion');
+      else if (/bono|pack|5.*sesion|10.*sesion|descuento/.test(m)) matched = r('bono');
+      else if (/osteop/.test(m))                      matched = r('osteopatia');
+      else if (/drenaje|linfat/.test(m))              matched = r('drenaje');
+      else if (/pilates/.test(m))                     matched = r('pilates');
+      else if (/kinesio|vendaje|cinta/.test(m))       matched = r('vendaje');
+      else if (/suelo.*pelv|pelv/.test(m))            matched = r('suelo_pelvico');
+      else if (/masaje.*terape|descontract/.test(m))  matched = r('masaje');
+      else if (/sesion|fisio|cuanto.*cuesta|precio/.test(m)) matched = r('sesion');
+      break;
+    case 'psicologo':
+      if (/primera.*consult|evalua|primer.*vez/.test(m)) matched = r('primera');
+      else if (/pareja|matrimon|relacion/.test(m))    matched = r('pareja');
+      else if (/nino|adolescen|infantil|hijo/.test(m)) matched = r('infantil');
+      else if (/online|videollamada|distancia/.test(m)) matched = r('online');
+      else if (/informe|certificado|pericial/.test(m)) matched = r('informe');
+      else if (/bono|pack|mensual/.test(m))           matched = r('bono');
+      else if (/sesion|precio|cuanto|65|individual/.test(m)) matched = r('individual');
+      break;
+    case 'abogado':
+      if (/despido|laboral|ere|finiquito|baja.*laboral|accidente.*trabajo/.test(m)) matched = r('laboral');
+      else if (/divorci|custod|separac|familia|pension.*aliment/.test(m)) matched = r('familia');
+      else if (/herencia|testamento|sucesion|difunto|fallecid/.test(m))   matched = r('herencia');
+      else if (/accidente.*trafico|accidente.*coche|atropell|colision/.test(m)) matched = r('accidente');
+      else if (/deuda|impago|reclamacion.*dinero|debe/.test(m))           matched = r('deudas');
+      else if (/desahucio|alquiler.*problema|contrato.*arren/.test(m))    matched = r('inmobiliario');
+      else if (/empresa|mercantil|sociedad|constituir/.test(m))           matched = r('mercantil');
+      else if (/extranjeria|visa|residencia|nacional|pasaport/.test(m))   matched = r('extranjeria');
+      else if (/penal|delito|denuncia|detenid|juicio/.test(m))            matched = r('penal');
+      else if (/honor|precio|cobr|cuanto/.test(m))                        matched = r('laboral'); // precio → laboral como más popular
+      break;
+    case 'clinica':
+      if (/medico.*general|medicina.*general|familiar|cabecera/.test(m))  matched = r('medicina_general');
+      else if (/pediatr|nino|niña|bebe|infant/.test(m))                   matched = r('pediatria');
+      else if (/ginecolog|gine|mama|utero|citolog/.test(m))               matched = r('ginecologia');
+      else if (/corazon|cardiol|palpita|ecg|electro/.test(m))             matched = r('cardiologia');
+      else if (/piel|dermato|lunar|acne|mancha|eccema/.test(m))           matched = r('dermatologia');
+      else if (/hueso|traumat|fractura|rodilla|cadera|hombro|columna/.test(m)) matched = r('traumatologia');
+      else if (/analisis|sangre|analitica|glucosa|colesterol/.test(m))    matched = r('analisis');
+      else if (/ecograf|eco|ultrasonido/.test(m))                         matched = r('ecografia');
+      else if (/certificado|carnet.*conducir|deporte.*certif/.test(m))    matched = r('certificado');
+      else if (/vacuna|gripe|viaje|covid/.test(m))                        matched = r('vacuna');
+      break;
+  }
+  if (matched) return matched;
+
+  // ── CAPA 4: Precio genérico ─────────────────────────────────────────────────
+  if (/precio|cuanto|cuesta|vale|cobr|tarifa|cost/.test(m)) {
+    return kb.precios || (usted
+      ? '¿Sobre qué servicio le interesa el precio? Le doy el detalle.'
+      : '¿De qué servicio quieres saber el precio? Te digo.');
+  }
+
+  // ── CAPA 5: Horario ─────────────────────────────────────────────────────────
+  if (/horario|abri|cerr|que hora|cuando.*abri|hasta.*cuando/.test(m)) {
+    return kb.horario || 'Estamos abiertos de lunes a viernes de 9 a 20h.';
+  }
+
+  // ── CAPA 6: Cita / reserva ──────────────────────────────────────────────────
+  if (/cita|reservar|pedir.*cita|apuntarme|quiero venir|cuando.*podri|cuando.*pued|quiero.*cita/.test(m)) {
+    return usted
+      ? 'Por supuesto, ¿me dice su nombre y qué día le vendría bien?'
+      : '¡Claro! ¿Me dices tu nombre y cuándo te vendría bien?';
+  }
+
+  // ── CAPA 7: Cancelar ────────────────────────────────────────────────────────
+  if (/cancelar|anular|quitar cita|borrar cita/.test(m)) {
+    return usted
+      ? 'Sin problema, ¿me dice su nombre para buscar la cita?'
+      : 'Sin problema, ¿me dices tu nombre para buscarte la cita?';
+  }
+
+  // ── CAPA 8: Agradecimiento / despedida ──────────────────────────────────────
+  if (/gracias|perfecto|genial|estupendo|muy bien|de acuerdo|hasta luego|adios|hasta pronto|ok/.test(m)) {
+    return usted
+      ? '¡A usted! Ha sido un placer. Le llegará un recordatorio por WhatsApp antes de la cita. ¡Hasta pronto!'
+      : '¡A ti! Ha sido un placer. Te llegará un recordatorio por WhatsApp antes de la cita. ¡Hasta pronto!';
+  }
+
+  // ── CAPA 9: Persona / transferencia ─────────────────────────────────────────
+  if (/hablar.*persona|responsable|gerente|encargad|director|jefe/.test(m)) {
+    return usted
+      ? 'Por supuesto, le aviso ahora mismo para que le llame en cuanto pueda. ¿Me deja su nombre y teléfono?'
+      : 'Claro, le aviso ahora mismo. ¿Me dices tu nombre y teléfono para que te llame?';
+  }
+
+  // ── CAPA 10: Respuesta contextual si hay último servicio ────────────────────
+  if (lastServiceKey && svcs[lastServiceKey]) {
+    const svc = svcs[lastServiceKey];
+    const base = typeof svc === 'string' ? svc : (svc.detalle || svc.respuesta);
+    return usted
+      ? `Para resumir lo que le comentaba: ${base}`
+      : `Para resumir lo que te comentaba: ${base}`;
+  }
+
+  // ── CAPA 11: Generic final ──────────────────────────────────────────────────
+  const generics = usted
+    ? ['¿Me puede decir qué servicio le interesa exactamente? Le explico todo.', '¿En qué más puedo ayudarle?', '¿Le busco información sobre algún servicio concreto?']
+    : ['¿Me dices qué servicio te interesa? Te explico todo.', '¿En qué más puedo ayudarte?', '¿Quieres que te cuente algún servicio en concreto?'];
+  return generics[Math.floor(Math.random() * generics.length)];
+}
+
+// ── Detector de servicio en respuesta del bot (para modo OpenAI con contexto) ──
+// Cuando la IA responde sobre un servicio, actualizamos lastServiceKey
+// para que el próximo "dame más info" sepa de qué estaba hablando el bot.
+function _updateLastServiceFromReply(replyText) {
+  const kb   = SECTOR_KB[currentSector] || {};
+  const svcs = kb.servicios || {};
+  const t    = replyText.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Mapa de palabras clave → clave de servicio por sector
+  const hintMap = {
+    dental:       { blanqueamiento:['blanc','blanquea','blanqueamiento'], ortodoncia:['ortod','invisalign','bracket'], limpieza:['limpie','limpiar','sarro'], empaste:['empast','carie','relleno'], implante:['implant'], extraccion:['extrae','extraccion','muela del juicio'], revision:['primera visita','revisión','valoracion gratis'] },
+    peluqueria:   { tinte:['tint','tinte','color','rubio','moreno'], mechas:['mecha','balay','reflex'], alisado:['alis','keratina','liso'], corte:['corte','tijera'], peinado:['peinado','recogido','boda'], manicura:['manicura','uñas','pedicura'], tratamiento:['tratamiento','hidrat','anticaida'] },
+    taller:       { aceite:['aceite','cambio de aceite'], frenos:['freno','pastilla','disco'], neumaticos:['neumático','rueda','goma'], climatizacion:['climatiz','aire acondicionado'], itv:['pre-itv','revisión pre'], revision:['revisión general'], averia:['avería','no arranca'], presupuesto:['presupuesto'] },
+    veterinaria:  { vacuna:['vacuna','vacunar'], castrar:['castrar','esteriliz'], desparasitar:['desparasit','pulga','garrapata'], dentadura:['diente dental','boca'], peluqueria:['pelo','baño','corte'], revision:['consulta','revisión'] },
+    estetica:     { laser:['láser','laser','depilación láser'], facial:['facial','cara','piel','hidrat'], masaje:['masaje','relajante','descontractur'], presoterapia:['presoterapia','drenaje','piernas'], cavitacion:['cavitación','radiofrecuencia','grasa'], manicura:['manicura','semipermanente','pedicura'], depilacion:['cera','depilación con'], micropigmentacion:['micropigment','microblading','cejas'] },
+    gimnasio:     { precio:['cuota','tarifa','mensual','trimestral'], yoga:['yoga'], spinning:['spinning','ciclismo'], zumba:['zumba'], personal:['entrenador personal','trainer'], piscina:['piscina','nadar'], congelar:['congelar','pausar'], baja:['darse de baja','cancelar cuota'] },
+    asesoria:     { autonomo:['autónomo','alta de autónomo'], sl:['sociedad','constituir','sl '], nominas:['nómina','trabajador'], impuestos:['iva','irpf','impuesto','trimestral'], precio:['honorarios','precio','desde '], herencia:['herencia','sucesión'] },
+    farmacia:     { ibuprofeno:['ibuprofeno'], paracetamol:['paracetamol'], receta:['receta'], guardia:['guardia','farmacia de guardia'], tension:['tensión','presión arterial'], vacuna:['vacuna de gripe','vacuna covid'] },
+    inmobiliaria:  { comprar:['piso','busca comprar','busca piso'], vender:['vende','vender su'], alquilar:['alquil'], valoracion:['valoración','valor de mercado'], hipoteca:['hipoteca','banco','financiac'], honorarios:['honorarios','comisión','3%'], visita:['visita','enseñamos','ve el piso'] },
+    restaurante:   { menu:['menú del día','primer','segundo','postre'], reserva:['reserva','reservar'], alergias:['alergia','alergeno'], terraza:['terraza'], privado:['salón privado'], precio:['precio','carta','cuesta'] },
+    fisioterapia:  { sesion:['sesión','fisioterapia','45€'], bono:['bono','pack','descuento'], valoracion:['primera valoración','valoración gratuita'], osteopatia:['osteopatía','osteopa'], masaje:['masaje terapéutico','descontracturante'], drenaje:['drenaje linfático'], pilates:['pilates'], vendaje:['kinesiotaping','vendaje','cinta'], suelo_pelvico:['suelo pélvico','pelvico'] },
+    psicologo:     { primera:['primera consulta','evaluación'], individual:['sesión individual','65€'], pareja:['pareja','80€'], infantil:['niño','adolescente','infantil'], online:['online','videollamada'], informe:['informe','certificado psicológico'], bono:['bono mensual','240€'] },
+    abogado:       { laboral:['despido','laboral','ere','contrato','finiquito'], familia:['divorcio','custodia','separación','familia'], herencia:['herencia','testamento','sucesión'], accidente:['accidente','tráfico','indemnización'], deudas:['deuda','reclamación','impago'], inmobiliario:['desahucio','contrato de compra','arrendamiento'], mercantil:['empresa','mercantil','constitución'], extranjeria:['extranjería','visa','permiso de residencia'], penal:['penal','delito','denunci'] },
+    clinica:       { medicina_general:['medicina general','médico de familia','50€'], pediatria:['pediatría','niño','pediatra'], ginecologia:['ginecología','ginecólogo'], cardiologia:['cardiología','corazón','ecg'], dermatologia:['dermatología','piel','mole'], traumatologia:['traumatología','hueso','fractura'], psiquiatria:['psiquiatría','psiquiatra'], nutricion:['nutrición','dietética','dieta'], analisis:['análisis','analítica','sangre'], radiografia:['radiografía','rx'], ecografia:['ecografía','eco'], certificado:['certificado médico','carnet de conducir'], vacuna:['vacuna','gripe','covid'] },
+  };
+
+  const sectorHints = hintMap[currentSector] || {};
+  for (const [key, hints] of Object.entries(sectorHints)) {
+    if (key in svcs && hints.some(h => t.includes(h))) {
+      lastServiceKey = key;
+      return;
+    }
+  }
+}
+
+// ── Config OpenAI key ─────────────────────────────────────────────────────────
+function testConnection() {
+  const url = document.getElementById('serverUrl').value.trim();
+  fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) })
+    .then(r => r.json())
+    .then(d => alert(`✅ Servidor conectado\nStatus: ${d.status}\nAsistentes: ${d.assistants}\nLlamadas activas: ${d.activeCalls}`))
+    .catch(() => {
+      const key = prompt('Servidor no disponible. Introduce tu OpenAI API Key para usar la demo en modo local:');
+      if (key && key.startsWith('sk-')) {
+        localStorage.setItem('openai_key', key);
+        alert('✅ API Key guardada. La demo funcionará con IA real.');
+      }
+    });
+}
+</script>
+</body>
+</html>

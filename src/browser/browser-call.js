@@ -42,15 +42,24 @@ class BrowserCallHandler {
       startTime: Date.now()
     };
 
+    const _now = new Date();
+    const _madridHour = parseInt(_now.toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
+    const _greeting =
+      _madridHour >= 6  && _madridHour < 14 ? 'Buenos días'   :
+      _madridHour >= 14 && _madridHour < 21 ? 'Buenas tardes' :
+                                              'Buenas noches';
+
     const systemPrompt = (assistant.systemPrompt || assistant.system_prompt || '')
       // BUG-47: pin to Europe/Madrid — server runs UTC
-      .replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }));
+      .replace('{{DATE}}', _now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }))
+      .replace(/\{\{GREETING\}\}/g, _greeting);
     if (systemPrompt) session.conversation.push({ role: 'system', content: systemPrompt });
 
     if (assistant.firstMessage) {
-      ws.send(JSON.stringify({ type: 'transcript', role: 'assistant', content: assistant.firstMessage }));
-      session.conversation.push({ role: 'assistant', content: assistant.firstMessage });
-      this.synthesizeAndSend(ws, assistant.firstMessage, assistant);
+      const firstMsg = assistant.firstMessage.replace(/\{\{GREETING\}\}/g, _greeting);
+      ws.send(JSON.stringify({ type: 'transcript', role: 'assistant', content: firstMsg }));
+      session.conversation.push({ role: 'assistant', content: firstMsg });
+      this.synthesizeAndSend(ws, firstMsg, assistant);
     }
 
     ws.send(JSON.stringify({ type: 'ready', assistant: assistant.name || assistantId }));

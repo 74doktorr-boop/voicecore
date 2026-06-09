@@ -89,8 +89,14 @@ class VoicePipeline {
 
     // Send first message if configured
     if (assistant.firstMessage) {
-      await this._speakText(callId, assistant.firstMessage);
-      session.addAssistantMessage(assistant.firstMessage);
+      const madridHour = parseInt(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
+      const greeting =
+        madridHour >= 6  && madridHour < 14 ? 'Buenos días'   :
+        madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' :
+                                              'Buenas noches';
+      const firstMsg = assistant.firstMessage.replace(/\{\{GREETING\}\}/g, greeting);
+      await this._speakText(callId, firstMsg);
+      session.addAssistantMessage(firstMsg);
     }
 
     // Fire webhook

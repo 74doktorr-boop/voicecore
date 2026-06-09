@@ -176,9 +176,75 @@ class AssistantManager {
     // Without this, the LLM sees the literal string "FECHA DE HOY: {{DATE}}" in its prompt.
     systemPrompt = systemPrompt.replace('{{DATE}}', dateStr);
 
-    systemPrompt += `\n\n[Contexto actual: ${dateStr}, ${timeStr}]`;
+    // Time-of-day greeting token
+    const madridHour = parseInt(now.toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
+    const greeting =
+      madridHour >= 6  && madridHour < 14 ? 'Buenos días'   :
+      madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' :
+                                            'Buenas noches';
+    systemPrompt = systemPrompt.replace(/\{\{GREETING\}\}/g, greeting);
+
+    systemPrompt += `\n\n[Contexto actual: ${dateStr}, ${timeStr}. Saludo apropiado: "${greeting}".]`;
+
+    // Universal fallback rules appended to every assistant — override nothing, just safety net
+    systemPrompt +=
+      '\n\n[REGLAS GLOBALES DEL SISTEMA — siempre vigentes:' +
+      '\n- Si el cliente dice "quiero hablar con una persona", "ponme con alguien", "quiero hablar con el responsable" o similar: di "Por supuesto, le aviso ahora mismo para que le llame en cuanto pueda" y usa flag_urgent con issue="El cliente quiere hablar con una persona".' +
+      '\n- Si la llamada llega fuera del horario de atención del negocio: di "Ahora mismo estamos cerrados, pero si me dejas tu nombre y teléfono te llamamos en cuanto abramos" y usa register_lead para guardar los datos.' +
+      '\n- Nunca des un diagnóstico médico, consejo legal, fiscal, ni información de seguridad crítica — di que el especialista le contactará.' +
+      '\n- Si no entiendes bien lo que dice el cliente, pide que lo repita una sola vez de forma natural.]';
 
     return { role: 'system', content: systemPrompt };
+  }
+
+  /**
+   * Merge assistant tools with mandatory global tools.
+   * Ensures flag_urgent and register_lead are always available
+   * regardless of what the JSON declares.
+   */
+  buildToolList(assistant) {
+    const existingTools = Array.isArray(assistant.tools) ? assistant.tools : [];
+    const existingNames = new Set(existingTools.map(t =>
+      t?.function?.name || t?.name || t
+    ).filter(Boolean));
+
+    const GLOBAL_TOOLS = [
+      {
+        type: 'function',
+        function: {
+          name: 'flag_urgent',
+          description: 'Urgencia o petición de hablar con una persona. Alerta inmediata al responsable del negocio.',
+          parameters: {
+            type: 'object',
+            properties: {
+              client_name: { type: 'string' },
+              phone:        { type: 'string' },
+              issue:        { type: 'string', description: 'Qué está pasando o qué necesita el cliente' },
+            },
+            required: ['issue'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'register_lead',
+          description: 'Guarda nombre y teléfono de un cliente que llama fuera de horario o quiere ser contactado.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name:  { type: 'string' },
+              phone: { type: 'string' },
+              notes: { type: 'string' },
+            },
+            required: ['name', 'phone'],
+          },
+        },
+      },
+    ];
+
+    const toAdd = GLOBAL_TOOLS.filter(t => !existingNames.has(t.function.name));
+    return [...existingTools, ...toAdd];
   }
 
   /**

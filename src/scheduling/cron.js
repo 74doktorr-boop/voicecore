@@ -15,6 +15,7 @@ let _lastRun     = null;
 let _stats       = { reminders: 0, reviews: 0, criticalDates: 0, noShows: 0, runs: 0 };
 let _history     = [];
 let _lastMonthlyResetDay = null; // 'YYYY-MM-01' — prevents duplicate resets in same day
+let _lastWeeklyReportDay = null; // 'YYYY-MM-DD' (Monday) — prevents duplicate weekly reports
 
 async function checkAndSendCriticalDateReminders() {
   const { criticalDatesStore } = require('../scheduling/critical-dates');
@@ -106,6 +107,102 @@ async function checkAndHandleNoShows(scheduler, flowManager) {
   return handled;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Weekly report — every Monday at 09:00 Madrid, one send per business
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendWeeklyReports(scheduler, flowManager) {
+  const now       = new Date();
+  const madridFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' });
+  const madridTime= new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false });
+  const todayStr  = madridFmt.format(now);                   // 'YYYY-MM-DD'
+  const dayOfWeek = new Date(todayStr + 'T12:00:00').getDay(); // 0=Sun, 1=Mon
+  const hourMadrid= parseInt(madridTime.format(now).split(':')[0], 10);
+
+  // Only on Mondays, between 09:00 and 10:00, once per week
+  if (dayOfWeek !== 1) return 0;
+  if (hourMadrid < 9 || hourMadrid >= 10) return 0;
+  if (_lastWeeklyReportDay === todayStr) return 0; // already sent today
+  _lastWeeklyReportDay = todayStr;
+
+  // Calculate last week's date range (Mon–Sun)
+  const monday    = new Date(todayStr + 'T00:00:00');
+  const lastMon   = new Date(monday); lastMon.setDate(monday.getDate() - 7);
+  const lastSun   = new Date(monday); lastSun.setDate(monday.getDate() - 1);
+  const fromStr   = madridFmt.format(lastMon);
+  const toStr     = madridFmt.format(lastSun);
+
+  const businesses = flowManager.list();
+  let sent = 0;
+
+  for (const biz of businesses) {
+    try {
+      const config     = flowManager.mergeConfig(biz.id, scheduler.getBusinessConfig(biz.id) || {});
+      const ownerPhone = config.ownerPhone;
+      if (!ownerPhone) continue;
+
+      // Count appointments this week
+      const allApts = [...scheduler.appointments.values()].filter(a => a.businessId === biz.id);
+      const weekApts = allApts.filter(a => a.date >= fromStr && a.date <= toStr);
+      const booked   = weekApts.filter(a => ['confirmed', 'completed'].includes(a.status)).length;
+      const cancelled = weekApts.filter(a => a.status === 'cancelled').length;
+      const completed = weekApts.filter(a => a.status === 'completed').length;
+
+      // Services breakdown
+      const serviceMap = {};
+      weekApts.filter(a => a.status !== 'cancelled').forEach(a => {
+        const svc = a.service || 'Sin servicio';
+        serviceMap[svc] = (serviceMap[svc] || 0) + 1;
+      });
+      const topServices = Object.entries(serviceMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([svc, n]) => `• ${svc}: ${n}`)
+        .join('\n');
+
+      // Upcoming this week
+      const upcomingApts = allApts.filter(a => a.date >= todayStr && a.status === 'confirmed');
+      const upcomingCount = upcomingApts.length;
+
+      // Build message
+      const weekLabel = `${lastMon.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} – ${lastSun.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+      let msg =
+        `📊 *Informe semanal — ${config.name || biz.id}*\n` +
+        `━━━━━━━━━━━━\n` +
+        `📅 Semana del ${weekLabel}\n\n` +
+        `✅ Citas gestionadas: *${booked}*\n` +
+        (cancelled > 0 ? `❌ Cancelaciones: ${cancelled}\n` : '') +
+        (completed > 0 ? `🎯 Completadas: ${completed}\n` : '');
+
+      if (topServices) {
+        msg += `\n📋 *Por servicio:*\n${topServices}\n`;
+      }
+
+      msg +=
+        `\n📆 *Esta semana pendientes:* ${upcomingCount} citas\n` +
+        `━━━━━━━━━━━━\n` +
+        `🤖 NodeFlow IA — su asistente está activo 24h`;
+
+      // Send via Meta WhatsApp (client-facing, can send to any number)
+      const clientWA = require('../notifications/client-whatsapp');
+      if (clientWA.isConfigured()) {
+        const result = await clientWA.sendText(ownerPhone, msg);
+        if (result.ok) { sent++; continue; }
+      }
+
+      // Fallback: owner Callmebot (single phone env var)
+      const { sendWhatsApp } = require('../notifications/whatsapp');
+      await sendWhatsApp(msg).catch(() => {});
+      sent++;
+
+      log.info(`Weekly report sent for ${biz.id} (${booked} apts last week)`);
+    } catch (e) {
+      log.warn(`Weekly report error for ${biz.id}: ${e.message}`);
+    }
+  }
+
+  return sent;
+}
+
 async function runAutomations() {
   if (_running) return;
   _running = true;
@@ -143,19 +240,21 @@ async function runAutomations() {
     const reminders     = await checkAndSendReminders(scheduler, flowManager);
     const reviews       = await checkAndSendReviews(scheduler, flowManager);
     const criticalDates = await checkAndSendCriticalDateReminders();
-    const noShows        = await checkAndHandleNoShows(scheduler, flowManager);
+    const noShows       = await checkAndHandleNoShows(scheduler, flowManager);
+    const weeklyReports = await sendWeeklyReports(scheduler, flowManager);
 
     _stats.reminders     += reminders;
     _stats.reviews       += reviews;
     _stats.criticalDates += criticalDates;
     _stats.noShows       = (_stats.noShows || 0) + noShows;
+    _stats.weeklyReports = (_stats.weeklyReports || 0) + weeklyReports;
     _stats.runs          += 1;
     _lastRun              = new Date().toISOString();
-    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates, noShows });
+    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates, noShows, weeklyReports });
     if (_history.length > 10) _history.pop();
 
     const elapsed = Date.now() - start;
-    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates} noShows:${noShows}`);
+    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates} noShows:${noShows} weeklyReports:${weeklyReports}`);
   } catch (e) {
     log.error('Automation run error', { error: e.message });
   } finally {
