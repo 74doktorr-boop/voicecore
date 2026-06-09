@@ -370,7 +370,7 @@ async function loadDashboard() {
             '<div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>' +
             '<div class="setup-step" data-step="2" onclick="navigate(\'asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente IA</strong> — nombre, voz, idioma y servicios → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
             '<div class="setup-step" data-step="3" onclick="navigate(\'configuracion\')" style="cursor:pointer;">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
-            '<div class="setup-step" data-step="4">📞 <strong>Activa el desvío de llamadas</strong> — redirige tu número al asistente IA para empezar a recibir llamadas</div>' +
+            '<div class="setup-step" data-step="4" onclick="navigate(\'configuracion\')" style="cursor:pointer">📞 <strong>Activa el desvío de llamadas</strong> — los códigos están en Configuración → <span style="color:#a29bfe;text-decoration:underline">Ver códigos →</span></div>' +
           '</div>' +
           '<button onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>' +
         '</div>';
@@ -984,7 +984,8 @@ async function loadConfig() {
         '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20con%20mi%20portal" target="_blank"' +
            ' class="btn btn-d" style="text-decoration:none">Contactar soporte</a>' +
       '</div>' +
-    '</div>';
+    '</div>' +
+    (c.phone ? renderDesvioGuide(c.phone) : '');
 }
 
 async function saveConfig() {
@@ -1009,6 +1010,104 @@ async function saveConfig() {
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
+}
+
+// ── Guía de desvío de llamadas ────────────────────────────────
+function renderDesvioGuide(phone) {
+  // Normalizar: solo dígitos, sin + ni espacios, con 34 si no lo tiene
+  var digits = String(phone).replace(/[^0-9]/g, '');
+  if (!digits.startsWith('34')) digits = '34' + digits;
+
+  var tipos = [
+    {
+      icon: '🔄',
+      label: 'Desvío incondicional',
+      desc: 'Todas las llamadas van al asistente IA (recomendado fuera de horario o si no quieres atender tú)',
+      activate:   '**21*' + digits + '#',
+      deactivate: '##21#',
+    },
+    {
+      icon: '⏱️',
+      label: 'Por no contestar',
+      desc: 'Si no coges en ~15 segundos, la IA atiende. Ideal como backup durante el horario laboral',
+      activate:   '**61*' + digits + '#',
+      deactivate: '##61#',
+    },
+    {
+      icon: '📵',
+      label: 'Por línea ocupada',
+      desc: 'La IA atiende cuando estás hablando con otro cliente',
+      activate:   '**67*' + digits + '#',
+      deactivate: '##67#',
+    },
+    {
+      icon: '📴',
+      label: 'Por no disponible',
+      desc: 'Cuando el móvil está apagado o sin cobertura',
+      activate:   '**62*' + digits + '#',
+      deactivate: '##62#',
+    },
+  ];
+
+  var rows = tipos.map(function(t) {
+    var actId  = 'code-act-'  + t.activate.replace(/[^0-9]/g,'').slice(-4);
+    var deactId = 'code-deact-' + t.deactivate.replace(/[^0-9]/g,'').slice(-4);
+    return '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
+      '<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">' +
+        '<div style="font-size:20px;line-height:1;margin-top:2px">' + t.icon + '</div>' +
+        '<div style="flex:1;min-width:200px">' +
+          '<div style="font-weight:700;font-size:13px;margin-bottom:2px">' + t.label + '</div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">' + t.desc + '</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<div style="display:flex;align-items:center;gap:6px;background:rgba(0,206,201,.07);border:1px solid rgba(0,206,201,.2);border-radius:8px;padding:6px 12px">' +
+              '<span style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase">Activar</span>' +
+              '<code id="' + actId + '" style="font-size:13px;font-weight:700;color:var(--green2);letter-spacing:.02em">' + t.activate + '</code>' +
+              '<button onclick="copyCode(\'' + actId + '\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 0 0 4px;color:var(--green)" title="Copiar">📋</button>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:6px 12px">' +
+              '<span style="font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase">Desactivar</span>' +
+              '<code id="' + deactId + '" style="font-size:13px;color:var(--dim)">' + t.deactivate + '</code>' +
+              '<button onclick="copyCode(\'' + deactId + '\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 0 0 4px;color:var(--dim)" title="Copiar">📋</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="card" style="max-width:640px;margin-top:20px">' +
+    '<div class="card-title">📞 Códigos de desvío de llamadas</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">' +
+      'Marca el código desde el teléfono del negocio y pulsa la tecla de llamada. ' +
+      'Tu número de NodeFlow: <strong style="color:var(--accent-l);font-family:monospace">+' + digits + '</strong>' +
+    '</div>' +
+    rows +
+    '<div style="margin-top:12px;padding:10px 12px;background:rgba(249,202,36,.06);border:1px solid rgba(249,202,36,.15);border-radius:8px;font-size:11px;color:#f9ca24;line-height:1.5">' +
+      '⚠️ Los códigos <strong>**21#</strong> son estándar para Movistar, Vodafone, Jazztel, Yoigo, MásMóvil y Euskaltel. ' +
+      'Orange usa <strong>*21#</strong> (sin el primer asterisco extra). ' +
+      'Para centralitas fijas contacta con soporte.' +
+    '</div>' +
+  '</div>';
+}
+
+function copyCode(elementId) {
+  var el = document.getElementById(elementId);
+  if (!el) return;
+  var text = el.textContent.trim();
+  navigator.clipboard.writeText(text).then(function() {
+    toast('📋 Copiado: ' + text);
+  }).catch(function() {
+    // Fallback para navegadores sin clipboard API
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('📋 Copiado: ' + text);
+  });
 }
 
 // ── Clientes ──────────────────────────────────────────────────
@@ -2694,12 +2793,13 @@ var FAQ_DATA = [
     items: [
       {
         q: '¿Cómo activo el desvío para que mi asistente coja las llamadas?',
-        a: '<p>Desde tu teléfono de empresa, marca el código de tu operador y pulsa llamar:</p>' +
+        a: '<p>Ve a <strong>Configuración</strong> en el menú lateral y baja hasta "Códigos de desvío". Verás los 4 tipos de desvío con tu número de NodeFlow ya incluido en el código — solo tienes que copiarlo y marcarlo desde tu teléfono.</p>' +
+           '<p>Los tipos más usados:</p>' +
            '<ul>' +
-           '<li><strong>Movistar, Vodafone, Jazztel, Yoigo, MásMóvil, Euskaltel:</strong> <code>**21*NÚMERO_NODEFLOW#</code></li>' +
-           '<li><strong>Orange:</strong> <code>*21*NÚMERO_NODEFLOW#</code></li>' +
+           '<li><strong>Incondicional</strong> — todas las llamadas van al asistente (ideal fuera de horario)</li>' +
+           '<li><strong>Por no contestar</strong> — si no coges en ~15 segundos, la IA atiende (ideal como backup de día)</li>' +
            '</ul>' +
-           '<p>Sustituye NÚMERO_NODEFLOW por el número que te enviamos en el email de activación. Si no lo tienes a mano, escríbenos por WhatsApp.</p>',
+           '<p>Para Orange el código empieza por <code>*21</code> en lugar de <code>**21</code>. Para centralitas fijas, escríbenos.</p>',
       },
       {
         q: '¿Cómo desactivo el desvío para recibir yo las llamadas?',
