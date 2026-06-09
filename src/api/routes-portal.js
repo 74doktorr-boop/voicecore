@@ -130,8 +130,9 @@ function setupPortalRoutes(app, pipeline, config) {
       businessName: flowConfig.name,
       plan:         flowConfig.plan,
       daysActive,
-      aiStatus: 'active',
-      today:    { callCount, bookedToday, convRate, emailsSent, hoursSaved },
+      aiStatus:   'active',
+      totalCalls: bizCalls.length,
+      today:      { callCount, bookedToday, convRate, emailsSent, hoursSaved },
       upcoming,
       recentActivity,
     });

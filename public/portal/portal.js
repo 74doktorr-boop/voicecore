@@ -360,10 +360,9 @@ async function loadDashboard() {
       '</div>' +
     '</div>';
 
-  // ── Setup checklist banner (show when 0 total calls and not dismissed) ──
+  // ── Setup checklist banner (show when 0 total historical calls and not dismissed) ──
   if (localStorage.getItem('nf_banner_dismissed') !== '1') {
-    var totalCallsToday = (d.today && d.today.callCount) || 0;
-    if (totalCallsToday === 0) {
+    if ((d.totalCalls || 0) === 0) {
       var bannerHTML =
         '<div id="setup-banner" style="background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.06));border:1px solid rgba(108,92,231,.25);border-radius:14px;padding:20px 24px;margin-bottom:24px;">' +
           '<div style="font-size:13px;font-weight:700;color:#a29bfe;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">🚀 Primeros pasos</div>' +
