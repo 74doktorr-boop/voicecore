@@ -1905,10 +1905,21 @@ function openWaSignup() {
   }, 600);
 }
 
-async function disconnectWa() {
-  if (!confirm('¿Desconectar WhatsApp? Los mensajes automáticos dejarán de enviarse desde tu número.')) return;
+function disconnectWa() {
+  openModal(
+    '<div class="modal-title">Desconectar WhatsApp</div>' +
+    '<p style="color:var(--dim);margin-bottom:20px">Los mensajes automáticos dejarán de enviarse desde tu número de WhatsApp Business. Podrás volver a conectarlo en cualquier momento.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-r" onclick="confirmDisconnectWa()">Sí, desconectar</button>' +
+    '</div>'
+  );
+}
+
+async function confirmDisconnectWa() {
   try {
     await api('/api/portal/whatsapp/connect', 'DELETE');
+    closeModal();
     toast('WhatsApp desconectado');
     loadIntegraciones();
   } catch (e) {
@@ -2144,10 +2155,21 @@ async function toggleWebhook(id, enabled) {
   }
 }
 
-async function deleteWebhook(id) {
-  if (!confirm('¿Eliminar este webhook? Se dejarán de enviar eventos a esta URL.')) return;
+function deleteWebhook(id) {
+  openModal(
+    '<div class="modal-title">Eliminar webhook</div>' +
+    '<p style="color:var(--dim);margin-bottom:20px">¿Eliminar este webhook? Se dejarán de enviar eventos a esta URL.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-r" onclick="confirmDeleteWebhook(\'' + esc(id) + '\')">Eliminar</button>' +
+    '</div>'
+  );
+}
+
+async function confirmDeleteWebhook(id) {
   try {
     await api('/api/portal/webhooks/' + id, 'DELETE');
+    closeModal();
     toast('Webhook eliminado');
     loadIntegraciones();
   } catch (e) {
