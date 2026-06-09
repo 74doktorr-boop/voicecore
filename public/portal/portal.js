@@ -1756,15 +1756,111 @@ var _EVENT_LABELS = {
   'review_request.sent':   '⭐ Petición de reseña',
 };
 
+// ── WhatsApp Connect (360dialog Embedded Signup) ────────────────────────────
+
+async function loadWaStatus() {
+  try {
+    var r = await api('/api/portal/whatsapp/status');
+    return r; // { connected, phoneNumber?, wabaId? }
+  } catch (e) {
+    return { connected: false, error: e.message };
+  }
+}
+
+function openWaSignup() {
+  var partnerId = 'srMmqpPA';
+  var redirectUrl = encodeURIComponent(window.location.origin + '/api/portal/whatsapp/connect');
+  var state = encodeURIComponent((_orgInfo && _orgInfo.id) || '');
+  var url = 'https://hub.360dialog.com/dashboard/app/' + partnerId +
+    '/permissions?redirect_url=' + redirectUrl + '&state=' + state;
+  var popup = window.open(url, 'wa-connect', 'width=700,height=600,scrollbars=yes,resizable=yes');
+  if (!popup) {
+    showToast('⚠️ Permite ventanas emergentes para conectar WhatsApp', 'warn');
+    return;
+  }
+  // Escuchar cuando el popup se cierre (el backend ya procesó el redirect)
+  var poll = setInterval(function() {
+    if (!popup || popup.closed) {
+      clearInterval(poll);
+      // Recargar la sección para ver si se conectó
+      setTimeout(function() { loadIntegraciones(); }, 800);
+    }
+  }, 600);
+}
+
+async function disconnectWa() {
+  if (!confirm('¿Desconectar WhatsApp? Los mensajes automáticos dejarán de enviarse desde tu número.')) return;
+  try {
+    await api('/api/portal/whatsapp/connect', { method: 'DELETE' });
+    showToast('WhatsApp desconectado');
+    loadIntegraciones();
+  } catch (e) {
+    showToast('Error al desconectar: ' + e.message, 'error');
+  }
+}
+
+function renderWaCard(waStatus) {
+  var connected = waStatus && waStatus.connected;
+  var phoneNumber = connected ? esc(waStatus.phoneNumber || '—') : '';
+
+  var statusBadge = connected
+    ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
+    : '<span class="badge br" style="font-size:11px">⭕ No conectado</span>';
+
+  var actionBtn = connected
+    ? '<button class="btn btn-d btn-sm" onclick="disconnectWa()" style="margin-left:8px">Desconectar</button>'
+    : '<button class="btn btn-accent" onclick="openWaSignup()" style="background:linear-gradient(135deg,#25d366,#128c7e);border:none">'+
+        '<span style="margin-right:6px">💬</span>Conectar WhatsApp' +
+      '</button>';
+
+  var connectedInfo = connected
+    ? '<div style="margin-top:12px;font-size:12px;color:var(--dim)">' +
+        '<span style="color:var(--text);font-weight:600">' + phoneNumber + '</span>' +
+        ' · WABA ID: <code style="font-size:11px">' + esc(waStatus.wabaId || '—') + '</code>' +
+      '</div>'
+    : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">' +
+        'Conecta tu número de WhatsApp Business para enviar confirmaciones, recordatorios y reseñas ' +
+        '<strong style="color:var(--text)">directamente desde tu número</strong> — no del número genérico de NodeFlow.' +
+      '</div>';
+
+  return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(37,211,102,.3)' : 'var(--border)') + '">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+      '<div style="display:flex;align-items:center;gap:12px">' +
+        '<div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:14px">WhatsApp Business</div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-top:2px">Notificaciones a clientes desde tu número</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        statusBadge + actionBtn +
+      '</div>' +
+    '</div>' +
+    connectedInfo +
+    (connected ? '' :
+      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;color:var(--dim)">' +
+        '<span>✅ Requiere número con WhatsApp Business activo</span>' +
+        '<span>✅ Se configura en &lt; 3 minutos</span>' +
+        '<span>✅ Los 3 templates se envían automáticamente</span>' +
+      '</div>'
+    ) +
+  '</div>';
+}
+
 async function loadIntegraciones() {
   var sec = document.getElementById('sec-integraciones');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando webhooks…</div></div>';
+  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando integraciones…</div></div>';
+
+  // Cargar estado WA y webhooks en paralelo
+  var waStatus;
+  try { waStatus = await loadWaStatus(); } catch(e) { waStatus = { connected: false }; }
 
   var data;
   try {
     data = await api('/api/portal/webhooks');
   } catch (e) {
-    sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
+    sec.innerHTML = renderWaCard(waStatus) +
+      '<div class="empty-state"><div>Error al cargar webhooks: ' + esc(e.message) + '</div></div>';
     return;
   }
 
@@ -1803,7 +1899,18 @@ async function loadIntegraciones() {
     '<div class="section-header">' +
       '<div>' +
         '<div class="section-title">🔗 Integraciones</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Recibe eventos en tu propio servidor en tiempo real</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tu WhatsApp Business y recibe eventos en tu servidor</div>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Tarjeta WhatsApp ─────────────────────────────────────────
+    renderWaCard(waStatus) +
+
+    // ── Webhooks ─────────────────────────────────────────────────
+    '<div class="section-header" style="margin-top:8px">' +
+      '<div>' +
+        '<div style="font-size:15px;font-weight:800">🌐 Webhooks</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:2px">Recibe eventos en tu propio servidor en tiempo real</div>' +
       '</div>' +
       '<button class="btn btn-accent" onclick="openNewWebhookModal()">+ Nuevo webhook</button>' +
     '</div>' +

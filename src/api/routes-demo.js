@@ -10,6 +10,7 @@ const { verifySessionToken }  = require('./routes-auth');
 const { generatePrompt }      = require('../assistants/prompt-generator');
 const { toFile }              = require('openai');
 const OpenAI                  = require('openai').default;
+const { demoGlobalLimiter, demoSttLimiter, demoChatLimiter, demoTtsLimiter } = require('../utils/rate-limiter');
 
 const log = new Logger('ROUTES-DEMO');
 
@@ -61,7 +62,7 @@ function setupDemoRoutes(app, ttsRouter) {
   // ── POST /api/demo/stt ────────────────────────────────────────
   // body: { audio: <base64>, mimeType?: 'audio/webm' }
   // Returns: { transcript: string }
-  app.post('/api/demo/stt', demoAuth, async (req, res) => {
+  app.post('/api/demo/stt', demoAuth, demoGlobalLimiter, demoSttLimiter, async (req, res) => {
     const { audio, mimeType = 'audio/webm' } = req.body;
     if (!audio) return res.status(400).json({ error: 'audio (base64) requerido' });
     try {
@@ -90,7 +91,7 @@ function setupDemoRoutes(app, ttsRouter) {
   // body: { orgId?, botId?, messages: [{role, content}] }
   // OR legacy demo format (the demo HTML sends messages[] built client-side with systemPrompt)
   // Returns: { reply: string }
-  app.post('/api/demo/chat', demoAuth, async (req, res) => {
+  app.post('/api/demo/chat', demoAuth, demoGlobalLimiter, demoChatLimiter, async (req, res) => {
     const { orgId, botId, messages } = req.body;
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages requerido' });
@@ -174,7 +175,7 @@ function setupDemoRoutes(app, ttsRouter) {
   // ── POST /api/demo/tts ────────────────────────────────────────
   // body: { text: string, voice?: string }
   // Returns: audio/mpeg stream
-  app.post('/api/demo/tts', demoAuth, async (req, res) => {
+  app.post('/api/demo/tts', demoAuth, demoGlobalLimiter, demoTtsLimiter, async (req, res) => {
     let { text, voice = 'nova' } = req.body;
     if (!text) return res.status(400).json({ error: 'text requerido' });
     text = text.slice(0, 500); // cost protection
