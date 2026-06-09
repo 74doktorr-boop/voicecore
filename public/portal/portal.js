@@ -1908,11 +1908,11 @@ function openWaSignup() {
 async function disconnectWa() {
   if (!confirm('¿Desconectar WhatsApp? Los mensajes automáticos dejarán de enviarse desde tu número.')) return;
   try {
-    await api('/api/portal/whatsapp/connect', { method: 'DELETE' });
+    await api('/api/portal/whatsapp/connect', 'DELETE');
     toast('WhatsApp desconectado');
     loadIntegraciones();
   } catch (e) {
-    toast('Error al desconectar: ' + e.message, 'error');
+    toast('Error al desconectar: ' + e.message, 'err');
   }
 }
 
