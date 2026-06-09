@@ -212,7 +212,7 @@ class SchedulingSystem {
   }
 
   // ─── Book an appointment ───
-  bookAppointment(businessId, { patientName, phone, email, service, date, time }) {
+  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -231,6 +231,7 @@ class SchedulingSystem {
       time,
       duration: serviceObj ? serviceObj.duration : 30,
       price: serviceObj ? serviceObj.price : 0,
+      notes: notes || null,
       status: 'confirmed',
       createdAt: new Date().toISOString()
     };
