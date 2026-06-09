@@ -422,7 +422,7 @@ async function loadCalls(outcome, from, to) {
         : '<span style="color:var(--muted)">—</span>';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
         '<td>' + c.turnCount + ' turnos' + apt + '</td>' +
-        '<td style="color:var(--dim)">' + esc(c.clientEmail || '—') + '</td>' +
+        '<td style="color:var(--dim)">' + (c.callerNumber ? '<div style="font-size:12px">' + esc(c.callerNumber) + '</div>' : '') + esc(c.clientEmail || (c.callerNumber ? '' : '—')) + '</td>' +
         '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td>' +
         '<td>' + callBtn + '</td></tr>';
     }
@@ -447,7 +447,7 @@ async function loadCalls(outcome, from, to) {
       '<button class="btn btn-d btn-sm" onclick="loadCalls()">Limpiar</button>' +
     '</div>' +
     '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>Transcript</th><th>Acciones</th></tr></thead>' +
+      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Contacto</th><th>Transcript</th><th>Acciones</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
     '<div style="font-size:12px;color:var(--dim);margin-top:12px">Total: ' + (data.count || 0) + ' llamadas</div>';
 
