@@ -298,13 +298,22 @@ async function loadDashboard() {
   var greet  = hour < 14 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
   var dateStr = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
 
+  var today = new Date().toLocaleDateString('sv-SE');
+  var dashStatusBadge = {
+    confirmed: '<span class="badge bg">✓ Confirmada</span>',
+    pending:   '<span class="badge by">Pendiente</span>',
+    cancelled: '<span class="badge br">✕ Cancelada</span>',
+  };
   var upcomingRows = '';
   if (d.upcoming && d.upcoming.length > 0) {
     for (var i = 0; i < d.upcoming.length; i++) {
       var a = d.upcoming[i];
-      upcomingRows += '<tr><td>' + fmtDate(a.date) + '</td><td><strong>' + esc(a.time) + '</strong></td>' +
+      var isToday = a.date === today;
+      upcomingRows += '<tr' + (isToday ? ' style="background:rgba(108,92,231,0.08)"' : '') + '>' +
+        '<td>' + (isToday ? '<strong style="color:var(--accent-l)">Hoy</strong>' : fmtDate(a.date)) + '</td>' +
+        '<td><strong>' + esc(a.time) + '</strong></td>' +
         '<td>' + esc(a.patientName) + '</td><td>' + esc(a.service) + '</td>' +
-        '<td><span class="badge bg">✓ Confirmada</span></td></tr>';
+        '<td>' + (dashStatusBadge[a.status] || dashStatusBadge.pending) + '</td></tr>';
     }
   } else {
     upcomingRows = '<tr class="empty-row"><td colspan="5">No hay citas próximas</td></tr>';
@@ -336,7 +345,7 @@ async function loadDashboard() {
     '<div class="kpi-grid">' +
       '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.callCount || 0) + '</div><div class="kpi-sub">hoy</div>' + kpiTrend(d.today.callCount, d.prevWeek && d.prevWeek.callCount) + '</div>' +
       '<div class="kpi"><div class="kpi-label">Reservas</div><div class="kpi-val" style="color:var(--green2)">' + (d.today.bookedToday || 0) + '</div><div class="kpi-sub">' + (d.today.convRate || 0) + '% conversión</div>' + kpiTrend(d.today.bookedToday, d.prevWeek && d.prevWeek.bookedToday) + '</div>' +
-      '<div class="kpi"><div class="kpi-label">Emails enviados</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.emailsSent || 0) + '</div><div class="kpi-sub">confirmaciones</div>' + kpiTrend(d.today.emailsSent, d.prevWeek && d.prevWeek.emailsSent) + '</div>' +
+      '<div class="kpi"><div class="kpi-label">Notificaciones</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.emailsSent || 0) + '</div><div class="kpi-sub">email + WhatsApp</div>' + kpiTrend(d.today.emailsSent, d.prevWeek && d.prevWeek.emailsSent) + '</div>' +
       '<div class="kpi"><div class="kpi-label">Horas ahorradas</div><div class="kpi-val" style="color:#60a5fa">' + (d.today.hoursSaved || 0) + 'h</div><div class="kpi-sub">vs atención manual</div>' + kpiTrend(d.today.hoursSaved, d.prevWeek && d.prevWeek.hoursSaved) + '</div>' +
     '</div>' +
     '<div class="two-col">' +
@@ -406,8 +415,10 @@ async function loadCalls(outcome, from, to) {
       var apt = c.appointment
         ? '<br><small style="color:var(--dim)">' + esc(c.appointment.date) + ' ' + esc(c.appointment.time) + ' · ' + esc(c.appointment.service) + '</small>'
         : '';
+      var waNum   = c.callerNumber ? c.callerNumber.replace(/[^0-9]/g,'') : '';
       var callBtn = c.callerNumber
-        ? '<button class="btn btn-g btn-sm" onclick="callOutbound(\'' + esc(c.callerNumber) + '\',this)" title="Llamar a ' + esc(c.callerNumber) + '">📞</button>'
+        ? '<button class="btn btn-g btn-sm" onclick="callOutbound(\'' + esc(c.callerNumber) + '\',this)" title="Llamar">📞</button>' +
+          '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + waNum + '" target="_blank" title="WhatsApp">💬</a>'
         : '<span style="color:var(--muted)">—</span>';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
         '<td>' + c.turnCount + ' turnos' + apt + '</td>' +
@@ -436,7 +447,7 @@ async function loadCalls(outcome, from, to) {
       '<button class="btn btn-d btn-sm" onclick="loadCalls()">Limpiar</button>' +
     '</div>' +
     '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>💬</th><th>📞</th></tr></thead>' +
+      '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Email cliente</th><th>Transcript</th><th>Acciones</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
     '<div style="font-size:12px;color:var(--dim);margin-top:12px">Total: ' + (data.count || 0) + ' llamadas</div>';
 
@@ -1161,6 +1172,7 @@ async function openContactProfile(id) {
 
     '<div class="modal-actions" style="margin-top:20px">' +
       (c.phone ? '<button class="btn btn-g" onclick="callOutbound(\'' + esc(c.phone) + '\',this)">📞 Llamar</button>' : '') +
+      (c.phone ? '<a class="btn" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + esc(c.phone.replace(/[^0-9]/g,'')) + '" target="_blank">💬 WhatsApp</a>' : '') +
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
