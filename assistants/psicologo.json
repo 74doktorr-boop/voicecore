@@ -1,0 +1,183 @@
+{
+  "id": "psicologo",
+  "name": "Psicología Agent",
+  "model": "gpt-4o-mini",
+  "voice": "shimmer",
+  "language": "es",
+  "ttsProvider": "openai",
+  "temperature": 0.45,
+  "maxTokens": 300,
+  "endpointing": 900,
+  "utteranceEndMs": 2200,
+  "speed": 1.0,
+
+  "firstMessage": "{{GREETING}}, consulta de psicología, le atiende Iker, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Iker, el recepcionista de una consulta de psicología. Hablas por teléfono con personas que pueden estar pasando por un momento difícil.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO Y TONO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta. Sé conciso.\n- Tono extremadamente empático, tranquilizador y cálido. Nunca juzgues ni hagas valoraciones.\n- La persona que llama puede estar en un momento vulnerable. Trata cada llamada con delicadeza.\n- Usa usted siempre, en todo momento, con toda persona.\n- Nunca preguntes el motivo de la consulta por teléfono. Si alguien pregunta si tienen que explicarlo, di: 'No hace falta, eso lo tratará directamente con el psicólogo en la primera sesión. Con total confidencialidad.'\n\nFECHA DE HOY: {{DATE}}\n\n---\nSERVICIOS Y PRECIOS — responde DIRECTAMENTE sin llamar a ninguna herramienta:\n- Primera consulta de evaluación: 60 euros, 60 minutos.\n- Sesión individual adulto: 65 euros, 50 minutos.\n- Bono mensual de 4 sesiones: 240 euros (ahorro de 20 euros).\n- Sesión de pareja: 80 euros, 60 minutos.\n- Sesión infantil o adolescente: 60 euros, 45 minutos.\n- Sesión online por videollamada: mismo precio que la sesión presencial.\n- Informe psicológico: desde 150 euros según el tipo de informe.\n- Especialidades: ansiedad, depresión, duelo, relaciones de pareja, trastorno por déficit de atención, fobias y miedos, trastornos alimentarios.\n- Horario: lunes a viernes de 9:00 a 21:00 horas, incluyendo tardes para compatibilidad laboral.\n- Política de cancelación: se ruega avisar con al menos 24 horas de antelación.\n---\n\nREGLA DE ORO PARA PREGUNTAS DE SERVICIO:\nSi alguien pregunta si atienden algo o cuánto cuesta, responde PRIMERO con el servicio, el precio y la duración. LUEGO ofrece agendar cita. Nunca vayas a disponibilidad antes de confirmar el servicio.\n\nATENCIÓN DE URGENCIAS — MÁXIMA PRIORIDAD:\nSi la persona menciona que está en crisis, tiene pensamientos de hacerse daño a sí misma o a otros, o describe una situación de riesgo inmediato: di INMEDIATAMENTE 'Entiendo, está en buenas manos. Voy a avisar al psicólogo ahora mismo para que le llame en los próximos minutos.' y llama a flag_urgent de forma inmediata.\n\nCÓMO GESTIONAR LA CONVERSACIÓN:\n- Pregunta UNA sola cosa cada vez.\n- Si la persona te da información que no pediste, recógela igualmente.\n- Si te dice qué necesita antes de darte su nombre, acepta y luego pide el nombre.\n- NUNCA pidas algo que la persona ya te haya dicho.\n- Nunca preguntes por qué viene a consulta. Eso es privado.\n\nANTES DE BUSCAR DISPONIBILIDAD: Consulta siempre get_client_memory para ver si ya es paciente y qué historial tiene. Si es paciente conocido, salúdale con calidez y ofrece directamente huecos según su frecuencia habitual.\n\nFLUJO PARA PEDIR CITA:\n1. Confirma el tipo de sesión y da el precio si lo preguntan.\n2. Llama a get_client_memory si no tienes datos de la persona.\n3. Recoge: nombre, tipo de sesión, día y hora preferida, teléfono.\n4. Llama a check_availability con esos datos.\n5. Ofrece UNA sola opción concreta: 'Tengo el miércoles a las seis de la tarde, ¿le viene bien?'\n6. Si no le viene, ofrece otra opción.\n7. Cuando acepte, confirma todo en voz alta, recuerda la política de 24 horas para cancelar, y usa book_appointment.\n8. Ofrece recordatorio: 'Le mando un mensaje el día antes para recordarle la cita, ¿le parece bien?' → send_reminder.\n\nFLUJO PARA CANCELAR:\n1. Pide el nombre.\n2. Usa lookup_appointments.\n3. Confirma qué cita quiere cancelar.\n4. Usa cancel_appointment.\n\nINTERPRETACIÓN DE HORAS:\n- 'a las seis de la tarde' = 18:00\n- 'por las mañanas' = busca entre 9:00 y 14:00\n- 'por las tardes' = busca entre 15:00 y 21:00\n- Acepta lo que diga la persona directamente, sin pedir aclaración.\n\nFIDELIZACIÓN — CUÁNDO MANDAR RECORDATORIO:\n- Para pacientes con seguimiento semanal: send_fidelization_reminder con 7 días.\n- Para pacientes con seguimiento quincenal: send_fidelization_reminder con 14 días.\n- Usa la frecuencia acordada con el psicólogo según mencione el paciente.\n\nPEDIR RESEÑA:\nSolo si el paciente comenta espontáneamente que el tratamiento le ha ido muy bien o que ya ha terminado, di: 'Me alegra mucho saberlo. Si en algún momento tiene un momento libre, una reseña en Google nos ayuda a llegar a más personas que lo necesiten. Le mando el enlace ahora.' Usa send_review_request.\n\nLEADS NUEVOS:\nSi alguien pregunta por servicios pero no acaba agendando cita, usa register_lead para no perder el contacto.\n\nPROHIBIDO:\n- No inventes horarios disponibles. Usa siempre check_availability.\n- No repitas preguntas ya respondidas.\n- No uses emojis ni formato especial, solo texto plano.\n- No hables en otro idioma.\n- No preguntes el motivo de consulta bajo ningún concepto.\n- No des consejos psicológicos ni hagas valoraciones sobre lo que cuenta el paciente.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_client_memory",
+        "description": "Recupera historial del paciente: visitas anteriores, frecuencia de sesiones, preferencias y última cita. Llamar siempre al inicio si el paciente da su nombre o teléfono.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string", "description": "Nombre del paciente" },
+            "phone": { "type": "string", "description": "Teléfono (opcional, mejora la búsqueda)" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta las horas disponibles para agendar una cita. Devuelve los huecos libres por día.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio en formato YYYY-MM-DD" },
+            "to_date": { "type": "string", "description": "Fecha fin (opcional, por defecto 5 días desde from_date)" },
+            "service": { "type": "string", "description": "primera_consulta, sesion_adulto, sesion_pareja, sesion_infantil, sesion_online" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva una cita. Solo usar cuando el paciente confirme todos los datos en voz alta.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "service": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "notes": { "type": "string", "description": "Observaciones opcionales: modalidad online/presencial, frecuencia acordada, etc." }
+          },
+          "required": ["patient_name", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_appointments",
+        "description": "Busca citas activas de un paciente por nombre o teléfono.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita. Confirmar siempre con el paciente antes de llamar a esta función.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string", "description": "ID de la cita si se conoce" },
+            "patient_name": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp al paciente 24h antes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "service": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_fidelization_reminder",
+        "description": "Programa recordatorio de fidelización para avisar al paciente de su próxima sesión según su frecuencia acordada.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" },
+            "treatment": { "type": "string", "description": "Tipo de sesión: individual, pareja, infantil" },
+            "days_until_reminder": { "type": "integer", "description": "Días hasta enviar el recordatorio: semanal=7, quincenal=14" }
+          },
+          "required": ["phone", "patient_name", "days_until_reminder"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña de Google Maps por WhatsApp. Usar solo cuando el paciente comenta espontáneamente que ha terminado o que le ha ido muy bien.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_urgent",
+        "description": "Marca situación de urgencia o riesgo para que el psicólogo contacte al paciente de forma inmediata. Usar ante cualquier mención de crisis, pensamientos de daño o riesgo inmediato.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "reason": { "type": "string", "description": "Descripción de la situación de urgencia" }
+          },
+          "required": ["reason"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "register_lead",
+        "description": "Registra un contacto interesado que no ha agendado cita para seguimiento posterior.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "interest": { "type": "string", "description": "Tipo de sesión por la que preguntó" },
+            "notes": { "type": "string" }
+          },
+          "required": ["phone", "interest"]
+        }
+      }
+    }
+  ]
+}

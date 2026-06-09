@@ -13,7 +13,9 @@ const OpenAI                  = require('openai').default;
 
 const log = new Logger('ROUTES-DEMO');
 
-// ── Auth middleware (admin OR portal session) ───────────────────
+// ── Auth middleware (admin OR demo token OR portal session) ────────
+// DEMO_TOKEN: simple static passphrase from .env for the standalone demo HTML.
+// Not for production calls — just gates the demo page from random internet traffic.
 async function demoAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -21,6 +23,13 @@ async function demoAuth(req, res, next) {
 
   if (isAdminToken(token)) {
     req.isAdmin = true;
+    return next();
+  }
+
+  // Allow standalone demo page access via DEMO_TOKEN env var
+  const demoToken = process.env.DEMO_TOKEN;
+  if (demoToken && token === demoToken) {
+    req.isDemo = true;
     return next();
   }
 
@@ -79,6 +88,7 @@ function setupDemoRoutes(app, ttsRouter) {
 
   // ── POST /api/demo/chat ───────────────────────────────────────
   // body: { orgId?, botId?, messages: [{role, content}] }
+  // OR legacy demo format (the demo HTML sends messages[] built client-side with systemPrompt)
   // Returns: { reply: string }
   app.post('/api/demo/chat', demoAuth, async (req, res) => {
     const { orgId, botId, messages } = req.body;
@@ -86,55 +96,71 @@ function setupDemoRoutes(app, ttsRouter) {
       return res.status(400).json({ error: 'messages requerido' });
     }
     // BUG-52 FIX: Cap message count and total text length to prevent input-token abuse.
-    // Without this, a caller could send thousands of messages and drain OpenAI credits.
     if (messages.length > 30) {
       return res.status(400).json({ error: 'Demasiados mensajes (máx 30 para el demo)' });
     }
     const totalChars = messages.reduce((s, m) => s + String(m?.content || '').length, 0);
-    if (totalChars > 8000) {
+    if (totalChars > 12000) {
       return res.status(400).json({ error: 'Conversación demasiado larga para el demo' });
     }
+
     // Portal users can only chat with their own org
     const effectiveOrgId = req.isAdmin ? orgId : req.businessId;
 
     const db = getDatabase();
-    let systemPrompt = 'Eres un asistente de prueba. Responde brevemente.';
-    let model = 'gpt-4o-mini';
+    const madridDate = new Date().toLocaleDateString('es-ES', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid'
+    });
+    const madridHour = parseInt(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
+    const greeting   = madridHour >= 6 && madridHour < 14 ? 'Buenos días' : madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' : 'Buenas noches';
+
+    // Helper: apply standard token replacements to any string
+    const applyTokens = (s) => (s || '')
+      .replace(/\{\{DATE\}\}/g, madridDate)
+      .replace(/\{\{GREETING\}\}/g, greeting);
+
+    // If messages already include a system prompt (sent by demo HTML), use them directly.
+    // Otherwise, resolve system prompt from DB (portal/admin flow).
+    const hasSystemMsg = messages.some(m => m.role === 'system');
+
+    let model       = 'gpt-4o-mini';
     let temperature = 0.5;
+    let resolvedMessages = messages.map(m => ({ ...m, content: applyTokens(m.content) }));
 
     try {
-      if (effectiveOrgId && db.enabled) {
-        const { data: org } = await db.client
-          .from('organizations')
-          .select('name, assistant_config')
-          .eq('id', effectiveOrgId)
-          .single();
-        if (org && org.assistant_config) {
-          systemPrompt = generatePrompt(org.assistant_config, org.name);
-          model        = org.assistant_config.model       || 'gpt-4o-mini';
-          temperature  = org.assistant_config.temperature ?? 0.5;
+      if (!hasSystemMsg) {
+        // Resolve system prompt from DB (portal or botId flow)
+        let systemPrompt = null;
+        if (effectiveOrgId && db.enabled) {
+          const { data: org } = await db.client
+            .from('organizations').select('name, assistant_config').eq('id', effectiveOrgId).single();
+          if (org?.assistant_config) {
+            systemPrompt = generatePrompt(org.assistant_config, org.name);
+            model        = org.assistant_config.model       || 'gpt-4o-mini';
+            temperature  = org.assistant_config.temperature ?? 0.5;
+          }
+        } else if (botId && db.enabled) {
+          const { data: bot } = await db.client
+            .from('demo_bots').select('name, config').eq('id', botId).single();
+          if (bot?.config) {
+            systemPrompt = generatePrompt(bot.config, bot.name);
+            model        = bot.config.model       || 'gpt-4o-mini';
+            temperature  = bot.config.temperature ?? 0.5;
+          }
         }
-      } else if (botId && db.enabled) {
-        const { data: bot } = await db.client
-          .from('demo_bots').select('name, config').eq('id', botId).single();
-        if (bot && bot.config) {
-          systemPrompt = generatePrompt(bot.config, bot.name);
-          model        = bot.config.model       || 'gpt-4o-mini';
-          temperature  = bot.config.temperature ?? 0.5;
+        if (systemPrompt) {
+          resolvedMessages = [
+            { role: 'system', content: applyTokens(systemPrompt) },
+            ...resolvedMessages,
+          ];
         }
       }
-
-      // BUG-47 FIX: use Madrid timezone — server runs UTC so bare toLocaleDateString() gives wrong date.
-      systemPrompt = systemPrompt.replace('{{DATE}}', new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }));
 
       const completion = await openai.chat.completions.create({
         model,
         temperature,
-        max_tokens: 200,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
+        max_tokens: 350, // was 200 — prevents mid-sentence cutoffs on detailed service answers
+        messages: resolvedMessages,
       });
 
       const reply = completion.choices[0]?.message?.content || '';

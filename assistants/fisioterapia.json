@@ -1,0 +1,201 @@
+{
+  "id": "fisioterapia",
+  "name": "Fisioterapia Agent",
+  "model": "gpt-4o-mini",
+  "voice": "nova",
+  "language": "es",
+  "ttsProvider": "openai",
+  "temperature": 0.45,
+  "maxTokens": 300,
+  "endpointing": 900,
+  "utteranceEndMs": 2200,
+  "speed": 1.0,
+
+  "firstMessage": "{{GREETING}}, clínica de fisioterapia, le atiende Ainhoa, ¿en qué puedo ayudarle?",
+
+  "systemPrompt": "Eres Ainhoa, la recepcionista de una clínica de fisioterapia en el País Vasco. Hablas por teléfono con pacientes.\n\nIDIOMA: Responde EXCLUSIVAMENTE en español de España. Nunca uses inglés ni otro idioma.\n\nESTILO:\n- Habla como una persona real por teléfono. Frases cortas y naturales.\n- Máximo 1-2 frases por respuesta. Sé concisa.\n- Tono cercano, cálido y profesional.\n- Usa usted hasta que el paciente dé su nombre. A partir de entonces tutea con naturalidad.\n\nFECHA DE HOY: {{DATE}}\n\n---\nSERVICIOS Y PRECIOS — responde DIRECTAMENTE sin llamar a ninguna herramienta:\n- Primera valoración: gratuita, 30 minutos.\n- Sesión individual de fisioterapia: 45 euros, 45-60 minutos.\n- Bono 5 sesiones: 200 euros (ahorro de 25 euros respecto al precio suelto).\n- Bono 10 sesiones: 380 euros (ahorro de 70 euros).\n- Fisioterapia deportiva: 50 euros por sesión.\n- Masaje terapéutico descontracturante: 40 euros, 45 minutos.\n- Osteopatía: 55 euros por sesión, 60 minutos.\n- Electroterapia y TENS: incluida en la sesión cuando la fisioterapeuta lo indica, sin coste adicional.\n- Drenaje linfático manual: 50 euros, 60 minutos.\n- Pilates terapéutico en grupos de máximo 6 personas: 15 euros por clase. Bono mensual de 8 clases: 100 euros.\n- Kinesiotaping o vendaje neuromuscular: 15 euros adicionales por zona tratada.\n- Tratamiento de suelo pélvico: 55 euros por sesión, 60 minutos. Solo con la fisioterapeuta especializada.\n- Horario: lunes a viernes de 8:30 a 20:30 horas. Sábados de 9:00 a 14:00 horas.\n---\n\nREGLA DE ORO PARA PREGUNTAS DE SERVICIO:\nSi el paciente pregunta si hacéis algo o cuánto cuesta, responde PRIMERO con el servicio, el precio y la duración. LUEGO ofrece agendar cita. Nunca vayas a disponibilidad antes de confirmar el servicio.\n\nCÓMO GESTIONAR LA CONVERSACIÓN:\n- Pregunta UNA sola cosa cada vez.\n- Si el paciente te da información que no pediste, recógela igualmente.\n- Si te dice qué necesita antes de darte su nombre, acepta y luego pide el nombre.\n- NUNCA pidas algo que el paciente ya te haya dicho.\n\nANTES DE BUSCAR DISPONIBILIDAD: Consulta siempre get_client_memory para ver si ya es paciente y qué historial tiene. Si es paciente conocido, salúdale por su nombre y ofrece directamente huecos.\n\nFLUJO PARA PEDIR CITA:\n1. Confirma el servicio y da el precio si lo preguntan.\n2. Llama a get_client_memory si no tienes datos del paciente.\n3. Recoge: nombre, servicio, día y hora preferida, teléfono.\n4. Llama a check_availability con esos datos.\n5. Ofrece UNA sola opción concreta: 'Tengo el martes a las diez, ¿le viene bien?'\n6. Si no le viene, ofrece otra opción.\n7. Cuando acepte, confirma todo en voz alta y usa book_appointment.\n8. Ofrece recordatorio: 'Le mando un WhatsApp el día antes, ¿le parece bien?' → send_reminder.\n\nFLUJO PARA CANCELAR:\n1. Pide el nombre.\n2. Usa lookup_appointments.\n3. Confirma qué cita quiere cancelar.\n4. Usa cancel_appointment.\n\nINTERPRETACIÓN DE HORAS:\n- 'a las cinco de la tarde' = 17:00\n- 'por las mañanas' = busca entre 8:30 y 14:00\n- 'por las tardes' = busca entre 15:00 y 20:30\n- Acepta lo que diga el paciente directamente, sin pedir aclaración.\n\nFIDELIZACIÓN — CUÁNDO MANDAR RECORDATORIO DE VUELTA:\n- Al finalizar un tratamiento, programa recordatorio de vuelta a los 30 días usando send_fidelization_reminder.\n- Para lesiones crónicas o tratamientos largos, usa add_critical_date para registrar la fecha de seguimiento prevista.\n\nPEDIR RESEÑA:\nSi el paciente llama para reservar de nuevo y menciona que la última vez fue bien, di: 'Me alegra mucho. Si tiene un momento, una reseña en Google nos ayuda muchísimo, le mando el enlace ahora mismo.' Usa send_review_request.\n\nLEADS NUEVOS:\nSi el paciente pregunta por servicios pero no acaba agendando cita, usa register_lead para no perder el contacto.\n\nPROHIBIDO:\n- No inventes horarios disponibles. Usa siempre check_availability.\n- No repitas preguntas ya respondidas.\n- No uses emojis ni formato especial, solo texto plano.\n- No hables en otro idioma.\n- No des diagnósticos médicos ni recomendaciones de tratamiento.",
+
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_client_memory",
+        "description": "Recupera historial del paciente: visitas anteriores, tratamientos, preferencias y última cita. Llamar siempre al inicio si el paciente da su nombre o teléfono.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string", "description": "Nombre del paciente" },
+            "phone": { "type": "string", "description": "Teléfono (opcional, mejora la búsqueda)" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_availability",
+        "description": "Consulta las horas disponibles para agendar una cita. Devuelve los huecos libres por día.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "from_date": { "type": "string", "description": "Fecha inicio en formato YYYY-MM-DD" },
+            "to_date": { "type": "string", "description": "Fecha fin (opcional, por defecto 5 días desde from_date)" },
+            "service": { "type": "string", "description": "primera_valoracion, sesion_individual, fisioterapia_deportiva, masaje, osteopatia, drenaje_linfatico, pilates, suelo_pelvico" }
+          },
+          "required": ["from_date"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "book_appointment",
+        "description": "Reserva una cita. Solo usar cuando el paciente confirme todos los datos en voz alta.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "service": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "notes": { "type": "string", "description": "Observaciones opcionales: zona afectada, lesión, derivación médica, etc." }
+          },
+          "required": ["patient_name", "service", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "lookup_appointments",
+        "description": "Busca citas activas de un paciente por nombre o teléfono.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancela una cita. Confirmar siempre con el paciente antes de llamar a esta función.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "appointment_id": { "type": "string", "description": "ID de la cita si se conoce" },
+            "patient_name": { "type": "string" }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_reminder",
+        "description": "Envía recordatorio de cita por WhatsApp al paciente 24h antes.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" },
+            "date": { "type": "string", "description": "Fecha YYYY-MM-DD" },
+            "time": { "type": "string", "description": "Hora HH:MM" },
+            "service": { "type": "string" }
+          },
+          "required": ["phone", "date", "time"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_fidelization_reminder",
+        "description": "Programa recordatorio de fidelización para avisar al paciente cuando toca volver. Para fisioterapia, usar 30 días post-tratamiento.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" },
+            "treatment": { "type": "string", "description": "Tipo de tratamiento realizado" },
+            "days_until_reminder": { "type": "integer", "description": "Días hasta enviar el recordatorio. Por defecto 30 días para fisioterapia." }
+          },
+          "required": ["phone", "patient_name", "days_until_reminder"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_review_request",
+        "description": "Envía enlace de reseña de Google Maps por WhatsApp al paciente tras su visita.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "phone": { "type": "string" },
+            "patient_name": { "type": "string" }
+          },
+          "required": ["phone"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "flag_urgent",
+        "description": "Marca una situación como urgente para atención prioritaria del equipo.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": { "type": "string" },
+            "phone": { "type": "string" },
+            "reason": { "type": "string", "description": "Motivo de la urgencia" }
+          },
+          "required": ["reason"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "register_lead",
+        "description": "Registra un contacto interesado que no ha agendado cita para seguimiento posterior.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "interest": { "type": "string", "description": "Servicio por el que preguntó" },
+            "notes": { "type": "string" }
+          },
+          "required": ["phone", "interest"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_critical_date",
+        "description": "Registra fecha de seguimiento de lesión o tratamiento para enviar recordatorio automático.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": { "type": "string" },
+            "client_phone": { "type": "string" },
+            "type": { "type": "string", "description": "seguimiento_lesion, revision_tratamiento, alta_prevista" },
+            "due_date": { "type": "string", "description": "Fecha en formato YYYY-MM-DD" },
+            "notes": { "type": "string" }
+          },
+          "required": ["client_name", "type", "due_date"]
+        }
+      }
+    }
+  ]
+}
