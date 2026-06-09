@@ -10,7 +10,7 @@ COPY . .
 EXPOSE 3001
 ENV NODE_ENV=production
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \
   CMD node -e "fetch('http://localhost:3001/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 # Limit Node.js heap so the container stays under VPS RAM limits
