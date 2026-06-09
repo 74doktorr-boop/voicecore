@@ -123,7 +123,7 @@ function setupDemoRoutes(app, ttsRouter) {
     // Otherwise, resolve system prompt from DB (portal/admin flow).
     const hasSystemMsg = messages.some(m => m.role === 'system');
 
-    let model       = 'gpt-4o-mini';
+    let model       = 'gpt-4o';
     let temperature = 0.5;
     let resolvedMessages = messages.map(m => ({ ...m, content: applyTokens(m.content) }));
 
@@ -159,7 +159,7 @@ function setupDemoRoutes(app, ttsRouter) {
       const completion = await openai.chat.completions.create({
         model,
         temperature,
-        max_tokens: 350, // was 200 — prevents mid-sentence cutoffs on detailed service answers
+        max_tokens: 500, // enough for a complete, coherent response
         messages: resolvedMessages,
       });
 
