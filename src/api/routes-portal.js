@@ -988,4 +988,4 @@ function setupPortalRoutes(app, pipeline, config) {
 
 } // end setupPortalRoutes
 
-module.exports = { setupPortalRoutes };
+module.exports = { setupPortalRoutes, portalAuth };
