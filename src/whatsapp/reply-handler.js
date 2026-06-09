@@ -71,7 +71,9 @@ function humanDate(dateStr) {
 async function alertOwner(apt, action, credentials = null) {
   const bizName    = getBusinessName(apt.businessId);
   const cfg        = scheduler.getBusinessConfig(apt.businessId);
-  const ownerPhone = cfg?.ownerPhone || process.env.OWNER_PHONE;
+  // alertPhone: teléfono personal del dueño configurado en portal
+  // ownerPhone: número provisionado del negocio (fallback)
+  const ownerPhone = cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE;
 
   const icon = action === 'confirmed' ? '✅' : '❌';
   const verb = action === 'confirmed' ? 'CONFIRMADA' : 'CANCELADA';

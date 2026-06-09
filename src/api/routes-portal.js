@@ -339,6 +339,9 @@ function setupPortalRoutes(app, pipeline, config) {
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
         outboundNumber: custom.outboundNumber  || '',   // assigned by admin — read-only for portal users
+        alertPhone:     custom.alertPhone      || '',   // teléfono personal dueño para alertas WA
+        notifyEmail:    custom.notifyEmail     || flowConfig.ownerEmail || '',
+        address:        custom.address         || '',
       },
     });
   });
@@ -346,7 +349,7 @@ function setupPortalRoutes(app, pipeline, config) {
   // ── PATCH /api/portal/config ──────────────────────────────
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl } = req.body;
+    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address } = req.body;
 
     if (language && !['es', 'eu', 'gl'].includes(language)) {
       return res.status(400).json({ error: "language debe ser 'es', 'eu' o 'gl'" });
@@ -376,6 +379,9 @@ function setupPortalRoutes(app, pipeline, config) {
       ...(services       !== undefined && { services }),
       ...(schedule       !== undefined && { schedule }),
       ...(reviewUrl      !== undefined && { reviewUrl }),
+      ...(alertPhone     !== undefined && { alertPhone }),
+      ...(notifyEmail    !== undefined && { notifyEmail }),
+      ...(address        !== undefined && { address }),
     };
     flow.updatedAt = new Date().toISOString();
 
@@ -410,6 +416,9 @@ function setupPortalRoutes(app, pipeline, config) {
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
         outboundNumber: custom.outboundNumber  || '',
+        alertPhone:     custom.alertPhone      || '',
+        notifyEmail:    custom.notifyEmail     || flow.ownerEmail || '',
+        address:        custom.address         || '',
       },
     });
   });

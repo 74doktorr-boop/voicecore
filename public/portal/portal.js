@@ -104,18 +104,18 @@ async function initAuth() {
       // Completar la conexión WA en background, luego navegar a Integraciones
       (async function() {
         try {
-          showToast('⏳ Conectando WhatsApp…');
+          toast('⏳ Conectando WhatsApp…');
           var r = await api('/api/portal/whatsapp/connect', {
             method: 'POST',
             body: JSON.stringify({ client_id: waClientId }),
           });
           if (r.ok) {
-            showToast('✅ WhatsApp conectado: ' + (r.phoneNumber || ''));
+            toast('✅ WhatsApp conectado: ' + (r.phoneNumber || ''));
           } else {
-            showToast('⚠️ Error al conectar WhatsApp: ' + (r.error || 'desconocido'), 'warn');
+            toast('⚠️ Error al conectar WhatsApp: ' + (r.error || 'desconocido'), 'warn');
           }
         } catch (e) {
-          showToast('⚠️ Error al conectar WhatsApp: ' + e.message, 'warn');
+          toast('⚠️ Error al conectar WhatsApp: ' + e.message, 'warn');
         }
         navigate('integraciones');
       })();
@@ -894,11 +894,27 @@ async function loadConfig() {
         '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea></div>' +
       '<div class="form-group"><label class="form-label">Precio medio por servicio (€)</label>' +
         '<input class="form-input" id="cfgAvgTicket" type="number" min="1" max="9999" value="' + (c.avgTicket || 35) + '"></div>' +
+      '<div class="form-section-title">Dirección</div>' +
+      '<div class="form-group"><label class="form-label">Dirección del negocio</label>' +
+        '<input class="form-input" id="cfgAddress" placeholder="Calle Mayor 12, 20140 Andoain"' +
+          ' value="' + esc(c.address || '') + '">' +
+        '<small style="color:var(--dim);font-size:11px">Usada en fichas de Google, facturas y comunicaciones a clientes.</small></div>' +
+
       '<div class="form-section-title">Reseñas de Google</div>' +
       '<div class="form-group"><label class="form-label">URL de tu ficha de Google</label>' +
         '<input class="form-input" id="cfgReviewUrl" type="url" placeholder="https://g.page/r/…/review"' +
           ' value="' + esc(c.reviewUrl || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Pega el enlace de "Escribe una reseña" de tu Google Business. Se incluirá en los emails automáticos de solicitud de reseña.</small></div>' +
+        '<small style="color:var(--dim);font-size:11px">Enlace de "Escribe una reseña" de Google Business. Se incluye en recordatorios automáticos post-cita.</small></div>' +
+
+      '<div class="form-section-title">Notificaciones al propietario</div>' +
+      '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span style="color:var(--dim);font-weight:400">(alertas de confirmaciones y cancelaciones)</span></label>' +
+        '<input class="form-input" id="cfgAlertPhone" type="tel" placeholder="+34 612 345 678"' +
+          ' value="' + esc(c.alertPhone || '') + '">' +
+        '<small style="color:var(--dim);font-size:11px">Recibirás un WhatsApp cuando un cliente confirme o cancele su cita. Debe ser diferente al número del negocio.</small></div>' +
+      '<div class="form-group"><label class="form-label">Email para notificaciones <span style="color:var(--dim);font-weight:400">(resumen diario y alertas)</span></label>' +
+        '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
+          ' value="' + esc(c.notifyEmail || '') + '"></div>' +
+
       '<div style="display:flex;gap:12px;margin-top:24px">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
         '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20con%20mi%20portal" target="_blank"' +
@@ -916,7 +932,10 @@ async function saveConfig() {
     schedule:       document.getElementById('cfgSchedule').value.trim(),
     welcomeMessage: document.getElementById('cfgWelcome').value.trim(),
     avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) || 35,
-    reviewUrl:      (document.getElementById('cfgReviewUrl') || {}).value || '',
+    reviewUrl:      document.getElementById('cfgReviewUrl')?.value?.trim()   || '',
+    alertPhone:     document.getElementById('cfgAlertPhone')?.value?.trim()  || '',
+    notifyEmail:    document.getElementById('cfgNotifyEmail')?.value?.trim() || '',
+    address:        document.getElementById('cfgAddress')?.value?.trim()     || '',
   };
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {
@@ -1808,7 +1827,7 @@ function openWaSignup() {
     '/permissions?redirect_url=' + redirectUrl + '&state=' + state;
   var popup = window.open(url, 'wa-connect', 'width=700,height=600,scrollbars=yes,resizable=yes');
   if (!popup) {
-    showToast('⚠️ Permite ventanas emergentes para conectar WhatsApp', 'warn');
+    toast('⚠️ Permite ventanas emergentes para conectar WhatsApp', 'warn');
     return;
   }
   // Escuchar cuando el popup se cierre (el backend ya procesó el redirect)
@@ -1825,10 +1844,10 @@ async function disconnectWa() {
   if (!confirm('¿Desconectar WhatsApp? Los mensajes automáticos dejarán de enviarse desde tu número.')) return;
   try {
     await api('/api/portal/whatsapp/connect', { method: 'DELETE' });
-    showToast('WhatsApp desconectado');
+    toast('WhatsApp desconectado');
     loadIntegraciones();
   } catch (e) {
-    showToast('Error al desconectar: ' + e.message, 'error');
+    toast('Error al desconectar: ' + e.message, 'error');
   }
 }
 
