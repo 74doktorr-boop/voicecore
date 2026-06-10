@@ -144,7 +144,12 @@ function setupWebhookRoutes(app) {
       return res.status(400).json({ error: 'url is required' });
     }
 
-    try { new URL(url); } catch (_) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') {
+        return res.status(400).json({ error: 'url must use HTTPS' });
+      }
+    } catch (_) {
       return res.status(400).json({ error: 'url must be a valid HTTPS URL' });
     }
 
@@ -178,7 +183,12 @@ function setupWebhookRoutes(app) {
     }
 
     if (patch.url) {
-      try { new URL(patch.url); } catch (_) {
+      try {
+        const parsed = new URL(patch.url);
+        if (parsed.protocol !== 'https:') {
+          return res.status(400).json({ error: 'url must use HTTPS' });
+        }
+      } catch (_) {
         return res.status(400).json({ error: 'url must be a valid HTTPS URL' });
       }
     }

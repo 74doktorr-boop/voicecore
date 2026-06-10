@@ -8,7 +8,7 @@ const { requireAuth } = require('../auth/middleware');
 const { getBilling } = require('../billing/stripe');
 const { getDatabase } = require('../db/database');
 const { getRegistro, updateRegistro } = require('./routes-registro');
-const { sendEmail, notifyNuevoCliente, sendBienvenida, sendWelcomePortalEmail } = require('../notifications/email');
+const { sendEmail, notifyNuevoCliente, sendBienvenida, sendWelcomePortalEmail, sendActivacion } = require('../notifications/email');
 const { generateMagicToken } = require('./routes-auth');
 
 const log = new Logger('API:BILLING');
@@ -206,7 +206,8 @@ function setupBillingRoutes(app, config) {
             const orgPlan = registro.plan || 'negocio';
 
             // ── Crear org + asistente automáticamente ──
-            let apiKey = null;
+            let apiKey         = null;
+            let assignedNumber = null; // número auto-asignado del pool (para incluir en notif a Unai)
             if (db.enabled) {
               try {
                 const slug = registro.negocio.toLowerCase()
@@ -281,6 +282,57 @@ function setupBillingRoutes(app, config) {
                 });
 
                 log.info(`Flow registrado para: ${org.id} — ${registro.negocio}`);
+
+                // ── Auto-asignar número del pool y enviar guía de desvío ──────
+                try {
+                  const { claimNumber, getPoolStats } = require('../telephony/phone-pool');
+                  assignedNumber = await claimNumber(org.id);
+
+                  if (assignedNumber) {
+                    // Guardar número en automation_config de la org
+                    const existingConfig = (await db.client
+                      .from('organizations').select('automation_config').eq('id', org.id).single()
+                    ).data?.automation_config || {};
+                    await db.client.from('organizations').update({
+                      automation_config: {
+                        ...existingConfig,
+                        // nodeflowNumber = número que el cliente final llama (desvío)
+                        // outboundNumber = número que NodeFlow usa para llamar/recibir
+                        // En el plan básico son el mismo número
+                        config: { ...(existingConfig.config || {}), nodeflowNumber: assignedNumber, outboundNumber: assignedNumber },
+                      },
+                    }).eq('id', org.id);
+
+                    // Enviar email de activación con guía de desvío (automático)
+                    sendActivacion(registro, assignedNumber)
+                      .catch(e => log.warn(`Activation email failed: ${e.message}`));
+
+                    log.info(`Auto-asignado ${assignedNumber} a ${org.id} (${registro.negocio})`);
+
+                    // Alerta si el pool está bajo
+                    const stats = await getPoolStats();
+                    if (stats.low) {
+                      sendEmail({
+                        to:      process.env.NOTIFY_EMAIL || 'unai@nodeflow.es',
+                        subject: `⚠️ NodeFlow — Pool de números bajo: ${stats.available} disponibles`,
+                        text:    `Quedan solo ${stats.available} números en el pool. Añade más en el panel admin antes del próximo cliente.`,
+                        html:    `<p>⚠️ Quedan solo <strong>${stats.available}</strong> números disponibles en el pool de NodeFlow.</p><p>Añade más en el <a href="${process.env.PUBLIC_URL || 'https://nodeflow.es'}/admin">panel admin</a> antes del próximo cliente.</p>`,
+                      }).catch(() => {});
+                    }
+                  } else {
+                    // Pool vacío — alerta urgente a Unai para asignar manualmente
+                    log.error(`Pool vacío — no se pudo asignar número a ${org.id} (${registro.negocio})`);
+                    sendEmail({
+                      to:      process.env.NOTIFY_EMAIL || 'unai@nodeflow.es',
+                      subject: `🚨 URGENTE — Pool VACÍO: ${registro.negocio} sin número asignado`,
+                      text:    `Nuevo cliente "${registro.negocio}" (${registro.email}) ha pagado pero el pool de números está vacío. Asigna un número manualmente desde /api/admin/phone-pool y envía el email de activación desde /api/admin/activar-cliente.`,
+                      html:    `<h2>🚨 Pool de números vacío</h2><p><strong>${registro.negocio}</strong> (${registro.email}) acaba de pagar pero no hay números disponibles.</p><p>Pasos:</p><ol><li>Accede al <a href="${process.env.PUBLIC_URL || 'https://nodeflow.es'}/admin">panel admin → pestaña "Pool números"</a></li><li>Añade un número al pool</li><li>Usa la opción "Asignar" para asignarlo manualmente al cliente (Org ID: <code>${org.id}</code>)</li></ol><p>El email de activación con guía de desvío se enviará automáticamente al asignar.</p>`,
+                    }).catch(() => {});
+                  }
+                } catch (poolErr) {
+                  log.error(`Error en auto-asignación de número: ${poolErr.message}`);
+                }
+                // ─────────────────────────────────────────────────────────────
               } catch (e) {
                 log.error(`Error creando org para ${registro.negocio}: ${e.message}`);
               }
@@ -294,8 +346,13 @@ function setupBillingRoutes(app, config) {
               paid_at: new Date().toISOString(),
             });
 
-            // Notificar a Unai
-            await notifyNuevoCliente({ ...registro, stripe_customer_id: stripeCustomerId, api_key: apiKey });
+            // Notificar a Unai — incluye el número asignado si el pool lo tenía disponible
+            await notifyNuevoCliente({
+              ...registro,
+              stripe_customer_id: stripeCustomerId,
+              api_key: apiKey,
+              nodeflow_number: assignedNumber || null,
+            });
 
             // Generar magic token para acceso al portal
             let portalToken = null;
@@ -370,26 +427,33 @@ function setupBillingRoutes(app, config) {
         }
 
         if (result.action === 'subscription_cancelled' && db.enabled) {
-          if (result.orgId) {
-            await db.updateOrg(result.orgId, {
-              plan: 'starter',
-              is_active: true,
-              monthly_minutes_limit: 50,
-            });
-            log.warn(`Org ${result.orgId} downgraded to starter (sub cancelled)`);
-          } else if (result.subscriptionId) {
+          let cancelledOrgId = result.orgId;
+
+          if (!cancelledOrgId && result.subscriptionId) {
             // Payment Link customers — look up by stripe_subscription_id
             const { data: orgRow } = await db.client
               .from('organizations')
               .select('id')
               .eq('stripe_subscription_id', result.subscriptionId)
               .single().catch(() => ({ data: null }));
-            if (orgRow) {
-              await db.updateOrg(orgRow.id, {
-                plan: 'starter',
-                monthly_minutes_limit: 50,
-              });
-              log.warn(`Org ${orgRow.id} downgraded to starter (Payment Link cancellation)`);
+            cancelledOrgId = orgRow?.id || null;
+          }
+
+          if (cancelledOrgId) {
+            await db.updateOrg(cancelledOrgId, {
+              plan: 'starter',
+              is_active: true,
+              monthly_minutes_limit: 50,
+            });
+            log.warn(`Org ${cancelledOrgId} downgraded to starter (sub cancelled)`);
+
+            // Liberar número de teléfono al pool para reutilizarlo
+            try {
+              const { releaseNumber } = require('../telephony/phone-pool');
+              const released = await releaseNumber(cancelledOrgId);
+              if (released) log.info(`Número liberado al pool — org ${cancelledOrgId} canceló suscripción`);
+            } catch (poolErr) {
+              log.warn(`Error liberando número al pool: ${poolErr.message}`);
             }
           }
         }

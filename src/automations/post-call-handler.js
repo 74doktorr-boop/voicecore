@@ -63,10 +63,30 @@ async function handle(callData) {
   }
 
   // ── 4. Follow-up to client for info calls (30 min delay) ────────────────────
+  // Schedule in-process timer AND persist followup_at so the cron can recover
+  // it if the process restarts before the timer fires.
   if (callData.outcome === 'info' && callData.clientEmail) {
-    setTimeout(() => {
-      sendCallFollowUpEmail(callData, config)
-        .catch(e => log.warn('followup email failed', { err: e.message }));
+    // Persist scheduled time so cron.js can recover on restart
+    if (db.enabled && callData.id) {
+      const followupAt = new Date(Date.now() + FOLLOWUP_DELAY_MS).toISOString();
+      db.client.from('calls')
+        .update({ followup_at: followupAt })
+        .eq('call_sid', callData.id)
+        .catch(e => log.warn('followup_at persist failed', { err: e.message }));
+    }
+    setTimeout(async () => {
+      try {
+        await sendCallFollowUpEmail(callData, config);
+        // Mark sent so cron doesn't re-send on next run
+        if (db.enabled && callData.id) {
+          db.client.from('calls')
+            .update({ followup_sent: true })
+            .eq('call_sid', callData.id)
+            .catch(() => {});
+        }
+      } catch (e) {
+        log.warn('followup email failed', { err: e.message });
+      }
     }, FOLLOWUP_DELAY_MS);
   }
 
@@ -101,9 +121,10 @@ async function handle(callData) {
   }
 
   // ── 7. Fire webhooks (call.completed / call.missed) — non-blocking ──────────
-  const webhookEvent = (callData.outcome && callData.outcome !== 'unknown')
-    ? EVENTS.CALL_COMPLETED
-    : EVENTS.CALL_MISSED;
+  const missedOutcomes = ['missed', 'abandoned', 'no-answer', 'unknown'];
+  const webhookEvent = (!callData.outcome || missedOutcomes.includes(callData.outcome))
+    ? EVENTS.CALL_MISSED
+    : EVENTS.CALL_COMPLETED;
   webhookDispatcher.fire(businessId, webhookEvent, {
     callId:       callData.id,
     outcome:      callData.outcome      || 'unknown',

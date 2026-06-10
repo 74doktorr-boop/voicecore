@@ -67,7 +67,7 @@ select option{background:#0c0c1a;color:var(--white);}
     <p>Confirma el plan que quieres activar para tu negocio.</p>
     <div class="plan-box" id="plan-display"></div>
     <button class="btn-primary" onclick="goStep(2)">Continuar →</button>
-    <p class="hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Setup en 24h</p>
+    <p class="hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Activo en minutos</p>
   </div>
 
   <!-- Step 2: Business data -->
@@ -259,6 +259,7 @@ async function submitRegistro() {
     localStorage.setItem('nf_reg_id',      registroId);
     localStorage.setItem('nf_reg_negocio', negocio);
     localStorage.setItem('nf_reg_plan',    planKey);
+    localStorage.setItem('nf_reg_lang',    data.idioma || 'es');
 
     // Build summary
     const basePrice  = planKey === 'pro' ? 99 : 49;

@@ -13,6 +13,8 @@ function formatSchedule(schedule) {
   for (const [day, slot] of Object.entries(schedule)) {
     if (!slot) {
       lines.push(`${DAY_NAMES[day] || day}: cerrado`);
+    } else if (slot.afternoon_open && slot.afternoon_close) {
+      lines.push(`${DAY_NAMES[day] || day}: ${slot.open}–${slot.close} y ${slot.afternoon_open}–${slot.afternoon_close}`);
     } else {
       lines.push(`${DAY_NAMES[day] || day}: ${slot.open}–${slot.close}`);
     }

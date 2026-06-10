@@ -5,6 +5,7 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { appointmentsStore } = require('../db/appointments-store');
 
 const log = new Logger('CRON');
 
@@ -96,6 +97,7 @@ async function checkAndHandleNoShows(scheduler, flowManager) {
       const ok = await sendNoShowEmail(apt, config);
       if (ok) {
         apt.noShowNotified = true;
+        appointmentsStore.patch(apt.id, { noShowNotified: true, updatedAt: new Date().toISOString() });
         handled++;
         log.info(`No-show handled: apt ${apt.id} — ${apt.patientName}`);
       }
@@ -135,13 +137,15 @@ async function sendWeeklyReports(scheduler, flowManager) {
   let sent = 0;
 
   for (const biz of businesses) {
+    // BUG FIX: flow objects use 'businessId', not 'id' — biz.id was always undefined
+    const bizId = biz.businessId;
     try {
-      const config     = flowManager.mergeConfig(biz.id, scheduler.getBusinessConfig(biz.id) || {});
+      const config     = flowManager.mergeConfig(bizId, scheduler.getBusinessConfig(bizId) || {});
       const ownerPhone = config.ownerPhone;
       if (!ownerPhone) continue;
 
       // Count appointments this week
-      const allApts = [...scheduler.appointments.values()].filter(a => a.businessId === biz.id);
+      const allApts = [...scheduler.appointments.values()].filter(a => a.businessId === bizId);
       const weekApts = allApts.filter(a => a.date >= fromStr && a.date <= toStr);
       const booked   = weekApts.filter(a => ['confirmed', 'completed'].includes(a.status)).length;
       const cancelled = weekApts.filter(a => a.status === 'cancelled').length;
@@ -194,13 +198,71 @@ async function sendWeeklyReports(scheduler, flowManager) {
       await sendWhatsApp(msg).catch(() => {});
       sent++;
 
-      log.info(`Weekly report sent for ${biz.id} (${booked} apts last week)`);
+      log.info(`Weekly report sent for ${bizId} (${booked} apts last week)`);
     } catch (e) {
-      log.warn(`Weekly report error for ${biz.id}: ${e.message}`);
+      log.warn(`Weekly report error for ${bizId}: ${e.message}`);
     }
   }
 
   return sent;
+}
+
+/**
+ * Recover follow-up emails that were scheduled but not sent (e.g. process restarted
+ * before the 30-min setTimeout fired). Queries calls where followup_at <= now
+ * and followup_sent = false, sends them, marks as sent.
+ */
+async function recoverMissedFollowups() {
+  const { getDatabase } = require('../db/database');
+  const db = getDatabase();
+  if (!db.enabled) return 0;
+
+  const { data: rows, error } = await db.client
+    .from('calls')
+    .select('call_sid, org_id, transcript, outcome, started_at, ended_at, caller_number, client_email, booked_appointment')
+    .lte('followup_at', new Date().toISOString())
+    .eq('followup_sent', false)
+    .not('followup_at', 'is', null)
+    .limit(20);
+
+  if (error || !rows?.length) return 0;
+
+  const { sendCallFollowUpEmail } = require('../notifications/call-notifications');
+  const { flowManager }           = require('../automations/flow-manager');
+  const { scheduler }             = require('./scheduler');
+  let recovered = 0;
+
+  for (const row of rows) {
+    try {
+      // Mark followup_sent = true BEFORE sending to avoid double-send on concurrent cron runs
+      const { error: claimErr } = await db.client.from('calls')
+        .update({ followup_sent: true })
+        .eq('call_sid', row.call_sid)
+        .eq('followup_sent', false); // atomic: only update if still false
+      if (claimErr) continue; // another process already claimed it
+
+      const bizId = row.org_id;
+      const schedulerConfig = scheduler.getBusinessConfig(bizId) || {};
+      const config = flowManager.mergeConfig(bizId, schedulerConfig);
+
+      await sendCallFollowUpEmail({
+        id:           row.call_sid,
+        outcome:      row.outcome,
+        clientEmail:  row.client_email,
+        callerNumber: row.caller_number,
+        transcript:   row.transcript || [],
+        startTime:    row.started_at,
+        endTime:      row.ended_at,
+      }, config);
+
+      recovered++;
+      log.info(`Recovered follow-up for call ${row.call_sid} (org ${bizId})`);
+    } catch (e) {
+      log.warn(`Follow-up recovery failed for ${row.call_sid}`, { err: e.message });
+    }
+  }
+
+  return recovered;
 }
 
 async function runAutomations() {
@@ -237,24 +299,26 @@ async function runAutomations() {
     }
 
     log.info(`Running automations for ${flowManager.list().length} flows…`);
-    const reminders     = await checkAndSendReminders(scheduler, flowManager);
-    const reviews       = await checkAndSendReviews(scheduler, flowManager);
-    const criticalDates = await checkAndSendCriticalDateReminders();
-    const noShows       = await checkAndHandleNoShows(scheduler, flowManager);
-    const weeklyReports = await sendWeeklyReports(scheduler, flowManager);
+    const reminders        = await checkAndSendReminders(scheduler, flowManager);
+    const reviews          = await checkAndSendReviews(scheduler, flowManager);
+    const criticalDates    = await checkAndSendCriticalDateReminders();
+    const noShows          = await checkAndHandleNoShows(scheduler, flowManager);
+    const weeklyReports    = await sendWeeklyReports(scheduler, flowManager);
+    const recoveredFollowups = await recoverMissedFollowups();
 
-    _stats.reminders     += reminders;
-    _stats.reviews       += reviews;
-    _stats.criticalDates += criticalDates;
-    _stats.noShows       = (_stats.noShows || 0) + noShows;
-    _stats.weeklyReports = (_stats.weeklyReports || 0) + weeklyReports;
-    _stats.runs          += 1;
-    _lastRun              = new Date().toISOString();
-    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates, noShows, weeklyReports });
+    _stats.reminders          += reminders;
+    _stats.reviews            += reviews;
+    _stats.criticalDates      += criticalDates;
+    _stats.noShows             = (_stats.noShows || 0) + noShows;
+    _stats.weeklyReports       = (_stats.weeklyReports || 0) + weeklyReports;
+    _stats.recoveredFollowups  = (_stats.recoveredFollowups || 0) + recoveredFollowups;
+    _stats.runs                += 1;
+    _lastRun                   = new Date().toISOString();
+    _history.unshift({ runAt: _lastRun, reminders, reviews, criticalDates, noShows, weeklyReports, recoveredFollowups });
     if (_history.length > 10) _history.pop();
 
     const elapsed = Date.now() - start;
-    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates} noShows:${noShows} weeklyReports:${weeklyReports}`);
+    log.info(`Automations done in ${elapsed}ms — reminders:${reminders} reviews:${reviews} criticalDates:${criticalDates} noShows:${noShows} weeklyReports:${weeklyReports} recoveredFollowups:${recoveredFollowups}`);
   } catch (e) {
     log.error('Automation run error', { error: e.message });
   } finally {

@@ -165,14 +165,19 @@ async function processReminders() {
       const contactWithOrg = { ...contact, _orgName: org?.name || '' };
 
       // Skip if a future appointment exists (client already has something booked)
-      const { data: newerApt } = await db.client.from('appointments')
-        .select('id')
-        .eq('org_id', reminder.org_id)
-        .eq('contact_id', reminder.contact_id)
-        .gte('date', new Date().toISOString().split('T')[0])
-        .in('status', ['confirmed', 'pending', 'booked'])
-        .limit(1)
-        .maybeSingle();
+      // Join via phone since nf_appointments has no contact_id
+      let newerApt = null;
+      if (contact?.phone) {
+        const { data: newerAptData } = await db.client.from('nf_appointments')
+          .select('id')
+          .eq('organization_id', reminder.org_id)
+          .eq('phone', contact.phone)
+          .gte('date', new Date().toISOString().split('T')[0])
+          .in('status', ['confirmed', 'pending'])
+          .limit(1)
+          .maybeSingle();
+        newerApt = newerAptData;
+      }
 
       if (newerApt) {
         await db.client.from('scheduled_reminders')

@@ -100,10 +100,12 @@ class FlowManager {
     const flow = this.get(businessId) || {};
     return {
       name:          flow.name          || schedulerConfig.name          || businessId,
+      ownerEmail:    flow.ownerEmail    || schedulerConfig.ownerEmail    || null,
+      ownerPhone:    flow.ownerPhone    || schedulerConfig.ownerPhone    || process.env.OWNER_PHONE,
       googlePlaceId: flow.googlePlaceId || schedulerConfig.googlePlaceId || null,
       reviewUrl:     flow.reviewUrl     || schedulerConfig.reviewUrl     || null,
-      ownerPhone:    flow.ownerPhone    || schedulerConfig.ownerPhone    || process.env.OWNER_PHONE,
       language:      flow.language      || schedulerConfig.language      || 'es',
+      sector:        flow.sector        || schedulerConfig.sector        || null,
     };
   }
 

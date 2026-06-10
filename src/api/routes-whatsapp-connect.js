@@ -293,12 +293,14 @@ async function submitTemplates(apiKey, phoneNumberId, businessId) {
       components: [
         {
           type: 'BODY',
-          text: '¡Hola {{1}}! ¿Qué tal tu experiencia en {{2}}? Tu opinión es muy importante para nosotros.',
+          text: '¡Hola {{1}}! ¿Qué tal tu experiencia en {{2}}? Tu opinión es muy importante para nosotros. Déjanos una reseña aquí: {{3}}',
+          example: { body_text: [['María', 'Clínica Dental López', 'https://g.page/r/example/review']] },
         },
         {
           type: 'BUTTONS',
           buttons: [
-            { type: 'URL', text: 'Dejar reseña', url: '{{1}}' },
+            // URL button con variable — el valor {{1}} se sustituye al enviar el template
+            { type: 'URL', text: 'Dejar reseña', url: 'https://g.page/r/{{1}}', example: ['example/review'] },
           ],
         },
       ],

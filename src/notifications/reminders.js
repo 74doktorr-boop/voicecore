@@ -8,6 +8,7 @@
 const { Logger } = require('../utils/logger');
 const { sendEmail } = require('./email');
 const { sendTemplate, sendText, isConfigured: waIsConfigured } = require('./client-whatsapp');
+const { appointmentsStore } = require('../db/appointments-store');
 const { getWaCredentials } = require('../whatsapp/accounts');
 
 const log = new Logger('REMINDERS');
@@ -497,7 +498,11 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
         const emailOk = await sendAppointmentReminder(apt, config);
         ok = ok || emailOk;
       }
-      if (ok) { apt.reminder_sent = true; sent++; }
+      if (ok) {
+        apt.reminder_sent = true;
+        appointmentsStore.patch(apt.id, { reminder_sent: true, updatedAt: new Date().toISOString() });
+        sent++;
+      }
     }
   }
 
@@ -540,7 +545,11 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
         const emailOk = await sendReviewRequest(apt, config);
         ok = ok || emailOk;
       }
-      if (ok) { apt.review_requested = true; sent++; }
+      if (ok) {
+        apt.review_requested = true;
+        appointmentsStore.patch(apt.id, { review_requested: true, updatedAt: new Date().toISOString() });
+        sent++;
+      }
     }
   }
 

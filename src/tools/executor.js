@@ -273,10 +273,26 @@ class ToolExecutor {
     const phone = args.phone || null;
     const orgId = assistantId || 'demo';
 
-    // Use phone as contactId if provided (more reliable), else name slug
-    const contactId = phone
-      ? phone.replace(/\D/g, '')
-      : name.toLowerCase().replace(/\s+/g, '-');
+    if (!phone && !name) return { isFirstCall: true, message: 'Cliente nuevo, sin historial.' };
+
+    // Resolve UUID contact_id from the contacts table (memory is keyed by UUID, not phone)
+    let contactId = null;
+    try {
+      const db = getDatabase();
+      if (db.enabled && phone) {
+        const normalizedPhone = phone.replace(/[\s\-+()]/g, '').replace(/^0034/, '').replace(/^34(?=\d{9}$)/, '');
+        const { data: contact } = await db.client.from('contacts')
+          .select('id')
+          .eq('org_id', orgId)
+          .or(`phone.eq.${normalizedPhone},phone.eq.+34${normalizedPhone},phone.eq.34${normalizedPhone}`)
+          .maybeSingle();
+        contactId = contact?.id || null;
+      }
+      // Fallback: name slug (legacy, only works if old-style contactId was used)
+      if (!contactId && name) contactId = name.toLowerCase().replace(/\s+/g, '-');
+    } catch (_) {
+      if (name) contactId = name.toLowerCase().replace(/\s+/g, '-');
+    }
 
     if (!contactId) return { isFirstCall: true, message: 'Cliente nuevo, sin historial.' };
 

@@ -156,17 +156,14 @@ class Database {
   async createCall(orgId, callData) {
     if (!this.enabled) return { id: this._uuid(), org_id: orgId, ...callData };
 
+    // BUG FIX: solo insertar columnas que existen en el schema migrado de calls
     const { data, error } = await this.client.from('calls').insert({
-      org_id: orgId,
-      assistant_id: callData.assistantId,
-      call_sid: callData.callSid,
-      caller_number: callData.callerNumber,
-      called_number: callData.calledNumber,
-      direction: callData.direction || 'inbound',
-      status: 'active',
-      stt_provider: callData.sttProvider,
-      llm_provider: callData.llmProvider,
-      tts_provider: callData.ttsProvider,
+      org_id:        orgId,
+      call_sid:      callData.callSid      || null,
+      caller_number: callData.callerNumber || null,
+      outcome:       callData.outcome      || null,
+      status:        'active',
+      started_at:    new Date().toISOString(),
     }).select().single();
 
     if (error) throw new Error(`Create call failed: ${error.message}`);
@@ -176,15 +173,15 @@ class Database {
   async endCall(callId, callData) {
     if (!this.enabled) return callData;
 
+    // BUG FIX: columnas 'metrics', 'cost', 'total_cost' no existen en el schema de calls.
+    // Solo escribimos las columnas presentes en la migración aplicada.
     const { data, error } = await this.client.from('calls').update({
-      status: 'ended',
-      ended_at: new Date().toISOString(),
+      status:      'ended',
+      ended_at:    new Date().toISOString(),
       duration_ms: callData.duration,
-      turn_count: callData.turnCount,
-      transcript: callData.transcript,
-      metrics: callData.metrics,
-      cost: callData.cost,
-      total_cost: callData.cost?.total || 0,
+      turn_count:  callData.turnCount,
+      transcript:  callData.transcript,
+      outcome:     callData.outcome || null,
     }).eq('id', callId).select().single();
 
     if (error) log.error(`End call DB update failed: ${error.message}`);
@@ -346,8 +343,9 @@ class Database {
 
   async getWebhooks(orgId) {
     if (!this.enabled) return [];
-    const { data } = await this.client.from('webhooks')
-      .select('*').eq('org_id', orgId).eq('is_active', true);
+    // BUG FIX: tabla renombrada a webhook_configs; la antigua 'webhooks' ya no se usa
+    const { data } = await this.client.from('webhook_configs')
+      .select('*').eq('business_id', orgId).eq('enabled', true);
     return data || [];
   }
 

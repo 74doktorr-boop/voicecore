@@ -160,6 +160,7 @@ async function notifyNuevoCliente(registro) {
         <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Idioma</td><td style="padding:8px 12px;">${eIdioma}</td></tr>
         <tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">Saludo</td><td style="padding:8px 12px;font-style:italic;">&ldquo;${eSaludo}&rdquo;</td></tr>
         <tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Horario</td><td style="padding:8px 12px;font-size:13px;">${eHorario}</td></tr>
+        ${registro.nodeflow_number ? `<tr style="background:#e8f5e9;"><td style="padding:8px 12px;color:#2e7d32;font-weight:700;">✅ Número NodeFlow</td><td style="padding:8px 12px;font-weight:800;font-size:16px;color:#1b5e20;">${esc(registro.nodeflow_number)}</td></tr>` : `<tr style="background:#fff3e0;"><td style="padding:8px 12px;color:#e65100;font-weight:700;">⚠️ Número</td><td style="padding:8px 12px;color:#e65100;">Pool vacío — asignar manualmente</td></tr>`}
         ${registro.api_key ? `<tr style="background:#f4f4f4;"><td style="padding:8px 12px;color:#999;">API Key</td><td style="padding:8px 12px;font-family:monospace;font-size:12px;">${esc(registro.api_key)}</td></tr>` : ''}
         ${registro.stripe_customer_id ? `<tr style="background:#fff;"><td style="padding:8px 12px;color:#999;">Stripe ID</td><td style="padding:8px 12px;font-family:monospace;font-size:12px;">${esc(registro.stripe_customer_id)}</td></tr>` : ''}
       </table>
@@ -183,21 +184,20 @@ async function sendBienvenidaGl(registro) {
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
       <h1 style="color:#2ecc8a;font-size:28px;margin-bottom:8px;">Benvido a NodeFlow!</h1>
-      <p style="color:#a0a0b8;margin-bottom:24px;">Ola <strong style="color:#f0f0f5;">${nome}</strong>, o teu pagamento confirmouse. En menos de 24 horas o teu asistente estará listo.</p>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Ola <strong style="color:#f0f0f5;">${nome}</strong>, o teu pagamento confirmouse. O teu asistente está configurándose automaticamente — en <strong style="color:#f0f0f5;">poucos minutos</strong> recibirás o teu número NodeFlow e as instrucións de desvío.</p>
 
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumo da túa contratación</p>
         <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
         <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${plan}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${registro.voz}</strong></p>
         <p style="margin:6px 0;font-size:14px;">🌊 Idioma: <strong>Galego</strong></p>
       </div>
 
       <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">Que pasa agora?</strong></p>
       <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
-        <li>Poñémonos en contacto contigo nas próximas horas para rematar de configurar o teu asistente</li>
-        <li>Proporcionámosche o número de teléfono que recibirá as chamadas</li>
-        <li>Facemos unha chamada de proba contigo antes de activar o servizo en produción</li>
+        <li>O teu asistente IA créase e configúrase automaticamente</li>
+        <li>Asígnasete un número NodeFlow dedicado — recibirás as instrucións no seguinte email</li>
+        <li>Activas o desvío de chamadas no teu teléfono e o asistente empeza a traballar 24/7</li>
       </ol>
 
       ${registro.api_key ? `
@@ -223,7 +223,7 @@ async function sendBienvenidaGl(registro) {
     </div>
   `;
 
-  const text = `Benvido a NodeFlow, ${nome}!\n\nO teu pagamento confirmouse. En menos de 24h o teu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nIdioma: Galego\n\nDúbidas? WhatsApp: +34 666 351 319`;
+  const text = `Benvido a NodeFlow, ${nome}!\n\nO teu pagamento confirmouse. En poucos minutos recibirás o teu número NodeFlow e as instrucións de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nIdioma: Galego\n\nDúbidas? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }
@@ -241,21 +241,20 @@ async function sendBienvenidaEu(registro) {
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
       <h1 style="color:#e74c3c;font-size:28px;margin-bottom:8px;">Ongi etorri NodeFlow-era!</h1>
-      <p style="color:#a0a0b8;margin-bottom:24px;">Kaixo <strong style="color:#f0f0f5;">${izena}</strong>, zure ordainketa baieztatuta dago. 24 ordutan zure asistentea prest egongo da.</p>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Kaixo <strong style="color:#f0f0f5;">${izena}</strong>, zure ordainketa baieztatuta dago. Zure asistentea automatikoki konfiguratzen ari da — <strong style="color:#f0f0f5;">minutu gutxiren buruan</strong> jasoko duzu zure NodeFlow zenbakia eta desbideratzeko argibideak.</p>
 
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Kontratuaren laburpena</p>
         <p style="margin:6px 0;font-size:14px;">🏪 <strong>${registro.negocio}</strong></p>
         <p style="margin:6px 0;font-size:14px;">💳 <strong>${plan}</strong> plana</p>
-        <p style="margin:6px 0;font-size:14px;">🎙 Ahotsa: <strong>${registro.voz}</strong></p>
         <p style="margin:6px 0;font-size:14px;">🔵 Hizkuntza: <strong>Euskera</strong></p>
       </div>
 
       <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">Zer gertatuko da orain?</strong></p>
       <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
-        <li>Hurrengo orduetan harremanetan jarriko gara zurekin asistentea konfiguratzeko</li>
-        <li>Deiak jasoko dituen telefono-zenbakia emango dizugu</li>
-        <li>Zerbitzua aktibatu aurretik proba-dei bat egingo dugu</li>
+        <li>Zure IA asistentea automatikoki sortzen eta konfiguratzen da</li>
+        <li>NodeFlow zenbaki esklusibo bat esleitzen zaizu — hurrengo emailean argibideak jasoko dituzu</li>
+        <li>Desbideratzea aktibatzen duzu eta asistentea 24/7 lanean hasten da</li>
       </ol>
 
       ${registro.api_key ? `
@@ -281,7 +280,7 @@ async function sendBienvenidaEu(registro) {
     </div>
   `;
 
-  const text = `Ongi etorri NodeFlow-era, ${izena}!\n\nZure ordainketa baieztatuta dago. 24 ordutan prest egongo da zure asistentea.\n\nNegozioa: ${registro.negocio}\nPlana: ${plan}\nAhotsa: ${registro.voz}\n\nZalantzak? WhatsApp: +34 666 351 319`;
+  const text = `Ongi etorri NodeFlow-era, ${izena}!\n\nZure ordainketa baieztatuta dago. Minutu gutxiren buruan jasoko duzu zure NodeFlow zenbakia eta desbideratzeko argibideak.\n\nNegozioa: ${registro.negocio}\nPlana: ${plan}\n\nZalantzak? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }
@@ -312,21 +311,20 @@ async function sendBienvenida(registro) {
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0d0d12;border-radius:16px;color:#f0f0f5;">
       <h1 style="color:#a29bfe;font-size:28px;margin-bottom:8px;">¡Bienvenido a NodeFlow!</h1>
-      <p style="color:#a0a0b8;margin-bottom:24px;">Hola <strong style="color:#f0f0f5;">${esc(nombre)}</strong>, tu pago se ha confirmado. En menos de 24 horas tu asistente estará listo.</p>
+      <p style="color:#a0a0b8;margin-bottom:24px;">Hola <strong style="color:#f0f0f5;">${esc(nombre)}</strong>, tu pago se ha confirmado. Tu asistente se está configurando automáticamente — en <strong style="color:#f0f0f5;">pocos minutos</strong> recibirás otro email con tu número NodeFlow y las instrucciones de desvío.</p>
 
       <div style="background:#1a1a24;border-radius:10px;padding:20px;margin-bottom:24px;">
         <p style="color:#666680;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumen de tu contratación</p>
         <p style="margin:6px 0;font-size:14px;">🏪 <strong>${esc(registro.negocio)}</strong></p>
         <p style="margin:6px 0;font-size:14px;">💳 Plan <strong>${esc(plan)}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">🎙 Voz: <strong>${esc(registro.voz)}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">🌐 Idioma: <strong>${esc(registro.idioma)}</strong></p>
+        <p style="margin:6px 0;font-size:14px;">🌐 Idioma: <strong>${esc(registro.idioma || 'es')}</strong></p>
       </div>
 
       <p style="color:#a0a0b8;font-size:14px;margin-bottom:8px;"><strong style="color:#f0f0f5;">¿Qué pasa ahora?</strong></p>
       <ol style="color:#a0a0b8;font-size:14px;padding-left:20px;line-height:1.8;">
-        <li>Te contactamos en las próximas horas para terminar de configurar tu asistente</li>
-        <li>Te proporcionamos el número de teléfono que recibirá las llamadas</li>
-        <li>Hacemos una llamada de prueba contigo antes de activar el servicio en producción</li>
+        <li>Tu asistente IA se crea y configura automáticamente</li>
+        <li>Se te asigna un número NodeFlow dedicado — recibirás las instrucciones en el siguiente email</li>
+        <li>Activas el desvío de llamadas en tu teléfono y el asistente empieza a trabajar 24/7</li>
       </ol>
 
       ${registro.api_key ? `
@@ -352,7 +350,7 @@ async function sendBienvenida(registro) {
     </div>
   `;
 
-  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago se ha confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\nVoz: ${registro.voz}\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago se ha confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\n¿Dudas? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }
@@ -454,8 +452,9 @@ async function notifyNuevoLead(registro) {
   const plan    = registro.plan === 'negocio' ? 'Negocio 49€/mes' : 'Pro 99€/mes';
   const emoji   = registro.plan === 'pro' ? '🚀' : '📞';
   const subject = `${emoji} Nuevo lead — ${registro.negocio} · ${registro.ciudad} [${plan}]`;
-  const waLink  = `https://wa.me/34${registro.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${registro.contacto.split(' ')[0]}, soy Unai de NodeFlow. Vi que registraste ${registro.negocio} y quería presentarme y confirmar los detalles de tu asistente IA. ¿Tienes 5 minutos?`)}`;
-  const callLink = `tel:${registro.telefono.replace(/\s/g,'')}`;
+  const telLimpio = (registro.telefono || '').replace(/\D/g, '');
+  const waLink  = `https://wa.me/34${telLimpio}?text=${encodeURIComponent(`Hola ${(registro.contacto||'').split(' ')[0]}, soy Unai de NodeFlow. Vi que registraste ${registro.negocio} y quería presentarme y confirmar los detalles de tu asistente IA. ¿Tienes 5 minutos?`)}`;
+  const callLink = `tel:${(registro.telefono || '').replace(/\s/g,'')}`;
 
   const html = `
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#07070e;border-radius:16px;overflow:hidden;color:#e8e8f0;">
@@ -526,13 +525,13 @@ async function sendWelcomePortalEmail(registro, magicToken) {
         <span style="font-size:22px;font-weight:900;color:#f0f0ff;">node<span style="color:#a855f7;">flow</span></span>
       </div>
       <h1 style="font-size:24px;font-weight:800;margin-bottom:8px;color:#f0f0ff;">¡Hola, ${nombre}! 🎉</h1>
-      <p style="color:#9090b0;margin-bottom:24px;">Tu pago se ha confirmado. En menos de <strong style="color:#f0f0ff;">24 horas</strong> tu asistente IA estará activo y atendiendo llamadas.</p>
+      <p style="color:#9090b0;margin-bottom:24px;">Tu pago se ha confirmado. Tu asistente IA está siendo configurado y en <strong style="color:#f0f0ff;">pocos minutos</strong> recibirás otro email con tu número NodeFlow y las instrucciones de desvío.</p>
 
       <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="color:#6060a0;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Resumen</p>
         <p style="margin:6px 0;font-size:14px;">🏪 <strong style="color:#f0f0ff;">${eNegocio}</strong></p>
         <p style="margin:6px 0;font-size:14px;">💳 <strong style="color:#a855f7;">${plan}</strong></p>
-        <p style="margin:6px 0;font-size:14px;">⏱ Setup en menos de 24h</p>
+        <p style="margin:6px 0;font-size:14px;">⚡ Configuración automática en minutos</p>
       </div>
 
       <div style="text-align:center;margin:28px 0;">
@@ -551,7 +550,7 @@ async function sendWelcomePortalEmail(registro, magicToken) {
     </div>
   `;
 
-  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En menos de 24h tu asistente estará listo.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n\nEste enlace es válido 7 días.\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n\nEste enlace es válido 7 días.\n\n¿Dudas? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }

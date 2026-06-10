@@ -16,11 +16,12 @@
 //   4. Alerta urgente al negocio con WhatsApp
 // ============================================================
 
-const { Logger }           = require('../utils/logger');
-const { scheduler }        = require('../scheduling/scheduler');
-const { sendText }         = require('../notifications/client-whatsapp');
-const { sendWhatsApp }     = require('../notifications/whatsapp'); // owner Callmebot fallback
-const { getWaCredentials } = require('./accounts');
+const { Logger }              = require('../utils/logger');
+const { scheduler }           = require('../scheduling/scheduler');
+const { sendText }            = require('../notifications/client-whatsapp');
+const { sendWhatsApp }        = require('../notifications/whatsapp'); // owner Callmebot fallback
+const { getWaCredentials }    = require('./accounts');
+const { appointmentsStore }   = require('../db/appointments-store');
 
 const log = new Logger('WA-REPLY');
 
@@ -127,6 +128,8 @@ async function handleReply({ from, type, payload }) {
     }
 
     apt.wa_confirmed = true;
+    // Persist flag so it survives server restarts
+    appointmentsStore.patch(apt.id, { wa_confirmed: true, updatedAt: new Date().toISOString() });
     log.info(`Appointment ${apt.id} confirmed by client via WA`);
 
     await sendText(from,
@@ -151,9 +154,12 @@ async function handleReply({ from, type, payload }) {
       return;
     }
 
+    const cancelledAt = new Date().toISOString();
     apt.status = 'cancelled';
-    apt.cancelledAt = new Date().toISOString();
+    apt.cancelledAt = cancelledAt;
     apt.cancelledBy = 'client_whatsapp';
+    // Persist cancellation so it survives server restarts
+    appointmentsStore.patch(apt.id, { status: 'cancelled', cancelledAt, cancelledBy: 'client_whatsapp', updatedAt: cancelledAt });
     log.info(`Appointment ${apt.id} cancelled by client via WA`);
 
     await sendText(from,

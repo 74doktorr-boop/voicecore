@@ -22,12 +22,13 @@ function setupExtendedRoutes(app, config, squadManager) {
   });
 
   app.get('/api/analytics/heatmap', auth, (req, res) => {
-    const days = parseInt(req.query.days) || 7;
+    // Cap days at 365 to prevent runaway in-memory scans
+    const days = Math.min(Math.max(1, parseInt(req.query.days) || 7), 365);
     res.json(analytics.getHeatmap(days));
   });
 
   app.get('/api/analytics/funnel', auth, (req, res) => {
-    const days = parseInt(req.query.days) || 30;
+    const days = Math.min(Math.max(1, parseInt(req.query.days) || 30), 365);
     res.json(analytics.getFunnel(days));
   });
 

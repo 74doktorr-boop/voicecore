@@ -207,47 +207,47 @@
 
   <h1>¡Pago confirmado!<br><span class="grad">Bienvenido a NodeFlow</span></h1>
   <p class="sub" id="subText">
-    Tu suscripción está activa. En las próximas horas recibirás un email y te contactamos para terminar de configurar tu asistente.
+    Tu suscripción está activa. En <strong>pocos minutos</strong> recibirás dos emails: acceso a tu portal y las instrucciones para activar el desvío de llamadas.
   </p>
 
-  <!-- Countdown timer -->
-  <div class="countdown-box" id="countdownBox">
-    ⏱️ Tu asistente estará listo en aproximadamente <strong id="countdownDisplay">—</strong>
+  <!-- Estado en tiempo real -->
+  <div class="countdown-box" id="statusBox">
+    <span id="statusText">⏳ Configurando tu asistente…</span>
   </div>
 
   <!-- Email enviado -->
   <div class="email-info" id="emailInfo">
-    <strong>📧 Email enviado</strong> — Revisa tu bandeja de entrada (y spam por si acaso). Te hemos mandado los detalles de tu suscripción y los próximos pasos.
+    <strong>📧 Dos emails en camino</strong> — Revisa tu bandeja de entrada (y spam). Te enviamos el acceso a tu portal y las instrucciones para activar el desvío en tu teléfono.
   </div>
 
-  <!-- Pasos -->
+  <!-- Pasos — se actualizan en tiempo real con polling -->
   <div class="steps">
-    <div class="step done">
+    <div class="step done" id="step1">
       <div class="step-num">✓</div>
       <div class="step-body">
         <div class="step-title">Pago procesado <span class="step-tag tag-done">Hecho</span></div>
-        <div class="step-desc">Tu suscripción está activa. Recibirás una factura en tu email.</div>
+        <div class="step-desc">Tu suscripción está activa. Recibirás factura en tu email.</div>
       </div>
     </div>
-    <div class="step active">
-      <div class="step-num">2</div>
+    <div class="step active" id="step2">
+      <div class="step-num" id="step2num">2</div>
       <div class="step-body">
-        <div class="step-title">Configuración de tu asistente <span class="step-tag tag-now">En curso</span></div>
-        <div class="step-desc">Estamos preparando tu asistente con tu voz, horarios y servicios. Listo en menos de 24h.</div>
+        <div class="step-title">Asistente creado <span class="step-tag tag-now" id="step2tag">En curso</span></div>
+        <div class="step-desc">Tu org y asistente IA se configuran automáticamente al confirmarse el pago.</div>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">3</div>
+    <div class="step" id="step3">
+      <div class="step-num" id="step3num">3</div>
       <div class="step-body">
-        <div class="step-title">Llamada de prueba contigo <span class="step-tag tag-next">Pronto</span></div>
-        <div class="step-desc">Te llamamos para hacer una prueba real antes de activar el servicio. Nada entra en producción sin tu OK.</div>
+        <div class="step-title">Número NodeFlow asignado <span class="step-tag tag-next" id="step3tag">Pendiente</span></div>
+        <div class="step-desc" id="step3desc">Tu número dedicado se asigna automáticamente. Recibirás un email con las instrucciones de desvío.</div>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">4</div>
+    <div class="step" id="step4">
+      <div class="step-num" id="step4num">4</div>
       <div class="step-body">
-        <div class="step-title">¡Tu negocio no pierde ninguna llamada más! <span class="step-tag tag-next">Muy pronto</span></div>
-        <div class="step-desc">El asistente empieza a trabajar. Recibirás un resumen de cada llamada por WhatsApp o email.</div>
+        <div class="step-title">¡Tu negocio no pierde ninguna llamada más! <span class="step-tag tag-next" id="step4tag">Muy pronto</span></div>
+        <div class="step-desc">Activa el desvío según las instrucciones del email y el asistente empieza a trabajar 24/7.</div>
       </div>
     </div>
   </div>
@@ -289,9 +289,9 @@
     const plan = regPlan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
 
     const i18n = {
-      es: { title: '¡Pago confirmado!', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En las próximas horas te contactamos para terminar la configuración.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
-      gl: { title: 'Pagamento confirmado!', sub: `A túa subscrición ${plan} para ${regNegocio} está activa. Nas próximas horas poñémonos en contacto contigo para rematar a configuración.`, tagline: 'IA de voz para negocios · Feito en Galicia' },
-      eu: { title: 'Ordainketa baieztatuta!', sub: `Zure ${plan} harpidetza ${regNegocio}-rentzat aktibo dago. Hurrengo orduetan harremanetan jarriko gara konfigurazioa amaitzeko.`, tagline: 'Ahots IA negozioentzat · Euskal Herrian egina' },
+      es: { title: '¡Pago confirmado!', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En pocos minutos recibirás el acceso a tu portal y las instrucciones para activar el desvío de llamadas.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
+      gl: { title: 'Pagamento confirmado!', sub: `A túa subscrición ${plan} para ${regNegocio} está activa. En poucos minutos recibirás o acceso ao teu portal e as instrucións para activar o desvío de chamadas.`, tagline: 'IA de voz para negocios · Feito en Galicia' },
+      eu: { title: 'Ordainketa baieztatuta!', sub: `Zure ${plan} harpidetza ${regNegocio}-rentzat aktibo dago. Minutu gutxiren buruan jasoko duzu zure portalerako sarbidea eta desbideratzea aktibatzeko argibideak.`, tagline: 'Ahots IA negozioentzat · Euskal Herrian egina' },
     };
     const t = i18n[regLang] || i18n.es;
 
@@ -323,61 +323,91 @@
   localStorage.removeItem('nf_reg_id');
   localStorage.removeItem('nf_reg_negocio');
   localStorage.removeItem('nf_reg_plan');
+  localStorage.removeItem('nf_reg_lang');
 })();
 
-// ── Countdown timer (24h desde primer acceso) ──
-(function () {
-  const KEY = 'nf_gracias_ts';
-  if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, Date.now().toString());
-  const start = parseInt(localStorage.getItem(KEY), 10);
-  const TARGET_MS = 24 * 60 * 60 * 1000;
-
-  function update() {
-    const elapsed = Date.now() - start;
-    const remaining = Math.max(0, TARGET_MS - elapsed);
-    const h = Math.floor(remaining / 3600000);
-    const m = Math.floor((remaining % 3600000) / 60000);
-    const el = document.getElementById('countdownDisplay');
-    if (el) el.textContent = remaining === 0 ? '¡listo!' : `${h}h ${m}min`;
-  }
-  update();
-  setInterval(update, 60000);
-})();
-
-// ── Polling onboarding-status ──
+// ── Polling onboarding-status en tiempo real ──
 (function () {
   const regId = sessionStorage.getItem('nf_reg_id_bak');
-
   if (!regId) return;
 
-  const steps = document.querySelectorAll('.steps .step');
-  // steps[1] = step 2 (configured), steps[2] = step 3 (tested)
+  let pollInterval = null;
+  let completed    = false;
+
+  function markDone(stepEl, tagEl, numEl, label) {
+    if (!stepEl) return;
+    stepEl.classList.remove('active');
+    stepEl.classList.add('done');
+    if (numEl) numEl.textContent = '✓';
+    if (tagEl) { tagEl.className = 'step-tag tag-done'; tagEl.textContent = label || 'Hecho'; }
+  }
+  function markActive(stepEl, tagEl, label) {
+    if (!stepEl) return;
+    stepEl.classList.add('active');
+    if (tagEl) { tagEl.className = 'step-tag tag-now'; tagEl.textContent = label || 'En curso'; }
+  }
 
   function applyStatus(data) {
-    if (data.configured && steps[1]) {
-      steps[1].classList.remove('active');
-      steps[1].classList.add('done');
-      const num = steps[1].querySelector('.step-num');
-      if (num) num.textContent = '✓';
-      const tag = steps[1].querySelector('.step-tag');
-      if (tag) { tag.className = 'step-tag tag-done'; tag.textContent = 'Hecho'; }
+    if (!data || !data.steps) return;
+    const { steps, complete, nodeflowNumber } = data;
+
+    // Step 2 — org + asistente creado
+    if (steps.org_created) {
+      markDone(
+        document.getElementById('step2'),
+        document.getElementById('step2tag'),
+        document.getElementById('step2num')
+      );
+      // Activar step 3
+      if (!steps.number_assigned) {
+        markActive(document.getElementById('step3'), document.getElementById('step3tag'), 'En curso');
+      }
     }
-    if (data.tested && steps[2]) {
-      steps[2].classList.add('done');
-      const tag = steps[2].querySelector('.step-tag');
-      if (tag) { tag.className = 'step-tag tag-done'; tag.textContent = 'Hecho'; }
+
+    // Step 3 — número asignado + email activación enviado
+    if (steps.number_assigned) {
+      markDone(
+        document.getElementById('step3'),
+        document.getElementById('step3tag'),
+        document.getElementById('step3num')
+      );
+      // Mostrar número en descripción
+      if (nodeflowNumber) {
+        const d = document.getElementById('step3desc');
+        if (d) d.innerHTML = `Tu número NodeFlow es <strong style="color:#a29bfe">${nodeflowNumber}</strong>. Revisa el email con las instrucciones de desvío.`;
+      }
+      // Activar step 4
+      markActive(document.getElementById('step4'), document.getElementById('step4tag'), 'A completar');
+    }
+
+    // Estado general
+    const statusEl = document.getElementById('statusText');
+    if (complete) {
+      if (statusEl) statusEl.innerHTML = '✅ ¡Todo listo! Revisa tu email y activa el desvío.';
+      document.getElementById('statusBox').style.borderColor = 'rgba(0,184,148,0.4)';
+      document.getElementById('statusBox').style.background  = 'rgba(0,184,148,0.06)';
+      // Dejar de hacer polling una vez completo
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      completed = true;
+    } else if (steps.org_created) {
+      if (statusEl) statusEl.textContent = '⏳ Asignando tu número de teléfono…';
+    } else {
+      if (statusEl) statusEl.textContent = '⏳ Configurando tu asistente…';
     }
   }
 
   function poll() {
+    if (completed) return;
     fetch(`/api/portal/onboarding-status?registroId=${encodeURIComponent(regId)}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) applyStatus(data); })
       .catch(() => {});
   }
 
-  poll();
-  setInterval(poll, 30000);
+  poll(); // primera llamada inmediata
+  pollInterval = setInterval(poll, 10000); // cada 10s (más rápido que antes)
+  // Aumentar intervalo a 30s después de 2 minutos para no saturar
+  setTimeout(() => { if (pollInterval && !completed) { clearInterval(pollInterval); pollInterval = setInterval(poll, 30000); } }, 120000);
 })();
 
 // ── Confetti ──

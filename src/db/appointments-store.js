@@ -45,7 +45,10 @@ class AppointmentsStore {
       price:           apt.price     || 0,
       notes:           apt.notes     || null,
       status:          apt.status    || 'confirmed',
-      wa_confirmed:    apt.wa_confirmed || false,
+      wa_confirmed:     apt.wa_confirmed     || false,
+      reminder_sent:     apt.reminder_sent     || false,
+      review_requested:  apt.review_requested  || false,
+      no_show_notified:  apt.noShowNotified    || false,
       cancelled_at:    apt.cancelledAt  || null,
       cancelled_by:    apt.cancelledBy  || null,
       created_at:      apt.createdAt    || new Date().toISOString(),
@@ -68,7 +71,10 @@ class AppointmentsStore {
       price:        row.price     || 0,
       notes:        row.notes     || null,
       status:       row.status    || 'confirmed',
-      wa_confirmed: row.wa_confirmed || false,
+      wa_confirmed:     row.wa_confirmed     || false,
+      reminder_sent:    row.reminder_sent    || false,
+      review_requested: row.review_requested || false,
+      noShowNotified:   row.no_show_notified || false,
       cancelledAt:  row.cancelled_at  || null,
       cancelledBy:  row.cancelled_by  || null,
       createdAt:    row.created_at,
@@ -132,7 +138,10 @@ class AppointmentsStore {
     if (fields.date         !== undefined) dbFields.date          = fields.date;
     if (fields.time         !== undefined) dbFields.time          = fields.time;
     if (fields.notes        !== undefined) dbFields.notes         = fields.notes;
-    if (fields.wa_confirmed !== undefined) dbFields.wa_confirmed  = fields.wa_confirmed;
+    if (fields.wa_confirmed     !== undefined) dbFields.wa_confirmed     = fields.wa_confirmed;
+    if (fields.reminder_sent    !== undefined) dbFields.reminder_sent    = fields.reminder_sent;
+    if (fields.review_requested !== undefined) dbFields.review_requested = fields.review_requested;
+    if (fields.noShowNotified   !== undefined) dbFields.no_show_notified = fields.noShowNotified;
     if (fields.cancelledAt  !== undefined) dbFields.cancelled_at  = fields.cancelledAt;
     if (fields.cancelledBy  !== undefined) dbFields.cancelled_by  = fields.cancelledBy;
     if (fields.updatedAt    !== undefined) dbFields.updated_at    = fields.updatedAt;

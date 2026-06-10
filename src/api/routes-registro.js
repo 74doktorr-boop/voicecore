@@ -193,7 +193,8 @@ function setupRegistroRoutes(app) {
       notifyLeadWhatsApp(row).catch(e => log.warn(`WhatsApp notification fallida: ${e.message}`));
 
       res.json({
-        id: row.id,
+        id:     row.id,
+        idioma: effectiveLanguage,  // needed by /gracias for i18n personalisation
         ...(couponData ? { stripeCode: couponData.stripeCode, discount: couponData.discount } : {}),
       });
 

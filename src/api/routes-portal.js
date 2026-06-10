@@ -126,15 +126,29 @@ function setupPortalRoutes(app, pipeline, config) {
       ? Math.floor((Date.now() - new Date(registeredAt).getTime()) / 86400000)
       : 0;
 
+    // ── Onboarding status — muestra al cliente qué pasos están completos ──────
+    const custom        = flowConfig.automations?.config || {};
+    const nodeflowNum   = custom.nodeflowNumber || custom.outboundNumber || null;
+    const onboarding    = {
+      paid:            true,                    // si llegaron aquí, pagaron
+      org_created:     true,                    // si llegaron aquí, la org existe
+      number_assigned: !!nodeflowNum,           // auto-asignado post-pago
+      // activation_sent = true si number_assigned (el email se envía junto con la asignación)
+      activation_sent: !!nodeflowNum,
+      nodeflowNumber:  nodeflowNum,
+      complete:        !!nodeflowNum,
+    };
+
     res.json({
       businessName: flowConfig.name,
       plan:         flowConfig.plan,
       daysActive,
-      aiStatus:   'active',
-      totalCalls: bizCalls.length,
-      today:      { callCount, bookedToday, convRate, emailsSent, hoursSaved },
+      aiStatus:     nodeflowNum ? 'active' : 'pending',
+      totalCalls:   bizCalls.length,
+      today:        { callCount, bookedToday, convRate, emailsSent, hoursSaved },
       upcoming,
       recentActivity,
+      onboarding,
     });
   });
 
@@ -681,6 +695,17 @@ function setupPortalRoutes(app, pipeline, config) {
         .update({ assistant_config: merged })
         .eq('id', businessId);
 
+      // Sync scheduler in-memory config so changes take effect immediately
+      // (no restart required for schedule/services changes)
+      try {
+        const { scheduler } = require('../scheduling/scheduler');
+        const current = scheduler.getBusinessConfig(businessId) || {};
+        if (merged.schedule !== undefined) current.schedule = merged.schedule;
+        if (merged.services  !== undefined) current.services = merged.services;
+        if (merged.assistantName !== undefined) current.name = merged.assistantName;
+        scheduler.setBusinessConfig(businessId, current);
+      } catch (_) { /* scheduler not critical */ }
+
       log.info(`Portal: assistant config updated for ${businessId}`);
       res.json({ ok: true, prompt });
     } catch (e) {
@@ -997,6 +1022,77 @@ function setupPortalRoutes(app, pipeline, config) {
   // ============================================================
   // Opt-out (PUBLIC — no auth required)
   // ============================================================
+
+  // ── GET /api/portal/onboarding-status ── PUBLIC (no auth) ───────────────────
+  // Polled by /gracias page to show real-time onboarding progress.
+  // Returns steps completed for a given registroId.
+  app.get('/api/portal/onboarding-status', async (req, res) => {
+    const { registroId } = req.query;
+    if (!registroId || typeof registroId !== 'string' || registroId.length > 80) {
+      return res.status(400).json({ error: 'registroId requerido' });
+    }
+
+    const db = getDatabase();
+
+    // Default: all pending (DB not available or registro not found)
+    const result = {
+      steps: {
+        paid:            false,
+        org_created:     false,
+        number_assigned: false,
+        activation_sent: false,
+      },
+      complete:       false,
+      nodeflowNumber: null,
+      portalReady:    false,
+    };
+
+    if (!db.enabled) return res.json(result);
+
+    try {
+      // 1. Check registro status
+      const { data: reg } = await db.client
+        .from('registros')
+        .select('id, status, email, paid_at')
+        .eq('id', registroId)
+        .maybeSingle();
+
+      if (!reg) return res.json(result);
+
+      result.steps.paid = !!(reg.paid_at || reg.status === 'active');
+
+      // 2. Check org
+      const { data: org } = await db.client
+        .from('organizations')
+        .select('id, automation_config, is_active')
+        .eq('owner_email', reg.email.trim().toLowerCase())
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (org) {
+        result.steps.org_created = true;
+        result.portalReady       = true;
+
+        const cfg = org.automation_config?.config || {};
+        const num = cfg.nodeflowNumber || cfg.outboundNumber || null;
+        if (num) {
+          result.steps.number_assigned = true;
+          result.steps.activation_sent = true;
+          result.nodeflowNumber        = num;
+          result.complete              = true;
+        }
+      }
+
+      result.steps.paid = result.steps.paid || result.steps.org_created;
+
+      res.json(result);
+    } catch (e) {
+      log.warn('onboarding-status error', { err: e.message });
+      res.json(result); // fail open — return default pending state
+    }
+  });
 
   app.get('/api/portal/unsubscribe', async (req, res) => {
     try {

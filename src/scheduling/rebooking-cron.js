@@ -8,6 +8,7 @@
 const { flowManager }          = require('../automations/flow-manager');
 const { scheduler }            = require('./scheduler');
 const { sendRebookingEmail, sendRebookingFollowUp } = require('../notifications/rebooking-notifications');
+const { getDatabase }          = require('../db/database');
 const { Logger }               = require('../utils/logger');
 
 const log = new Logger('REBOOKING-CRON');
@@ -49,10 +50,60 @@ const REBOOKING_DEFAULTS = {
 };
 
 // Anti-spam log: Map<`${businessId}:${phone}`, lastSentAt (ms)>
-// Loaded from memory only — acceptable loss on restart
+// Populated from nf_rebooking_log on startup via _loadSentLog()
 const _sentLog = new Map();
 // Second-touch log: Map<secondKey, lastSentAt (ms)>
 const _secondTouchLog = new Map();
+
+// ── DB persistence helpers ─────────────────────────────────────────────────────
+
+/**
+ * Load sent log entries for the current year from nf_rebooking_log into memory.
+ * Called once at cron startup to survive restarts.
+ */
+async function _loadSentLog() {
+  const db = getDatabase();
+  if (!db.enabled) return;
+  try {
+    const year = new Date().getFullYear();
+    const { data } = await db.client
+      .from('nf_rebooking_log')
+      .select('business_id, client_key, touch, sent_at_ms, send_count')
+      .eq('year', year);
+    if (!data || data.length === 0) return;
+    for (const row of data) {
+      if (row.touch === 1) {
+        _sentLog.set(row.client_key, row.sent_at_ms);
+        _sentLog.set(`${row.client_key}:${year}`, row.send_count);
+      } else if (row.touch === 2) {
+        _secondTouchLog.set(`2nd:${row.client_key}`, row.sent_at_ms);
+      }
+    }
+    log.info(`Rebooking sent log loaded — ${data.length} entries (year ${year})`);
+  } catch (e) {
+    log.warn(`Failed to load rebooking sent log from DB: ${e.message}`);
+  }
+}
+
+/**
+ * Persist a send event to nf_rebooking_log (upsert — updates sent_at_ms + send_count).
+ */
+async function _persistSent(businessId, clientKey, touch, sendCount) {
+  const db = getDatabase();
+  if (!db.enabled) return;
+  try {
+    await db.client.from('nf_rebooking_log').upsert({
+      business_id: businessId,
+      client_key:  clientKey,
+      touch,
+      year:        new Date().getFullYear(),
+      sent_at_ms:  Date.now(),
+      send_count:  sendCount,
+    }, { onConflict: 'business_id,client_key,touch,year' });
+  } catch (e) {
+    log.warn(`Failed to persist rebooking sent log: ${e.message}`);
+  }
+}
 
 function _sentKey(businessId, phone) {
   return `${businessId}:${(phone || '').replace(/\D/g, '')}`;
@@ -134,8 +185,10 @@ async function checkAndSendRebookings() {
               config.sector = sector;
               try {
                 await sendRebookingEmail(client, config, client.lastVisitDate);
+                const yearCount = sentThisYear + 1;
                 _sentLog.set(key, Date.now());
-                _sentLog.set(yearKey, sentThisYear + 1);
+                _sentLog.set(yearKey, yearCount);
+                _persistSent(businessId, key, 1, yearCount).catch(() => {});
                 sent++;
                 log.info(`Rebooking sent: ${client.email} (${businessId}/${sector}, last:${client.lastVisitDate})`);
               } catch (e) {
@@ -159,6 +212,7 @@ async function checkAndSendRebookings() {
               try {
                 await sendRebookingFollowUp(client, config2);
                 _secondTouchLog.set(secondKey, Date.now());
+                _persistSent(businessId, key, 2, 1).catch(() => {});
                 sent++;
                 log.info(`Second-touch sent: ${client.email} (${businessId}/${sector})`);
               } catch (e) {
@@ -181,6 +235,8 @@ let _interval = null;
 
 function startRebookingCron() {
   if (_interval) { log.warn('Rebooking cron already running'); return; }
+  // Restore anti-spam state from DB so restarts don't cause duplicate sends
+  _loadSentLog().catch(e => log.warn(`Sent log load failed on startup: ${e.message}`));
 
   // Schedule daily at 10:00 Madrid — check every minute if time has come.
   // Use sv-SE locale (ISO-style "HH:mm:ss") to avoid locale-dependent suffixes

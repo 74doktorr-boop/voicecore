@@ -233,7 +233,9 @@ async function sendCallFollowUpEmail(callData, config) {
   const waText = encodeURIComponent(lang === 'eu'
     ? `Kaixo, ${bizName}-ri buruz informazioa nahi nuke.`
     : `Hola, he llamado antes a ${config?.name || 'vuestro negocio'} y tenía una consulta.`);
-  const waLink = phone ? `https://wa.me/34${phone.replace(/\D/g,'')}?text=${waText}` : '';
+  const rawPhone = phone.replace(/\D/g, '');
+  const waPhone  = rawPhone.startsWith('34') || rawPhone.startsWith('00') ? rawPhone : '34' + rawPhone;
+  const waLink   = phone ? `https://wa.me/${waPhone}?text=${waText}` : '';
 
   const subject = lang === 'eu'
     ? `Eskerrik asko deitu izanagatik — ${config?.name || ''}`

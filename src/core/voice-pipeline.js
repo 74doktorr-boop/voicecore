@@ -233,9 +233,17 @@ class VoicePipeline {
     for (const tc of toolCalls) {
       if (session.interrupted) break;
 
+      let toolArgs = {};
+      try {
+        toolArgs = typeof tc.function.arguments === 'string'
+          ? JSON.parse(tc.function.arguments || '{}')
+          : (tc.function.arguments || {});
+      } catch (_) {
+        log.warn(`[${callId}] Failed to parse tool args for ${tc.function.name} — using {}`);
+      }
       const result = await this.toolExecutor.execute(
         tc.function.name,
-        JSON.parse(tc.function.arguments || '{}'),
+        toolArgs,
         session.assistant.id,
         { callId, session }          // ← context for session stamping (System A)
       );

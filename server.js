@@ -291,6 +291,21 @@ app.get(['/pamplona', '/pamplona/'],   serveGitHubPage('/pamplona/index.html',  
 // Also warm up new city pages at startup
 ['/madrid/index.html', '/barcelona/index.html', '/pamplona/index.html'].forEach(p => getPage(p).catch(() => {}));
 
+// ─── Sector + Ciudad landing pages (/peluquerias/bilbao, /dental/vitoria, etc.) ───
+// express.static has index:false so we need explicit routes for directory index.html files.
+// Only serve combinations that have a real file — unknown paths fall through to 404.
+app.get('/:sector/:ciudad', (req, res, next) => {
+  // Sanitize both params to prevent path traversal
+  const sector = req.params.sector.replace(/[^a-z0-9-]/gi, '');
+  const ciudad = req.params.ciudad.replace(/[^a-z0-9-]/gi, '');
+  if (!sector || !ciudad) return next();
+  const f = path.join(__dirname, 'public', sector, ciudad, 'index.html');
+  // Guard: must be inside public/
+  if (!f.startsWith(path.join(__dirname, 'public', ''))) return res.status(403).end();
+  if (fs.existsSync(f)) return res.sendFile(f);
+  next(); // fall through to 404 handler
+});
+
 // Other static assets (CSS, JS, images, robots.txt, etc.)
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false, // root handled above

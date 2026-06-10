@@ -12,6 +12,7 @@ const { scheduler }          = require('../scheduling/scheduler');
 const { runAutomations, getCronStats } = require('../scheduling/cron');
 const { generateWhatsAppConfirmation, sendAppointmentReminder, sendReviewRequest } = require('../notifications/reminders');
 const { adminAuth }          = require('./routes-admin');
+const { appointmentsStore }  = require('../db/appointments-store');
 const { getGoogleCalendar }  = require('../integrations/google-calendar');
 const { getDatabase }        = require('../db/database');
 
@@ -68,7 +69,10 @@ function setupAutomationRoutes(app) {
     if (!apt) return res.status(404).json({ error: 'Appointment not found' });
     const config = scheduler.getBusinessConfig(apt.businessId);
     const ok = await sendAppointmentReminder(apt, config);
-    if (ok) apt.reminder_sent = true;
+    if (ok) {
+      apt.reminder_sent = true;
+      appointmentsStore.patch(apt.id, { reminder_sent: true, updatedAt: new Date().toISOString() });
+    }
     res.json({ ok, appointment: req.params.aptId });
   });
 
@@ -78,7 +82,10 @@ function setupAutomationRoutes(app) {
     if (!apt) return res.status(404).json({ error: 'Appointment not found' });
     const config = scheduler.getBusinessConfig(apt.businessId);
     const ok = await sendReviewRequest(apt, config);
-    if (ok) apt.review_requested = true;
+    if (ok) {
+      apt.review_requested = true;
+      appointmentsStore.patch(apt.id, { review_requested: true, updatedAt: new Date().toISOString() });
+    }
     res.json({ ok, appointment: req.params.aptId });
   });
 

@@ -303,12 +303,14 @@ class SchedulingSystem {
       appointment: {
         id,
         patientName,
+        phone:   appointment.phone  || null,
+        email:   appointment.email  || null,
         service: appointment.service,
         date,
         time,
-        endTime: this._addMinutes(time, appointment.duration),
+        endTime:  this._addMinutes(time, appointment.duration),
         duration: appointment.duration,
-        price: appointment.price
+        price:    appointment.price,
       }
     };
   }

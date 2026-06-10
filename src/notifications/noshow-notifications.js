@@ -130,7 +130,9 @@ async function sendNoShowEmail(apt, config) {
   const waText = encodeURIComponent(lang === 'eu'
     ? `Kaixo, ${rawName} naiz. Hitzordua galdu nuen eta berrezarri nahi nuke.`
     : `Hola, soy ${rawName}. Se me pasó la cita y me gustaría reagendarla.`);
-  const waLink = phone ? `https://wa.me/34${phone.replace(/\D/g,'')}?text=${waText}` : '';
+  const rawWaPhone = phone.replace(/\D/g, '');
+  const waPhone = rawWaPhone.startsWith('34') || rawWaPhone.startsWith('0034') ? rawWaPhone : '34' + rawWaPhone;
+  const waLink = phone ? `https://wa.me/${waPhone}?text=${waText}` : '';
 
   const subject = lang === 'eu'
     ? `${esc(config?.name || '')}: zure hitzordua — ${service}`

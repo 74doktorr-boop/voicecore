@@ -233,9 +233,9 @@ async function recalculate(contactId, orgId) {
   const db = getDatabase();
   if (!db.enabled) return;
 
-  // Get contact sector_data
+  // Get contact sector_data + phone (phone is the join key to nf_appointments)
   const { data: contact } = await db.client.from('contacts')
-    .select('sector_data')
+    .select('sector_data, phone')
     .eq('id', contactId).maybeSingle();
   if (!contact) return;
 
@@ -245,12 +245,17 @@ async function recalculate(contactId, orgId) {
   const sectorSlug = org?.sector;
   if (!sectorSlug) return;
 
-  // Get all appointments for this contact (we'll filter per service below)
-  const { data: allApts } = await db.client.from('appointments')
-    .select('date, service, status')
-    .eq('org_id', orgId).eq('contact_id', contactId)
-    .order('date', { ascending: false })
-    .limit(20);
+  // Get all appointments for this contact via phone (nf_appointments has no contact_id)
+  let allApts = [];
+  if (contact.phone) {
+    const { data: aptsData } = await db.client.from('nf_appointments')
+      .select('date, service, status')
+      .eq('organization_id', orgId)
+      .eq('phone', contact.phone)
+      .order('date', { ascending: false })
+      .limit(20);
+    allApts = aptsData || [];
+  }
 
   const config = await getOrgReminderConfig(orgId, sectorSlug);
 
@@ -269,11 +274,13 @@ async function recalculate(contactId, orgId) {
 
     // from_last_if_no_new: skip if contact has any future appointment
     if (def.trigger === 'from_last_if_no_new') {
-      const { count: futureCount } = await db.client.from('appointments')
+      if (!contact.phone) continue; // can't check without phone
+      const { count: futureCount } = await db.client.from('nf_appointments')
         .select('id', { count: 'exact', head: true })
-        .eq('org_id', orgId).eq('contact_id', contactId)
+        .eq('organization_id', orgId)
+        .eq('phone', contact.phone)
         .gte('date', new Date().toISOString().split('T')[0])
-        .in('status', ['confirmed', 'pending', 'booked']);
+        .in('status', ['confirmed', 'pending']);
       if ((futureCount || 0) > 0) continue;
     }
 
