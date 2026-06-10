@@ -248,7 +248,14 @@ app.get('/admin/playground', (req, res) => {
 });
 
 // ─── Portal del cliente ───
-app.get(['/portal', '/portal/'], serveGitHubPage('/portal/index.html', path.join(__dirname, 'public', 'portal', 'index.html')));
+// Sirve index.html para /portal, /portal/ y cualquier subruta (ej: /portal/whatsapp-callback)
+// El JS del portal lee los query params y gestiona el estado internamente (SPA)
+const _portalIndexPath = path.join(__dirname, 'public', 'portal', 'index.html');
+app.get(['/portal', '/portal/', '/portal/*'], (req, res) => {
+  // Seguridad: no servir archivos reales bajo /portal/* como rutas SPA
+  // (los assets estáticos los sirve express.static antes de llegar aquí)
+  serveGitHubPage('/portal/index.html', _portalIndexPath)(req, res);
+});
 
 // ─── NodeFlow Galicia ───
 app.get(['/galiza', '/galiza/'], serveGitHubPage('/galiza/index.html', path.join(__dirname, 'public', 'galiza', 'index.html')));
