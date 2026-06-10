@@ -48,9 +48,39 @@ async function _syncToCalendar(businessId, appointment) {
   }
 }
 
-// ── Notify business owner via WhatsApp (Callmebot — only owner phone) ─────────
-function _notifyOwner(message) {
-  try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+// ── Notify the BUSINESS owner via WhatsApp ────────────────────────────────────
+// Multi-tenant: alerta al teléfono que el dueño del negocio configuró en su
+// portal (alertPhone), usando el WhatsApp del negocio o el número NodeFlow.
+// Sólo cae en Callmebot→OWNER_PHONE (Unai) si el negocio no tiene teléfono
+// de alerta configurado — así una urgencia llega a QUIEN debe atenderla.
+function _notifyOwner(message, businessId = null) {
+  // Sin businessId no podemos resolver el negocio → fallback a Callmebot (Unai)
+  if (!businessId) {
+    try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+    return;
+  }
+  setImmediate(async () => {
+    try {
+      const cfg        = _getBizConfig(businessId);
+      const alertPhone = cfg?.automations?.config?.alertPhone || cfg?.alertPhone || cfg?.ownerPhone || null;
+
+      if (alertPhone) {
+        // Credenciales WA del negocio (multi-tenant) o número NodeFlow global
+        let credentials = null;
+        try { credentials = await require('../whatsapp/accounts').getWaCredentials(businessId); } catch (_) {}
+        const { sendText, isConfigured } = _clientWA();
+        if (credentials || isConfigured()) {
+          const r = await sendText(alertPhone, message, credentials);
+          if (r?.ok) return;
+        }
+      }
+      // Fallback final: Callmebot a Unai (para que al menos NodeFlow se entere)
+      try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+    } catch (e) {
+      log.warn(`_notifyOwner(${businessId}): ${e.message}`);
+      try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+    }
+  });
 }
 
 // ── Get business config merged from scheduler + flowManager ──────────────────
@@ -343,7 +373,7 @@ class ToolExecutor {
       (args.location ? `📍 ${args.location}\n` : '') +
       `━━━━━━━━━━━━\nNodeFlow IA — requiere atención inmediata`;
 
-    _notifyOwner(msg);
+    _notifyOwner(msg, assistantId);
 
     // Also persist to DB as a call event
     try {
@@ -377,7 +407,7 @@ class ToolExecutor {
       `💬 ${message}\n` +
       `━━━━━━━━━━━━\nNodeFlow IA`;
 
-    _notifyOwner(msg);
+    _notifyOwner(msg, assistantId);
     return { success: true, message: 'El asesor responsable ha sido avisado y contactará hoy mismo.' };
   }
 
@@ -426,7 +456,8 @@ class ToolExecutor {
     _notifyOwner(
       `📅 *Recordatorio pendiente — ${biz.name || assistantId}*\n` +
       `Enviar a ${name} (${phone}) para su cita del ${displayDate} a las ${time}h.\n` +
-      `Servicio: ${service}`
+      `Servicio: ${service}`,
+      assistantId
     );
 
     return { success: true, message: `Recordatorio programado para ${name}. Se enviará el día antes de la cita.` };
@@ -462,7 +493,8 @@ class ToolExecutor {
     _notifyOwner(
       `⭐ *Reseña pendiente — ${biz.name || assistantId}*\n` +
       `Enviar a ${name} (${phone}) el enlace de reseña.\n` +
-      `Enlace: ${reviewUrl}`
+      `Enlace: ${reviewUrl}`,
+      assistantId
     );
 
     return { success: true, message: `Solicitud de reseña registrada para ${name}. Se gestionará por el equipo.` };
@@ -587,7 +619,8 @@ class ToolExecutor {
       `━━━━━━━━━━━━\n` +
       `👤 ${name}\n📞 ${phone}\n` +
       (details ? `${details}\n` : '') +
-      `━━━━━━━━━━━━\nNodeFlow IA`
+      `━━━━━━━━━━━━\nNodeFlow IA`,
+      assistantId
     );
 
     return { success: true, message: `Datos de ${name} registrados. El equipo se pondrá en contacto en breve.` };
@@ -627,7 +660,8 @@ class ToolExecutor {
       `👤 ${name}\n📞 ${phone}\n` +
       `🚗 ${args.vehicle || ''}\n` +
       `⚠️ ${args.issue || ''}\n` +
-      `━━━━━━━━━━━━\nNodeFlow IA`
+      `━━━━━━━━━━━━\nNodeFlow IA`,
+      assistantId
     );
 
     return { success: true, message: `Presupuesto solicitado. El taller llamará a ${name} lo antes posible.` };
@@ -646,7 +680,8 @@ class ToolExecutor {
       `❄️ *Congelación de cuota — ${biz.name || assistantId}*\n` +
       `👤 ${name} (${phone})\n` +
       `Semanas: ${args.weeks || '?'}\n` +
-      `Motivo: ${args.reason || 'sin indicar'}`
+      `Motivo: ${args.reason || 'sin indicar'}`,
+      assistantId
     );
 
     return { success: true, message: `Solicitud de congelación registrada para ${name}. El equipo lo confirmará.` };
@@ -660,7 +695,8 @@ class ToolExecutor {
     _notifyOwner(
       `❌ *Baja de socio — ${biz.name || assistantId}*\n` +
       `👤 ${name} (${phone})\n` +
-      `Motivo: ${args.reason || 'sin indicar'}`
+      `Motivo: ${args.reason || 'sin indicar'}`,
+      assistantId
     );
 
     return { success: true, message: `Baja procesada para ${name}. El equipo lo confirmará por escrito.` };
@@ -739,7 +775,8 @@ class ToolExecutor {
       `💊 *Reserva de medicamento — ${biz.name || assistantId}*\n` +
       `👤 ${name} (${phone})\n` +
       `Medicamento: ${med} x${args.quantity || 1}\n` +
-      (args.notes ? `Notas: ${args.notes}` : '')
+      (args.notes ? `Notas: ${args.notes}` : ''),
+      assistantId
     );
 
     // Send WhatsApp to client when ready (scheduled for later, owner handles it)
@@ -847,7 +884,8 @@ class ToolExecutor {
       `👤 ${name} (${phone})\n` +
       `📅 ${args.date} a las ${args.time}h\n` +
       `📍 ${args.address || 'Sin dirección'}\n` +
-      `Tipo: ${args.property_type || 'sin especificar'}`
+      `Tipo: ${args.property_type || 'sin especificar'}`,
+      assistantId
     );
 
     return result.success
