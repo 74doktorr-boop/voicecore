@@ -499,6 +499,10 @@ startLifecycleCron();
 const { criticalDatesStore }  = require('./src/scheduling/critical-dates');
 criticalDatesStore.loadFromDB().catch(e => log.warn('Critical dates DB load failed:', e.message));
 
+// Backup semanal de Supabase (domingos 04:00 Madrid → Storage bucket "backups")
+const { startBackupCron } = require('./src/db/backup');
+startBackupCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {

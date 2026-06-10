@@ -176,4 +176,4 @@ async function handleReply({ from, type, payload }) {
   log.warn(`Unknown payload from ${from}: "${payload}"`);
 }
 
-module.exports = { handleReply };
+module.exports = { handleReply, normalizePhone };

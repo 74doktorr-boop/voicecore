@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estado del servicio — NodeFlow</title>
+<meta name="robots" content="noindex, follow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07070e;--card:#14141e;--accent:#6c5ce7;--accent-l:#a29bfe;--green:#00cec9;--green2:#00b894;--red:#ff6b6b;--amber:#fdcb6e;--text:#e8e8f0;--dim:#8888a8;--border:rgba(255,255,255,0.07)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 20px}
+.logo{font-size:20px;font-weight:800;color:var(--dim);margin-bottom:36px;text-decoration:none;letter-spacing:-.5px}
+.logo em{color:var(--accent-l);font-style:normal}
+.wrap{width:100%;max-width:640px}
+h1{font-size:clamp(24px,4.5vw,32px);font-weight:900;letter-spacing:-1px;margin-bottom:8px;text-align:center}
+.sub{font-size:14px;color:var(--dim);text-align:center;margin-bottom:36px}
+
+.banner{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;transition:border-color .4s}
+.banner.up{border-color:rgba(0,206,201,.35)}
+.banner.down{border-color:rgba(255,107,107,.4)}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--dim);flex-shrink:0;position:relative}
+.banner.up .dot{background:var(--green)}
+.banner.up .dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(0,206,201,.4);animation:pulse 2s ease-out infinite}
+.banner.down .dot{background:var(--red)}
+@keyframes pulse{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.4);opacity:0}}
+.banner-text{font-size:17px;font-weight:700}
+.banner-sub{font-size:12px;color:var(--dim);margin-top:2px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 16px;text-align:center}
+.metric .val{font-size:24px;font-weight:900;color:var(--accent-l)}
+.metric .lbl{font-size:11px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
+
+.services{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:8px 0;margin-bottom:28px}
+.svc{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--border)}
+.svc:last-child{border-bottom:none}
+.svc-name{font-size:14px;font-weight:600}
+.svc-status{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.svc-status .sdot{width:8px;height:8px;border-radius:50%}
+.s-ok{color:var(--green)} .s-ok .sdot{background:var(--green)}
+.s-warn{color:var(--amber)} .s-warn .sdot{background:var(--amber)}
+.s-down{color:var(--red)} .s-down .sdot{background:var(--red)}
+.s-unknown{color:var(--dim)} .s-unknown .sdot{background:var(--dim)}
+
+.foot{font-size:12px;color:var(--dim);text-align:center;line-height:1.8}
+.foot a{color:var(--accent-l);text-decoration:none}
+.updated{font-size:11px;color:var(--dim);text-align:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<a href="/" class="logo">⚡ Node<em>Flow</em></a>
+
+<div class="wrap">
+  <h1>Estado del servicio</h1>
+  <p class="sub">Monitorización en tiempo real de la plataforma NodeFlow</p>
+
+  <div class="banner" id="banner">
+    <div class="dot"></div>
+    <div>
+      <div class="banner-text" id="bannerText">Comprobando…</div>
+      <div class="banner-sub" id="bannerSub">Conectando con la plataforma</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><div class="val" id="mLatency">—</div><div class="lbl">Latencia</div></div>
+    <div class="metric"><div class="val" id="mUptime">—</div><div class="lbl">Uptime servidor</div></div>
+    <div class="metric"><div class="val" id="mCalls">—</div><div class="lbl">Llamadas activas</div></div>
+  </div>
+
+  <div class="services" id="services">
+    <div class="svc"><span class="svc-name">🎙️ Asistente de voz (llamadas)</span><span class="svc-status s-unknown" id="svcVoice"><span class="sdot"></span>—</span></div>
+    <div class="svc"><span class="svc-name">🌐 Web y portal de clientes</span><span class="svc-status s-unknown" id="svcWeb"><span class="sdot"></span>—</span></div>
+    <div class="svc"><span class="svc-name">💾 Base de datos</span><span class="svc-status s-unknown" id="svcDb"><span class="sdot"></span>—</span></div>
+    <div class="svc"><span class="svc-name">📧 Notificaciones (email / WhatsApp)</span><span class="svc-status s-unknown" id="svcNotif"><span class="sdot"></span>—</span></div>
+  </div>
+
+  <div class="updated" id="updated"></div>
+  <p class="foot">
+    Esta página se actualiza automáticamente cada 30 segundos.<br>
+    ¿Algún problema? Escríbenos a <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a> o por <a href="https://wa.me/34666351319" target="_blank" rel="noopener">WhatsApp</a>.
+  </p>
+</div>
+
+<script>
+'use strict';
+function setSvc(id, cls, label) {
+  var el = document.getElementById(id);
+  el.className = 'svc-status ' + cls;
+  el.innerHTML = '<span class="sdot"></span>' + label;
+}
+function fmtUptime(sec) {
+  if (sec == null) return '—';
+  var d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return d + 'd ' + h + 'h';
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+async function check() {
+  var banner = document.getElementById('banner');
+  var t0 = performance.now();
+  try {
+    var res = await fetch('/health', { cache: 'no-store' });
+    var ms = Math.round(performance.now() - t0);
+    var data = await res.json();
+    var ok = res.ok && data.status === 'ok';
+
+    banner.className = 'banner ' + (ok ? 'up' : 'down');
+    document.getElementById('bannerText').textContent = ok ? 'Todos los sistemas operativos' : 'Servicio degradado';
+    document.getElementById('bannerSub').textContent = ok
+      ? 'La plataforma funciona con normalidad'
+      : 'Estamos trabajando en ello — disculpa las molestias';
+
+    document.getElementById('mLatency').textContent = ms + ' ms';
+    document.getElementById('mUptime').textContent = fmtUptime(data.uptime);
+    document.getElementById('mCalls').textContent = data.activeCalls != null ? data.activeCalls : '—';
+
+    setSvc('svcVoice', ok ? 's-ok' : 's-down', ok ? 'Operativo' : 'Incidencia');
+    setSvc('svcWeb', 's-ok', 'Operativo'); // si esta página carga, la web está viva
+    setSvc('svcDb', data.database === 'connected' ? 's-ok' : 's-warn', data.database === 'connected' ? 'Operativa' : 'Modo memoria');
+    setSvc('svcNotif', ok ? 's-ok' : 's-warn', ok ? 'Operativo' : 'Posible retraso');
+  } catch (e) {
+    banner.className = 'banner down';
+    document.getElementById('bannerText').textContent = 'No se puede conectar';
+    document.getElementById('bannerSub').textContent = 'El servidor no responde — reintentando…';
+    document.getElementById('mLatency').textContent = '—';
+    setSvc('svcVoice', 's-down', 'Incidencia');
+    setSvc('svcWeb', 's-down', 'Incidencia');
+    setSvc('svcDb', 's-unknown', '—');
+    setSvc('svcNotif', 's-unknown', '—');
+  }
+  document.getElementById('updated').textContent =
+    'Última comprobación: ' + new Date().toLocaleTimeString('es-ES');
+}
+check();
+setInterval(check, 30000);
+</script>
+</body>
+</html>

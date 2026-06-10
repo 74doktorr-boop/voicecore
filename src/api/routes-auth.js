@@ -39,7 +39,9 @@ function verifySessionToken(token) {
   if (parts.length !== 3) throw new Error('Malformed token');
   const [header, body, sig] = parts;
   const expected = crypto.createHmac('sha256', jwtSecret()).update(`${header}.${body}`).digest('base64url');
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) throw new Error('Invalid signature');
+  const sigBuf = Buffer.from(sig), expBuf = Buffer.from(expected);
+  // timingSafeEqual exige longitudes iguales — un sig de otra longitud es inválido directamente
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) throw new Error('Invalid signature');
   const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
   if (payload.exp < Date.now()) throw new Error('Token expired');
   return payload;

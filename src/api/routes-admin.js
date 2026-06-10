@@ -701,6 +701,20 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ── POST /api/admin/backup ──────────────────────────────────────────────────
+  // Lanza un backup manual de Supabase → Storage bucket "backups".
+  app.post('/api/admin/backup', adminAuth, async (req, res) => {
+    try {
+      const { runBackup } = require('../db/backup');
+      const result = await runBackup();
+      if (!result.ok) return res.status(502).json(result);
+      return res.json(result);
+    } catch (e) {
+      log.error(`Backup manual error: ${e.message}`);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 

@@ -218,6 +218,39 @@ class SchedulingSystem {
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
     );
 
+    // ── Validación de fecha y hora (la LLM puede pasar valores inválidos) ──────
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
+      return { success: false, error: 'Fecha inválida. Usa el formato AAAA-MM-DD.' };
+    }
+    if (!/^\d{1,2}:\d{2}$/.test(time || '')) {
+      return { success: false, error: 'Hora inválida. Usa el formato HH:MM.' };
+    }
+    // Fecha real (rechaza 2026-13-45) y no pasada
+    const [yy, mm, dd] = date.split('-').map(Number);
+    const dateObj = new Date(yy, mm - 1, dd);
+    if (dateObj.getFullYear() !== yy || dateObj.getMonth() !== mm - 1 || dateObj.getDate() !== dd) {
+      return { success: false, error: 'Esa fecha no existe. Por favor indica otra.' };
+    }
+    const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+    if (date < todayStr) {
+      return { success: false, error: 'No se pueden reservar citas en fechas pasadas.' };
+    }
+    // Dentro del horario del negocio (si hay horario configurado para ese día)
+    const daySchedule = config?.schedule?.[dateObj.getDay()];
+    if (config?.schedule && !daySchedule) {
+      return { success: false, error: 'Ese día el negocio está cerrado. Elige otro día.' };
+    }
+    if (daySchedule) {
+      const t = time.padStart(5, '0');
+      const inMorning   = daySchedule.open && daySchedule.close &&
+                          t >= daySchedule.open && t < daySchedule.close;
+      const inAfternoon = daySchedule.afternoon_open && daySchedule.afternoon_close &&
+                          t >= daySchedule.afternoon_open && t < daySchedule.afternoon_close;
+      if (!inMorning && !inAfternoon) {
+        return { success: false, error: 'Esa hora está fuera del horario de apertura. Elige otra hora.' };
+      }
+    }
+
     const id = `APT-${this.nextId++}`;
     const appointment = {
       id,

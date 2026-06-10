@@ -16,6 +16,14 @@ const log = new Logger('AUTH');
 const rateLimits = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 
+// Poda periódica de buckets expirados — evita crecimiento indefinido del Map
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimits) {
+    if (now - bucket.windowStart > RATE_LIMIT_WINDOW * 2) rateLimits.delete(key);
+  }
+}, 10 * 60 * 1000).unref();
+
 // Plan limits keyed by DB `plan` column values: 'starter' | 'negocio' | 'pro'
 const PLAN_LIMITS = {
   starter:    { minutesPerMonth: 50,    assistants: 1,   callsPerMinute: 5,   concurrentCalls: 1 },
@@ -34,8 +42,8 @@ function resolveApiKey(req) {
   // Header: Authorization Bearer
   const auth = req.headers['authorization'];
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
-  // Query param
-  if (req.query.apiKey) return req.query.apiKey;
+  // NOTA: query param eliminado deliberadamente — las keys en URL
+  // acaban en access logs del proxy y en el historial del navegador.
   return null;
 }
 

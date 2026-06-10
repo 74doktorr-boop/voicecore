@@ -1,0 +1,152 @@
+<h2>¿Dónde se abre el wizard al clicar "Completar →"?</h2>
+<p class="subtitle">El wizard es la lista expandible de contactos con sus campos de sector</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f1f5f9;padding:16px;border-radius:8px 8px 0 0;position:relative">
+      <!-- Fondo borroso simulado -->
+      <div style="background:#fff;border-radius:6px;padding:8px;margin-bottom:8px;opacity:0.3;filter:blur(1px)">
+        <div style="height:8px;background:#e5e7eb;border-radius:4px;margin-bottom:6px;width:60%"></div>
+        <div style="height:8px;background:#e5e7eb;border-radius:4px;width:80%"></div>
+      </div>
+      <!-- Modal encima -->
+      <div style="background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.25);padding:16px;border:1px solid #e5e7eb">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <div style="font-weight:700;color:#111827;font-size:14px">Datos de sector — 8 contactos</div>
+            <div style="color:#6b7280;font-size:11px">Completa los datos para activar los recordatorios</div>
+          </div>
+          <div style="color:#9ca3af;font-size:18px;cursor:pointer">✕</div>
+        </div>
+        <!-- Progreso -->
+        <div style="background:#f3f4f6;border-radius:4px;height:6px;margin-bottom:12px">
+          <div style="background:#3b82f6;height:6px;border-radius:4px;width:25%"></div>
+        </div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:8px">2 de 8 completados</div>
+        <!-- Contacto completado -->
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <div style="color:#16a34a;font-size:14px">✓</div>
+          <div style="font-weight:500;font-size:12px;color:#374151;flex:1">Carlos López</div>
+          <div style="font-size:11px;color:#16a34a">Completo</div>
+        </div>
+        <!-- Contacto expandido -->
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-weight:600;font-size:12px;color:#1d4ed8;flex:1">Ana Martínez</div>
+            <div style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:4px;font-size:10px">Editando</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <div style="font-size:10px;color:#6b7280;margin-bottom:2px">MATRÍCULA</div>
+              <input style="width:100%;border:1px solid #93c5fd;border-radius:3px;padding:4px 6px;font-size:11px;box-sizing:border-box" value="4521 KLM"/>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#6b7280;margin-bottom:2px">ITV VENCE</div>
+              <input style="width:100%;border:1px solid #93c5fd;border-radius:3px;padding:4px 6px;font-size:11px;box-sizing:border-box" placeholder="dd/mm/aaaa"/>
+            </div>
+          </div>
+          <div style="margin-top:8px;background:#2563eb;color:#fff;border-radius:4px;padding:5px;text-align:center;font-size:11px;font-weight:600">Guardar →</div>
+        </div>
+        <!-- Contacto sin abrir -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer">
+          <div style="color:#f59e0b;font-size:14px">○</div>
+          <div style="font-weight:500;font-size:12px;color:#374151;flex:1">Mikel Etxebarria</div>
+          <div style="font-size:11px;color:#9ca3af">Toca para completar →</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Modal flotante</h3>
+      <p>Se abre sobre el portal, con el fondo borroso. Foco total en la tarea. El usuario completa los datos y cierra. Barra de progreso visible en todo momento.</p>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px">✓ Muy enfocado</span>
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px">✓ Bloquea distracciones</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f1f5f9;padding:16px;border-radius:8px 8px 0 0;display:flex;gap:8px">
+      <!-- Contenido normal (izquierda) -->
+      <div style="flex:1;opacity:0.4">
+        <div style="background:#fff;border-radius:6px;padding:8px;margin-bottom:6px">
+          <div style="height:8px;background:#e5e7eb;border-radius:4px;margin-bottom:4px;width:70%"></div>
+          <div style="height:8px;background:#e5e7eb;border-radius:4px;width:50%"></div>
+        </div>
+        <div style="background:#fff;border-radius:6px;padding:8px">
+          <div style="height:8px;background:#e5e7eb;border-radius:4px;margin-bottom:4px"></div>
+          <div style="height:8px;background:#e5e7eb;border-radius:4px;width:80%"></div>
+        </div>
+      </div>
+      <!-- Panel lateral derecho -->
+      <div style="width:65%;background:#fff;border-radius:8px;padding:12px;box-shadow:-4px 0 20px rgba(0,0,0,0.12);border-left:3px solid #3b82f6">
+        <div style="font-weight:700;font-size:13px;color:#111827;margin-bottom:4px">Datos de sector</div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:10px">3 de 8 completos</div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;font-size:11px">
+          <span style="color:#16a34a">✓</span> <span style="color:#374151">Carlos López</span>
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:8px;margin-bottom:4px">
+          <div style="font-weight:600;font-size:11px;color:#1d4ed8;margin-bottom:6px">Ana Martínez ▾</div>
+          <input style="width:100%;border:1px solid #93c5fd;border-radius:3px;padding:3px 5px;font-size:10px;box-sizing:border-box;margin-bottom:4px" value="4521 KLM" placeholder="Matrícula"/>
+          <input style="width:100%;border:1px solid #93c5fd;border-radius:3px;padding:3px 5px;font-size:10px;box-sizing:border-box" placeholder="ITV vence (dd/mm/aaaa)"/>
+          <div style="margin-top:6px;background:#2563eb;color:#fff;border-radius:3px;padding:4px;text-align:center;font-size:10px;font-weight:600">Guardar</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:5px;padding:6px 8px;font-size:11px;color:#9ca3af">○ Mikel E. →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Panel lateral (slide-over)</h3>
+      <p>Se desliza desde la derecha, sin ocultar el portal. El usuario puede ver los recordatorios a la izquierda mientras rellena datos. Más contexto.</p>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px">✓ Contexto visible</span>
+        <span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:4px">~ Más estrecho</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:16px;border-radius:8px 8px 0 0">
+      <!-- Banner convertido en sección expandida inline -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;margin-bottom:8px;overflow:hidden">
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:10px">
+          <div style="font-size:16px">💡</div>
+          <div style="flex:1">
+            <div style="font-weight:600;color:#1d4ed8;font-size:12px">Activar recordatorios — 8 contactos pendientes</div>
+          </div>
+          <div style="color:#3b82f6;font-size:11px;font-weight:600">▲ Ocultar</div>
+        </div>
+        <!-- Expandido inline bajo el banner -->
+        <div style="background:#fff;border-top:1px solid #bfdbfe;padding:10px 12px">
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:4px 8px;font-size:10px;color:#16a34a">✓ Carlos</div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 8px;font-size:10px;color:#2563eb;font-weight:600">◉ Ana</div>
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 8px;font-size:10px;color:#9ca3af">○ Mikel</div>
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 8px;font-size:10px;color:#9ca3af">○ +5</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+            <div style="font-weight:600;font-size:11px;color:#374151;margin-bottom:6px">Ana Martínez — Seat Ibiza</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input style="border:1px solid #93c5fd;border-radius:3px;padding:4px 6px;font-size:10px" value="4521 KLM" placeholder="Matrícula"/>
+              <input style="border:1px solid #e5e7eb;border-radius:3px;padding:4px 6px;font-size:10px" placeholder="ITV (dd/mm/aaaa)"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Tabs siguen visibles debajo -->
+      <div style="display:flex;gap:8px">
+        <div style="background:#3b82f6;color:#fff;padding:4px 10px;border-radius:4px;font-size:11px">Próximos 30 días</div>
+        <div style="background:#f3f4f6;color:#6b7280;padding:4px 10px;border-radius:4px;font-size:11px">Historial</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Inline expandible</h3>
+      <p>El banner se expande en el propio lugar, como un acordeón. Los contactos aparecen como chips en la parte superior. Sin modal, sin panel: todo en la misma página.</p>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px">✓ Más fluido</span>
+        <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px">✓ Sin interrupciones</span>
+      </div>
+    </div>
+  </div>
+
+</div>
