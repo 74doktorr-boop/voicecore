@@ -239,6 +239,9 @@ app.get(['/onboarding.html', '/onboarding', '/onboarding/'],
 // ─── Post-pago ───
 app.get(['/gracias', '/gracias/'], serveGitHubPage('/gracias/index.html', path.join(__dirname, 'public', 'gracias', 'index.html')));
 
+// ─── Estado del servicio (página pública) ───
+app.get(['/status', '/status/'], serveGitHubPage('/status/index.html', path.join(__dirname, 'public', 'status', 'index.html')));
+
 // ─── Panel de administración ───
 app.get(['/admin', '/admin/'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
