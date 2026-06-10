@@ -26,6 +26,24 @@ Storage. El bucket hay que crearlo una vez:
 ### 3. WABA de NodeFlow en Meta (ver recordatorio del 11/06)
 Checklist completo en `C:\Users\unais\Desktop\NodeFlow-WhatsApp-Setup.html`.
 
+### 3b. Migración: candado anti-double-booking (1 min)
+Ejecutar una vez en Supabase → SQL Editor el contenido de
+`db/migration-appointment-slot-lock.sql`. Crea un índice único que
+impide dos citas activas en el mismo hueco a nivel de base de datos
+(red de seguridad para cuando se escale a varias instancias).
+
+## 🏗️ Notas de escalabilidad
+
+- **Instancias**: hoy corre 1 instancia en EasyPanel. El scheduler valida
+  huecos en memoria (rápido, necesario para la latencia de voz). Para >1
+  instancia, el índice `uniq_active_slot` (migración 3b) es la red de
+  seguridad contra double-booking. Para protección total de solapamientos
+  parciales a nivel DB, migrar a EXCLUDE constraint con btree_gist.
+- **Tokens admin**: viven en memoria; un reinicio obliga a re-login en el
+  panel. Aceptable para uso interno de 1 persona.
+- **Rate limiter / analytics**: en memoria por instancia. Con multi-instancia,
+  mover a Redis (ya contemplado en el código con comentarios).
+
 ### 4. Verificar API_KEY en producción
 La key legacy da acceso plan *enterprise* sin límites. En EasyPanel debe ser un
 valor aleatorio largo, **nunca** el `voicecore-dev` del .env.example.

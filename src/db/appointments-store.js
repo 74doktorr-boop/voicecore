@@ -120,7 +120,16 @@ class AppointmentsStore {
       .from('nf_appointments')
       .upsert(row, { onConflict: 'id' })
       .then(({ error }) => {
-        if (error) log.warn(`upsert ${apt.id}: ${error.message}`);
+        if (!error) return;
+        // 23505 = unique_violation → el índice uniq_active_slot rechazó una
+        // colisión de hueco (otra instancia/proceso ya tenía esa cita activa).
+        // Es una RED DE SEGURIDAD funcionando: la validación en memoria no la
+        // pilló (multi-instancia). Se registra aparte para visibilidad.
+        if (error.code === '23505') {
+          log.warn(`⚠️ Slot collision rechazada por DB para ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado`);
+        } else {
+          log.warn(`upsert ${apt.id}: ${error.message}`);
+        }
       })
       .catch(e => log.warn(`upsert exception ${apt.id}: ${e.message}`));
   }
