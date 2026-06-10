@@ -106,7 +106,7 @@ const sectors = {
       },
       {
         q: `¿Tengo que cambiar el número de teléfono de mi peluquería en ${city.nameEs}?`,
-        a: `No. NodeFlow se conecta a tu línea actual mediante desvío de llamada. Tus clientes siguen llamando al mismo número. Configuramos todo en menos de 24 horas.`,
+        a: `No. NodeFlow se conecta a tu línea actual mediante desvío de llamada. Tus clientes siguen llamando al mismo número. Lo configuramos todo en pocos minutos.`,
       },
     ],
     stats: ['100% llamadas atendidas', '3h ahorro semanal', '24/7 disponibilidad', '0 llamadas perdidas'],
@@ -826,7 +826,7 @@ function generatePage(sectorKey, cityKey) {
     </div>
     <div class="hero-trust">
       <span><span class="dot"></span> Sin permanencia</span>
-      <span><span class="dot"></span> Configuración en &lt;24h</span>
+      <span><span class="dot"></span> Activo en minutos</span>
       <span><span class="dot"></span> Habla euskera nativo</span>
       <span><span class="dot"></span> Desde 49€/mes</span>
     </div>
@@ -852,7 +852,7 @@ function generatePage(sectorKey, cityKey) {
     <div style="text-align:center;margin-bottom:16px;">
       <div class="section-label">Cómo funciona</div>
       <h2 class="section-title">Tres pasos. Sin instalar nada.</h2>
-      <p class="section-sub" style="margin:0 auto;">Conectamos NodeFlow a tu línea actual en menos de 24 horas. Sin cambiar tu número de teléfono.</p>
+      <p class="section-sub" style="margin:0 auto;">Conectamos NodeFlow a tu línea actual en pocos minutos. Sin cambiar tu número de teléfono.</p>
     </div>
     <div class="steps">
       <div class="step">
@@ -863,7 +863,7 @@ function generatePage(sectorKey, cityKey) {
       <div class="step">
         <div class="step-num">2</div>
         <h3>Conectamos las llamadas</h3>
-        <p>Cuando no puedes coger el teléfono, las llamadas van al asistente. Tu número de siempre, sin cambios. Configuramos todo en menos de 24h.</p>
+        <p>Cuando no puedes coger el teléfono, las llamadas van al asistente. Tu número de siempre, sin cambios. Lo configuramos todo en pocos minutos.</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
@@ -902,12 +902,12 @@ function generatePage(sectorKey, cityKey) {
     <div class="cta-card">
       <div class="section-label" style="text-align:center">${sectorNameDisplay} en ${city.nameEs}</div>
       <h2>${ctaTitle}</h2>
-      <p>14 días gratis. Sin tarjeta de crédito. Configuración en menos de 24 horas. Cancela cuando quieras.</p>
+      <p>14 días gratis. Sin tarjeta de crédito. Activo en minutos. Cancela cuando quieras.</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
         <a href="/onboarding?sector=${sectorKey}&ciudad=${cityKey}" class="btn btn-primary btn-lg">Empezar gratis 14 días →</a>
         <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20tengo%20un%20${encodeURIComponent(sector.nameSingular)}%20en%20${encodeURIComponent(city.nameEs)}%20y%20quiero%20informaci%C3%B3n%20sobre%20NodeFlow" class="btn btn-outline btn-lg" style="color:#25d366;border-color:rgba(37,211,102,0.3)">💬 WhatsApp</a>
       </div>
-      <p class="cta-price">Desde 49€/mes · Sin permanencia · Alta en &lt;24h · Hecho en Euskal Herria</p>
+      <p class="cta-price">Desde 49€/mes · Sin permanencia · Activo en minutos · Hecho en Euskal Herria</p>
     </div>
   </div>
 </section>

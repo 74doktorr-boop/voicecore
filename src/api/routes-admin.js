@@ -299,7 +299,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       // 1. Guardar el número NodeFlow en la org
       const merged = {
         ...(org.automation_config || {}),
-        config: { ...((org.automation_config || {}).config || {}), nodeflowNumber: numeroNodeflow },
+        config: { ...((org.automation_config || {}).config || {}), nodeflowNumber: numeroNodeflow, outboundNumber: numeroNodeflow },
       };
       await db.client.from('organizations')
         .update({ automation_config: merged, is_active: true })
@@ -369,51 +369,55 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
-  // ─── Portal: GET /api/portal/me (auth by API key or session JWT) ─────────────
-  app.get('/api/portal/me', async (req, res) => {
-    const header = req.headers['authorization'] || '';
-    const token  = header.replace('Bearer ', '').trim();
-    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
+  // ─── Helper: resolve org from Bearer token (JWT session or API key) ─────────
+  // Returns { org, db } on success; calls res.status(401).json and returns null on failure.
+  async function resolvePortalOrg(req, res, { selectAll = false } = {}) {
+    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+    if (!token) { res.status(401).json({ error: 'Autenticación requerida' }); return null; }
 
     const db = getDatabase();
 
-    // Try session JWT first (magic link auth)
-    let sessionEmail = null;
-    try {
-      const payload = verifySessionToken(token);
-      sessionEmail = payload.email;
-    } catch (_) {
-      // Not a JWT — fall through to API key check
-    }
-
     if (!db.enabled) {
-      // Sin BD activa: solo permite la API key de producción, nunca un fallback hardcodeado
       const prodKey = config.apiKey || process.env.API_KEY;
       if (prodKey && token === prodKey) {
-        return res.json({ id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'unai@nodeflow.es' });
+        const fakeOrg = { id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'unai@nodeflow.es' };
+        return { org: fakeOrg, db, token };
       }
-      return res.status(401).json({ error: 'No autorizado' });
+      res.status(401).json({ error: 'No autorizado' });
+      return null;
     }
 
+    let org = null;
     try {
-      let org = null;
-      if (sessionEmail) {
-        // Look up org by owner email (magic link session)
-        const { data } = await db.client
-          .from('organizations')
-          .select('*')
-          .eq('owner_email', sessionEmail.trim().toLowerCase())
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        org = data;
-      } else {
-        org = await db.getOrgByApiKey(token);
-      }
+      const payload = verifySessionToken(token);
+      const fields  = selectAll ? '*' : 'id';
+      const { data } = await db.client
+        .from('organizations')
+        .select(fields)
+        .eq('owner_email', payload.email.trim().toLowerCase())
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      org = data;
+    } catch (_) {
+      // Not a valid JWT — try API key
+      org = await db.getOrgByApiKey(token);
+    }
 
-      if (!org) return res.status(401).json({ error: sessionEmail ? 'Cuenta no encontrada' : 'API Key inválida' });
+    if (!org) { res.status(401).json({ error: 'No autorizado' }); return null; }
+    return { org, db, token };
+  }
 
+  // ─── Portal: GET /api/portal/me (auth by API key or session JWT) ─────────────
+  app.get('/api/portal/me', async (req, res) => {
+    try {
+      const result = await resolvePortalOrg(req, res, { selectAll: true });
+      if (!result) return; // already responded with 401
+
+      const { org } = result;
+      const automConfig  = org.automation_config || {};
+      const customConfig = automConfig.config    || {};
       res.json({
         id:              org.id,
         name:            org.name,
@@ -427,6 +431,9 @@ function setupAdminRoutes(app, config, assistantManager) {
         google_calendar_id:    org.google_calendar_id,
         google_refresh_token:  !!org.google_refresh_token,
         created_at:      org.created_at,
+        // Número NodeFlow asignado (null = aún pendiente de asignación)
+        nodeflow_number: customConfig.nodeflowNumber || customConfig.outboundNumber || null,
+        onboarding_complete: !!(customConfig.nodeflowNumber || customConfig.outboundNumber),
       });
     } catch (e) {
       log.error('Portal /me error', { error: e.message });
@@ -436,37 +443,23 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── Portal: GET /api/portal/calls — lista de llamadas del cliente ──────────
   app.get('/api/portal/calls', async (req, res) => {
-    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
-
-    const db = getDatabase();
+    const result = await resolvePortalOrg(req, res);
+    if (!result) return;
+    const { org, db } = result;
     if (!db.enabled) return res.json({ calls: [], total: 0 });
 
     try {
-      // Resolver org igual que en /me
-      let org = null;
-      try {
-        const payload = verifySessionToken(token);
-        const { data } = await db.client
-          .from('organizations').select('id')
-          .eq('owner_email', payload.email.trim().toLowerCase())
-          .eq('is_active', true).order('created_at', { ascending: false }).limit(1).single();
-        org = data;
-      } catch (_) {
-        org = await db.getOrgByApiKey(token);
-      }
-      if (!org) return res.status(401).json({ error: 'No autorizado' });
-
       const limit  = Math.min(parseInt(req.query.limit  || '50'), 100);
       const offset = parseInt(req.query.offset || '0');
 
       const calls = await db.getCalls(org.id, { limit, offset });
 
       // Devolver sólo los campos que el portal necesita (no exponer métricas internas)
+      // BUG FIX: la tabla calls usa columnas directas (outcome, booked_appointment, client_email),
+      // no un objeto metrics anidado — c.metrics siempre era undefined.
       const safe = calls.map(c => {
         const durSec = c.duration_ms ? Math.round(c.duration_ms / 1000) : 0;
-        // Extract client email from transcript metrics if available
-        const clientEmail = c.metrics?.clientEmail || c.metrics?.bookedAppointment?.email || null;
+        const apt    = c.booked_appointment || null;
         return {
           callId:       c.id,
           callSid:      c.call_sid || c.id,
@@ -474,12 +467,12 @@ function setupAdminRoutes(app, config, assistantManager) {
           endedAt:      c.ended_at,
           duration:     durSec,
           callerNumber: c.caller_number ? c.caller_number.replace(/(\+\d{2})\d{3,}(\d{3})$/, '$1***$2') : 'Desconocido',
-          outcome:      c.metrics?.outcome || 'unknown',
-          booked:       !!(c.metrics?.booked || c.metrics?.outcome === 'booked'),
+          outcome:      c.outcome || 'unknown',
+          booked:       !!(apt || c.outcome === 'booked'),
           turnCount:    c.turn_count || 0,
           transcript:   c.transcript || [],
-          appointment:  c.metrics?.bookedAppointment || null,
-          clientEmail:  clientEmail,
+          appointment:  apt,
+          clientEmail:  c.client_email || apt?.email || null,
         };
       });
 
@@ -492,29 +485,15 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── Portal: GET /api/portal/calls/:id/transcript ───────────────────────────
   app.get('/api/portal/calls/:id/transcript', async (req, res) => {
-    const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
-    if (!token) return res.status(401).json({ error: 'Autenticación requerida' });
-
-    const db = getDatabase();
+    const result = await resolvePortalOrg(req, res);
+    if (!result) return;
+    const { org, db } = result;
     if (!db.enabled) return res.json({ transcript: [], duration: 0 });
 
     try {
-      let org = null;
-      try {
-        const payload = verifySessionToken(token);
-        const { data } = await db.client
-          .from('organizations').select('id')
-          .eq('owner_email', payload.email.trim().toLowerCase())
-          .eq('is_active', true).order('created_at', { ascending: false }).limit(1).single();
-        org = data;
-      } catch (_) {
-        org = await db.getOrgByApiKey(token);
-      }
-      if (!org) return res.status(401).json({ error: 'No autorizado' });
-
       // Look up call by id OR call_sid (portal.js uses callSid)
       const { data: call } = await db.client
-        .from('calls').select('id, call_sid, transcript, duration_ms, turn_count, metrics, started_at')
+        .from('calls').select('id, call_sid, transcript, duration_ms, turn_count, outcome, booked_appointment, started_at')
         .eq('org_id', org.id)
         .or(`id.eq.${req.params.id},call_sid.eq.${req.params.id}`)
         .single();
@@ -526,13 +505,199 @@ function setupAdminRoutes(app, config, assistantManager) {
         transcript: call.transcript || [],
         duration:   call.duration_ms ? Math.round(call.duration_ms / 1000) : 0,
         turnCount:  call.turn_count || 0,
-        outcome:    call.metrics?.outcome || 'unknown',
+        outcome:    call.outcome || 'unknown',
         startedAt:  call.started_at,
-        appointment: call.metrics?.bookedAppointment || null,
+        appointment: call.booked_appointment || null,
       });
     } catch (e) {
       log.error('Portal /calls/:id/transcript error', { error: e.message });
       res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
+  // ─── Phone Number Pool ────────────────────────────────────────────────────────
+  const { claimNumber, releaseNumber, getPoolStats, addNumber, listNumbers, updateNumber } = require('../telephony/phone-pool');
+
+  // GET /api/admin/phone-pool — lista todos los números con estado
+  app.get('/api/admin/phone-pool', adminAuth, async (req, res) => {
+    try {
+      const [numbers, stats] = await Promise.all([listNumbers(), getPoolStats()]);
+      res.json({ stats, numbers });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // POST /api/admin/phone-pool — añadir número al pool
+  // Body: { phoneNumber, provider?, prefix?, notes? }
+  app.post('/api/admin/phone-pool', adminAuth, async (req, res) => {
+    const { phoneNumber, provider, prefix, notes } = req.body;
+    if (!phoneNumber) return res.status(400).json({ error: 'phoneNumber requerido (E.164, ej: +34943123456)' });
+    try {
+      const num = await addNumber({ phoneNumber, provider, prefix, notes });
+      const stats = await getPoolStats();
+      log.info(`Número añadido al pool: ${phoneNumber}`);
+      res.status(201).json({ number: num, stats });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // PATCH /api/admin/phone-pool/:id — cambiar status (available/retired) o notas
+  app.patch('/api/admin/phone-pool/:id', adminAuth, async (req, res) => {
+    const allowed = ['status', 'notes', 'prefix', 'provider'];
+    const patch = {};
+    for (const k of allowed) { if (req.body[k] !== undefined) patch[k] = req.body[k]; }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'Sin campos a actualizar' });
+    if (patch.status && !['available', 'reserved', 'retired'].includes(patch.status)) {
+      return res.status(400).json({ error: 'status debe ser available|reserved|retired' });
+    }
+    try {
+      const num = await updateNumber(req.params.id, patch);
+      res.json({ number: num });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // POST /api/admin/phone-pool/:id/release — devolver número asignado al pool
+  app.post('/api/admin/phone-pool/:id/release', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    try {
+      const { data: row } = await db.client
+        .from('nf_phone_pool').select('org_id').eq('id', req.params.id).single();
+      if (!row?.org_id) return res.status(400).json({ error: 'Número no está asignado' });
+      await releaseNumber(row.org_id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // POST /api/admin/phone-pool/assign — asignar número manualmente a una org
+  // Body: { orgId, phoneNumber? } — si phoneNumber se omite, auto-asigna del pool
+  app.post('/api/admin/phone-pool/assign', adminAuth, async (req, res) => {
+    const { orgId, phoneNumber } = req.body;
+    if (!orgId) return res.status(400).json({ error: 'orgId requerido' });
+    const db = getDatabase();
+    try {
+      let assigned = phoneNumber;
+
+      if (!assigned) {
+        // Auto-asignar del pool
+        assigned = await claimNumber(orgId);
+        if (!assigned) return res.status(409).json({ error: 'Pool vacío — añade números antes' });
+      } else {
+        // Asignar número específico (puede estar en pool o ser nuevo)
+        await db.client.from('nf_phone_pool')
+          .upsert({ phone_number: assigned, provider: 'manual', status: 'assigned', org_id: orgId, assigned_at: new Date().toISOString() },
+            { onConflict: 'phone_number' });
+      }
+
+      // Guardar en automation_config de la org
+      const { data: org } = await db.client
+        .from('organizations').select('automation_config, owner_email, name').eq('id', orgId).single();
+      if (!org) return res.status(404).json({ error: 'Org no encontrada' });
+
+      const existingConfig = org.automation_config || {};
+      await db.client.from('organizations').update({
+        automation_config: {
+          ...existingConfig,
+          config: { ...(existingConfig.config || {}), nodeflowNumber: assigned, outboundNumber: assigned },
+        },
+      }).eq('id', orgId);
+
+      log.info(`Número ${assigned} asignado manualmente a org ${orgId}`);
+      res.json({ ok: true, phoneNumber: assigned, orgId });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Onboarding dashboard ─────────────────────────────────────────────────────
+  // GET /api/admin/onboarding — estado de onboarding de todos los registros activos
+  app.get('/api/admin/onboarding', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ clients: [] });
+    try {
+      // Get all active registros
+      const { data: registros } = await db.client
+        .from('registros')
+        .select('id, negocio, email, contacto, plan, sector, telefono, created_at, paid_at, status')
+        .eq('status', 'active')
+        .order('paid_at', { ascending: false })
+        .limit(100);
+
+      if (!registros?.length) return res.json({ clients: [] });
+
+      // Get corresponding orgs (join by owner_email)
+      const emails = registros.map(r => r.email);
+      const { data: orgs } = await db.client
+        .from('organizations')
+        .select('id, owner_email, automation_config, is_active, created_at')
+        .in('owner_email', emails)
+        .eq('is_active', true);
+
+      const orgByEmail = {};
+      for (const o of (orgs || [])) orgByEmail[o.owner_email] = o;
+
+      const clients = registros.map(r => {
+        const org    = orgByEmail[r.email] || null;
+        const config = org?.automation_config?.config || {};
+        const hasNumber = !!(config.nodeflowNumber);
+        const steps = {
+          paid:            !!r.paid_at,
+          org_created:     !!org,
+          number_assigned: hasNumber,
+          activation_sent: hasNumber, // si tiene número, el email se envió automáticamente
+        };
+        const complete = Object.values(steps).every(Boolean);
+        return {
+          registroId:  r.id,
+          orgId:       org?.id || null,
+          negocio:     r.negocio,
+          email:       r.email,
+          contacto:    r.contacto,
+          plan:        r.plan,
+          sector:      r.sector,
+          paidAt:      r.paid_at,
+          phoneNumber: config.nodeflowNumber || null,
+          steps,
+          complete,
+        };
+      });
+
+      const pending  = clients.filter(c => !c.complete).length;
+      const complete = clients.filter(c => c.complete).length;
+
+      res.json({ clients, summary: { total: clients.length, pending, complete } });
+    } catch (e) {
+      log.error('Onboarding dashboard error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/admin/test-whatsapp ───────────────────────────────────────────
+  // Envía un mensaje WA de prueba al número indicado usando el número de NodeFlow.
+  // Body: { phone: "34612345678", message?: "Texto de prueba" }
+  app.post('/api/admin/test-whatsapp', adminAuth, async (req, res) => {
+    const { sendText, isConfigured } = require('../notifications/client-whatsapp');
+    if (!isConfigured()) {
+      return res.status(503).json({ error: 'WA_PHONE_NUMBER_ID / WA_ACCESS_TOKEN no configurados' });
+    }
+    const phone = req.body?.phone;
+    if (!phone) return res.status(400).json({ error: 'phone requerido' });
+    const text = req.body?.message || '✅ Test NodeFlow WhatsApp OK — el número está configurado correctamente.';
+    try {
+      const result = await sendText(phone, text);
+      if (result.ok) {
+        log.info(`WA test sent to ${phone} by admin`);
+        return res.json({ ok: true, messageId: result.messageId });
+      }
+      return res.status(502).json({ ok: false, error: result.error });
+    } catch (e) {
+      log.error(`WA test error: ${e.message}`);
+      return res.status(500).json({ error: e.message });
     }
   });
 

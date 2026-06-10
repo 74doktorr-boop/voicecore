@@ -162,7 +162,7 @@ function buildPage(s){
   <div style="text-align:center;margin-bottom:16px;">
     <div class="section-label">Cómo funciona</div>
     <h2 class="section-title">Tres pasos. Sin instalar nada.</h2>
-    <p class="section-sub" style="margin:0 auto;">Conectamos NodeFlow a tu línea actual en menos de 24 horas.</p>
+    <p class="section-sub" style="margin:0 auto;">Conectamos NodeFlow a tu línea actual en pocos minutos.</p>
   </div>
   <div class="steps">${s.how.map((h,i)=>`<div class="step"><div class="step-num">${i+1}</div><h3>${h[0]}</h3><p>${h[1]}</p></div>`).join('')}</div>
 </div></section>
@@ -202,7 +202,7 @@ function buildPage(s){
 <section class="cta-section"><div class="container"><div class="cta-card">
   <div class="section-label">Empieza hoy</div>
   <h2>${s.ctaLine1}<br>${s.ctaLine2}<br><span class="grad-text">${s.ctaGrad}</span></h2>
-  <p>14 días gratis. Sin tarjeta de crédito. Configuración en menos de 24 horas. Cancela cuando quieras.</p>
+  <p>14 días gratis. Sin tarjeta de crédito. Activo en minutos. Cancela cuando quieras.</p>
   <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Probar NodeFlow gratis →</a>
   <div class="cta-price">Después, desde 49€/mes · Sin permanencia · Sin instalación</div>
 </div></div></section>

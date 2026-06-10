@@ -339,7 +339,9 @@ async function loadDashboard() {
         '<div class="section-title">' + greet + ', ' + esc(d.businessName) + ' 👋</div>' +
         '<div style="font-size:13px;color:var(--dim);margin-top:4px">' + dateStr + ' · Tu AI lleva activo ' + (d.daysActive || 0) + ' días</div>' +
       '</div>' +
-      '<span class="ai-status">● AI ACTIVO</span>' +
+      (d.aiStatus === 'pending'
+        ? '<span class="ai-status" style="background:rgba(249,202,36,.12);color:#f9ca24;border-color:rgba(249,202,36,.25)">◌ CONFIGURANDO</span>'
+        : '<span class="ai-status">● AI ACTIVO</span>') +
     '</div>' +
     '<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Hoy</div>' +
     '<div class="kpi-grid">' +
@@ -370,7 +372,12 @@ async function loadDashboard() {
             '<div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>' +
             '<div class="setup-step" data-step="2" onclick="navigate(\'asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente IA</strong> — nombre, voz, idioma y servicios → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
             '<div class="setup-step" data-step="3" onclick="navigate(\'configuracion\')" style="cursor:pointer;">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
-            '<div class="setup-step" data-step="4" onclick="navigate(\'configuracion\')" style="cursor:pointer">📞 <strong>Activa el desvío de llamadas</strong> — los códigos están en Configuración → <span style="color:#a29bfe;text-decoration:underline">Ver códigos →</span></div>' +
+            (d.onboarding && d.onboarding.number_assigned
+              ? '<div class="setup-step" data-step="4" onclick="navigate(\'configuracion\')" style="cursor:pointer">📞 <strong>Activa el desvío de llamadas</strong>' +
+                (d.nodeflowNumber ? ' — tu número NodeFlow: <strong style="color:#a29bfe">' + esc(d.nodeflowNumber) + '</strong>' : '') +
+                ' → <span style="color:#a29bfe;text-decoration:underline">Ver códigos →</span></div>'
+              : '<div class="setup-step" data-step="4" style="opacity:.6">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío en cuanto esté listo</div>'
+            ) +
           '</div>' +
           '<button onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>' +
         '</div>';
@@ -985,7 +992,14 @@ async function loadConfig() {
            ' class="btn btn-d" style="text-decoration:none">Contactar soporte</a>' +
       '</div>' +
     '</div>' +
-    (c.phone ? renderDesvioGuide(c.phone) : '');
+    // BUG FIX: usar outboundNumber (número NodeFlow asignado), NO c.phone (teléfono del propietario)
+    (c.outboundNumber
+      ? renderDesvioGuide(c.outboundNumber)
+      : '<div class="card" style="max-width:640px;margin-top:24px;border-color:rgba(249,202,36,.3);background:rgba(249,202,36,.04)">' +
+          '<div class="card-title" style="color:#f9ca24">⏳ Número NodeFlow pendiente de asignación</div>' +
+          '<p style="font-size:13px;color:var(--dim);margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
+          '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#a29bfe">Escríbenos →</a></p>' +
+        '</div>');
 }
 
 async function saveConfig() {
@@ -1486,20 +1500,35 @@ function renderAsistenteForm() {
     voiceEl.addEventListener('change', _onVoiceChange);
   }
 
-  // Schedule grid
+  // Schedule grid (supports partido: morning + afternoon)
   var sched = c.schedule || {};
   var schedHtml = _DAYS.map(function(d) {
     var slot = sched[d];
-    return '<div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center;margin-bottom:8px">' +
-      '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer">' +
-      '<input type="checkbox" id="asis-day-' + d + '"' + (slot ? ' checked' : '') + ' onchange="toggleAsisDayClosed(\'' + d + '\')">' +
-      ' ' + _DAY_LABELS[d] + '</label>' +
-      '<div id="asis-slots-' + d + '" style="display:' + (slot?'flex':'none') + ';gap:8px;align-items:center">' +
-      '<input type="time" class="form-ctrl" id="asis-open-' + d + '" value="' + (slot?slot.open:'09:00') + '" style="width:90px">' +
-      '<span style="color:var(--dim);font-size:11px">–</span>' +
-      '<input type="time" class="form-ctrl" id="asis-close-' + d + '" value="' + (slot?slot.close:'18:00') + '" style="width:90px">' +
+    var hasAfternoon = slot && slot.afternoon_open;
+    return '<div style="margin-bottom:10px">' +
+      '<div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center">' +
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer">' +
+          '<input type="checkbox" id="asis-day-' + d + '"' + (slot ? ' checked' : '') + ' onchange="toggleAsisDayClosed(\'' + d + '\')">' +
+          ' ' + _DAY_LABELS[d] + '</label>' +
+        '<div id="asis-slots-' + d + '" style="display:' + (slot?'block':'none') + '">' +
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+            '<input type="time" class="form-ctrl" id="asis-open-' + d + '" value="' + (slot?slot.open:'09:00') + '" style="width:90px">' +
+            '<span style="color:var(--dim);font-size:11px">–</span>' +
+            '<input type="time" class="form-ctrl" id="asis-close-' + d + '" value="' + (slot?slot.close:'14:00') + '" style="width:90px">' +
+            '<button type="button" id="asis-pm-btn-' + d + '" class="btn btn-sm" style="font-size:11px;padding:3px 8px" ' +
+              'onclick="toggleAsisAfternoon(\'' + d + '\')">' +
+              (hasAfternoon ? '– Tarde' : '+ Tarde') +
+            '</button>' +
+          '</div>' +
+          '<div id="asis-pm-' + d + '" style="display:' + (hasAfternoon?'flex':'none') + ';gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">' +
+            '<span style="color:var(--dim);font-size:11px;width:80px">Tarde</span>' +
+            '<input type="time" class="form-ctrl" id="asis-pm-open-' + d + '" value="' + (hasAfternoon?slot.afternoon_open:'16:00') + '" style="width:90px">' +
+            '<span style="color:var(--dim);font-size:11px">–</span>' +
+            '<input type="time" class="form-ctrl" id="asis-pm-close-' + d + '" value="' + (hasAfternoon?slot.afternoon_close:'20:00') + '" style="width:90px">' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      '</div>';
+    '</div>';
   }).join('');
   document.getElementById('asis-schedule-grid').innerHTML = schedHtml;
 
@@ -1513,7 +1542,16 @@ function renderAsistenteForm() {
 
 function toggleAsisDayClosed(day) {
   var checked = document.getElementById('asis-day-' + day).checked;
-  document.getElementById('asis-slots-' + day).style.display = checked ? 'flex' : 'none';
+  document.getElementById('asis-slots-' + day).style.display = checked ? 'block' : 'none';
+}
+
+function toggleAsisAfternoon(day) {
+  var pmEl  = document.getElementById('asis-pm-' + day);
+  var btnEl = document.getElementById('asis-pm-btn-' + day);
+  if (!pmEl) return;
+  var showing = pmEl.style.display !== 'none';
+  pmEl.style.display = showing ? 'none' : 'flex';
+  if (btnEl) btnEl.textContent = showing ? '+ Tarde' : '– Tarde';
 }
 
 // ── Sector field helpers ──────────────────────────────────────
@@ -1681,7 +1719,16 @@ function collectAsisConfig() {
   c.schedule = {};
   _DAYS.forEach(function(d) {
     var cb = document.getElementById('asis-day-' + d);
-    c.schedule[d] = (cb && cb.checked) ? { open: get('asis-open-' + d)||'09:00', close: get('asis-close-' + d)||'18:00' } : null;
+    if (!cb || !cb.checked) { c.schedule[d] = null; return; }
+    var slot = { open: get('asis-open-' + d)||'09:00', close: get('asis-close-' + d)||'14:00' };
+    var pmEl = document.getElementById('asis-pm-' + d);
+    if (pmEl && pmEl.style.display !== 'none') {
+      var pmOpen  = get('asis-pm-open-' + d);
+      var pmClose = get('asis-pm-close-' + d);
+      if (pmOpen)  slot.afternoon_open  = pmOpen;
+      if (pmClose) slot.afternoon_close = pmClose;
+    }
+    c.schedule[d] = slot;
   });
 
   var sector = _asisConfig.sector || 'generico';
@@ -2077,9 +2124,7 @@ function renderWaCard(waStatus) {
 
   var actionBtn = connected
     ? '<button class="btn btn-d btn-sm" onclick="disconnectWa()" style="margin-left:8px">Desconectar</button>'
-    : '<button class="btn btn-accent" onclick="openWaSignup()" style="background:linear-gradient(135deg,#25d366,#128c7e);border:none">'+
-        '<span style="margin-right:6px">💬</span>Conectar WhatsApp' +
-      '</button>';
+    : '<span style="font-size:11px;color:var(--dim);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 10px">Próximamente</span>';
 
   var connectedInfo = connected
     ? '<div style="margin-top:12px;font-size:12px;color:var(--dim)">' +
@@ -2087,8 +2132,9 @@ function renderWaCard(waStatus) {
         ' · WABA ID: <code style="font-size:11px">' + esc(waStatus.wabaId || '—') + '</code>' +
       '</div>'
     : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">' +
-        'Conecta tu número de WhatsApp Business para enviar confirmaciones, recordatorios y reseñas ' +
-        '<strong style="color:var(--text)">directamente desde tu número</strong> — no del número genérico de NodeFlow.' +
+        'Los recordatorios y confirmaciones ya se envían automáticamente desde el número de NodeFlow. ' +
+        'Próximamente podrás conectar tu propio número de WhatsApp Business para que los mensajes salgan ' +
+        '<strong style="color:var(--text)">con el nombre de tu negocio</strong>.' +
       '</div>';
 
   return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(37,211,102,.3)' : 'var(--border)') + '">' +
@@ -2106,10 +2152,9 @@ function renderWaCard(waStatus) {
     '</div>' +
     connectedInfo +
     (connected ? '' :
-      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;color:var(--dim)">' +
-        '<span>✅ Requiere número con WhatsApp Business activo</span>' +
-        '<span>✅ Se configura en &lt; 3 minutos</span>' +
-        '<span>✅ Los 3 templates se envían automáticamente</span>' +
+      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;color:var(--dim);flex-wrap:wrap">' +
+        '<span>✅ Notificaciones activas desde el número NodeFlow</span>' +
+        '<span>🔜 Número propio — próximamente</span>' +
       '</div>'
     ) +
   '</div>';
@@ -2268,21 +2313,39 @@ async function submitNewWebhook() {
     var data = await api('/api/portal/webhooks', 'POST', { url: url, events: events });
     closeModal();
     // Show secret — only shown once
+    window._pendingWebhookSecret = data.webhook.secret;
     openModal(
       '<div class="modal-title">✅ Webhook creado</div>' +
       '<p style="font-size:13px;color:var(--dim);margin-bottom:12px">' +
         '⚠️ <strong style="color:#f59e0b">Guarda este secreto ahora.</strong> No se volverá a mostrar.' +
       '</p>' +
-      '<div style="background:var(--card2);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#a29bfe">' +
+      '<textarea id="wh-secret-box" readonly style="width:100%;background:var(--card2);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#a29bfe;border:none;resize:none;box-sizing:border-box" rows="3">' +
         esc(data.webhook.secret) +
-      '</div>' +
-      '<button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="navigator.clipboard.writeText(\'' + esc(data.webhook.secret) + '\').then(function(){toast(\'Secreto copiado ✓\')});closeModal();loadIntegraciones()">' +
+      '</textarea>' +
+      '<button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="copyWebhookSecret()">' +
         '📋 Copiar y cerrar' +
       '</button>'
     );
   } catch (e) {
     toast('Error: ' + esc(e.message), 'err');
   }
+}
+
+function copyWebhookSecret() {
+  var secret = window._pendingWebhookSecret || '';
+  var el = document.getElementById('wh-secret-box');
+  if (el) { el.select(); }
+  if (navigator.clipboard && secret) {
+    navigator.clipboard.writeText(secret).catch(function() {
+      document.execCommand('copy');
+    });
+  } else {
+    document.execCommand('copy');
+  }
+  window._pendingWebhookSecret = null;
+  toast('Secreto copiado ✓');
+  closeModal();
+  loadIntegraciones();
 }
 
 async function toggleWebhook(id, enabled) {
@@ -2350,7 +2413,17 @@ async function openStripePortal() {
 // ── Llamadas salientes ────────────────────────────────────────
 async function callOutbound(phone, btn) {
   if (!phone) { toast('Número no disponible', 'err'); return; }
-  if (!confirm('¿Iniciar llamada saliente a ' + phone + '?\n\nEl asistente AI llamará a este número.')) return;
+  openModal(
+    '<div class="modal-title">📞 Llamada saliente</div>' +
+    '<p style="font-size:14px;margin:10px 0">El asistente AI llamará a <strong>' + esc(phone) + '</strong>.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="closeModal();_doCallOutbound(' + JSON.stringify(phone) + ',window._callOutboundBtn)">Llamar</button>' +
+    '</div>'
+  );
+  window._callOutboundBtn = btn;
+}
+async function _doCallOutbound(phone, btn) {
   if (btn) { btn.disabled = true; var origText = btn.textContent; btn.textContent = '⏳'; }
   try {
     await api('/api/portal/calls/outbound', 'POST', { to: phone });
@@ -2779,8 +2852,17 @@ async function loadReminderHistory() {
   '</table></div>';
 }
 
-async function sendReminderNow(id) {
-  if (!confirm('¿Enviar este recordatorio ahora?')) return;
+function sendReminderNow(id) {
+  openModal(
+    '<div class="modal-title">📨 Enviar recordatorio</div>' +
+    '<p style="font-size:14px;margin:10px 0">¿Enviar este recordatorio ahora?</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="closeModal();_submitSendReminder(' + JSON.stringify(id) + ')">Enviar</button>' +
+    '</div>'
+  );
+}
+async function _submitSendReminder(id) {
   try {
     await api('/api/portal/reminders/' + id + '/send-now', 'POST', {});
     toast('Recordatorio enviado ✓');
@@ -2816,8 +2898,17 @@ async function submitPostponeReminder(id) {
   }
 }
 
-async function cancelReminder(id) {
-  if (!confirm('¿Cancelar este recordatorio?')) return;
+function cancelReminder(id) {
+  openModal(
+    '<div class="modal-title">⛔ Cancelar recordatorio</div>' +
+    '<p style="font-size:14px;margin:10px 0">El recordatorio no se enviará. ¿Confirmas?</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Volver</button>' +
+      '<button class="btn btn-r" onclick="closeModal();_submitCancelReminder(' + JSON.stringify(id) + ')">Cancelar recordatorio</button>' +
+    '</div>'
+  );
+}
+async function _submitCancelReminder(id) {
   try {
     await api('/api/portal/reminders/' + id + '/cancel', 'POST', {});
     toast('Cancelado ✓');
