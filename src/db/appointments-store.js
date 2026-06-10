@@ -86,7 +86,7 @@ class AppointmentsStore {
         .toISOString().slice(0, 10);
 
       const { data, error } = await this._client
-        .from('appointments')
+        .from('nf_appointments')
         .select('*')
         .gte('date', cutoff)
         .order('date', { ascending: true });
@@ -111,7 +111,7 @@ class AppointmentsStore {
     if (!this._enabled) return;
     const row = this._toRow(apt);
     this._client
-      .from('appointments')
+      .from('nf_appointments')
       .upsert(row, { onConflict: 'id' })
       .then(({ error }) => {
         if (error) log.warn(`upsert ${apt.id}: ${error.message}`);
@@ -140,7 +140,7 @@ class AppointmentsStore {
     if (!Object.keys(dbFields).length) return;
 
     this._client
-      .from('appointments')
+      .from('nf_appointments')
       .update(dbFields)
       .eq('id', id)
       .then(({ error }) => {
