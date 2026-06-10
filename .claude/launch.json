@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],
       "port": 3000
+    },
+    {
+      "name": "static-public",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3999", "--directory", "public"],
+      "port": 3999
     }
   ]
 }

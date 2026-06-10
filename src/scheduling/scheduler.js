@@ -286,7 +286,7 @@ class SchedulingSystem {
     // ── WhatsApp: confirmación inmediata al cliente ───────────────────────────
     // Template: nodeflow_cita_confirmada (sin botones — solo información)
     // Fire-and-forget: no bloquea la respuesta de reserva
-    if (appointment.phone) {
+    if (appointment.phone && process.env.NODE_ENV !== 'test') {
       setImmediate(async () => {
         try {
           const { sendTemplate, isConfigured } = require('../notifications/client-whatsapp');
