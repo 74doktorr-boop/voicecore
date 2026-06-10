@@ -36,13 +36,35 @@ jobs:
 
       - name: Deploy to EasyPanel
         run: |
-          curl -s -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.updateSourceImage" \
+          set +e  # un timeout de EasyPanel no debe tumbar el workflow: la imagen ya está en GHCR
+
+          # 1. Fijar la nueva imagen (esto SÍ importa — con reintentos)
+          echo "→ Actualizando imagen del servicio…"
+          STATUS=$(curl -sS -o /tmp/upd.txt -w "%{http_code}" \
+            --connect-timeout 15 --max-time 60 --retry 3 --retry-delay 5 --retry-all-errors \
+            -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.updateSourceImage" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
-            -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}\"}}"
+            -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}\"}}")
+          echo "   updateSourceImage → HTTP $STATUS"
+          cat /tmp/upd.txt; echo
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::No se pudo fijar la imagen en EasyPanel (HTTP $STATUS). Revisa EASYPANEL_TOKEN o el panel."
+            exit 1
+          fi
+
           sleep 2
-          curl -s -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.deployService" \
+
+          # 2. Disparar el deploy. EasyPanel mantiene la conexión abierta mientras
+          #    descarga+reinicia, así que un timeout aquí es NORMAL y no es un fallo:
+          #    el deploy continúa en el servidor. Toleramos el timeout.
+          echo "→ Disparando deploy (la respuesta puede tardar; el deploy sigue en el servidor)…"
+          curl -sS -o /dev/null -w "   deployService → HTTP %{http_code}\n" \
+            --connect-timeout 15 --max-time 45 \
+            -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.deployService" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
-            -d '{"json":{"projectName":"voicecore","serviceName":"voicecore-api"}}'
-          echo "Deploy triggered."
+            -d '{"json":{"projectName":"voicecore","serviceName":"voicecore-api"}}' \
+            || echo "   (deployService no respondió a tiempo — normal, el deploy continúa en EasyPanel)"
+
+          echo "✅ Deploy disparado. La imagen quedó fijada correctamente."
