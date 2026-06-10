@@ -371,6 +371,30 @@ const db = getDatabase({
   supabaseKey: process.env.SUPABASE_SERVICE_KEY,
 });
 
+// ─── Initialize Appointments Store (persistencia de citas) ───
+const { appointmentsStore } = require('./src/db/appointments-store');
+appointmentsStore.init(db.client);
+// Cargar citas persistidas al Map del scheduler (fire-and-forget)
+appointmentsStore.loadAll().then(apts => {
+  if (!apts.length) return;
+  const { scheduler } = require('./src/scheduling/scheduler');
+  let loaded = 0;
+  for (const apt of apts) {
+    if (!scheduler.appointments.has(apt.id)) {
+      scheduler.appointments.set(apt.id, apt);
+      loaded++;
+      // Sincronizar el nextId para evitar colisiones
+      const num = parseInt(apt.id.replace('APT-', ''), 10);
+      if (!isNaN(num) && num >= scheduler.nextId) scheduler.nextId = num + 1;
+    }
+  }
+  const { Logger } = require('./src/utils/logger');
+  new Logger('SERVER').info(`Appointments restored: ${loaded} citas cargadas desde Supabase`);
+}).catch(e => {
+  const { Logger } = require('./src/utils/logger');
+  new Logger('SERVER').warn(`Appointments restore failed: ${e.message}`);
+});
+
 // ─── Initialize Webhook Dispatcher ───
 webhookDispatcher.init(db);
 

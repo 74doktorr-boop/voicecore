@@ -244,6 +244,12 @@ class SchedulingSystem {
     this.appointments.set(id, appointment);
     log.info(`Appointment booked: ${id} - ${patientName} on ${date} at ${time}`);
 
+    // Persistir en Supabase (fire-and-forget)
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      appointmentsStore.upsert(appointment);
+    } catch (_) {}
+
     // ── WhatsApp: confirmación inmediata al cliente ───────────────────────────
     // Template: nodeflow_cita_confirmada (sin botones — solo información)
     // Fire-and-forget: no bloquea la respuesta de reserva
@@ -333,8 +339,16 @@ class SchedulingSystem {
     if (!apt) return { success: false, error: 'No se ha encontrado ninguna cita con esos datos.' };
     if (apt.status === 'cancelled') return { success: false, error: 'Esa cita ya estaba cancelada.' };
 
-    apt.status = 'cancelled';
+    apt.status      = 'cancelled';
+    apt.cancelledAt = new Date().toISOString();
+    apt.updatedAt   = new Date().toISOString();
     log.info(`Appointment cancelled: ${apt.id} - ${apt.patientName}`);
+
+    // Persistir en Supabase (fire-and-forget)
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      appointmentsStore.patch(apt.id, { status: 'cancelled', cancelledAt: apt.cancelledAt, updatedAt: apt.updatedAt });
+    } catch (_) {}
 
     return {
       success: true,

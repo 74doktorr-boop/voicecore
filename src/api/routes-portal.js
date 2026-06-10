@@ -216,6 +216,13 @@ function setupPortalRoutes(app, pipeline, config) {
     }
     apt.updatedAt = new Date().toISOString();
     log.info(`Portal: appointment updated ${apt.id}`);
+
+    // Persistir en Supabase
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      appointmentsStore.upsert(apt);
+    } catch (_) {}
+
     res.json({ ok: true, appointment: apt });
   });
 
@@ -254,6 +261,18 @@ function setupPortalRoutes(app, pipeline, config) {
     }
 
     log.info(`Portal: appointment cancelled ${apt.id}`);
+
+    // Persistir cancelación en Supabase
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      appointmentsStore.patch(apt.id, {
+        status:      'cancelled',
+        cancelledAt: apt.cancelledAt,
+        cancelledBy: 'portal',
+        updatedAt:   new Date().toISOString(),
+      });
+    } catch (_) {}
+
     res.json({ ok: true });
   });
 
