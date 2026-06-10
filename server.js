@@ -506,6 +506,10 @@ criticalDatesStore.loadFromDB().catch(e => log.warn('Critical dates DB load fail
 const { startBackupCron } = require('./src/db/backup');
 startBackupCron();
 
+// Informe semanal a clientes (lunes 08:00 Madrid)
+const { startWeeklyReportCron } = require('./src/reports/weekly-report');
+startWeeklyReportCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {

@@ -287,7 +287,25 @@ describe('whatsapp: normalizePhone', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 5. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
+// 5. Informe semanal — rango de fechas y render del email
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('weekly-report', () => {
+  const { lastWeekRange } = require('../src/reports/weekly-report');
+
+  test('el rango cubre exactamente 7 días y termina ayer', () => {
+    const { from, to } = lastWeekRange();
+    assert.match(from, /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(to, /^\d{4}-\d{2}-\d{2}$/);
+    const days = (new Date(to) - new Date(from)) / 86400000;
+    assert.strictEqual(days, 6); // from..to inclusive = 7 días
+    const hoy = new Date().toLocaleDateString('sv-SE');
+    assert.ok(to < hoy, 'el rango debe terminar antes de hoy');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 6. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('auth middleware: resolveApiKey', () => {

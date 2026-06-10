@@ -715,6 +715,23 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ── POST /api/admin/weekly-report ───────────────────────────────────────────
+  // Lanza el informe semanal manualmente. Body: { orgId?, dryRun? }
+  // dryRun: true → calcula y devuelve los datos sin enviar emails.
+  app.post('/api/admin/weekly-report', adminAuth, async (req, res) => {
+    try {
+      const { sendWeeklyReports } = require('../reports/weekly-report');
+      const result = await sendWeeklyReports({
+        orgId:  req.body?.orgId  || null,
+        dryRun: req.body?.dryRun !== false, // por defecto dryRun=true — envío real requiere {dryRun:false}
+      });
+      return res.status(result.ok ? 200 : 502).json(result);
+    } catch (e) {
+      log.error(`Weekly report manual error: ${e.message}`);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 
