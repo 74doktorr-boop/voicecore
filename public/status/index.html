@@ -123,12 +123,16 @@ async function check() {
     setSvc('svcDb', data.database === 'connected' ? 's-ok' : 's-warn', data.database === 'connected' ? 'Operativa' : 'Modo memoria');
     setSvc('svcNotif', ok ? 's-ok' : 's-warn', ok ? 'Operativo' : 'Posible retraso');
   } catch (e) {
+    // La página cargó pero no se alcanzó /health. Puede ser un blip de red del
+    // visitante o del API — NO afirmamos que "la web" esté caída (esta página es la web).
     banner.className = 'banner down';
-    document.getElementById('bannerText').textContent = 'No se puede conectar';
-    document.getElementById('bannerSub').textContent = 'El servidor no responde — reintentando…';
+    document.getElementById('bannerText').textContent = 'Comprobando conexión…';
+    document.getElementById('bannerSub').textContent = 'No hemos podido contactar con el servicio — reintentando en unos segundos';
     document.getElementById('mLatency').textContent = '—';
-    setSvc('svcVoice', 's-down', 'Incidencia');
-    setSvc('svcWeb', 's-down', 'Incidencia');
+    document.getElementById('mUptime').textContent = '—';
+    document.getElementById('mCalls').textContent = '—';
+    setSvc('svcVoice', 's-unknown', 'Comprobando…');
+    setSvc('svcWeb', 's-ok', 'Operativo'); // esta página cargó → la web funciona
     setSvc('svcDb', 's-unknown', '—');
     setSvc('svcNotif', 's-unknown', '—');
   }
