@@ -822,6 +822,21 @@ function setupAdminRoutes(app, config, assistantManager) {
     });
   });
 
+  // ── POST /api/admin/daily-briefing — resumen del día (dryRun por defecto) ────
+  app.post('/api/admin/daily-briefing', adminAuth, async (req, res) => {
+    try {
+      const { sendDailyBriefings } = require('../reports/daily-briefing');
+      const result = await sendDailyBriefings({
+        orgId:  req.body?.orgId  || null,
+        dryRun: req.body?.dryRun !== false,
+      });
+      return res.status(result.ok ? 200 : 502).json(result);
+    } catch (e) {
+      log.error(`Daily briefing manual error: ${e.message}`);
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 

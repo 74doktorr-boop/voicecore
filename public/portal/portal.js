@@ -86,7 +86,95 @@ function navigate(section) {
   else if (section === 'referidos')        loadReferidos();
   else if (section === 'widget')           loadWidget();
   else if (section === 'tareas')           loadTareas();
+  else if (section === 'oportunidades')    loadOportunidades();
+  else if (section === 'insights')         loadInsights();
   if (section === 'asistente') loadAsistente();
+}
+
+// ════════ Oportunidades (llamadas sin cita) ═══════════════════════════════════
+async function loadOportunidades() {
+  var box = document.getElementById('oportunidades-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  var d;
+  try { d = await api('/api/portal/missed-opportunities'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
+
+  var ops = d.opportunities || [];
+  if (!ops.length) {
+    box.innerHTML = '<div class="card" style="text-align:center;padding:30px"><div style="font-size:40px;margin-bottom:8px">🎉</div>' +
+      '<div style="font-weight:700">¡Sin oportunidades perdidas!</div>' +
+      '<div style="color:var(--dim);font-size:13px;margin-top:4px">Todas las llamadas recientes acabaron en cita o no hay llamadas aún.</div></div>';
+    return;
+  }
+  var rows = ops.map(function(o){
+    var tel = o.phone.replace(/[^0-9+]/g,'');
+    return '<tr>' +
+      '<td><strong>' + esc(o.phone) + '</strong>' + (o.count>1?' <span class="badge bp" style="font-size:10px">'+o.count+' llamadas</span>':'') + '</td>' +
+      '<td style="color:var(--dim);font-size:12px">' + (o.lastCall?timeAgo(o.lastCall):'—') + '</td>' +
+      '<td style="text-align:right">' +
+        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none">📞 Llamar</a> ' +
+        '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + esc(tel.replace(/\+/g,'')) + '" target="_blank">💬</a>' +
+      '</td></tr>';
+  }).join('');
+  box.innerHTML =
+    '<div class="card" style="margin-bottom:14px;background:rgba(253,203,110,.06);border-color:rgba(253,203,110,.25)">' +
+      '<div style="font-size:13px;color:var(--dim);line-height:1.6">💡 Estas personas llamaron en los últimos ' + (d.sinceDays||14) + ' días pero <strong style="color:var(--text)">no llegaron a reservar cita</strong>. Una llamada o un WhatsApp puede convertirlas en clientes.</div>' +
+    '</div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Teléfono</th><th>Última llamada</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// ════════ Insights (horas/días punta + conversión) ═══════════════════════════
+async function loadInsights() {
+  var box = document.getElementById('insights-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  var d;
+  try { d = await api('/api/portal/insights'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
+
+  if (!d.available) {
+    box.innerHTML = '<div class="card" style="text-align:center;padding:30px"><div style="font-size:40px;margin-bottom:8px">📈</div>' +
+      '<div style="font-weight:700">Aún no hay datos suficientes</div>' +
+      '<div style="color:var(--dim);font-size:13px;margin-top:4px">Los insights aparecerán cuando empieces a recibir llamadas.</div></div>';
+    return;
+  }
+
+  function bars(arr, labels, accent) {
+    var max = Math.max.apply(null, arr) || 1;
+    return '<div style="display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:10px">' +
+      arr.map(function(v,i){
+        var h = Math.round((v/max)*100);
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">' +
+          '<div style="font-size:9px;color:var(--dim);margin-bottom:2px">' + (v||'') + '</div>' +
+          '<div title="' + esc(labels[i]) + ': ' + v + '" style="width:100%;background:' + accent + ';opacity:' + (0.35+0.65*(v/max)) + ';border-radius:3px 3px 0 0;height:' + Math.max(h,2) + '%"></div>' +
+          '<div style="font-size:9px;color:var(--dim);margin-top:3px">' + esc(labels[i]) + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  var hourLabels = []; for (var h=0;h<24;h++) hourLabels.push(h%3===0? (h+'h'):'');
+  var dayLabels = ['D','L','M','X','J','V','S'];
+  // reordenar días para empezar en Lunes
+  var dayOrder = [1,2,3,4,5,6,0];
+  var byDayOrdered = dayOrder.map(function(i){ return d.byDay[i]; });
+  var dayLabelsOrdered = dayOrder.map(function(i){ return ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][i]; });
+
+  box.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">' +
+      nfStat(d.total, 'Llamadas (30 días)') +
+      nfStat(d.convRate + '%', 'Acaban en cita', 'var(--green,#00cec9)') +
+      nfStat(d.peakDayName || '—', 'Día más activo', '#fdcb6e') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:2px">🕐 ¿A qué hora te llaman?</div>' +
+      '<div style="font-size:12px;color:var(--dim)">Hora punta: <strong style="color:var(--accent-l)">' + (d.peakHour!=null?d.peakHour+':00':'—') + '</strong></div>' +
+      bars(d.byHour, hourLabels, 'var(--accent,#6c5ce7)') +
+    '</div>' +
+    '<div class="card">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ¿Qué días te llaman?</div>' +
+      bars(byDayOrdered, dayLabelsOrdered, '#00b894') +
+    '</div>';
 }
 
 // ════════ Mis tareas (mini-agenda CRM) ════════════════════════════════════════

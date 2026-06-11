@@ -687,6 +687,87 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true });
   });
 
+  // ── GET /api/portal/missed-opportunities ── llamadas sin cita (recuperar) ───
+  app.get('/api/portal/missed-opportunities', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ opportunities: [] });
+    const sinceDays = Math.min(parseInt(req.query.days) || 14, 60);
+    const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+    try {
+      const { data } = await db.client
+        .from('calls')
+        .select('caller_number, outcome, started_at, duration_ms')
+        .eq('org_id', req.businessId)
+        .gte('started_at', since)
+        .neq('outcome', 'booked')
+        .order('started_at', { ascending: false })
+        .limit(300);
+
+      // Agrupar por número: nos quedamos con la llamada más reciente de cada uno
+      const byPhone = {};
+      for (const c of (data || [])) {
+        if (!c.caller_number) continue;
+        if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, count: 0, lastOutcome: c.outcome };
+        byPhone[c.caller_number].count++;
+      }
+      const opportunities = Object.values(byPhone)
+        .sort((a, b) => new Date(b.lastCall) - new Date(a.lastCall))
+        .slice(0, 100);
+      res.json({ ok: true, sinceDays, opportunities });
+    } catch (e) {
+      log.warn(`missed-opportunities: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── GET /api/portal/insights ── horas/días punta + conversión ───────────────
+  app.get('/api/portal/insights', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ available: false });
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    try {
+      const { data } = await db.client
+        .from('calls')
+        .select('outcome, started_at')
+        .eq('org_id', req.businessId)
+        .gte('started_at', since)
+        .limit(5000);
+
+      const calls = data || [];
+      const byHour = Array(24).fill(0);
+      const byDay  = Array(7).fill(0); // 0=domingo
+      let booked = 0;
+      for (const c of calls) {
+        if (!c.started_at) continue;
+        // Convertir a hora de Madrid
+        const d = new Date(c.started_at);
+        const madrid = new Date(d.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+        byHour[madrid.getHours()]++;
+        byDay[madrid.getDay()]++;
+        if (c.outcome === 'booked') booked++;
+      }
+      const total = calls.length;
+      const peakHour = byHour.indexOf(Math.max(...byHour));
+      const dayNames = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      const peakDay = byDay.indexOf(Math.max(...byDay));
+
+      res.json({
+        available: total > 0,
+        total,
+        booked,
+        convRate: total > 0 ? Math.round((booked / total) * 100) : 0,
+        byHour,
+        byDay,
+        peakHour: total > 0 ? peakHour : null,
+        peakDayName: total > 0 ? dayNames[peakDay] : null,
+        periodDays: 30,
+      });
+    } catch (e) {
+      log.warn(`insights: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── GET /api/portal/contacts/:id ──────────────────────────
   app.get('/api/portal/contacts/:id', portalAuth, async (req, res) => {
     const { businessId } = req;

@@ -522,6 +522,10 @@ startBackupCron();
 const { startWeeklyReportCron } = require('./src/reports/weekly-report');
 startWeeklyReportCron();
 
+// Resumen del día a clientes (cada día 08:00 Madrid)
+const { startDailyBriefingCron } = require('./src/reports/daily-briefing');
+startDailyBriefingCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {
