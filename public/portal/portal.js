@@ -83,6 +83,7 @@ function navigate(section) {
   else if (section === 'integraciones')    loadIntegraciones();
   else if (section === 'seguimientos')     loadSeguimientos();
   else if (section === 'ayuda')            loadAyuda();
+  else if (section === 'referidos')        loadReferidos();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -3053,6 +3054,82 @@ var FAQ_DATA = [
     ],
   },
 ];
+
+async function loadReferidos() {
+  var box = document.getElementById('referidos-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando tu código…</div></div>';
+
+  var d;
+  try { d = await api('/api/portal/referral'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>No se pudo cargar: ' + esc(e.message) + '</div></div>'; return; }
+
+  if (!d || !d.available) {
+    box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎁</div><div>Tu código de referido estará disponible en breve.</div></div>';
+    return;
+  }
+
+  var waShare = 'https://wa.me/?text=' + encodeURIComponent(d.shareText);
+
+  box.innerHTML =
+    // Hero explicativo
+    '<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.08));border-color:rgba(108,92,231,.3)">' +
+      '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">' +
+        '<div style="font-size:46px;line-height:1">🎁</div>' +
+        '<div style="flex:1;min-width:220px">' +
+          '<div style="font-size:17px;font-weight:800;margin-bottom:4px">Tú ganas, tu colega gana</div>' +
+          '<div style="font-size:13px;color:var(--dim);line-height:1.6">Comparte tu código con otro negocio. Cuando se dé de alta con él, ' +
+          '<strong style="color:var(--text)">se lleva un ' + d.refereeDiscount + '% de descuento</strong> y ' +
+          '<strong style="color:var(--accent-l)">tú un mes a mitad de precio</strong>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Código + acciones
+    '<div class="card" style="margin-bottom:18px">' +
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Tu código</div>' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+        '<code style="font-size:20px;font-weight:800;color:var(--accent-l);background:rgba(108,92,231,.1);border:1px solid rgba(108,92,231,.3);border-radius:10px;padding:10px 18px;letter-spacing:1px">' + esc(d.code) + '</code>' +
+        '<button class="btn btn-d btn-sm" onclick="nfCopy(\'' + esc(d.code) + '\',this)">📋 Copiar código</button>' +
+        '<button class="btn btn-d btn-sm" onclick="nfCopy(\'' + esc(d.link) + '\',this)">🔗 Copiar enlace</button>' +
+        '<a class="btn btn-sm" href="' + esc(waShare) + '" target="_blank" rel="noopener" style="background:#25d366;color:#fff;border:none">💬 Compartir por WhatsApp</a>' +
+      '</div>' +
+    '</div>' +
+
+    // Estadísticas
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">' +
+      nfStat(d.timesShared,    'Veces compartido') +
+      nfStat(d.timesConverted, 'Se dieron de alta', 'var(--green,#00cec9)') +
+      nfStat(d.rewardPending,  'Recompensas pendientes', '#00b894') +
+    '</div>' +
+    (d.rewardPending > 0
+      ? '<div style="margin-top:14px;background:rgba(0,184,148,.08);border:1px solid rgba(0,184,148,.25);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)">🎉 Tienes <strong style="color:#00b894">' + d.rewardPending + ' recompensa(s)</strong> pendientes de aplicar. Te contactaremos para descontarlas de tu próxima factura.</div>'
+      : '');
+}
+
+function nfStat(value, label, color) {
+  return '<div class="card" style="text-align:center;padding:18px 10px">' +
+    '<div style="font-size:26px;font-weight:900;color:' + (color || 'var(--accent-l)') + '">' + (value || 0) + '</div>' +
+    '<div style="font-size:11px;color:var(--dim);margin-top:4px">' + label + '</div></div>';
+}
+
+function nfCopy(text, btn) {
+  function done() {
+    if (!btn) return;
+    var old = btn.textContent; btn.textContent = '✅ Copiado';
+    setTimeout(function(){ btn.textContent = old; }, 1500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function(){ nfCopyFallback(text); done(); });
+  } else { nfCopyFallback(text); done(); }
+}
+function nfCopyFallback(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
+  document.body.removeChild(ta);
+}
 
 function loadAyuda() {
   var container = document.getElementById('faq-list');
