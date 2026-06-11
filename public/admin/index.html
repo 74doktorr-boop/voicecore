@@ -170,6 +170,7 @@
     <button class="nav-tab" onclick="switchTab('flujos',this)">⚡ Flujos</button>
     <button class="nav-tab" onclick="switchTab('llamadas',this)">📞 Llamadas</button>
     <button class="nav-tab" onclick="switchTab('pool',this)">🔢 Pool números</button>
+    <button class="nav-tab" onclick="switchTab('sistema',this)">🩺 Sistema</button>
   </nav>
 
   <main>
@@ -389,6 +390,17 @@
       </div>
     </div>
 
+    <!-- Sistema: diagnóstico + atribución -->
+    <div class="tab-panel" id="tab-sistema">
+      <div class="section-hd">
+        <div><h2>Sistema</h2><p>Diagnóstico de configuración y atribución de leads</p></div>
+        <button class="refresh-btn" onclick="loadSistema()">↻ Actualizar</button>
+      </div>
+      <div id="diagBox" style="margin-bottom:28px"></div>
+      <div class="section-hd" style="margin-top:8px"><div><h2 style="font-size:16px">📈 Atribución — qué landing convierte</h2></div></div>
+      <div class="table-wrap"><table id="attrTable"><thead><tr><th>Origen</th><th>Leads</th><th>Pagaron</th><th>% conv.</th><th>MRR</th></tr></thead><tbody id="attrBody"><tr><td colspan="5" style="color:var(--dim)">Cargando…</td></tr></tbody></table></div>
+    </div>
+
   </main>
 </div>
 
@@ -446,6 +458,64 @@ function switchTab(name,btn) {
   if(name==='automatizaciones') loadAutoStats();
   if(name==='flujos') loadFlows();
   if(name==='pool') loadPool();
+  if(name==='sistema') loadSistema();
+}
+
+// ── Sistema: diagnóstico + atribución ──
+async function loadSistema() {
+  loadDiagnostics();
+  loadAttribution();
+}
+
+async function loadDiagnostics() {
+  const box = document.getElementById('diagBox');
+  box.innerHTML = '<div style="color:var(--dim)">Cargando diagnóstico…</div>';
+  try {
+    const d = await api('/api/admin/diagnostics');
+    const dot = (ok) => '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(ok?'#00b894':'#e17055')+';margin-right:7px;vertical-align:middle"></span>';
+    const row = (label, ok) => '<div style="display:flex;align-items:center;padding:5px 0;font-size:13px">'+dot(ok)+'<span style="color:'+(ok?'var(--text)':'#e17055')+'">'+label+'</span></div>';
+
+    const g = d.groups;
+    function card(title, items) {
+      return '<div class="card" style="padding:16px 18px"><div class="card-title" style="margin-bottom:10px;font-size:13px">'+title+'</div>'+
+        items.map(([l,v])=>row(l,v)).join('')+'</div>';
+    }
+
+    let warn = '';
+    if (d.warnings && d.warnings.length) {
+      warn = '<div class="card" style="padding:16px 18px;margin-bottom:18px;border-color:#e17055;background:rgba(225,112,85,.06)">'+
+        '<div class="card-title" style="color:#e17055;margin-bottom:8px">⚠️ Avisos</div>'+
+        d.warnings.map(w=>'<div style="font-size:13px;color:var(--text);padding:3px 0">• '+w+'</div>').join('')+'</div>';
+    } else {
+      warn = '<div class="card" style="padding:14px 18px;margin-bottom:18px;border-color:#00b894;background:rgba(0,184,148,.06)"><div style="color:#00b894;font-weight:700;font-size:14px">✅ Todo configurado correctamente</div></div>';
+    }
+
+    box.innerHTML = warn +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">' +
+        card('💬 WhatsApp', [['Phone Number ID',g.whatsapp.phoneNumberId],['Access Token',g.whatsapp.accessToken],['Webhook verify',g.whatsapp.webhookVerify],['App Secret (firma)',g.whatsapp.appSecret]]) +
+        card('💳 Stripe', [['Secret Key',g.stripe.secretKey],['Webhook Secret',g.stripe.webhookSecret],['Precio Negocio',g.stripe.businessPrice],['Precio Pro',g.stripe.proPrice]]) +
+        card('📧 Email', [['Resend Key',g.email.resendKey],['Notify Email',g.email.notifyEmail]]) +
+        card('🔐 Auth', [['JWT Secret',g.auth.jwtSecret],['Dashboard pass',g.auth.dashboardPassword],['API_KEY segura',!g.auth.apiKeyIsDefault]]) +
+        card('🎙️ Voz', [['Deepgram',g.voice.deepgram],['OpenAI',g.voice.openai],['Telnyx',g.voice.telnyx],['Twilio',g.voice.twilio]]) +
+        card('🗄️ Base de datos', [['Conectada',g.database.enabled],['URL',g.database.url],['Service Key',g.database.serviceKey]]) +
+      '</div>';
+  } catch (e) {
+    box.innerHTML = '<div style="color:#e17055">Error: '+(e.message||e)+'</div>';
+  }
+}
+
+async function loadAttribution() {
+  const body = document.getElementById('attrBody');
+  try {
+    const d = await api('/api/admin/attribution');
+    if (!d.sources || !d.sources.length) { body.innerHTML='<tr><td colspan="5" style="color:var(--dim)">Sin datos aún</td></tr>'; return; }
+    body.innerHTML = d.sources.map(s =>
+      '<tr><td><strong>'+s.source+'</strong></td><td>'+s.leads+'</td><td>'+s.paid+'</td><td>'+s.convRate+'%</td><td>'+(s.mrr||0)+'€</td></tr>'
+    ).join('') +
+    '<tr style="border-top:2px solid var(--border);font-weight:700"><td>TOTAL</td><td>'+d.totals.leads+'</td><td>'+d.totals.paid+'</td><td>—</td><td>'+d.totals.mrr+'€</td></tr>';
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="5" style="color:#e17055">Error: '+(e.message||e)+'</td></tr>';
+  }
 }
 
 let _tt;
