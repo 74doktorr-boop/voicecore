@@ -40,9 +40,13 @@ const { flowManager }             = require('./src/automations/flow-manager');
 const { getBilling } = require('./src/billing/stripe');
 const BrowserCallHandler = require('./src/browser/browser-call');
 const { startMonitor } = require('./src/monitoring/health-check');
+const { installProcessHandlers, expressErrorHandler } = require('./src/monitoring/error-tracker');
 
 const log = new Logger('SERVER');
 const PORT = process.env.PORT || 3001;
+
+// Capturar errores no manejados a nivel de proceso (alertan por email)
+installProcessHandlers({ onFatal: () => { try { server.close(); } catch (_) {} } });
 
 // ─── Validate Config ───
 const requiredEnvVars = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY'];
@@ -610,6 +614,9 @@ app.use((req, res) => {
   }
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
+
+// ─── Error handler global (debe ir el último) — captura, alerta y 500 limpio ───
+app.use(expressErrorHandler());
 
 // ─── Start Server ───
 const ttsProviders = ttsRouter.listAvailableVoices().map(v => v.provider).join(', ') || 'none';

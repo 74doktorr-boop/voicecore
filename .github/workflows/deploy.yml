@@ -36,35 +36,49 @@ jobs:
 
       - name: Deploy to EasyPanel
         run: |
-          set +e  # un timeout de EasyPanel no debe tumbar el workflow: la imagen ya está en GHCR
+          set +e  # gestionamos los errores a mano; la imagen ya está a salvo en GHCR
 
-          # 1. Fijar la nueva imagen (esto SÍ importa — con reintentos)
-          echo "→ Actualizando imagen del servicio…"
-          STATUS=$(curl -sS -o /tmp/upd.txt -w "%{http_code}" \
-            --connect-timeout 15 --max-time 60 --retry 3 --retry-delay 5 --retry-all-errors \
-            -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.updateSourceImage" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
-            -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}\"}}")
-          echo "   updateSourceImage → HTTP $STATUS"
-          cat /tmp/upd.txt; echo
+          EP="https://xmehd4.easypanel.host"
+          AUTH="Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}"
+          IMG="ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}"
+
+          # 1. Fijar la nueva imagen — bucle de reintentos resiliente a cortes
+          #    de EasyPanel (HTTP 000). Hasta 10 intentos x ~30s ≈ 5 min de
+          #    tolerancia, suficiente para aguantar caídas transitorias de su API.
+          echo "→ Fijando imagen del servicio (reintentos hasta ~5 min)…"
+          STATUS=000
+          for i in $(seq 1 10); do
+            STATUS=$(curl -sS -o /tmp/upd.txt -w "%{http_code}" \
+              --connect-timeout 15 --max-time 40 \
+              -X POST "$EP/api/trpc/services.app.updateSourceImage" \
+              -H "Content-Type: application/json" -H "$AUTH" \
+              -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"$IMG\"}}")
+            echo "   intento $i → HTTP $STATUS"
+            [ "$STATUS" = "200" ] && break
+            [ $i -lt 10 ] && sleep 30
+          done
+          cat /tmp/upd.txt 2>/dev/null; echo
           if [ "$STATUS" != "200" ]; then
-            echo "::error::No se pudo fijar la imagen en EasyPanel (HTTP $STATUS). Revisa EASYPANEL_TOKEN o el panel."
+            echo "::error::EasyPanel no respondió tras 10 intentos (HTTP $STATUS). La imagen $IMG está en GHCR; despliega manualmente desde el panel o re-lanza el workflow."
             exit 1
           fi
+          echo "   ✓ Imagen fijada."
 
           sleep 2
 
           # 2. Disparar el deploy. EasyPanel mantiene la conexión abierta mientras
-          #    descarga+reinicia, así que un timeout aquí es NORMAL y no es un fallo:
-          #    el deploy continúa en el servidor. Toleramos el timeout.
-          echo "→ Disparando deploy (la respuesta puede tardar; el deploy sigue en el servidor)…"
-          curl -sS -o /dev/null -w "   deployService → HTTP %{http_code}\n" \
-            --connect-timeout 15 --max-time 45 \
-            -X POST "https://xmehd4.easypanel.host/api/trpc/services.app.deployService" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
-            -d '{"json":{"projectName":"voicecore","serviceName":"voicecore-api"}}' \
-            || echo "   (deployService no respondió a tiempo — normal, el deploy continúa en EasyPanel)"
+          #    descarga+reinicia, así que un timeout aquí es NORMAL: el deploy
+          #    continúa en el servidor. Lo intentamos un par de veces y toleramos timeout.
+          echo "→ Disparando deploy…"
+          for i in 1 2 3; do
+            CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+              --connect-timeout 15 --max-time 45 \
+              -X POST "$EP/api/trpc/services.app.deployService" \
+              -H "Content-Type: application/json" -H "$AUTH" \
+              -d '{"json":{"projectName":"voicecore","serviceName":"voicecore-api"}}')
+            echo "   deployService intento $i → HTTP $CODE"
+            [ "$CODE" = "200" ] && break
+            [ $i -lt 3 ] && sleep 10
+          done
 
           echo "✅ Deploy disparado. La imagen quedó fijada correctamente."

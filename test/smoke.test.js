@@ -305,7 +305,41 @@ describe('weekly-report', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 6. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
+// 6. Error tracker — middleware de Express
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('error-tracker', () => {
+  const { expressErrorHandler } = require('../src/monitoring/error-tracker');
+
+  test('el middleware de Express devuelve 500 con JSON limpio', () => {
+    const mw = expressErrorHandler();
+    const req = { method: 'GET', originalUrl: '/api/x', ip: '1.2.3.4' };
+    const res = {
+      statusCode: 200, headersSent: false, body: null,
+      status(c) { this.statusCode = c; return this; },
+      json(b) { this.body = b; return this; },
+    };
+    mw(new Error('boom'), req, res, () => {});
+    assert.strictEqual(res.statusCode, 500);
+    assert.strictEqual(res.body.error, 'Error interno del servidor');
+  });
+
+  test('respeta el status del error si lo trae', () => {
+    const mw = expressErrorHandler();
+    const req = { method: 'POST', url: '/y', ip: '1.1.1.1' };
+    const res = {
+      statusCode: 200, headersSent: false, body: null,
+      status(c) { this.statusCode = c; return this; },
+      json(b) { this.body = b; return this; },
+    };
+    const err = new Error('no auth'); err.status = 403;
+    mw(err, req, res, () => {});
+    assert.strictEqual(res.statusCode, 403);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 7. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('auth middleware: resolveApiKey', () => {
