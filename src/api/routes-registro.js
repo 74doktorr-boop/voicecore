@@ -123,7 +123,22 @@ function setupRegistroRoutes(app) {
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
       const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
-      const couponData = validateCoupon(coupon);
+      // Cupón estático primero; si no, comprobar si es un código de referido (DB)
+      let couponData = validateCoupon(coupon);
+      let referralData = null;
+      if (!couponData && coupon) {
+        try {
+          referralData = await require('../referrals/referrals').lookupReferral(coupon);
+          if (referralData) {
+            couponData = {
+              code:       referralData.code,
+              discount:   referralData.discount,
+              source:     'referral',
+              stripeCode: referralData.stripeCode,
+            };
+          }
+        } catch (_) {}
+      }
 
       // Validación básica — core required fields only
       const required = { sector, negocio, contacto, telefono, email, plan };
@@ -181,6 +196,13 @@ function setupRegistroRoutes(app) {
       });
 
       log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
+
+      // Si entró por un referido, registrar el signup (la conversión se marca al pagar)
+      if (referralData) {
+        require('../referrals/referrals')
+          .recordSignup(referralData.code, row.id, row.email)
+          .catch(e => log.warn(`recordSignup fallido: ${e.message}`));
+      }
 
       // ── Notificaciones — fire & forget (no bloquean la respuesta) ───────────
       // 1. Auto-responder al lead: "Recibido, te contactamos en <24h"

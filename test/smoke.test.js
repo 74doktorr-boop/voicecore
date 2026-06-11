@@ -339,7 +339,33 @@ describe('error-tracker', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 7. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
+// 7. Referidos — generación de código
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('referrals', () => {
+  const { slugify, buildCode, REFEREE_DISCOUNT } = require('../src/referrals/referrals');
+
+  test('slugify limpia acentos, espacios y símbolos', () => {
+    assert.strictEqual(slugify('Clínica Dental López'), 'CLINIC');
+    assert.strictEqual(slugify('Peluquería Münch & Co'), 'PELUQU');
+    assert.strictEqual(slugify(''), 'NF');
+    assert.strictEqual(slugify(null), 'NF');
+  });
+
+  test('buildCode produce formato REF-<slug>-<hex> y es único', () => {
+    const a = buildCode('Clínica Dental');
+    const b = buildCode('Clínica Dental');
+    assert.match(a, /^REF-[A-Z0-9]{1,6}-[0-9A-F]{4}$/);
+    assert.notStrictEqual(a, b); // el sufijo aleatorio los diferencia
+  });
+
+  test('descuento de referido es un porcentaje razonable', () => {
+    assert.ok(REFEREE_DISCOUNT > 0 && REFEREE_DISCOUNT <= 50);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. Auth middleware — resolveApiKey (sin query param tras el fix de seguridad)
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('auth middleware: resolveApiKey', () => {

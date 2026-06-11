@@ -83,6 +83,40 @@ async function portalAuth(req, res, next) {
 function setupPortalRoutes(app, pipeline, config) {
   config = config || {};
 
+  // ── GET /api/portal/referral ───────────────────────────────
+  // Devuelve el código de referido del negocio (lo crea si no existe),
+  // estadísticas y un mensaje listo para compartir.
+  app.get('/api/portal/referral', portalAuth, async (req, res) => {
+    try {
+      const referrals = require('../referrals/referrals');
+      const bizName = req.flowConfig?.name || 'tu negocio';
+      const email   = req.session?.email || req.flowConfig?.ownerEmail || null;
+
+      const code  = await referrals.getOrCreateCode(req.businessId, { name: bizName, email });
+      if (!code) return res.json({ available: false });
+
+      const stats = await referrals.getStats(req.businessId);
+      const link  = `https://nodeflow.es/onboarding?coupon=${encodeURIComponent(code)}`;
+      const shareText =
+        `He automatizado las llamadas de mi negocio con NodeFlow (recepcionista IA 24/7) y va genial. ` +
+        `Si lo pruebas con mi código *${code}* tienes ${referrals.REFEREE_DISCOUNT}% de descuento: ${link}`;
+
+      res.json({
+        available: true,
+        code,
+        link,
+        shareText,
+        refereeDiscount: referrals.REFEREE_DISCOUNT,
+        timesShared:    stats?.times_shared    || 0,
+        timesConverted: stats?.times_converted || 0,
+        rewardPending:  stats?.reward_pending  || 0,
+      });
+    } catch (e) {
+      log.warn(`/api/portal/referral error: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo obtener el código de referido' });
+    }
+  });
+
   // ── GET /api/portal/dashboard ──────────────────────────────
   app.get('/api/portal/dashboard', portalAuth, (req, res) => {
     const { businessId, flowConfig } = req;

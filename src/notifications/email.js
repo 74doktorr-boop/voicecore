@@ -732,6 +732,41 @@ async function sendMagicLinkEmail(email, magicToken) {
   return sendEmail({ to: email, subject: 'Tu enlace de acceso a NodeFlow', html, text });
 }
 
+// ── Recompensa de referido: un negocio que refirió consiguió una conversión ──
+async function sendReferralReward(referrerEmail, refereeName) {
+  const html = `
+    <div style="font-family:'Inter',sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#070712;border-radius:16px;color:#e0e0f0;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <span style="font-size:22px;font-weight:900;color:#f0f0ff;">node<span style="color:#a855f7;">flow</span></span>
+      </div>
+      <div style="text-align:center;font-size:40px;margin-bottom:8px;">🎉</div>
+      <h1 style="font-size:22px;font-weight:800;margin-bottom:12px;color:#f0f0ff;text-align:center;">¡Tu recomendación ha funcionado!</h1>
+      <p style="color:#9090b0;margin-bottom:20px;line-height:1.7;text-align:center;">
+        <strong style="color:#e0e0f0;">${esc(refereeName || 'Un negocio')}</strong> se ha dado de alta en NodeFlow gracias a tu recomendación.
+        Como agradecimiento, <strong style="color:#a855f7;">tu próxima factura llevará un mes a mitad de precio</strong>.
+      </p>
+      <p style="color:#9090b0;margin-bottom:28px;line-height:1.7;text-align:center;">
+        Nos pondremos en contacto para aplicar tu recompensa. ¡Gracias por confiar en nosotros y correr la voz! 🙌
+      </p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="https://nodeflow.es/portal/" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Ver mi portal →</a>
+      </div>
+    </div>
+  `;
+  const text = `¡Tu recomendación ha funcionado! ${refereeName || 'Un negocio'} se dio de alta en NodeFlow gracias a ti. Tu próxima factura llevará un mes a mitad de precio. Nos pondremos en contacto para aplicarlo.`;
+
+  // Avisar también a Unai para que aplique el crédito manualmente
+  const notifyEmail = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
+  sendEmail({
+    to: notifyEmail,
+    subject: `💸 Recompensa de referido pendiente — ${referrerEmail}`,
+    html: `<div style="font-family:sans-serif;padding:20px;"><h3>Recompensa de referido a aplicar</h3><p><strong>${esc(referrerEmail)}</strong> refirió a <strong>${esc(refereeName || '?')}</strong> y este pagó.</p><p>Aplica 1 mes a mitad de precio en su próxima factura (Stripe → Customer → Coupon).</p></div>`,
+    text: `Aplicar recompensa: ${referrerEmail} refirió a ${refereeName}. 1 mes a mitad de precio.`,
+  }).catch(() => {});
+
+  return sendEmail({ to: referrerEmail, subject: '🎉 Tu recomendación de NodeFlow ha funcionado', html, text });
+}
+
 module.exports = {
   sendEmail,
   notifyNuevoCliente,
@@ -741,4 +776,5 @@ module.exports = {
   notifyNuevoLead,
   sendWelcomePortalEmail,
   sendMagicLinkEmail,
+  sendReferralReward,
 };

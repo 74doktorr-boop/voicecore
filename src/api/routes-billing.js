@@ -346,6 +346,22 @@ function setupBillingRoutes(app, config) {
               paid_at: new Date().toISOString(),
             });
 
+            // Si vino por referido, marcar conversión y avisar al que refirió
+            if (registro.coupon_code && String(registro.coupon_code).toUpperCase().startsWith('REF-')) {
+              try {
+                const referrals = require('../referrals/referrals');
+                const ref = await referrals.recordConversion(registro.coupon_code, registroId);
+                if (ref?.referrerEmail) {
+                  const { sendReferralReward } = require('../notifications/email');
+                  if (typeof sendReferralReward === 'function') {
+                    sendReferralReward(ref.referrerEmail, registro.negocio).catch(() => {});
+                  }
+                }
+              } catch (e) {
+                log.warn(`Referral conversion fallida: ${e.message}`);
+              }
+            }
+
             // Notificar a Unai — incluye el número asignado si el pool lo tenía disponible
             await notifyNuevoCliente({
               ...registro,
