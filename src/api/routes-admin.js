@@ -773,6 +773,55 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ── GET /api/admin/diagnostics ──────────────────────────────────────────────
+  // Vista de "qué está configurado" sin exponer NINGÚN secreto (solo true/false).
+  // Útil para saber al instante si el setup (p.ej. WhatsApp) está completo.
+  app.get('/api/admin/diagnostics', adminAuth, async (req, res) => {
+    const has = (k) => !!(process.env[k] && String(process.env[k]).trim());
+    const db = getDatabase();
+
+    const whatsapp = {
+      phoneNumberId: has('WA_PHONE_NUMBER_ID'),
+      accessToken:   has('WA_ACCESS_TOKEN'),
+      webhookVerify: has('WA_WEBHOOK_VERIFY_TOKEN'),
+      appSecret:     has('WA_APP_SECRET'),
+    };
+    whatsapp.ready = whatsapp.phoneNumberId && whatsapp.accessToken;
+    whatsapp.secure = whatsapp.ready && whatsapp.appSecret;
+
+    const groups = {
+      database: { enabled: db.enabled, url: has('SUPABASE_URL'), serviceKey: has('SUPABASE_SERVICE_KEY') },
+      whatsapp,
+      stripe:   { secretKey: has('STRIPE_SECRET_KEY'), webhookSecret: has('STRIPE_WEBHOOK_SECRET'),
+                  businessPrice: has('STRIPE_BUSINESS_PRICE_ID'), proPrice: has('STRIPE_PRO_PRICE_ID') },
+      email:    { resendKey: has('RESEND_API_KEY'), notifyEmail: has('NOTIFY_EMAIL') },
+      auth:     { jwtSecret: has('JWT_SECRET'), dashboardPassword: has('DASHBOARD_PASSWORD'),
+                  apiKeyIsDefault: process.env.API_KEY === 'voicecore-dev' },
+      voice:    { deepgram: has('DEEPGRAM_API_KEY'), openai: has('OPENAI_API_KEY'),
+                  telnyx: has('TELNYX_API_KEY'), twilio: has('TWILIO_ACCOUNT_SID') },
+      calendar: { clientId: has('GOOGLE_CLIENT_ID'), clientSecret: has('GOOGLE_CLIENT_SECRET') },
+      crypto:   { encryptionKey: has('ENCRYPTION_KEY') },
+      ownerAlerts: { callmebot: has('CALLMEBOT_API_KEY'), ownerPhone: has('OWNER_PHONE') },
+    };
+
+    // Avisos accionables
+    const warnings = [];
+    if (groups.auth.apiKeyIsDefault) warnings.push('API_KEY es el valor por defecto "voicecore-dev" — cámbialo (da acceso enterprise).');
+    if (whatsapp.ready && !whatsapp.appSecret) warnings.push('WhatsApp activo pero sin WA_APP_SECRET — el webhook no verifica la firma de Meta.');
+    if (!groups.stripe.webhookSecret && groups.stripe.secretKey) warnings.push('Stripe sin STRIPE_WEBHOOK_SECRET — los webhooks de pago no se validan.');
+    if (!groups.email.resendKey) warnings.push('Sin RESEND_API_KEY — no se envían emails (bienvenida, recordatorios, alertas).');
+    if (!groups.database.enabled) warnings.push('Base de datos no conectada — funcionando en modo memoria.');
+
+    res.json({
+      env: process.env.NODE_ENV || 'development',
+      uptimeSeconds: Math.round(process.uptime()),
+      publicUrl: process.env.PUBLIC_URL || null,
+      groups,
+      warnings,
+      ok: warnings.length === 0,
+    });
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 
