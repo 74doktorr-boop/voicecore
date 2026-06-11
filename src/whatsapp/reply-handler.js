@@ -78,6 +78,29 @@ async function alertOwner(apt, action, credentials = null) {
 
   const icon = action === 'confirmed' ? '✅' : '❌';
   const verb = action === 'confirmed' ? 'CONFIRMADA' : 'CANCELADA';
+
+  // Si se canceló, mirar si hay gente en lista de espera para rellenar el hueco
+  let waitlistNote = '';
+  if (action === 'cancelled' && apt.businessId) {
+    try {
+      const { getDatabase } = require('../db/database');
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data } = await db.client
+          .from('nf_waitlist')
+          .select('name, phone')
+          .eq('organization_id', apt.businessId)
+          .eq('status', 'waiting')
+          .order('created_at', { ascending: true })
+          .limit(3);
+        if (data && data.length) {
+          waitlistNote = `\n💡 *Tienes ${data.length} en lista de espera* para rellenar este hueco:\n` +
+            data.map(w => `• ${w.name || 'Cliente'} (${w.phone})`).join('\n') + '\n';
+        }
+      }
+    } catch (_) {}
+  }
+
   const msg =
     `${icon} *Cita ${verb} por el cliente*\n` +
     `━━━━━━━━━━━━━━\n` +
@@ -85,6 +108,7 @@ async function alertOwner(apt, action, credentials = null) {
     `📅 ${humanDate(apt.date)} · ${apt.time}h\n` +
     `🗓️ ${apt.service}\n` +
     `📞 ${apt.phone}\n` +
+    waitlistNote +
     `━━━━━━━━━━━━━━\n` +
     `🤖 NodeFlow IA — ${bizName}`;
 

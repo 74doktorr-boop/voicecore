@@ -687,6 +687,59 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true });
   });
 
+  // ════════ Lista de espera ═══════════════════════════════════════════════════
+  app.get('/api/portal/waitlist', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ waitlist: [] });
+    const { data, error } = await db.client
+      .from('nf_waitlist')
+      .select('id, name, phone, service, preferred, notes, status, created_at')
+      .eq('organization_id', req.businessId)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: true })
+      .limit(200);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, waitlist: data || [] });
+  });
+
+  app.post('/api/portal/waitlist', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const phone = String(req.body?.phone || '').replace(/[\s\-().+]/g, '');
+    if (!/^\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Teléfono inválido' });
+    const { data, error } = await db.client.from('nf_waitlist').insert({
+      organization_id: req.businessId,
+      name:    req.body?.name    ? String(req.body.name).slice(0, 80)    : null,
+      phone,
+      service: req.body?.service ? String(req.body.service).slice(0, 80) : null,
+      preferred: req.body?.preferred ? String(req.body.preferred).slice(0, 80) : null,
+      notes:   req.body?.notes   ? String(req.body.notes).slice(0, 300)  : null,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, entry: data });
+  });
+
+  app.patch('/api/portal/waitlist/:id', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const status = ['waiting', 'contacted', 'booked', 'cancelled'].includes(req.body?.status) ? req.body.status : null;
+    if (!status) return res.status(400).json({ error: 'Estado inválido' });
+    const { data, error } = await db.client.from('nf_waitlist')
+      .update({ status }).eq('id', req.params.id).eq('organization_id', req.businessId).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ ok: true, entry: data });
+  });
+
+  app.delete('/api/portal/waitlist/:id', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const { error } = await db.client.from('nf_waitlist')
+      .delete().eq('id', req.params.id).eq('organization_id', req.businessId);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  });
+
   // ── GET /api/portal/missed-opportunities ── llamadas sin cita (recuperar) ───
   app.get('/api/portal/missed-opportunities', portalAuth, async (req, res) => {
     const db = getDatabase();

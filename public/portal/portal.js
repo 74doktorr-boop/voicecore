@@ -88,7 +88,64 @@ function navigate(section) {
   else if (section === 'tareas')           loadTareas();
   else if (section === 'oportunidades')    loadOportunidades();
   else if (section === 'insights')         loadInsights();
+  else if (section === 'espera')           loadEspera();
   if (section === 'asistente') loadAsistente();
+}
+
+// ════════ Lista de espera ═════════════════════════════════════════════════════
+async function loadEspera() {
+  var box = document.getElementById('espera-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  var d;
+  try { d = await api('/api/portal/waitlist'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
+
+  var list = (d.waitlist || []).filter(function(w){ return w.status !== 'booked'; });
+  var rows = list.length ? list.map(function(w){
+    var tel = (w.phone||'').replace(/[^0-9+]/g,'');
+    return '<tr>' +
+      '<td><strong>' + esc(w.name || w.phone) + '</strong>' + (w.name?'<div style="font-size:11px;color:var(--dim)">'+esc(w.phone)+'</div>':'') + '</td>' +
+      '<td>' + esc(w.service || '—') + '</td>' +
+      '<td style="color:var(--dim);font-size:12px">' + esc(w.preferred || '—') + '</td>' +
+      '<td style="text-align:right;white-space:nowrap">' +
+        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none">📞</a> ' +
+        '<button class="btn btn-accent btn-sm" onclick="markWaitlistBooked(' + w.id + ')">✓ Citada</button> ' +
+        '<button class="btn btn-d btn-sm" onclick="deleteWaitlist(' + w.id + ')">🗑</button>' +
+      '</td></tr>';
+  }).join('') : '<tr class="empty-row"><td colspan="4" style="text-align:center;color:var(--dim);padding:18px">Lista de espera vacía. El asistente apunta aquí a quien llama sin hueco disponible.</td></tr>';
+
+  box.innerHTML =
+    '<div class="card" style="margin-bottom:14px">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:10px">➕ Apuntar a alguien</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<input class="form-input" id="wlName" placeholder="Nombre" style="flex:1;min-width:120px">' +
+        '<input class="form-input" id="wlPhone" placeholder="Teléfono" style="flex:1;min-width:120px">' +
+        '<input class="form-input" id="wlPref" placeholder="Cuándo le viene bien (ej. martes mañana)" style="flex:2;min-width:160px">' +
+        '<button class="btn btn-accent" onclick="addWaitlist()">+ Añadir</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Servicio</th><th>Prefiere</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+async function addWaitlist() {
+  var phone = (document.getElementById('wlPhone')||{}).value || '';
+  if (!phone.trim()) { toast('Pon al menos el teléfono', 'warn'); return; }
+  try {
+    await api('/api/portal/waitlist', 'POST', {
+      name: (document.getElementById('wlName')||{}).value || '',
+      phone: phone.trim(),
+      preferred: (document.getElementById('wlPref')||{}).value || '',
+    });
+    loadEspera();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+async function markWaitlistBooked(id) {
+  try { await api('/api/portal/waitlist/' + id, 'PATCH', { status: 'booked' }); toast('¡Genial, hueco rellenado!'); loadEspera(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+async function deleteWaitlist(id) {
+  try { await api('/api/portal/waitlist/' + id, 'DELETE'); loadEspera(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 // ════════ Oportunidades (llamadas sin cita) ═══════════════════════════════════
