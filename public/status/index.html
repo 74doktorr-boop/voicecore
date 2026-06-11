@@ -102,12 +102,17 @@ function fmtUptime(sec) {
   if (h > 0) return h + 'h ' + m + 'm';
   return m + 'm';
 }
+// URL absoluta de producción: así la página de estado funciona la abras donde
+// la abras (nodeflow.es, archivo local, otro hosting). En local apunta a sí misma.
+var HEALTH_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+  ? 'https://nodeflow.es/health'
+  : '/health';
 var _failCount = 0; // fallos consecutivos al contactar /health
 async function check() {
   var banner = document.getElementById('banner');
   var t0 = performance.now();
   try {
-    var res = await fetch('/health', { cache: 'no-store' });
+    var res = await fetch(HEALTH_URL, { cache: 'no-store' });
     var ms = Math.round(performance.now() - t0);
     var data = await res.json();
     var ok = res.ok && data.status === 'ok';
