@@ -85,7 +85,85 @@ function navigate(section) {
   else if (section === 'ayuda')            loadAyuda();
   else if (section === 'referidos')        loadReferidos();
   else if (section === 'widget')           loadWidget();
+  else if (section === 'tareas')           loadTareas();
   if (section === 'asistente') loadAsistente();
+}
+
+// ════════ Mis tareas (mini-agenda CRM) ════════════════════════════════════════
+async function loadTareas() {
+  var box = document.getElementById('tareas-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+
+  var data;
+  try { data = await api('/api/portal/tasks'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
+
+  var tasks = data.tasks || [];
+  var pend = tasks.filter(function(t){ return !t.done; });
+  var done = tasks.filter(function(t){ return t.done; });
+  var today = new Date().toISOString().slice(0,10);
+
+  function taskRow(t) {
+    var overdue = !t.done && t.due_date && t.due_date < today;
+    var dueLabel = t.due_date
+      ? (t.due_date === today ? '<span style="color:#fdcb6e">Hoy</span>' : (overdue ? '<span style="color:#e17055">Vencida · ' + fmtDate(t.due_date) + '</span>' : fmtDate(t.due_date)))
+      : '';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border)">' +
+      '<input type="checkbox" ' + (t.done?'checked':'') + ' onchange="toggleTask(' + t.id + ',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;' + (t.done?'text-decoration:line-through;color:var(--dim)':'') + '">' + esc(t.title) + '</div>' +
+        '<div style="font-size:11px;color:var(--dim)">' + (t.contact_name ? '👤 ' + esc(t.contact_name) + (dueLabel?' · ':'') : '') + dueLabel + '</div>' +
+      '</div>' +
+      '<button class="btn btn-d btn-sm" onclick="deleteTask(' + t.id + ')" style="flex-shrink:0">🗑</button>' +
+    '</div>';
+  }
+
+  box.innerHTML =
+    // Añadir tarea
+    '<div class="card" style="margin-bottom:18px">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+        '<input class="form-input" id="newTaskTitle" placeholder="¿Qué tienes que hacer? (ej. Llamar a Ana)" style="flex:2;min-width:200px" onkeydown="if(event.key===\'Enter\')addTask()">' +
+        '<input class="form-input" id="newTaskDue" type="date" style="flex:1;min-width:140px">' +
+        '<button class="btn btn-accent" onclick="addTask()">+ Añadir</button>' +
+      '</div>' +
+    '</div>' +
+    // Pendientes
+    '<div class="card" style="margin-bottom:18px">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px">Pendientes <span style="color:var(--dim);font-weight:400">(' + pend.length + ')</span></div>' +
+      (pend.length ? pend.map(taskRow).join('') : '<div style="color:var(--dim);font-size:13px;padding:10px 0">🎉 Nada pendiente. ¡Todo al día!</div>') +
+    '</div>' +
+    // Completadas
+    (done.length ? '<div class="card">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px;color:var(--dim)">Completadas (' + done.length + ')</div>' +
+      done.slice(0,20).map(taskRow).join('') +
+    '</div>' : '');
+}
+
+async function addTask() {
+  var title = (document.getElementById('newTaskTitle')||{}).value || '';
+  var due   = (document.getElementById('newTaskDue')||{}).value || '';
+  if (!title.trim()) { toast('Escribe qué tienes que hacer', 'warn'); return; }
+  try {
+    await api('/api/portal/tasks', 'POST', { title: title.trim(), dueDate: due || undefined });
+    loadTareas();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+async function toggleTask(id, done) {
+  try { await api('/api/portal/tasks/' + id, 'PATCH', { done: done }); loadTareas(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+async function deleteTask(id) {
+  try { await api('/api/portal/tasks/' + id, 'DELETE'); loadTareas(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+// Crear tarea desde el perfil de un contacto
+function newTaskForContact(contactId, contactName) {
+  var title = prompt('Nueva tarea para ' + (contactName || 'este cliente') + ':');
+  if (!title || !title.trim()) return;
+  api('/api/portal/tasks', 'POST', { title: title.trim(), contactId: contactId, contactName: contactName })
+    .then(function(){ toast('Tarea creada'); })
+    .catch(function(e){ toast('Error: ' + e.message, 'err'); });
 }
 
 // ── Auth flow ─────────────────────────────────────────────────
@@ -1178,6 +1256,18 @@ function onClientesSearch() {
   }, 300);
 }
 
+var _clientesTag = ''; // filtro de etiqueta activo
+
+function nfTagChip(tag, removable) {
+  // color estable según el texto de la etiqueta
+  var colors = ['#6c5ce7','#00b894','#0984e3','#e17055','#fdcb6e','#e84393','#00cec9'];
+  var h = 0; for (var i=0;i<tag.length;i++) h = (h*31 + tag.charCodeAt(i)) % colors.length;
+  var col = colors[h];
+  return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + col + '22;color:' + col +
+    ';border:1px solid ' + col + '55;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;margin:2px">' +
+    esc(tag) + (removable ? '<span style="cursor:pointer;opacity:.7;font-size:13px" onclick="event.stopPropagation();removeContactTag(\'' + esc(tag) + '\')">×</span>' : '') + '</span>';
+}
+
 async function loadClientes(q) {
   q = q || '';
   var sec = document.getElementById('sec-clientes');
@@ -1185,8 +1275,10 @@ async function loadClientes(q) {
 
   var data;
   try {
-    var qs = q ? '?q=' + encodeURIComponent(q) : '';
-    data = await api('/api/portal/contacts' + qs);
+    var params = [];
+    if (q) params.push('q=' + encodeURIComponent(q));
+    if (_clientesTag) params.push('tag=' + encodeURIComponent(_clientesTag));
+    data = await api('/api/portal/contacts' + (params.length ? '?' + params.join('&') : ''));
   } catch (e) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
@@ -1196,9 +1288,10 @@ async function loadClientes(q) {
   if (data.contacts && data.contacts.length > 0) {
     for (var i = 0; i < data.contacts.length; i++) {
       var c = data.contacts[i];
+      var tagsHtml = (c.tags && c.tags.length) ? '<div style="margin-top:3px">' + c.tags.map(function(t){return nfTagChip(t,false);}).join('') + '</div>' : '';
       rows += '<tr onclick="openContactProfile(\'' + esc(c.id) + '\')" style="cursor:pointer">' +
         '<td><strong>' + esc(c.displayName) + '</strong>' +
-          (c.name ? '<div style="font-size:11px;color:var(--dim)">' + esc(c.phone) + '</div>' : '') + '</td>' +
+          (c.name ? '<div style="font-size:11px;color:var(--dim)">' + esc(c.phone) + '</div>' : '') + tagsHtml + '</td>' +
         '<td>' + esc(c.email || '—') + '</td>' +
         '<td style="text-align:center"><span class="badge bp">' + (c.callCount || 0) + '</span></td>' +
         '<td style="color:var(--dim);font-size:12px">' + (c.lastCallAt ? timeAgo(c.lastCallAt) : '—') + '</td>' +
@@ -1207,22 +1300,65 @@ async function loadClientes(q) {
     }
   } else {
     rows = '<tr class="empty-row"><td colspan="5">' +
-      (q ? 'Sin resultados para "' + esc(q) + '"' : 'Aún no hay clientes registrados. Aparecerán tras las primeras llamadas.') +
+      (q || _clientesTag ? 'Sin resultados' : 'Aún no hay clientes registrados. Aparecerán tras las primeras llamadas.') +
       '</td></tr>';
   }
 
+  // Chips de filtro por etiqueta
+  var tagFilter = '';
+  if (data.allTags && data.allTags.length) {
+    tagFilter = '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">' +
+      '<span style="font-size:12px;color:var(--dim);margin-right:4px">Filtrar:</span>' +
+      '<span onclick="setClientesTag(\'\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
+        (!_clientesTag ? 'background:var(--accent);color:#fff' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">Todos</span>' +
+      data.allTags.map(function(t){
+        var on = _clientesTag === t;
+        return '<span onclick="setClientesTag(\'' + esc(t) + '\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
+          (on ? 'background:var(--accent);color:#fff' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">' + esc(t) + '</span>';
+      }).join('') + '</div>';
+  }
+
   sec.innerHTML =
-    '<div class="section-header">' +
+    '<div class="section-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
       '<div class="section-title">👥 Clientes</div>' +
-      '<div style="font-size:13px;color:var(--dim)">' + (data.count || 0) + ' contactos</div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;color:var(--dim)">' + (data.count || 0) + ' contactos</span>' +
+        '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
+      '</div>' +
     '</div>' +
     '<div class="search-bar">' +
       '<input class="search-input" id="clientesSearch" placeholder="Buscar por nombre, teléfono o email…"' +
         ' value="' + esc(q) + '" oninput="onClientesSearch()">' +
     '</div>' +
+    tagFilter +
     '<div class="table-wrap"><table>' +
       '<thead><tr><th>Cliente</th><th>Email</th><th>Llamadas</th><th>Última llamada</th><th></th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>';
+}
+
+function setClientesTag(tag) {
+  _clientesTag = tag;
+  var q = (document.getElementById('clientesSearch') || {}).value || '';
+  loadClientes(q);
+}
+
+async function exportClientes(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+  try {
+    var res = await fetch('/api/portal/contacts/export', { headers: { 'Authorization': 'Bearer ' + _token } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'clientes-nodeflow.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('CSV descargado');
+  } catch (e) {
+    toast('Error al exportar: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar CSV'; }
+  }
 }
 
 async function openContactProfile(id) {
@@ -1283,6 +1419,46 @@ async function openContactProfile(id) {
     aptRows = '<tr class="empty-row"><td colspan="4">Sin citas registradas</td></tr>';
   }
 
+  // ── Timeline cronológico unificado (llamadas + citas) ──────────────────────
+  var events = [];
+  (data.calls || []).forEach(function(cl){
+    var when = cl.startedAt ? new Date(cl.startedAt) : null;
+    var dur = cl.durationMs ? Math.round(cl.durationMs/1000)+'s' : '';
+    var label = { booked:'reservó cita', info:'pidió información', abandoned:'colgó' }[cl.outcome] || (cl.outcome||'llamada');
+    events.push({ t: when, icon:'📞', color:'#6c5ce7',
+      title:'Llamada — ' + label, meta: dur,
+      action: cl.callSid ? '<button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(cl.callSid) + '\')">💬 Ver</button>' : '' });
+  });
+  (data.appointments || []).forEach(function(a){
+    var when = a.date ? new Date(a.date + 'T' + (a.time||'00:00')) : null;
+    var cancelled = a.status === 'cancelled';
+    events.push({ t: when, icon: cancelled?'❌':'📅', color: cancelled?'#e17055':'#00b894',
+      title: (cancelled?'Cita cancelada':'Cita') + (a.service ? ' — ' + esc(a.service) : ''),
+      meta: (a.time||'') , action:'' });
+  });
+  events.sort(function(x,y){ return (y.t?y.t.getTime():0) - (x.t?x.t.getTime():0); });
+
+  var timelineHtml;
+  if (events.length === 0) {
+    timelineHtml = '<div style="color:var(--dim);font-size:13px;padding:8px 0">Sin actividad todavía. Aparecerá tras la primera llamada o cita.</div>';
+  } else {
+    timelineHtml = '<div style="position:relative;padding-left:6px">' + events.map(function(ev){
+      var dateStr = ev.t ? ev.t.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      return '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">' +
+        '<div style="width:30px;height:30px;border-radius:50%;background:' + ev.color + '22;border:1px solid ' + ev.color + '55;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">' + ev.icon + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600">' + ev.title + '</div>' +
+          '<div style="font-size:11px;color:var(--dim)">' + dateStr + (ev.meta?' · '+esc(ev.meta):'') + '</div>' +
+        '</div>' +
+        (ev.action ? '<div style="flex-shrink:0">' + ev.action + '</div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  // ── Editor de etiquetas ────────────────────────────────────────────────────
+  _cpId = id;
+  _cpTags = Array.isArray(c.tags) ? c.tags.slice() : [];
+
   openModal(
     '<div class="profile-header">' +
       '<div class="profile-avatar">' + initial + '</div>' +
@@ -1310,20 +1486,23 @@ async function openContactProfile(id) {
       '<textarea class="form-input" id="cpNotes" rows="3" onblur="saveContactNotes(\'' + esc(id) + '\')">' + esc(c.notes || '') + '</textarea>' +
       '<small style="color:var(--dim);font-size:11px">Se guarda automáticamente al salir del campo</small>' +
     '</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
       '<button class="btn btn-accent btn-sm" onclick="saveContactNotes(\'' + esc(id) + '\', true)">Guardar datos</button>' +
       '<button class="btn btn-r btn-sm" onclick="deleteContact(\'' + esc(id) + '\')">Eliminar contacto</button>' +
     '</div>' +
 
-    '<div class="profile-section-title">Historial de llamadas</div>' +
-    '<div class="table-wrap" style="margin-bottom:16px"><table>' +
-      '<thead><tr><th>Fecha</th><th>Duración</th><th>Resultado</th><th>Transcript</th></tr></thead>' +
-      '<tbody>' + callRows + '</tbody></table></div>' +
+    '<div class="profile-section-title">🏷️ Etiquetas</div>' +
+    '<div id="cpTagsBox" style="margin-bottom:6px">' + renderCpTags() + '</div>' +
+    '<div style="display:flex;gap:6px;margin-bottom:16px">' +
+      '<input class="form-input" id="cpTagInput" placeholder="Añadir etiqueta (ej. VIP)" style="flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addContactTag();}">' +
+      '<button class="btn btn-d btn-sm" onclick="addContactTag()">+ Añadir</button>' +
+    '</div>' +
 
-    '<div class="profile-section-title">Historial de citas</div>' +
-    '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Fecha</th><th>Hora</th><th>Servicio</th><th>Estado</th></tr></thead>' +
-      '<tbody>' + aptRows + '</tbody></table></div>' +
+    '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span>📋 Actividad</span>' +
+      '<button class="btn btn-d btn-sm" onclick="newTaskForContact(\'' + esc(id) + '\',\'' + esc((c.displayName||'').replace(/'/g,'')) + '\')">+ Tarea</button>' +
+    '</div>' +
+    timelineHtml +
 
     '<div class="modal-actions" style="margin-top:20px">' +
       (c.phone ? '<button class="btn btn-g" onclick="callOutbound(\'' + esc(c.phone) + '\',this)">📞 Llamar</button>' : '') +
@@ -1331,6 +1510,37 @@ async function openContactProfile(id) {
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
+}
+
+// ── Etiquetas en el perfil de contacto ──────────────────────────────────────
+var _cpId = null, _cpTags = [];
+function renderCpTags() {
+  if (!_cpTags.length) return '<span style="font-size:12px;color:var(--dim)">Sin etiquetas. Añade una para agrupar a tus clientes.</span>';
+  return _cpTags.map(function(t){ return nfTagChip(t, true); }).join('');
+}
+function _refreshCpTags() {
+  var box = document.getElementById('cpTagsBox');
+  if (box) box.innerHTML = renderCpTags();
+}
+async function addContactTag() {
+  var input = document.getElementById('cpTagInput');
+  var val = (input.value || '').trim().slice(0,24).replace(/[^a-zA-Z0-9 áéíóúñü\-_]/gi,'');
+  if (!val) return;
+  if (_cpTags.indexOf(val) === -1) _cpTags.push(val);
+  input.value = '';
+  _refreshCpTags();
+  await _saveCpTags();
+}
+async function removeContactTag(tag) {
+  _cpTags = _cpTags.filter(function(t){ return t !== tag; });
+  _refreshCpTags();
+  await _saveCpTags();
+}
+async function _saveCpTags() {
+  try {
+    await api('/api/portal/contacts/' + _cpId, 'PATCH', { tags: _cpTags });
+    if (_currentSection === 'clientes') loadClientes((document.getElementById('clientesSearch')||{}).value||'');
+  } catch (e) { toast('Error al guardar etiqueta: ' + e.message, 'err'); }
 }
 
 async function saveContactNotes(id, withNameEmail) {

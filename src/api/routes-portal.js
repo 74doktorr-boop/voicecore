@@ -533,13 +533,17 @@ function setupPortalRoutes(app, pipeline, config) {
     const db = getDatabase();
     if (!db.enabled) return res.json({ contacts: [] });
 
+    const tag = (req.query.tag || '').trim().slice(0, 24);
+
     let query = db.client
       .from('contacts')
-      .select('id,phone,name,email,call_count,last_call_at,created_at')
+      .select('id,phone,name,email,call_count,last_call_at,created_at,tags')
       .eq('org_id', businessId)
       .is('deleted_at', null)
       .order('last_call_at', { ascending: false, nullsFirst: false })
       .limit(200);
+
+    if (tag) query = query.contains('tags', [tag]);
 
     if (q) {
       // BUG-48 FIX: Sanitize search query before interpolating into PostgREST .or() filter
@@ -568,10 +572,119 @@ function setupPortalRoutes(app, pipeline, config) {
       callCount:   c.call_count || 0,
       lastCallAt:  c.last_call_at || null,
       createdAt:   c.created_at,
+      tags:        Array.isArray(c.tags) ? c.tags : [],
       displayName: c.name || (aptByPhone[c.phone] && aptByPhone[c.phone].patientName) || c.phone,
     }));
 
-    res.json({ ok: true, count: contacts.length, contacts });
+    // Recopilar todas las etiquetas en uso (para los chips de filtro)
+    const allTags = [...new Set(contacts.flatMap(c => c.tags))].sort();
+
+    res.json({ ok: true, count: contacts.length, contacts, allTags });
+  });
+
+  // ── GET /api/portal/contacts/export ── CSV de todos los contactos ──────────
+  app.get('/api/portal/contacts/export', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+
+    const { data, error } = await db.client
+      .from('contacts')
+      .select('name,phone,email,call_count,last_call_at,tags,notes,created_at')
+      .eq('org_id', businessId)
+      .is('deleted_at', null)
+      .order('last_call_at', { ascending: false, nullsFirst: false })
+      .limit(5000);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Escape CSV: comillas dobles + envolver si hay coma/comilla/salto
+    const esc = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const header = ['Nombre', 'Teléfono', 'Email', 'Llamadas', 'Última llamada', 'Etiquetas', 'Notas', 'Cliente desde'];
+    const rows = (data || []).map(c => [
+      esc(c.name), esc(c.phone), esc(c.email), esc(c.call_count || 0),
+      esc(c.last_call_at ? new Date(c.last_call_at).toLocaleDateString('es-ES') : ''),
+      esc(Array.isArray(c.tags) ? c.tags.join(' · ') : ''),
+      esc(c.notes),
+      esc(c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : ''),
+    ].join(','));
+    // BOM para que Excel reconozca UTF-8 (acentos correctos)
+    const csv = '﻿' + header.join(',') + '\n' + rows.join('\n');
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.set('Content-Type', 'text/csv; charset=utf-8');
+    res.set('Content-Disposition', `attachment; filename="clientes-nodeflow-${stamp}.csv"`);
+    res.send(csv);
+  });
+
+  // ════════ Tareas del dueño (mini-agenda CRM) ════════════════════════════════
+
+  // GET /api/portal/tasks — pendientes primero (por fecha), luego completadas
+  app.get('/api/portal/tasks', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ tasks: [] });
+    const { data, error } = await db.client
+      .from('nf_tasks')
+      .select('id, contact_id, contact_name, title, due_date, done, created_at')
+      .eq('organization_id', req.businessId)
+      .order('done', { ascending: true })
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, tasks: data || [] });
+  });
+
+  // POST /api/portal/tasks — crear { title, dueDate?, contactId?, contactName? }
+  app.post('/api/portal/tasks', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const title = String(req.body?.title || '').trim().slice(0, 200);
+    if (!title) return res.status(400).json({ error: 'El título es obligatorio' });
+    const dueDate = req.body?.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(req.body.dueDate) ? req.body.dueDate : null;
+
+    const { data, error } = await db.client.from('nf_tasks').insert({
+      organization_id: req.businessId,
+      contact_id:   req.body?.contactId   || null,
+      contact_name: req.body?.contactName ? String(req.body.contactName).slice(0, 80) : null,
+      title, due_date: dueDate,
+    }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, task: data });
+  });
+
+  // PATCH /api/portal/tasks/:id — marcar hecha/pendiente o editar título/fecha
+  app.patch('/api/portal/tasks/:id', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const patch = {};
+    if (req.body?.done !== undefined) {
+      patch.done = !!req.body.done;
+      patch.completed_at = patch.done ? new Date().toISOString() : null;
+    }
+    if (req.body?.title !== undefined) patch.title = String(req.body.title).trim().slice(0, 200);
+    if (req.body?.dueDate !== undefined) {
+      patch.due_date = req.body.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(req.body.dueDate) ? req.body.dueDate : null;
+    }
+    if (Object.keys(patch).length === 0) return res.status(400).json({ error: 'Nada que actualizar' });
+
+    const { data, error } = await db.client.from('nf_tasks')
+      .update(patch).eq('id', req.params.id).eq('organization_id', req.businessId).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: 'Tarea no encontrada' });
+    res.json({ ok: true, task: data });
+  });
+
+  // DELETE /api/portal/tasks/:id
+  app.delete('/api/portal/tasks/:id', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const { error } = await db.client.from('nf_tasks')
+      .delete().eq('id', req.params.id).eq('organization_id', req.businessId);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
   });
 
   // ── GET /api/portal/contacts/:id ──────────────────────────
@@ -635,7 +748,7 @@ function setupPortalRoutes(app, pipeline, config) {
   app.patch('/api/portal/contacts/:id', portalAuth, async (req, res) => {
     const { businessId } = req;
     const { id } = req.params;
-    const { name, email, notes } = req.body;
+    const { name, email, notes, tags } = req.body;
     const db = getDatabase();
     if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
 
@@ -643,6 +756,12 @@ function setupPortalRoutes(app, pipeline, config) {
     if (name  !== undefined) patch.name  = name  || null;
     if (email !== undefined) patch.email = email || null;
     if (notes !== undefined) patch.notes = notes || null;
+    if (tags  !== undefined) {
+      // Saneamos: máx 10 etiquetas, cada una corta y sin caracteres raros
+      patch.tags = Array.isArray(tags)
+        ? tags.map(t => String(t).trim().slice(0, 24).replace(/[^a-zA-Z0-9 áéíóúñü\-_]/gi, '')).filter(Boolean).slice(0, 10)
+        : [];
+    }
 
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ error: 'Nada que actualizar' });
