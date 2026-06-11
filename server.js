@@ -492,6 +492,10 @@ setupWhatsAppWebhook(app);
 const { setupWhatsAppConnectRoutes } = require('./src/api/routes-whatsapp-connect');
 setupWhatsAppConnectRoutes(app);
 
+// Widget "¿Te llamamos?" — captura de callback embebible
+const { setupWidgetRoutes } = require('./src/api/routes-widget');
+setupWidgetRoutes(app);
+
 // Load per-business flows from DB, then start cron
 flowManager.loadFromDB()
   .then(n => { if (n > 0) log.info(`${n} flows cargados desde DB`); })

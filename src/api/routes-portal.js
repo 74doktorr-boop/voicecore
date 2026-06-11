@@ -117,6 +117,32 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── GET /api/portal/widget ─────────────────────────────────
+  // Devuelve el snippet del widget "¿Te llamamos?" listo para pegar
+  // y las últimas solicitudes recibidas.
+  app.get('/api/portal/widget', portalAuth, async (req, res) => {
+    try {
+      const orgId = req.businessId;
+      const snippet = `<script src="https://nodeflow.es/widget/nf-widget.js" data-org="${orgId}"></script>`;
+
+      let callbacks = [];
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data } = await db.client
+          .from('nf_callbacks')
+          .select('name, phone, message, status, created_at')
+          .eq('organization_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        callbacks = data || [];
+      }
+      res.json({ snippet, callbacks });
+    } catch (e) {
+      log.warn(`/api/portal/widget error: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo cargar el widget' });
+    }
+  });
+
   // ── GET /api/portal/dashboard ──────────────────────────────
   app.get('/api/portal/dashboard', portalAuth, (req, res) => {
     const { businessId, flowConfig } = req;
