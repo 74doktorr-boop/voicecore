@@ -1,7 +1,7 @@
 // public/sw.js — NodeFlow Portal Service Worker
 'use strict';
 
-const CACHE = 'nf-portal-v8';
+const CACHE = 'nf-portal-v9';
 const PRECACHE = [
   '/portal/',
   '/portal/index.html',

@@ -508,6 +508,23 @@ function esc(str) {
 }
 
 // ── Dashboard ─────────────────────────────────────────────────
+// Barra de "cosas que hacer" — solo muestra lo que tiene acción pendiente
+function dashActionBar(act) {
+  var cards = [];
+  if (act.opps > 0) cards.push({ n: act.opps, label: act.opps === 1 ? 'oportunidad por recuperar' : 'oportunidades por recuperar', icon: '💡', color: '#fdcb6e', sec: 'oportunidades' });
+  if (act.tasks > 0) cards.push({ n: act.tasks, label: act.tasks === 1 ? 'tarea pendiente' : 'tareas pendientes', icon: '✅', color: '#a29bfe', sec: 'tareas' });
+  if (act.wait > 0) cards.push({ n: act.wait, label: act.wait === 1 ? 'cliente en lista de espera' : 'clientes en lista de espera', icon: '⏳', color: '#00b894', sec: 'espera' });
+  if (!cards.length) return '';
+  return '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">' +
+    cards.map(function(c){
+      return '<div onclick="navigate(\'' + c.sec + '\')" style="cursor:pointer;flex:1;min-width:180px;display:flex;align-items:center;gap:12px;background:' + c.color + '15;border:1px solid ' + c.color + '40;border-radius:12px;padding:14px 16px;transition:transform .12s" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'none\'">' +
+        '<div style="font-size:22px">' + c.icon + '</div>' +
+        '<div><div style="font-size:20px;font-weight:900;color:' + c.color + '">' + c.n + '</div>' +
+        '<div style="font-size:12px;color:var(--dim);line-height:1.3">' + c.label + ' →</div></div>' +
+      '</div>';
+    }).join('') + '</div>';
+}
+
 async function loadDashboard() {
   var sec = document.getElementById('sec-dashboard');
   sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando…</div></div>';
@@ -518,6 +535,19 @@ async function loadDashboard() {
     sec.innerHTML = '<div class="empty-state"><div class="empty-state-text">Error al cargar: ' + esc(e.message) + '</div></div>';
     return;
   }
+
+  // Contadores accionables (en paralelo, tolerante a fallos) para la barra de acciones
+  var act = { opps: 0, tasks: 0, wait: 0 };
+  try {
+    var r = await Promise.all([
+      api('/api/portal/missed-opportunities').catch(function(){return{};}),
+      api('/api/portal/tasks').catch(function(){return{};}),
+      api('/api/portal/waitlist').catch(function(){return{};}),
+    ]);
+    act.opps  = (r[0].opportunities || []).length;
+    act.tasks = (r[1].tasks || []).filter(function(t){return !t.done;}).length;
+    act.wait  = (r[2].waitlist || []).filter(function(w){return w.status==='waiting';}).length;
+  } catch (e) {}
 
   var hour   = new Date().getHours();
   var greet  = hour < 14 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -568,6 +598,7 @@ async function loadDashboard() {
         ? '<span class="ai-status" style="background:rgba(249,202,36,.12);color:#f9ca24;border-color:rgba(249,202,36,.25)">◌ CONFIGURANDO</span>'
         : '<span class="ai-status">● AI ACTIVO</span>') +
     '</div>' +
+    dashActionBar(act) +
     '<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Hoy</div>' +
     '<div class="kpi-grid">' +
       '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.callCount || 0) + '</div><div class="kpi-sub">hoy</div>' + kpiTrend(d.today.callCount, d.prevWeek && d.prevWeek.callCount) + '</div>' +
