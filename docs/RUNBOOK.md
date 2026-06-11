@@ -1,36 +1,44 @@
 # NodeFlow — Runbook de operaciones
 
-Última actualización: 2026-06-10
+Última actualización: 2026-06-11
 
-## ⏳ Tareas manuales pendientes (Unai)
+## ✅ Tareas manuales — estado
 
-### 1. UptimeRobot (5 min — PRIORITARIO)
-El health-monitor interno corre *dentro* del propio servidor: si el servidor cae,
-el monitor cae con él y **nunca alertará de una caída total**. Hace falta
-monitorización externa:
+- [x] **UptimeRobot** — monitor externo `https://nodeflow.es/health` cada 5 min (hecho 2026-06-10)
+- [x] **Bucket `backups`** en Supabase Storage (privado) — backup probado OK
+- [x] **Migración anti-double-booking** (`uniq_active_slot`) — ejecutada
+- [x] **Migración referidos** (`nf_referrals` + `nf_referral_conversions`) — ejecutada
+- [ ] **WABA de NodeFlow en Meta** — pendiente (checklist en `Desktop\NodeFlow-WhatsApp-Setup.html`, recordatorio activo)
+- [ ] **Verificar API_KEY en producción** — debe ser aleatoria larga, nunca `voicecore-dev`.
+      Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
-1. Crear cuenta gratis en https://uptimerobot.com (50 monitores gratis)
-2. Add New Monitor → tipo **HTTP(s)**
-3. URL: `https://nodeflow.es/health` · Interval: 5 min
-4. Keyword monitoring (opcional): buscar `"status":"ok"` en la respuesta
-5. Alert contacts: email + (opcional) app móvil de UptimeRobot
+## 🚀 Próximos pasos (cuando se retome)
 
-### 2. Bucket de backups en Supabase (2 min)
-El backup semanal (`src/db/backup.js`, domingos 04:00 Madrid) sube a Supabase
-Storage. El bucket hay que crearlo una vez:
+Ideas/features diseñadas pero NO implementadas todavía:
 
-1. Supabase Dashboard → **Storage** → New bucket
-2. Nombre: `backups` · **Private** (no público)
-3. Probar: `POST /api/admin/backup` (con token admin) → debe devolver `ok: true`
+1. **Widget "llámame" embebible** — botón para la web del cliente: el visitante deja
+   su número y el asistente le llama. Base ya existe en `src/browser/browser-call.js`.
+   Upsell del plan Pro.
+2. **Dashboard admin visual** — pantalla para Unai con MRR, leads, conversiones,
+   atribución y referidos. Los datos ya están en endpoints:
+   `/api/admin/stats`, `/api/admin/attribution`, `/api/admin/onboarding`.
+3. **Tests de endpoints HTTP** — hoy se testea la lógica (32 tests); falta cobertura
+   de las rutas Express completas (supertest o similar).
+4. **Cupones por ciudad** (`BILBAO10`, `MADRID10`…) — incentivo + atribución más fina.
+5. **Multi-instancia** — si se escala horizontalmente, mover scheduler/rate-limiter
+   a Redis y validar reservas DB-first (ver notas de escalabilidad).
 
-### 3. WABA de NodeFlow en Meta (ver recordatorio del 11/06)
-Checklist completo en `C:\Users\unais\Desktop\NodeFlow-WhatsApp-Setup.html`.
+## 🔴 EasyPanel: deploys intermitentes
 
-### 3b. Migración: candado anti-double-booking (1 min)
-Ejecutar una vez en Supabase → SQL Editor el contenido de
-`db/migration-appointment-slot-lock.sql`. Crea un índice único que
-impide dos citas activas en el mismo hueco a nivel de base de datos
-(red de seguridad para cuando se escale a varias instancias).
+El panel de control de EasyPanel (`xmehd4.easypanel.host`) se cae a ratos, lo que
+hace fallar el paso de deploy (HTTP 000). **La web nunca se cae por esto** — solo el
+mecanismo de despliegue; el sitio sigue sirviendo la imagen anterior.
+
+- El workflow ya reintenta hasta ~5 min. Si aun así falla, la imagen está en GHCR;
+  basta re-lanzar el workflow (`gh run rerun <id> --failed`) o desplegar desde el panel.
+- **Mejora recomendada**: configurar en EasyPanel el **auto-deploy desde GHCR**
+  (que el panel vigile la imagen `:latest` y despliegue solo), eliminando la
+  dependencia de que su API responda a GitHub Actions.
 
 ## 🏗️ Notas de escalabilidad
 
@@ -44,19 +52,27 @@ impide dos citas activas en el mismo hueco a nivel de base de datos
 - **Rate limiter / analytics**: en memoria por instancia. Con multi-instancia,
   mover a Redis (ya contemplado en el código con comentarios).
 
-### 4. Verificar API_KEY en producción
-La key legacy da acceso plan *enterprise* sin límites. En EasyPanel debe ser un
-valor aleatorio largo, **nunca** el `voicecore-dev` del .env.example.
-Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-
 ## 🧪 Tests
 
 ```
-npm test          # smoke tests (node:test nativo, sin dependencias)
+npm test          # 32 smoke tests (node:test nativo, sin dependencias)
 ```
 
-Cubren: JWT (firma/expiración/manipulación), reservas (double-booking,
-solapamiento, validación fecha/hora/horario), rate limiter, resolveApiKey.
+Cubren: JWT (firma/expiración/manipulación/longitud), reservas (double-booking,
+solapamiento, validación fecha/hora/horario/día cerrado), rate limiter,
+normalización de teléfonos WA, error-tracker (Express 500), informe semanal
+(rango de fechas), referidos (slug + código), resolveApiKey.
+
+## ⭐ Features clave y sus endpoints
+
+- **Referidos**: `GET /api/portal/referral` (código + stats) · tablas `nf_referrals`,
+  `nf_referral_conversions` · UI en portal "Recomienda y gana".
+- **Informe semanal**: cron lunes 08:00 · manual `POST /api/admin/weekly-report`
+  (dryRun por defecto; envío real con `{"dryRun":false}`).
+- **Atribución**: `GET /api/admin/attribution` — leads/conversiones/MRR por landing.
+- **Backup**: `POST /api/admin/backup` · cron domingos 04:00.
+- **Test WhatsApp**: `POST /api/admin/test-whatsapp` `{"phone":"34..."}`.
+- **Error tracker**: alertas por email automáticas (uncaught/unhandled/Express).
 
 ## 💾 Backups
 
