@@ -8,24 +8,26 @@
 - [x] **Bucket `backups`** en Supabase Storage (privado) — backup probado OK
 - [x] **Migración anti-double-booking** (`uniq_active_slot`) — ejecutada
 - [x] **Migración referidos** (`nf_referrals` + `nf_referral_conversions`) — ejecutada
-- [ ] **WABA de NodeFlow en Meta** — pendiente (checklist en `Desktop\NodeFlow-WhatsApp-Setup.html`, recordatorio activo)
-- [ ] **Verificar API_KEY en producción** — debe ser aleatoria larga, nunca `voicecore-dev`.
-      Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- [x] **API_KEY de producción** — verificado vía `/api/admin/diagnostics`: NO es la default ✅
+- [ ] **Migración callbacks** (`db/migration-callbacks.sql`) — para el widget "¿Te llamamos?"
+- [ ] **WABA de NodeFlow en Meta** — pendiente (checklist en `Desktop\NodeFlow-WhatsApp-Setup.html`, recordatorio activo).
+      Al configurar, meter 4 vars: `WA_PHONE_NUMBER_ID`, `WA_ACCESS_TOKEN`, `WA_WEBHOOK_VERIFY_TOKEN`, `WA_APP_SECRET`.
+      Verificar en panel admin → pestaña 🩺 Sistema (todo verde) o `GET /api/admin/diagnostics`.
 
 ## 🚀 Próximos pasos (cuando se retome)
 
 Ideas/features diseñadas pero NO implementadas todavía:
 
-1. **Widget "llámame" embebible** — botón para la web del cliente: el visitante deja
-   su número y el asistente le llama. Base ya existe en `src/browser/browser-call.js`.
-   Upsell del plan Pro.
-2. **Dashboard admin visual** — pantalla para Unai con MRR, leads, conversiones,
-   atribución y referidos. Los datos ya están en endpoints:
-   `/api/admin/stats`, `/api/admin/attribution`, `/api/admin/onboarding`.
-3. **Tests de endpoints HTTP** — hoy se testea la lógica (32 tests); falta cobertura
+1. ~~Widget "llámame"~~ ✅ HECHO — `public/widget/nf-widget.js` + `POST /api/widget/callback`.
+   El negocio pega `<script src=".../widget/nf-widget.js" data-org="ORGID"></script>`.
+   Falta: tarjeta en el portal que muestre el snippet (endpoint `/api/portal/widget` listo)
+   y, a futuro, outbound real (que el asistente IA llame, no solo avisar al dueño).
+2. ~~Dashboard admin visual~~ ✅ HECHO — pestaña 🩺 Sistema (diagnóstico + atribución).
+3. **Tests de endpoints HTTP** — hoy se testea la lógica (36 tests); falta cobertura
    de las rutas Express completas (supertest o similar).
 4. **Cupones por ciudad** (`BILBAO10`, `MADRID10`…) — incentivo + atribución más fina.
-5. **Multi-instancia** — si se escala horizontalmente, mover scheduler/rate-limiter
+5. **UI portal del widget** — tarjeta que muestre el snippet + callbacks recibidos.
+6. **Multi-instancia** — si se escala horizontalmente, mover scheduler/rate-limiter
    a Redis y validar reservas DB-first (ver notas de escalabilidad).
 
 ## 🔴 EasyPanel: deploys intermitentes

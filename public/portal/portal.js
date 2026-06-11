@@ -84,6 +84,7 @@ function navigate(section) {
   else if (section === 'seguimientos')     loadSeguimientos();
   else if (section === 'ayuda')            loadAyuda();
   else if (section === 'referidos')        loadReferidos();
+  else if (section === 'widget')           loadWidget();
   if (section === 'asistente') loadAsistente();
 }
 
@@ -3105,6 +3106,43 @@ async function loadReferidos() {
     (d.rewardPending > 0
       ? '<div style="margin-top:14px;background:rgba(0,184,148,.08);border:1px solid rgba(0,184,148,.25);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)">🎉 Tienes <strong style="color:#00b894">' + d.rewardPending + ' recompensa(s)</strong> pendientes de aplicar. Te contactaremos para descontarlas de tu próxima factura.</div>'
       : '');
+}
+
+async function loadWidget() {
+  var box = document.getElementById('widget-body');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+
+  var d;
+  try { d = await api('/api/portal/widget'); }
+  catch (e) { box.innerHTML = '<div class="empty-state"><div>No se pudo cargar: ' + esc(e.message) + '</div></div>'; return; }
+
+  var rows = (d.callbacks && d.callbacks.length)
+    ? d.callbacks.map(function(c){
+        var when = c.created_at ? new Date(c.created_at).toLocaleString('es-ES') : '';
+        return '<tr>' +
+          '<td>' + esc(c.name || '—') + '</td>' +
+          '<td><a href="tel:' + esc(c.phone) + '" style="color:var(--accent-l)">' + esc(c.phone) + '</a></td>' +
+          '<td style="color:var(--dim);font-size:12px">' + esc(c.message || '') + '</td>' +
+          '<td style="color:var(--dim);font-size:12px">' + esc(when) + '</td>' +
+        '</tr>';
+      }).join('')
+    : '<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Aún no has recibido solicitudes. Instala el widget en tu web 👇</td></tr>';
+
+  box.innerHTML =
+    '<div class="card" style="margin-bottom:18px">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px">📋 Instálalo en tu web</div>' +
+      '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Copia esta línea y pégala antes de <code>&lt;/body&gt;</code> en tu página web. Aparecerá un botón flotante "¿Te llamamos?".</div>' +
+      '<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">' +
+        '<code style="flex:1;min-width:240px;background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.25);border-radius:8px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text)">' + esc(d.snippet) + '</code>' +
+        '<button class="btn btn-d btn-sm" onclick="nfCopy(' + JSON.stringify(d.snippet).replace(/"/g,'&quot;') + ',this)">📋 Copiar</button>' +
+      '</div>' +
+      '<div style="margin-top:12px;font-size:12px;color:var(--dim)">💡 ¿No tienes web o usas Instagram/Google? Llámanos y te ayudamos a ponerlo.</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:12px">📞 Solicitudes recibidas</div>' +
+      '<div class="table-wrap"><table style="width:100%"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Mensaje</th><th>Cuándo</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '</div>';
 }
 
 function nfStat(value, label, color) {
