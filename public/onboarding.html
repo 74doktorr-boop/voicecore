@@ -175,11 +175,25 @@ const PLANS = {
   },
 };
 
-// Read plan + sector from URL
+// Read plan + sector + ciudad from URL
 const params     = new URLSearchParams(location.search);
 const planKey    = (params.get('plan') || 'negocio').toLowerCase();
 const plan       = PLANS[planKey] || PLANS.negocio;
 const urlSector  = params.get('sector') || '';
+const urlCiudad  = params.get('ciudad') || '';
+// Atribución: de qué landing vino el lead (sector/ciudad), o el referrer si no hay params.
+// Limitado a 60 chars y saneado para no guardar basura.
+const landingSource = (function () {
+  const sc = [urlSector, urlCiudad].filter(Boolean).join('/');
+  if (sc) return sc.toLowerCase().replace(/[^a-z0-9/_-]/g, '').slice(0, 60);
+  try {
+    const ref = document.referrer ? new URL(document.referrer) : null;
+    if (ref && ref.hostname.indexOf('nodeflow.es') !== -1 && ref.pathname.length > 1) {
+      return ('ref:' + ref.pathname).slice(0, 60);
+    }
+  } catch (_) {}
+  return '';
+})();
 
 // State
 let registroId   = null;
@@ -246,7 +260,7 @@ async function submitRegistro() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined, source: urlSector || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');

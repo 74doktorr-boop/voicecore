@@ -732,6 +732,47 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ── GET /api/admin/attribution ──────────────────────────────────────────────
+  // Agrupa los registros por 'source' (de qué landing vinieron) con conteo de
+  // altas (leads) y conversiones (pagaron). Para saber qué landing convierte.
+  app.get('/api/admin/attribution', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ sources: [] });
+    try {
+      const { data } = await db.client
+        .from('registros')
+        .select('source, status, paid_at, plan')
+        .order('created_at', { ascending: false })
+        .limit(5000);
+
+      const map = {};
+      for (const r of (data || [])) {
+        const key = r.source || '(directo)';
+        if (!map[key]) map[key] = { source: key, leads: 0, paid: 0, mrr: 0 };
+        map[key].leads++;
+        if (r.paid_at || r.status === 'active') {
+          map[key].paid++;
+          map[key].mrr += r.plan === 'pro' ? 99 : r.plan === 'negocio' ? 49 : 0;
+        }
+      }
+      const sources = Object.values(map)
+        .map(s => ({ ...s, convRate: s.leads > 0 ? Math.round((s.paid / s.leads) * 100) : 0 }))
+        .sort((a, b) => b.leads - a.leads);
+
+      res.json({
+        sources,
+        totals: {
+          leads: sources.reduce((s, x) => s + x.leads, 0),
+          paid:  sources.reduce((s, x) => s + x.paid, 0),
+          mrr:   sources.reduce((s, x) => s + x.mrr, 0),
+        },
+      });
+    } catch (e) {
+      log.error(`attribution error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   log.info('Admin routes configured → /api/admin/*');
 }
 

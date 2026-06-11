@@ -174,7 +174,11 @@ function setupRegistroRoutes(app) {
       const efectivoSaludo = saludo || `Hola, gracias por llamar a ${negocio}. ¿En qué puedo ayudarte?`;
 
       // Derive source and language — Galician landing sends source:'galiza', idioma:'gl'
-      const effectiveSource   = couponData?.source || formSource || null;
+      // Saneamos formSource (atribución de landing): cap 60 chars, sin caracteres raros.
+      const cleanFormSource = formSource
+        ? String(formSource).toLowerCase().replace(/[^a-z0-9/:_-]/g, '').slice(0, 60)
+        : null;
+      const effectiveSource   = couponData?.source || cleanFormSource || null;
       const effectiveLanguage = formLanguage || efectivoIdioma;
 
       const row = await saveRegistro({
