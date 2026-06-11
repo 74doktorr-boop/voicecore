@@ -102,13 +102,23 @@ function fmtUptime(sec) {
   if (h > 0) return h + 'h ' + m + 'm';
   return m + 'm';
 }
-// URL absoluta de producción: así la página de estado funciona la abras donde
-// la abras (nodeflow.es, archivo local, otro hosting). En local apunta a sí misma.
-var HEALTH_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
-  ? 'https://nodeflow.es/health'
-  : '/health';
+// Consultamos SIEMPRE la URL absoluta de producción. En nodeflow.es es
+// mismo-origen (funciona); en cualquier otro sitio funciona vía CORS (*).
+var HEALTH_URL = 'https://nodeflow.es/health';
+var _isFile = (location.protocol === 'file:');
 var _failCount = 0; // fallos consecutivos al contactar /health
+
+// Si se abre como ARCHIVO local (file://), el navegador bloquea fetch() por
+// seguridad. Avisamos y enlazamos a la versión web, donde sí funciona.
+if (_isFile) {
+  var bn = document.getElementById('banner');
+  bn.className = 'banner checking';
+  document.getElementById('bannerText').textContent = 'Abre la versión web';
+  document.getElementById('bannerSub').innerHTML = 'Esta página solo funciona online: <a href="https://nodeflow.es/status" style="color:var(--accent-l)">nodeflow.es/status</a>';
+}
+
 async function check() {
+  if (_isFile) return; // no intentar fetch desde file:// (lo bloquea el navegador)
   var banner = document.getElementById('banner');
   var t0 = performance.now();
   try {
