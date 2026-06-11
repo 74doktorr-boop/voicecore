@@ -46,7 +46,8 @@ function setupWhatsAppWebhook(app) {
       log.info('WhatsApp webhook verificado por Meta ✓');
       return res.status(200).send(challenge);
     }
-    log.warn(`Webhook verification failed — token mismatch (got: ${token})`);
+    // No registramos el token recibido para no filtrarlo en logs
+    log.warn(`Webhook verification failed — mode=${mode} token mismatch`);
     res.sendStatus(403);
   });
 
