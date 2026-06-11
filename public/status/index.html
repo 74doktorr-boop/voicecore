@@ -19,10 +19,13 @@ h1{font-size:clamp(24px,4.5vw,32px);font-weight:900;letter-spacing:-1px;margin-b
 
 .banner{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;transition:border-color .4s}
 .banner.up{border-color:rgba(0,206,201,.35)}
+.banner.checking{border-color:rgba(253,203,110,.4)}
 .banner.down{border-color:rgba(255,107,107,.4)}
 .dot{width:14px;height:14px;border-radius:50%;background:var(--dim);flex-shrink:0;position:relative}
 .banner.up .dot{background:var(--green)}
 .banner.up .dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(0,206,201,.4);animation:pulse 2s ease-out infinite}
+.banner.checking .dot{background:var(--amber)}
+.banner.checking .dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(253,203,110,.4);animation:pulse 2s ease-out infinite}
 .banner.down .dot{background:var(--red)}
 @keyframes pulse{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.4);opacity:0}}
 .banner-text{font-size:17px;font-weight:700}
@@ -99,6 +102,7 @@ function fmtUptime(sec) {
   if (h > 0) return h + 'h ' + m + 'm';
   return m + 'm';
 }
+var _failCount = 0; // fallos consecutivos al contactar /health
 async function check() {
   var banner = document.getElementById('banner');
   var t0 = performance.now();
@@ -107,6 +111,7 @@ async function check() {
     var ms = Math.round(performance.now() - t0);
     var data = await res.json();
     var ok = res.ok && data.status === 'ok';
+    _failCount = 0;
 
     banner.className = 'banner ' + (ok ? 'up' : 'down');
     document.getElementById('bannerText').textContent = ok ? 'Todos los sistemas operativos' : 'Servicio degradado';
@@ -123,15 +128,20 @@ async function check() {
     setSvc('svcDb', data.database === 'connected' ? 's-ok' : 's-warn', data.database === 'connected' ? 'Operativa' : 'Modo memoria');
     setSvc('svcNotif', ok ? 's-ok' : 's-warn', ok ? 'Operativo' : 'Posible retraso');
   } catch (e) {
-    // La página cargó pero no se alcanzó /health. Puede ser un blip de red del
-    // visitante o del API — NO afirmamos que "la web" esté caída (esta página es la web).
-    banner.className = 'banner down';
-    document.getElementById('bannerText').textContent = 'Comprobando conexión…';
-    document.getElementById('bannerSub').textContent = 'No hemos podido contactar con el servicio — reintentando en unos segundos';
+    // No se alcanzó /health. Un fallo aislado suele ser un blip de red o el
+    // primer intento — mostramos estado neutro "comprobando" (ámbar). Solo tras
+    // varios fallos seguidos lo damos por caída real (rojo).
+    _failCount++;
+    var realDown = _failCount >= 3;
+    banner.className = 'banner ' + (realDown ? 'down' : 'checking');
+    document.getElementById('bannerText').textContent = realDown ? 'No se puede conectar' : 'Comprobando conexión…';
+    document.getElementById('bannerSub').textContent = realDown
+      ? 'El servicio no responde. Ya estamos en ello — escríbenos si es urgente.'
+      : 'Estableciendo conexión con el servicio…';
     document.getElementById('mLatency').textContent = '—';
     document.getElementById('mUptime').textContent = '—';
     document.getElementById('mCalls').textContent = '—';
-    setSvc('svcVoice', 's-unknown', 'Comprobando…');
+    setSvc('svcVoice', realDown ? 's-down' : 's-unknown', realDown ? 'Incidencia' : 'Comprobando…');
     setSvc('svcWeb', 's-ok', 'Operativo'); // esta página cargó → la web funciona
     setSvc('svcDb', 's-unknown', '—');
     setSvc('svcNotif', 's-unknown', '—');
@@ -140,7 +150,8 @@ async function check() {
     'Última comprobación: ' + new Date().toLocaleTimeString('es-ES');
 }
 check();
-setInterval(check, 30000);
+// Reintentos más rápidos al principio (cada 6s) hasta tener 1ª respuesta; luego cada 30s.
+var _fast = setInterval(function(){ if (_failCount === 0) { clearInterval(_fast); setInterval(check, 30000); } else { check(); } }, 6000);
 </script>
 </body>
 </html>
