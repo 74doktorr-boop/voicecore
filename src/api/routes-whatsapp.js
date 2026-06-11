@@ -6,10 +6,30 @@
 // POST /whatsapp/webhook  — mensajes entrantes + button replies
 // ============================================================
 
+const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
 const { handleReply }   = require('../whatsapp/reply-handler');
 
 const log = new Logger('WA-WEBHOOK');
+
+// Verifica la firma X-Hub-Signature-256 que Meta añade a cada webhook.
+// Devuelve true si la firma es válida (o si no hay App Secret configurado aún,
+// para permitir el setup inicial — con aviso). false sólo si hay secret y NO casa.
+function verifyMetaSignature(req) {
+  const appSecret = process.env.WA_APP_SECRET;
+  if (!appSecret) {
+    log.warn('WA_APP_SECRET no configurado — webhook SIN verificar firma (configúralo para producción)');
+    return true; // permitir durante el setup inicial
+  }
+  const sigHeader = req.headers['x-hub-signature-256'] || '';
+  const raw = req.rawBody;
+  if (!sigHeader || !raw) return false;
+
+  const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(raw).digest('hex');
+  const a = Buffer.from(sigHeader);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 function setupWhatsAppWebhook(app) {
 
@@ -34,6 +54,13 @@ function setupWhatsAppWebhook(app) {
   // Meta envía aquí todos los mensajes: texto libre, respuestas de botón,
   // confirmaciones de entrega, etc.
   app.post('/whatsapp/webhook', async (req, res) => {
+    // Verificar que la petición viene realmente de Meta (firma HMAC).
+    // Sin esto, cualquiera podría enviar un "CANCELAR" falso y anular citas.
+    if (!verifyMetaSignature(req)) {
+      log.warn('Webhook con firma inválida — descartado');
+      return res.sendStatus(401);
+    }
+
     // Responder 200 INMEDIATAMENTE — Meta reintenta si no recibe respuesta en <20s
     res.sendStatus(200);
 

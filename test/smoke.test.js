@@ -339,6 +339,45 @@ describe('error-tracker', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
+// 7b. Firma HMAC del webhook de WhatsApp (X-Hub-Signature-256)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('whatsapp webhook signature (HMAC)', () => {
+  // Replicamos la lógica de verifyMetaSignature para testearla de forma aislada
+  function sign(secret, raw) {
+    return 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
+  }
+  function verify(secret, sigHeader, raw) {
+    if (!sigHeader || !raw) return false;
+    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
+    const a = Buffer.from(sigHeader), b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  const secret = 'app-secret-test';
+  const raw = Buffer.from(JSON.stringify({ object: 'whatsapp_business_account', entry: [] }));
+
+  test('acepta una firma válida', () => {
+    assert.strictEqual(verify(secret, sign(secret, raw), raw), true);
+  });
+
+  test('rechaza una firma con otro secreto', () => {
+    assert.strictEqual(verify(secret, sign('otro', raw), raw), false);
+  });
+
+  test('rechaza si el body fue manipulado tras firmar', () => {
+    const good = sign(secret, raw);
+    const tampered = Buffer.from(JSON.stringify({ object: 'x', entry: [{ evil: true }] }));
+    assert.strictEqual(verify(secret, good, tampered), false);
+  });
+
+  test('rechaza firma vacía o body vacío', () => {
+    assert.strictEqual(verify(secret, '', raw), false);
+    assert.strictEqual(verify(secret, sign(secret, raw), null), false);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // 7. Referidos — generación de código
 // ═════════════════════════════════════════════════════════════════════════════
 

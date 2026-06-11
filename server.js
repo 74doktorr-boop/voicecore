@@ -147,8 +147,12 @@ app.use((req, res, next) => {
 // already-consumed stream for this path when the route handler runs.
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
-// Limit JSON and URL-encoded body size to 512 KB — prevents DoS via massive POST bodies
-app.use(express.json({ limit: '512kb' }));
+// Limit JSON and URL-encoded body size to 512 KB — prevents DoS via massive POST bodies.
+// verify: guarda el body crudo en req.rawBody para verificar firmas HMAC (webhook de Meta/WA).
+app.use(express.json({
+  limit: '512kb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true, limit: '512kb' }));
 
 // ─── GitHub Raw Page Server ───────────────────────────────────────────────────
