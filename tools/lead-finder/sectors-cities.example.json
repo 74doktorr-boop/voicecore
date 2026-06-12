@@ -1,0 +1,31 @@
+{
+  "sectors": [
+    "clínica dental",
+    "peluquería",
+    "centro de estética",
+    "fisioterapia",
+    "veterinaria",
+    "taller mecánico",
+    "gimnasio",
+    "podología",
+    "óptica",
+    "asesoría"
+  ],
+  "cities": [
+    "Bilbao",
+    "Barakaldo",
+    "Getxo",
+    "Donostia",
+    "Vitoria-Gasteiz",
+    "Pamplona"
+  ],
+  "filters": {
+    "onlyWithoutWebsite": true,
+    "requirePhone": true,
+    "minRatingCount": 5,
+    "onlyOperational": true
+  },
+  "maxPagesPerQuery": 3,
+  "regionCode": "ES",
+  "languageCode": "es"
+}
