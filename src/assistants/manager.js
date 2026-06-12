@@ -241,6 +241,23 @@ class AssistantManager {
           },
         },
       },
+      {
+        type: 'function',
+        function: {
+          name: 'add_to_waitlist',
+          description: 'Cuando el cliente quiere una cita pero NO hay hueco disponible en su franja preferida, apúntalo a la lista de espera. Dile que le avisarás en cuanto se libere un hueco. Pide nombre, teléfono y cuándo le viene bien.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name:      { type: 'string' },
+              phone:     { type: 'string' },
+              service:   { type: 'string', description: 'Servicio o tratamiento que quiere' },
+              preferred: { type: 'string', description: 'Cuándo le viene bien (ej. "martes por la mañana")' },
+            },
+            required: ['phone'],
+          },
+        },
+      },
     ];
 
     const toAdd = GLOBAL_TOOLS.filter(t => !existingNames.has(t.function.name));

@@ -123,6 +123,7 @@ class ToolExecutor {
       // ── Leads & prospects ──
       register_lead:       this.registerLead.bind(this),
       register_prospect:   this.registerLead.bind(this),    // alias
+      add_to_waitlist:     this.addToWaitlist.bind(this),
 
       // ── Booking variants ──
       book_class:          this.bookClass.bind(this),
@@ -391,6 +392,28 @@ class ToolExecutor {
     } catch (_) {}
 
     return { success: true, message: 'El responsable ha sido alertado inmediatamente. Está avisado ahora mismo.' };
+  }
+
+  async addToWaitlist(args, assistantId) {
+    const phone = String(args.phone || '').replace(/[\s\-().+]/g, '');
+    if (!/^\d{7,15}$/.test(phone)) {
+      return { success: false, message: 'Necesito un teléfono válido para apuntarte en la lista de espera.' };
+    }
+    try {
+      const db = getDatabase();
+      if (db.enabled && assistantId) {
+        await db.client.from('nf_waitlist').insert({
+          organization_id: assistantId,
+          name:      args.name      ? String(args.name).slice(0, 80)      : null,
+          phone,
+          service:   args.service   ? String(args.service).slice(0, 80)   : null,
+          preferred: args.preferred ? String(args.preferred).slice(0, 80) : null,
+        });
+      }
+    } catch (e) {
+      log.warn(`addToWaitlist(${assistantId}): ${e.message}`);
+    }
+    return { success: true, message: 'Te he apuntado en la lista de espera. En cuanto se libere un hueco que te encaje, te avisamos. ¡Gracias!' };
   }
 
   async notifyAdvisor(args, assistantId) {
