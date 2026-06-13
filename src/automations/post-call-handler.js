@@ -35,6 +35,7 @@ async function handle(callData) {
 
   const schedulerConfig = scheduler.getBusinessConfig(businessId) || {};
   const config = flowManager.mergeConfig(businessId, schedulerConfig);
+  const db = getDatabase(); // BUG FIX: declarado al principio — antes se usaba en el paso 4 antes de declararse (ReferenceError en llamadas 'info')
 
   log.info(`Post-call [${callData.id}] — outcome:${callData.outcome} biz:${businessId}`);
 
@@ -91,7 +92,6 @@ async function handle(callData) {
   }
 
   // ── 5. Persist call to Supabase (transcript + outcome) ──────────────────────
-  const db = getDatabase();
   if (db.enabled && callData.id) {
     db.client.from('calls').upsert({
       call_sid:           callData.id,
