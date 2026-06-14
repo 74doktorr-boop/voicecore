@@ -75,20 +75,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
 /* ── TYPOGRAPHY ── */
 h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(--white);}
+/* Acento de titular — color sólido (sin texto-gradiente, anti-patrón) */
 .gradient-text{
-  background:linear-gradient(135deg,var(--accent-l) 0%,#c084fc 50%,var(--accent-l) 100%);
-  background-size:200% auto;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:gradShift 4s ease infinite;
+  color:var(--accent-l);
+  position:relative;
 }
 @keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 
 .section-label{
   display:inline-flex;align-items:center;gap:8px;
-  font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  font-size:.84rem;font-weight:600;letter-spacing:-.005em;
   color:var(--accent-l);padding:5px 14px;border-radius:40px;
-  background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);
-  margin-bottom:14px;
+  background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.18);
+  margin-bottom:16px;
 }
 .section-label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent-l);box-shadow:0 0 8px var(--accent-l);}
 
@@ -910,25 +909,25 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 <section id="funciones">
   <div class="container">
     <div class="section-header reveal">
-      <div class="section-label">Funcionalidades</div>
-      <h2>Potencia tu <span class="gradient-text">comunicación</span></h2>
-      <p>Características diseñadas para el rendimiento empresarial</p>
+      <div class="section-label">Lo que hace por ti</div>
+      <h2>Trabaja <span class="gradient-text">por ti</span> mientras tú atiendes</h2>
+      <p>Coge el teléfono, agenda las citas y recuerda a tus clientes. Tú solo haces tu trabajo.</p>
     </div>
     <div class="features-grid reveal">
       <div class="feature-card">
-        <span class="feat-icon">🧠</span>
-        <h3>Voz ultra-natural</h3>
-        <p>Latencia mínima y entonación humana para conversaciones fluidas y creíbles. La IA recuerda a cada cliente por nombre.</p>
+        <span class="feat-icon">🗣️</span>
+        <h3>Voz que suena humana</h3>
+        <p>Tus clientes hablan con naturalidad, sin notar que es una IA. Y los reconoce por su nombre y su historial.</p>
       </div>
       <div class="feature-card">
-        <span class="feat-icon">🔗</span>
-        <h3>Integración total</h3>
-        <p>Conecta con tus herramientas favoritas. API robusta y 100x más rápido con despliegue en horas, no semanas.</p>
+        <span class="feat-icon">📅</span>
+        <h3>Agenda sola las citas</h3>
+        <p>Reserva, confirma y envía el recordatorio por WhatsApp. Se sincroniza con tu Google Calendar, sin que toques nada.</p>
       </div>
       <div class="feature-card">
-        <span class="feat-icon">📊</span>
-        <h3>Análisis en tiempo real</h3>
-        <p>Datos valiosos de cada conversación para mejorar continuamente tu proceso. Sentimiento, leads e intenciones automáticos.</p>
+        <span class="feat-icon">🌙</span>
+        <h3>Nunca cuelga, nunca falla</h3>
+        <p>Atiende 24/7 — también noches, findes y festivos. Cero llamadas perdidas, cero clientes que se van a la competencia.</p>
       </div>
     </div>
   </div>
