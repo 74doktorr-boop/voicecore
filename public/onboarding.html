@@ -156,22 +156,16 @@ select option{background:#0c0c1a;color:var(--white);}
 <script>
 const PLANS = {
   starter: {
-    name: 'Starter',
+    name: 'Pruébalo gratis',
     price: 'Gratis',
-    features: ['50 min/mes', '1 asistente', 'Solo castellano', 'Soporte email'],
+    features: ['Prueba la voz de tu asistente', 'Configúralo para tu negocio', 'Sin compromiso ni permanencia'],
     stripeUrl: null,
   },
   negocio: {
-    name: 'Negocio',
+    name: 'NodeFlow · Todo incluido',
     price: '49€<span>/mes</span>',
-    features: ['500 min/mes', '1 asistente', 'Castellano + Euskera', 'Memoria persistente', 'Citas por voz', 'Notificaciones WhatsApp'],
+    features: ['Atiende tus llamadas 24/7', 'Castellano, euskera y galego', 'Agenda citas + memoria de clientes', 'Recordatorios y reseñas por WhatsApp', 'Widget web + insights + lista de espera', '500 min/mes · sin permanencia'],
     stripeUrl: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
-  },
-  pro: {
-    name: 'Pro',
-    price: '99€<span>/mes</span>',
-    features: ['2.000 min/mes', 'Asistentes ilimitados', 'Castellano + Euskera + Galego', 'Outbound calls', 'WhatsApp + Instagram + Email', 'Account manager'],
-    stripeUrl: 'https://buy.stripe.com/9B6aEY2m4aRLeJgdfu24003',
   },
 };
 
@@ -276,7 +270,7 @@ async function submitRegistro() {
     localStorage.setItem('nf_reg_lang',    data.idioma || 'es');
 
     // Build summary
-    const basePrice  = planKey === 'pro' ? 99 : 49;
+    const basePrice  = 49;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
     const summary = document.getElementById('summary-rows');
     summary.innerHTML = `
