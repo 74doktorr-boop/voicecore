@@ -184,10 +184,10 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
 .hero-content{position:relative;z-index:1;max-width:860px;margin:0 auto;}
 
 .hero-badge{
-  display:inline-flex;align-items:center;gap:8px;
+  display:inline-flex;align-items:center;gap:9px;
   background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);
-  color:var(--accent-l);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
-  padding:6px 18px;border-radius:40px;margin-bottom:28px;
+  color:var(--accent-l);font-size:.84rem;font-weight:600;letter-spacing:-.005em;
+  padding:7px 16px;border-radius:40px;margin-bottom:28px;
   animation:fadeInDown .6s ease both;
 }
 .hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-l);box-shadow:0 0 8px var(--accent-l);animation:pulseDot 2s infinite;}
@@ -801,31 +801,8 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 <section class="hero" id="hero">
   <div class="hero-grid"></div>
 
-  <!-- Floating live-activity cards (desktop only) -->
-  <div class="hero-floats" aria-hidden="true">
-    <div class="float-card fc-active">
-      <div class="fc-label">Llamada activa</div>
-      <div class="fc-main"><span class="fc-pulse"></span>Restaurante El Asador</div>
-      <div class="fc-sub">Castellano · 1:24 en curso</div>
-    </div>
-    <div class="float-card fc-booking">
-      <div class="fc-label">✓ Reserva confirmada</div>
-      <div class="fc-main">María García · Mesa 6</div>
-      <div class="fc-sub">Sáb 21:00 · Sin gluten</div>
-      <div class="fc-tags"><span class="fc-tag green">Google Calendar ✓</span><span class="fc-tag purple">WhatsApp ✓</span></div>
-    </div>
-    <div class="float-card fc-ai">
-      <div class="fc-label">Análisis IA</div>
-      <div class="fc-stats">
-        <div><div class="fc-stat-lbl">Sentimiento</div><div class="fc-stat-val" style="color:#4ade80">9.4</div></div>
-        <div><div class="fc-stat-lbl">Latencia</div><div class="fc-stat-val" style="color:var(--accent-l)">0.3s</div></div>
-        <div><div class="fc-stat-lbl">Lead</div><div class="fc-stat-val" style="color:#fbbf24">🔥</div></div>
-      </div>
-    </div>
-  </div>
-
   <div class="hero-content">
-    <div class="hero-badge"><span class="dot"></span>IA de voz avanzada · Castellano + Euskera</div>
+    <div class="hero-badge"><span class="dot"></span>Voz natural en castellano, euskera y galego</div>
     <h1>Cero llamadas perdidas.<br>Citas en automático. <span class="hl-247">24/7</span></h1>
     <p class="hero-sub">NodeFlow IA atiende cada llamada de tu <em class="biz-type-el" id="biz-type">restaurante</em> con voz natural, recuerda a tus clientes por nombre y agenda citas automáticamente — sin ninguna intervención humana.</p>
     <div class="hero-ctas">
