@@ -6,11 +6,11 @@
 <title>NodeFlow IA — Demo Interactiva</title>
 <style>
   :root {
-    --bg: #07070e;
+    --bg: #0c0a08;
     --card: #0f0f1a;
     --card2: #13131f;
     --accent: #22d3ee;
-    --accent2: #6c5ce7;
+    --accent2: #e0a23c;
     --green: #10b981;
     --red: #ef4444;
     --text: #e8e8f0;
@@ -62,7 +62,7 @@
   .msg.user { align-self:flex-end; }
   .msg-bubble { padding:11px 15px; border-radius:16px; font-size:14px; line-height:1.55; }
   .msg.bot .msg-bubble { background:var(--card2); border:1px solid var(--border); border-bottom-left-radius:4px; }
-  .msg.user .msg-bubble { background:linear-gradient(135deg, #1a1a3e, #1e1e4e); border:1px solid rgba(108,92,231,0.3); border-bottom-right-radius:4px; color:#c4c4f4; }
+  .msg.user .msg-bubble { background:linear-gradient(135deg, #1a1a3e, #1e1e4e); border:1px solid rgba(224,162,60,0.3); border-bottom-right-radius:4px; color:#c4c4f4; }
   .msg-time { font-size:10px; color:var(--dim); padding:0 4px; }
   .msg.user .msg-time { text-align:right; }
 
@@ -209,7 +209,7 @@
       </div>
       <div class="status-dot" title="Online"></div>
       <button id="voiceToggleBtn" onclick="toggleVoice()" title="Activar/desactivar voz del asistente"
-        style="background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
+        style="background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
         >🔊</button>
     </div>
 
@@ -221,7 +221,7 @@
       <textarea class="chat-input" id="chatInput" placeholder="Escribe o habla como si fueras el cliente..." rows="1"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
       <button id="micBtn" onclick="toggleMic()" title="Hablar (mantén pulsado o haz clic para grabar)"
-        style="background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);border-radius:10px;padding:0 12px;height:46px;cursor:pointer;font-size:18px;color:var(--dim);transition:all 0.2s;"
+        style="background:rgba(224,162,60,0.1);border:1px solid rgba(224,162,60,0.2);border-radius:10px;padding:0 12px;height:46px;cursor:pointer;font-size:18px;color:var(--dim);transition:all 0.2s;"
         >🎤</button>
       <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
     </div>
@@ -745,7 +745,7 @@ _initSTT();
 function _stopMic() {
   _micActive = false;
   const btn = document.getElementById('micBtn');
-  if (btn) { btn.textContent = '🎤'; btn.style.color = 'var(--dim)'; btn.style.borderColor = 'rgba(108,92,231,0.2)'; }
+  if (btn) { btn.textContent = '🎤'; btn.style.color = 'var(--dim)'; btn.style.borderColor = 'rgba(224,162,60,0.2)'; }
 }
 
 function toggleMic() {

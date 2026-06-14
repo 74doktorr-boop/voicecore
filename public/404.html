@@ -10,18 +10,18 @@
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --bg:#07070e; --card:#14141e; --accent:#6c5ce7; --accent-l:#a29bfe;
+      --bg:#0c0a08; --card:#14141e; --accent:#e0a23c; --accent-l:#f2bd5e;
       --green:#00cec9; --text:#e8e8f0; --dim:#8888a8; --border:rgba(255,255,255,0.07);
     }
     body { font-family:'Inter',-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; overflow:hidden; }
     .orb { position:fixed; border-radius:50%; filter:blur(90px); pointer-events:none; z-index:0; }
-    .orb-1 { width:500px; height:500px; top:-150px; left:-100px; background:radial-gradient(circle,rgba(108,92,231,0.3) 0%,transparent 70%); }
+    .orb-1 { width:500px; height:500px; top:-150px; left:-100px; background:radial-gradient(circle,rgba(224,162,60,0.3) 0%,transparent 70%); }
     .orb-2 { width:400px; height:400px; bottom:0; right:-100px; background:radial-gradient(circle,rgba(0,206,201,0.2) 0%,transparent 70%); }
     .content { position:relative; z-index:1; max-width:480px; }
     .code { font-size:120px; font-weight:900; letter-spacing:-6px; line-height:1; background:linear-gradient(135deg,var(--accent-l),var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:12px; }
     h1 { font-size:24px; font-weight:700; margin-bottom:12px; }
     p { color:var(--dim); font-size:15px; line-height:1.7; margin-bottom:32px; }
-    .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:10px; font-size:14px; font-weight:600; background:var(--accent); color:#fff; text-decoration:none; box-shadow:0 4px 24px rgba(108,92,231,0.35); transition:all .25s; }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:10px; font-size:14px; font-weight:600; background:var(--accent); color:#fff; text-decoration:none; box-shadow:0 4px 24px rgba(224,162,60,0.35); transition:all .25s; }
     .btn:hover { background:#7c6cf7; transform:translateY(-2px); }
     .logo { margin-bottom:48px; font-size:18px; font-weight:800; color:var(--text); text-decoration:none; }
     .logo em { color:var(--accent-l); font-style:normal; }

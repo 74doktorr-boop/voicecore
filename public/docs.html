@@ -6,25 +6,25 @@
   <title>VoiceCore API Docs</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root { --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e; --accent: #6c5ce7; --green: #00d2d3; --text: #e8e8f0; --dim: #8888a8; --muted: #55556a; --border: rgba(255,255,255,0.06); }
+    :root { --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e; --accent: #e0a23c; --green: #00d2d3; --text: #e8e8f0; --dim: #8888a8; --muted: #55556a; --border: rgba(255,255,255,0.06); }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
     .layout { display: flex; min-height: 100vh; }
     .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px; position: fixed; top: 0; bottom: 0; overflow-y: auto; }
     .sidebar h2 { font-size: 18px; margin-bottom: 24px; }
-    .sidebar h2 span { color: #a29bfe; }
+    .sidebar h2 span { color: #f2bd5e; }
     .sidebar h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 20px 0 8px; }
     .sidebar a { display: block; padding: 6px 12px; margin: 2px 0; border-radius: 6px; color: var(--dim); text-decoration: none; font-size: 13px; transition: all 0.2s; }
-    .sidebar a:hover, .sidebar a.active { background: rgba(108,92,231,0.15); color: var(--text); }
+    .sidebar a:hover, .sidebar a.active { background: rgba(224,162,60,0.15); color: var(--text); }
     .main { margin-left: 260px; padding: 40px 48px; max-width: 900px; }
     h1 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
     h2 { font-size: 22px; font-weight: 700; margin: 48px 0 16px; padding-top: 24px; border-top: 1px solid var(--border); }
-    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: #a29bfe; }
+    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: #f2bd5e; }
     p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; font-size: 14px; }
     .endpoint { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
     .method { padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
     .method-get { background: rgba(0,210,211,0.15); color: var(--green); }
-    .method-post { background: rgba(108,92,231,0.15); color: #a29bfe; }
+    .method-post { background: rgba(224,162,60,0.15); color: #f2bd5e; }
     .method-put { background: rgba(254,202,87,0.15); color: #feca57; }
     .method-delete { background: rgba(255,107,107,0.15); color: #ff6b6b; }
     .path { color: var(--text); }
@@ -35,7 +35,7 @@
     .param-table th, .param-table td { padding: 8px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
     .param-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
     .required { color: #ff6b6b; font-size: 11px; font-weight: 600; }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(108,92,231,0.15); color: #a29bfe; margin-left: 8px; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(224,162,60,0.15); color: #f2bd5e; margin-left: 8px; }
     @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 24px; } }
   </style>
 </head>
