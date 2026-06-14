@@ -30,7 +30,7 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow IA","url":"https://nodeflow.es","description":"Plataforma de IA con memoria persistente que contesta llamadas, recuerda clientes, consulta documentos reales (RAG), agenda citas por voz y gestiona 4 canales de comunicación.","applicationCategory":"BusinessApplication","operatingSystem":"Web","offers":{"@type":"AggregateOffer","lowPrice":"0","highPrice":"49","priceCurrency":"EUR","offerCount":"2"}}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es NodeFlow IA?","acceptedAnswer":{"@type":"Answer","text":"Es una plataforma de IA que atiende llamadas, recuerda clientes, consulta documentos reales, agenda citas y te envía informes. 24/7 en castellano y euskera."}},{"@type":"Question","name":"¿Necesito cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. Configuramos un desvío desde tu número actual. No necesitas cambiar nada."}},{"@type":"Question","name":"¿Cuánto tarda en activarse?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que nos proporcionas la información de tu negocio."}},{"@type":"Question","name":"¿Es legal?","acceptedAnswer":{"@type":"Answer","text":"Sí, cumplimos con el RGPD. La IA avisa al inicio de cada llamada que está siendo atendida por un asistente de inteligencia artificial."}},{"@type":"Question","name":"¿Qué es la memoria persistente?","acceptedAnswer":{"@type":"Answer","text":"La IA recuerda las conversaciones anteriores de cada llamante. Sabe su nombre, preferencias y qué pidió la última vez. Cada interacción es más personalizada."}},{"@type":"Question","name":"¿Cómo funciona la base de conocimiento?","acceptedAnswer":{"@type":"Answer","text":"Subes tus documentos (menú, precios, FAQ) y la IA los consulta en tiempo real durante las llamadas para dar información real y actualizada de tu negocio."}},{"@type":"Question","name":"¿Qué pasa si el cliente quiere hablar con un humano?","acceptedAnswer":{"@type":"Answer","text":"La IA detecta automáticamente cuando el cliente necesita atención humana y te envía una notificación inmediata por WhatsApp con el resumen de la conversación."}},{"@type":"Question","name":"¿Puedo cancelar en cualquier momento?","acceptedAnswer":{"@type":"Answer","text":"Sí, sin permanencia ni letra pequeña. Puedes cancelar tu suscripción cuando quieras desde tu panel de control. Sin preguntas, sin penalizaciones."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es NodeFlow IA?","acceptedAnswer":{"@type":"Answer","text":"Es una plataforma de IA que atiende llamadas, recuerda clientes, consulta documentos reales, agenda citas y te envía informes. 24/7 en castellano, euskera y galego."}},{"@type":"Question","name":"¿Necesito cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. Configuramos un desvío desde tu número actual. No necesitas cambiar nada."}},{"@type":"Question","name":"¿Cuánto tarda en activarse?","acceptedAnswer":{"@type":"Answer","text":"En pocos minutos. Tras completar el registro y el pago, el asistente se configura automáticamente y recibes acceso a tu portal con las instrucciones de desvío."}},{"@type":"Question","name":"¿Es legal?","acceptedAnswer":{"@type":"Answer","text":"Sí, cumplimos con el RGPD. La IA avisa al inicio de cada llamada que está siendo atendida por un asistente de inteligencia artificial."}},{"@type":"Question","name":"¿Qué es la memoria persistente?","acceptedAnswer":{"@type":"Answer","text":"La IA recuerda las conversaciones anteriores de cada llamante. Sabe su nombre, preferencias y qué pidió la última vez. Cada interacción es más personalizada."}},{"@type":"Question","name":"¿Cómo funciona la base de conocimiento?","acceptedAnswer":{"@type":"Answer","text":"Subes tus documentos (menú, precios, FAQ) y la IA los consulta en tiempo real durante las llamadas para dar información real y actualizada de tu negocio."}},{"@type":"Question","name":"¿Qué pasa si el cliente quiere hablar con un humano?","acceptedAnswer":{"@type":"Answer","text":"La IA detecta automáticamente cuando el cliente necesita atención humana y te envía una notificación inmediata por WhatsApp con el resumen de la conversación."}},{"@type":"Question","name":"¿Puedo cancelar en cualquier momento?","acceptedAnswer":{"@type":"Answer","text":"Sí, sin permanencia ni letra pequeña. Puedes cancelar tu suscripción cuando quieras desde tu panel de control. Sin preguntas, sin penalizaciones."}}]}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"NodeFlow IA","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
@@ -52,7 +52,7 @@
   --border:     rgba(255,248,236,0.09);
   --border-a:   rgba(224,162,60,0.32);
   --text:       rgba(234,226,214,0.74);
-  --text-2:     rgba(234,226,214,0.5);
+  --text-2:     rgba(234,226,214,0.6);
   --white:      #fbf6ec;
   --accent:     #e0a23c;
   --accent-l:   #f2bd5e;
@@ -1753,18 +1753,28 @@ if (phoneDemoEl) demoObs.observe(phoneDemoEl);
 
 /* ── FAQ ACCORDION ── */
 document.querySelectorAll('.faq-q').forEach(q => {
-  q.addEventListener('click', () => {
+  // Accesibilidad: cada pregunta es un botón operable por teclado
+  q.setAttribute('role', 'button');
+  q.setAttribute('tabindex', '0');
+  q.setAttribute('aria-expanded', 'false');
+  const toggle = () => {
     const item = q.parentElement;
     const answer = item.querySelector('.faq-a');
     const isOpen = item.classList.contains('open');
     document.querySelectorAll('.faq-item.open').forEach(el => {
       el.classList.remove('open');
       el.querySelector('.faq-a').style.height = '0';
+      el.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
     });
     if (!isOpen) {
       item.classList.add('open');
       answer.style.height = answer.scrollHeight + 'px';
+      q.setAttribute('aria-expanded', 'true');
     }
+  };
+  q.addEventListener('click', toggle);
+  q.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
   });
 });
 
