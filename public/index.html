@@ -27,7 +27,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow IA","url":"https://nodeflow.es","description":"Plataforma de IA con memoria persistente que contesta llamadas, recuerda clientes, consulta documentos reales (RAG), agenda citas por voz y gestiona 4 canales de comunicación.","applicationCategory":"BusinessApplication","operatingSystem":"Web","offers":{"@type":"AggregateOffer","lowPrice":"0","highPrice":"99","priceCurrency":"EUR","offerCount":"3"}}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow IA","url":"https://nodeflow.es","description":"Plataforma de IA con memoria persistente que contesta llamadas, recuerda clientes, consulta documentos reales (RAG), agenda citas por voz y gestiona 4 canales de comunicación.","applicationCategory":"BusinessApplication","operatingSystem":"Web","offers":{"@type":"AggregateOffer","lowPrice":"0","highPrice":"49","priceCurrency":"EUR","offerCount":"2"}}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es NodeFlow IA?","acceptedAnswer":{"@type":"Answer","text":"Es una plataforma de IA que atiende llamadas, recuerda clientes, consulta documentos reales, agenda citas y te envía informes. 24/7 en castellano y euskera."}},{"@type":"Question","name":"¿Necesito cambiar mi número de teléfono?","acceptedAnswer":{"@type":"Answer","text":"No. Configuramos un desvío desde tu número actual. No necesitas cambiar nada."}},{"@type":"Question","name":"¿Cuánto tarda en activarse?","acceptedAnswer":{"@type":"Answer","text":"Menos de 24 horas desde que nos proporcionas la información de tu negocio."}},{"@type":"Question","name":"¿Es legal?","acceptedAnswer":{"@type":"Answer","text":"Sí, cumplimos con el RGPD. La IA avisa al inicio de cada llamada que está siendo atendida por un asistente de inteligencia artificial."}},{"@type":"Question","name":"¿Qué es la memoria persistente?","acceptedAnswer":{"@type":"Answer","text":"La IA recuerda las conversaciones anteriores de cada llamante. Sabe su nombre, preferencias y qué pidió la última vez. Cada interacción es más personalizada."}},{"@type":"Question","name":"¿Cómo funciona la base de conocimiento?","acceptedAnswer":{"@type":"Answer","text":"Subes tus documentos (menú, precios, FAQ) y la IA los consulta en tiempo real durante las llamadas para dar información real y actualizada de tu negocio."}},{"@type":"Question","name":"¿Qué pasa si el cliente quiere hablar con un humano?","acceptedAnswer":{"@type":"Answer","text":"La IA detecta automáticamente cuando el cliente necesita atención humana y te envía una notificación inmediata por WhatsApp con el resumen de la conversación."}},{"@type":"Question","name":"¿Puedo cancelar en cualquier momento?","acceptedAnswer":{"@type":"Answer","text":"Sí, sin permanencia ni letra pequeña. Puedes cancelar tu suscripción cuando quieras desde tu panel de control. Sin preguntas, sin penalizaciones."}}]}
@@ -111,8 +111,8 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
 .nav-login{color:var(--text);text-decoration:none;font-size:.88rem;font-weight:500;transition:color .25s;}
 .nav-login:hover{color:var(--white);}
 .btn-nav{
-  background:linear-gradient(135deg,var(--accent),var(--accent-l));
-  color:#fff;padding:9px 22px;border-radius:10px;font-size:.85rem;font-weight:700;
+  background:linear-gradient(135deg,var(--accent-l),var(--accent));
+  color:#241803;padding:9px 22px;border-radius:10px;font-size:.85rem;font-weight:700;
   text-decoration:none;transition:all .3s;box-shadow:0 0 20px rgba(224,162,60,.3);
 }
 .btn-nav:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(224,162,60,.5);}
@@ -129,7 +129,7 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
   flex-direction:column;align-items:center;justify-content:center;gap:24px;
 }
 .mobile-nav.open{display:flex;}
-.mobile-nav a{color:var(--white);text-decoration:none;font-size:1.4rem;font-weight:700;}
+.mobile-nav a:not(.btn){color:var(--white);text-decoration:none;font-size:1.4rem;font-weight:700;}
 
 /* ── BUTTONS ── */
 .btn{
@@ -445,7 +445,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 
 /* ── PRICING ── */
 .pricing-section{background:var(--bg-2);}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:0 auto;}
+.pricing-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:720px;margin:0 auto;align-items:stretch;}
 .price-card{
   background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
   padding:32px 28px;position:relative;transition:all .3s var(--ease);
@@ -463,8 +463,8 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 }
 .pop-badge{
   position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-  background:linear-gradient(135deg,var(--accent),var(--accent-l));
-  color:#fff;padding:4px 18px;border-radius:40px;font-size:.72rem;font-weight:800;white-space:nowrap;
+  background:linear-gradient(135deg,var(--accent-l),var(--accent));
+  color:#241803;padding:4px 18px;border-radius:40px;font-size:.72rem;font-weight:800;white-space:nowrap;letter-spacing:.01em;
   box-shadow:0 4px 16px rgba(224,162,60,.4);
 }
 .price-name{font-size:1rem;font-weight:700;color:var(--white);margin-bottom:8px;}
@@ -1192,7 +1192,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 
     <div style="text-align:center;margin-top:48px" class="reveal">
       <a href="#precios" class="btn btn-primary">Activar automatizaciones →</a>
-      <p style="margin-top:12px;font-size:.82rem;color:var(--text-2);">Incluidas desde el plan Negocio · Sin configuración adicional</p>
+      <p style="margin-top:12px;font-size:.82rem;color:var(--text-2);">Todo incluido en NodeFlow · Sin configuración adicional</p>
     </div>
   </div>
 </section>
@@ -1420,76 +1420,50 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 <section class="pricing-section" id="precios">
   <div class="container">
     <div class="section-header reveal">
-      <div class="section-label">Precios</div>
-      <h2>Planes para cada <span class="gradient-text">necesidad</span></h2>
-      <p>Escala tu inteligencia artificial a medida que creces</p>
+      <div class="section-label">Precio</div>
+      <h2>Un precio. <span class="gradient-text">Todo incluido.</span></h2>
+      <p>Sin planes confusos ni funciones "premium" escondidas. Pagas una vez y lo tienes todo.</p>
     </div>
     <div class="pricing-grid reveal">
 
-      <!-- Starter -->
+      <!-- Prueba gratis -->
       <div class="price-card">
-        <div class="price-name">Starter</div>
+        <div class="price-name">Pruébalo gratis</div>
         <div style="margin-bottom:4px">
-          <span class="price-amount">Gratis</span>
+          <span class="price-amount">0€</span>
         </div>
-        <div class="price-note">Para conocer NodeFlow sin riesgo</div>
+        <div class="price-note">Escucha cómo sonaría tu asistente. Sin tarjeta.</div>
         <ul class="price-feats">
-          <li><span class="ck">✓</span> 50 min/mes</li>
-          <li><span class="ck">✓</span> 1 asistente</li>
-          <li><span class="ck">✓</span> Solo castellano</li>
-          <li><span class="ck">✓</span> Soporte email</li>
-          <li><span class="xx">✗</span> Sin memoria persistente</li>
-          <li><span class="xx">✗</span> Sin base de conocimiento</li>
-          <li><span class="xx">✗</span> Sin agendado de citas</li>
+          <li><span class="ck">✓</span> Prueba la voz de tu asistente</li>
+          <li><span class="ck">✓</span> Configúralo para tu negocio</li>
+          <li><span class="ck">✓</span> Sin compromiso ni permanencia</li>
         </ul>
-        <a href="/onboarding.html?plan=starter" class="btn btn-outline">Empezar gratis</a>
+        <a href="/onboarding.html?plan=starter" class="btn btn-outline">Probar gratis</a>
       </div>
 
-      <!-- Negocio (popular) -->
+      <!-- Plan único — todo incluido -->
       <div class="price-card popular">
-        <div class="pop-badge">⭐ Más popular</div>
-        <div class="price-name">Negocio</div>
+        <div class="pop-badge">Todo incluido</div>
+        <div class="price-name">NodeFlow</div>
         <div style="margin-bottom:4px">
           <span class="price-amount"><sup>€</sup>49</span><span class="price-period">/mes</span>
         </div>
-        <div class="price-note">Todo lo que necesitas para crecer</div>
+        <div class="price-note">Tu recepcionista 24/7, por menos que una mañana de un empleado.</div>
         <ul class="price-feats">
-          <li><span class="ck">✓</span> 500 min/mes</li>
-          <li><span class="ck">✓</span> 1 asistente</li>
-          <li><span class="sp">✦</span> Castellano + Euskera nativo</li>
-          <li><span class="sp">✦</span> Memoria persistente</li>
-          <li><span class="sp">✦</span> Base de conocimiento RAG</li>
-          <li><span class="sp">✦</span> Citas por voz (Google Calendar)</li>
-          <li><span class="ck">✓</span> Notificaciones WhatsApp</li>
-          <li><span class="ck">✓</span> Informes semanales</li>
-          <li><span class="ck">✓</span> Análisis de sentimiento</li>
+          <li><span class="ck">✓</span> Atiende tus llamadas 24/7, también festivos</li>
+          <li><span class="sp">✦</span> Voz natural en castellano, euskera y galego</li>
+          <li><span class="sp">✦</span> Agenda citas en tu Google Calendar</li>
+          <li><span class="sp">✦</span> Memoria de clientes + CRM completo</li>
+          <li><span class="sp">✦</span> Recordatorios y reseñas por WhatsApp</li>
+          <li><span class="sp">✦</span> Recupera llamadas perdidas + lista de espera</li>
+          <li><span class="sp">✦</span> Widget para tu web + insights + resumen diario</li>
+          <li><span class="ck">✓</span> 500 min/mes incluidos · sin permanencia</li>
         </ul>
-        <a href="/onboarding.html?plan=negocio" class="btn btn-primary">Contratar →</a>
-      </div>
-
-      <!-- Pro -->
-      <div class="price-card">
-        <div class="price-name">Pro</div>
-        <div style="margin-bottom:4px">
-          <span class="price-amount"><sup>€</sup>99</span><span class="price-period">/mes</span>
-        </div>
-        <div class="price-note">Para negocios que necesitan escala</div>
-        <ul class="price-feats">
-          <li><span class="ck">✓</span> 2.000 min/mes</li>
-          <li><span class="ck">✓</span> Asistentes ilimitados</li>
-          <li><span class="ck">✓</span> Todo lo del Negocio</li>
-          <li><span class="sp">✦</span> Widget "¿Te llamamos?" para tu web</li>
-          <li><span class="sp">✦</span> Lista de espera + recuperación de citas</li>
-          <li><span class="sp">✦</span> Panel de insights (horas punta, conversión)</li>
-          <li><span class="sp">✦</span> Galego nativo (además de castellano y euskera)</li>
-          <li><span class="ck">✓</span> Account manager</li>
-          <li><span class="ck">✓</span> Overage: €0,05/min</li>
-        </ul>
-        <a href="/onboarding.html?plan=pro" class="btn btn-outline">Contratar →</a>
+        <a href="/onboarding.html?plan=negocio" class="btn btn-primary">Empezar ahora →</a>
       </div>
 
     </div>
-    <p class="pricing-note-bottom">Todos los precios incluyen IVA · Sin permanencia · Cancela cuando quieras</p>
+    <p class="pricing-note-bottom">Un recepcionista a tiempo parcial cuesta 800–1.000€/mes. NodeFlow atiende cada llamada por <strong style="color:var(--accent-l)">49€</strong> · IVA incluido · Cancela cuando quieras</p>
   </div>
 </section>
 
