@@ -118,7 +118,7 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
 .btn-nav:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(224,162,60,.5);}
 
 /* Hamburger */
-.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px;z-index:1001;}
+.hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:11px;min-width:44px;min-height:44px;z-index:1001;}
 .hamburger span{display:block;width:22px;height:2px;background:var(--white);border-radius:2px;transition:all .3s;}
 .hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
 .hamburger.open span:nth-child(2){opacity:0;}
@@ -130,6 +130,12 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
 }
 .mobile-nav.open{display:flex;}
 .mobile-nav a:not(.btn){color:var(--white);text-decoration:none;font-size:1.4rem;font-weight:700;}
+
+/* ── FOCO VISIBLE (accesibilidad teclado) ── */
+a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,
+input:focus-visible,.sector-card:focus-visible{
+  outline:2px solid var(--accent-l);outline-offset:3px;border-radius:8px;
+}
 
 /* ── BUTTONS ── */
 .btn{
@@ -534,7 +540,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 .sticky-inner{display:flex;align-items:center;gap:12px;max-width:480px;margin:0 auto;}
 .sticky-txt{flex:1;font-size:.8rem;color:var(--text);line-height:1.3;}
 .sticky-txt strong{color:var(--white);}
-.sticky-cta .btn{white-space:nowrap;padding:9px 18px;font-size:.83rem;flex-shrink:0;}
+.sticky-cta .btn{white-space:nowrap;padding:11px 18px;font-size:.83rem;flex-shrink:0;min-height:44px;}
 
 /* ── ANIMATIONS ── */
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
