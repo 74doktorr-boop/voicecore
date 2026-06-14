@@ -155,10 +155,10 @@
 
     /* Buttons */
     .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:10px; font-size:15px; font-weight:600; transition:all .25s; cursor:pointer; border:none; white-space:nowrap; position:relative; overflow:hidden; }
-    .btn-primary { background:var(--accent); color:#fff; box-shadow:0 4px 24px var(--glow); }
+    .btn-primary { background:var(--accent); color:#241803; box-shadow:0 4px 24px var(--glow); }
     .btn-primary::before { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); transform:translateX(-100%); transition:transform .6s; }
     .btn-primary:hover::before { transform:translateX(100%); }
-    .btn-primary:hover { background:#7c6cf7; transform:translateY(-2px); box-shadow:0 10px 36px var(--glow); }
+    .btn-primary:hover { background:#f2bd5e; transform:translateY(-2px); box-shadow:0 10px 36px var(--glow); }
     .btn-outline { background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.15); }
     .btn-outline:hover { border-color:var(--accent-l); background:rgba(224,162,60,0.08); transform:translateY(-2px); }
     .btn-lg { padding:16px 36px; font-size:16px; border-radius:12px; }
@@ -276,7 +276,7 @@
     .pricing-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:36px 32px; position:relative; transition:all .3s; }
     .pricing-card:hover { transform:translateY(-4px); border-color:var(--border-accent); }
     .pricing-card.featured { border-color:var(--accent); background:linear-gradient(145deg,rgba(224,162,60,0.1),var(--card)); }
-    .pricing-card.featured::before { content:'Más popular'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:4px 14px; border-radius:20px; letter-spacing:0.5px; white-space:nowrap; }
+    .pricing-card.featured::before { content:'Más popular'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--accent); color:#241803; font-size:11px; font-weight:700; padding:4px 14px; border-radius:20px; letter-spacing:0.5px; white-space:nowrap; }
     .pricing-name { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--dim); font-weight:600; margin-bottom:12px; }
     .pricing-price { font-size:52px; font-weight:900; letter-spacing:-2px; color:#fff; line-height:1; margin-bottom:6px; }
     .pricing-price span { font-size:18px; color:var(--dim); font-weight:400; letter-spacing:0; }
@@ -285,8 +285,8 @@
     .pricing-features li { font-size:14px; color:var(--text); display:flex; gap:10px; align-items:flex-start; }
     .pricing-features li::before { content:'✓'; color:var(--green); font-weight:700; flex-shrink:0; margin-top:1px; }
     .pricing-cta { display:block; text-align:center; padding:13px; border-radius:10px; font-size:14px; font-weight:700; transition:all .25s; }
-    .pricing-cta-primary { background:var(--accent); color:#fff; box-shadow:0 4px 18px var(--glow); }
-    .pricing-cta-primary:hover { background:#7c6cf7; transform:translateY(-2px); }
+    .pricing-cta-primary { background:var(--accent); color:#241803; box-shadow:0 4px 18px var(--glow); }
+    .pricing-cta-primary:hover { background:#f2bd5e; transform:translateY(-2px); }
     .pricing-cta-outline { border:1px solid rgba(255,255,255,0.15); color:var(--text); }
     .pricing-cta-outline:hover { border-color:var(--accent-l); background:rgba(224,162,60,0.08); }
 
