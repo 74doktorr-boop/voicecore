@@ -232,6 +232,76 @@ h1,h2,h3,h4{font-weight:800;letter-spacing:-0.025em;line-height:1.15;color:var(-
   opacity:.85;
 }
 @keyframes wave{0%{transform:scaleY(.15);}100%{transform:scaleY(1);}}
+
+/* ── "24/7" titular — sólido, sin gradiente ── */
+.hl-247{
+  position:relative;color:var(--white);white-space:nowrap;
+  padding:0 .12em;
+}
+.hl-247::after{
+  content:'';position:absolute;left:0;right:0;bottom:.06em;height:.10em;border-radius:2px;
+  background:var(--accent-l);box-shadow:0 0 16px rgba(168,85,247,.7);
+}
+
+/* ── LIVE CALL DEMO — el producto funcionando, no contado ── */
+.call-demo{
+  position:relative;z-index:1;margin:52px auto 0;width:100%;max-width:480px;text-align:left;
+  background:linear-gradient(180deg,rgba(20,16,34,.92),rgba(10,8,20,.92));
+  border:1px solid rgba(255,255,255,.09);border-radius:22px;
+  padding:18px 18px 20px;backdrop-filter:blur(20px);
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 0 1px rgba(124,58,237,.08) inset;
+  animation:fadeInUp .8s ease .4s both;
+}
+.cd-head{display:flex;align-items:center;gap:11px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07);}
+.cd-phone{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-l));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 20px rgba(124,58,237,.45);
+}
+.cd-head-txt{flex:1;min-width:0;}
+.cd-biz{font-size:.92rem;font-weight:700;color:var(--white);line-height:1.2;}
+.cd-meta{font-size:.72rem;color:var(--text-2);margin-top:1px;}
+.cd-live{display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:800;letter-spacing:.04em;color:#ff6b6b;flex-shrink:0;}
+.cd-live i{width:7px;height:7px;border-radius:50%;background:#ff5252;box-shadow:0 0 8px #ff5252;animation:pulseDot 1.2s infinite;font-style:normal;}
+.cd-convo{display:flex;flex-direction:column;gap:9px;padding:16px 2px 4px;min-height:188px;}
+.cd-row{display:flex;align-items:flex-end;gap:8px;opacity:0;transform:translateY(8px);}
+.cd-row.in{opacity:1;transform:none;transition:opacity .45s ease,transform .45s cubic-bezier(.16,1,.3,1);}
+.cd-row.ai{flex-direction:row-reverse;}
+.cd-av{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.cd-av.caller{background:rgba(255,255,255,.08);}
+.cd-av.ai{background:linear-gradient(135deg,var(--accent),var(--accent-l));box-shadow:0 0 12px rgba(124,58,237,.4);}
+.cd-bub{
+  max-width:78%;font-size:.86rem;line-height:1.5;padding:9px 13px;border-radius:14px;
+  color:var(--white);
+}
+.cd-bub.caller{background:rgba(255,255,255,.07);border-bottom-left-radius:4px;}
+.cd-bub.ai{background:linear-gradient(135deg,rgba(124,58,237,.9),rgba(168,85,247,.82));border-bottom-right-radius:4px;}
+.cd-typing{display:inline-flex;gap:4px;padding:11px 14px;}
+.cd-typing span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55);animation:cdDot 1.1s infinite;}
+.cd-typing span:nth-child(2){animation-delay:.18s;} .cd-typing span:nth-child(3){animation-delay:.36s;}
+@keyframes cdDot{0%,60%,100%{opacity:.3;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}
+/* mini onda reactiva dentro de la burbuja IA */
+.cd-wave{display:inline-flex;align-items:center;gap:3px;height:16px;margin-left:8px;vertical-align:middle;}
+.cd-wave i{width:3px;border-radius:3px;background:rgba(255,255,255,.85);height:30%;animation:cdWave .7s ease-in-out infinite alternate;}
+.cd-wave i:nth-child(2){animation-delay:.1s} .cd-wave i:nth-child(3){animation-delay:.2s} .cd-wave i:nth-child(4){animation-delay:.3s} .cd-wave i:nth-child(5){animation-delay:.15s}
+@keyframes cdWave{from{height:18%}to{height:100%}}
+.cd-result{
+  display:flex;align-items:center;gap:10px;margin-top:6px;padding:12px 14px;border-radius:14px;
+  background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.3);
+  opacity:0;transform:translateY(8px) scale(.98);
+}
+.cd-result.in{opacity:1;transform:none;transition:all .5s cubic-bezier(.16,1,.3,1);}
+.cd-result .ck{width:24px;height:24px;border-radius:50%;background:var(--green);color:#04130d;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0;}
+.cd-result-txt{font-size:.82rem;line-height:1.4;}
+.cd-result-txt b{color:#34d399;}
+.cd-result-tags{margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;}
+.cd-result-tags span{font-size:.66rem;color:var(--text);background:rgba(255,255,255,.06);border-radius:20px;padding:2px 8px;}
+@media(max-width:520px){.call-demo{max-width:none;padding:16px 14px 18px;} .cd-bub{font-size:.84rem;}}
+@media (prefers-reduced-motion: reduce){
+  .cd-row,.cd-result{opacity:1!important;transform:none!important;transition:none!important;}
+  .cd-typing,.cd-wave i,.cd-live i{animation:none!important;}
+}
 .wave-status{font-size:.82rem;color:var(--text-2);margin-top:16px;}
 .wave-status strong{color:var(--accent-l);}
 
@@ -756,7 +826,7 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 
   <div class="hero-content">
     <div class="hero-badge"><span class="dot"></span>IA de voz avanzada · Castellano + Euskera</div>
-    <h1>Cero llamadas perdidas.<br>Citas en automático. <span class="gradient-text">24/7.</span></h1>
+    <h1>Cero llamadas perdidas.<br>Citas en automático. <span class="hl-247">24/7</span></h1>
     <p class="hero-sub">NodeFlow IA atiende cada llamada de tu <em class="biz-type-el" id="biz-type">restaurante</em> con voz natural, recuerda a tus clientes por nombre y agenda citas automáticamente — sin ninguna intervención humana.</p>
     <div class="hero-ctas">
       <a href="#precios" class="btn btn-primary">Activar mi asistente IA →</a>
@@ -768,29 +838,17 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
     <p class="hero-hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Activo en minutos</p>
   </div>
 
-  <!-- Waveform Demo Card -->
-  <div class="wave-card" id="wave-card">
-    <div class="wave-label">
-      <span class="wave-dot"></span>
-      Procesando llamada en tiempo real
-      <span style="margin-left:auto;"><span class="live-badge" style="border:none;padding:2px 8px;background:rgba(239,68,68,.06);"><span class="live-dot"></span>EN VIVO</span></span>
+  <!-- LIVE CALL DEMO — el asistente atendiendo una llamada de verdad -->
+  <div class="call-demo" id="callDemo" aria-label="Demostración: NodeFlow atendiendo una llamada">
+    <div class="cd-head">
+      <div class="cd-phone">📞</div>
+      <div class="cd-head-txt">
+        <div class="cd-biz">Restaurante El Asador</div>
+        <div class="cd-meta" id="cdMeta">Llamada entrante · +34 6·· ·· ·· ··</div>
+      </div>
+      <div class="cd-live"><i></i>EN DIRECTO</div>
     </div>
-    <div class="waveform" id="waveform"></div>
-    <div class="wave-status">NodeFlow IA · <strong>Restaurante El Asador</strong> · Llamada activa</div>
-    <div class="wave-metrics">
-      <div class="wave-metric">
-        <div class="wm-label">Confianza</div>
-        <div class="wm-val" style="color:#4ade80;">97%</div>
-      </div>
-      <div class="wave-metric">
-        <div class="wm-label">Latencia</div>
-        <div class="wm-val" style="color:var(--accent-l);">0.3s</div>
-      </div>
-      <div class="wave-metric">
-        <div class="wm-label">Idioma</div>
-        <div class="wm-val" style="color:var(--cyan);">ES + EU</div>
-      </div>
-    </div>
+    <div class="cd-convo" id="cdConvo"></div>
   </div>
 </section>
 
@@ -1608,19 +1666,102 @@ function closeMobileNav() {
   mobileNav.classList.remove('open');
 }
 
-/* ── WAVEFORM BARS ── */
-const wf = document.getElementById('waveform');
-const barCount = 32;
-for (let i = 0; i < barCount; i++) {
-  const bar = document.createElement('div');
-  bar.classList.add('bar');
-  const h = 10 + Math.sin(i * 0.5) * 30 + Math.random() * 20;
-  bar.style.height = h + 'px';
-  const dur = (0.5 + Math.random() * 0.8).toFixed(2) + 's';
-  bar.style.setProperty('--dur', dur);
-  bar.style.animationDelay = (Math.random() * 0.8).toFixed(2) + 's';
-  wf.appendChild(bar);
-}
+/* ── LIVE CALL DEMO — el asistente atendiendo una llamada de verdad ── */
+(function () {
+  const convo = document.getElementById('cdConvo');
+  const meta  = document.getElementById('cdMeta');
+  if (!convo) return;
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wave = '<span class="cd-wave"><i></i><i></i><i></i><i></i><i></i></span>';
+
+  // Guion de la conversación (cliente ↔ IA)
+  const SCRIPT = [
+    { who:'caller', text:'Hola, quería reservar mesa para 4 el sábado por la noche.' },
+    { who:'ai',     text:'¡Claro! Tengo hueco a las 21:00. ¿Le viene bien?' },
+    { who:'caller', text:'Sí, perfecto.' },
+    { who:'ai',     text:'Genial. ¿Algún alérgeno o preferencia?' },
+    { who:'caller', text:'Una persona es sin gluten.' },
+    { who:'ai',     text:'Anotado. Le confirmo por WhatsApp. ¡Hasta el sábado!' },
+  ];
+  const RESULT = {
+    title:'Mesa reservada · Sábado 21:00 · 4 personas',
+    tags:['🚫 Sin gluten','💬 WhatsApp enviado','📅 Google Calendar'],
+  };
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const avatar = who => who === 'ai'
+    ? '<div class="cd-av ai">⚡</div>'
+    : '<div class="cd-av caller">👤</div>';
+
+  function rowEl(who, inner) {
+    const row = document.createElement('div');
+    row.className = 'cd-row ' + who;
+    row.innerHTML = avatar(who) + inner;
+    return row;
+  }
+
+  // Render instantáneo (sin animación) para reduced-motion
+  function renderStatic() {
+    convo.innerHTML = '';
+    SCRIPT.forEach(m => {
+      const bub = '<div class="cd-bub ' + m.who + '">' + (m.who==='ai'?wave+' ':'') + m.text + '</div>';
+      const row = rowEl(m.who, bub); row.classList.add('in'); convo.appendChild(row);
+    });
+    const res = document.createElement('div');
+    res.className = 'cd-result in';
+    res.innerHTML = '<div class="ck">✓</div><div><div class="cd-result-txt"><b>' + RESULT.title + '</b></div><div class="cd-result-tags">' + RESULT.tags.map(t=>'<span>'+t+'</span>').join('') + '</div></div>';
+    convo.appendChild(res);
+    if (meta) meta.textContent = 'Conversación completada · 0:24';
+  }
+
+  async function playOnce() {
+    convo.innerHTML = '';
+    if (meta) meta.textContent = 'Llamada entrante · +34 6·· ·· ·· ··';
+    await sleep(600);
+    if (meta) meta.textContent = 'En conversación · castellano';
+
+    for (const m of SCRIPT) {
+      // indicador de "escribiendo / hablando"
+      const typing = rowEl(m.who, '<div class="cd-bub ' + m.who + '"><span class="cd-typing"><span></span><span></span><span></span></span></div>');
+      convo.appendChild(typing);
+      requestAnimationFrame(() => typing.classList.add('in'));
+      convo.scrollTop = convo.scrollHeight;
+      await sleep(m.who === 'ai' ? 950 : 750);
+      // sustituir por el mensaje real
+      const bub = '<div class="cd-bub ' + m.who + '">' + (m.who==='ai'?wave+' ':'') + m.text + '</div>';
+      typing.innerHTML = avatar(m.who) + bub;
+      convo.scrollTop = convo.scrollHeight;
+      await sleep(m.text.length * 22 + 350); // tiempo proporcional a la longitud
+    }
+
+    // resultado
+    await sleep(250);
+    const res = document.createElement('div');
+    res.className = 'cd-result';
+    res.innerHTML = '<div class="ck">✓</div><div><div class="cd-result-txt"><b>' + RESULT.title + '</b></div><div class="cd-result-tags">' + RESULT.tags.map(t=>'<span>'+t+'</span>').join('') + '</div></div>';
+    convo.appendChild(res);
+    requestAnimationFrame(() => res.classList.add('in'));
+    if (meta) meta.textContent = 'Cita agendada · 0:24';
+    convo.scrollTop = convo.scrollHeight;
+  }
+
+  if (reduce) { renderStatic(); return; }
+
+  // Arranca cuando entra en pantalla; repite en bucle mientras la pestaña esté visible
+  let running = false;
+  async function loop() {
+    if (running) return; running = true;
+    while (true) {
+      if (!document.hidden) { await playOnce(); await sleep(3500); }
+      else { await sleep(800); }
+    }
+  }
+  const io = new IntersectionObserver((entries) => {
+    if (entries.some(e => e.isIntersecting)) { loop(); io.disconnect(); }
+  }, { threshold: 0.3 });
+  io.observe(document.getElementById('callDemo'));
+})();
 
 /* ── COUNTERS ── */
 function animateCounter(el) {
