@@ -40,9 +40,25 @@
     "recepcionista-ia-asesorias-gestoras-espana",
     "asistente-ia-restaurante-vitoria",
     "recepcionista-ia-fisioterapia-bilbao",
-    "asistente-ia-fisioterapia-donostia"
+    "asistente-ia-fisioterapia-donostia",
+    "recepcionista-ia-fisioterapia-vitoria"
   ],
   "posts": [
+    {
+      "slug": "recepcionista-ia-fisioterapia-vitoria",
+      "title": "Recepcionista IA: Revoluciona tu Clínica de Fisioterapia en Vitoria",
+      "metaTitle": "Recepcionista IA para Fisioterapia en Vitoria-Gasteiz",
+      "description": "Descubre cómo una recepcionista IA puede transformar tu clínica de fisioterapia en Vitoria. Automatiza y reduce no-shows. ¡Visítanos!",
+      "date": "2026-06-15",
+      "keywords": [
+        "recepcionista IA fisioterapia Vitoria",
+        "automatizar sesiones fisio Gasteiz",
+        "asistente virtual rehabilitación Álava"
+      ],
+      "sector": "fisioterapia",
+      "city": "vitoria",
+      "readingMinutes": 7
+    },
     {
       "slug": "asistente-ia-fisioterapia-donostia",
       "title": "Asistente IA para Fisioterapia en Donostia: Automatización Eficaz",
