@@ -66,32 +66,32 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#07070e;--card:#14141e;--accent:#6c5ce7;--accent-l:#a29bfe;--white:#f0f0f5;--text:#c8c8d8;--dim:#8888a8;--border:rgba(255,255,255,0.07)}
+    :root{--bg:#0c0a08;--card:#14141e;--accent:#e0a23c;--accent-l:#f2bd5e;--white:#f0f0f5;--text:#c8c8d8;--dim:#8888a8;--border:rgba(255,255,255,0.07)}
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
-    .progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#6c5ce7,#a29bfe);width:0%;z-index:1000;transition:width .1s}
+    .progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#e0a23c,#f2bd5e);width:0%;z-index:1000;transition:width .1s}
     .noise{position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;opacity:0.025}
-    .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;width:500px;height:500px;top:-150px;left:-100px;background:radial-gradient(circle,rgba(108,92,231,0.18) 0%,transparent 70%)}
+    .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;width:500px;height:500px;top:-150px;left:-100px;background:radial-gradient(circle,rgba(224,162,60,0.18) 0%,transparent 70%)}
     nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0}
     nav::before{content:'';position:absolute;inset:0;background:rgba(7,7,14,0.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
     .nav-inner{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;max-width:780px;margin:0 auto;padding:0 24px}
     .logo{font-size:18px;font-weight:800;color:var(--white);text-decoration:none}
     .logo em{color:var(--accent-l);font-style:normal}
     .btn{display:inline-flex;align-items:center;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .2s}
-    .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#7c6cf7}
+    .btn-primary{background:var(--accent);color:#241803}.btn-primary:hover{background:#f2bd5e}
     .container{max-width:780px;margin:0 auto;padding:0 24px;position:relative;z-index:2}
     .breadcrumb{padding:100px 0 0;font-size:12px;color:var(--dim)}
     .breadcrumb a{color:var(--dim);text-decoration:none}.breadcrumb a:hover{color:var(--accent-l)}
     h1{font-size:clamp(26px,5vw,46px);font-weight:900;letter-spacing:-1.5px;color:var(--white);margin:18px 0 14px;line-height:1.15}
     .meta{font-size:13px;color:var(--dim);margin-bottom:28px}
-    .toc{background:rgba(108,92,231,0.07);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:20px 24px;margin-bottom:36px}
+    .toc{background:rgba(224,162,60,0.07);border:1px solid rgba(224,162,60,0.2);border-radius:12px;padding:20px 24px;margin-bottom:36px}
     .toc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-l);margin-bottom:10px}
     .toc ol{padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
     .article-body{font-size:16px;line-height:1.75}
     .article-body h2{font-size:clamp(18px,3vw,26px);font-weight:800;color:var(--white);margin:42px 0 14px;letter-spacing:-.5px}
     .article-body p{margin-bottom:18px}
-    .cta-mid{background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(162,155,254,.06));border:1px solid rgba(108,92,231,.2);border-radius:16px;padding:28px 32px;margin:40px 0;text-align:center}
+    .cta-mid{background:linear-gradient(135deg,rgba(224,162,60,.12),rgba(242,189,94,.06));border:1px solid rgba(224,162,60,.2);border-radius:16px;padding:28px 32px;margin:40px 0;text-align:center}
     .cta-mid h3{font-size:20px;font-weight:800;color:var(--white);margin-bottom:8px}
     .cta-mid p{color:var(--dim);margin-bottom:18px;font-size:15px}
     .faq-section{margin-top:48px}
@@ -193,9 +193,9 @@
   <div class="container">
     <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--white)">📚 Artículos relacionados</h2>
     <div style="display:flex;flex-wrap:wrap;gap:10px;">
-      <a href="/blog/asistente-ia-opticas-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(124,58,237,0.06);transition:all .2s;text-decoration:none">IA para ópticas en España →</a>
-      <a href="/blog/recepcionista-ia-clinicas-seguros-privados-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(124,58,237,0.06);transition:all .2s;text-decoration:none">IA con seguros privados →</a>
-      <a href="/blog/automatizar-recordatorios-citas-reducir-no-shows" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(124,58,237,0.06);transition:all .2s;text-decoration:none">Reducir no-shows con IA →</a>
+      <a href="/blog/asistente-ia-opticas-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">IA para ópticas en España →</a>
+      <a href="/blog/recepcionista-ia-clinicas-seguros-privados-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">IA con seguros privados →</a>
+      <a href="/blog/automatizar-recordatorios-citas-reducir-no-shows" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">Reducir no-shows con IA →</a>
     </div>
   </div>
 </section>
