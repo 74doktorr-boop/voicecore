@@ -9,8 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#07070e; --card:#0f0f18; --card2:#14141e;
-      --accent:#6c5ce7; --accent-l:#a29bfe;
+      --bg:#0c0a08; --card:#141009; --card2:#14141e;
+      --accent:#e0a23c; --accent-l:#f2bd5e;
       --green:#00cec9; --green2:#00b894;
       --red:#e74c3c; --yellow:#f9ca24;
       --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
@@ -29,8 +29,8 @@
     .login-card p{color:var(--dim);font-size:13px;margin-bottom:28px}
     .login-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:12px;outline:none;transition:border-color .2s}
     .login-input:focus{border-color:var(--accent)}
-    .login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
-    .login-btn:hover{background:#5a4bd1}
+    .login-btn{width:100%;background:var(--accent);color:#241803;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
+    .login-btn:hover{background:#c98a2a}
     #loginError{color:#e74c3c;font-size:13px;margin-top:10px;display:none}
 
     /* Layout */
@@ -80,7 +80,7 @@
     .br{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
     .by{background:rgba(249,202,36,0.1);color:var(--yellow);border:1px solid rgba(249,202,36,0.2)}
     .bd{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid var(--border)}
-    .bp{background:rgba(108,92,231,0.12);color:var(--accent-l);border:1px solid rgba(108,92,231,0.2)}
+    .bp{background:rgba(224,162,60,0.12);color:var(--accent-l);border:1px solid rgba(224,162,60,0.2)}
     /* Language badges */
     .bl-eu{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-size:10px;padding:1px 6px}
     .bl-gl{background:rgba(30,138,94,0.15);color:#2ecc8a;border:1px solid rgba(30,138,94,0.35);font-size:10px;padding:1px 6px}
@@ -88,8 +88,8 @@
 
     /* Buttons */
     .btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s;white-space:nowrap}
-    .btn-p{background:var(--accent);color:#fff}
-    .btn-p:hover{background:#5a4bd1}
+    .btn-p{background:var(--accent);color:#241803}
+    .btn-p:hover{background:#c98a2a}
     .btn-g{background:rgba(0,184,148,0.15);color:var(--green2);border:1px solid rgba(0,184,148,0.3)}
     .btn-g:hover{background:rgba(0,184,148,0.25)}
     .btn-y{background:rgba(249,202,36,0.12);color:var(--yellow);border:1px solid rgba(249,202,36,0.25)}
@@ -178,8 +178,8 @@
     <!-- Resumen -->
     <div class="tab-panel active" id="tab-resumen">
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">MRR</div><div class="kpi-value" id="kMrr">—</div><div class="kpi-sub">ingresos recurrentes</div></div>
-        <div class="kpi-card" style="--kpi-color:#6c5ce7"><div class="kpi-label">ARR</div><div class="kpi-value" id="kArr">—</div><div class="kpi-sub">anual estimado</div></div>
+        <div class="kpi-card" style="--kpi-color:#f2bd5e"><div class="kpi-label">MRR</div><div class="kpi-value" id="kMrr">—</div><div class="kpi-sub">ingresos recurrentes</div></div>
+        <div class="kpi-card" style="--kpi-color:#e0a23c"><div class="kpi-label">ARR</div><div class="kpi-value" id="kArr">—</div><div class="kpi-sub">anual estimado</div></div>
         <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Clientes activos</div><div class="kpi-value" id="kOrgs">—</div><div class="kpi-sub">organizaciones</div></div>
         <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Conversión %</div><div class="kpi-value" id="kConv">—</div><div class="kpi-sub">leads → clientes</div></div>
       </div>
@@ -272,7 +272,7 @@
         <button class="refresh-btn" onclick="loadFlows()">↻ Actualizar</button>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="flowKpis">
-        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">Negocios</div><div class="kpi-value" id="fTotal">—</div><div class="kpi-sub">flujos registrados</div></div>
+        <div class="kpi-card" style="--kpi-color:#f2bd5e"><div class="kpi-label">Negocios</div><div class="kpi-value" id="fTotal">—</div><div class="kpi-sub">flujos registrados</div></div>
         <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Reminders activos</div><div class="kpi-value" id="fRem">—</div><div class="kpi-sub">negocios con reminders</div></div>
         <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Reseñas activas</div><div class="kpi-value" id="fRev">—</div><div class="kpi-sub">negocios con reviews</div></div>
         <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Google Place ID</div><div class="kpi-value" id="fPlace">—</div><div class="kpi-sub">configurados</div></div>
@@ -335,7 +335,7 @@
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
         <div class="kpi-card" style="--kpi-color:#fd79a8"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="cCallsToday">—</div><div class="kpi-sub">en lo que va del día</div></div>
-        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">Minutos hoy</div><div class="kpi-value" id="cMinsToday">—</div><div class="kpi-sub">tiempo de IA</div></div>
+        <div class="kpi-card" style="--kpi-color:#f2bd5e"><div class="kpi-label">Minutos hoy</div><div class="kpi-value" id="cMinsToday">—</div><div class="kpi-sub">tiempo de IA</div></div>
         <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Llamadas este mes</div><div class="kpi-value" id="cCallsMonth">—</div><div class="kpi-sub">acumulado mes</div></div>
       </div>
       <div class="table-wrap">
@@ -356,7 +356,7 @@
       <!-- Stats -->
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="poolStats">
         <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Disponibles</div><div class="kpi-value" id="pAvailable">—</div><div class="kpi-sub">listos para asignar</div></div>
-        <div class="kpi-card" style="--kpi-color:#a29bfe"><div class="kpi-label">Asignados</div><div class="kpi-value" id="pAssigned">—</div><div class="kpi-sub">en uso por clientes</div></div>
+        <div class="kpi-card" style="--kpi-color:#f2bd5e"><div class="kpi-label">Asignados</div><div class="kpi-value" id="pAssigned">—</div><div class="kpi-sub">en uso por clientes</div></div>
         <div class="kpi-card" style="--kpi-color:#e17055"><div class="kpi-label">Retirados</div><div class="kpi-value" id="pRetired">—</div><div class="kpi-sub">baja/cancelados</div></div>
         <div class="kpi-card" style="--kpi-color:#74b9ff"><div class="kpi-label">Total</div><div class="kpi-value" id="pTotal">—</div><div class="kpi-sub">en el pool</div></div>
       </div>
