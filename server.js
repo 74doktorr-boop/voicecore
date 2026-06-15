@@ -223,6 +223,21 @@ SECTOR_PAGES.forEach(sector => {
   app.get([`/${sector}`, `/${sector}/`], serveGitHubPage(`/${sector}/index.html`, file));
 });
 
+// ─── Legacy: contestador-ia-*.html → 301 a la página de sector canónica ───
+// Páginas antiguas (marca naranja) que duplicaban el contenido sectorial.
+// Eliminadas del sitemap; redirigen para conservar link-juice histórico.
+const LEGACY_REDIRECTS = {
+  '/contestador-ia-clinica.html':      '/clinicas',
+  '/contestador-ia-estetica.html':     '/estetica',
+  '/contestador-ia-fisioterapia.html': '/fisioterapia',
+  '/contestador-ia-gimnasio.html':     '/gimnasios',
+  '/contestador-ia-taller.html':       '/talleres',
+  '/contestador-ia-veterinaria.html':  '/veterinarias',
+};
+Object.entries(LEGACY_REDIRECTS).forEach(([from, to]) => {
+  app.get(from, (req, res) => res.redirect(301, to));
+});
+
 // ─── Páginas legales ───
 ['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
   const file = path.join(__dirname, 'public', page, 'index.html');
