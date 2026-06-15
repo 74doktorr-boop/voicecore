@@ -114,6 +114,7 @@
     .wa-float:hover{transform:scale(1.1)}
     @media(max-width:600px){.cta-mid{padding:20px 18px}h1{letter-spacing:-1px}}
       h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-1px; }
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
   </style>
 </head>
 <body>
@@ -174,15 +175,15 @@
     <section class="faq-section" id="faq">
       <h2>❓ Preguntas frecuentes</h2>
 
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Puede el asistente dar información legal básica? <span class="faq-icon">+</span></div>
           <div class="faq-a">No. El asistente gestiona exclusivamente la agenda y comunicaciones administrativas, nunca proporciona asesoramiento legal. Esto es intencionado para proteger tanto al despacho como al cliente.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Funciona en euskera para clientes vascos? <span class="faq-icon">+</span></div>
           <div class="faq-a">Sí. NodeFlow atiende en castellano, euskera y modo bilingüe.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Es compatible con el secreto profesional del abogado? <span class="faq-icon">+</span></div>
           <div class="faq-a">Sí. El asistente recoge únicamente datos de contacto y área legal, sin detalles del caso. El abogado mantiene el control total de la información confidencial.</div>
         </div>

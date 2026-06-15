@@ -114,6 +114,7 @@
     .wa-float:hover{transform:scale(1.1)}
     @media(max-width:600px){.cta-mid{padding:20px 18px}h1{letter-spacing:-1px}}
       h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-1px; }
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
   </style>
 </head>
 <body>
@@ -174,15 +175,15 @@
     <section class="faq-section" id="faq">
       <h2>❓ Preguntas frecuentes</h2>
 
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Puede el asistente dar información sobre los precios y paquetes? <span class="faq-icon">+</span></div>
           <div class="faq-a">Sí, configuras los precios y el asistente los comunica con precisión. También puede responder preguntas frecuentes sobre requisitos de edad, documentación necesaria, etc.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Funciona para autoescuelas con varias sucursales en Bilbao? <span class="faq-icon">+</span></div>
           <div class="faq-a">Sí. Puedes configurar varias ubicaciones y el asistente redirige al alumno a la más conveniente.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Cómo se integra con mi software de autoescuela? <span class="faq-icon">+</span></div>
           <div class="faq-a">NodeFlow se integra con Google Calendar. Para integración con software específico de autoescuelas, contacta con nosotros.</div>
         </div>

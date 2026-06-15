@@ -114,6 +114,7 @@
     .wa-float:hover{transform:scale(1.1)}
     @media(max-width:600px){.cta-mid{padding:20px 18px}h1{letter-spacing:-1px}}
       h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-1px; }
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
   </style>
 </head>
 <body>
@@ -174,15 +175,15 @@
     <section class="faq-section" id="faq">
       <h2>❓ Preguntas frecuentes</h2>
 
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Puedo conectar NodeFlow con mi sistema de gestión de pacientes? <span class="faq-icon">+</span></div>
           <div class="faq-a">Sí, mediante integración con Google Calendar o por API. Contacta con nosotros para explorar la integración con tu herramienta específica.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿Cuánto tarda en configurarse para mi consulta? <span class="faq-icon">+</span></div>
           <div class="faq-a">En menos de 24 horas puedes tener el asistente operativo con tus servicios, horarios y mensaje de bienvenida personalizado.</div>
         </div>
-        <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-item" role="button" tabindex="0" onclick="this.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('open');}">
           <div class="faq-q">¿El asistente puede dar consejos nutricionales? <span class="faq-icon">+</span></div>
           <div class="faq-a">No. El asistente gestiona exclusivamente la agenda y comunicaciones administrativas. No proporciona ni insinúa consejos de salud.</div>
         </div>
