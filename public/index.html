@@ -810,9 +810,9 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
   <!-- VOICE DEMO — escucha cómo suena NodeFlow (audio real, transcripción sincronizada) -->
   <div class="voice-demo" id="voiceDemo" aria-label="Escucha cómo suena NodeFlow atendiendo una llamada">
     <div class="vd-tabs" id="vdTabs">
-      <button class="vd-tab active" data-id="clinica">🦷 Clínica</button>
-      <button class="vd-tab" data-id="peluqueria">✂️ Peluquería</button>
-      <button class="vd-tab" data-id="restaurante">🍽️ Restaurante</button>
+      <button class="vd-tab active" data-id="clinica" aria-pressed="true">🦷 Clínica</button>
+      <button class="vd-tab" data-id="peluqueria" aria-pressed="false">✂️ Peluquería</button>
+      <button class="vd-tab" data-id="restaurante" aria-pressed="false">🍽️ Restaurante</button>
     </div>
     <div class="vd-player">
       <button class="vd-play" id="vdPlay" aria-label="Reproducir ejemplo de voz">▶</button>
@@ -1646,8 +1646,8 @@ function closeMobileNav() {
 
   tabs.addEventListener('click', e => {
     const b = e.target.closest('.vd-tab'); if (!b) return;
-    [...tabs.children].forEach(t => t.classList.remove('active'));
-    b.classList.add('active');
+    [...tabs.children].forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed', 'false'); });
+    b.classList.add('active'); b.setAttribute('aria-pressed', 'true');
     audio.pause(); root.classList.remove('playing'); playBtn.textContent = '▶';
     load(b.dataset.id);
   });
