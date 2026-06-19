@@ -19,8 +19,11 @@ const AUDIO_DIR = path.join(__dirname, '..', 'public', 'audio');
 // ── Voces ElevenLabs ──────────────────────────────────────────────────────────
 // eleven_multilingual_v2 habla español con acento neutro perfecto
 const VOICES = {
-  // IA receptionist — cálida, profesional, clara
-  ia:          { id: 'hpp4J3VqNfWAUOO0d1Us', name: 'Bella',  settings: { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true } },
+  // IA receptionist — varias voces para que cada sector suene distinto (NodeFlow deja elegir la voz)
+  ia:          { id: 'hpp4J3VqNfWAUOO0d1Us', name: 'Bella',  settings: { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true } }, // F cálida (default)
+  iaBella:     { id: 'hpp4J3VqNfWAUOO0d1Us', name: 'Bella',  settings: { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true } }, // F cálida
+  iaRachel:    { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', settings: { stability: 0.52, similarity_boost: 0.80, style: 0.22, use_speaker_boost: true } }, // F profesional, más seria
+  iaCarlos:    { id: 'cjVigY5qzO86Huf0OWal', name: 'Carlos', settings: { stability: 0.50, similarity_boost: 0.80, style: 0.30, use_speaker_boost: true } }, // M cercano
   // Clientes — más casuales, más variación natural
   clienteF:    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah',  settings: { stability: 0.38, similarity_boost: 0.72, style: 0.50, use_speaker_boost: true } },
   clienteM:    { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric',   settings: { stability: 0.35, similarity_boost: 0.70, style: 0.48, use_speaker_boost: true } },
@@ -34,6 +37,7 @@ const DEMOS = [
     title: 'Peluquería · Bilbao',
     icon:  '✂️',
     tag:   'peluquería',
+    iaVoice: VOICES.iaBella,   // asistente: voz femenina cálida ("Soy Lucía")
     segments: [
       { speaker: 'cliente', voice: VOICES.clienteF, text: 'Buenas, mira, quería pedir cita para un corte de pelo.' },
       { speaker: 'ia',      voice: VOICES.ia,       text: '¡Buenas! Soy Lucía, la asistente de Peluquería Adela. Claro que sí, ¿para qué día te viene bien?' },
@@ -50,6 +54,7 @@ const DEMOS = [
     title: 'Clínica Dental · Donostia',
     icon:  '🦷',
     tag:   'clínica',
+    iaVoice: VOICES.iaRachel,  // asistente: voz femenina profesional, distinta a la de peluquería
     segments: [
       { speaker: 'cliente', voice: VOICES.clienteM, text: 'Hola, necesitaría pedir una revisión con el dentista, por favor.' },
       { speaker: 'ia',      voice: VOICES.ia,       text: '¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente de la clínica o sería tu primera visita?' },
@@ -64,9 +69,10 @@ const DEMOS = [
     title: 'Restaurante · Vitoria-Gasteiz',
     icon:  '🍽️',
     tag:   'restaurante',
+    iaVoice: VOICES.iaCarlos,  // asistente: voz masculina (variación de género)
     segments: [
       { speaker: 'cliente', voice: VOICES.clienteM2, text: 'Hola, buenas noches. Queríamos hacer una reserva para cenar esta noche.' },
-      { speaker: 'ia',      voice: VOICES.ia,        text: '¡Buenas noches! Soy la asistente del Restaurante Txoko. ¿Cuántos seríais y a qué hora pensabais venir?' },
+      { speaker: 'ia',      voice: VOICES.ia,        text: '¡Buenas noches! Soy el asistente del Restaurante Txoko. ¿Cuántos seríais y a qué hora pensabais venir?' },
       { speaker: 'cliente', voice: VOICES.clienteM2, text: 'Somos cuatro personas, sobre las nueve y media.' },
       { speaker: 'ia',      voice: VOICES.ia,        text: 'Perfecto, tengo mesa disponible para cuatro a las nueve y media. ¿A qué nombre la pongo?' },
       { speaker: 'cliente', voice: VOICES.clienteM2, text: 'A nombre de Gorka.' },
@@ -152,9 +158,11 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     let   nowMs    = 300;
 
     for (const seg of demo.segments) {
-      process.stdout.write(`  [${seg.speaker}] (${seg.voice.name}) "${seg.text.slice(0, 50)}…" `);
+      // La asistente usa la voz propia del demo (variación por sector); el cliente, la suya.
+      const segVoice = seg.speaker === 'ia' ? (demo.iaVoice || seg.voice) : seg.voice;
+      process.stdout.write(`  [${seg.speaker}] (${segVoice.name}) "${seg.text.slice(0, 50)}…" `);
 
-      const pcm   = await generatePcm(seg.text, seg.voice);
+      const pcm   = await generatePcm(seg.text, segVoice);
       const durMs = Math.round(pcm.length / (24000 * 2) * 1000);
 
       segments.push({ speaker: seg.speaker, text: seg.text, startMs: nowMs, durationMs: durMs });
