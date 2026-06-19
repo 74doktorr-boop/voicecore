@@ -548,6 +548,11 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 }
 @media(max-width:640px){
   .superpowers-grid{grid-template-columns:1fr;}
+  /* Hero compacto en móvil para que el reproductor de voz suba cerca del pliegue */
+  .hero h1{font-size:2.45rem;letter-spacing:-.02em;margin-bottom:16px;}
+  .hero-sub{font-size:1rem;line-height:1.6;margin-bottom:22px;}
+  .hero-hint{display:none;}
+  .voice-demo{margin-top:26px;}
   .hero-ctas{flex-direction:column;align-items:center;}
   .hero-ctas .btn{width:100%;max-width:300px;justify-content:center;}
   .final-ctas{flex-direction:column;align-items:center;}
@@ -580,10 +585,10 @@ input[type=range]{width:100%;accent-color:var(--accent-l);cursor:pointer;}
 /* ── LIVE BADGE ── */
 .live-badge{
   display:inline-flex;align-items:center;gap:6px;
-  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
-  color:#fca5a5;padding:4px 12px;border-radius:6px;font-size:.74rem;font-weight:700;
+  background:rgba(46,169,111,.10);border:1px solid rgba(46,169,111,.28);
+  color:#7fd1aa;padding:4px 12px;border-radius:6px;font-size:.74rem;font-weight:700;
 }
-.live-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulseDot 1s infinite;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulseDot 1s infinite;}
 
 /* ── INTEGRATION BAR ── */
 .integrations-bar{padding:36px 0;background:var(--bg-2);}
