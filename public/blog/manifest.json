@@ -41,9 +41,25 @@
     "asistente-ia-restaurante-vitoria",
     "recepcionista-ia-fisioterapia-bilbao",
     "asistente-ia-fisioterapia-donostia",
-    "recepcionista-ia-fisioterapia-vitoria"
+    "recepcionista-ia-fisioterapia-vitoria",
+    "fisioterapia-seguros-adeslas-sanitas-asistente-ia"
   ],
   "posts": [
+    {
+      "slug": "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
+      "title": "Fisioterapia Cobertura Adeslas: El Asistente IA que Necesitas",
+      "metaTitle": "Cobertura Fisioterapia Adeslas y más: IA Asistente",
+      "description": "Descubre cómo un asistente IA gestiona la cobertura de fisioterapia Adeslas, Sanitas y Mutua. Mejora tu clínica. Conoce más en NodeFlow.",
+      "date": "2026-06-22",
+      "keywords": [
+        "fisioterapia cobertura Adeslas",
+        "sesiones fisio Sanitas asistente IA",
+        "fisioterapia Mutua Madrileña IA"
+      ],
+      "sector": "fisioterapia",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "recepcionista-ia-fisioterapia-vitoria",
       "title": "Recepcionista IA: Revoluciona tu Clínica de Fisioterapia en Vitoria",
