@@ -173,27 +173,57 @@ function setupDemoRoutes(app, ttsRouter) {
   });
 
   // ── POST /api/demo/tts ────────────────────────────────────────
-  // body: { text: string, voice?: string }
-  // Returns: audio/mpeg stream
+  // body: { text: string, voice?: string, language?: string }
+  // Devuelve audio REPRODUCIBLE EN NAVEGADOR con voz natural:
+  //   - Azure (si está configurado) → MP3 (castellano natural, máxima calidad).
+  //   - Si no, el router (mulaw 8kHz) se envuelve en WAV reproducible.
+  // (Antes devolvía mulaw etiquetado como audio/mpeg → el navegador no podía
+  //  reproducirlo y la demo caía a la voz robótica del navegador.)
   app.post('/api/demo/tts', demoAuth, demoGlobalLimiter, demoTtsLimiter, async (req, res) => {
-    let { text, voice = 'nova' } = req.body;
+    let { text, voice, language = 'es' } = req.body;
     if (!text) return res.status(400).json({ error: 'text requerido' });
     text = text.slice(0, 500); // cost protection
+    const callId = `demo-${Date.now()}`;
     try {
-      const audio = await ttsRouter.synthesize({
-        callId: `demo-${Date.now()}`,
-        text,
-        voice,
-        provider: 'openai',
-        language: 'es',
-      });
-      res.set('Content-Type', 'audio/mpeg');
-      res.send(audio);
+      // 1. Azure directo → MP3 natural (voz castellana de calidad).
+      const azure = ttsRouter.providers?.get?.('azure')?.instance;
+      if (azure) {
+        const mp3 = await azure.synthesize({ callId, text, voice, language, format: 'mp3' });
+        res.set('Content-Type', 'audio/mpeg');
+        return res.send(mp3);
+      }
+
+      // 2. Fallback: router (mulaw 8kHz) → WAV PCM 8kHz (reproducible en navegador).
+      const mulaw = await ttsRouter.synthesize({ callId, text, voice, language });
+      const { mulawToPcm } = require('../utils/audio');
+      const pcm = mulawToPcm(mulaw);
+      res.set('Content-Type', 'audio/wav');
+      return res.send(wavFromPcm16(pcm, 8000));
     } catch (e) {
       log.error(`TTS error: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
   });
+}
+
+/** Envuelve PCM 16-bit LE mono en una cabecera WAV (RIFF). Reproducible en navegador. */
+function wavFromPcm16(pcm, sampleRate = 8000) {
+  const header = Buffer.alloc(44);
+  const dataLen = pcm.length;
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataLen, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);            // tamaño subchunk fmt
+  header.writeUInt16LE(1, 20);             // PCM
+  header.writeUInt16LE(1, 22);             // mono
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28); // byte rate (16-bit mono)
+  header.writeUInt16LE(2, 32);             // block align
+  header.writeUInt16LE(16, 34);            // bits por muestra
+  header.write('data', 36);
+  header.writeUInt32LE(dataLen, 40);
+  return Buffer.concat([header, pcm]);
 }
 
 module.exports = { setupDemoRoutes };

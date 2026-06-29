@@ -147,6 +147,7 @@
 <!-- Sector chips — solo visible en móvil -->
 <div class="sector-chips" id="sectorChips">
   <div class="sector-chip active" onclick="setSectorChip(this,'dental','🦷','María','Clínica Dental Demo')">🦷 Dental</div>
+  <div class="sector-chip" onclick="setSectorChip(this,'psicotecnicos','🚗','Lucía','Centro Reconocimientos Demo')">🚗 Psicotécnicos</div>
   <div class="sector-chip" onclick="setSectorChip(this,'restaurante','🍽️','Laura','Restaurante Demo')">🍽️ Restaurante</div>
   <div class="sector-chip" onclick="setSectorChip(this,'peluqueria','✂️','Sara','Peluquería Demo')">✂️ Peluquería</div>
   <div class="sector-chip" onclick="setSectorChip(this,'taller','🔧','Iñaki','Taller Demo')">🔧 Taller</div>
@@ -165,6 +166,9 @@
     <div class="sidebar-title">Sector</div>
     <button class="sector-btn active" onclick="setSector(this,'dental','🦷','María','Clínica Dental Demo')" data-sector="dental">
       <span class="icon">🦷</span><span class="lbl">Dental</span><span class="price">49€/mes</span>
+    </button>
+    <button class="sector-btn" onclick="setSector(this,'psicotecnicos','🚗','Lucía','Centro Reconocimientos Demo')" data-sector="psicotecnicos">
+      <span class="icon">🚗</span><span class="lbl">Psicotécnicos</span><span class="price">49€/mes</span>
     </button>
     <button class="sector-btn" onclick="setSector(this,'restaurante','🍽️','Laura','Restaurante Demo')" data-sector="restaurante">
       <span class="icon">🍽️</span><span class="lbl">Restaurante</span><span class="price">49€/mes</span>
@@ -301,6 +305,32 @@ SERVICIOS Y PRECIOS:
 - Carillas de porcelana: 350€ por pieza
 HORARIO: L-V 9-20h, S 9-14h.
 Al confirmar cita: menciona recordatorio WhatsApp 24h antes.
+Hoy es ${_hoy}.`
+  },
+  psicotecnicos: {
+    emoji: '🚗', name: 'Lucía', biz: 'Centro Reconocimientos Demo',
+    get greeting() { return `${_saludo()}, centro de reconocimientos, le atiende Lucía, ¿en qué puedo ayudarle?`; },
+    quickReplies: ['Quiero renovar el carnet de conducir','¿Qué necesito traer?','¿Cuánto cuesta el de moto?','Es para la licencia de armas','¿Hace falta cita?'],
+    systemPrompt: `Eres Lucía, recepcionista del Centro de Reconocimientos Médicos y Psicotécnicos AutoTest en Bilbao. Hablas por teléfono con clientes.
+ESTILO: español natural y claro, máximo 2-3 frases por respuesta, tono cercano y resolutivo. Usa USTED.
+REGLAS:
+1. Responde DIRECTAMENTE: tipo de permiso, precio, qué traer y cita. Nunca respondas una pregunta con otra si puedes resolverla.
+2. NUNCA repitas información ya dada en la misma conversación.
+3. Ubicación: "Estamos en Calle Autonomía 12, Bilbao, junto al metro Indautxu, con parking al lado."
+4. Lo gestionamos TODO con la DGT en el momento de forma telemática: el carnet renovado le llega a casa, no tiene que ir a Tráfico.
+5. La prueba dura unos 20 minutos, no hace falta estar en ayunas, y la foto se la hacemos aquí (incluida). Si usa gafas o lentillas, que las traiga.
+QUÉ HACEMOS Y PRECIOS (tasas de la DGT incluidas):
+- Renovación carnet de coche (B): 49€. Traer DNI y el carnet actual.
+- Carnet de moto (A1, A2, A): 49€.
+- Carnet profesional (C, D — camión/autobús): 59€.
+- Renovación de licencia de armas: 45€. Traer DNI y la licencia.
+- Permiso de navegación / náutica: 45€.
+- Tenencia de animales peligrosos (PPP): 40€.
+- Seguridad privada (vigilante): 55€.
+DOCUMENTACIÓN GENERAL: DNI o NIE en vigor + el permiso que renueva (y gafas si usa). La foto y el certificado los hacemos nosotros.
+HORARIO: L-V 9:30-13:30 y 16:00-20:00, sábados 10:00-13:00. Se puede venir sin cita, pero con cita no espera.
+SERVICIO ESTRELLA (ofrécelo SIEMPRE al confirmar una cita): "Si quiere, le apuntamos la fecha de caducidad de su permiso y le avisamos nosotros un mes antes, para que no se le pase y no tenga que estar pendiente." Es gratis y así no pierde la vigencia.
+Para dar cita necesitas: nombre, tipo de permiso, día y hora, y un teléfono. Al confirmar, menciona recordatorio por WhatsApp el día antes.
 Hoy es ${_hoy}.`
   },
   restaurante: {
@@ -731,7 +761,7 @@ function _initSTT() {
 
   _recognition.onstart = () => {
     _micActive = true;
-    window.speechSynthesis?.cancel(); // stop TTS when user speaks
+    _stopSpeaking(); // stop TTS (servidor o navegador) when user speaks
     const btn = document.getElementById('micBtn');
     if (btn) { btn.textContent = '⏹'; btn.style.color = '#ef4444'; btn.style.borderColor = '#ef4444'; }
   };
@@ -766,6 +796,7 @@ function toggleMic() {
 let _voiceEnabled = true;
 let _ttsVoice     = null;
 let _ttsSpeaking  = false;
+let _demoAudio    = null;  // audio de voz natural (servidor)
 
 function _initTTS() {
   if (!window.speechSynthesis) return;
@@ -789,14 +820,48 @@ function toggleVoice() {
   const btn = document.getElementById('voiceToggleBtn');
   btn.textContent = _voiceEnabled ? '🔊' : '🔇';
   btn.style.opacity = _voiceEnabled ? '1' : '0.45';
-  if (!_voiceEnabled) window.speechSynthesis?.cancel();
+  if (!_voiceEnabled) _stopSpeaking();
 }
 
-function speakText(text) {
-  if (!_voiceEnabled || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel(); // stop any ongoing speech
-  // Strip markdown-like bold/asterisks for cleaner TTS
+function _stopSpeaking() {
+  try { if (_demoAudio) { _demoAudio.pause(); _demoAudio.currentTime = 0; } } catch (_) {}
+  window.speechSynthesis?.cancel();
+  _ttsSpeaking = false;
+}
+
+async function speakText(text) {
+  if (!_voiceEnabled) return;
+  _stopSpeaking();
   const clean = text.replace(/\*+/g, '').replace(/[_~`]/g, '').trim();
+  if (!clean) return;
+
+  // 1. Voz NATURAL vía servidor (Azure/cloud). Es lo que debe sonar siempre.
+  try {
+    const base = (typeof serverUrl !== 'undefined' && serverUrl) ? serverUrl : '';
+    const tok  = (typeof serverToken !== 'undefined') ? serverToken : '';
+    const res = await fetch(`${base}/api/demo/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(tok ? { 'Authorization': `Bearer ${tok}` } : {}) },
+      body: JSON.stringify({ text: clean, language: 'es' }),
+    });
+    if (res.ok) {
+      const url = URL.createObjectURL(await res.blob());
+      _demoAudio = new Audio(url);
+      _ttsSpeaking = true;
+      _demoAudio.onended = () => { _ttsSpeaking = false; URL.revokeObjectURL(url); };
+      _demoAudio.onerror = () => { _ttsSpeaking = false; _browserSpeak(clean); };
+      await _demoAudio.play();
+      return;
+    }
+  } catch (_) { /* sin servidor → voz del navegador */ }
+
+  // 2. Último recurso: voz del navegador (robótica). Solo si el servidor falla.
+  _browserSpeak(clean);
+}
+
+function _browserSpeak(clean) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang  = 'es-ES';
   utt.rate  = 1.05;

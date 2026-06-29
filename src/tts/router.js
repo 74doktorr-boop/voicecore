@@ -31,6 +31,22 @@ class TTSRouter {
   }
 
   _initProviders(config) {
+    // Azure Neural TTS — castellano excelente, coste bajísimo → margen máximo.
+    // Devuelve mulaw 8 kHz directo. Proveedor por defecto del plan de 49€.
+    if (config.azureSpeechKey) {
+      const { AzureTTS } = require('./azure-tts');
+      this.providers.set('azure', {
+        instance: new AzureTTS(config.azureSpeechKey, config.azureSpeechRegion || 'westeurope'),
+        priority: 1,
+        avgLatency: 220,
+        costPerMinute: 0.013,
+        features: ['streaming', 'ssml', 'multilingual'],
+        languages: ['es', 'gl', 'eu', 'ca'],
+        languageAffinity: [],
+      });
+      log.info('Provider registered: Azure Neural TTS');
+    }
+
     // Cartesia Sonic — ultra-low latency via State Space Models
     if (config.cartesiaApiKey) {
       const { CartesiaTTS } = require('./cartesia');
@@ -242,6 +258,10 @@ class TTSRouter {
     const params = { speed: speed ?? 1.0 };
 
     switch (providerName) {
+      case 'azure':
+        params.voice = voice ?? null;  // null → AzureTTS elige la voz por defecto del idioma
+        params.language = language;
+        break;
       case 'cartesia':
         params.voice = voice ?? 'a0e99841-438c-4a64-b679-ae501e7d6091';
         params.language = language;

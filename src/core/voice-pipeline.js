@@ -31,6 +31,8 @@ class VoicePipeline {
     });
 
     this.ttsRouter = config.ttsRouter || new TTSRouter({
+      azureSpeechKey: config.azureSpeechKey,
+      azureSpeechRegion: config.azureSpeechRegion,
       openaiApiKey: config.openaiApiKey,
       elevenlabsApiKey: config.elevenlabsApiKey,
       cartesiaApiKey: config.cartesiaApiKey,
