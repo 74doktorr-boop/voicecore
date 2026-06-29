@@ -156,6 +156,22 @@ class StripeBilling {
   }
 
   /**
+   * Añade el item de minutos extra (precio MEDIDO) a una suscripción, para que
+   * Stripe facture el overage que reportamos por el meter. Idempotente: no lo
+   * añade si ya está. No-op si no hay STRIPE_OVERAGE_PRICE_ID. (Los Payment
+   * Links de Stripe no admiten precios por consumo, por eso se añade aquí.)
+   */
+  async addOverageItem(subscriptionId, priceId) {
+    const price = priceId || process.env.STRIPE_OVERAGE_PRICE_ID;
+    if (!this.enabled || !subscriptionId || !price) return false;
+    const sub = await this.stripe.subscriptions.retrieve(subscriptionId);
+    if (sub.items?.data?.some(it => it.price?.id === price)) return false; // ya existe
+    await this.stripe.subscriptionItems.create({ subscription: subscriptionId, price });
+    log.info(`Item de overage (${price}) añadido a la suscripción ${subscriptionId}`);
+    return true;
+  }
+
+  /**
    * Get subscription details
    */
   async getSubscription(subscriptionId) {

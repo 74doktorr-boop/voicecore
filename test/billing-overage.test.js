@@ -74,3 +74,40 @@ describe('reportUsage / reportOverage (Billing Meters)', () => {
     assert.strictEqual(sent.length, 0);
   });
 });
+
+describe('addOverageItem (engancha el precio medido a la suscripción)', () => {
+  let billing, created;
+  beforeEach(() => {
+    billing = new StripeBilling({ stripeSecretKey: 'sk_test_fake' });
+    billing.enabled = true;
+    created = [];
+  });
+
+  test('añade el item si la suscripción no lo tiene', async () => {
+    billing.stripe = {
+      subscriptions:     { retrieve: async () => ({ items: { data: [{ price: { id: 'price_flat' } }] } }) },
+      subscriptionItems: { create: async (p) => { created.push(p); return p; } },
+    };
+    const r = await billing.addOverageItem('sub_1', 'price_meter');
+    assert.strictEqual(r, true);
+    assert.deepStrictEqual(created, [{ subscription: 'sub_1', price: 'price_meter' }]);
+  });
+
+  test('idempotente: no añade si ya existe', async () => {
+    billing.stripe = {
+      subscriptions:     { retrieve: async () => ({ items: { data: [{ price: { id: 'price_meter' } }] } }) },
+      subscriptionItems: { create: async (p) => { created.push(p); return p; } },
+    };
+    const r = await billing.addOverageItem('sub_1', 'price_meter');
+    assert.strictEqual(r, false);
+    assert.strictEqual(created.length, 0);
+  });
+
+  test('no-op sin subscription ni price', async () => {
+    delete process.env.STRIPE_OVERAGE_PRICE_ID;
+    billing.stripe = { subscriptions: { retrieve: async () => ({ items: { data: [] } }) }, subscriptionItems: { create: async () => { created.push(1); } } };
+    assert.strictEqual(await billing.addOverageItem('', 'price_meter'), false);
+    assert.strictEqual(await billing.addOverageItem('sub_1', ''), false);
+    assert.strictEqual(created.length, 0);
+  });
+});

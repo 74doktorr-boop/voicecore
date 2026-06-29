@@ -207,6 +207,14 @@ function setupBillingRoutes(app, config) {
             }
             claimedRegistroId = registroId;
 
+            // Engancha el item de minutos extra (precio medido) a la suscripción.
+            // Los Payment Links de Stripe no admiten precios por consumo, así que se
+            // añade aquí. Idempotente + gated por STRIPE_OVERAGE_PRICE_ID (no-op si falta).
+            if (subscriptionId && process.env.STRIPE_OVERAGE_PRICE_ID) {
+              await billing.addOverageItem(subscriptionId)
+                .catch(e => log.warn(`No se pudo añadir item de overage: ${e.message}`));
+            }
+
             // Plan del formulario coincide directamente con el valor de DB ('starter'|'negocio'|'pro')
             const orgPlan = registro.plan || 'negocio';
 
