@@ -210,4 +210,34 @@ function invalidateCache(businessId) {
   cacheDelete(businessId);
 }
 
-module.exports = { getWaCredentials, saveWaCredentials, revokeWaCredentials, invalidateCache };
+// Caché del mapeo phone_number_id → businessId (para resolver el negocio que
+// recibe un mensaje entrante de WhatsApp, p.ej. para honrar un opt-out).
+const _pniCache = new Map(); // phoneNumberId → { businessId, expiresAt }
+
+/**
+ * Resuelve el organization_id (businessId) a partir del phone_number_id de Meta
+ * que viene en el webhook (change.value.metadata.phone_number_id).
+ * @returns {Promise<string|null>}
+ */
+async function getBusinessIdByPhoneNumberId(phoneNumberId) {
+  if (!phoneNumberId) return null;
+  const hit = _pniCache.get(phoneNumberId);
+  if (hit && Date.now() < hit.expiresAt) return hit.businessId;
+  try {
+    const sb = getSupabase();
+    const { data } = await sb
+      .from('whatsapp_accounts')
+      .select('organization_id')
+      .eq('phone_number_id', phoneNumberId)
+      .eq('status', 'active')
+      .single();
+    const businessId = data?.organization_id || null;
+    _pniCache.set(phoneNumberId, { businessId, expiresAt: Date.now() + CACHE_TTL_MS });
+    return businessId;
+  } catch (e) {
+    log.warn(`getBusinessIdByPhoneNumberId(${phoneNumberId}): ${e.message}`);
+    return null;
+  }
+}
+
+module.exports = { getWaCredentials, saveWaCredentials, revokeWaCredentials, invalidateCache, getBusinessIdByPhoneNumberId };

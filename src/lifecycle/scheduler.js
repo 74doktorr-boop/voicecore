@@ -119,6 +119,98 @@ async function dispatch(reminder, contact, memory) {
   return { ok: false, channel: null };
 }
 
+// ── Scaling knobs (env-configurable, defaults safe para miles de clientes) ────
+// CLAIM_LIMIT  : recordatorios reclamados por lote (claim atómico).
+// CONCURRENCY  : envíos en paralelo dentro de un lote (acotado por rate-limits
+//                de WhatsApp/SMS/Email).
+// MAX_BATCHES  : lotes máximos por tick — drena el backlog sin esperar 30 min,
+//                con tope para no monopolizar el proceso.
+const CLAIM_LIMIT = Math.max(1, Number(process.env.LIFECYCLE_CLAIM_LIMIT) || 100);
+const CONCURRENCY = Math.max(1, Number(process.env.LIFECYCLE_CONCURRENCY) || 5);
+const MAX_BATCHES = Math.max(1, Number(process.env.LIFECYCLE_MAX_BATCHES) || 20);
+
+/** Ejecuta `fn` sobre `items` con un máximo de `limit` en vuelo a la vez. */
+async function mapWithConcurrency(items, limit, fn) {
+  const queue = items.slice();
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
+}
+
+/** Procesa un único recordatorio (claim ya hecho). Nunca lanza. */
+async function processOneReminder(reminder, db) {
+  try {
+    // Re-check do_not_contact (may have changed since scheduling)
+    const memory = await getContactMemory(reminder.contact_id, reminder.org_id);
+    const ch = reminder.channel;
+    const allBlocked = memory?.no_whatsapp && memory?.no_sms && memory?.no_email;
+    const channelBlocked = (ch === 'whatsapp' && memory?.no_whatsapp)
+                        || (ch === 'sms'      && memory?.no_sms)
+                        || (ch === 'email'    && memory?.no_email);
+
+    if (allBlocked || channelBlocked) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', failed_reason: 'do_not_contact', updated_at: new Date().toISOString() })
+        .eq('id', reminder.id);
+      return;
+    }
+
+    // Fetch contact + org name for message building
+    const [{ data: contact }, { data: org }] = await Promise.all([
+      db.client.from('contacts').select('name, phone, email').eq('id', reminder.contact_id).maybeSingle(),
+      db.client.from('organizations').select('name').eq('id', reminder.org_id).maybeSingle(),
+    ]);
+    const contactWithOrg = { ...contact, _orgName: org?.name || '' };
+
+    // Skip if a future appointment exists (client already has something booked)
+    // Join via phone since nf_appointments has no contact_id
+    let newerApt = null;
+    if (contact?.phone) {
+      const { data: newerAptData } = await db.client.from('nf_appointments')
+        .select('id')
+        .eq('organization_id', reminder.org_id)
+        .eq('phone', contact.phone)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .in('status', ['confirmed', 'pending'])
+        .limit(1)
+        .maybeSingle();
+      newerApt = newerAptData;
+    }
+
+    if (newerApt) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', failed_reason: 'appointment_booked', updated_at: new Date().toISOString() })
+        .eq('id', reminder.id);
+      return;
+    }
+
+    // Dispatch
+    const result = await dispatch(reminder, contactWithOrg, memory);
+
+    if (result.ok) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', reminder.id);
+    } else {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'failed', failed_reason: 'all_channels_failed', updated_at: new Date().toISOString() })
+        .eq('id', reminder.id);
+      await incrementFailedAttempts(reminder.contact_id, reminder.org_id);
+      log.error(`Reminder ${reminder.id} failed all channels`);
+    }
+  } catch (err) {
+    await db.client.from('scheduled_reminders')
+      .update({ status: 'failed', failed_reason: err.message.slice(0, 200), updated_at: new Date().toISOString() })
+      .eq('id', reminder.id)
+      .catch(() => {});
+    log.error(`Reminder ${reminder.id} threw: ${err.message}`);
+  }
+}
+
 // ── Main cron logic ───────────────────────────────────────────────────────────
 
 async function processReminders() {
@@ -128,86 +220,30 @@ async function processReminders() {
   // Recover stalled 'sending' reminders from a previous crashed run
   await db.client.rpc('recover_stalled_reminders').catch(() => {});
 
-  // Claim pending reminders due in the next 30 min atomically
-  const windowEnd = new Date(Date.now() + 31 * 60 * 1000).toISOString();
-  const { data: reminders, error } = await db.client.rpc('claim_pending_reminders', {
-    p_window_end: windowEnd,
-    p_limit:      50,
-  });
+  let totalProcessed = 0;
 
-  if (error) { log.error('claim_pending_reminders failed', { err: error.message }); return; }
-  if (!reminders?.length) return;
+  // Drena el backlog en varios lotes dentro del mismo tick. Cada lote se
+  // reclama atómicamente (seguro entre instancias) y se despacha con
+  // concurrencia acotada. Paramos cuando un lote no llega al límite (no queda
+  // backlog) o al alcanzar MAX_BATCHES.
+  for (let batch = 0; batch < MAX_BATCHES; batch++) {
+    const windowEnd = new Date(Date.now() + 31 * 60 * 1000).toISOString();
+    const { data: reminders, error } = await db.client.rpc('claim_pending_reminders', {
+      p_window_end: windowEnd,
+      p_limit:      CLAIM_LIMIT,
+    });
 
-  log.info(`Processing ${reminders.length} reminders`);
+    if (error) { log.error('claim_pending_reminders failed', { err: error.message }); return; }
+    if (!reminders?.length) break;
 
-  for (const reminder of reminders) {
-    try {
-      // Re-check do_not_contact (may have changed since scheduling)
-      const memory = await getContactMemory(reminder.contact_id, reminder.org_id);
-      const ch = reminder.channel;
-      const allBlocked = memory?.no_whatsapp && memory?.no_sms && memory?.no_email;
-      const channelBlocked = (ch === 'whatsapp' && memory?.no_whatsapp)
-                          || (ch === 'sms'      && memory?.no_sms)
-                          || (ch === 'email'    && memory?.no_email);
+    log.info(`Processing ${reminders.length} reminders (batch ${batch + 1}, concurrency ${CONCURRENCY})`);
+    await mapWithConcurrency(reminders, CONCURRENCY, (r) => processOneReminder(r, db));
+    totalProcessed += reminders.length;
 
-      if (allBlocked || channelBlocked) {
-        await db.client.from('scheduled_reminders')
-          .update({ status: 'cancelled', failed_reason: 'do_not_contact', updated_at: new Date().toISOString() })
-          .eq('id', reminder.id);
-        continue;
-      }
-
-      // Fetch contact + org name for message building
-      const [{ data: contact }, { data: org }] = await Promise.all([
-        db.client.from('contacts').select('name, phone, email').eq('id', reminder.contact_id).maybeSingle(),
-        db.client.from('organizations').select('name').eq('id', reminder.org_id).maybeSingle(),
-      ]);
-      const contactWithOrg = { ...contact, _orgName: org?.name || '' };
-
-      // Skip if a future appointment exists (client already has something booked)
-      // Join via phone since nf_appointments has no contact_id
-      let newerApt = null;
-      if (contact?.phone) {
-        const { data: newerAptData } = await db.client.from('nf_appointments')
-          .select('id')
-          .eq('organization_id', reminder.org_id)
-          .eq('phone', contact.phone)
-          .gte('date', new Date().toISOString().split('T')[0])
-          .in('status', ['confirmed', 'pending'])
-          .limit(1)
-          .maybeSingle();
-        newerApt = newerAptData;
-      }
-
-      if (newerApt) {
-        await db.client.from('scheduled_reminders')
-          .update({ status: 'cancelled', failed_reason: 'appointment_booked', updated_at: new Date().toISOString() })
-          .eq('id', reminder.id);
-        continue;
-      }
-
-      // Dispatch
-      const result = await dispatch(reminder, contactWithOrg, memory);
-
-      if (result.ok) {
-        await db.client.from('scheduled_reminders')
-          .update({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq('id', reminder.id);
-      } else {
-        await db.client.from('scheduled_reminders')
-          .update({ status: 'failed', failed_reason: 'all_channels_failed', updated_at: new Date().toISOString() })
-          .eq('id', reminder.id);
-        await incrementFailedAttempts(reminder.contact_id, reminder.org_id);
-        log.error(`Reminder ${reminder.id} failed all channels`);
-      }
-    } catch (err) {
-      await db.client.from('scheduled_reminders')
-        .update({ status: 'failed', failed_reason: err.message.slice(0, 200), updated_at: new Date().toISOString() })
-        .eq('id', reminder.id)
-        .catch(() => {});
-      log.error(`Reminder ${reminder.id} threw: ${err.message}`);
-    }
+    if (reminders.length < CLAIM_LIMIT) break; // No queda backlog
   }
+
+  if (totalProcessed > 0) log.info(`Lifecycle tick done — ${totalProcessed} reminders dispatched`);
 }
 
 /**
@@ -245,15 +281,17 @@ async function processCampaigns() {
 
     if (!contacts?.length) continue;
 
-    for (const contact of contacts) {
-      await scheduleReminder({
+    // Concurrencia acotada: una org con miles de contactos no debe generar
+    // una tormenta de inserts secuenciales.
+    await mapWithConcurrency(contacts, CONCURRENCY, (contact) =>
+      scheduleReminder({
         orgId:        campaign.org_id,
         contactId:    contact.id,
         serviceKey:   campaign.service_key,
         scheduledFor: new Date(Date.now() + 5 * 60 * 1000), // 5 min from now
         channel:      campaign.channel,
-      }).catch(() => {});
-    }
+      }).catch(() => {})
+    );
 
     await db.client.from('org_campaigns')
       .update({ last_fired_year: year })
@@ -290,4 +328,4 @@ function startLifecycleCron() {
   }, 5000);
 }
 
-module.exports = { startLifecycleCron, processReminders, processCampaigns };
+module.exports = { startLifecycleCron, processReminders, processCampaigns, mapWithConcurrency };

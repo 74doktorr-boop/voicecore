@@ -200,4 +200,54 @@ async function handleReply({ from, type, payload }) {
   log.warn(`Unknown payload from ${from}: "${payload}"`);
 }
 
-module.exports = { handleReply, normalizePhone };
+// ── Opt-out (cumplimiento WhatsApp: honrar bajas evita reportes y bans) ───────
+const OPTOUT_RE = /\b(baja|stop|darme de baja|dar de baja|no\s*molestar|no\s*quiero(?:\s*m[aá]s)?|unsubscribe|dejar de (?:recibir|escribir)|suscripci[oó]n)\b/i;
+
+function isOptOut(text = '') {
+  return OPTOUT_RE.test(String(text));
+}
+
+/**
+ * Honra una baja recibida por WhatsApp: marca no_whatsapp en el contacto
+ * (one-way, vía call-memory → el scheduler ya lo respeta) y confirma al cliente.
+ * @param {{from:string, businessId?:string}} params
+ * @returns {Promise<boolean>} true si se persistió la baja.
+ */
+async function handleOptOut({ from, businessId }) {
+  const credentials = businessId ? await getWaCredentials(businessId).catch(() => null) : null;
+  let persisted = false;
+
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (db.enabled && businessId) {
+      const n9 = normalizePhone(from);
+      const variants = Array.from(new Set([String(from), `+${from}`, n9, `+34${n9}`, `34${n9}`, `0034${n9}`]));
+      const { data } = await db.client
+        .from('contacts')
+        .select('id, phone')
+        .eq('org_id', businessId)
+        .in('phone', variants)
+        .limit(1);
+      const contact = data?.[0];
+      if (contact) {
+        const { upsertContactMemory } = require('../lifecycle/call-memory');
+        await upsertContactMemory(contact.id, businessId, { no_whatsapp: true });
+        persisted = true;
+      }
+    }
+  } catch (e) {
+    log.warn(`opt-out persist failed for ${from}: ${e.message}`);
+  }
+
+  await sendText(from,
+    'Hecho ✅ No volverás a recibir mensajes nuestros por WhatsApp. ' +
+    'Si en el futuro cambias de idea, escríbenos cuando quieras. ¡Un saludo! 👋',
+    credentials
+  ).catch(() => {});
+
+  log.info(`Opt-out WhatsApp de ${from} (org ${businessId || '?'}) — persistido=${persisted}`);
+  return persisted;
+}
+
+module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut };

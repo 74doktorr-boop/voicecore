@@ -7,7 +7,7 @@ const { Logger } = require('../utils/logger');
 const { requireAuth } = require('../auth/middleware');
 const { getBilling } = require('../billing/stripe');
 const { getDatabase } = require('../db/database');
-const { getRegistro, updateRegistro } = require('./routes-registro');
+const { getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning } = require('./routes-registro');
 const { sendEmail, notifyNuevoCliente, sendBienvenida, sendWelcomePortalEmail, sendActivacion } = require('../notifications/email');
 const { generateMagicToken } = require('./routes-auth');
 
@@ -181,6 +181,7 @@ function setupBillingRoutes(app, config) {
   // ─── Stripe Webhook ───
   // express.raw() ya fue aplicado globalmente en server.js para este path
   app.post('/api/billing/webhook', async (req, res) => {
+      let claimedRegistroId = null; // para liberar el claim si el aprovisionamiento falla
       try {
         const sig = req.headers['stripe-signature'];
         const result = await billing.handleWebhook(req.body, sig);
@@ -195,12 +196,16 @@ function setupBillingRoutes(app, config) {
           const registro = await getRegistro(registroId);
 
           if (registro) {
-            // Idempotency guard: if this registro was already activated by a previous
-            // webhook delivery, skip org creation to avoid duplicates.
-            if (registro.status === 'active') {
-              log.warn(`Webhook duplicado ignorado — registro ${registroId} ya está activo`);
+            // Idempotencia robusta: claim atómico a nivel BD (compare-and-set).
+            // Bloquea entregas duplicadas de Stripe Y procesamiento concurrente
+            // entre réplicas (Docker Swarm) — antes era un read-then-act con una
+            // ventana enorme (status 'active' solo se marca al final).
+            const claimed = await claimRegistroForProvisioning(registroId);
+            if (!claimed) {
+              log.warn(`Webhook duplicado ignorado — registro ${registroId} ya activo o en aprovisionamiento`);
               return res.json({ received: true, duplicate: true });
             }
+            claimedRegistroId = registroId;
 
             // Plan del formulario coincide directamente con el valor de DB ('starter'|'negocio'|'pro')
             const orgPlan = registro.plan || 'negocio';
@@ -551,6 +556,12 @@ function setupBillingRoutes(app, config) {
         res.json({ received: true });
       } catch (e) {
         log.error('Webhook error', { error: e.message });
+        // Si reclamamos el registro pero el aprovisionamiento falló, lo liberamos
+        // a estado reintentable para que el reintento de Stripe vuelva a procesarlo
+        // (devolvemos 400 → Stripe reintenta).
+        if (claimedRegistroId) {
+          await releaseRegistroProvisioning(claimedRegistroId).catch(() => {});
+        }
         res.status(400).json({ error: e.message });
       }
     }

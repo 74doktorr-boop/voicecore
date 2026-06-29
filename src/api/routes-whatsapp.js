@@ -8,7 +8,8 @@
 
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
-const { handleReply }   = require('../whatsapp/reply-handler');
+const { handleReply, isOptOut, handleOptOut } = require('../whatsapp/reply-handler');
+const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
 
@@ -77,8 +78,24 @@ function setupWhatsAppWebhook(app) {
           const value = change.value || {};
           const messages = value.messages || [];
 
+          // Negocio que recibe el mensaje (para honrar bajas en su contacto).
+          const businessId = await getBusinessIdByPhoneNumberId(value?.metadata?.phone_number_id).catch(() => null);
+
           for (const msg of messages) {
             const from = msg.from; // phone number sin +: "34612345678"
+
+            // ── Opt-out / BAJA (prioritario, cumplimiento WhatsApp) ──────────
+            const _optText = msg.type === 'text' ? (msg.text?.body || '')
+                           : msg.type === 'button' ? (msg.button?.payload || msg.button?.text || '')
+                           : msg.type === 'interactive' ? (msg.interactive?.button_reply?.title || msg.interactive?.button_reply?.id || '')
+                           : '';
+            if (isOptOut(_optText)) {
+              log.info(`Opt-out from ${from}: "${_optText.slice(0, 40)}"`);
+              await handleOptOut({ from, businessId }).catch(e =>
+                log.error(`opt-out error: ${e.message}`)
+              );
+              continue;
+            }
 
             // ── Respuesta de botón (CONFIRMAR / CANCELAR) ───────────────────
             if (msg.type === 'button') {

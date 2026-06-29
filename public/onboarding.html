@@ -77,15 +77,15 @@ select option{background:#141009;color:var(--white);}
     <h1>Datos de tu negocio</h1>
     <p>Necesitamos esta información para configurar tu asistente IA.</p>
     <div class="form-group">
-      <label>Nombre completo *</label>
+      <label for="contacto">Nombre completo *</label>
       <input type="text" id="contacto" placeholder="Ana García López" autocomplete="name">
     </div>
     <div class="form-group">
-      <label>Nombre del negocio *</label>
+      <label for="negocio">Nombre del negocio *</label>
       <input type="text" id="negocio" placeholder="Restaurante El Asador" autocomplete="organization">
     </div>
     <div class="form-group">
-      <label>Sector *</label>
+      <label for="sector">Sector *</label>
       <select id="sector">
         <option value="">Selecciona tu sector...</option>
         <optgroup label="Salud y bienestar">
@@ -127,18 +127,27 @@ select option{background:#141009;color:var(--white);}
       </select>
     </div>
     <div class="form-group">
-      <label>Teléfono del negocio *</label>
+      <label for="telefono">Teléfono del negocio *</label>
       <input type="tel" id="telefono" placeholder="+34 600 000 000" autocomplete="tel">
     </div>
     <div class="form-group">
-      <label>Email de contacto *</label>
+      <label for="email">Email de contacto *</label>
       <input type="email" id="email" placeholder="tu@negocio.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label>Código de descuento (opcional)</label>
+      <label for="idioma">Idioma de tu asistente *</label>
+      <select id="idioma">
+        <option value="es">Castellano</option>
+        <option value="eu">Euskera</option>
+        <option value="gl">Galego</option>
+      </select>
+      <p style="font-size:.72rem;color:var(--text);margin-top:6px;line-height:1.4;">Es el idioma en el que tu asistente atenderá las llamadas y enviará los recordatorios a tus clientes. Podrás cambiarlo cuando quieras.</p>
+    </div>
+    <div class="form-group">
+      <label for="coupon">Código de descuento (opcional)</label>
       <input type="text" id="coupon" placeholder="HEMENTXE10" style="text-transform:uppercase">
     </div>
-    <div class="error-msg" id="step2-error"></div>
+    <div class="error-msg" id="step2-error" role="alert" aria-live="assertive"></div>
     <button class="btn-primary" id="step2-btn" onclick="submitRegistro()">Ver resumen →</button>
   </div>
 
@@ -176,6 +185,7 @@ const planKey    = (params.get('plan') || 'negocio').toLowerCase();
 const plan       = PLANS[planKey] || PLANS.negocio;
 const urlSector  = params.get('sector') || '';
 const urlCiudad  = params.get('ciudad') || '';
+const urlIdioma  = (params.get('idioma') || '').toLowerCase();
 // Atribución: de qué landing vino el lead (sector/ciudad), o el referrer si no hay params.
 // Limitado a 60 chars y saneado para no guardar basura.
 const landingSource = (function () {
@@ -205,6 +215,12 @@ if (urlSector) {
   }
 }
 
+// Pre-select language if a landing (e.g. Galicia/Euskadi) passed ?idioma=
+if (['es', 'eu', 'gl'].includes(urlIdioma)) {
+  const idiomaEl = document.getElementById('idioma');
+  if (idiomaEl) idiomaEl.value = urlIdioma;
+}
+
 // Render plan box
 document.getElementById('plan-display').innerHTML = `
   <div class="plan-name">${plan.name}</div>
@@ -232,6 +248,7 @@ async function submitRegistro() {
   const sector   = document.getElementById('sector').value;
   const telefono = document.getElementById('telefono').value.trim();
   const email    = document.getElementById('email').value.trim();
+  const idioma   = document.getElementById('idioma').value;
   const coupon   = document.getElementById('coupon').value.trim();
   const errEl    = document.getElementById('step2-error');
 
@@ -255,7 +272,7 @@ async function submitRegistro() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
@@ -273,11 +290,14 @@ async function submitRegistro() {
     // Build summary
     const basePrice  = 49;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
+    const idiomaLabels = { es: 'Castellano', eu: 'Euskera', gl: 'Galego' };
     const summary = document.getElementById('summary-rows');
     summary.innerHTML = `
       <div class="summary-row"><span>Plan</span><span class="val">${plan.name}</span></div>
       <div class="summary-row"><span>Negocio</span><span class="val">${negocio}</span></div>
       <div class="summary-row"><span>Email</span><span class="val">${email}</span></div>
+      <div class="summary-row"><span>Idioma del asistente</span><span class="val">${idiomaLabels[idioma] || 'Castellano'}</span></div>`;
+    summary.innerHTML += `
       <div class="summary-row"><span>Precio</span><span class="val">
         ${discountPct ? `<s style="color:rgba(234,226,214,.4)">${basePrice}€</s> ${finalPrice}€/mes` : (planKey === 'starter' ? 'Gratis' : basePrice + '€/mes')}
         ${discountPct ? `<span class="discount-badge">-${discountPct}%</span>` : ''}

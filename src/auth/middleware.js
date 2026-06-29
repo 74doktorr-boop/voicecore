@@ -25,11 +25,24 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 // Plan limits keyed by DB `plan` column values: 'starter' | 'negocio' | 'pro'
+//
+// Modelo de minutos extra ("a cambio de un plus"):
+//   - minutesPerMonth   = minutos INCLUIDOS en la cuota.
+//   - overage           = true → al pasar de lo incluido NO se cortan las
+//                         llamadas; los minutos extra se facturan aparte
+//                         (metered billing de Stripe, overagePerMinute en
+//                         src/billing/stripe.js). Un asistente que deja de
+//                         atender al llegar a la cuota destruiría la propuesta
+//                         de valor ("no pierdas ninguna llamada").
+//   - hardCapMultiplier = tope de SEGURIDAD (× incluido) donde sí se corta,
+//                         para que un bucle/abuso no dispare el coste. Avisa
+//                         antes de llegar (banda de overage).
+//   - El trial (starter) NO tiene overage: corte duro para evitar abuso gratis.
 const PLAN_LIMITS = {
-  starter:    { minutesPerMonth: 50,    assistants: 1,   callsPerMinute: 5,   concurrentCalls: 1 },
-  negocio:    { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3 },
-  pro:        { minutesPerMonth: 2000,  assistants: 999, callsPerMinute: 50,  concurrentCalls: 10 },
-  enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100 },
+  starter:    { minutesPerMonth: 50,    assistants: 1,   callsPerMinute: 5,   concurrentCalls: 1,   overage: false },
+  negocio:    { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 3 },
+  pro:        { minutesPerMonth: 2000,  assistants: 999, callsPerMinute: 50,  concurrentCalls: 10,  overage: true,  hardCapMultiplier: 3 },
+  enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100, overage: true,  hardCapMultiplier: 10 },
 };
 
 /**
@@ -176,16 +189,34 @@ function checkUsageLimits() {
     const org = req.org;
     if (!org) return next();
 
-    const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.starter;
+    const limits   = PLAN_LIMITS[org.plan] || PLAN_LIMITS.starter;
+    const included = limits.minutesPerMonth;
+    const used     = org.monthly_minutes_used || 0;
 
-    if (org.monthly_minutes_used >= limits.minutesPerMonth) {
+    // Tope de seguridad: planes con overage permiten hasta hardCapMultiplier×
+    // lo incluido antes de cortar de verdad (evita fuga de coste). Sin overage
+    // (trial), el tope es lo incluido → corte duro.
+    const hardCap = limits.overage ? included * (limits.hardCapMultiplier || 3) : included;
+
+    if (used >= hardCap) {
       return res.status(402).json({
-        error: 'Monthly usage limit reached',
-        used: org.monthly_minutes_used,
-        limit: limits.minutesPerMonth,
+        error: limits.overage ? 'Safety usage cap reached' : 'Monthly usage limit reached',
+        used,
+        limit: included,
+        hardCap,
         plan: org.plan,
-        upgrade: 'Contact us to upgrade your plan',
+        upgrade: 'Contact us to raise your limit',
       });
+    }
+
+    // Banda de overage: por encima de lo incluido pero por debajo del tope.
+    // NO se corta — se marca para facturar los minutos extra y se informa por
+    // cabeceras para que el portal pueda avisar al cliente.
+    if (used >= included && limits.overage) {
+      req.overage = true;
+      res.set('X-NodeFlow-Overage', 'true');
+      res.set('X-NodeFlow-Minutes-Used', String(used));
+      res.set('X-NodeFlow-Minutes-Included', String(included));
     }
 
     next();

@@ -185,6 +185,15 @@
     }
       h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
       a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
+
+    @media (prefers-reduced-motion: reduce){
+      *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+      .orb-1,.orb-2,.noise{animation:none!important}
+      .confetti-wrap{display:none!important}
+      .card{opacity:1!important;transform:none!important}
+      .check-wrap{opacity:1!important;transform:scale(1)!important}
+      .check-path{stroke-dashoffset:0!important}
+    }
   </style>
 </head>
 <body>
@@ -275,6 +284,51 @@
 </div>
 
 <script>
+// ── Diccionario de traducciones (toda la página) ──
+const NF_T = {
+  es: {
+    status_configuring: '⏳ Configurando tu asistente…',
+    status_assigning:   '⏳ Asignando tu número de teléfono…',
+    status_ready:       '✅ ¡Todo listo! Revisa tu email y activa el desvío.',
+    email_info: '<strong>📧 Dos emails en camino</strong> — Revisa tu bandeja de entrada (y spam). Te enviamos el acceso a tu portal y las instrucciones para activar el desvío en tu teléfono.',
+    s1_title: 'Pago procesado', s1_desc: 'Tu suscripción está activa. Recibirás factura en tu email.',
+    s2_title: 'Asistente creado', s2_desc: 'Tu org y asistente IA se configuran automáticamente al confirmarse el pago.',
+    s3_title: 'Número NodeFlow asignado', s3_desc: 'Tu número dedicado se asigna automáticamente. Recibirás un email con las instrucciones de desvío.',
+    s3_desc_num: 'Tu número NodeFlow es <strong style="color:#f2bd5e">{num}</strong>. Revisa el email con las instrucciones de desvío.',
+    s4_title: '¡Tu negocio no pierde ninguna llamada más!', s4_desc: 'Activa el desvío según las instrucciones del email y el asistente empieza a trabajar 24/7.',
+    tag_done: 'Hecho', tag_now: 'En curso', tag_pending: 'Pendiente', tag_soon: 'Muy pronto', tag_tocomplete: 'A completar',
+    btn_portal: '⚡ Ir a mi portal de cliente →', btn_config: '⚙️ Mientras tanto, configura tu voz', btn_wa: '💬 Hablar con Unai ahora', btn_home: '← Volver a nodeflow.es',
+  },
+  gl: {
+    status_configuring: '⏳ Configurando o teu asistente…',
+    status_assigning:   '⏳ Asignando o teu número de teléfono…',
+    status_ready:       '✅ Todo listo! Revisa o teu email e activa o desvío.',
+    email_info: '<strong>📧 Dous emails en camiño</strong> — Revisa a túa caixa de entrada (e spam). Enviámosche o acceso ao teu portal e as instrucións para activar o desvío no teu teléfono.',
+    s1_title: 'Pagamento procesado', s1_desc: 'A túa subscrición está activa. Recibirás factura no teu email.',
+    s2_title: 'Asistente creado', s2_desc: 'A túa organización e asistente IA configúranse automaticamente ao confirmarse o pagamento.',
+    s3_title: 'Número NodeFlow asignado', s3_desc: 'O teu número dedicado asígnase automaticamente. Recibirás un email coas instrucións de desvío.',
+    s3_desc_num: 'O teu número NodeFlow é <strong style="color:#f2bd5e">{num}</strong>. Revisa o email coas instrucións de desvío.',
+    s4_title: 'O teu negocio non perde ningunha chamada máis!', s4_desc: 'Activa o desvío segundo as instrucións do email e o asistente comeza a traballar 24/7.',
+    tag_done: 'Feito', tag_now: 'En curso', tag_pending: 'Pendente', tag_soon: 'Moi pronto', tag_tocomplete: 'Por completar',
+    btn_portal: '⚡ Ir ao meu portal de cliente →', btn_config: '⚙️ Mentres tanto, configura a túa voz', btn_wa: '💬 Falar con Unai agora', btn_home: '← Volver a nodeflow.es',
+  },
+  eu: {
+    status_configuring: '⏳ Zure laguntzailea konfiguratzen…',
+    status_assigning:   '⏳ Zure telefono-zenbakia esleitzen…',
+    status_ready:       '✅ Dena prest! Begiratu zure emaila eta aktibatu desbideratzea.',
+    email_info: '<strong>📧 Bi email bidean</strong> — Begiratu zure sarrera-ontzia (eta spama). Zure portalerako sarbidea eta telefonoan desbideratzea aktibatzeko argibideak bidali dizkizugu.',
+    s1_title: 'Ordainketa prozesatuta', s1_desc: 'Zure harpidetza aktibo dago. Faktura zure emailean jasoko duzu.',
+    s2_title: 'Laguntzailea sortuta', s2_desc: 'Zure erakundea eta IA laguntzailea automatikoki konfiguratzen dira ordainketa baieztatzean.',
+    s3_title: 'NodeFlow zenbakia esleituta', s3_desc: 'Zure zenbaki dedikatua automatikoki esleitzen da. Desbideratze-argibideak dituen email bat jasoko duzu.',
+    s3_desc_num: 'Zure NodeFlow zenbakia <strong style="color:#f2bd5e">{num}</strong> da. Begiratu desbideratze-argibideak dituen emaila.',
+    s4_title: 'Zure negozioak ez du dei bat ere galduko!', s4_desc: 'Aktibatu desbideratzea emaileko argibideen arabera eta laguntzaileak 24/7 lanean hasiko da.',
+    tag_done: 'Eginda', tag_now: 'Abian', tag_pending: 'Zain', tag_soon: 'Laster', tag_tocomplete: 'Osatzeko',
+    btn_portal: '⚡ Joan nire bezero-atarira →', btn_config: '⚙️ Bitartean, konfiguratu zure ahotsa', btn_wa: '💬 Hitz egin Unairekin orain', btn_home: '← Itzuli nodeflow.es-era',
+  },
+};
+window.NF_LANG = (localStorage.getItem('nf_reg_lang') || 'es');
+function nfT(key){ return (NF_T[window.NF_LANG] || NF_T.es)[key]; }
+
 // ── Recuperar datos del registro guardados antes del redirect a Stripe ──
 (function () {
   const regId = localStorage.getItem('nf_reg_id');
@@ -291,17 +345,47 @@
     const plan = regPlan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
 
     const i18n = {
-      es: { title: '¡Pago confirmado!', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En pocos minutos recibirás el acceso a tu portal y las instrucciones para activar el desvío de llamadas.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
-      gl: { title: 'Pagamento confirmado!', sub: `A túa subscrición ${plan} para ${regNegocio} está activa. En poucos minutos recibirás o acceso ao teu portal e as instrucións para activar o desvío de chamadas.`, tagline: 'IA de voz para negocios · Feito en Galicia' },
-      eu: { title: 'Ordainketa baieztatuta!', sub: `Zure ${plan} harpidetza ${regNegocio}-rentzat aktibo dago. Minutu gutxiren buruan jasoko duzu zure portalerako sarbidea eta desbideratzea aktibatzeko argibideak.`, tagline: 'Ahots IA negozioentzat · Euskal Herrian egina' },
+      es: { title: '¡Pago confirmado!', welcome: 'Bienvenido a NodeFlow', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En pocos minutos recibirás el acceso a tu portal y las instrucciones para activar el desvío de llamadas.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
+      gl: { title: 'Pagamento confirmado!', welcome: 'Benvido a NodeFlow', sub: `A túa subscrición ${plan} para ${regNegocio} está activa. En poucos minutos recibirás o acceso ao teu portal e as instrucións para activar o desvío de chamadas.`, tagline: 'IA de voz para negocios · Feito en Galicia' },
+      eu: { title: 'Ordainketa baieztatuta!', welcome: 'Ongi etorri NodeFlow-era', sub: `Zure ${plan} harpidetza ${regNegocio}-rentzat aktibo dago. Minutu gutxiren buruan jasoko duzu zure portalerako sarbidea eta desbideratzea aktibatzeko argibideak.`, tagline: 'Ahots IA negozioentzat · Euskal Herrian egina' },
     };
     const t = i18n[regLang] || i18n.es;
 
-    document.querySelector('h1').innerHTML = `${t.title}<br><span class="grad">Bienvenido a NodeFlow</span>`;
+    document.querySelector('h1').innerHTML = `${t.title}<br><span class="grad">${t.welcome}</span>`;
     document.getElementById('subText').textContent = t.sub;
     document.querySelector('.logo-sub').textContent = t.tagline;
     if (regLang === 'gl') document.documentElement.lang = 'gl';
     if (regLang === 'eu') document.documentElement.lang = 'eu';
+
+    // Traducir el resto de la página (estado, email-info, pasos, botones)
+    window.NF_LANG = regLang;
+    if (regLang !== 'es') {
+      const set = (sel, key, html) => {
+        const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+        if (!el) return;
+        if (html) el.innerHTML = nfT(key); else el.textContent = nfT(key);
+      };
+      set('#statusText', 'status_configuring');
+      set('#emailInfo', 'email_info', true);
+      // Pasos: título (primer nodo de texto), descripción y etiqueta
+      const stepTitle = (id, key) => {
+        const el = document.querySelector(`#${id} .step-title`);
+        if (el && el.firstChild) el.firstChild.textContent = nfT(key) + ' ';
+      };
+      stepTitle('step1', 's1_title'); set('#step1 .step-desc', 's1_desc');
+      stepTitle('step2', 's2_title'); set('#step2 .step-desc', 's2_desc');
+      stepTitle('step3', 's3_title'); set('#step3desc', 's3_desc');
+      stepTitle('step4', 's4_title'); set('#step4 .step-desc', 's4_desc');
+      set('#step1 .step-tag', 'tag_done');
+      set('#step2tag', 'tag_now');
+      set('#step3tag', 'tag_pending');
+      set('#step4tag', 'tag_soon');
+      // Botones
+      const portal = document.getElementById('portalBtn'); if (portal) portal.textContent = nfT('btn_portal');
+      const cfg = document.querySelector('.btn-config'); if (cfg) cfg.textContent = nfT('btn_config');
+      const wa = document.querySelector('.btn-wa'); if (wa) wa.textContent = nfT('btn_wa');
+      const home = document.querySelector('.btn-home'); if (home) home.textContent = nfT('btn_home');
+    }
   }
 
   // Intentar enriquecer con datos del servidor
@@ -341,12 +425,12 @@
     stepEl.classList.remove('active');
     stepEl.classList.add('done');
     if (numEl) numEl.textContent = '✓';
-    if (tagEl) { tagEl.className = 'step-tag tag-done'; tagEl.textContent = label || 'Hecho'; }
+    if (tagEl) { tagEl.className = 'step-tag tag-done'; tagEl.textContent = label || nfT('tag_done'); }
   }
   function markActive(stepEl, tagEl, label) {
     if (!stepEl) return;
     stepEl.classList.add('active');
-    if (tagEl) { tagEl.className = 'step-tag tag-now'; tagEl.textContent = label || 'En curso'; }
+    if (tagEl) { tagEl.className = 'step-tag tag-now'; tagEl.textContent = label || nfT('tag_now'); }
   }
 
   function applyStatus(data) {
@@ -362,7 +446,7 @@
       );
       // Activar step 3
       if (!steps.number_assigned) {
-        markActive(document.getElementById('step3'), document.getElementById('step3tag'), 'En curso');
+        markActive(document.getElementById('step3'), document.getElementById('step3tag'), nfT('tag_now'));
       }
     }
 
@@ -376,25 +460,25 @@
       // Mostrar número en descripción
       if (nodeflowNumber) {
         const d = document.getElementById('step3desc');
-        if (d) d.innerHTML = `Tu número NodeFlow es <strong style="color:#f2bd5e">${nodeflowNumber}</strong>. Revisa el email con las instrucciones de desvío.`;
+        if (d) d.innerHTML = nfT('s3_desc_num').replace('{num}', nodeflowNumber);
       }
       // Activar step 4
-      markActive(document.getElementById('step4'), document.getElementById('step4tag'), 'A completar');
+      markActive(document.getElementById('step4'), document.getElementById('step4tag'), nfT('tag_tocomplete'));
     }
 
     // Estado general
     const statusEl = document.getElementById('statusText');
     if (complete) {
-      if (statusEl) statusEl.innerHTML = '✅ ¡Todo listo! Revisa tu email y activa el desvío.';
+      if (statusEl) statusEl.innerHTML = nfT('status_ready');
       document.getElementById('statusBox').style.borderColor = 'rgba(0,184,148,0.4)';
       document.getElementById('statusBox').style.background  = 'rgba(0,184,148,0.06)';
       // Dejar de hacer polling una vez completo
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
       completed = true;
     } else if (steps.org_created) {
-      if (statusEl) statusEl.textContent = '⏳ Asignando tu número de teléfono…';
+      if (statusEl) statusEl.textContent = nfT('status_assigning');
     } else {
-      if (statusEl) statusEl.textContent = '⏳ Configurando tu asistente…';
+      if (statusEl) statusEl.textContent = nfT('status_configuring');
     }
   }
 

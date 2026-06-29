@@ -118,6 +118,63 @@ async function updateRegistro(id, patch) {
   }
 }
 
+/**
+ * Reclama atómicamente un registro para aprovisionarlo (idempotencia del
+ * webhook de Stripe). Transición CAS a 'provisioning' SOLO si no está ya
+ * 'active' ni 'provisioning'. Es seguro entre entregas duplicadas y entre
+ * réplicas (la condición se evalúa en Postgres, no en memoria por-instancia).
+ * @returns {Promise<boolean>} true si este proceso ganó el claim.
+ */
+async function claimRegistroForProvisioning(id) {
+  const db = getDatabase();
+  if (db.enabled) {
+    const { data, error } = await db.client.from('registros')
+      .update({ status: 'provisioning' })
+      .eq('id', id)
+      .not('status', 'in', '("active","provisioning")')
+      .select('id');
+    if (error) throw new Error(`claimRegistroForProvisioning: ${error.message}`);
+
+    if (Array.isArray(data) && data.length > 0) {
+      if (_memStore.has(id)) _memStore.set(id, { ..._memStore.get(id), status: 'provisioning' });
+      return true;
+    }
+
+    // 0 filas: o ya está active/provisioning (duplicado real), o el registro
+    // no llegó a la BD (insert cayó al registrar → solo en memoria).
+    const { data: existing } = await db.client.from('registros').select('status').eq('id', id).maybeSingle();
+    if (existing) return false; // existe pero ya reclamado/activo → duplicado
+    // No está en BD: best-effort sobre memStore (despliegue de instancia única).
+  }
+
+  const r = _memStore.get(id);
+  if (r && (r.status === 'active' || r.status === 'provisioning')) return false;
+  if (r) { _memStore.set(id, { ...r, status: 'provisioning' }); return true; }
+  return false;
+}
+
+/**
+ * Libera un claim de aprovisionamiento devolviéndolo a estado reintentable,
+ * solo si sigue en 'provisioning' (no pisa un 'active' marcado por otra
+ * entrega). Se usa si el aprovisionamiento falla, para que el reintento de
+ * Stripe pueda volver a procesarlo.
+ */
+async function releaseRegistroProvisioning(id) {
+  const db = getDatabase();
+  if (db.enabled) {
+    try {
+      await db.client.from('registros')
+        .update({ status: 'pending_payment' })
+        .eq('id', id)
+        .eq('status', 'provisioning');
+    } catch (_) { /* best-effort */ }
+  }
+  if (_memStore.has(id)) {
+    const r = _memStore.get(id);
+    if (r.status === 'provisioning') _memStore.set(id, { ...r, status: 'pending_payment' });
+  }
+}
+
 function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', registroRateLimit, async (req, res) => {
@@ -244,4 +301,4 @@ function setupRegistroRoutes(app) {
   log.info('Registro routes configured');
 }
 
-module.exports = { setupRegistroRoutes, getRegistro, updateRegistro };
+module.exports = { setupRegistroRoutes, getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning };

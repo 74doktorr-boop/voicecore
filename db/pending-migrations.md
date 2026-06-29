@@ -1,6 +1,23 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: todas ejecutadas ✅ — 2026-06-10**
+**Estado: 1 pendiente ⏳ — patch de escalado (2026-06-22). Resto ejecutadas ✅ — 2026-06-10**
+
+---
+
+## 0. Lifecycle scaling patch 2 — índices de cola ⏳ PENDIENTE
+**Por qué:** la cola global de recordatorios (`claim_pending_reminders`) ordena por
+`scheduled_for` pero el índice previo lidera por `org_id`; a miles de clientes el
+claim (la consulta más caliente) se degrada. Fichero: `db/schema-migration-lifecycle-patch2-scale.sql`.
+
+```sql
+create index if not exists idx_reminders_due
+  on scheduled_reminders (scheduled_for)
+  where status = 'pending';
+
+create index if not exists idx_nf_appointments_org_phone
+  on nf_appointments (organization_id, phone);
+```
+> Si las tablas ya son grandes, usar `create index concurrently` (fuera de transacción).
 
 ---
 

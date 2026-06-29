@@ -515,6 +515,45 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── WhatsApp — conexión por Meta Cloud API DIRECTO (sin 360dialog) ───────────
+  // 360dialog se canceló por coste; el envío ya soporta Meta directo (apiBase=null).
+  // Este endpoint permite dar de alta el número (el de la SIM, registrado en Meta
+  // Cloud API) pegando las credenciales que da Meta, sin tocar la BD a mano.
+  // Body: { businessId, phoneNumberId, accessToken, phoneNumber, wabaId?, displayName? }
+  app.post('/api/admin/whatsapp/connect-meta', adminAuth, async (req, res) => {
+    const { businessId, phoneNumberId, accessToken, phoneNumber, wabaId, displayName } = req.body || {};
+    const missing = ['businessId', 'phoneNumberId', 'accessToken', 'phoneNumber']
+      .filter(k => !req.body?.[k]?.toString().trim());
+    if (missing.length) {
+      return res.status(400).json({ error: `Faltan campos: ${missing.join(', ')}` });
+    }
+    try {
+      const { saveWaCredentials } = require('../whatsapp/accounts');
+      await saveWaCredentials(businessId, {
+        phoneNumberId: phoneNumberId.toString().trim(),
+        accessToken:   accessToken.toString().trim(),
+        phoneNumber:   phoneNumber.toString().trim(),
+        wabaId:        wabaId ? wabaId.toString().trim() : null,
+        displayName:   displayName || null,
+        apiBase:       null, // null = Meta Cloud API directo (no 360dialog)
+      });
+      res.json({ ok: true, businessId, phoneNumber: phoneNumber.toString().trim(), provider: 'meta-cloud-api' });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // DELETE /api/admin/whatsapp/connect-meta/:businessId — revoca el número
+  app.delete('/api/admin/whatsapp/connect-meta/:businessId', adminAuth, async (req, res) => {
+    try {
+      const { revokeWaCredentials } = require('../whatsapp/accounts');
+      await revokeWaCredentials(req.params.businessId);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Phone Number Pool ────────────────────────────────────────────────────────
   const { claimNumber, releaseNumber, getPoolStats, addNumber, listNumbers, updateNumber } = require('../telephony/phone-pool');
 
