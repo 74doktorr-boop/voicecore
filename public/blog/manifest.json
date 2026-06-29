@@ -42,9 +42,25 @@
     "recepcionista-ia-fisioterapia-bilbao",
     "asistente-ia-fisioterapia-donostia",
     "recepcionista-ia-fisioterapia-vitoria",
-    "fisioterapia-seguros-adeslas-sanitas-asistente-ia"
+    "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
+    "recepcionista-ia-veterinaria-bilbao"
   ],
   "posts": [
+    {
+      "slug": "recepcionista-ia-veterinaria-bilbao",
+      "title": "Recepcionista IA para Clínicas Veterinarias en Bilbao",
+      "metaTitle": "Recepcionista IA Veterinaria Bilbao: Mejora tu Clínica",
+      "description": "Descubre cómo un recepcionista IA en Bilbao puede automatizar tus citas y mejorar la gestión de tu clínica veterinaria. ¡Conoce más en NodeFlow!",
+      "date": "2026-06-29",
+      "keywords": [
+        "recepcionista IA veterinaria Bilbao",
+        "automatizar citas veterinario Bizkaia",
+        "asistente virtual clínica veterinaria Bilbao"
+      ],
+      "sector": "veterinarias",
+      "city": "bilbao",
+      "readingMinutes": 6
+    },
     {
       "slug": "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
       "title": "Fisioterapia Cobertura Adeslas: El Asistente IA que Necesitas",
