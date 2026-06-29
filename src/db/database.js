@@ -279,14 +279,29 @@ class Database {
     // 1. Increment monthly_minutes_used in organizations (read-modify-write, serialized by mutex)
     const { data: org, error: orgErr } = await this.client
       .from('organizations')
-      .select('monthly_minutes_used')
+      .select('monthly_minutes_used, plan, stripe_customer_id')
       .eq('id', orgId)
       .single();
     if (!orgErr && org) {
-      const newTotal = parseFloat(org.monthly_minutes_used || 0) + deltaMinutes;
+      const prevTotal = parseFloat(org.monthly_minutes_used || 0);
+      const newTotal  = prevTotal + deltaMinutes;
       await this.client.from('organizations')
         .update({ monthly_minutes_used: Math.round(newTotal * 100) / 100 })
         .eq('id', orgId);
+
+      // Overage: reporta a Stripe los minutos por encima de lo incluido (best-effort,
+      // no-op hasta configurar STRIPE_OVERAGE_METER_EVENT). No bloquea el flujo.
+      if (org.stripe_customer_id) {
+        try {
+          const { getBilling } = require('../billing/stripe');
+          getBilling().reportOverage({
+            plan:             org.plan,
+            stripeCustomerId: org.stripe_customer_id,
+            prevMinutes:      prevTotal,
+            newMinutes:       newTotal,
+          }).catch(() => {});
+        } catch (_) { /* billing no disponible */ }
+      }
     }
 
     // 2. Write to granular usage table (same period key)

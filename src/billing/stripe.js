@@ -6,6 +6,24 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('BILLING');
 
+// Minutos INCLUIDOS por plan (solo planes con overage). Debe coincidir con
+// PLAN_LIMITS.minutesPerMonth en src/auth/middleware.js.
+const OVERAGE_INCLUDED_MINUTES = { negocio: 500, pro: 2000, enterprise: 99999 };
+
+/**
+ * Minutos de overage que aporta una llamada: la parte de [prev, new] que cae por
+ * encima de lo incluido en el plan. 0 si el plan no factura overage o no se pasa.
+ * @returns {number} minutos extra (≥0)
+ */
+function computeOverageDelta(plan, prevMinutes, newMinutes) {
+  const included = OVERAGE_INCLUDED_MINUTES[plan];
+  if (!included) return 0; // plan sin overage (p.ej. starter) o desconocido
+  const prev = Math.max(0, Number(prevMinutes) || 0);
+  const next = Math.max(0, Number(newMinutes) || 0);
+  const over = Math.max(0, next - included) - Math.max(0, prev - included);
+  return over > 0 ? Math.round(over * 100) / 100 : 0;
+}
+
 class StripeBilling {
   constructor(config = {}) {
     this.secretKey = config.stripeSecretKey || process.env.STRIPE_SECRET_KEY;
@@ -102,18 +120,39 @@ class StripeBilling {
   }
 
   /**
-   * Report usage for overage billing
+   * Reporta minutos de overage a Stripe vía Billing Meters (API moderna; el viejo
+   * createUsageRecord se eliminó en el SDK v22). El Meter agrega por cliente, así
+   * que no hace falta guardar subscription_item_id. No-op si falta config.
+   * @param {{stripeCustomerId:string, minutes:number, eventName?:string}} p
    */
-  async reportUsage({ subscriptionItemId, minutes, timestamp }) {
+  async reportUsage({ stripeCustomerId, minutes, eventName }) {
     if (!this.enabled) return;
+    const event = eventName || process.env.STRIPE_OVERAGE_METER_EVENT;
+    if (!event || !stripeCustomerId || !(minutes > 0)) return;
 
-    await this.stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-      quantity: Math.ceil(minutes),
-      timestamp: timestamp || Math.floor(Date.now() / 1000),
-      action: 'increment',
+    await this.stripe.billing.meterEvents.create({
+      event_name: event,
+      payload: {
+        stripe_customer_id: stripeCustomerId,
+        value: String(Math.round(minutes * 100) / 100), // minutos extra (2 decimales)
+      },
     });
 
-    log.metric(`Usage reported: ${minutes} min for ${subscriptionItemId}`);
+    log.metric(`Overage reportado: ${Math.round(minutes * 100) / 100} min → meter '${event}' (cust ${stripeCustomerId})`);
+  }
+
+  /**
+   * Calcula y reporta el overage de una llamada: solo los minutos que caen por
+   * ENCIMA de lo incluido en el plan. Seguro (gated + best-effort, nunca lanza).
+   */
+  async reportOverage({ plan, stripeCustomerId, prevMinutes, newMinutes }) {
+    const delta = computeOverageDelta(plan, prevMinutes, newMinutes);
+    if (delta <= 0 || !stripeCustomerId) return;
+    try {
+      await this.reportUsage({ stripeCustomerId, minutes: delta });
+    } catch (e) {
+      log.error(`reportOverage falló: ${e.message}`);
+    }
   }
 
   /**
@@ -304,4 +343,4 @@ function getBilling(config) {
   return billingInstance;
 }
 
-module.exports = { StripeBilling, getBilling };
+module.exports = { StripeBilling, getBilling, computeOverageDelta, OVERAGE_INCLUDED_MINUTES };
