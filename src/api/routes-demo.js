@@ -192,6 +192,7 @@ function setupDemoRoutes(app, ttsRouter) {
         try {
           const mp3 = await eleven.synthesize({ callId, text, voiceId: voice || undefined, language, format: 'mp3' });
           res.set('Content-Type', 'audio/mpeg');
+          res.set('X-TTS-Provider', 'elevenlabs');
           return res.send(mp3);
         } catch (e) {
           log.warn(`Demo TTS: ElevenLabs falló (${e.message}) — fallback a Azure`);
@@ -203,6 +204,7 @@ function setupDemoRoutes(app, ttsRouter) {
       if (azure) {
         const mp3 = await azure.synthesize({ callId, text, voice, language, format: 'mp3' });
         res.set('Content-Type', 'audio/mpeg');
+        res.set('X-TTS-Provider', 'azure');
         return res.send(mp3);
       }
 
@@ -211,6 +213,7 @@ function setupDemoRoutes(app, ttsRouter) {
       const { mulawToPcm } = require('../utils/audio');
       const pcm = mulawToPcm(mulaw);
       res.set('Content-Type', 'audio/wav');
+      res.set('X-TTS-Provider', 'router-wav');
       return res.send(wavFromPcm16(pcm, 8000));
     } catch (e) {
       log.error(`TTS error: ${e.message}`);
