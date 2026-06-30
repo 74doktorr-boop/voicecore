@@ -1,0 +1,26 @@
+{
+  "id": "organizate",
+  "name": "Organízate — reserva por enlace público de paciente",
+  "_meta": {
+    "web": "https://www.organizate.info/",
+    "modo": "Formulario de reserva PÚBLICA (enlace/QR del paciente). Sin login, bajo riesgo.",
+    "config_por_negocio": ["org.bookingUrl (enlace de reserva de la clínica)"],
+    "estado": "PLANTILLA — selectorCandidates por confirmar con la web real de Osakin (credenciales/enlace).",
+    "datos_entrada": ["patient.name", "patient.phone", "patient.email", "appt.sede", "appt.service", "appt.date", "appt.time"]
+  },
+  "steps": [
+    { "action": "goto", "url": "{{org.bookingUrl}}" },
+    { "action": "click", "optional": true, "selectorCandidates": ["text=Pedir cita", "text=Reservar", "a:has-text('cita')", "#nueva-cita"] },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name=sede]", "#sede", "select:has-text('sede')"], "value": "{{appt.sede}}" },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name=servicio]", "#servicio", "select:has-text('servicio')"], "value": "{{appt.service}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombre", "input[placeholder*='ombre']"], "value": "{{patient.name}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=telefono]", "#telefono", "input[type=tel]"], "value": "{{patient.phone}}" },
+    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=email]", "#email", "input[type=email]"], "value": "{{patient.email}}" },
+    { "action": "click", "selectorCandidates": ["[data-date='{{appt.date}}']", "td[title*='{{appt.date}}']", "button:has-text('{{appt.time}}')"], "_nota": "Selección de día/hora — el calendario varía por clínica; ajustar al real." },
+    { "action": "click", "optional": true, "selectorCandidates": ["input[type=checkbox][name*='lopd']", "input[type=checkbox][name*='priv']", "#acepto"] },
+    { "action": "click", "selectorCandidates": ["button:has-text('Confirmar')", "button[type=submit]", "text=Reservar cita"] },
+    { "action": "expectText", "anyOf": ["cita confirmada", "reserva realizada", "hemos recibido", "gracias", "confirmada"] },
+    { "action": "readText", "optional": true, "selectorCandidates": [".referencia", "#ref", "text=/N.{0,3}referencia/i"], "saveAs": "referencia" },
+    { "action": "screenshot", "name": "organizate-confirmacion" }
+  ]
+}

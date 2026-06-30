@@ -1,0 +1,24 @@
+{
+  "id": "stormplus",
+  "name": "StormPlus (LN Deter) — cita previa psicotécnico",
+  "_meta": {
+    "web": "https://stormplus.lndeter.es/ (panel con login) — el formulario PÚBLICO de cita previa es otra URL del CRC.",
+    "modo": "Preferente: formulario público de cita previa (org.stormPublicUrl). Alternativa: login del CRC (storm.* / stormplus.*) con credenciales cifradas.",
+    "config_por_negocio": ["org.stormPublicUrl (formulario público) o org.stormUser/org.stormPass (login, cifradas)"],
+    "estado": "PLANTILLA — pendiente: URL exacta del formulario público (la que dice el cliente que usa todo el mundo) y selectores reales. Conecta con la DGT: máxima exactitud de datos.",
+    "datos_entrada": ["patient.name", "patient.dni", "patient.phone", "appt.tipoPermiso", "appt.date", "appt.time"]
+  },
+  "steps": [
+    { "action": "goto", "url": "{{org.stormPublicUrl}}" },
+    { "action": "select", "selectorCandidates": ["select[name*='permiso']", "select[name*='tipo']", "#tipoPermiso"], "value": "{{appt.tipoPermiso}}", "_nota": "conducir / armas / seguridad / náutica / certificado médico" },
+    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombre"], "value": "{{patient.name}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=dni]", "#dni", "input[placeholder*='DNI']"], "value": "{{patient.dni}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=telefono]", "#telefono", "input[type=tel]"], "value": "{{patient.phone}}" },
+    { "action": "click", "selectorCandidates": ["[data-date='{{appt.date}}']", "button:has-text('{{appt.time}}')"], "_nota": "selección de hueco — ajustar al calendario real" },
+    { "action": "click", "optional": true, "selectorCandidates": ["input[type=checkbox][name*='lopd']", "#acepto", "input[name*='consent']"] },
+    { "action": "click", "selectorCandidates": ["button:has-text('Solicitar cita')", "button:has-text('Confirmar')", "button[type=submit]"] },
+    { "action": "expectText", "anyOf": ["cita confirmada", "solicitud recibida", "gracias", "hemos registrado"] },
+    { "action": "readText", "optional": true, "selectorCandidates": [".referencia", "#localizador"], "saveAs": "referencia" },
+    { "action": "screenshot", "name": "stormplus-confirmacion" }
+  ]
+}
