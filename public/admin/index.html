@@ -550,6 +550,7 @@ async function loadLeads() {
   try {
     const data=await api('/api/admin/registros');
     const rows=data.registros||[];
+    window._leadRows=rows;
     document.getElementById('leadsCount').textContent=rows.length+' registros';
     render(rows,'leadsBody',false); render(rows.slice(0,5),'recentLeads',true);
   } catch(e){if(e.message!=='401')console.error(e);}
@@ -572,8 +573,35 @@ function render(rows,id,mini) {
     const src=r.source==='galiza'?'<span class="badge bl-gl" style="margin-left:4px">galiza</span>':r.source==='hementxe'?'<span class="badge by" style="margin-left:4px">hementxe</span>':'';
     const d=(r.created_at||'').split('T')[0];
     if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}</td><td>${d}</td></tr>`;
-    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td style="color:var(--dim)">${r.email||'—'}</td><td style="color:var(--dim)">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}</td><td>${d}</td></tr>`;
+    const canCreate = r.status!=='active' && r.email && r.id;
+    const action = canCreate ? `<button class="btn btn-g" style="font-size:10px;padding:3px 8px;margin-left:6px" onclick="crearClienteDesdeRegistro('${r.id}',this)">➕ Crear cliente</button>` : '';
+    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td style="color:var(--dim)">${r.email||'—'}</td><td style="color:var(--dim)">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
   }).join('');
+}
+
+// Crear cliente (org activa) a partir de un registro pendiente
+async function crearClienteDesdeRegistro(id, btn) {
+  const r = (window._leadRows||[]).find(x => String(x.id) === String(id));
+  if (!r)       { toast('Registro no encontrado','err'); return; }
+  if (!r.email) { toast('El registro no tiene email','err'); return; }
+  const plan = ['starter','negocio','pro'].includes(r.plan) ? r.plan : 'starter';
+  if (!confirm(`¿Crear cliente activo para "${r.negocio||r.email}"?\nEmail: ${r.email}\nPlan: ${plan}\n\nPodrá acceder al portal con su email.`)) return;
+  const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Creando…';
+  try {
+    await api('/api/admin/orgs', { method:'POST', body: JSON.stringify({
+      name:       r.negocio || r.contacto || r.email,
+      ownerEmail: r.email,
+      plan,
+      sector:     r.sector || 'generico',
+      phone:      r.telefono || null,
+    })});
+    toast('✅ Cliente creado — ya puede acceder al portal con su email');
+    loadOrgs().catch(()=>{});
+    loadLeads().catch(()=>{});
+  } catch(e) {
+    toast('Error al crear cliente: '+(e.message||e),'err');
+    btn.disabled = false; btn.textContent = prev;
+  }
 }
 
 // Orgs
