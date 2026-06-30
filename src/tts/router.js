@@ -62,17 +62,19 @@ class TTSRouter {
       log.info('Provider registered: Cartesia Sonic');
     }
 
-    // ElevenLabs — premium multilingual quality
+    // ElevenLabs — voz premium (Flash v2.5). Preferente para CASTELLANO cuando hay
+    // key: es la mejor voz para cerrar clientes. Azure queda como fallback automático.
+    // NO se usa para euskera/galego (ElevenLabs flojea ahí → los sirve el modelo local).
     if (config.elevenlabsApiKey) {
       const { ElevenLabsTTS } = require('./elevenlabs');
       this.providers.set('elevenlabs', {
         instance: new ElevenLabsTTS(config.elevenlabsApiKey),
         priority: 2,
-        avgLatency: 250,
-        costPerMinute: 0.10,
+        avgLatency: 150,
+        costPerMinute: 0.07,
         features: ['streaming', 'cloning', 'multilingual', 'emotions'],
         languages: ['es', 'en', 'fr', 'de', 'pt', 'it', 'ja', 'ko', 'zh'],
-        languageAffinity: [],
+        languageAffinity: ['es'],  // preferente para castellano
       });
       log.info('Provider registered: ElevenLabs');
     }

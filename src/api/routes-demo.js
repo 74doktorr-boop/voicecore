@@ -185,7 +185,15 @@ function setupDemoRoutes(app, ttsRouter) {
     text = text.slice(0, 500); // cost protection
     const callId = `demo-${Date.now()}`;
     try {
-      // 1. Azure directo → MP3 natural (voz castellana de calidad).
+      // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
+      const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
+      if (eleven) {
+        const mp3 = await eleven.synthesize({ callId, text, voiceId: voice || undefined, language, format: 'mp3' });
+        res.set('Content-Type', 'audio/mpeg');
+        return res.send(mp3);
+      }
+
+      // 2. Azure directo → MP3 natural (voz castellana de calidad). Fallback.
       const azure = ttsRouter.providers?.get?.('azure')?.instance;
       if (azure) {
         const mp3 = await azure.synthesize({ callId, text, voice, language, format: 'mp3' });
@@ -193,7 +201,7 @@ function setupDemoRoutes(app, ttsRouter) {
         return res.send(mp3);
       }
 
-      // 2. Fallback: router (mulaw 8kHz) → WAV PCM 8kHz (reproducible en navegador).
+      // 3. Fallback final: router (mulaw 8kHz) → WAV PCM 8kHz (reproducible en navegador).
       const mulaw = await ttsRouter.synthesize({ callId, text, voice, language });
       const { mulawToPcm } = require('../utils/audio');
       const pcm = mulawToPcm(mulaw);

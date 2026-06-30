@@ -23,25 +23,28 @@ class ElevenLabsTTS {
    * @param {string} params.modelId - Model ID
    * @returns {Buffer} mulaw 8kHz audio
    */
-  async synthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, stability = 0.5, similarityBoost = 0.75, language = 'es' }) {
+  async synthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, stability = 0.5, similarityBoost = 0.75, language = 'es', format = 'mulaw' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) {
       return Buffer.alloc(0);
     }
 
-    // eleven_turbo_v2_5 supports explicit language_code → prevents language switching mid-call.
-    // Falls back to eleven_multilingual_v2 only if caller overrides modelId explicitly.
-    const resolvedModel = modelId ?? 'eleven_turbo_v2_5';
+    // eleven_flash_v2_5: baja latencia + coste ~mitad de Turbo, recomendado para teléfono.
+    const resolvedModel = modelId ?? 'eleven_flash_v2_5';
 
     // Map BCP-47 to ElevenLabs language codes
     const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
     const langCode = LANG_MAP[language] ?? 'es';
 
-    log.tts(`[${callId}] Synthesizing with ElevenLabs (${resolvedModel}, lang=${langCode}): "${text.substring(0, 60)}..."`);
+    // mulaw 8kHz = telefonía; mp3 = reproducible en navegador (demo).
+    const isMp3  = format === 'mp3';
+    const outFmt = isMp3 ? 'mp3_44100_128' : 'pcm_24000';
+
+    log.tts(`[${callId}] Synthesizing with ElevenLabs (${resolvedModel}, lang=${langCode}, ${outFmt}): "${text.substring(0, 60)}..."`);
 
     try {
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=pcm_24000`, {
+      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=${outFmt}`, {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
@@ -58,7 +61,7 @@ class ElevenLabsTTS {
             style:             0.0,
             use_speaker_boost: true,
           },
-          output_format: 'pcm_24000',
+          output_format: outFmt,
         }),
       });
 
@@ -66,16 +69,12 @@ class ElevenLabsTTS {
         throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const pcm24k = Buffer.from(arrayBuffer);
-
-      // Convert to mulaw 8kHz for Twilio
-      const mulaw = resampleToMulaw8k(pcm24k, 24000);
-
+      const buf = Buffer.from(await response.arrayBuffer());
       const totalTime = Date.now() - startTime;
       log.metric(`[${callId}] ElevenLabs TTS completed in ${totalTime}ms`);
 
-      return mulaw;
+      // mp3 → directo al navegador; pcm → mulaw 8kHz para telefonía.
+      return isMp3 ? buf : resampleToMulaw8k(buf, 24000);
     } catch (error) {
       log.error(`[${callId}] ElevenLabs error`, { error: error.message });
       throw error;
@@ -90,7 +89,7 @@ class ElevenLabsTTS {
 
     if (!text || text.trim().length === 0) return;
 
-    const resolvedModel = modelId ?? 'eleven_turbo_v2_5';
+    const resolvedModel = modelId ?? 'eleven_flash_v2_5';
     const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
     const langCode = LANG_MAP[language] ?? 'es';
 
