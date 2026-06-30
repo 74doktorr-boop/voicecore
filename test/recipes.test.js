@@ -30,8 +30,13 @@ describe('recetas de integración', () => {
       assert.ok(Array.isArray(recipe.steps) && recipe.steps.length, 'faltan steps');
       for (const s of recipe.steps) assert.ok(s.action, `paso sin action en ${f}`);
 
-      // Driver permisivo (todo existe) + confirmación → la receta debe completar.
-      const driver = new MockDriver({ allPresent: true, pageText: 'cita confirmada', texts: {} });
+      // Driver permisivo (todo existe) + texto que cubre el vocabulario de
+      // confirmación de cualquier receta → debe completar de inicio a fin.
+      const driver = new MockDriver({
+        allPresent: true,
+        pageText: 'Su cita creada y confirmada correctamente. Solicitud registrada. Gracias.',
+        texts: {},
+      });
       const r = await runRecipe(recipe, ctx, driver);
       assert.strictEqual(r.ok, true, `${f}: ${r.error || ''}`);
       assert.ok(driver.actions.some(a => a.op === 'goto'), 'debe navegar a la URL');

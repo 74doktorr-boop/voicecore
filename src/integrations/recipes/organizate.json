@@ -1,26 +1,40 @@
 {
   "id": "organizate",
-  "name": "Organízate — reserva por enlace público de paciente",
+  "name": "Organízate — crear cita en la agenda (login del profesional)",
   "_meta": {
-    "web": "https://www.organizate.info/",
-    "modo": "Formulario de reserva PÚBLICA (enlace/QR del paciente). Sin login, bajo riesgo.",
-    "config_por_negocio": ["org.bookingUrl (enlace de reserva de la clínica)"],
-    "estado": "PLANTILLA — selectorCandidates por confirmar con la web real de Osakin (credenciales/enlace).",
-    "datos_entrada": ["patient.name", "patient.phone", "patient.email", "appt.sede", "appt.service", "appt.date", "appt.time"]
+    "web": "https://www.organizate.info/  (gestión clínica, sin API, sin 2FA, sin CAPTCHA)",
+    "modo": "LOGIN del profesional → escribir la cita en la AGENDA, igual que hace la recepcionista a mano pero automático según van llegando las llamadas. (NO el widget público: el cliente quiere que la IA rellene SU agenda.)",
+    "config_por_negocio": ["org.organizateLoginUrl", "org.organizateUser (cifrado)", "org.organizatePass (cifrado)"],
+    "datos_entrada": ["appt.sede", "appt.service", "appt.profesional", "appt.date", "appt.time", "patient.name", "patient.phone", "patient.email", "appt.notas"],
+    "sesion": "Tras el primer login, exportar storageState y reutilizarlo (PlaywrightDriver.exportSession) para no logear en cada cita.",
+    "estado": "PLANTILLA — selectores REALES pendientes de las credenciales de Osakin (llegan mañana). Se afinan navegando la agenda real, igual que se hizo con StormPlus.",
+    "credenciales_cifradas": "AES-256-GCM como WhatsApp. Requiere autorización de Osakin (anexo RGPD)."
   },
   "steps": [
-    { "action": "goto", "url": "{{org.bookingUrl}}" },
-    { "action": "click", "optional": true, "selectorCandidates": ["text=Pedir cita", "text=Reservar", "a:has-text('cita')", "#nueva-cita"] },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name=sede]", "#sede", "select:has-text('sede')"], "value": "{{appt.sede}}" },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name=servicio]", "#servicio", "select:has-text('servicio')"], "value": "{{appt.service}}" },
-    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombre", "input[placeholder*='ombre']"], "value": "{{patient.name}}" },
+    { "action": "goto", "url": "{{org.organizateLoginUrl}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=usuario]", "input[name=email]", "#usuario", "#email", "input[type=email]"], "value": "{{org.organizateUser}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=password]", "input[name=clave]", "#password", "input[type=password]"], "value": "{{org.organizatePass}}" },
+    { "action": "click", "selectorCandidates": ["button[type=submit]", "button:has-text('Entrar')", "button:has-text('Acceder')", "input[type=submit]"] },
+    { "action": "waitFor", "selectorCandidates": ["text=Agenda", "nav", ".dashboard", "#agenda"] },
+
+    { "action": "click", "selectorCandidates": ["a:has-text('Agenda')", "text=Agenda", "#menu-agenda"] },
+    { "action": "click", "optional": true, "selectorCandidates": ["button:has-text('Nueva cita')", "text=Nueva cita", "#nueva-cita", "a:has-text('Añadir cita')"] },
+
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name=sede]", "#sede"], "value": "{{appt.sede}}" },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name=profesional]", "#profesional"], "value": "{{appt.profesional}}" },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name=servicio]", "#servicio"], "value": "{{appt.service}}" },
+
+    { "action": "fill", "selectorCandidates": ["input[name=fecha]", "#fecha", ".datepicker"], "value": "{{appt.date}}" },
+    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=hora]", "#hora", "#horaInicio"], "value": "{{appt.time}}" },
+
+    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombrePaciente", "input[placeholder*='aciente']"], "value": "{{patient.name}}" },
     { "action": "fill", "selectorCandidates": ["input[name=telefono]", "#telefono", "input[type=tel]"], "value": "{{patient.phone}}" },
-    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=email]", "#email", "input[type=email]"], "value": "{{patient.email}}" },
-    { "action": "click", "selectorCandidates": ["[data-date='{{appt.date}}']", "td[title*='{{appt.date}}']", "button:has-text('{{appt.time}}')"], "_nota": "Selección de día/hora — el calendario varía por clínica; ajustar al real." },
-    { "action": "click", "optional": true, "selectorCandidates": ["input[type=checkbox][name*='lopd']", "input[type=checkbox][name*='priv']", "#acepto"] },
-    { "action": "click", "selectorCandidates": ["button:has-text('Confirmar')", "button[type=submit]", "text=Reservar cita"] },
-    { "action": "expectText", "anyOf": ["cita confirmada", "reserva realizada", "hemos recibido", "gracias", "confirmada"] },
-    { "action": "readText", "optional": true, "selectorCandidates": [".referencia", "#ref", "text=/N.{0,3}referencia/i"], "saveAs": "referencia" },
-    { "action": "screenshot", "name": "organizate-confirmacion" }
+    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=email]", "#emailPaciente", "input[type=email]"], "value": "{{patient.email}}" },
+    { "action": "fill", "optional": true, "selectorCandidates": ["textarea[name=notas]", "#notas", "textarea"], "value": "{{appt.notas}}" },
+
+    { "action": "screenshot", "name": "organizate-antes-de-guardar" },
+    { "action": "click", "selectorCandidates": ["button:has-text('Guardar')", "button:has-text('Crear cita')", "button[type=submit]"] },
+    { "action": "expectText", "anyOf": ["cita creada", "guardado", "guardada", "correctamente", "añadida"] },
+    { "action": "screenshot", "name": "organizate-cita-creada" }
   ]
 }

@@ -1,24 +1,58 @@
 {
   "id": "stormplus",
-  "name": "StormPlus (LN Deter) — cita previa psicotécnico",
+  "name": "StormPlus (LN Deter) — cita previa psicotécnico (formulario público)",
   "_meta": {
-    "web": "https://stormplus.lndeter.es/ (panel con login) — el formulario PÚBLICO de cita previa es otra URL del CRC.",
-    "modo": "Preferente: formulario público de cita previa (org.stormPublicUrl). Alternativa: login del CRC (storm.* / stormplus.*) con credenciales cifradas.",
-    "config_por_negocio": ["org.stormPublicUrl (formulario público) o org.stormUser/org.stormPass (login, cifradas)"],
-    "estado": "PLANTILLA — pendiente: URL exacta del formulario público (la que dice el cliente que usa todo el mundo) y selectores reales. Conecta con la DGT: máxima exactitud de datos.",
-    "datos_entrada": ["patient.name", "patient.dni", "patient.phone", "appt.tipoPermiso", "appt.date", "appt.time"]
+    "web": "https://stormplus.lndeter.es/citapreviaonline/{slug}  (público, sin login, sin CAPTCHA)",
+    "ejemplo_osakin": "https://stormplus.lndeter.es/citapreviaonline/osakin",
+    "tecnologia": "ASP.NET MVC. Form #frmCitaPreviaOnline, anti-CSRF __RequestVerificationToken (lo gestiona el navegador al rellenar el form real). IdGrupoCentros=701 (Osakin), Provincia Gipuzkoa=20.",
+    "config_por_negocio": ["org.stormPublicUrl"],
+    "datos_entrada": [
+      "appt.centro (etiqueta del centro/sede)",
+      "appt.tipoPermiso (etiqueta del permiso, p.ej. 'Permiso B - Conducción')",
+      "appt.tipoTramite (etiqueta, p.ej. 'Renovación')",
+      "appt.date (dd/mm/aaaa)", "appt.time (HH:MM)",
+      "patient.dni", "patient.nombre", "patient.apellido1", "patient.apellido2",
+      "patient.email", "patient.phone"
+    ],
+    "notas": [
+      "Selects encadenados por AJAX (provincia→centro, tipo→trámite/permiso, fecha→horas): hay waitFor/sleep entre pasos.",
+      "El día/hora pueden requerir clic en calendario/grid en vez de escribir; hay selectores candidatos. Si falla, fallback humano.",
+      "Conecta con la DGT: exactitud máxima. Es el 10%/lo menos crítico → 2ª prioridad tras Organízate."
+    ],
+    "estado": "Selectores REALES extraídos del formulario público. Pendiente: validar slot-picking (calendario) contra el comportamiento en vivo y el mapeo de etiquetas de permiso/trámite por centro."
   },
   "steps": [
     { "action": "goto", "url": "{{org.stormPublicUrl}}" },
-    { "action": "select", "selectorCandidates": ["select[name*='permiso']", "select[name*='tipo']", "#tipoPermiso"], "value": "{{appt.tipoPermiso}}", "_nota": "conducir / armas / seguridad / náutica / certificado médico" },
-    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombre"], "value": "{{patient.name}}" },
-    { "action": "fill", "selectorCandidates": ["input[name=dni]", "#dni", "input[placeholder*='DNI']"], "value": "{{patient.dni}}" },
-    { "action": "fill", "selectorCandidates": ["input[name=telefono]", "#telefono", "input[type=tel]"], "value": "{{patient.phone}}" },
-    { "action": "click", "selectorCandidates": ["[data-date='{{appt.date}}']", "button:has-text('{{appt.time}}')"], "_nota": "selección de hueco — ajustar al calendario real" },
-    { "action": "click", "optional": true, "selectorCandidates": ["input[type=checkbox][name*='lopd']", "#acepto", "input[name*='consent']"] },
-    { "action": "click", "selectorCandidates": ["button:has-text('Solicitar cita')", "button:has-text('Confirmar')", "button[type=submit]"] },
-    { "action": "expectText", "anyOf": ["cita confirmada", "solicitud recibida", "gracias", "hemos registrado"] },
-    { "action": "readText", "optional": true, "selectorCandidates": [".referencia", "#localizador"], "saveAs": "referencia" },
+    { "action": "waitFor", "selectorCandidates": ["#frmCitaPreviaOnline"] },
+
+    { "action": "select", "optional": true, "selectorCandidates": ["#IdProvinciaCentro"], "value": "Gipuzkoa" },
+    { "action": "sleep", "ms": 800 },
+    { "action": "select", "optional": true, "selectorCandidates": ["#CmbCentro", "select[name=IdCentro]"], "value": "{{appt.centro}}" },
+    { "action": "sleep", "ms": 800 },
+
+    { "action": "click", "optional": true, "selectorCandidates": ["#ChkTipoReconocimiento0"] },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name$='IdTipoTramite']"], "value": "{{appt.tipoTramite}}" },
+    { "action": "select", "optional": true, "selectorCandidates": ["select[name$='IdTipoPermisoReconocimiento']"], "value": "{{appt.tipoPermiso}}" },
+    { "action": "sleep", "ms": 800 },
+
+    { "action": "fill", "selectorCandidates": ["#Fecha"], "value": "{{appt.date}}" },
+    { "action": "sleep", "ms": 800 },
+    { "action": "fill", "optional": true, "selectorCandidates": ["#HoraInicio"], "value": "{{appt.time}}" },
+    { "action": "click", "optional": true, "selectorCandidates": ["button:has-text('{{appt.time}}')", "[data-hora='{{appt.time}}']", ".hora-libre:has-text('{{appt.time}}')"] },
+
+    { "action": "fill", "selectorCandidates": ["#Nif"], "value": "{{patient.dni}}" },
+    { "action": "fill", "selectorCandidates": ["#Nombre"], "value": "{{patient.nombre}}" },
+    { "action": "fill", "selectorCandidates": ["#Apellido1"], "value": "{{patient.apellido1}}" },
+    { "action": "fill", "optional": true, "selectorCandidates": ["#Apellido2"], "value": "{{patient.apellido2}}" },
+    { "action": "fill", "optional": true, "selectorCandidates": ["#Email"], "value": "{{patient.email}}" },
+    { "action": "fill", "selectorCandidates": ["#txtTelefonoMovil", "input[name=TelefonoMovil]"], "value": "{{patient.phone}}" },
+
+    { "action": "click", "selectorCandidates": ["#ChkAceptoCondiciones", "label[for=ChkAceptoCondiciones]"] },
+    { "action": "screenshot", "name": "stormplus-antes-de-enviar" },
+    { "action": "click", "selectorCandidates": ["#BtnSolicitarCitaPrevia", "button:has-text('Solicitar Cita Previa')"] },
+    { "action": "sleep", "ms": 1200 },
+    { "action": "expectText", "anyOf": ["cita ha sido", "solicitud", "confirmada", "hemos recibido", "registrada", "gracias", "correctamente"] },
+    { "action": "readText", "optional": true, "selectorCandidates": [".alert-success", "#mensaje", ".confirmacion"], "saveAs": "confirmacion" },
     { "action": "screenshot", "name": "stormplus-confirmacion" }
   ]
 }
