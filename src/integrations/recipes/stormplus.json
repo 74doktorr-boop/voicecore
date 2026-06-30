@@ -4,41 +4,48 @@
   "_meta": {
     "web": "https://stormplus.lndeter.es/citapreviaonline/{slug}  (público, sin login, sin CAPTCHA)",
     "ejemplo_osakin": "https://stormplus.lndeter.es/citapreviaonline/osakin",
-    "tecnologia": "ASP.NET MVC. Form #frmCitaPreviaOnline, anti-CSRF __RequestVerificationToken (lo gestiona el navegador al rellenar el form real). IdGrupoCentros=701 (Osakin), Provincia Gipuzkoa=20.",
+    "validado_en_vivo": "Sí — reverse-engineered con Playwright contra el form real (2026-06-30). Selectores y opciones reales.",
+    "tecnologia": "ASP.NET MVC + datepicker/timepicker GijGo (gj-datepicker). Form #frmCitaPreviaOnline, anti-CSRF __RequestVerificationToken (lo gestiona el navegador). IdGrupoCentros=701 (Osakin). Provincia GIPUZKOA=20.",
     "config_por_negocio": ["org.stormPublicUrl"],
-    "datos_entrada": [
-      "appt.centro (etiqueta del centro/sede)",
-      "appt.tipoPermiso (etiqueta del permiso, p.ej. 'Permiso B - Conducción')",
-      "appt.tipoTramite (etiqueta, p.ej. 'Renovación')",
-      "appt.date (dd/mm/aaaa)", "appt.time (HH:MM)",
-      "patient.dni", "patient.nombre", "patient.apellido1", "patient.apellido2",
-      "patient.email", "patient.phone"
+    "datos_entrada": {
+      "appt.provincia": "etiqueta provincia, p.ej. 'GIPUZKOA'",
+      "appt.centro": "etiqueta del centro (se carga tras elegir provincia; confirmar las de Osakin)",
+      "appt.tipoTramite": "Renovación | Expedición | Recuperación | Canje | Obtención | Prórroga | Duplicado…",
+      "appt.tipoPermiso": "AM | A1 | A2 | A | B | B+E | C1 | C | D | LVA | LCM | náutica… (etiqueta EXACTA, ver lista)",
+      "appt.dayNum": "día del mes a clicar en el calendario, p.ej. '15'",
+      "appt.time": "hora del hueco, p.ej. '10:00'",
+      "patient": "dni, nombre, apellido1, apellido2(opc), email(opc), phone"
+    },
+    "permisos_valores": "AM=36 A1=37 A2=38 A=39 B=40 B+E=41 B96=42 AML=43 C1=44 C1+E=45 C=46 C+E=47 D1=48 D1+E=49 D=50 D+E=51 LVA=52 LCM=53 L=1 M=2 + náutica/profesionales",
+    "centros_osakin": "896=CRC OSAKIN ANDOAIN · 911=CRC OSAKIN TOLOSA · 897=CRC OSAKIN VILLABONA (provincia GIPUZKOA)",
+    "pendiente": [
+      "Navegación de meses del calendario GijGo (chevron-right) si la cita no cae en el mes visible — añadir helper.",
+      "Selección de hora: #HoraInicio es timepicker GijGo readonly (abrir + clicar slot) — afinar selector del popup."
     ],
-    "notas": [
-      "Selects encadenados por AJAX (provincia→centro, tipo→trámite/permiso, fecha→horas): hay waitFor/sleep entre pasos.",
-      "El día/hora pueden requerir clic en calendario/grid en vez de escribir; hay selectores candidatos. Si falla, fallback humano.",
-      "Conecta con la DGT: exactitud máxima. Es el 10%/lo menos crítico → 2ª prioridad tras Organízate."
-    ],
-    "estado": "Selectores REALES extraídos del formulario público. Pendiente: validar slot-picking (calendario) contra el comportamiento en vivo y el mapeo de etiquetas de permiso/trámite por centro."
+    "estado": "Selectores REALES validados en vivo hasta el datepicker GijGo. Date/hour del mes visible cubiertos; meses lejanos + slot de hora = último 5% (StormPlus es el 10%/menos crítico)."
   },
   "steps": [
     { "action": "goto", "url": "{{org.stormPublicUrl}}" },
     { "action": "waitFor", "selectorCandidates": ["#frmCitaPreviaOnline"] },
 
-    { "action": "select", "optional": true, "selectorCandidates": ["#IdProvinciaCentro"], "value": "Gipuzkoa" },
-    { "action": "sleep", "ms": 800 },
-    { "action": "select", "optional": true, "selectorCandidates": ["#CmbCentro", "select[name=IdCentro]"], "value": "{{appt.centro}}" },
-    { "action": "sleep", "ms": 800 },
+    { "action": "select", "selectorCandidates": ["#IdProvinciaCentro"], "value": "{{appt.provincia}}" },
+    { "action": "sleep", "ms": 1300 },
+    { "action": "select", "selectorCandidates": ["#CmbCentro"], "value": "{{appt.centro}}" },
+    { "action": "sleep", "ms": 1100 },
 
-    { "action": "click", "optional": true, "selectorCandidates": ["#ChkTipoReconocimiento0"] },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name$='IdTipoTramite']"], "value": "{{appt.tipoTramite}}" },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name$='IdTipoPermisoReconocimiento']"], "value": "{{appt.tipoPermiso}}" },
-    { "action": "sleep", "ms": 800 },
+    { "action": "click", "selectorCandidates": ["label[for=ChkTipoReconocimiento0]", ".custom-switch[data-tipo-reconocimiento='Conduccion'] label", ".custom-switch[data-tipo-reconocimiento='Conduccion']", "#ChkTipoReconocimiento0"], "_nota": "el checkbox real está oculto tras un custom-switch; se clica su label" },
+    { "action": "sleep", "ms": 700 },
+    { "action": "select", "selectorCandidates": ["#SeleccionarTiposReconocimientoModel_TiposReconocimientoViewModel_0__IdTipoTramite"], "value": "{{appt.tipoTramite}}" },
+    { "action": "select", "selectorCandidates": ["#SeleccionarTiposReconocimientoModel_TiposReconocimientoViewModel_0__IdTipoPermisoReconocimiento"], "value": "{{appt.tipoPermiso}}" },
+    { "action": "sleep", "ms": 1300 },
 
-    { "action": "fill", "selectorCandidates": ["#Fecha"], "value": "{{appt.date}}" },
-    { "action": "sleep", "ms": 800 },
-    { "action": "fill", "optional": true, "selectorCandidates": ["#HoraInicio"], "value": "{{appt.time}}" },
-    { "action": "click", "optional": true, "selectorCandidates": ["button:has-text('{{appt.time}}')", "[data-hora='{{appt.time}}']", ".hora-libre:has-text('{{appt.time}}')"] },
+    { "action": "click", "selectorCandidates": ["#Fecha"], "_nota": "abre el calendario GijGo (.gj-picker)" },
+    { "action": "sleep", "ms": 700 },
+    { "action": "click", "optional": true, "selectorCandidates": [".gj-picker[role=calendar] [role=body] td:not([class*=disabled]) div:text-is('{{appt.dayNum}}')", ".gj-picker td div:text-is('{{appt.dayNum}}')", ".gj-picker [role=body] [role=cell]:has-text('{{appt.dayNum}}')"], "_nota": "clica el día en el mes visible; navegación de meses pendiente de helper" },
+    { "action": "sleep", "ms": 600 },
+
+    { "action": "click", "optional": true, "selectorCandidates": ["#HoraInicio"], "_nota": "abre timepicker GijGo" },
+    { "action": "click", "optional": true, "selectorCandidates": [".gj-picker [role=body] [role=cell]:text-is('{{appt.time}}')", "li:has-text('{{appt.time}}')", "[data-hour]:has-text('{{appt.time}}')"], "_nota": "slot de hora — selector del popup por afinar" },
 
     { "action": "fill", "selectorCandidates": ["#Nif"], "value": "{{patient.dni}}" },
     { "action": "fill", "selectorCandidates": ["#Nombre"], "value": "{{patient.nombre}}" },
@@ -50,7 +57,7 @@
     { "action": "click", "selectorCandidates": ["#ChkAceptoCondiciones", "label[for=ChkAceptoCondiciones]"] },
     { "action": "screenshot", "name": "stormplus-antes-de-enviar" },
     { "action": "click", "skipOnDryRun": true, "selectorCandidates": ["#BtnSolicitarCitaPrevia", "button:has-text('Solicitar Cita Previa')"] },
-    { "action": "sleep", "skipOnDryRun": true, "ms": 1200 },
+    { "action": "sleep", "skipOnDryRun": true, "ms": 1500 },
     { "action": "expectText", "skipOnDryRun": true, "anyOf": ["cita ha sido", "solicitud", "confirmada", "hemos recibido", "registrada", "gracias", "correctamente"] },
     { "action": "readText", "skipOnDryRun": true, "optional": true, "selectorCandidates": [".alert-success", "#mensaje", ".confirmacion"], "saveAs": "confirmacion" },
     { "action": "screenshot", "skipOnDryRun": true, "name": "stormplus-confirmacion" }
