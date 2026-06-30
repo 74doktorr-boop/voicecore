@@ -78,19 +78,19 @@ function setupExtendedRoutes(app, config, squadManager) {
       const { question, topK } = req.body;
       if (!question) return res.status(400).json({ error: 'No question provided' });
 
-      const results = await kb.query(req.org.id, req.params.assistantId, question, topK);
+      const results = await kb.query(req.org.id, question, topK);
       res.json({ results });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  app.get('/api/knowledge/:assistantId/stats', auth, (req, res) => {
-    res.json(kb.getStats(req.org.id, req.params.assistantId));
+  app.get('/api/knowledge/:assistantId/stats', auth, async (req, res) => {
+    res.json(await kb.getStats(req.org.id, req.params.assistantId));
   });
 
-  app.delete('/api/knowledge/:assistantId', auth, (req, res) => {
-    kb.deleteStore(req.org.id, req.params.assistantId);
+  app.delete('/api/knowledge/:assistantId', auth, async (req, res) => {
+    await kb.deleteStore(req.org.id, req.params.assistantId);
     res.json({ success: true });
   });
 

@@ -1,178 +1,165 @@
 // ============================================
-// VoiceCore — Knowledge Base (RAG)
-// Document ingestion + retrieval for assistants
+// VoiceCore — Knowledge Base (RAG) — por negocio (org), persistido en Supabase
+// Ingesta de texto + recuperación por similitud (coseno en JS).
+// Persiste en tabla `knowledge_chunks` (ver db/schema-migration-knowledge.sql).
+// Fallback en memoria si la BD no está disponible (dev/tests).
 // ============================================
 
 const { Logger } = require('../utils/logger');
-const crypto = require('crypto');
+const { getDatabase } = require('../db/database');
 
 const log = new Logger('KNOWLEDGE');
 
 class KnowledgeBase {
   constructor(config = {}) {
-    this.openaiApiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
-    this.stores = new Map(); // orgId:assistantId -> { chunks, embeddings }
+    this.openaiApiKey   = config.openaiApiKey || process.env.OPENAI_API_KEY;
     this.embeddingModel = 'text-embedding-3-small';
-    this.chunkSize = 500;
-    this.chunkOverlap = 50;
-    this.topK = 3;
+    this.chunkSize      = 220;   // palabras por chunk
+    this.chunkOverlap   = 40;
+    this.topK           = 3;
+    this.minScore       = 0.30;
+    this._mem           = new Map(); // fallback: orgId -> [{ content, source, embedding }]
   }
 
-  /**
-   * Ingest text content into the knowledge base
-   */
-  async ingest(orgId, assistantId, documents) {
-    const storeKey = `${orgId}:${assistantId}`;
-    if (!this.stores.has(storeKey)) {
-      this.stores.set(storeKey, { chunks: [], embeddings: [] });
+  // ── API org-scoped (portal + path de llamada) ────────────────────────
+
+  /** Ingesta texto libre para una org: trocea, vectoriza y persiste. */
+  async ingestText(orgId, text, source = 'manual') {
+    if (!orgId || !text || !text.trim()) return { chunksAdded: 0 };
+    const chunks = this._chunkText(text);
+    if (!chunks.length) return { chunksAdded: 0 };
+
+    const embeddings = await this._getEmbeddings(chunks);
+    const rows = chunks.map((content, i) => ({ org_id: orgId, content, source, embedding: embeddings[i] }));
+
+    const db = getDatabase();
+    if (db.enabled) {
+      const { error } = await db.client.from('knowledge_chunks').insert(rows);
+      if (error) throw new Error(`KB insert failed: ${error.message}`);
+    } else {
+      const arr = this._mem.get(orgId) || [];
+      for (const r of rows) arr.push({ content: r.content, source: r.source, embedding: r.embedding });
+      this._mem.set(orgId, arr);
     }
-    const store = this.stores.get(storeKey);
-
-    for (const doc of documents) {
-      const chunks = this._chunkText(doc.content, doc.title || doc.id);
-      log.info(`Ingesting ${chunks.length} chunks from "${doc.title || doc.id}"`);
-
-      // Generate embeddings in batches
-      const batchSize = 20;
-      for (let i = 0; i < chunks.length; i += batchSize) {
-        const batch = chunks.slice(i, i + batchSize);
-        const texts = batch.map(c => c.text);
-        const embeddings = await this._getEmbeddings(texts);
-
-        for (let j = 0; j < batch.length; j++) {
-          store.chunks.push({
-            id: crypto.randomUUID(),
-            text: batch[j].text,
-            source: batch[j].source,
-            metadata: { ...doc.metadata, chunkIndex: i + j },
-          });
-          store.embeddings.push(embeddings[j]);
-        }
-      }
-    }
-
-    log.info(`Store ${storeKey}: ${store.chunks.length} total chunks`);
-    return { chunksAdded: documents.reduce((s, d) => s + this._chunkText(d.content).length, 0) };
+    log.info(`KB ingest org=${orgId}: +${rows.length} chunks (source: ${source})`);
+    return { chunksAdded: rows.length };
   }
 
-  /**
-   * Query the knowledge base for relevant context
-   */
-  async query(orgId, assistantId, question, topK) {
-    const storeKey = `${orgId}:${assistantId}`;
-    const store = this.stores.get(storeKey);
-    if (!store || store.chunks.length === 0) return [];
+  /** Recupera los top-K trozos relevantes para una pregunta. */
+  async query(orgId, question, topK) {
+    if (!orgId || !question) return [];
+    const store = await this._load(orgId);
+    if (!store.length) return [];
 
-    const k = topK || this.topK;
-    const questionEmbedding = (await this._getEmbeddings([question]))[0];
-
-    // Compute cosine similarities
-    const scored = store.embeddings.map((emb, idx) => ({
-      chunk: store.chunks[idx],
-      score: this._cosineSimilarity(questionEmbedding, emb),
-    }));
-
-    // Sort by score and return top K
+    const qEmb = (await this._getEmbeddings([question]))[0];
+    const scored = store.map(c => ({ content: c.content, source: c.source, score: this._cosine(qEmb, c.embedding) }));
     scored.sort((a, b) => b.score - a.score);
-    const results = scored.slice(0, k).filter(r => r.score > 0.3);
-
-    log.info(`Query "${question.substring(0, 50)}..." → ${results.length} results (top score: ${results[0]?.score.toFixed(3) || 'N/A'})`);
-
-    return results.map(r => ({
-      text: r.chunk.text,
-      source: r.chunk.source,
-      score: Math.round(r.score * 1000) / 1000,
-      metadata: r.chunk.metadata,
-    }));
+    const k = topK || this.topK;
+    return scored.slice(0, k).filter(r => r.score > this.minScore)
+      .map(r => ({ text: r.content, source: r.source, score: Math.round(r.score * 1000) / 1000 }));
   }
 
   /**
-   * Build RAG context string for LLM prompt injection
+   * Contexto listo para inyectar en el prompt del LLM durante una llamada.
+   * FAIL-OPEN y acotado en tiempo: si falla o tarda, devuelve '' (la llamada sigue).
    */
-  async getContext(orgId, assistantId, question) {
-    const results = await this.query(orgId, assistantId, question);
-    if (results.length === 0) return '';
-
-    const context = results.map((r, i) =>
-      `[Fuente ${i + 1}: ${r.source}]\n${r.text}`
-    ).join('\n\n');
-
-    return `\n\n[INFORMACIÓN RELEVANTE]\n${context}\n\nUsa esta información para responder al usuario de forma precisa.`;
-  }
-
-  /**
-   * Chunk text into overlapping segments
-   */
-  _chunkText(text, source = 'unknown') {
-    const words = text.split(/\s+/);
-    const chunks = [];
-
-    for (let i = 0; i < words.length; i += this.chunkSize - this.chunkOverlap) {
-      const chunk = words.slice(i, i + this.chunkSize).join(' ');
-      if (chunk.trim().length > 20) {
-        chunks.push({ text: chunk.trim(), source });
-      }
+  async getContext(orgId, question, { timeoutMs = 1500 } = {}) {
+    if (!orgId || !question) return '';
+    try {
+      const results = await Promise.race([
+        this.query(orgId, question),
+        new Promise(resolve => setTimeout(() => resolve(null), timeoutMs)),
+      ]);
+      if (!results || !results.length) return '';
+      const body = results.map((r, i) => `[${i + 1}] ${r.text}`).join('\n');
+      return `\n\n[INFORMACIÓN DEL NEGOCIO]\n${body}\n\nUsa esta información si es relevante para responder.`;
+    } catch (e) {
+      log.warn(`KB getContext fail-open org=${orgId}: ${e.message}`);
+      return '';
     }
+  }
 
+  /** Estadísticas de la KB de una org. */
+  async stats(orgId) {
+    const store = await this._load(orgId);
+    const sources = [...new Set(store.map(c => c.source).filter(Boolean))];
+    return { chunks: store.length, sources };
+  }
+
+  /** Borra toda la KB de una org. */
+  async clear(orgId) {
+    const db = getDatabase();
+    if (db.enabled) {
+      const { error } = await db.client.from('knowledge_chunks').delete().eq('org_id', orgId);
+      if (error) throw new Error(`KB clear failed: ${error.message}`);
+    } else {
+      this._mem.delete(orgId);
+    }
+    log.info(`KB cleared org=${orgId}`);
+    return { ok: true };
+  }
+
+  /** Carga los chunks de una org (BD o memoria). */
+  async _load(orgId) {
+    const db = getDatabase();
+    if (db.enabled) {
+      const { data, error } = await db.client
+        .from('knowledge_chunks').select('content, source, embedding').eq('org_id', orgId).limit(2000);
+      if (error) { log.warn(`KB load failed org=${orgId}: ${error.message}`); return []; }
+      return data || [];
+    }
+    return this._mem.get(orgId) || [];
+  }
+
+  // ── Compat legacy (routes-extended /api/knowledge/:assistantId/*) ─────
+  // La KB es por negocio; el assistantId se ignora para el almacenamiento.
+  async ingest(orgId, _assistantId, documents) {
+    let added = 0;
+    for (const doc of (documents || [])) {
+      const r = await this.ingestText(orgId, doc.content || '', doc.title || doc.id || 'doc');
+      added += r.chunksAdded;
+    }
+    return { chunksAdded: added };
+  }
+  async queryLegacy(orgId, _assistantId, question, topK) { return this.query(orgId, question, topK); }
+  async getStats(orgId, _assistantId) { return this.stats(orgId); }
+  async deleteStore(orgId, _assistantId) { return this.clear(orgId); }
+
+  // ── Internos ─────────────────────────────────────────────────────────
+
+  _chunkText(text) {
+    const words = String(text).split(/\s+/);
+    const chunks = [];
+    const step = Math.max(1, this.chunkSize - this.chunkOverlap);
+    for (let i = 0; i < words.length; i += step) {
+      const chunk = words.slice(i, i + this.chunkSize).join(' ').trim();
+      if (chunk.length > 20) chunks.push(chunk);
+      if (i + this.chunkSize >= words.length) break;
+    }
     return chunks;
   }
 
-  /**
-   * Get embeddings from OpenAI
-   */
   async _getEmbeddings(texts) {
     if (!this.openaiApiKey) throw new Error('OpenAI API key required for embeddings');
-
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Authorization': `Bearer ${this.openaiApiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ input: texts, model: this.embeddingModel }),
     });
-
     if (!response.ok) throw new Error(`Embeddings error: ${response.status}`);
     const result = await response.json();
     return result.data.map(d => d.embedding);
   }
 
-  /**
-   * Cosine similarity between two vectors
-   */
-  _cosineSimilarity(a, b) {
-    let dotProduct = 0, normA = 0, normB = 0;
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
-
-  /**
-   * Delete a knowledge store
-   */
-  deleteStore(orgId, assistantId) {
-    const key = `${orgId}:${assistantId}`;
-    this.stores.delete(key);
-    log.info(`Store deleted: ${key}`);
-  }
-
-  /**
-   * Get store stats
-   */
-  getStats(orgId, assistantId) {
-    const key = `${orgId}:${assistantId}`;
-    const store = this.stores.get(key);
-    if (!store) return { chunks: 0, sources: [] };
-
-    const sources = [...new Set(store.chunks.map(c => c.source))];
-    return { chunks: store.chunks.length, sources };
+  _cosine(a, b) {
+    if (!a || !b || a.length !== b.length) return 0;
+    let dot = 0, na = 0, nb = 0;
+    for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+    const denom = Math.sqrt(na) * Math.sqrt(nb);
+    return denom ? dot / denom : 0;
   }
 }
 
-// Singleton
 let kbInstance = null;
 function getKnowledgeBase(config) {
   if (!kbInstance) kbInstance = new KnowledgeBase(config);
