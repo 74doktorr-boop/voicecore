@@ -237,7 +237,7 @@
     .benefit-card p { font-size:13px; color:var(--dim); line-height:1.65; }
 
     /* Pricing */
-    .pricing-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:48px; max-width:780px; margin-left:auto; margin-right:auto; }
+    .pricing-grid { display:grid; grid-template-columns:1fr; gap:24px; margin-top:48px; max-width:420px; margin-left:auto; margin-right:auto; }
     @media(max-width:640px) { .pricing-grid { grid-template-columns:1fr; } }
     .pricing-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:36px 32px; position:relative; transition:all .3s; }
     .pricing-card:hover { transform:translateY(-4px); }
@@ -594,25 +594,9 @@
     </div>
     <div class="pricing-grid">
       <div class="pricing-card">
+        <div class="pricing-badge">MÁS POPULAR</div>
         <div class="pricing-name">Plan Negocio</div>
         <div class="pricing-price">49<span>€/mes</span></div>
-        <div class="pricing-desc">Para restaurantes que quieren automatizar las reservas telefónicas y recuperar las llamadas fuera de horario.</div>
-        <ul class="pricing-features">
-          <li>Llamadas ilimitadas (en paralelo)</li>
-          <li>Reservas automáticas 24/7</li>
-          <li>Confirmación por WhatsApp</li>
-          <li>Recordatorios anti no-show</li>
-          <li>Gestión de cancelaciones y cambios</li>
-          <li>Bilingüe euskera-castellano</li>
-          <li>Resumen diario de llamadas</li>
-          <li>Soporte por email</li>
-        </ul>
-        <a href="https://nodeflow.es/#contacto" class="btn btn-outline" style="width:100%;justify-content:center;">Empezar →</a>
-      </div>
-      <div class="pricing-card featured">
-        <div class="pricing-badge">MÁS POPULAR</div>
-        <div class="pricing-name">Plan Pro</div>
-        <div class="pricing-price">99<span>€/mes</span></div>
         <div class="pricing-desc">Para restaurantes con mayor volumen, gestión por zonas o salas y necesidad de integraciones avanzadas.</div>
         <ul class="pricing-features">
           <li>Todo lo del Plan Negocio</li>
