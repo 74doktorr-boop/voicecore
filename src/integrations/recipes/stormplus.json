@@ -18,11 +18,12 @@
     },
     "permisos_valores": "AM=36 A1=37 A2=38 A=39 B=40 B+E=41 B96=42 AML=43 C1=44 C1+E=45 C=46 C+E=47 D1=48 D1+E=49 D=50 D+E=51 LVA=52 LCM=53 L=1 M=2 + náutica/profesionales",
     "centros_osakin": "896=CRC OSAKIN ANDOAIN · 911=CRC OSAKIN TOLOSA · 897=CRC OSAKIN VILLABONA (provincia GIPUZKOA)",
+    "disponibilidad": "Al elegir un día, el centro responde por AJAX: si no hay cupo muestra 'Día no disponible en el centro' y la Hora queda vacía. La Hora SOLO aparece en días con disponibilidad → en producción el asistente debe ofrecer/elegir un día con cupo.",
     "pendiente": [
-      "Navegación de meses del calendario GijGo (chevron-right) si la cita no cae en el mes visible — añadir helper.",
-      "Selección de hora: #HoraInicio es timepicker GijGo readonly (abrir + clicar slot) — afinar selector del popup."
+      "Orquestación: elegir automáticamente un día CON disponibilidad (probar días hasta que la Hora se rellene) — lógica del asistente, no de la receta.",
+      "Navegación a meses lejanos del calendario GijGo (chevron-right) si la cita cae fuera del mes visible — helper opcional."
     ],
-    "estado": "Selectores REALES validados en vivo hasta el datepicker GijGo. Date/hour del mes visible cubiertos; meses lejanos + slot de hora = último 5% (StormPlus es el 10%/menos crítico)."
+    "estado": "VALIDADO EN VIVO al 100% del formulario (provincia→centro→reconocimiento→permiso→FECHA→datos→condiciones). Captura lo confirma. Solo queda la orquestación de elegir día con cupo + el envío real (--live)."
   },
   "steps": [
     { "action": "goto", "url": "{{org.stormPublicUrl}}" },
@@ -40,9 +41,9 @@
     { "action": "sleep", "ms": 1300 },
 
     { "action": "click", "selectorCandidates": ["#Fecha"], "_nota": "abre el calendario GijGo (.gj-picker)" },
+    { "action": "sleep", "ms": 800 },
+    { "action": "click", "selectorCandidates": [".gj-picker[role=calendar] tbody td.gj-cursor-pointer:not(.other-month) >> text=\"{{appt.dayNum}}\"", ".gj-picker[role=calendar] tbody td.gj-cursor-pointer >> text=\"{{appt.dayNum}}\""], "_nota": "GijGo: celdas seleccionables = .gj-cursor-pointer (las pasadas .disabled). text=\"N\" es match EXACTO. Cubre mes visible + spillover; meses lejanos = helper pendiente." },
     { "action": "sleep", "ms": 700 },
-    { "action": "click", "optional": true, "selectorCandidates": [".gj-picker[role=calendar] [role=body] td:not([class*=disabled]) div:text-is('{{appt.dayNum}}')", ".gj-picker td div:text-is('{{appt.dayNum}}')", ".gj-picker [role=body] [role=cell]:has-text('{{appt.dayNum}}')"], "_nota": "clica el día en el mes visible; navegación de meses pendiente de helper" },
-    { "action": "sleep", "ms": 600 },
 
     { "action": "click", "optional": true, "selectorCandidates": ["#HoraInicio"], "_nota": "abre timepicker GijGo" },
     { "action": "click", "optional": true, "selectorCandidates": [".gj-picker [role=body] [role=cell]:text-is('{{appt.time}}')", "li:has-text('{{appt.time}}')", "[data-hour]:has-text('{{appt.time}}')"], "_nota": "slot de hora — selector del popup por afinar" },

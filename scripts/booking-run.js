@@ -62,7 +62,7 @@ const recipe = JSON.parse(fs.readFileSync(recipePath, 'utf8'));
 const SAMPLES = {
   stormplus: {
     org: { id: 'osakin', name: 'Osakin', stormPublicUrl: 'https://stormplus.lndeter.es/citapreviaonline/osakin' },
-    appt: { provincia: 'GIPUZKOA', centro: 'CRC OSAKIN TOLOSA', tipoTramite: 'Renovación', tipoPermiso: 'B', dayNum: '15', time: '10:00' },
+    appt: { provincia: 'GIPUZKOA', centro: 'CRC OSAKIN TOLOSA', tipoTramite: 'Renovación', tipoPermiso: 'B', dayNum: '2', time: '10:00' },
     patient: { dni: '00000000T', nombre: 'PRUEBA', apellido1: 'TEST', apellido2: 'NODEFLOW', email: 'prueba@nodeflow.es', phone: '600000000' },
   },
   organizate: {
