@@ -262,7 +262,16 @@ class ToolExecutor {
     return scheduler.lookupAppointments(name, assistantId || null);
   }
 
-  getServices(args, assistantId) {
+  // Lista de servicios+precios REAL del negocio, sellada en la sesión al inicio
+  // de la llamada (la trae de BD el voice-pipeline). Fiable y sin coste extra aquí.
+  _orgServiceList(context) {
+    const sl = context && context.session && context.session.serviceList;
+    return (Array.isArray(sl) && sl.length) ? sl : null;
+  }
+
+  getServices(args, assistantId, context = {}) {
+    const real = this._orgServiceList(context);
+    if (real) return { services: real.map(s => ({ name: s.name, price: s.price || 'consultar', duration: s.duration || '', notes: s.notes || '' })) };
     const config = scheduler.getBusinessConfig(assistantId || 'demo-clinic');
     if (!config) return { services: [] };
     return {
@@ -725,7 +734,9 @@ class ToolExecutor {
     return { success: true, message: `Baja procesada para ${name}. El equipo lo confirmará por escrito.` };
   }
 
-  getPricing(args, assistantId) {
+  getPricing(args, assistantId, context = {}) {
+    const real = this._orgServiceList(context);
+    if (real) return { pricing: real.map(s => `${s.name}: ${s.price || 'consultar'}${s.duration ? ' (' + s.duration + ')' : ''}`).join(', ') };
     const config = scheduler.getBusinessConfig(assistantId || 'demo');
     if (config?.pricing) return { pricing: config.pricing };
     // Fallback: return from services

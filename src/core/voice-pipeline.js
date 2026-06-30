@@ -110,6 +110,7 @@ class VoicePipeline {
     // Una sola vez, al inicio. FAIL-OPEN: si falla o no hay datos, la llamada sigue igual.
     try {
       const orgId = await this._resolveOrgId(calledNumber);
+      if (orgId) session.orgId = orgId; // disponible para los tools (get_services / get_pricing)
       const sys = orgId && session.messages.find(m => m.role === 'system');
       if (sys) {
         // 1) Servicios y precios estructurados (datos exactos → IA experta en precios)
@@ -118,6 +119,8 @@ class VoicePipeline {
           if (db.enabled) {
             const { data: org } = await db.client
               .from('organizations').select('automation_config').eq('id', orgId).maybeSingle();
+            const sl = org && org.automation_config && org.automation_config.config && org.automation_config.config.serviceList;
+            if (Array.isArray(sl) && sl.length) session.serviceList = sl; // para get_services / get_pricing
             const { formatServiceList } = require('../assistants/prompt-generator');
             const priceBlock = formatServiceList(org?.automation_config?.config?.serviceList);
             if (priceBlock) { sys.content += '\n\n' + priceBlock; log.info(`[${callId}] Precios estructurados inyectados (org ${orgId})`); }
