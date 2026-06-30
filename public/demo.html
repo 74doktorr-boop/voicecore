@@ -854,8 +854,10 @@ async function speakText(text) {
 
   // 1. Voz NATURAL vía servidor (Azure/cloud). Es lo que debe sonar siempre.
   try {
-    const base = (typeof serverUrl !== 'undefined' && serverUrl) ? serverUrl : '';
-    const tok  = (typeof serverToken !== 'undefined') ? serverToken : '';
+    // Apuntar SIEMPRE al backend real (ElevenLabs). Si el input está vacío o la
+    // página se abre fuera de nodeflow.es, usamos la URL absoluta por defecto.
+    const base = (document.getElementById('serverUrl')?.value || 'https://nodeflow.es').trim();
+    const tok  = (document.getElementById('serverToken')?.value || '').trim();
     const res = await fetch(`${base}/api/demo/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(tok ? { 'Authorization': `Bearer ${tok}` } : {}) },
@@ -999,7 +1001,7 @@ const SECTOR_TO_ASSISTANT = {
 
 async function getAIResponse(userMsg) {
   const sector = SECTORS[currentSector];
-  const serverUrl = (document.getElementById('serverUrl').value || '').trim();
+  const serverUrl = (document.getElementById('serverUrl').value || 'https://nodeflow.es').trim();
 
   // ── Intenta con el servidor NodeFlow primero (formato correcto) ─────────────
   if (serverUrl) {
