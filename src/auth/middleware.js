@@ -24,7 +24,9 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-// Plan limits keyed by DB `plan` column values: 'starter' | 'negocio' | 'pro'
+// Plan limits keyed by DB `plan` column value. ÚNICO plan comercial: 'negocio'.
+// (Starter y Pro retirados 2026-06-30.) `enterprise` = tier interno/custom.
+// Orgs legacy con plan 'starter'/'pro' caen a 'negocio' vía `|| PLAN_LIMITS.negocio`.
 //
 // Modelo de minutos extra ("a cambio de un plus"):
 //   - minutesPerMonth   = minutos INCLUIDOS en la cuota.
@@ -37,11 +39,8 @@ setInterval(() => {
 //   - hardCapMultiplier = tope de SEGURIDAD (× incluido) donde sí se corta,
 //                         para que un bucle/abuso no dispare el coste. Avisa
 //                         antes de llegar (banda de overage).
-//   - El trial (starter) NO tiene overage: corte duro para evitar abuso gratis.
 const PLAN_LIMITS = {
-  starter:    { minutesPerMonth: 50,    assistants: 1,   callsPerMinute: 5,   concurrentCalls: 1,   overage: false },
   negocio:    { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 3 },
-  pro:        { minutesPerMonth: 2000,  assistants: 999, callsPerMinute: 50,  concurrentCalls: 10,  overage: true,  hardCapMultiplier: 3 },
   enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100, overage: true,  hardCapMultiplier: 10 },
 };
 
@@ -119,7 +118,7 @@ function requireAuth(config = {}) {
               name:                     orgRow.name,
               owner_email:              orgRow.owner_email,
               phone:                    orgRow.phone,
-              plan:                     orgRow.plan || 'starter',
+              plan:                     orgRow.plan || 'negocio',
               is_active:                orgRow.is_active,
               api_key:                  orgRow.api_key,
               monthly_minutes_used:     parseFloat(orgRow.monthly_minutes_used) || 0,
@@ -151,7 +150,7 @@ function rateLimit(config = {}) {
     const org = req.org;
     if (!org) return next();
 
-    const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.starter;
+    const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.negocio;
     const key = `rate:${org.id}`;
     const now = Date.now();
 
@@ -189,7 +188,7 @@ function checkUsageLimits() {
     const org = req.org;
     if (!org) return next();
 
-    const limits   = PLAN_LIMITS[org.plan] || PLAN_LIMITS.starter;
+    const limits   = PLAN_LIMITS[org.plan] || PLAN_LIMITS.negocio;
     const included = limits.minutesPerMonth;
     const used     = org.monthly_minutes_used || 0;
 

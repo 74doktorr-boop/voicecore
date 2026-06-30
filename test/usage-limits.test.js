@@ -3,8 +3,9 @@
 // Ejecutar: npm test  (node --test test/)
 //
 // Blinda el modelo de "minutos extra a cambio de un plus":
-// los planes de pago no cortan llamadas en la cuota incluida
-// (se facturan extra hasta un tope de seguridad); el trial sí.
+// el plan de pago (Negocio) no corta llamadas en la cuota incluida
+// (se facturan extra hasta un tope de seguridad). Plan único desde
+// 2026-06-30; planes legacy (starter/pro) caen a límites de Negocio.
 // ============================================================
 
 'use strict';
@@ -54,23 +55,22 @@ describe('checkUsageLimits — modelo de overage', () => {
     assert.strictEqual(res.body.hardCap, 1500);
   });
 
-  test('trial (starter) corta duro en la cuota — sin overage', () => {
-    const { res, req, nexted } = run({ plan: 'starter', monthly_minutes_used: 50 });
-    assert.strictEqual(nexted, false);
-    assert.strictEqual(res.statusCode, 402);
+  test('plan legacy (starter) cae a límites de Negocio → pasa por debajo de 500', () => {
+    const { res, req, nexted } = run({ plan: 'starter', monthly_minutes_used: 300 });
+    assert.strictEqual(nexted, true, 'legacy starter usa límites de Negocio (no corta a 50)');
+    assert.strictEqual(res.statusCode, 200);
     assert.ok(!req.overage);
+  });
+
+  test('plan legacy (pro) cae a límites de Negocio → corta en el tope 1500', () => {
+    const cut = run({ plan: 'pro', monthly_minutes_used: 1500 });
+    assert.strictEqual(cut.nexted, false);
+    assert.strictEqual(cut.res.statusCode, 402);
+    assert.strictEqual(cut.res.body.hardCap, 1500);
   });
 
   test('sin org → pasa (no es un endpoint autenticado)', () => {
     const { nexted } = run(undefined);
     assert.strictEqual(nexted, true);
-  });
-
-  test('pro escala el tope a 3× (6000)', () => {
-    const ok = run({ plan: 'pro', monthly_minutes_used: 5000 });
-    assert.strictEqual(ok.nexted, true);
-    assert.strictEqual(ok.req.overage, true);
-    const cut = run({ plan: 'pro', monthly_minutes_used: 6000 });
-    assert.strictEqual(cut.res.statusCode, 402);
   });
 });

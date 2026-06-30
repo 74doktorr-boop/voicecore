@@ -43,11 +43,9 @@ function setupBillingRoutes(app, config) {
   // ─── Create Checkout Session ───
   app.post('/api/billing/checkout', auth, async (req, res) => {
     try {
-      const { plan } = req.body;
-      if (!plan) return res.status(400).json({ error: 'Plan required' });
-      if (!['negocio', 'pro'].includes(plan)) {
-        return res.status(400).json({ error: "plan debe ser 'negocio' o 'pro'" });
-      }
+      // Único plan comercial: Negocio. Cualquier petición (incluido el legacy
+      // 'pro' de enlaces antiguos) se coacciona a 'negocio'.
+      const plan = 'negocio';
 
       let customerId = req.org.stripe_customer_id;
 
@@ -106,7 +104,7 @@ function setupBillingRoutes(app, config) {
       const subId = req.org.stripe_subscription_id;
       if (!subId) {
         return res.json({
-          plan: req.org.plan || 'starter',
+          plan: req.org.plan || 'negocio',
           status: 'active',
           subscription: null,
         });
@@ -127,7 +125,7 @@ function setupBillingRoutes(app, config) {
   // ─── Usage Summary ───
   app.get('/api/billing/usage', auth, async (req, res) => {
     try {
-      const planConfig = billing.plans[req.org.plan] || billing.plans.starter;
+      const planConfig = billing.plans[req.org.plan] || billing.plans.negocio;
       const minutesUsed = parseFloat(req.org.monthly_minutes_used) || 0;
       const minutesLimit = planConfig.minutes;
       const overage = Math.max(0, minutesUsed - minutesLimit);
@@ -419,9 +417,10 @@ function setupBillingRoutes(app, config) {
           }
         }
 
-        // Helper: minutes limit matching PLAN_LIMITS constants
+        // Helper: minutes limit matching PLAN_LIMITS constants.
+        // Solo Negocio (500) y enterprise (interno); cualquier otro → Negocio.
         const _minutesForPlan = (plan) =>
-          plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : plan === 'enterprise' ? 99999 : 50;
+          plan === 'enterprise' ? 99999 : 500;
 
         // ── Flujo legacy (checkout sessions con orgId) ──
         if (result.action === 'subscription_created' && db.enabled && result.orgId) {
@@ -435,7 +434,7 @@ function setupBillingRoutes(app, config) {
 
         // ── Plan changed via Stripe billing portal (customer.subscription.updated) ──
         if (result.action === 'subscription_updated' && db.enabled) {
-          const planToSet = result.plan || 'starter';
+          const planToSet = result.plan || 'negocio';
           let orgId = result.orgId;
           // If orgId not in metadata (Payment Link customers), look up by subscriptionId
           if (!orgId && result.subscriptionId) {
@@ -469,12 +468,14 @@ function setupBillingRoutes(app, config) {
           }
 
           if (cancelledOrgId) {
+            // Sin plan gratis: al cancelar la suscripción se DESACTIVA la org
+            // (no hay tier gratuito al que degradar). Recupera el servicio
+            // volviendo a suscribirse.
             await db.updateOrg(cancelledOrgId, {
-              plan: 'starter',
-              is_active: true,
-              monthly_minutes_limit: 50,
+              is_active: false,
+              monthly_minutes_limit: 0,
             });
-            log.warn(`Org ${cancelledOrgId} downgraded to starter (sub cancelled)`);
+            log.warn(`Org ${cancelledOrgId} desactivada (suscripción cancelada — sin plan gratis)`);
 
             // Liberar número de teléfono al pool para reutilizarlo
             try {

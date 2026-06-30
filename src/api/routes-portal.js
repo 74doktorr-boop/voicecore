@@ -1029,16 +1029,16 @@ function setupPortalRoutes(app, pipeline, config) {
 
   // ── POST /api/portal/calls/outbound ──────────────────────────
   // Inicia una llamada saliente desde el portal del cliente.
-  // Plan gate: sólo Negocio y Pro. Starter no puede hacer llamadas salientes.
+  // Plan gate: requiere una org activa con plan válido (Negocio/enterprise).
   // body: { to: string, assistantId?: string, provider?: 'auto'|'vonage'|'twilio' }
   app.post('/api/portal/calls/outbound', portalAuth, async (req, res) => {
     const { flowConfig, businessId } = req;
 
     // Plan gate
-    const plan = (flowConfig.plan || 'starter').toLowerCase();
-    if (!['negocio', 'pro'].includes(plan)) {
+    const plan = (flowConfig.plan || 'negocio').toLowerCase();
+    if (!['negocio', 'enterprise'].includes(plan)) {
       return res.status(403).json({
-        error: 'Las llamadas salientes requieren el plan Negocio o Pro.',
+        error: 'Las llamadas salientes requieren una suscripción activa.',
         upgrade: true,
       });
     }

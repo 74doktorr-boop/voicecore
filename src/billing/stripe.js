@@ -8,7 +8,7 @@ const log = new Logger('BILLING');
 
 // Minutos INCLUIDOS por plan (solo planes con overage). Debe coincidir con
 // PLAN_LIMITS.minutesPerMonth en src/auth/middleware.js.
-const OVERAGE_INCLUDED_MINUTES = { negocio: 500, pro: 2000, enterprise: 99999 };
+const OVERAGE_INCLUDED_MINUTES = { negocio: 500, enterprise: 99999 };
 
 /**
  * Minutos de overage que aporta una llamada: la parte de [prev, new] que cae por
@@ -43,21 +43,15 @@ class StripeBilling {
       log.warn('No Stripe key — billing disabled');
     }
 
-    // Plan keys match DB column `plan` (set by webhook).
-    // DB values: 'starter' | 'negocio' | 'pro'
-    // Stripe env vars: STRIPE_PRO_PRICE_ID (€49 Negocio), STRIPE_BUSINESS_PRICE_ID (€99 Pro)
+    // ÚNICO plan comercial: Negocio €49. (Starter y Pro retirados 2026-06-30.)
+    // `enterprise` se mantiene SOLO como tier interno/custom (price null, nunca se
+    // vende por checkout). Orgs legacy con plan 'starter'/'pro' caen a Negocio vía
+    // el `|| billing.plans.negocio` de los llamadores.
+    // Stripe env var: STRIPE_PRO_PRICE_ID = precio €49 Negocio (nombre histórico).
     this.plans = {
-      starter: {
-        name: 'Starter', price: 0, priceId: config.starterPriceId || null,
-        minutes: 50, assistants: 1, overagePerMinute: 0.05,
-      },
       negocio: {
         name: 'Negocio', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
         minutes: 500, assistants: 1, overagePerMinute: 0.05,
-      },
-      pro: {
-        name: 'Pro', price: 9900, priceId: config.businessPriceId || process.env.STRIPE_BUSINESS_PRICE_ID,
-        minutes: 2000, assistants: 999, overagePerMinute: 0.05,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,
@@ -239,10 +233,11 @@ class StripeBilling {
         if (session.payment_link || session.client_reference_id?.startsWith('reg_')) {
           // BUG-16 FIX: Prefer plan from metadata — don't rely solely on amount which changes.
           // Price IDs or subscription metadata are authoritative; amount is only a fallback.
-          const amount = session.amount_total || 0;
+          // Plan único: Negocio. (El importe ya no distingue plan; el metadata
+          // manda si viene, pero todo cae a 'negocio'.)
           const planKey = session.metadata?.plan ||
             session.subscription_data?.metadata?.plan ||
-            (amount > 0 && amount <= 5500 ? 'negocio' : amount > 5500 ? 'pro' : 'negocio');
+            'negocio';
 
           return {
             action: 'payment_link_completed',

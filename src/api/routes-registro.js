@@ -179,7 +179,10 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, plan, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
+      // Único plan comercial: Negocio €49. Se ignora cualquier `plan` del form
+      // (incluido el legacy 'pro' de enlaces antiguos).
+      const plan = 'negocio';
       // Cupón estático primero; si no, comprobar si es un código de referido (DB)
       let couponData = validateCoupon(coupon);
       let referralData = null;
@@ -220,9 +223,6 @@ function setupRegistroRoutes(app) {
         return res.status(400).json({ error: 'Campos demasiado largos' });
       }
 
-      if (!['negocio', 'pro', 'starter'].includes(plan)) {
-        return res.status(400).json({ error: 'Plan inválido' });
-      }
 
       // Optional fields with sensible defaults
       const efectivoVoz    = voz    || 'nova';

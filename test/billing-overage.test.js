@@ -17,13 +17,13 @@ const assert = require('node:assert');
 const { StripeBilling, computeOverageDelta } = require('../src/billing/stripe');
 
 describe('computeOverageDelta', () => {
-  test('plan sin overage (starter) → 0', () => assert.strictEqual(computeOverageDelta('starter', 0, 100), 0));
+  test('plan legacy sin overage (starter) → 0', () => assert.strictEqual(computeOverageDelta('starter', 0, 100), 0));
   test('plan desconocido → 0', () => assert.strictEqual(computeOverageDelta('zzz', 0, 100), 0));
   test('todo dentro de lo incluido → 0', () => assert.strictEqual(computeOverageDelta('negocio', 100, 200), 0));
   test('justo hasta la cuota (500) → 0', () => assert.strictEqual(computeOverageDelta('negocio', 490, 500), 0));
   test('cruza la cuota → solo la parte por encima', () => assert.strictEqual(computeOverageDelta('negocio', 495, 505), 5));
   test('totalmente por encima → delta completo', () => assert.strictEqual(computeOverageDelta('negocio', 600, 610), 10));
-  test('pro (2000 incluidos)', () => assert.strictEqual(computeOverageDelta('pro', 1998, 2003), 3));
+  test('plan legacy pro (retirado) → 0, sin cuota propia', () => assert.strictEqual(computeOverageDelta('pro', 1998, 2003), 0));
   test('decimales redondeados a 2', () => assert.strictEqual(computeOverageDelta('negocio', 499.5, 501.25), 1.25));
 });
 

@@ -46,7 +46,7 @@ class Database {
 
   // ─── Organizations ───
 
-  async createOrg({ name, slug, ownerEmail, ownerName, plan = 'starter', phone, language = 'es' }) {
+  async createOrg({ name, slug, ownerEmail, ownerName, plan = 'negocio', phone, language = 'es' }) {
     const apiKey = `vc_${this._generateKey(32)}`;
     if (!this.enabled) return { id: this._uuid(), name, slug, api_key: apiKey, plan, language };
 
@@ -56,7 +56,7 @@ class Database {
 
     const { data, error } = await this.client.from('organizations').insert({
       name, slug: uniqueSlug, owner_email: ownerEmail, owner_name: ownerName, plan, phone, language, api_key: apiKey,
-      monthly_minutes_limit: plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : 50,
+      monthly_minutes_limit: plan === 'enterprise' ? 99999 : 500,
     }).select().single();
 
     if (error) throw new Error(`Create org failed: ${error.message}`);

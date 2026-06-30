@@ -179,8 +179,8 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!name || !ownerEmail || !plan) {
       return res.status(400).json({ error: 'name, ownerEmail y plan son requeridos' });
     }
-    if (!['starter', 'negocio', 'pro'].includes(plan)) {
-      return res.status(400).json({ error: "plan debe ser 'starter', 'negocio' o 'pro'" });
+    if (!['negocio', 'enterprise'].includes(plan)) {
+      return res.status(400).json({ error: "plan debe ser 'negocio' o 'enterprise'" });
     }
     const db = getDatabase();
     if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
@@ -234,10 +234,10 @@ function setupAdminRoutes(app, config, assistantManager) {
     const patch = {};
     if (name   !== undefined) patch.name   = name;
     if (plan   !== undefined) {
-      if (!['starter','negocio','pro'].includes(plan)) return res.status(400).json({ error: 'plan inválido' });
+      if (!['negocio','enterprise'].includes(plan)) return res.status(400).json({ error: 'plan inválido' });
       patch.plan = plan;
       // Keep monthly_minutes_limit in sync with plan when admin changes plan manually
-      patch.monthly_minutes_limit = plan === 'negocio' ? 500 : plan === 'pro' ? 2000 : 50;
+      patch.monthly_minutes_limit = plan === 'enterprise' ? 99999 : 500;
     }
     if (sector !== undefined) patch.sector = sector;
     if (phone  !== undefined) patch.phone  = phone;
@@ -380,7 +380,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!db.enabled) {
       const prodKey = config.apiKey || process.env.API_KEY;
       if (prodKey && token === prodKey) {
-        const fakeOrg = { id: 'dev-org', name: 'Dev Org', plan: 'starter', owner_email: 'unai@nodeflow.es' };
+        const fakeOrg = { id: 'dev-org', name: 'Dev Org', plan: 'negocio', owner_email: 'unai@nodeflow.es' };
         return { org: fakeOrg, db, token };
       }
       res.status(401).json({ error: 'No autorizado' });

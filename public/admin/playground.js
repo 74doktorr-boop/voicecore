@@ -121,7 +121,7 @@ function renderConfigForm(org) {
     '<div class="form-group"><label>Nombre</label><input class="form-input" id="cfg-name" value="' + esc(org.name) + '"></div>' +
     '<div class="form-group"><label>Email propietario</label><input class="form-input" id="cfg-email" value="' + esc(org.owner_email) + '"></div>' +
     '<div class="form-group"><label>Plan</label><select class="form-select" id="cfg-plan">' +
-      ['starter','negocio','pro'].map(function(p){ return '<option value="' + p + '"' + (org.plan===p?' selected':'') + '>' + p + '</option>'; }).join('') +
+      ['negocio','enterprise'].map(function(p){ return '<option value="' + p + '"' + (org.plan===p?' selected':'') + '>' + p + '</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-group"><label>Sector</label><input class="form-input" id="cfg-sector" value="' + esc(org.sector || '') + '"></div>' +
     '<div class="form-group"><label>Teléfono</label><input class="form-input" id="cfg-phone" value="' + esc(org.phone || '') + '"></div>' +
@@ -419,7 +419,7 @@ function openCreateOrgModal() {
   openModal('<div class="modal-title">Nueva org</div>' +
     '<div class="form-group" style="margin-bottom:10px"><label>Nombre</label><input class="form-input" id="new-name" placeholder="Mi Negocio S.L."></div>' +
     '<div class="form-group" style="margin-bottom:10px"><label>Email propietario</label><input class="form-input" id="new-email" type="email" placeholder="owner@example.com"></div>' +
-    '<div class="form-group" style="margin-bottom:10px"><label>Plan</label><select class="form-select" id="new-plan"><option value="negocio">negocio</option><option value="pro">pro</option><option value="starter">starter</option></select></div>' +
+    '<div class="form-group" style="margin-bottom:10px"><label>Plan</label><select class="form-select" id="new-plan"><option value="negocio">negocio</option><option value="enterprise">enterprise</option></select></div>' +
     '<div class="form-group" style="margin-bottom:18px"><label>Sector</label><input class="form-input" id="new-sector" placeholder="fisioterapia"></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
     '<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>' +

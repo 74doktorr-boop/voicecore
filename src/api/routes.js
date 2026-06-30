@@ -139,7 +139,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   // ─── Organization ───
   app.get('/api/org', auth, (req, res) => {
     const org = req.org;
-    const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.starter;
+    const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.negocio;
     res.json({
       id: org.id,
       name: org.name,
@@ -185,7 +185,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   app.post('/api/assistants', auth, limit, async (req, res) => {
     try {
       if (db.enabled && req.org.id !== 'legacy') {
-        const limits = PLAN_LIMITS[req.org.plan] || PLAN_LIMITS.starter;
+        const limits = PLAN_LIMITS[req.org.plan] || PLAN_LIMITS.negocio;
         const existing = await db.getAssistants(req.org.id);
         if (existing.length >= limits.assistants) {
           return res.status(402).json({
