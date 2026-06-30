@@ -816,10 +816,14 @@ function _initTTS() {
   function _pickVoice() {
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return;
-    // Prefer a Spanish (Spain) voice; fallback to any Spanish, then any
+    // Heurística de voz FEMENINA (los nombres habituales en es).
+    const fem = /female|mujer|helena|mónica|monica|laura|elvira|sabina|paulina|lucía|lucia|paloma|esperanza/i;
+    // Preferimos: española femenina → cualquier española → española → femenina es → cualquier es.
     _ttsVoice =
+      voices.find(v => v.lang === 'es-ES' && fem.test(v.name))            ||
       voices.find(v => v.lang === 'es-ES' && v.name.includes('Google'))  ||
       voices.find(v => v.lang === 'es-ES')                                ||
+      voices.find(v => v.lang.startsWith('es') && fem.test(v.name))       ||
       voices.find(v => v.lang.startsWith('es'))                           ||
       voices[0] || null;
   }
@@ -1035,8 +1039,9 @@ async function getAIResponse(userMsg) {
   // ── Fallback: OpenAI directo si hay key configurada ─────────────────────────
   const apiKey = localStorage.getItem('openai_key') || OPENAI_KEY;
   if (!apiKey) {
-    // No server, no key — show honest error instead of fake response
-    throw new Error('no_service');
+    // Sin servidor ni key → guion local por sector. El demo NUNCA se queda mudo
+    // ni pide token (a prueba de balas para enseñarlo en vivo).
+    return getFallbackResponse(userMsg, currentSector);
   }
 
   // conversationHistory already has the current user message — do NOT duplicate it
