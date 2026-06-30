@@ -47,6 +47,20 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   const db = getDatabase();
   const twilioSig = twilioValidate(config);
 
+  // ── GET /api/voices — catálogo de voces para el selector ──────────────
+  // Tira EN DIRECTO de la cuenta de ElevenLabs (premade + las que añadas),
+  // normalizado y cacheado; cae al catálogo estático si no hay key/API.
+  app.get('/api/voices', async (req, res) => {
+    try {
+      const { listVoices } = require('../tts/voice-catalog');
+      const voices = await listVoices();
+      res.set('Cache-Control', 'public, max-age=300');
+      res.json({ voices, count: voices.length });
+    } catch (e) {
+      res.status(500).json({ error: 'No se pudo cargar el catálogo de voces' });
+    }
+  });
+
   // ─── Twilio Webhooks — validated with X-Twilio-Signature ───
   app.post('/voice/inbound', twilioSig, (req, res) => {
     const assistantId = req.query.assistantId || null;
