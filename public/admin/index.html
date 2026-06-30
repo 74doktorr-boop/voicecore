@@ -9,13 +9,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#0c0a08; --card:#141009; --card2:#14141e;
-      --accent:#e0a23c; --accent-l:#f2bd5e;
-      --green:#00cec9; --green2:#00b894;
-      --red:#e74c3c; --yellow:#f9ca24;
-      --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
-      --border:rgba(255,255,255,0.07);
-      --radius:14px;
+      --bg:#0a0c11; --card:#11141b; --card2:#151921; --surface-3:#1b212b;
+      --accent:#f0a830; --accent-l:#ffc262;
+      --green:#21c08a; --green2:#19b894;
+      --red:#f0645a; --yellow:#f6c544;
+      --text:#e9ecf3; --dim:#9aa3b4; --muted:#5b6675;
+      --border:rgba(255,255,255,0.07); --border-2:rgba(255,255,255,0.13);
+      --radius:12px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
@@ -54,10 +54,11 @@
 
     /* KPI */
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
-    .kpi-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
-    .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--accent))}
-    .kpi-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-    .kpi-value{font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;color:var(--kpi-color,var(--text))}
+    .kpi-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;transition:transform .18s,border-color .18s}
+    .kpi-card:hover{transform:translateY(-2px);border-color:var(--border-2)}
+    .kpi-card::before{content:none}
+    .kpi-label{font-size:12px;color:var(--dim);font-weight:500;margin-bottom:8px}
+    .kpi-value{font-size:27px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--text)}
     .kpi-sub{font-size:11px;color:var(--dim);margin-top:6px}
 
     /* Section */
@@ -68,14 +69,14 @@
     /* Table */
     .table-wrap{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto}
     table{width:100%;border-collapse:collapse;min-width:600px}
-    th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:12px 16px;text-align:left;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);white-space:nowrap}
-    td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;padding:11px 18px;text-align:left;background:rgba(255,255,255,0.015);border-bottom:1px solid var(--border);white-space:nowrap}
+    td{padding:13px 18px;border-bottom:1px solid rgba(255,255,255,0.035);font-size:13px}
     tr:last-child td{border-bottom:none}
-    tr:hover td{background:rgba(255,255,255,0.015)}
-    .empty-row td{text-align:center;color:var(--dim);padding:32px}
+    tr:hover td{background:rgba(255,255,255,0.022)}
+    .empty-row td{text-align:center;color:var(--dim);padding:40px}
 
     /* Badges */
-    .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:.3px}
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:7px;font-size:11px;font-weight:600;letter-spacing:.2px}
     .bg{background:rgba(0,184,148,0.12);color:var(--green2);border:1px solid rgba(0,184,148,0.2)}
     .br{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
     .by{background:rgba(249,202,36,0.1);color:var(--yellow);border:1px solid rgba(249,202,36,0.2)}
@@ -584,7 +585,7 @@ async function crearClienteDesdeRegistro(id, btn) {
   const r = (window._leadRows||[]).find(x => String(x.id) === String(id));
   if (!r)       { toast('Registro no encontrado','err'); return; }
   if (!r.email) { toast('El registro no tiene email','err'); return; }
-  const plan = ['starter','negocio','pro'].includes(r.plan) ? r.plan : 'starter';
+  const plan = ['negocio','enterprise'].includes(r.plan) ? r.plan : 'negocio';
   if (!confirm(`¿Crear cliente activo para "${r.negocio||r.email}"?\nEmail: ${r.email}\nPlan: ${plan}\n\nPodrá acceder al portal con su email.`)) return;
   const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Creando…';
   try {
