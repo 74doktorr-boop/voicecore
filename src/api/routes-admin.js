@@ -185,26 +185,18 @@ function setupAdminRoutes(app, config, assistantManager) {
     const db = getDatabase();
     if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
     try {
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const { data, error } = await db.client
-        .from('organizations')
-        .insert({
-          name,
-          slug: `${slug}-${Date.now().toString(36)}`,
-          owner_email: ownerEmail.trim().toLowerCase(),
-          owner_name:  name,
-          phone:       phone || null,
-          plan,
-          sector:      sector || 'generico',
-          is_active:   true,
-          status:      'active',
-          assistant_config: {},
-        })
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      log.info(`Org created manually: ${data.id} (${name})`);
-      res.json({ org: data });
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'org';
+      // Reusar la creación canónica: genera api_key (NOT NULL) y usa solo columnas válidas.
+      const org = await db.createOrg({
+        name,
+        slug,
+        ownerEmail: ownerEmail.trim().toLowerCase(),
+        ownerName:  name,
+        plan,
+        phone:      phone || null,
+      });
+      log.info(`Org created manually: ${org.id} (${name})`);
+      res.json({ org });
     } catch (e) {
       log.error(`POST /api/admin/orgs error: ${e.message}`);
       res.status(500).json({ error: e.message });

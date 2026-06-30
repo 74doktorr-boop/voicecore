@@ -589,13 +589,13 @@ async function crearClienteDesdeRegistro(id, btn) {
   if (!confirm(`¿Crear cliente activo para "${r.negocio||r.email}"?\nEmail: ${r.email}\nPlan: ${plan}\n\nPodrá acceder al portal con su email.`)) return;
   const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Creando…';
   try {
-    await api('/api/admin/orgs', { method:'POST', body: JSON.stringify({
+    const result = await api('/api/admin/orgs', { method:'POST', body: JSON.stringify({
       name:       r.negocio || r.contacto || r.email,
       ownerEmail: r.email,
       plan,
-      sector:     r.sector || 'generico',
       phone:      r.telefono || null,
     })});
+    if (!result || result.error || !result.org) throw new Error((result && result.error) || 'No se pudo crear el cliente');
     toast('✅ Cliente creado — ya puede acceder al portal con su email');
     loadOrgs().catch(()=>{});
     loadLeads().catch(()=>{});
