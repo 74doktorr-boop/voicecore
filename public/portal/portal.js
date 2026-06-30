@@ -1246,7 +1246,7 @@ async function loadConfig() {
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
       '<div class="form-section-title">Servicios y horarios</div>' +
       '<div class="form-group"><label class="form-label">Servicios y precios <span style="color:var(--dim);font-weight:400">— la IA se los dice a tus clientes con exactitud</span></label>' +
-        '<div class="svc-head"><span>Servicio</span><span>Precio</span><span>Duración</span><span></span></div>' +
+        '<div class="svc-head"><span>Servicio</span><span>Precio</span><span>Duración</span><span>Detalle (opcional)</span><span></span></div>' +
         '<div id="svcList"></div>' +
         '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button></div>' +
       '<div class="form-group"><label class="form-label">Horarios</label>' +
@@ -1309,6 +1309,7 @@ function addServiceRow(s) {
     '<input class="form-input svc-name" placeholder="Ej. Corte de pelo" value="' + esc(s.name || '') + '">' +
     '<input class="form-input svc-price" placeholder="Ej. 15€" value="' + esc(s.price || '') + '">' +
     '<input class="form-input svc-dur" placeholder="Ej. 30 min" value="' + esc(s.duration || '') + '">' +
+    '<input class="form-input svc-notes" placeholder="Ej. incluye lavado y peinado" value="' + esc(s.notes || '') + '">' +
     '<button type="button" class="btn btn-r btn-sm svc-del" title="Quitar">✕</button>';
   row.querySelector('.svc-del').onclick = function () { row.remove(); };
   box.appendChild(row);
@@ -1320,6 +1321,7 @@ function collectServiceList() {
       name:     r.querySelector('.svc-name').value.trim(),
       price:    r.querySelector('.svc-price').value.trim(),
       duration: r.querySelector('.svc-dur').value.trim(),
+      notes:    r.querySelector('.svc-notes').value.trim(),
     };
   }).filter(function (s) { return s.name; });
 }

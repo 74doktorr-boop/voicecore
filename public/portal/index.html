@@ -287,11 +287,11 @@
     .kpi:hover{transform:translateY(-2px);border-color:var(--border-2)}
     @media (prefers-reduced-motion: reduce){ .btn-accent:hover,.kpi:hover{transform:none} }
     /* Editor de servicios + precios */
-    .svc-head{display:grid;grid-template-columns:2fr 1fr 1fr 36px;gap:8px;margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
-    .svc-row{display:grid;grid-template-columns:2fr 1fr 1fr 36px;gap:8px;margin-bottom:8px;align-items:center}
+    .svc-head{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.8fr 36px;gap:8px;margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+    .svc-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.8fr 36px;gap:8px;margin-bottom:8px;align-items:center}
     .svc-row .form-input{padding:9px 12px}
     .svc-del{padding:0;height:38px;display:flex;align-items:center;justify-content:center}
-    @media (max-width:767px){ .svc-head{display:none} .svc-row{grid-template-columns:1fr 1fr 36px} .svc-row .svc-name{grid-column:1 / -1} }
+    @media (max-width:767px){ .svc-head{display:none} .svc-row{grid-template-columns:1fr 1fr 36px} .svc-row .svc-name,.svc-row .svc-notes{grid-column:1 / -1} }
     /* Secciones de ajustes: ancho cómodo y centrado (no estirar a todo el canvas) */
     #sec-asistente,#sec-integraciones{max-width:980px;margin-left:auto;margin-right:auto}
   </style>
