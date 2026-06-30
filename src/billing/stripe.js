@@ -51,7 +51,7 @@ class StripeBilling {
     this.plans = {
       negocio: {
         name: 'Negocio', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
-        minutes: 500, assistants: 1, overagePerMinute: 0.05,
+        minutes: 500, assistants: 999, overagePerMinute: 0.05,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,

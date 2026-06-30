@@ -40,7 +40,7 @@ setInterval(() => {
 //                         para que un bucle/abuso no dispare el coste. Avisa
 //                         antes de llegar (banda de overage).
 const PLAN_LIMITS = {
-  negocio:    { minutesPerMonth: 500,   assistants: 1,   callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 3 },
+  negocio:    { minutesPerMonth: 500,   assistants: 999, callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 3 },
   enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100, overage: true,  hardCapMultiplier: 10 },
 };
 

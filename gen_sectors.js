@@ -122,7 +122,7 @@ function buildPage(s){
   <meta name="twitter:description" content="${s.desc}"><meta name="twitter:image" content="https://nodeflow.es/og-image.png">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZPKHPG2BLC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"${s.schemaName}","description":"${s.desc}","url":"https://nodeflow.es/${s.slug}","applicationCategory":"BusinessApplication","operatingSystem":"Cloud","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"},{"@type":"Offer","name":"Plan Pro","price":"99","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","areaServed":["Bilbao","Donostia","Vitoria-Gasteiz","País Vasco"]}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"${s.schemaName}","description":"${s.desc}","url":"https://nodeflow.es/${s.slug}","applicationCategory":"BusinessApplication","operatingSystem":"Cloud","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","areaServed":["Bilbao","Donostia","Vitoria-Gasteiz","País Vasco"]}}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[${faqSchema}]}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -133,20 +133,20 @@ function buildPage(s){
 <nav id="navbar"><div class="container"><div class="nav-inner">
   <a href="https://nodeflow.es" class="logo">Node<em>Flow</em></a>
   <div class="nav-links"><a href="#problema">El problema</a><a href="#como-funciona">Cómo funciona</a><a href="#beneficios">Beneficios</a><a href="#faq">FAQ</a><a href="https://nodeflow.es" style="color:var(--dim)">← Inicio</a></div>
-  <a href="https://nodeflow.es/#contacto" class="btn btn-primary nav-cta" style="padding:9px 20px;font-size:13px;">Empezar gratis</a>
+  <a href="https://nodeflow.es/#contacto" class="btn btn-primary nav-cta" style="padding:9px 20px;font-size:13px;">Empezar</a>
   <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
 </div></div></nav>
 <div class="mobile-menu" id="mobileMenu">
   <a href="#problema">El problema</a><a href="#como-funciona">Cómo funciona</a><a href="#beneficios">Beneficios</a><a href="#faq">FAQ</a>
   <a href="https://nodeflow.es">← Volver a NodeFlow</a>
-  <a href="https://nodeflow.es/#contacto" style="color:var(--accent-l);font-weight:700;">Empezar gratis →</a>
+  <a href="https://nodeflow.es/#contacto" style="color:var(--accent-l);font-weight:700;">Empezar →</a>
 </div>
 <section class="hero"><div class="container">
   <div class="badge"><span class="badge-dot"></span>${s.badge}</div>
   <h1>${s.h1a}<br><span class="grad-text">${s.h1b}</span><br>${s.h1c}</h1>
   <p class="hero-sub">${s.sub}</p>
   <div class="hero-ctas">
-    <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Empezar gratis 14 días →</a>
+    <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Desde 49€/mes →</a>
     <a href="https://nodeflow.es" class="btn btn-outline btn-lg">Ver cómo funciona</a>
   </div>
   <div class="hero-trust">${s.trust.map(t=>`<span><span class="dot"></span> ${t}</span>`).join('')}</div>
@@ -202,9 +202,9 @@ function buildPage(s){
 <section class="cta-section"><div class="container"><div class="cta-card">
   <div class="section-label">Empieza hoy</div>
   <h2>${s.ctaLine1}<br>${s.ctaLine2}<br><span class="grad-text">${s.ctaGrad}</span></h2>
-  <p>14 días gratis. Sin tarjeta de crédito. Activo en minutos. Cancela cuando quieras.</p>
-  <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Probar NodeFlow gratis →</a>
-  <div class="cta-price">Después, desde 49€/mes · Sin permanencia · Sin instalación</div>
+  <p>Sin permanencia. Activo en minutos. Cancela cuando quieras.</p>
+  <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Desde 49€/mes →</a>
+  <div class="cta-price">49€/mes · Sin permanencia · Sin instalación</div>
 </div></div></section>
 <footer><div class="container"><div class="footer-inner">
   <div><div class="footer-brand">Node<span>Flow</span></div><div style="font-size:12px;color:var(--muted);margin-top:4px;">${s.footerDesc}</div></div>
