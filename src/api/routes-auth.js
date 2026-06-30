@@ -12,8 +12,8 @@ const log = new Logger('AUTH');
 // ── In-memory token store (fallback when Supabase is unavailable) ──────────
 const _tokens = new Map(); // token → { email, registroId, expiresAt, usedCount }
 
-const TOKEN_TTL_MS   = 7  * 24 * 60 * 60 * 1000; // 7 days
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TOKEN_TTL_MS   = 30  * 24 * 60 * 60 * 1000; // 30 días — enlace de acceso indulgente (el cliente puede tardar en entrar)
+const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 año — la sesión no se cae; reentrada = un email
 
 // ── JWT helpers (HMAC-SHA256, no external library) ─────────────────────────
 function jwtSecret() {
