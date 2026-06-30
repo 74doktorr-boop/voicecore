@@ -43,7 +43,7 @@ async function portalAuth(req, res, next) {
       try {
         const { data } = await db.client
           .from('organizations')
-          .select('id, name, owner_email, phone, plan, sector, language, automation_config, registered_at, created_at')
+          .select('id, name, owner_email, phone, plan, language, automation_config, assistant_config, registered_at, created_at')
           .eq('owner_email', session.email.toLowerCase())
           .eq('is_active', true)
           .order('created_at', { ascending: false })
@@ -57,7 +57,7 @@ async function portalAuth(req, res, next) {
             ownerEmail:   data.owner_email,
             ownerPhone:   data.phone,
             plan:         data.plan,
-            sector:       data.sector,
+            sector:       (data.assistant_config && data.assistant_config.sector) || null,
             language:     data.language || 'es',
             automations:  data.automation_config || {},
             registeredAt: data.registered_at || data.created_at,
@@ -1143,11 +1143,11 @@ function setupPortalRoutes(app, pipeline, config) {
 
       // Get org sector
       const { data: org, error: orgErr } = await db.client
-        .from('organizations').select('sector').eq('id', orgId).maybeSingle();
+        .from('organizations').select('assistant_config').eq('id', orgId).maybeSingle();
       if (orgErr) return res.status(500).json({ error: orgErr.message });
       if (!org)   return res.status(404).json({ error: 'Organization not found' });
 
-      const sectorSlug = org.sector || '';
+      const sectorSlug = (org.assistant_config && org.assistant_config.sector) || '';
       const fields     = SECTOR_REQUIRED_FIELDS[sectorSlug];
 
       // Sectors with no manual fields — wizard not needed
