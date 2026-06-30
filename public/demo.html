@@ -220,6 +220,13 @@
         <div class="chat-sub">Asistente de voz IA · NodeFlow</div>
       </div>
       <div class="status-dot" title="Online"></div>
+      <select id="voicePicker" onchange="onVoiceChange()" title="Voz del asistente (ElevenLabs)"
+        style="background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;cursor:pointer;max-width:140px;margin-right:8px;">
+        <option value="dNjJKg63Fr5AXwIdkATa" style="background:#1a160e;color:#fff;">👩 Femenina 1</option>
+        <option value="kwNLkNjbQHMw9YUFZsHI" style="background:#1a160e;color:#fff;">👩 Femenina 2</option>
+        <option value="JngPf0lmRkKhY3qSJz0f" style="background:#1a160e;color:#fff;">👨 Masculina 1</option>
+        <option value="uVoJJFOcQglSD16zUGOl" style="background:#1a160e;color:#fff;">👨 Masculina 2</option>
+      </select>
       <button id="voiceToggleBtn" onclick="toggleVoice()" title="Activar/desactivar voz del asistente"
         style="background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
         >🔊</button>
@@ -797,6 +804,12 @@ let _voiceEnabled = true;
 let _ttsVoice     = null;
 let _ttsSpeaking  = false;
 let _demoAudio    = null;  // audio de voz natural (servidor)
+let _selectedVoice = 'dNjJKg63Fr5AXwIdkATa'; // voz ElevenLabs por defecto (Femenina 1)
+function onVoiceChange() {
+  const sel = document.getElementById('voicePicker');
+  if (sel) _selectedVoice = sel.value;
+  _stopSpeaking();
+}
 
 function _initTTS() {
   if (!window.speechSynthesis) return;
@@ -842,7 +855,7 @@ async function speakText(text) {
     const res = await fetch(`${base}/api/demo/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(tok ? { 'Authorization': `Bearer ${tok}` } : {}) },
-      body: JSON.stringify({ text: clean, language: 'es' }),
+      body: JSON.stringify({ text: clean, language: 'es', voice: _selectedVoice }),
     });
     if (res.ok) {
       const url = URL.createObjectURL(await res.blob());
