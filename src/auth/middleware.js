@@ -12,17 +12,9 @@ function _verifySessionToken(token) {
 
 const log = new Logger('AUTH');
 
-// In-memory rate limit store
-const rateLimits = new Map();
+// Contador de rate-limit: Redis si REDIS_URL (multi-réplica), si no memoria.
+const rateStore = require('../utils/rate-store');
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
-
-// Poda periódica de buckets expirados — evita crecimiento indefinido del Map
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, bucket] of rateLimits) {
-    if (now - bucket.windowStart > RATE_LIMIT_WINDOW * 2) rateLimits.delete(key);
-  }
-}, 10 * 60 * 1000).unref();
 
 // Plan limits keyed by DB `plan` column value. ÚNICO plan comercial: 'negocio'.
 // (Starter y Pro retirados 2026-06-30.) `enterprise` = tier interno/custom.
@@ -146,35 +138,33 @@ function requireAuth(config = {}) {
  * Rate limiting middleware
  */
 function rateLimit(config = {}) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const org = req.org;
     if (!org) return next();
 
     const limits = PLAN_LIMITS[org.plan] || PLAN_LIMITS.negocio;
-    const key = `rate:${org.id}`;
-    const now = Date.now();
 
-    let bucket = rateLimits.get(key);
-    if (!bucket || now - bucket.windowStart > RATE_LIMIT_WINDOW) {
-      bucket = { windowStart: now, count: 0 };
-      rateLimits.set(key, bucket);
+    let count, resetAt;
+    try {
+      ({ count, resetAt } = await rateStore.hit(`rate:${org.id}`, RATE_LIMIT_WINDOW));
+    } catch (e) {
+      // Fail-open: si el store falla, no bloqueamos el tráfico.
+      log.warn(`rateLimit store falló (${e.message}) — se permite la petición`);
+      return next();
     }
 
-    bucket.count++;
+    res.set('X-RateLimit-Limit', String(limits.callsPerMinute));
+    res.set('X-RateLimit-Remaining', String(Math.max(0, limits.callsPerMinute - count)));
+    res.set('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
 
-    if (bucket.count > limits.callsPerMinute) {
+    if (count > limits.callsPerMinute) {
       return res.status(429).json({
         error: 'Rate limit exceeded',
         limit: limits.callsPerMinute,
         plan: org.plan,
-        retryAfter: Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW - now) / 1000),
+        retryAfter: Math.ceil((resetAt - Date.now()) / 1000),
       });
     }
-
-    // Add rate limit headers
-    res.set('X-RateLimit-Limit', String(limits.callsPerMinute));
-    res.set('X-RateLimit-Remaining', String(limits.callsPerMinute - bucket.count));
-    res.set('X-RateLimit-Reset', String(Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW) / 1000)));
 
     next();
   };

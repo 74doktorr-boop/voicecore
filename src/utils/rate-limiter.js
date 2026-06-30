@@ -1,8 +1,8 @@
 // ============================================================
-// NodeFlow — Rate Limiter (in-memory, sin dependencias externas)
-// Ventana deslizante por IP. Se reinicia al reiniciar el proceso.
-// Para producción con múltiples instancias, usar Redis — pero para
-// el demo (una sola instancia en EasyPanel) esto es suficiente.
+// NodeFlow — Rate Limiter por IP (ventana fija).
+// Usa el contador compartido src/utils/rate-store: Redis si REDIS_URL
+// está definido (seguro con múltiples réplicas en Docker Swarm), si no
+// cae a memoria por proceso (válido para una sola instancia).
 //
 // Uso:
 //   const { rateLimit } = require('../utils/rate-limiter');
@@ -14,18 +14,8 @@
 const { Logger } = require('./logger');
 const log = new Logger('RATE-LIMITER');
 
-// Map<ip, { count, resetAt }>
-const store = new Map();
-
-// Limpiar entradas expiradas cada 10 minutos para no acumular memoria
-setInterval(() => {
-  const now = Date.now();
-  let pruned = 0;
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) { store.delete(key); pruned++; }
-  }
-  if (pruned > 0) log.info(`Rate limiter: purgadas ${pruned} entradas expiradas`);
-}, 10 * 60 * 1000).unref(); // .unref() para no bloquear el proceso al cerrar
+// Contador compartido: Redis si REDIS_URL (multi-réplica), si no memoria.
+const rateStore = require('./rate-store');
 
 /**
  * Middleware de rate limiting por IP.
@@ -37,41 +27,34 @@ setInterval(() => {
  * @param {string} [options.message]    - Mensaje de error personalizado
  */
 function rateLimit({ max = 30, windowMs = 60 * 60 * 1000, keyPrefix = '', message } = {}) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     // No limitar a admin
     if (req.isAdmin) return next();
 
     const ip  = req.ip || req.connection?.remoteAddress || 'unknown';
-    const key = keyPrefix ? `${keyPrefix}:${ip}` : ip;
-    const now = Date.now();
+    const key = `rl:${keyPrefix ? keyPrefix + ':' : ''}${ip}`;
 
-    let entry = store.get(key);
-
-    if (!entry || now > entry.resetAt) {
-      // Primera petición o ventana expirada — resetear
-      entry = { count: 1, resetAt: now + windowMs };
-      store.set(key, entry);
-      return next();
+    let count, resetAt;
+    try {
+      ({ count, resetAt } = await rateStore.hit(key, windowMs));
+    } catch (e) {
+      return next(); // fail-open: si el store falla, no bloqueamos
     }
 
-    entry.count++;
+    res.set('X-RateLimit-Limit', max);
+    res.set('X-RateLimit-Remaining', Math.max(0, max - count));
+    res.set('X-RateLimit-Reset', Math.ceil(resetAt / 1000));
 
-    if (entry.count > max) {
-      const retryAfterSec = Math.ceil((entry.resetAt - now) / 1000);
-      log.warn(`Rate limit exceeded: ${ip} on ${keyPrefix || 'default'} (${entry.count}/${max})`);
+    if (count > max) {
+      const retryAfterSec = Math.ceil((resetAt - Date.now()) / 1000);
+      log.warn(`Rate limit exceeded: ${ip} on ${keyPrefix || 'default'} (${count}/${max})`);
       res.set('Retry-After', retryAfterSec);
-      res.set('X-RateLimit-Limit', max);
-      res.set('X-RateLimit-Remaining', 0);
-      res.set('X-RateLimit-Reset', Math.ceil(entry.resetAt / 1000));
       return res.status(429).json({
         error: message || `Demasiadas peticiones. Inténtalo de nuevo en ${Math.ceil(retryAfterSec / 60)} minutos.`,
         retryAfter: retryAfterSec,
       });
     }
 
-    res.set('X-RateLimit-Limit', max);
-    res.set('X-RateLimit-Remaining', Math.max(0, max - entry.count));
-    res.set('X-RateLimit-Reset', Math.ceil(entry.resetAt / 1000));
     next();
   };
 }

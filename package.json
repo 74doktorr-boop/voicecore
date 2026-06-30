@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@deepgram/sdk": "^3.9.0",
-    "googleapis": "^144.0.0",
     "@supabase/supabase-js": "^2.105.4",
     "@vonage/server-sdk": "^3.13.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "googleapis": "^144.0.0",
+    "ioredis": "^5.11.1",
     "openai": "^4.77.0",
     "resend": "^4.8.0",
     "stripe": "^22.1.1",

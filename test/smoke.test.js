@@ -217,27 +217,27 @@ describe('scheduler: bookAppointment', () => {
 describe('rate-limiter', () => {
   const { rateLimit } = require('../src/utils/rate-limiter');
 
-  test('permite hasta max y bloquea la siguiente con 429', () => {
+  test('permite hasta max y bloquea la siguiente con 429', async () => {
     const mw = rateLimit({ max: 3, windowMs: 60_000, keyPrefix: 'test-' + Date.now() });
     let passed = 0;
 
     for (let i = 0; i < 5; i++) {
       const { req, res } = mockReqRes({ ip: '10.0.0.1' });
       let called = false;
-      mw(req, res, () => { called = true; });
+      await mw(req, res, () => { called = true; });
       if (called) passed++;
       else assert.strictEqual(res.statusCode, 429);
     }
     assert.strictEqual(passed, 3);
   });
 
-  test('IPs distintas tienen contadores independientes', () => {
+  test('IPs distintas tienen contadores independientes', async () => {
     const mw = rateLimit({ max: 1, windowMs: 60_000, keyPrefix: 'test-ips-' + Date.now() });
     const a = mockReqRes({ ip: '10.0.0.2' });
     const b = mockReqRes({ ip: '10.0.0.3' });
     let aOk = false, bOk = false;
-    mw(a.req, a.res, () => { aOk = true; });
-    mw(b.req, b.res, () => { bOk = true; });
+    await mw(a.req, a.res, () => { aOk = true; });
+    await mw(b.req, b.res, () => { bOk = true; });
     assert.ok(aOk && bOk);
   });
 

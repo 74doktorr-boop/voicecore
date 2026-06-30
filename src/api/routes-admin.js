@@ -15,18 +15,21 @@ const log = new Logger('ADMIN');
 // Token simple en memoria (se reinicia con el servidor — suficiente para admin privado)
 const _validTokens = new Set();
 
-// Brute-force protection: max 10 failed attempts per IP per 15 min
-const _loginAttempts = new Map();
-function isLoginBlocked(ip) {
-  const entry = _loginAttempts.get(ip);
-  if (!entry) return false;
-  if (Date.now() - entry.start > 15 * 60 * 1000) { _loginAttempts.delete(ip); return false; }
-  return entry.count >= 10;
+// Brute-force protection: max 10 intentos fallidos por IP / 15 min.
+// Vía rate-store (Redis si REDIS_URL → seguro multi-réplica; si no, memoria).
+const rateStore = require('../utils/rate-store');
+const ADMIN_FAIL_WINDOW = 15 * 60 * 1000;
+const ADMIN_FAIL_MAX = 10;
+const _failKey = (ip) => `adminfail:${ip}`;
+async function isLoginBlocked(ip) {
+  const p = await rateStore.peek(_failKey(ip));
+  return !!p && p.count >= ADMIN_FAIL_MAX;
 }
 function recordFailedLogin(ip) {
-  const entry = _loginAttempts.get(ip) || { start: Date.now(), count: 0 };
-  entry.count++;
-  _loginAttempts.set(ip, entry);
+  return rateStore.hit(_failKey(ip), ADMIN_FAIL_WINDOW);
+}
+function resetLoginAttempts(ip) {
+  return rateStore.reset(_failKey(ip));
 }
 
 function adminAuth(req, res, next) {
@@ -47,23 +50,23 @@ function setupAdminRoutes(app, config, assistantManager) {
   }
 
   // ─── Auth (with brute-force protection) ───
-  app.post('/api/admin/auth', (req, res) => {
+  app.post('/api/admin/auth', async (req, res) => {
     // BUG-25: Reject all logins if password not configured
     if (!PASS) {
       return res.status(503).json({ error: 'Panel de admin no disponible — configura DASHBOARD_PASSWORD en el servidor' });
     }
     const ip = req.ip;
-    if (isLoginBlocked(ip)) {
+    if (await isLoginBlocked(ip)) {
       log.warn(`Admin login bloqueado por brute-force: ${ip}`);
       return res.status(429).json({ error: 'Demasiados intentos fallidos. Espera 15 minutos.' });
     }
     const { password } = req.body;
     if (!password || password !== PASS) {
-      recordFailedLogin(ip);
-      log.warn(`Admin login fallido desde ${ip} (intento ${(_loginAttempts.get(ip)||{count:1}).count})`);
+      const { count } = await recordFailedLogin(ip);
+      log.warn(`Admin login fallido desde ${ip} (intento ${count})`);
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
-    _loginAttempts.delete(ip); // Reset on success
+    await resetLoginAttempts(ip); // Reset on success
     const token = require('crypto').randomBytes(32).toString('hex');
     _validTokens.add(token);
     // Token expira en 24h
