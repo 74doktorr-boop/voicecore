@@ -239,10 +239,10 @@ async function recalculate(contactId, orgId) {
     .eq('id', contactId).maybeSingle();
   if (!contact) return;
 
-  // Get org sector
+  // Get org sector (vive en assistant_config; no hay columna 'sector' en organizations)
   const { data: org } = await db.client.from('organizations')
-    .select('sector').eq('id', orgId).maybeSingle();
-  const sectorSlug = org?.sector;
+    .select('assistant_config').eq('id', orgId).maybeSingle();
+  const sectorSlug = org && org.assistant_config && org.assistant_config.sector;
   if (!sectorSlug) return;
 
   // Get all appointments for this contact via phone (nf_appointments has no contact_id)

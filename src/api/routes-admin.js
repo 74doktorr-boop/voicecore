@@ -287,7 +287,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       const db = getDatabase();
       const { data: org } = await db.client
         .from('organizations')
-        .select('id, owner_email, owner_name, name, plan, sector, phone, automation_config')
+        .select('id, owner_email, owner_name, name, plan, phone, automation_config, assistant_config')
         .eq('id', orgId).single();
       if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
 
@@ -300,13 +300,24 @@ function setupAdminRoutes(app, config, assistantManager) {
         .update({ automation_config: merged, is_active: true })
         .eq('id', orgId);
 
+      // 1b. Registrar número → org en nf_phone_pool (fuente de verdad para resolver
+      //     llamada entrante → org; lo usa, p.ej., el RAG en voice-pipeline). Fail-soft.
+      try {
+        await db.client.from('nf_phone_pool').upsert(
+          { phone_number: numeroNodeflow, org_id: orgId, provider: 'manual', status: 'assigned', assigned_at: new Date().toISOString() },
+          { onConflict: 'phone_number' }
+        );
+      } catch (e) {
+        log.warn(`activar-cliente: no se pudo registrar el número en nf_phone_pool: ${e.message}`);
+      }
+
       // 2. Enviar email de activación con guía de desvío
       const registro = {
         email:    org.owner_email,
         contacto: org.owner_name || org.name,
         negocio:  org.name,
         plan:     org.plan,
-        sector:   org.sector,
+        sector:   (org.assistant_config && org.assistant_config.sector) || '',
       };
       await sendActivacion(registro, numeroNodeflow);
 
