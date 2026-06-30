@@ -265,6 +265,26 @@
     .form-ctrl{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
     .form-ctrl:focus{border-color:var(--accent)}
       a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
+
+    /* ════ Pase premium: eleva forms, cards, inputs y botones (overrides; sin tocar markup) ════ */
+    .card{background:var(--card2);border-radius:16px;padding:26px;box-shadow:0 16px 36px -26px rgba(0,0,0,.85);transition:border-color .18s,box-shadow .18s}
+    .card:hover{border-color:var(--border-2)}
+    .form-input,.form-ctrl,.search-input,.login-input{border-radius:10px;transition:border-color .18s,box-shadow .18s,background .18s}
+    .form-input:hover,.form-ctrl:hover,.search-input:hover,.login-input:hover{border-color:var(--border-2)}
+    .form-input:focus,.form-ctrl:focus,.search-input:focus,.login-input:focus{border-color:var(--accent);background:rgba(255,255,255,.06);box-shadow:0 0 0 3px rgba(240,168,48,.16)}
+    select.form-input,select.form-ctrl{cursor:pointer}
+    ::placeholder{color:var(--muted);opacity:1}
+    .form-group{margin-bottom:20px}
+    .form-label{letter-spacing:.07em}
+    .section-title{font-size:22px;letter-spacing:-.4px}
+    .form-section-title{color:var(--accent-l);border-bottom-color:var(--border-2)}
+    .btn{border-radius:10px;transition:transform .15s,background .18s,box-shadow .18s,border-color .18s,color .18s}
+    .btn-accent{box-shadow:0 6px 18px -7px rgba(240,168,48,.55)}
+    .btn-accent:hover{background:var(--accent-l);transform:translateY(-1px)}
+    .btn-accent:active{transform:translateY(0)}
+    .kpi{box-shadow:0 16px 36px -28px rgba(0,0,0,.85);transition:transform .18s,border-color .18s}
+    .kpi:hover{transform:translateY(-2px);border-color:var(--border-2)}
+    @media (prefers-reduced-motion: reduce){ .btn-accent:hover,.kpi:hover{transform:none} }
   </style>
 </head>
 <body>
