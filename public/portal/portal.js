@@ -400,7 +400,7 @@ function showApp() {
   var planPrice = _orgInfo.plan === 'negocio' ? '€49' : _orgInfo.plan === 'pro' ? '€99' : 'Gratis';
   document.getElementById('sidebarPlanSub').textContent = planPrice + '/mes · Activo';
 
-  // Show upgrade CTA: starter → Negocio, Negocio → Pro
+  // Plan único Negocio €49 — sin upsell a Pro. Solo legacy 'starter' (sin pagar) ve CTA de alta.
   var upgradeEl = document.getElementById('upgradeCtaBox');
   if (upgradeEl) {
     if (_orgInfo.plan === 'starter') {
@@ -408,12 +408,6 @@ function showApp() {
         '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">🚀 Activa tu AI ahora</div>' +
         '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">Atiende llamadas 24/7 y elimina las perdidas por €49/mes</div>' +
         '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver planes →</a>';
-      upgradeEl.style.display = 'block';
-    } else if (_orgInfo.plan === 'negocio') {
-      upgradeEl.innerHTML =
-        '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">⚡ Pasa a Plan Pro</div>' +
-        '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">2.000 min/mes, llamadas salientes y account manager dedicado</div>' +
-        '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver Plan Pro €99/mes →</a>';
       upgradeEl.style.display = 'block';
     } else {
       upgradeEl.style.display = 'none';
@@ -2330,22 +2324,8 @@ function renderFacturacion(sec, usage, invoices) {
       '</div>';
   }
 
-  // Pro upsell (only for negocio users)
+  // Plan único Negocio €49 — sin upsell a Pro (plan retirado).
   var proUpsell = '';
-  if (usage.plan === 'negocio') {
-    proUpsell =
-      '<div class="card" style="padding:20px;margin-top:16px;background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(162,155,254,.05));border:1px solid rgba(108,92,231,.3)">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:6px">⚡ ¿Necesitas más capacidad?</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">' +
-          'El <strong>Plan Pro</strong> incluye 2.000 min/mes, llamadas salientes, ' +
-          'integraciones avanzadas y un account manager dedicado por solo €99/mes.' +
-        '</div>' +
-        '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent" ' +
-          'style="font-size:12px;text-decoration:none;display:inline-block">' +
-          'Ver Plan Pro €99/mes →' +
-        '</a>' +
-      '</div>';
-  }
 
   // Invoices table rows
   var invRows = '';
