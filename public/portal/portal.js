@@ -2045,7 +2045,11 @@ function _getChips(chipsId) {
 }
 
 function renderAsisSectorFields(sector, sd, services) {
-  var html = _ta('asis-services', 'Servicios generales', services, 3, 'Describe los servicios que ofrece el negocio…');
+  var html = '<div style="background:rgba(240,168,48,.08);border:1px solid rgba(240,168,48,.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--dim);line-height:1.6">' +
+    '💡 Tus <strong style="color:var(--text)">servicios y precios</strong> se gestionan en ' +
+    '<a onclick="navigate(\'configuracion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Configuración → Servicios y precios</a> ' +
+    '(lista estructurada que la IA dice con exactitud). Lo de aquí abajo es contexto adicional opcional.</div>';
+  html += _ta('asis-services', 'Servicios generales', services, 3, 'Describe los servicios que ofrece el negocio…');
 
   if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
     html += _segurosBlock(sd.seguros);
