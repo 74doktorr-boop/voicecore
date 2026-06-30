@@ -60,6 +60,14 @@ function requireAuth(config = {}) {
   const legacyApiKey = config.apiKey || process.env.API_KEY;
   if (!legacyApiKey) throw new Error('API_KEY no configurada — el servidor no puede arrancar sin ella');
 
+  // Seguridad: la clave legacy concede acceso ENTERPRISE (full). En producción
+  // NO se honra si sigue siendo el default inseguro 'voicecore-dev' — sería una
+  // puerta trasera pública. En dev/test sí funciona para comodidad.
+  const legacyEnabled = !(legacyApiKey === 'voicecore-dev' && process.env.NODE_ENV === 'production');
+  if (!legacyEnabled) {
+    log.error('⚠️  API_KEY es el default "voicecore-dev" en producción — acceso legacy (enterprise) DESACTIVADO. Configura API_KEY con un valor secreto.');
+  }
+
   return async (req, res, next) => {
     const apiKey = resolveApiKey(req);
 
@@ -67,8 +75,9 @@ function requireAuth(config = {}) {
       return res.status(401).json({ error: 'Missing API key. Use x-api-key header or Authorization Bearer.' });
     }
 
-    // Check legacy single-tenant key first (backward compat)
-    if (apiKey === legacyApiKey) {
+    // Check legacy single-tenant key first (backward compat). Desactivado en
+    // producción si es el default inseguro (ver legacyEnabled arriba).
+    if (legacyEnabled && apiKey === legacyApiKey) {
       req.org = {
         id: 'legacy',
         name: 'VoiceCore Dev',
