@@ -277,9 +277,11 @@ app.get('/admin/playground', (req, res) => {
 // Sirve index.html para /portal, /portal/ y cualquier subruta (ej: /portal/whatsapp-callback)
 // El JS del portal lee los query params y gestiona el estado internamente (SPA)
 const _portalIndexPath = path.join(__dirname, 'public', 'portal', 'index.html');
-app.get(['/portal', '/portal/', '/portal/*'], (req, res) => {
-  // Seguridad: no servir archivos reales bajo /portal/* como rutas SPA
-  // (los assets estáticos los sirve express.static antes de llegar aquí)
+app.get(['/portal', '/portal/', '/portal/*'], (req, res, next) => {
+  // Los assets reales (portal.js, css, imágenes) deben servirse como archivos:
+  // dejarlos pasar a express.static (registrado más abajo). Solo las rutas SPA
+  // sin extensión (o el propio index.html) reciben el index.html del portal.
+  if (/\.[a-z0-9]+$/i.test(req.path) && !req.path.endsWith('.html')) return next();
   serveGitHubPage('/portal/index.html', _portalIndexPath)(req, res);
 });
 
