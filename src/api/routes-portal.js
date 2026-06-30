@@ -536,14 +536,24 @@ function setupPortalRoutes(app, pipeline, config) {
     const db = getDatabase();
     if (db.enabled) {
       try {
-        const dbUpdate = { automation_config: flow.automations };
+        // Read-merge-write AUTORITATIVO sobre el automation_config de BD: no depender
+        // del flow en memoria (puede estar parcial/obsoleto tras un reinicio).
+        const { data: cur, error: readErr } = await db.client
+          .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
+        if (readErr) throw new Error('lectura: ' + readErr.message);
+        const baseAuto   = (cur && cur.automation_config) || {};
+        const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), ...(flow.automations.config || {}) } };
+        const dbUpdate = { automation_config: mergedAuto };
         if (name)     dbUpdate.name     = name;
         if (language) dbUpdate.language = language;
         // NOTA: 'sector' NO es columna de organizations (vive en automation_config.config).
-        // Escribirlo aquí hacía fallar TODO el guardado de config en silencio.
-        await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
+        const { error: upErr } = await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
+        if (upErr) throw new Error('escritura: ' + upErr.message);
+        flow.automations = mergedAuto; // mantener la memoria en sync con BD
       } catch (e) {
-        log.warn(`Portal: config DB save failed for ${businessId}: ${e.message}`);
+        // Surfacear el fallo: antes se tragaba y el cliente creía que guardaba.
+        log.error(`Portal: config DB save FAILED for ${businessId}: ${e.message}`);
+        return res.status(500).json({ error: 'No se pudo guardar en la base de datos: ' + e.message });
       }
     }
 
