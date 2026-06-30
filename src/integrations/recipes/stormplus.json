@@ -49,10 +49,10 @@
 
     { "action": "click", "selectorCandidates": ["#ChkAceptoCondiciones", "label[for=ChkAceptoCondiciones]"] },
     { "action": "screenshot", "name": "stormplus-antes-de-enviar" },
-    { "action": "click", "selectorCandidates": ["#BtnSolicitarCitaPrevia", "button:has-text('Solicitar Cita Previa')"] },
-    { "action": "sleep", "ms": 1200 },
-    { "action": "expectText", "anyOf": ["cita ha sido", "solicitud", "confirmada", "hemos recibido", "registrada", "gracias", "correctamente"] },
-    { "action": "readText", "optional": true, "selectorCandidates": [".alert-success", "#mensaje", ".confirmacion"], "saveAs": "confirmacion" },
-    { "action": "screenshot", "name": "stormplus-confirmacion" }
+    { "action": "click", "skipOnDryRun": true, "selectorCandidates": ["#BtnSolicitarCitaPrevia", "button:has-text('Solicitar Cita Previa')"] },
+    { "action": "sleep", "skipOnDryRun": true, "ms": 1200 },
+    { "action": "expectText", "skipOnDryRun": true, "anyOf": ["cita ha sido", "solicitud", "confirmada", "hemos recibido", "registrada", "gracias", "correctamente"] },
+    { "action": "readText", "skipOnDryRun": true, "optional": true, "selectorCandidates": [".alert-success", "#mensaje", ".confirmacion"], "saveAs": "confirmacion" },
+    { "action": "screenshot", "skipOnDryRun": true, "name": "stormplus-confirmacion" }
   ]
 }

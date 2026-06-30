@@ -48,16 +48,21 @@ async function bookAppointment(p) {
     return { ok: false, fallback: 'human', error: e.message, evidence: [] };
   }
 
-  // 2) Ejecutar la receta.
+  // 2) Ejecutar la receta (en dry-run se salta el envío final → no crea cita real).
+  const dryRun = p.dryRun === true;
   let r;
   try {
-    r = await runRecipe(recipe, ctx, driver);
+    r = await runRecipe(recipe, ctx, driver, { dryRun });
   } finally {
     if (driver && typeof driver.close === 'function') { try { await driver.close(); } catch (_) {} }
   }
 
   // 3) Resultado.
   if (r.ok) {
+    if (dryRun) {
+      log.info(`DRY-RUN OK en ${recipe.id}: formulario rellenado sin enviar.`);
+      return { ok: true, dryRun: true, evidence: r.evidence, captured: r.captured };
+    }
     log.info(`Cita reservada en ${recipe.id} para ${patient.name || '—'} (${appt.service || '—'} ${appt.date || ''} ${appt.time || ''})`);
     await safeNotify(notify, {
       type: 'booked', org, appt, patient,

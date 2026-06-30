@@ -84,6 +84,24 @@ describe('recipe-engine', () => {
     assert.ok(r.evidence.some(e => e.name.startsWith('error-')), 'captura del error para depurar');
   });
 
+  test('dry-run salta los pasos skipOnDryRun (rellena pero NO envía)', async () => {
+    const dr = {
+      id: 'dr',
+      steps: [
+        { action: 'fill', selector: '#nombre', value: '{{patient.name}}' },
+        { action: 'screenshot', name: 'antes-de-enviar' },
+        { action: 'click', skipOnDryRun: true, selector: '#enviar' },
+        { action: 'expectText', skipOnDryRun: true, anyOf: ['cita confirmada'] },
+      ],
+    };
+    const driver = new MockDriver({ present: ['#nombre', '#enviar'], pageText: 'formulario vacio' });
+    const r = await runRecipe(dr, ctx, driver, { dryRun: true });
+    assert.strictEqual(r.ok, true, 'completa sin enviar');
+    assert.ok(!driver.didClick('#enviar'), 'NO debe pulsar enviar en dry-run');
+    assert.strictEqual(driver.filledValue('#nombre'), 'Maite Aierbe', 'sí rellena');
+    assert.ok(r.steps.find(s => s.step === '3.click')?.skipped, 'el envío queda marcado como saltado');
+  });
+
   test('un paso obligatorio sin selector disponible aborta limpiamente (no lanza)', async () => {
     const driver = new MockDriver({ present: [], pageText: '' });
     const r = await runRecipe(recipe, ctx, driver);

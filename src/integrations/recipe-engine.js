@@ -73,6 +73,15 @@ async function runRecipe(recipe, ctx, driver, opts = {}) {
     const cands = candidatesOf(step).map(s => resolveTemplate(s, ctx));
     const value = resolveTemplate(step.value, ctx);
     const label = `${i + 1}.${step.action}`;
+
+    // Modo dry-run: salta los pasos marcados (típicamente el envío final), para
+    // rellenar el formulario y verlo SIN crear una cita real (DGT, agenda…).
+    if (opts.dryRun && step.skipOnDryRun) {
+      result.steps.push({ step: label, ok: true, skipped: true, dryRun: true });
+      onStep({ index: i, label, ok: true, skipped: true, dryRun: true });
+      continue;
+    }
+
     try {
       switch (step.action) {
         case 'goto':

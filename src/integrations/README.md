@@ -31,6 +31,19 @@ voz/chat de NodeFlow  →  booking-service  →  recipe-engine  →  driver (Pla
 - **Seguro:** credenciales del cliente cifradas (AES-256-GCM, como WhatsApp). Datos en la UE. Requiere autorización del cliente (anexo al contrato RGPD).
 - **Aislado:** Playwright corre en un **worker aparte**, no en el backend de voz (Chromium consume RAM). El backend solo encola la petición.
 
+## Probarlo en vivo (sin crear citas reales)
+`scripts/booking-run.js` ejecuta una receta contra la web real. **Por defecto es
+DRY-RUN**: rellena el formulario y hace captura, pero NO pulsa enviar/guardar
+(no crea cita en la DGT/agenda). Solo `--live` envía de verdad.
+
+```bash
+npm i playwright && npx playwright install chromium    # una vez (worker)
+node scripts/booking-run.js --recipe stormplus --headed            # dry-run viendo el navegador
+node scripts/booking-run.js --recipe stormplus --config datos.json # con datos reales
+node scripts/booking-run.js --recipe organizate --live             # envía de verdad
+```
+Las capturas quedan en el directorio de evidencia (lo imprime al terminar).
+
 ## Añadir un cliente nuevo (reutilización)
 1. ¿Usa un software ya soportado (Organízate/StormPlus)? → solo su **config** (`bookingUrl` o credenciales). Cero código.
 2. ¿Software nuevo? → crear `recipes/<software>.json` con sus pasos. Cero cambios en el motor.

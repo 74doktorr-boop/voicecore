@@ -33,8 +33,8 @@
     { "action": "fill", "optional": true, "selectorCandidates": ["textarea[name=notas]", "#notas", "textarea"], "value": "{{appt.notas}}" },
 
     { "action": "screenshot", "name": "organizate-antes-de-guardar" },
-    { "action": "click", "selectorCandidates": ["button:has-text('Guardar')", "button:has-text('Crear cita')", "button[type=submit]"] },
-    { "action": "expectText", "anyOf": ["cita creada", "guardado", "guardada", "correctamente", "añadida"] },
-    { "action": "screenshot", "name": "organizate-cita-creada" }
+    { "action": "click", "skipOnDryRun": true, "selectorCandidates": ["button:has-text('Guardar')", "button:has-text('Crear cita')", "button[type=submit]"] },
+    { "action": "expectText", "skipOnDryRun": true, "anyOf": ["cita creada", "guardado", "guardada", "correctamente", "añadida"] },
+    { "action": "screenshot", "skipOnDryRun": true, "name": "organizate-cita-creada" }
   ]
 }
