@@ -22,6 +22,19 @@ function formatSchedule(schedule) {
   return lines.join(', ');
 }
 
+function formatServiceList(list) {
+  if (!Array.isArray(list) || !list.length) return '';
+  const lines = list.filter(s => s && s.name).map(s => {
+    let l = `- ${s.name}`;
+    if (s.price)    l += `: ${s.price}`;
+    if (s.duration) l += ` (${s.duration})`;
+    if (s.notes)    l += ` — ${s.notes}`;
+    return l;
+  });
+  if (!lines.length) return '';
+  return `SERVICIOS Y PRECIOS (datos EXACTOS — úsalos al informar de precios, duración o servicios; no inventes):\n${lines.join('\n')}`;
+}
+
 function formatLanguage(lang) {
   if (lang === 'es+eu') return 'Responde en el idioma en que te hablen: español o euskera. Si no estás segura del idioma, usa español.';
   if (lang === 'eu')    return 'Responde exclusivamente en euskera.';
@@ -184,6 +197,7 @@ function generatePrompt(config, orgName) {
   const language      = config.language || 'es';
   const scheduleStr   = formatSchedule(config.schedule);
   const services      = config.services || '';
+  const serviceListStr = formatServiceList(config.serviceList);
   const extraInfo     = config.extraInfo || '';
   const langInstr     = formatLanguage(language);
   const sectorStr     = sectorBlock(sector, config.sectorData || {});
@@ -206,7 +220,7 @@ CÓMO GESTIONAR LA CONVERSACIÓN:
 - NUNCA pidas algo que ya te hayan dicho.
 
 HORARIO: ${scheduleStr}
-${services ? `SERVICIOS: ${services}` : ''}
+${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
 ${sectorStr}
 ${extraInfo ? `INFORMACIÓN ADICIONAL: ${extraInfo}` : ''}
 
@@ -259,4 +273,4 @@ async function buildMemoryBlock(contactId, orgId) {
   return lines.join('\n');
 }
 
-module.exports = { generatePrompt, buildMemoryBlock };
+module.exports = { generatePrompt, buildMemoryBlock, formatServiceList };

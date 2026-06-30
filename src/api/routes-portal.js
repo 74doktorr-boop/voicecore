@@ -478,6 +478,7 @@ function setupPortalRoutes(app, pipeline, config) {
         alertPhone:     custom.alertPhone      || '',   // teléfono personal dueño para alertas WA
         notifyEmail:    custom.notifyEmail     || flowConfig.ownerEmail || '',
         address:        custom.address         || '',
+        serviceList:    Array.isArray(custom.serviceList) ? custom.serviceList : [],
       },
     });
   });
@@ -485,7 +486,7 @@ function setupPortalRoutes(app, pipeline, config) {
   // ── PATCH /api/portal/config ──────────────────────────────
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address } = req.body;
+    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList } = req.body;
 
     if (language && !['es', 'eu', 'gl'].includes(language)) {
       return res.status(400).json({ error: "language debe ser 'es', 'eu' o 'gl'" });
@@ -518,6 +519,16 @@ function setupPortalRoutes(app, pipeline, config) {
       ...(alertPhone     !== undefined && { alertPhone }),
       ...(notifyEmail    !== undefined && { notifyEmail }),
       ...(address        !== undefined && { address }),
+      // Lista estructurada de servicios+precios (la IA la usa para ser experta en el negocio)
+      ...(Array.isArray(serviceList) && { serviceList: serviceList
+        .filter(s => s && s.name)
+        .slice(0, 60)
+        .map(s => ({
+          name:     String(s.name).slice(0, 80),
+          price:    s.price    ? String(s.price).slice(0, 30)    : '',
+          duration: s.duration ? String(s.duration).slice(0, 30) : '',
+          notes:    s.notes    ? String(s.notes).slice(0, 160)   : '',
+        })) }),
     };
     flow.updatedAt = new Date().toISOString();
 
@@ -528,7 +539,8 @@ function setupPortalRoutes(app, pipeline, config) {
         const dbUpdate = { automation_config: flow.automations };
         if (name)     dbUpdate.name     = name;
         if (language) dbUpdate.language = language;
-        if (sector)   dbUpdate.sector   = sector;
+        // NOTA: 'sector' NO es columna de organizations (vive en automation_config.config).
+        // Escribirlo aquí hacía fallar TODO el guardado de config en silencio.
         await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
       } catch (e) {
         log.warn(`Portal: config DB save failed for ${businessId}: ${e.message}`);

@@ -106,20 +106,29 @@ class VoicePipeline {
     session.status    = 'active';
     this.activeCalls.set(callId, session);
 
-    // ── RAG: inyecta la base de conocimiento del negocio en el system prompt ──
-    // Una sola vez, al inicio. FAIL-OPEN: si falla o no hay KB, la llamada sigue igual.
+    // ── Experto en el negocio: inyecta precios estructurados + base de conocimiento ──
+    // Una sola vez, al inicio. FAIL-OPEN: si falla o no hay datos, la llamada sigue igual.
     try {
       const orgId = await this._resolveOrgId(calledNumber);
-      if (orgId) {
+      const sys = orgId && session.messages.find(m => m.role === 'system');
+      if (sys) {
+        // 1) Servicios y precios estructurados (datos exactos → IA experta en precios)
+        try {
+          const db = getDatabase();
+          if (db.enabled) {
+            const { data: org } = await db.client
+              .from('organizations').select('automation_config').eq('id', orgId).maybeSingle();
+            const { formatServiceList } = require('../assistants/prompt-generator');
+            const priceBlock = formatServiceList(org?.automation_config?.config?.serviceList);
+            if (priceBlock) { sys.content += '\n\n' + priceBlock; log.info(`[${callId}] Precios estructurados inyectados (org ${orgId})`); }
+          }
+        } catch (e) { log.warn(`[${callId}] price-list inject fail-open: ${e.message}`); }
+        // 2) Base de conocimiento libre (RAG)
         const ctx = await getKnowledgeBase().getSystemContext(orgId);
-        const sys = session.messages.find(m => m.role === 'system');
-        if (ctx && sys) {
-          sys.content += ctx;
-          log.info(`[${callId}] RAG: KB del negocio inyectada (org ${orgId})`);
-        }
+        if (ctx) { sys.content += ctx; log.info(`[${callId}] RAG: KB del negocio inyectada (org ${orgId})`); }
       }
     } catch (e) {
-      log.warn(`[${callId}] RAG inject fail-open: ${e.message}`);
+      log.warn(`[${callId}] business-context inject fail-open: ${e.message}`);
     }
 
     // Vonage sends L16 PCM 16kHz; Twilio sends mulaw 8kHz

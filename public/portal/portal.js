@@ -1245,8 +1245,10 @@ async function loadConfig() {
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
       '<div class="form-section-title">Servicios y horarios</div>' +
-      '<div class="form-group"><label class="form-label">Servicios (uno por línea o separados por comas)</label>' +
-        '<textarea class="form-input" id="cfgServices" rows="4" placeholder="Corte de pelo, Tinte, Mechas…">' + esc(c.services || '') + '</textarea></div>' +
+      '<div class="form-group"><label class="form-label">Servicios y precios <span style="color:var(--dim);font-weight:400">— la IA se los dice a tus clientes con exactitud</span></label>' +
+        '<div class="svc-head"><span>Servicio</span><span>Precio</span><span>Duración</span><span></span></div>' +
+        '<div id="svcList"></div>' +
+        '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button></div>' +
       '<div class="form-group"><label class="form-label">Horarios</label>' +
         '<textarea class="form-input" id="cfgSchedule" rows="3" placeholder="L-V 9:00-20:00, Sáb 9:00-14:00">' + esc(c.schedule || '') + '</textarea></div>' +
       '<div class="form-section-title">Configuración del AI</div>' +
@@ -1291,6 +1293,35 @@ async function loadConfig() {
           '<p style="font-size:13px;color:var(--dim);margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
           '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#a29bfe">Escríbenos →</a></p>' +
         '</div>');
+
+  // Render de servicios+precios existentes (o una fila vacía para empezar)
+  (Array.isArray(c.serviceList) && c.serviceList.length ? c.serviceList : [{}]).forEach(addServiceRow);
+}
+
+// Editor de servicios+precios (filas dinámicas)
+function addServiceRow(s) {
+  s = s || {};
+  var box = document.getElementById('svcList');
+  if (!box) return;
+  var row = document.createElement('div');
+  row.className = 'svc-row';
+  row.innerHTML =
+    '<input class="form-input svc-name" placeholder="Ej. Corte de pelo" value="' + esc(s.name || '') + '">' +
+    '<input class="form-input svc-price" placeholder="Ej. 15€" value="' + esc(s.price || '') + '">' +
+    '<input class="form-input svc-dur" placeholder="Ej. 30 min" value="' + esc(s.duration || '') + '">' +
+    '<button type="button" class="btn btn-r btn-sm svc-del" title="Quitar">✕</button>';
+  row.querySelector('.svc-del').onclick = function () { row.remove(); };
+  box.appendChild(row);
+}
+function collectServiceList() {
+  var rows = document.querySelectorAll('#svcList .svc-row');
+  return Array.prototype.map.call(rows, function (r) {
+    return {
+      name:     r.querySelector('.svc-name').value.trim(),
+      price:    r.querySelector('.svc-price').value.trim(),
+      duration: r.querySelector('.svc-dur').value.trim(),
+    };
+  }).filter(function (s) { return s.name; });
 }
 
 async function saveConfig() {
@@ -1298,7 +1329,7 @@ async function saveConfig() {
     name:           document.getElementById('cfgName').value.trim(),
     language:       document.getElementById('cfgLang').value,
     sector:         document.getElementById('cfgSector').value,
-    services:       document.getElementById('cfgServices').value.trim(),
+    serviceList:    collectServiceList(),
     schedule:       document.getElementById('cfgSchedule').value.trim(),
     welcomeMessage: document.getElementById('cfgWelcome').value.trim(),
     avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) || 35,
