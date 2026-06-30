@@ -14,13 +14,15 @@ const { demoGlobalLimiter, demoSttLimiter, demoChatLimiter, demoTtsLimiter } = r
 
 const log = new Logger('ROUTES-DEMO');
 
-// ── Auth middleware (admin OR demo token OR portal session) ────────
-// DEMO_TOKEN: simple static passphrase from .env for the standalone demo HTML.
-// Not for production calls — just gates the demo page from random internet traffic.
+// ── Auth middleware OPCIONAL para el demo ──────────────────────────
+// El demo (nodeflow.es/demo) es PÚBLICO: un visitante sin token puede probarlo
+// (protegido por los rate-limiters demoGlobalLimiter/chat/tts/stt). Si llega un
+// token válido (admin o sesión de portal), se enriquece el request para las
+// funciones autenticadas; pero la ausencia de token NUNCA bloquea.
 async function demoAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'No autorizado' });
+  if (!token) return next(); // visitante anónimo del demo
 
   if (isAdminToken(token)) {
     req.isAdmin = true;
@@ -52,7 +54,7 @@ async function demoAuth(req, res, next) {
     }
     return next();
   } catch (_) {
-    return res.status(401).json({ error: 'No autorizado' });
+    return next(); // token inválido → seguimos como visitante anónimo del demo
   }
 }
 
