@@ -64,32 +64,35 @@ function rateLimit({ max = 30, windowMs = 60 * 60 * 1000, keyPrefix = '', messag
  * Aplica límite global por IP además del límite por endpoint.
  * Evita que alguien use STT + chat + TTS para saltarse los límites individuales.
  */
+// Límites GENEROSOS: el demo se usa en reuniones de venta en directo (muchos
+// clics seguidos). Solo cortan ante abuso real (un bot martilleando), no el uso
+// comercial normal.
 const demoGlobalLimiter = rateLimit({
-  max:       60,
+  max:       600,
   windowMs:  60 * 60 * 1000, // 1 hora
   keyPrefix: 'demo:global',
-  message:   'Has superado el límite del demo (60 peticiones/hora). Vuelve más tarde o contacta con NodeFlow.',
+  message:   'Has superado el límite del demo. Vuelve en un rato o contacta con NodeFlow.',
 });
 
 const demoSttLimiter = rateLimit({
-  max:       15,
+  max:       200,
   windowMs:  60 * 60 * 1000,
   keyPrefix: 'demo:stt',
-  message:   'Límite de transcripciones alcanzado (15/hora). Vuelve más tarde.',
+  message:   'Límite de transcripciones alcanzado. Vuelve más tarde.',
 });
 
 const demoChatLimiter = rateLimit({
-  max:       30,
+  max:       300,
   windowMs:  60 * 60 * 1000,
   keyPrefix: 'demo:chat',
-  message:   'Límite de mensajes de chat alcanzado (30/hora). Vuelve más tarde.',
+  message:   'Límite de mensajes alcanzado. Vuelve más tarde.',
 });
 
 const demoTtsLimiter = rateLimit({
-  max:       30,
+  max:       300,
   windowMs:  60 * 60 * 1000,
   keyPrefix: 'demo:tts',
-  message:   'Límite de síntesis de voz alcanzado (30/hora). Vuelve más tarde.',
+  message:   'Límite de síntesis de voz alcanzado. Vuelve más tarde.',
 });
 
 module.exports = { rateLimit, demoGlobalLimiter, demoSttLimiter, demoChatLimiter, demoTtsLimiter };

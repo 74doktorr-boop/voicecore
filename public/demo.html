@@ -868,15 +868,29 @@ async function speakText(text) {
       _demoAudio = new Audio(url);
       _ttsSpeaking = true;
       _demoAudio.onended = () => { _ttsSpeaking = false; URL.revokeObjectURL(url); };
-      _demoAudio.onerror = () => { _ttsSpeaking = false; _browserSpeak(clean); };
-      await _demoAudio.play();
+      _demoAudio.onerror = () => { _ttsSpeaking = false; }; // sin fallback robótico
+      try {
+        await _demoAudio.play();
+      } catch (e) {
+        // Autoplay bloqueado hasta que el usuario interactúe. NO usamos la voz
+        // robótica del navegador — reintentamos al primer clic/tecla.
+        _pendingAudio = _demoAudio;
+      }
       return;
     }
-  } catch (_) { /* sin servidor → voz del navegador */ }
+  } catch (_) { /* error de servidor → silencio, nunca voz robótica */ }
 
-  // 2. Último recurso: voz del navegador (robótica). Solo si el servidor falla.
-  _browserSpeak(clean);
+  // Sin servidor o error: NO usamos la voz básica del navegador (suena mal y
+  // perjudica el producto). El texto de la respuesta ya se ve en pantalla.
 }
+
+// Reintenta reproducir el último audio bloqueado por autoplay, al primer gesto.
+let _pendingAudio = null;
+function _flushPendingAudio() {
+  if (_pendingAudio) { const a = _pendingAudio; _pendingAudio = null; a.play().catch(() => {}); }
+}
+document.addEventListener('click', _flushPendingAudio, true);
+document.addEventListener('keydown', _flushPendingAudio, true);
 
 function _browserSpeak(clean) {
   if (!window.speechSynthesis) return;
