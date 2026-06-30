@@ -186,11 +186,16 @@ function setupDemoRoutes(app, ttsRouter) {
     const callId = `demo-${Date.now()}`;
     try {
       // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
+      //    Si falla (p.ej. 402 en plan Free, o cuota), cae a Azure — la demo nunca se rompe.
       const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
       if (eleven) {
-        const mp3 = await eleven.synthesize({ callId, text, voiceId: voice || undefined, language, format: 'mp3' });
-        res.set('Content-Type', 'audio/mpeg');
-        return res.send(mp3);
+        try {
+          const mp3 = await eleven.synthesize({ callId, text, voiceId: voice || undefined, language, format: 'mp3' });
+          res.set('Content-Type', 'audio/mpeg');
+          return res.send(mp3);
+        } catch (e) {
+          log.warn(`Demo TTS: ElevenLabs falló (${e.message}) — fallback a Azure`);
+        }
       }
 
       // 2. Azure directo → MP3 natural (voz castellana de calidad). Fallback.
