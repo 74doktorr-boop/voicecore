@@ -573,9 +573,9 @@ function render(rows,id,mini) {
     const lang=langBadge(r.idioma||r.language||'es');
     const src=r.source==='galiza'?'<span class="badge bl-gl" style="margin-left:4px">galiza</span>':r.source==='hementxe'?'<span class="badge by" style="margin-left:4px">hementxe</span>':'';
     const d=(r.created_at||'').split('T')[0];
-    if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}</td><td>${d}</td></tr>`;
     const canCreate = r.status!=='active' && r.email && r.id;
     const action = canCreate ? `<button class="btn btn-g" style="font-size:10px;padding:3px 8px;margin-left:6px" onclick="crearClienteDesdeRegistro('${r.id}',this)">➕ Crear cliente</button>` : '';
+    if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
     return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td style="color:var(--dim)">${r.email||'—'}</td><td style="color:var(--dim)">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
   }).join('');
 }
