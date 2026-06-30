@@ -23,7 +23,7 @@ class ElevenLabsTTS {
    * @param {string} params.modelId - Model ID
    * @returns {Buffer} mulaw 8kHz audio
    */
-  async synthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, stability = 0.5, similarityBoost = 0.75, language = 'es', format = 'mulaw' }) {
+  async synthesize({ callId, text, voiceId = (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa'), modelId, stability = 0.5, similarityBoost = 0.75, language = 'es', format = 'mulaw' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) {
@@ -84,7 +84,7 @@ class ElevenLabsTTS {
   /**
    * Stream TTS with ElevenLabs streaming endpoint
    */
-  async streamSynthesize({ callId, text, voiceId = '21m00Tcm4TlvDq8ikWAM', modelId, onChunk, language = 'es' }) {
+  async streamSynthesize({ callId, text, voiceId = (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa'), modelId, onChunk, language = 'es' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) return;

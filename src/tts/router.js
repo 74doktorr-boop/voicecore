@@ -269,7 +269,7 @@ class TTSRouter {
         params.language = language;
         break;
       case 'elevenlabs':
-        params.voiceId   = voice ?? '21m00Tcm4TlvDq8ikWAM';
+        params.voiceId   = voice ?? (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa');
         params.language  = language;  // lock language — prevents mid-speech switching
         break;
       case 'openai':
