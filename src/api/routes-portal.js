@@ -1111,8 +1111,8 @@ function setupPortalRoutes(app, pipeline, config) {
       const db    = getDatabase();
       const orgId = req.businessId;
       const { data: org } = await db.client.from('organizations')
-        .select('sector').eq('id', orgId).maybeSingle();
-      const config = await getOrgReminderConfig(orgId, org?.sector || '');
+        .select('assistant_config').eq('id', orgId).maybeSingle();
+      const config = await getOrgReminderConfig(orgId, (org?.assistant_config && org.assistant_config.sector) || '');
       res.json({ ok: true, config });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
