@@ -88,7 +88,7 @@ function setupVonageStreams(wss, pipeline, assistantManager) {
           }
 
           // Start call session — pass vonageWs instead of twilioWs
-          await pipeline.startCall({
+          const started = await pipeline.startCall({
             callId,
             assistant,
             callerNumber,
@@ -97,6 +97,13 @@ function setupVonageStreams(wss, pipeline, assistantManager) {
             vonageWs: ws,          // Vonage WebSocket reference
             provider: 'vonage',
           });
+
+          // Rechazada por el cap de concurrentes → cerrar el stream.
+          if (!started) {
+            log.warn(`[${callId}] Llamada rechazada (cap de concurrentes) — cerrando stream`);
+            ws.close();
+            return;
+          }
 
           sessionStarted = true;
           log.call(`[${callId}] Vonage session started — assistant: ${assistant.id}`);

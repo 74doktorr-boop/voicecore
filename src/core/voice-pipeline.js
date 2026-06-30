@@ -44,12 +44,44 @@ class VoicePipeline {
     this.callHistory = [];
     this.maxHistory = 500;
     this.webhookUrl = config.webhookUrl || null;
+
+    // Cap de llamadas concurrentes por asistente (= identidad de negocio).
+    // Control de coste/abuso a escala. Override por-asistente con el campo
+    // `concurrentCalls` en el JSON; si no, este default (env configurable).
+    this.maxConcurrentPerAssistant =
+      Number(config.maxConcurrentPerAssistant ?? process.env.MAX_CONCURRENT_CALLS_PER_ASSISTANT) || 10;
+  }
+
+  /** Llamadas activas para un asistente concreto. */
+  _countActiveForAssistant(assistantId) {
+    if (!assistantId) return 0;
+    let n = 0;
+    for (const s of this.activeCalls.values()) {
+      if (s.assistant?.id === assistantId) n++;
+    }
+    return n;
+  }
+
+  /** Límite de concurrentes del asistente: override > default. */
+  _concurrentLimitFor(assistant) {
+    const override = Number(assistant?.concurrentCalls);
+    if (Number.isFinite(override) && override > 0) return override;
+    return this.maxConcurrentPerAssistant;
   }
 
   /**
    * Start a new call session
    */
   async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio' }) {
+    // Cap de concurrentes por asistente: rechaza ANTES de abrir STT (coste 0).
+    // Devuelve null → el handler de telefonía cierra el WS limpiamente.
+    const limit = this._concurrentLimitFor(assistant);
+    const active = this._countActiveForAssistant(assistant?.id);
+    if (limit > 0 && active >= limit) {
+      log.warn(`[${callId}] Rechazada: asistente ${assistant?.id || '?'} en el cap de concurrentes (${active}/${limit})`);
+      return null;
+    }
+
     const session = new CallSession({ callId, assistant, callerNumber, calledNumber, direction });
     session.twilioWs  = twilioWs;
     session.vonageWs  = vonageWs;

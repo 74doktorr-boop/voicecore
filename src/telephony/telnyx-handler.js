@@ -79,7 +79,7 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
             }
 
             // Start pipeline session (same interface as Twilio)
-            await pipeline.startCall({
+            const started = await pipeline.startCall({
               callId,
               assistant,
               callerNumber,
@@ -89,6 +89,13 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               streamSid,
               provider: 'telnyx',
             });
+
+            // Rechazada por el cap de concurrentes → cerrar el stream.
+            if (!started) {
+              log.warn(`[${callId}] Llamada rechazada (cap de concurrentes) — cerrando stream`);
+              ws.close();
+              return;
+            }
 
             sessionStarted = true;
             break;

@@ -65,7 +65,7 @@ function setupTwilioStreams(wss, pipeline, assistantManager) {
             }
 
             // Start call session
-            await pipeline.startCall({
+            const started = await pipeline.startCall({
               callId,
               assistant,
               callerNumber,
@@ -74,6 +74,13 @@ function setupTwilioStreams(wss, pipeline, assistantManager) {
               twilioWs: ws,
               streamSid,
             });
+
+            // Rechazada por el cap de concurrentes → cerrar el stream.
+            if (!started) {
+              log.warn(`[${callId}] Llamada rechazada (cap de concurrentes) — cerrando stream`);
+              ws.close();
+              return;
+            }
 
             sessionStarted = true;
             break;

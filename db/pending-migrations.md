@@ -1,23 +1,14 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 1 pendiente ⏳ — patch de escalado (2026-06-22). Resto ejecutadas ✅ — 2026-06-10**
+**Estado: 0 pendientes ✅ — patch de escalado aplicado 2026-06-30. Resto ejecutadas ✅ — 2026-06-10**
 
 ---
 
-## 0. Lifecycle scaling patch 2 — índices de cola ⏳ PENDIENTE
+## 0. Lifecycle scaling patch 2 — índices de cola ✅ APLICADA 2026-06-30
 **Por qué:** la cola global de recordatorios (`claim_pending_reminders`) ordena por
 `scheduled_for` pero el índice previo lidera por `org_id`; a miles de clientes el
 claim (la consulta más caliente) se degrada. Fichero: `db/schema-migration-lifecycle-patch2-scale.sql`.
-
-```sql
-create index if not exists idx_reminders_due
-  on scheduled_reminders (scheduled_for)
-  where status = 'pending';
-
-create index if not exists idx_nf_appointments_org_phone
-  on nf_appointments (organization_id, phone);
-```
-> Si las tablas ya son grandes, usar `create index concurrently` (fuera de transacción).
+Creados `idx_reminders_due` y `idx_nf_appointments_org_phone` (verificado: 2 filas en pg_indexes).
 
 ---
 
@@ -228,3 +219,4 @@ CREATE POLICY "service_role_all" ON nf_phone_pool TO service_role USING (true) W
 - `calls` — columnas `followup_at`, `followup_sent` + índice `idx_calls_followup` ✅ 2026-06-10
 - `nf_rebooking_log` + índice + RLS ✅ 2026-06-10
 - `nf_phone_pool` + índice + RLS ✅ 2026-06-10
+- `idx_reminders_due` + `idx_nf_appointments_org_phone` (lifecycle scaling patch 2) ✅ 2026-06-30
