@@ -1952,42 +1952,87 @@ function switchAsistenteTab(tab) {
   });
 }
 
-// ── Voice preview ──────────────────────────────────────────────
+// ── Selector de voz profesional (catálogo dinámico ElevenLabs) ──────────
+var _voiceCatalog = [];
+var _voiceFilter = 'all';
 var _voicePreviewAudio = null;
 
-function _onVoiceChange() {
-  var voiceEl = document.getElementById('asis-voice');
-  if (!voiceEl) return;
-  var voice = voiceEl.value;
-  var statusEl = document.getElementById('portal-demo-status');
-  if (statusEl) {
-    statusEl.textContent = '⏳ Cargando vista previa de voz…';
-  }
-  if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
+function _voiceEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
 
+function loadVoiceCatalog() {
+  var grid = document.getElementById('voice-grid');
+  fetch('/api/voices')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { _voiceCatalog = (d && d.voices) || []; renderVoiceGrid(); })
+    .catch(function() { if (grid) grid.innerHTML = '<div class="voice-empty">No se pudo cargar el catálogo de voces.</div>'; });
+}
+
+function setVoiceFilter(g, btn) {
+  _voiceFilter = g;
+  var chips = document.querySelectorAll('.vf-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('active', chips[i] === btn);
+  renderVoiceGrid();
+}
+
+function renderVoiceGrid() {
+  var grid = document.getElementById('voice-grid');
+  if (!grid) return;
+  var sel = (document.getElementById('asis-voice') || {}).value || '';
+  var q = ((document.getElementById('voice-search') || {}).value || '').toLowerCase().trim();
+  var list = _voiceCatalog.filter(function(v) {
+    if (_voiceFilter === 'female' && v.gender !== 'female') return false;
+    if (_voiceFilter === 'male' && v.gender !== 'male') return false;
+    if (q) {
+      var hay = (v.name + ' ' + (v.description || '') + ' ' + (v.labels || []).join(' ') + ' ' + (v.useCase || '') + ' ' + (v.accent || '')).toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+  if (!list.length) { grid.innerHTML = '<div class="voice-empty">Sin voces que coincidan.</div>'; return; }
+  grid.innerHTML = list.map(function(v) {
+    var g = v.gender === 'female' ? 'fem' : (v.gender === 'male' ? 'mal' : '');
+    var ico = v.gender === 'female' ? '👩' : (v.gender === 'male' ? '👨' : '🎙️');
+    var sub = [v.accent, v.age].filter(Boolean).join(' · ') || (v.gender || '');
+    var chips = (v.labels || []).slice(0, 3).map(function(t) { return '<span class="vc-tag">' + _voiceEsc(t) + '</span>'; }).join('');
+    var id = _voiceEsc(v.id);
+    return '<div class="voice-card ' + g + (v.id === sel ? ' selected' : '') + '" onclick="selectVoice(\'' + id + '\')">'
+      + '<button type="button" class="vc-play" title="Escuchar muestra" onclick="event.stopPropagation();previewVoice(\'' + id + '\',this)">▶</button>'
+      + '<div class="vc-top"><div class="vc-avatar">' + ico + '</div><div><div class="vc-name">' + _voiceEsc(v.name) + '</div><div class="vc-sub">' + _voiceEsc(sub) + '</div></div></div>'
+      + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 95)) + '</div>'
+      + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
+      + '<div class="vc-check">✓</div></div>';
+  }).join('');
+}
+
+function selectVoice(id) {
+  var h = document.getElementById('asis-voice'); if (h) h.value = id;
+  renderVoiceGrid();
+  previewVoice(id);
+}
+
+function previewVoice(voice, btn) {
+  var statusEl = document.getElementById('portal-demo-status');
+  if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
+  if (btn) btn.textContent = '⏳';
   var previewText = 'Hola, soy tu asistente virtual. Puedo ayudarte con reservas, información y mucho más.';
   fetch('/api/demo/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
     body: JSON.stringify({ text: previewText, voice: voice }),
   })
-  .then(function(res) {
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.blob();
-  })
+  .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.blob(); })
   .then(function(blob) {
+    if (btn) btn.textContent = '▶';
     _voicePreviewAudio = new Audio(URL.createObjectURL(blob));
-    if (statusEl) statusEl.textContent = '🔊 Reproduciendo voz ' + voice + '…';
-    _voicePreviewAudio.onended = function() {
-      if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente';
-    };
-    _voicePreviewAudio.play().catch(function() {
-      if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada';
-    });
+    if (statusEl) statusEl.textContent = '🔊 Reproduciendo muestra…';
+    _voicePreviewAudio.onended = function() { if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente'; };
+    _voicePreviewAudio.play().catch(function() { if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
   })
-  .catch(function() {
-    if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada';
-  });
+  .catch(function() { if (btn) btn.textContent = '▶'; if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
 }
 
 function renderAsistenteForm() {
@@ -1998,14 +2043,10 @@ function renderAsistenteForm() {
   setVal('asis-lang',  c.language || 'es');
   setVal('asis-first', c.firstMessage || '');
   setVal('asis-extra', c.extraInfo || '');
-  setVal('asis-voice', c.voice || 'nova');
+  setVal('asis-voice', c.voice || '');
 
-  // Attach voice preview listener (remove old one first to avoid duplicates)
-  var voiceEl = document.getElementById('asis-voice');
-  if (voiceEl) {
-    voiceEl.removeEventListener('change', _onVoiceChange);
-    voiceEl.addEventListener('change', _onVoiceChange);
-  }
+  // Cargar el catálogo de voces y pintar el selector (resalta la voz guardada).
+  loadVoiceCatalog();
 
   // Schedule grid (supports partido: morning + afternoon)
   var sched = c.schedule || {};
