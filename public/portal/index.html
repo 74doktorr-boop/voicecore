@@ -304,12 +304,15 @@
     <div class="login-logo">node<em>flow</em></div>
     <div class="login-sub">Portal de clientes</div>
     <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">
-      Introduce tu email y te enviamos un enlace de acceso instantáneo.
+      Entra con tu email y contraseña. ¿Aún no tienes contraseña? Te enviamos un enlace de acceso.
     </p>
     <input type="email" class="login-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email"
-           onkeydown="if(event.key==='Enter')requestAccess()">
-    <button class="login-btn" onclick="requestAccess()">Enviar enlace de acceso</button>
+           onkeydown="if(event.key==='Enter')portalLogin()">
+    <input type="password" class="login-input" id="loginPass" placeholder="Contraseña (opcional)" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')portalLogin()">
+    <button class="login-btn" onclick="portalLogin()">Entrar</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;display:none"></div>
+    <p class="login-help" style="margin-top:14px">¿Sin contraseña? <a onclick="requestAccess()" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Enviar enlace de acceso por email</a></p>
     <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
   </div>
 </div>

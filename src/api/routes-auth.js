@@ -116,6 +116,32 @@ async function generateMagicToken(email, registroId) {
   return token;
 }
 
+// ── Password auth (opcional; complementa el enlace mágico) ──────────────────
+// Hash scrypt salteado (crypto nativo, sin dependencias). Se guarda en
+// organizations.automation_config.auth = { salt, hash } (NO se expone en GET config).
+function hashPassword(password, salt) {
+  salt = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  return { salt, hash };
+}
+function verifyPassword(password, salt, hash) {
+  if (!salt || !hash) return false;
+  const h = Buffer.from(crypto.scryptSync(String(password), salt, 64).toString('hex'));
+  const stored = Buffer.from(hash);
+  return h.length === stored.length && crypto.timingSafeEqual(h, stored);
+}
+async function findActiveOrgByEmail(email) {
+  const db = getDatabase();
+  if (!db.enabled) return null;
+  try {
+    const { data } = await db.client.from('organizations')
+      .select('id, owner_email, automation_config')
+      .eq('owner_email', String(email).trim().toLowerCase()).eq('is_active', true)
+      .order('created_at', { ascending: false }).limit(1).single();
+    return data || null;
+  } catch (_) { return null; }
+}
+
 // ── Rate limiter: 5 magic link requests per IP per 10 minutes ───────────────
 // Vía rate-store compartido (Redis si REDIS_URL → multi-réplica; si no, memoria).
 async function requestLinkRateLimit(req, res, next) {
@@ -223,6 +249,55 @@ function setupAuthRoutes(app) {
       res.json({ valid: true, email: payload.email, registroId: payload.registroId });
     } catch (e) {
       res.status(401).json({ error: e.message });
+    }
+  });
+
+  // POST /api/auth/login  { email, password } — login con contraseña (opcional)
+  app.post('/api/auth/login', requestLinkRateLimit, async (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    try {
+      const org  = await findActiveOrgByEmail(email);
+      const auth = org && org.automation_config && org.automation_config.auth;
+      if (!org || !auth || !auth.hash) {
+        return res.status(401).json({ error: 'No hay contraseña para esta cuenta. Entra con el enlace de acceso y créala.' });
+      }
+      if (!verifyPassword(password, auth.salt, auth.hash)) {
+        return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+      }
+      const sessionToken = createSessionToken({ email: org.owner_email });
+      log.info(`Sesión (password) creada para ${org.owner_email}`);
+      res.json({ session_token: sessionToken, email: org.owner_email });
+    } catch (e) {
+      log.error(`Auth login error: ${e.message}`);
+      res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
+  // POST /api/auth/set-password  { password } — requiere sesión válida (Bearer)
+  app.post('/api/auth/set-password', async (req, res) => {
+    const authHeader = req.headers.authorization || '';
+    const tk = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    let session;
+    try { session = verifySessionToken(tk); } catch (_) { return res.status(401).json({ error: 'No autorizado' }); }
+    const { password } = req.body || {};
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+    }
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+      const org = await findActiveOrgByEmail(session.email);
+      if (!org) return res.status(404).json({ error: 'Negocio no encontrado' });
+      const { salt, hash } = hashPassword(password);
+      const merged = { ...(org.automation_config || {}), auth: { salt, hash, updatedAt: new Date().toISOString() } };
+      const { error } = await db.client.from('organizations').update({ automation_config: merged }).eq('id', org.id);
+      if (error) throw new Error(error.message);
+      log.info(`Password establecida para ${session.email}`);
+      res.json({ ok: true });
+    } catch (e) {
+      log.error(`set-password error: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo guardar la contraseña' });
     }
   });
 }

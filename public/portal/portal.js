@@ -486,6 +486,49 @@ async function requestAccess() {
   }
 }
 
+// Login con email + contraseña (si no hay contraseña → enlace mágico)
+async function portalLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var passEl = document.getElementById('loginPass');
+  var pass  = passEl ? passEl.value : '';
+  var msgEl = document.getElementById('loginMsg');
+  if (!email || !email.includes('@')) {
+    msgEl.style.color = '#e74c3c'; msgEl.textContent = 'Introduce un email válido.'; msgEl.style.display = 'block'; return;
+  }
+  if (!pass) { return requestAccess(); } // sin contraseña → enlace por email
+  msgEl.style.color = 'var(--dim)'; msgEl.textContent = 'Entrando…'; msgEl.style.display = 'block';
+  try {
+    var resp = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pass }),
+    });
+    var data = await resp.json();
+    if (!resp.ok || !data.session_token) throw new Error(data.error || 'No se pudo entrar');
+    localStorage.setItem(SESSION_KEY, data.session_token);
+    _token = data.session_token;
+    _orgInfo = await api('/api/portal/me');
+    if (!_orgInfo || !_orgInfo.id) throw new Error('Sin negocio asociado');
+    showApp();
+  } catch (e) {
+    msgEl.style.color = '#e74c3c'; msgEl.textContent = e.message || 'Email o contraseña incorrectos.'; msgEl.style.display = 'block';
+  }
+}
+
+// Establecer / cambiar contraseña de acceso (desde Configuración)
+async function setPortalPassword() {
+  var el = document.getElementById('cfgPassword');
+  if (!el) return;
+  var pass = el.value.trim();
+  if (pass.length < 6) { toast('La contraseña debe tener al menos 6 caracteres', 'err'); return; }
+  try {
+    await api('/api/auth/set-password', 'POST', { password: pass });
+    el.value = '';
+    toast('✅ Contraseña guardada — ya puedes entrar con email y contraseña');
+  } catch (e) {
+    toast('Error: ' + (e.message || e), 'err');
+  }
+}
+
 // ── Relative time helper ──────────────────────────────────────
 function timeAgo(isoStr) {
   if (!isoStr) return '—';
@@ -1278,6 +1321,14 @@ async function loadConfig() {
           '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
             ' value="' + esc(c.notifyEmail || '') + '"></div>' +
       '</div>' +
+
+      '<div class="form-section-title">Acceso al portal</div>' +
+      '<div class="form-group"><label class="form-label">Contraseña de acceso <span style="color:var(--dim);font-weight:400">(opcional — para entrar sin esperar el enlace)</span></label>' +
+        '<div style="display:flex;gap:10px;align-items:center">' +
+          '<input class="form-input" id="cfgPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="flex:1">' +
+          '<button type="button" class="btn btn-d" style="white-space:nowrap" onclick="setPortalPassword()">Guardar contraseña</button>' +
+        '</div>' +
+        '<small style="color:var(--dim);font-size:11px">Entra con tu email y esta contraseña. El enlace por email seguirá funcionando igual.</small></div>' +
 
       '<div style="display:flex;gap:12px;margin-top:24px">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
