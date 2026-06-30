@@ -1222,22 +1222,26 @@ async function loadConfig() {
 
   sec.innerHTML =
     '<div class="section-header"><div class="section-title">⚙️ Configuración</div></div>' +
-    '<div class="card" style="max-width:640px">' +
+    '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto">' +
       '<div class="form-section-title">Información general</div>' +
-      '<div class="form-group"><label class="form-label">Nombre del negocio</label>' +
-        '<input class="form-input" id="cfgName" value="' + esc(c.name || '') + '"></div>' +
-      '<div class="form-group"><label class="form-label">Email del propietario</label>' +
-        '<input class="form-input" readonly value="' + esc(c.ownerEmail || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Para cambiar el email, contacta con soporte</small></div>' +
-      '<div class="form-group"><label class="form-label">Teléfono del negocio</label>' +
-        '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Número provisionado — no editable</small></div>' +
-      '<div class="form-group"><label class="form-label">Idioma del AI</label>' +
-        '<select class="form-input" id="cfgLang">' +
-          '<option value="es" ' + (c.language === 'es' ? 'selected' : '') + '>Español</option>' +
-          '<option value="eu" ' + (c.language === 'eu' ? 'selected' : '') + '>Euskera</option>' +
-          '<option value="gl" ' + (c.language === 'gl' ? 'selected' : '') + '>Gallego</option>' +
-        '</select></div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Nombre del negocio</label>' +
+          '<input class="form-input" id="cfgName" value="' + esc(c.name || '') + '"></div>' +
+        '<div class="form-group"><label class="form-label">Email del propietario</label>' +
+          '<input class="form-input" readonly value="' + esc(c.ownerEmail || '') + '">' +
+          '<small style="color:var(--dim);font-size:11px">Para cambiar el email, contacta con soporte</small></div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Teléfono del negocio</label>' +
+          '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
+          '<small style="color:var(--dim);font-size:11px">Número provisionado — no editable</small></div>' +
+        '<div class="form-group"><label class="form-label">Idioma del AI</label>' +
+          '<select class="form-input" id="cfgLang">' +
+            '<option value="es" ' + (c.language === 'es' ? 'selected' : '') + '>Español</option>' +
+            '<option value="eu" ' + (c.language === 'eu' ? 'selected' : '') + '>Euskera</option>' +
+            '<option value="gl" ' + (c.language === 'gl' ? 'selected' : '') + '>Gallego</option>' +
+          '</select></div>' +
+      '</div>' +
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
       '<div class="form-section-title">Servicios y horarios</div>' +
@@ -1263,13 +1267,15 @@ async function loadConfig() {
         '<small style="color:var(--dim);font-size:11px">Enlace de "Escribe una reseña" de Google Business. Se incluye en recordatorios automáticos post-cita.</small></div>' +
 
       '<div class="form-section-title">Notificaciones al propietario</div>' +
-      '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span style="color:var(--dim);font-weight:400">(alertas de confirmaciones y cancelaciones)</span></label>' +
-        '<input class="form-input" id="cfgAlertPhone" type="tel" placeholder="+34 612 345 678"' +
-          ' value="' + esc(c.alertPhone || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Recibirás un WhatsApp cuando un cliente confirme o cancele su cita. Debe ser diferente al número del negocio.</small></div>' +
-      '<div class="form-group"><label class="form-label">Email para notificaciones <span style="color:var(--dim);font-weight:400">(resumen diario y alertas)</span></label>' +
-        '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
-          ' value="' + esc(c.notifyEmail || '') + '"></div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span style="color:var(--dim);font-weight:400">(confirmaciones y cancelaciones)</span></label>' +
+          '<input class="form-input" id="cfgAlertPhone" type="tel" placeholder="+34 612 345 678"' +
+            ' value="' + esc(c.alertPhone || '') + '">' +
+          '<small style="color:var(--dim);font-size:11px">Recibirás un WhatsApp cuando un cliente confirme o cancele su cita. Debe ser diferente al número del negocio.</small></div>' +
+        '<div class="form-group"><label class="form-label">Email para notificaciones <span style="color:var(--dim);font-weight:400">(resumen diario y alertas)</span></label>' +
+          '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
+            ' value="' + esc(c.notifyEmail || '') + '"></div>' +
+      '</div>' +
 
       '<div style="display:flex;gap:12px;margin-top:24px">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
@@ -1280,7 +1286,7 @@ async function loadConfig() {
     // BUG FIX: usar outboundNumber (número NodeFlow asignado), NO c.phone (teléfono del propietario)
     (c.outboundNumber
       ? renderDesvioGuide(c.outboundNumber)
-      : '<div class="card" style="max-width:640px;margin-top:24px;border-color:rgba(249,202,36,.3);background:rgba(249,202,36,.04)">' +
+      : '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto;margin-top:24px;border-color:rgba(249,202,36,.3);background:rgba(249,202,36,.04)">' +
           '<div class="card-title" style="color:#f9ca24">⏳ Número NodeFlow pendiente de asignación</div>' +
           '<p style="font-size:13px;color:var(--dim);margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
           '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#a29bfe">Escríbenos →</a></p>' +
@@ -1411,7 +1417,7 @@ function renderDesvioGuide(phone) {
       '</div>' +
     '</div>';
 
-  return '<div class="card" style="max-width:640px;margin-top:24px">' +
+  return '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto;margin-top:24px">' +
     '<div class="card-title" style="margin-bottom:4px">📲 Activar el desvío de llamadas</div>' +
     '<div style="font-size:12px;color:var(--dim);margin-bottom:16px">' +
       'Tu número de NodeFlow (destino del desvío): ' +
