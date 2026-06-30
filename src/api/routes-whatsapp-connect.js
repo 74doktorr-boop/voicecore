@@ -67,7 +67,7 @@ function dialog360Request(method, path, body = null) {
 // Requiere que req.businessId esté establecido por el portalAuth middleware.
 // Si no existe portalAuth en el proyecto, usa header X-Business-Id (solo dev).
 function requirePortalAuth(req, res, next) {
-  // Intentar obtener businessId de sesión/JWT (portalAuth middleware)
+  // Si un middleware previo ya resolvió el negocio, seguir.
   if (req.businessId) return next();
   // Fallback: header de desarrollo (NO usar en producción)
   const devId = req.headers['x-business-id'];
@@ -75,7 +75,10 @@ function requirePortalAuth(req, res, next) {
     req.businessId = devId;
     return next();
   }
-  return res.status(401).json({ error: 'No autenticado' });
+  // Resolver la sesión con el portalAuth real (JWT → businessId).
+  // require perezoso para evitar problemas de orden de carga.
+  const { portalAuth } = require('./routes-portal');
+  return portalAuth(req, res, next);
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
