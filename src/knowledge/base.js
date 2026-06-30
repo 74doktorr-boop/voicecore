@@ -79,6 +79,29 @@ class KnowledgeBase {
     }
   }
 
+  /**
+   * Bloque de conocimiento COMPLETO de la org para inyectar en el system prompt
+   * al inicio de la llamada (las KBs de un negocio son pequeñas → caben en contexto,
+   * sin recuperación por-turno ni latencia añadida). Acotado y fail-safe ('' si vacío/error).
+   */
+  async getSystemContext(orgId, maxChars = 3500) {
+    if (!orgId) return '';
+    try {
+      const store = await this._load(orgId);
+      if (!store.length) return '';
+      let body = '';
+      for (const c of store) {
+        if (body.length + c.content.length + 2 > maxChars) break;
+        body += (body ? '\n' : '') + c.content;
+      }
+      if (!body) return '';
+      return `\n\n[INFORMACIÓN DEL NEGOCIO]\n${body}\n\nUsa esta información para responder con precisión a lo que pregunte el cliente.`;
+    } catch (e) {
+      log.warn(`KB getSystemContext fail-open org=${orgId}: ${e.message}`);
+      return '';
+    }
+  }
+
   /** Estadísticas de la KB de una org. */
   async stats(orgId) {
     const store = await this._load(orgId);

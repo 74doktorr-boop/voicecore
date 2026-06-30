@@ -12,6 +12,8 @@ const { ToolExecutor } = require('../tools/executor');
 const { CallSession } = require('./call-session');
 const { mulawToPcm, pcm8kToPcm16k } = require('../utils/audio');
 const { sendAudioToVonage } = require('../telephony/vonage-handler');
+const { getKnowledgeBase } = require('../knowledge/base');
+const { getDatabase } = require('../db/database');
 
 const log = new Logger('PIPELINE');
 
@@ -70,6 +72,20 @@ class VoicePipeline {
   }
 
   /**
+   * Resuelve el org_id del negocio a partir del número llamado (NodeFlow),
+   * vía la tabla indexada nf_phone_pool. Devuelve null si no hay match/BD
+   * (fail-open: el RAG simplemente no se inyecta).
+   */
+  async _resolveOrgId(calledNumber) {
+    if (!calledNumber || calledNumber === 'unknown') return null;
+    const db = getDatabase();
+    if (!db.enabled) return null;
+    const { data } = await db.client
+      .from('nf_phone_pool').select('org_id').eq('phone_number', calledNumber).maybeSingle();
+    return data?.org_id || null;
+  }
+
+  /**
    * Start a new call session
    */
   async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio' }) {
@@ -89,6 +105,22 @@ class VoicePipeline {
     session.provider  = provider;
     session.status    = 'active';
     this.activeCalls.set(callId, session);
+
+    // ── RAG: inyecta la base de conocimiento del negocio en el system prompt ──
+    // Una sola vez, al inicio. FAIL-OPEN: si falla o no hay KB, la llamada sigue igual.
+    try {
+      const orgId = await this._resolveOrgId(calledNumber);
+      if (orgId) {
+        const ctx = await getKnowledgeBase().getSystemContext(orgId);
+        const sys = session.messages.find(m => m.role === 'system');
+        if (ctx && sys) {
+          sys.content += ctx;
+          log.info(`[${callId}] RAG: KB del negocio inyectada (org ${orgId})`);
+        }
+      }
+    } catch (e) {
+      log.warn(`[${callId}] RAG inject fail-open: ${e.message}`);
+    }
 
     // Vonage sends L16 PCM 16kHz; Twilio sends mulaw 8kHz
     const isVonage = provider === 'vonage';
