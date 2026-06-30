@@ -10,17 +10,19 @@ const { notifyLeadWhatsApp } = require('../notifications/whatsapp');
 const crypto = require('crypto');
 
 const log = new Logger('REGISTRO');
+const rateStore = require('../utils/rate-store');
 
 // ─── Rate limiter — 10 submissions per IP per 15 minutes ──────────────────────
-const _rlStore = new Map();
-function registroRateLimit(req, res, next) {
-  const ip  = req.ip || 'unknown';
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 min
-  let bucket = _rlStore.get(ip);
-  if (!bucket || now - bucket.start > windowMs) { bucket = { start: now, count: 0 }; _rlStore.set(ip, bucket); }
-  bucket.count++;
-  if (bucket.count > 10) {
+// Vía rate-store compartido (Redis si REDIS_URL → multi-réplica; si no, memoria).
+async function registroRateLimit(req, res, next) {
+  const ip = req.ip || 'unknown';
+  let count;
+  try {
+    ({ count } = await rateStore.hit(`registro:${ip}`, 15 * 60 * 1000));
+  } catch (e) {
+    return next(); // fail-open
+  }
+  if (count > 10) {
     log.warn(`Registro rate limit exceeded for IP: ${ip}`);
     return res.status(429).json({ error: 'Demasiadas solicitudes. Espera unos minutos.' });
   }

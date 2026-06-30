@@ -5,6 +5,7 @@
 const crypto = require('crypto');
 const { Logger } = require('../utils/logger');
 const { getDatabase } = require('../db/database');
+const rateStore = require('../utils/rate-store');
 
 const log = new Logger('AUTH');
 
@@ -115,17 +116,17 @@ async function generateMagicToken(email, registroId) {
   return token;
 }
 
-// ── In-memory rate limiter (no external dep) ────────────────────────────────
-// Limits: 5 magic link requests per IP per 10 minutes
-const _rlStore = new Map();
-function requestLinkRateLimit(req, res, next) {
+// ── Rate limiter: 5 magic link requests per IP per 10 minutes ───────────────
+// Vía rate-store compartido (Redis si REDIS_URL → multi-réplica; si no, memoria).
+async function requestLinkRateLimit(req, res, next) {
   const ip = req.ip || 'unknown';
-  const now = Date.now();
-  const window = 10 * 60 * 1000; // 10 min
-  let bucket = _rlStore.get(ip);
-  if (!bucket || now - bucket.start > window) { bucket = { start: now, count: 0 }; _rlStore.set(ip, bucket); }
-  bucket.count++;
-  if (bucket.count > 5) {
+  let count;
+  try {
+    ({ count } = await rateStore.hit(`authlink:${ip}`, 10 * 60 * 1000));
+  } catch (e) {
+    return next(); // fail-open
+  }
+  if (count > 5) {
     return res.status(429).json({ error: 'Demasiadas solicitudes. Espera unos minutos.' });
   }
   next();
