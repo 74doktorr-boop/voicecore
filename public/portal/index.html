@@ -322,6 +322,9 @@
         <span class="nav-icon">🎙️</span>
         <span>Asistente</span>
       </div>
+      <div class="nav-item"       id="nav-conocimiento"      onclick="navigate('conocimiento')">
+        <span class="nav-icon">📚</span><span>Base de conocimiento</span>
+      </div>
       <div class="nav-item"       id="nav-facturacion"       onclick="navigate('facturacion')">
         <span class="nav-icon">💳</span><span>Facturación</span>
       </div>
@@ -481,6 +484,20 @@
         <p class="section-sub">Por cada negocio que traigas, ambos salís ganando</p>
       </div>
       <div id="referidos-body"></div>
+    </div>
+
+    <div id="sec-conocimiento" class="section">
+      <div class="section-header">
+        <h2 class="section-title">📚 Base de conocimiento</h2>
+        <p class="section-sub">Escribe lo que tu asistente debe saber de tu negocio (FAQs, servicios, precios, normas, seguros...). Lo usará al atender las llamadas.</p>
+      </div>
+      <div class="card" style="padding:18px">
+        <textarea id="kbText" placeholder="Ej: Hacemos blanqueamiento dental (120€). Aparcamiento gratuito para clientes. Cerramos los lunes. Aceptamos seguros Adeslas y Sanitas. Primera visita sin coste." style="width:100%;min-height:280px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-size:14px;font-family:inherit;line-height:1.6;resize:vertical;outline:none"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px;flex-wrap:wrap">
+          <span id="kbStatus" style="font-size:12px;color:var(--dim)"></span>
+          <button class="btn btn-accent" id="kbSaveBtn" onclick="saveConocimiento()" style="font-size:13px">Guardar</button>
+        </div>
+      </div>
     </div>
 
     <div id="sec-widget" class="section">

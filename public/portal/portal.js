@@ -89,7 +89,42 @@ function navigate(section) {
   else if (section === 'oportunidades')    loadOportunidades();
   else if (section === 'insights')         loadInsights();
   else if (section === 'espera')           loadEspera();
+  else if (section === 'conocimiento')     loadConocimiento();
   if (section === 'asistente') loadAsistente();
+}
+
+// ════════ Base de conocimiento (RAG) ═══════════════════════════════════════════
+async function loadConocimiento() {
+  var ta = document.getElementById('kbText');
+  var st = document.getElementById('kbStatus');
+  if (!ta) return;
+  st.textContent = 'Cargando…'; st.style.color = 'var(--dim)';
+  try {
+    var r = await api('/api/portal/knowledge');
+    ta.value = r.text || '';
+    st.textContent = r.chunks ? (r.chunks + ' fragmento(s) guardado(s)') : 'Vacío — añade la información de tu negocio.';
+  } catch (e) {
+    st.textContent = 'Error al cargar: ' + (e.message || e); st.style.color = 'var(--red)';
+  }
+}
+
+async function saveConocimiento() {
+  var ta  = document.getElementById('kbText');
+  var st  = document.getElementById('kbStatus');
+  var btn = document.getElementById('kbSaveBtn');
+  if (!ta) return;
+  var prev = btn.textContent; btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    var r = await api('/api/portal/knowledge', 'PUT', { text: ta.value });
+    st.textContent = '✓ Guardado (' + (r.chunksAdded || 0) + ' fragmentos). Tu asistente ya lo usará en las llamadas.';
+    st.style.color = 'var(--green)';
+    toast('Base de conocimiento guardada');
+  } catch (e) {
+    st.textContent = 'Error al guardar: ' + (e.message || e); st.style.color = 'var(--red)';
+    toast('Error al guardar', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = prev;
+  }
 }
 
 // ════════ Lista de espera ═════════════════════════════════════════════════════

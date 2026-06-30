@@ -13,6 +13,7 @@ const { scheduler }          = require('../scheduling/scheduler');
 const { getDatabase }        = require('../db/database');
 const { getOrgReminderConfig, scheduleReminder, recalculate } = require('../lifecycle/reminder-engine');
 const { SECTOR_REQUIRED_FIELDS, getCompletionStatus } = require('../lifecycle/sector-fields');
+const { getKnowledgeBase } = require('../knowledge/base');
 
 const log = new Logger('ROUTES-PORTAL');
 
@@ -82,6 +83,38 @@ async function portalAuth(req, res, next) {
 // ── setupPortalRoutes ────────────────────────────────────────
 function setupPortalRoutes(app, pipeline, config) {
   config = config || {};
+
+  // ── Base de conocimiento (RAG) ─────────────────────────────
+  // GET: texto guardado + nº de fragmentos. PUT: reemplaza toda la KB del negocio.
+  app.get('/api/portal/knowledge', portalAuth, async (req, res) => {
+    try {
+      const kb = getKnowledgeBase();
+      const store = await kb._load(req.businessId);
+      const text  = store.map(c => c.content).join('\n\n');
+      res.json({ ok: true, chunks: store.length, text });
+    } catch (e) {
+      log.error('GET knowledge error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/portal/knowledge', portalAuth, async (req, res) => {
+    try {
+      const text = (req.body && typeof req.body.text === 'string') ? req.body.text.trim() : '';
+      const kb = getKnowledgeBase();
+      // Reemplazo total: borra lo anterior y reingesta el texto nuevo.
+      await kb.clear(req.businessId);
+      let chunksAdded = 0;
+      if (text) {
+        const r = await kb.ingestText(req.businessId, text, 'portal');
+        chunksAdded = r.chunksAdded;
+      }
+      res.json({ ok: true, chunksAdded });
+    } catch (e) {
+      log.error('PUT knowledge error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // ── GET /api/portal/referral ───────────────────────────────
   // Devuelve el código de referido del negocio (lo crea si no existe),

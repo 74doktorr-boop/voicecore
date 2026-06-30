@@ -15,7 +15,7 @@ class KnowledgeBase {
     this.openaiApiKey   = config.openaiApiKey || process.env.OPENAI_API_KEY;
     this.embeddingModel = 'text-embedding-3-small';
     this.chunkSize      = 220;   // palabras por chunk
-    this.chunkOverlap   = 40;
+    this.chunkOverlap   = 0;     // sin solape → round-trip limpio para mostrar/editar en el portal
     this.topK           = 3;
     this.minScore       = 0.30;
     this._mem           = new Map(); // fallback: orgId -> [{ content, source, embedding }]
