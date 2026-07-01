@@ -61,6 +61,60 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ── POST /api/widget/callback — solicitudes del widget "¿Te llamamos?" ──────
+  // Público (lo llama el widget desde la web del cliente). Guarda en nf_callbacks
+  // y avisa al negocio por email — best-effort: si una vía falla, la otra salva
+  // el lead. Rate-limit por IP para evitar spam.
+  const widgetLimiter = require('../utils/rate-limiter').rateLimit({ max: 20, windowMs: 60 * 60 * 1000, keyPrefix: 'widget:cb', message: 'Demasiadas solicitudes. Inténtalo más tarde.' });
+  app.post('/api/widget/callback', widgetLimiter, async (req, res) => {
+    try {
+      const { orgId, name, phone, message } = req.body || {};
+      const cleanPhone = String(phone || '').trim();
+      if (!orgId || cleanPhone.replace(/\D/g, '').length < 7) {
+        return res.status(400).json({ error: 'orgId y un teléfono válido son obligatorios' });
+      }
+      const cleanName = String(name || '').slice(0, 120);
+      const cleanMsg  = String(message || '').slice(0, 1000);
+
+      let org = null;
+      if (db.enabled) {
+        try {
+          const { data } = await db.client.from('organizations').select('id, name, owner_email').eq('id', orgId).single();
+          org = data || null;
+        } catch (_) {}
+      }
+
+      let persisted = false, notified = false;
+      if (db.enabled) {
+        try {
+          const { error } = await db.client.from('nf_callbacks').insert({ organization_id: orgId, name: cleanName, phone: cleanPhone, message: cleanMsg, status: 'pending' });
+          persisted = !error;
+        } catch (_) {}
+      }
+      if (org && org.owner_email) {
+        try {
+          const { sendEmail } = require('../notifications/email');
+          const esc = (s) => String(s || '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+          const html = `<h2 style="margin:0 0 10px">📞 Nueva solicitud de llamada</h2>
+            <p>Alguien ha pedido que le llaméis desde vuestra web:</p>
+            <ul style="font-size:15px;line-height:1.7">
+              <li><b>Nombre:</b> ${esc(cleanName) || '—'}</li>
+              <li><b>Teléfono:</b> <a href="tel:${esc(cleanPhone)}">${esc(cleanPhone)}</a></li>
+              <li><b>Mensaje:</b> ${esc(cleanMsg) || '—'}</li>
+            </ul>
+            <p style="color:#888;font-size:12px">Widget "¿Te llamamos?" · NodeFlow</p>`;
+          await sendEmail({ to: org.owner_email, subject: `📞 Te piden llamada: ${cleanName || cleanPhone}`, html });
+          notified = true;
+        } catch (_) {}
+      }
+
+      if (!persisted && !notified) return res.status(500).json({ error: 'No se pudo registrar la solicitud' });
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: 'Error interno' });
+    }
+  });
+
   // ─── Twilio Webhooks — validated with X-Twilio-Signature ───
   app.post('/voice/inbound', twilioSig, (req, res) => {
     const assistantId = req.query.assistantId || null;

@@ -1,6 +1,29 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 0 pendientes ✅ — audit_log aplicada 2026-07-01. Patch de escalado 2026-06-30.**
+**Estado: 1 pendiente ⏳ — nf_callbacks (widget "¿Te llamamos?"). audit_log aplicada 2026-07-01.**
+
+---
+
+## nf_callbacks — solicitudes del widget "¿Te llamamos?" ⏳ VERIFICAR/APLICAR (2026-07-01)
+**Por qué:** el widget embebible manda las solicitudes a `POST /api/widget/callback`,
+que las guarda aquí y las lista en el portal del cliente. Sin la tabla, el negocio
+igual recibe el email (best-effort), pero no se guardan ni aparecen en el portal.
+SQL también en `db/migration-callbacks.sql`.
+
+```sql
+CREATE TABLE IF NOT EXISTS nf_callbacks (
+  id bigserial PRIMARY KEY,
+  organization_id text NOT NULL,
+  name text,
+  phone text NOT NULL,
+  message text,
+  status text NOT NULL DEFAULT 'pending',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_callbacks_org ON nf_callbacks (organization_id, created_at DESC);
+ALTER TABLE nf_callbacks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "service_role_all" ON nf_callbacks TO service_role USING (true) WITH CHECK (true);
+```
 
 ---
 
