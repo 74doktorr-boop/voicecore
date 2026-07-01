@@ -171,6 +171,7 @@
     <button class="nav-tab" onclick="switchTab('automatizaciones',this)">🤖 Automatizaciones</button>
     <button class="nav-tab" onclick="switchTab('flujos',this)">⚡ Flujos</button>
     <button class="nav-tab" onclick="switchTab('llamadas',this)">📞 Llamadas</button>
+    <button class="nav-tab" onclick="switchTab('analiticas',this)">📈 Analíticas</button>
     <button class="nav-tab" onclick="switchTab('pool',this)">🔢 Pool números</button>
     <button class="nav-tab" onclick="switchTab('sistema',this)">🩺 Sistema</button>
   </nav>
@@ -204,6 +205,55 @@
     </div>
 
     <!-- Leads -->
+    <!-- ANALÍTICAS -->
+    <div class="tab-panel" id="tab-analiticas">
+      <style>
+        .an-charts{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:20px 0}
+        @media(max-width:820px){.an-charts{grid-template-columns:1fr}}
+        .an-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+        .an-card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text)}
+        .an-legend{display:flex;gap:16px;font-size:11px;color:var(--dim);margin-top:8px}
+        .an-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+        .an-fbar{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+        .an-fbar .lbl{width:150px;font-size:12px;color:var(--dim)}
+        .an-fbar .track{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden}
+        .an-fbar .fill{height:100%;background:linear-gradient(90deg,var(--accent),#f2bd5e);border-radius:6px}
+        .an-fbar .val{width:90px;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
+        .hbadge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+        .hbadge.activo{background:rgba(33,192,138,.14);color:#21c08a}
+        .hbadge.en_riesgo{background:rgba(246,197,68,.16);color:#f6c544}
+        .hbadge.inactivo{background:rgba(255,255,255,.06);color:var(--dim)}
+        .an-alert{display:inline-block;font-size:10px;font-weight:600;color:#f0645a;background:rgba(240,100,90,.1);border-radius:5px;padding:1px 6px;margin:1px}
+      </style>
+      <div class="section-hd">
+        <div><h2>Analíticas de negocio</h2><p id="an-period-lbl">Cargando…</p></div>
+        <select id="an-days" onchange="loadAnalytics()" class="form-select" style="width:auto">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+        </select>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Conversión</div><div class="kpi-value" id="anConv">—</div><div class="kpi-sub">llamada → cita</div></div>
+        <div class="kpi-card"><div class="kpi-label">Reservas</div><div class="kpi-value" id="anBook">—</div><div class="kpi-sub" id="anCalls">— llamadas</div></div>
+        <div class="kpi-card"><div class="kpi-label">No-shows</div><div class="kpi-value" id="anNoshow">—</div><div class="kpi-sub" id="anNoshowRate">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Minutos usados</div><div class="kpi-value" id="anMin">—</div><div class="kpi-sub" id="anAvg">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Overage</div><div class="kpi-value" id="anOver">—</div><div class="kpi-sub">min extra facturables</div></div>
+        <div class="kpi-card"><div class="kpi-label">Altas (30d)</div><div class="kpi-value" id="anNew">—</div><div class="kpi-sub" id="anActive">— activos</div></div>
+      </div>
+      <div class="an-charts">
+        <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
+          <div class="an-legend"><span><i style="background:#6c8cff"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
+        <div class="an-card"><h3>Horas pico</h3><div id="an-hours"></div></div>
+      </div>
+      <div class="an-card" style="margin-bottom:20px"><h3>Embudo de conversión</h3><div id="an-funnel"></div></div>
+      <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Cliente</th><th>Plan</th><th>Salud</th><th>Llamadas</th><th>Conv.</th><th>Minutos</th><th>Alertas</th></tr></thead>
+        <tbody id="an-clients"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody></table>
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-leads">
       <div class="section-hd">
         <div><h2>Leads / Registros</h2><p id="leadsCount"></p></div>
@@ -457,6 +507,7 @@ function switchTab(name,btn) {
   btn.classList.add('active');
   if(name==='citas') loadCitasOrgs().then(loadCitas);
   if(name==='llamadas') loadCalls();
+  if(name==='analiticas') loadAnalytics();
   if(name==='automatizaciones') loadAutoStats();
   if(name==='flujos') loadFlows();
   if(name==='pool') loadPool();
@@ -772,6 +823,65 @@ async function loadAutoStats(){
 }
 
 // Llamadas
+// ── Analíticas de negocio ──────────────────────────────────────
+function _anSvg(w,h,inner){ return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" style="display:block">'+inner+'</svg>'; }
+function _anSeries(el, s){
+  if(!el) return;
+  if(!s || !s.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  var W=560,H=150,pad=8, n=s.length;
+  var max=Math.max(1, Math.max.apply(null, s.map(function(d){return d.calls;})));
+  var x=function(i){ return pad + i*(W-2*pad)/Math.max(1,n-1); };
+  var y=function(v){ return H-pad - (v/max)*(H-2*pad); };
+  var poly=function(key,color){ return '<polyline points="'+s.map(function(d,i){return x(i)+','+y(d[key]);}).join(' ')+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>'; };
+  var area='M '+x(0)+','+(H-pad)+' '+s.map(function(d,i){return 'L '+x(i)+','+y(d.calls);}).join(' ')+' L '+x(n-1)+','+(H-pad)+' Z';
+  el.innerHTML=_anSvg(W,H,'<path d="'+area+'" fill="rgba(108,140,255,.12)"/>'+poly('calls','#6c8cff')+poly('bookings','#e0a23c'));
+}
+function _anHours(el, hours){
+  if(!el) return;
+  if(!hours){ el.innerHTML=''; return; }
+  var max=Math.max(1, Math.max.apply(null, hours));
+  var bars=hours.map(function(v,i){
+    var peak=(v===max && v>0);
+    return '<div title="'+i+'h: '+v+' llamadas" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px">'
+      +'<div style="width:72%;height:'+Math.max(2,(v/max)*104)+'px;background:'+(peak?'#e0a23c':'#3a4a6a')+';border-radius:3px 3px 0 0"></div>'
+      +(i%3===0?'<span style="font-size:8px;color:var(--dim)">'+i+'</span>':'<span style="height:8px"></span>')+'</div>';
+  }).join('');
+  el.innerHTML='<div style="display:flex;align-items:flex-end;gap:2px;height:130px">'+bars+'</div>';
+}
+function _anFunnel(el, f){
+  if(!el) return;
+  if(!f || !f.total){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin llamadas registradas desde el último arranque del servidor.</div>'; return; }
+  var rows=[['Llamadas',f.total,100],['Conectadas',f.connected.count,f.connected.rate],['Con conversación',f.engaged.count,f.engaged.rate],['Usaron herramientas',f.toolsUsed.count,f.toolsUsed.rate],['Reservaron',f.booked.count,f.booked.rate]];
+  el.innerHTML=rows.map(function(r){ return '<div class="an-fbar"><div class="lbl">'+r[0]+'</div><div class="track"><div class="fill" style="width:'+r[2]+'%"></div></div><div class="val">'+r[1]+' · '+r[2]+'%</div></div>'; }).join('');
+}
+async function loadAnalytics(){
+  var days=(document.getElementById('an-days')||{}).value||'30';
+  var lbl=document.getElementById('an-period-lbl'); if(lbl) lbl.textContent='Últimos '+days+' días';
+  var set=function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  try{
+    var r=await fetch('/api/admin/analytics?days='+days,{headers:h()});
+    var d=await r.json(); var k=d.kpis||{};
+    set('anConv',(k.conversionRate||0)+'%');
+    set('anBook',k.bookings||0); set('anCalls',(k.totalCalls||0)+' llamadas');
+    set('anNoshow',k.noShows||0); set('anNoshowRate',(k.noShowRate||0)+'% de citas');
+    set('anMin',(k.minutesUsed||0)); set('anAvg','media '+(k.avgDurationSec||0)+'s/llamada');
+    set('anOver',(k.overageMinutes||0)+' min');
+    set('anNew',k.newOrgs||0); set('anActive',(k.activeOrgs||0)+' activos');
+    _anSeries(document.getElementById('an-series'), d.series);
+    _anHours(document.getElementById('an-hours'), d.hours);
+    _anFunnel(document.getElementById('an-funnel'), d.funnel);
+    var tb=document.getElementById('an-clients'), cl=d.clientes||[];
+    if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }
+    else tb.innerHTML=cl.map(function(c){
+      var alerts=(c.alerts||[]).map(function(a){return '<span class="an-alert">'+a.replace(/_/g,' ')+'</span>';}).join('');
+      return '<tr><td>'+(c.name||'—')+'</td><td>'+(c.plan||'—')+'</td>'
+        +'<td><span class="hbadge '+c.health+'">'+String(c.health).replace('_',' ')+'</span></td>'
+        +'<td>'+c.calls+'</td><td>'+c.conversionRate+'%</td><td>'+c.minutesUsed+'/'+c.includedMinutes+'</td>'
+        +'<td>'+(alerts||'—')+'</td></tr>';
+    }).join('');
+  }catch(e){ if(lbl) lbl.textContent='Error al cargar analíticas'; }
+}
+
 async function loadCalls(){
   try{
     const d=await api('/api/admin/calls');
