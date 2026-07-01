@@ -242,6 +242,14 @@
         <div class="kpi-card"><div class="kpi-label">Overage</div><div class="kpi-value" id="anOver">—</div><div class="kpi-sub">min extra facturables</div></div>
         <div class="kpi-card"><div class="kpi-label">Altas (30d)</div><div class="kpi-value" id="anNew">—</div><div class="kpi-sub" id="anActive">— activos</div></div>
       </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
+        <div class="kpi-card"><div class="kpi-label">ARPU</div><div class="kpi-value" id="anArpu">—</div><div class="kpi-sub">ingreso medio/cliente</div></div>
+        <div class="kpi-card"><div class="kpi-label">Fuera de horario</div><div class="kpi-value" id="anAfter">—</div><div class="kpi-sub" id="anAfterN">llamadas captadas</div></div>
+        <div class="kpi-card"><div class="kpi-label">Recordatorios</div><div class="kpi-value" id="anRem">—</div><div class="kpi-sub">enviados (auto)</div></div>
+        <div class="kpi-card"><div class="kpi-label">Reseñas pedidas</div><div class="kpi-value" id="anRev">—</div><div class="kpi-sub">tras la cita</div></div>
+        <div class="kpi-card"><div class="kpi-label">Churn</div><div class="kpi-value" id="anChurn">—</div><div class="kpi-sub" id="anChurnN">bajas</div></div>
+        <div class="kpi-card"><div class="kpi-label">Turnos/llamada</div><div class="kpi-value" id="anTurns">—</div><div class="kpi-sub">interacción media</div></div>
+      </div>
       <div class="an-charts">
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
           <div class="an-legend"><span><i style="background:#6c8cff"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
@@ -907,6 +915,11 @@ async function loadAnalytics(){
     set('anMin',(k.minutesUsed||0)); set('anAvg','media '+(k.avgDurationSec||0)+'s/llamada');
     set('anOver',(k.overageMinutes||0)+' min');
     set('anNew',k.newOrgs||0); set('anActive',(k.activeOrgs||0)+' activos');
+    set('anArpu','€'+(k.arpu||0));
+    set('anAfter',(k.afterHoursRate||0)+'%'); set('anAfterN',(k.afterHoursCalls||0)+' llamadas captadas');
+    set('anRem',k.remindersSent||0); set('anRev',k.reviewsRequested||0);
+    set('anChurn',(k.churnRate||0)+'%'); set('anChurnN',(k.churnedOrgs||0)+' bajas');
+    set('anTurns',k.avgTurns||0);
     _anSeries(document.getElementById('an-series'), d.series);
     _anHours(document.getElementById('an-hours'), d.hours);
     _anFunnel(document.getElementById('an-funnel'), d.funnel);

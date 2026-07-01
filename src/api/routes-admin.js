@@ -357,8 +357,8 @@ function setupAdminRoutes(app, config, assistantManager) {
       let calls = [], appointments = [], orgs = [];
       if (db.enabled) {
         const [callsRes, apptRes, orgRes] = await Promise.all([
-          db.client.from('calls').select('org_id, outcome, duration_ms, started_at, created_at').gte('created_at', sinceISO).limit(5000),
-          db.client.from('nf_appointments').select('organization_id, status, no_show_notified, date').gte('date', sinceISO.slice(0, 10)).limit(5000),
+          db.client.from('calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', sinceISO).limit(5000),
+          db.client.from('nf_appointments').select('organization_id, status, no_show_notified, reminder_sent, review_requested, date').gte('date', sinceISO.slice(0, 10)).limit(5000),
           db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at').limit(1000),
         ]);
         calls = callsRes.data || [];

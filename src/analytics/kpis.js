@@ -39,9 +39,29 @@ function computeKpis(p = {}) {
   const cancelled = appts.filter(a => a.status === 'cancelled').length;
   const noShowRate = totalAppts ? Math.round((noShows / totalAppts) * 100) : 0;
 
+  // Automatizaciones (valor añadido)
+  const confirmedAppts = appts.filter(a => a.status === 'confirmed').length;
+  const remindersSent = appts.filter(a => a.reminder_sent).length;
+  const reviewsRequested = appts.filter(a => a.review_requested).length;
+
+  // Engagement
+  const avgTurns = totalCalls ? Math.round(calls.reduce((s, c) => s + (Number(c.turn_count) || 0), 0) / totalCalls) : 0;
+
+  // Captación FUERA de horario (antes de 9h o a partir de 20h, o fin de semana):
+  // el valor diferencial de NodeFlow — llamadas que hoy se perderían.
+  const afterHoursCalls = calls.filter(c => {
+    const t = _ts(c.started_at || c.created_at); if (t == null) return false;
+    const d = new Date(t); const h = d.getHours(); const wd = d.getDay();
+    return h < 9 || h >= 20 || wd === 0 || wd === 6;
+  }).length;
+  const afterHoursRate = totalCalls ? Math.round((afterHoursCalls / totalCalls) * 100) : 0;
+
   // Clientes / ingresos
   const activeOrgs = orgs.filter(o => o.is_active);
+  const churnedOrgs = orgs.filter(o => o.is_active === false).length;
+  const churnRate = orgs.length ? Math.round((churnedOrgs / orgs.length) * 100) : 0;
   const mrr = activeOrgs.reduce((s, o) => s + (prices[o.plan] || 0), 0);
+  const arpu = activeOrgs.length ? Math.round(mrr / activeOrgs.length) : 0;
   const overageMinutes = Math.round(activeOrgs.reduce((s, o) => s + Math.max(0, (Number(o.monthly_minutes_used) || 0) - included), 0));
   const overageRevenue = Math.round(overageMinutes * 0.10 * 100) / 100; // 0,10 €/min
 
@@ -50,10 +70,12 @@ function computeKpis(p = {}) {
   const newOrgs = orgs.filter(o => { const t = _ts(o.registered_at || o.created_at); return t && t >= monthAgo; }).length;
 
   return {
-    totalCalls, bookings, infoCalls, conversionRate, minutesUsed, avgDurationSec,
-    totalAppts, noShows, cancelled, noShowRate,
-    activeOrgs: activeOrgs.length, totalOrgs: orgs.length, newOrgs,
-    mrr, overageMinutes, overageRevenue,
+    totalCalls, bookings, infoCalls, conversionRate, minutesUsed, avgDurationSec, avgTurns,
+    totalAppts, confirmedAppts, noShows, cancelled, noShowRate,
+    remindersSent, reviewsRequested,
+    afterHoursCalls, afterHoursRate,
+    activeOrgs: activeOrgs.length, totalOrgs: orgs.length, newOrgs, churnedOrgs, churnRate,
+    mrr, arpu, overageMinutes, overageRevenue,
   };
 }
 

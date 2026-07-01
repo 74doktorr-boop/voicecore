@@ -8,16 +8,16 @@ const NOW = new Date('2026-07-01T12:00:00Z').getTime();
 const day = (d) => new Date(NOW - d * 86400000).toISOString();
 
 const calls = [
-  { org_id: 'a', outcome: 'booked', duration_ms: 120000, started_at: day(0) },
-  { org_id: 'a', outcome: 'info', duration_ms: 60000, started_at: day(1) },
-  { org_id: 'a', outcome: 'booked', duration_ms: 180000, started_at: day(2) },
-  { org_id: 'b', outcome: 'abandoned', duration_ms: 10000, started_at: day(20) }, // cliente b: última hace 20d
+  { org_id: 'a', outcome: 'booked', duration_ms: 120000, started_at: day(0), turn_count: 6 },
+  { org_id: 'a', outcome: 'info', duration_ms: 60000, started_at: day(1), turn_count: 4 },
+  { org_id: 'a', outcome: 'booked', duration_ms: 180000, started_at: day(2), turn_count: 8 },
+  { org_id: 'b', outcome: 'abandoned', duration_ms: 10000, started_at: day(20), turn_count: 2 }, // cliente b: última hace 20d
 ];
 const appointments = [
-  { organization_id: 'a', status: 'confirmed' },
+  { organization_id: 'a', status: 'confirmed', reminder_sent: true, review_requested: true },
   { organization_id: 'a', status: 'no_show' },
   { organization_id: 'a', status: 'cancelled' },
-  { organization_id: 'a', no_show_notified: true, status: 'confirmed' },
+  { organization_id: 'a', no_show_notified: true, status: 'confirmed', reminder_sent: true },
 ];
 const orgs = [
   { id: 'a', name: 'Clínica A', plan: 'negocio', is_active: true, monthly_minutes_used: 520, registered_at: day(5) },
@@ -48,6 +48,21 @@ describe('kpis.computeKpis', () => {
     assert.strictEqual(k.overageRevenue, 2);    // 20 × 0,10
   });
   test('altas del mes', () => { assert.strictEqual(k.newOrgs, 1); }); // a hace 5d
+  test('ARPU = MRR / activos', () => { assert.strictEqual(k.arpu, 49); }); // 98/2
+  test('churn: orgs inactivas', () => {
+    assert.strictEqual(k.churnedOrgs, 1);          // c inactivo
+    assert.strictEqual(k.churnRate, 33);           // 1/3
+  });
+  test('automatizaciones: recordatorios y reseñas', () => {
+    assert.strictEqual(k.remindersSent, 2);
+    assert.strictEqual(k.reviewsRequested, 1);
+    assert.strictEqual(k.confirmedAppts, 2);
+  });
+  test('media de turnos por llamada', () => { assert.strictEqual(k.avgTurns, 5); }); // (6+4+8+2)/4
+  test('captación fuera de horario está calculada', () => {
+    assert.ok(typeof k.afterHoursCalls === 'number');
+    assert.ok(typeof k.afterHoursRate === 'number');
+  });
 });
 
 describe('kpis.timeSeries / hourlyVolume', () => {
