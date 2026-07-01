@@ -1,6 +1,30 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 0 pendientes ✅ — patch de escalado aplicado 2026-06-30. Resto ejecutadas ✅ — 2026-06-10**
+**Estado: 1 pendiente ⏳ — audit_log (2026-07-01). Patch de escalado aplicado 2026-06-30.**
+
+---
+
+## audit_log — registro de auditoría del panel admin ⏳ PENDIENTE (2026-07-01)
+**Por qué:** trazar quién hizo qué y cuándo (login, alta/edición/baja de clientes,
+cambios de plan…). El código escribe best-effort; sin esta tabla el registro no
+persiste pero NO rompe nada. Fichero de código: `src/audit/audit-log.js`.
+
+```sql
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor       TEXT        NOT NULL DEFAULT 'admin',
+  action      TEXT        NOT NULL,
+  target_type TEXT,
+  target_id   TEXT,
+  details     JSONB       NOT NULL DEFAULT '{}',
+  ip          TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_log (action);
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "service_role_all" ON audit_log TO service_role USING (true) WITH CHECK (true);
+```
 
 ---
 

@@ -172,6 +172,7 @@
     <button class="nav-tab" onclick="switchTab('flujos',this)">⚡ Flujos</button>
     <button class="nav-tab" onclick="switchTab('llamadas',this)">📞 Llamadas</button>
     <button class="nav-tab" onclick="switchTab('analiticas',this)">📈 Analíticas</button>
+    <button class="nav-tab" onclick="switchTab('auditoria',this)">🔒 Auditoría</button>
     <button class="nav-tab" onclick="switchTab('pool',this)">🔢 Pool números</button>
     <button class="nav-tab" onclick="switchTab('sistema',this)">🩺 Sistema</button>
   </nav>
@@ -251,6 +252,26 @@
       <div class="table-wrap">
         <table><thead><tr><th>Cliente</th><th>Plan</th><th>Salud</th><th>Llamadas</th><th>Conv.</th><th>Minutos</th><th>Alertas</th></tr></thead>
         <tbody id="an-clients"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div class="tab-panel" id="tab-auditoria">
+      <div class="section-hd">
+        <div><h2>Registro de auditoría</h2><p>Quién hizo qué y cuándo en el panel</p></div>
+        <select id="au-action" onchange="loadAudit()" class="form-select" style="width:auto">
+          <option value="">Todas las acciones</option>
+          <option value="admin_login">🔑 Login admin</option>
+          <option value="org_create">➕ Alta cliente</option>
+          <option value="org_update">✏️ Edición cliente</option>
+          <option value="plan_change">💳 Cambio de plan</option>
+          <option value="client_activate">✅ Activación</option>
+          <option value="org_delete">🗑️ Baja cliente</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Fecha</th><th>Acción</th><th>Objetivo</th><th>Detalles</th><th>IP</th></tr></thead>
+        <tbody id="au-rows"><tr class="empty-row"><td colspan="5">Cargando…</td></tr></tbody></table>
       </div>
     </div>
 
@@ -508,6 +529,7 @@ function switchTab(name,btn) {
   if(name==='citas') loadCitasOrgs().then(loadCitas);
   if(name==='llamadas') loadCalls();
   if(name==='analiticas') loadAnalytics();
+  if(name==='auditoria') loadAudit();
   if(name==='automatizaciones') loadAutoStats();
   if(name==='flujos') loadFlows();
   if(name==='pool') loadPool();
@@ -823,6 +845,24 @@ async function loadAutoStats(){
 }
 
 // Llamadas
+// ── Auditoría ──────────────────────────────────────────────────
+async function loadAudit(){
+  var action=(document.getElementById('au-action')||{}).value||'';
+  var tb=document.getElementById('au-rows'); if(!tb) return;
+  var ACT={admin_login:'🔑 Login admin',org_create:'➕ Alta cliente',org_update:'✏️ Edición',plan_change:'💳 Cambio de plan',client_activate:'✅ Activación',org_delete:'🗑️ Baja cliente'};
+  try{
+    var r=await fetch('/api/admin/audit'+(action?('?action='+encodeURIComponent(action)):''),{headers:h()});
+    var d=await r.json(); var ev=d.events||[];
+    if(!ev.length){ tb.innerHTML='<tr class="empty-row"><td colspan="5">Sin eventos. (¿Aplicaste la tabla <code>audit_log</code> en Supabase?)</td></tr>'; return; }
+    tb.innerHTML=ev.map(function(e){
+      var when=e.created_at?new Date(e.created_at).toLocaleString('es-ES'):'—';
+      var obj=(e.target_type||'')+(e.target_id?(' '+String(e.target_id).slice(0,8)):'');
+      var det=(e.details&&Object.keys(e.details).length)?('<code style="font-size:11px;color:var(--dim)">'+JSON.stringify(e.details).slice(0,90)+'</code>'):'—';
+      return '<tr><td style="white-space:nowrap">'+when+'</td><td>'+(ACT[e.action]||e.action)+'</td><td>'+(obj||'—')+'</td><td>'+det+'</td><td style="color:var(--dim)">'+(e.ip||'—')+'</td></tr>';
+    }).join('');
+  }catch(err){ tb.innerHTML='<tr class="empty-row"><td colspan="5">Error al cargar auditoría</td></tr>'; }
+}
+
 // ── Analíticas de negocio ──────────────────────────────────────
 function _anSvg(w,h,inner){ return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" style="display:block">'+inner+'</svg>'; }
 function _anSeries(el, s){

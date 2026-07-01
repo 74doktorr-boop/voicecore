@@ -9,6 +9,7 @@ const { getDatabase } = require('../db/database');
 const { verifySessionToken, generateMagicToken } = require('./routes-auth');
 const { getAnalytics } = require('../analytics/engine');
 const { sendMagicLinkEmail, sendActivacion } = require('../notifications/email');
+const { recordAudit, ipOf } = require('../audit/audit-log');
 
 const log = new Logger('ADMIN');
 
@@ -72,6 +73,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     // Token expira en 24h
     setTimeout(() => _validTokens.delete(token), 24 * 60 * 60 * 1000);
     log.info(`Admin login OK desde ${ip}`);
+    recordAudit({ action: 'admin_login', targetType: 'admin', ip });
     res.json({ token });
   });
 
@@ -199,6 +201,7 @@ function setupAdminRoutes(app, config, assistantManager) {
         phone:      phone || null,
       });
       log.info(`Org created manually: ${org.id} (${name})`);
+      recordAudit({ action: 'org_create', targetType: 'org', targetId: org.id, ip: ipOf(req), details: { name, plan, sector } });
       res.json({ org });
     } catch (e) {
       log.error(`POST /api/admin/orgs error: ${e.message}`);
@@ -216,6 +219,7 @@ function setupAdminRoutes(app, config, assistantManager) {
         .update({ is_active: false, status: 'deleted' })
         .eq('id', req.params.id);
       log.info(`Org soft-deleted: ${req.params.id}`);
+      recordAudit({ action: 'org_delete', targetType: 'org', targetId: req.params.id, ip: ipOf(req) });
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -249,6 +253,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
     try {
       await db.client.from('organizations').update(patch).eq('id', req.params.id);
+      recordAudit({ action: plan !== undefined ? 'plan_change' : 'org_update', targetType: 'org', targetId: req.params.id, ip: ipOf(req), details: patch });
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -322,6 +327,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       await sendActivacion(registro, numeroNodeflow);
 
       log.info(`Cliente activado: ${org.name} → ${numeroNodeflow}`);
+      recordAudit({ action: 'client_activate', targetType: 'org', targetId: org.id, ip: ipOf(req), details: { org: org.name, numero: numeroNodeflow } });
       res.json({ ok: true, org: org.name, numero: numeroNodeflow, emailSentTo: org.owner_email });
     } catch (e) {
       log.error('activar-cliente error', { error: e.message });
@@ -370,6 +376,18 @@ function setupAdminRoutes(app, config, assistantManager) {
       res.json({ periodDays: days, kpis, series, hours, funnel, clientes });
     } catch (e) {
       log.error('Admin analytics error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── Registro de auditoría ───────────────────────────────────────────────────
+  app.get('/api/admin/audit', adminAuth, async (req, res) => {
+    try {
+      const { listAudit } = require('../audit/audit-log');
+      const events = await listAudit({ limit: parseInt(req.query.limit) || 150, action: req.query.action || null });
+      res.json({ events });
+    } catch (e) {
+      log.error('Admin audit error', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });
