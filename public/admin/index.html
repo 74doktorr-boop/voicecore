@@ -210,7 +210,8 @@
     <div class="tab-panel" id="tab-analiticas">
       <style>
         .an-charts{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:20px 0}
-        @media(max-width:820px){.an-charts{grid-template-columns:1fr}}
+        .an-charts3{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:16px;margin:0 0 20px}
+        @media(max-width:820px){.an-charts,.an-charts3{grid-template-columns:1fr}}
         .an-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
         .an-card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text)}
         .an-legend{display:flex;gap:16px;font-size:11px;color:var(--dim);margin-top:8px}
@@ -254,6 +255,11 @@
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
           <div class="an-legend"><span><i style="background:#6c8cff"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
         <div class="an-card"><h3>Horas pico</h3><div id="an-hours"></div></div>
+      </div>
+      <div class="an-charts3">
+        <div class="an-card"><h3>Resultado de las llamadas</h3><div id="an-outcomes"></div></div>
+        <div class="an-card"><h3>Dentro vs fuera de horario</h3><div id="an-afterhours"></div></div>
+        <div class="an-card"><h3>Top clientes (por llamadas)</h3><div id="an-topclients"></div></div>
       </div>
       <div class="an-card" style="margin-bottom:20px"><h3>Embudo de conversión</h3><div id="an-funnel"></div></div>
       <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
@@ -902,6 +908,31 @@ function _anFunnel(el, f){
   var rows=[['Llamadas',f.total,100],['Conectadas',f.connected.count,f.connected.rate],['Con conversación',f.engaged.count,f.engaged.rate],['Usaron herramientas',f.toolsUsed.count,f.toolsUsed.rate],['Reservaron',f.booked.count,f.booked.rate]];
   el.innerHTML=rows.map(function(r){ return '<div class="an-fbar"><div class="lbl">'+r[0]+'</div><div class="track"><div class="fill" style="width:'+r[2]+'%"></div></div><div class="val">'+r[1]+' · '+r[2]+'%</div></div>'; }).join('');
 }
+function _anDonut(el, segs){
+  if(!el) return;
+  var total=segs.reduce(function(s,x){return s+(x.value||0);},0);
+  if(!total){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  var r=52,c=2*Math.PI*r,cx=64,cy=64,off=0;
+  var arcs=segs.map(function(s){
+    var len=(s.value||0)/total*c;
+    var a='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.color+'" stroke-width="16" stroke-dasharray="'+len+' '+(c-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+cx+' '+cy+')"/>';
+    off+=len; return a;
+  }).join('');
+  var legend=segs.map(function(s){ var pct=Math.round((s.value||0)/total*100); return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin:3px 0"><i style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block"></i>'+s.label+' · <b style="color:var(--text)">'+(s.value||0)+'</b> ('+pct+'%)</div>'; }).join('');
+  el.innerHTML='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 128 128" width="120" height="120">'+arcs+'<text x="64" y="64" text-anchor="middle" dominant-baseline="central" fill="#e9ecf3" font-size="22" font-weight="800">'+total+'</text></svg><div>'+legend+'</div></div>';
+}
+function _anTopClients(el, clientes){
+  if(!el) return;
+  var top=(clientes||[]).slice(0,6);
+  if(!top.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  var max=Math.max(1, Math.max.apply(null, top.map(function(c){return c.calls;})));
+  el.innerHTML=top.map(function(c){
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<div style="width:110px;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.name||'—')+'</div>'
+      +'<div style="flex:1;height:16px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+(c.calls/max*100)+'%;background:linear-gradient(90deg,#6c8cff,#a29bfe);border-radius:5px"></div></div>'
+      +'<div style="width:82px;text-align:right;font-size:11px;font-weight:700">'+c.calls+' ll · '+c.bookings+' res</div></div>';
+  }).join('');
+}
 async function loadAnalytics(){
   var days=(document.getElementById('an-days')||{}).value||'30';
   var lbl=document.getElementById('an-period-lbl'); if(lbl) lbl.textContent='Últimos '+days+' días';
@@ -923,6 +954,16 @@ async function loadAnalytics(){
     _anSeries(document.getElementById('an-series'), d.series);
     _anHours(document.getElementById('an-hours'), d.hours);
     _anFunnel(document.getElementById('an-funnel'), d.funnel);
+    _anDonut(document.getElementById('an-outcomes'), [
+      {label:'Reservas',value:k.bookings||0,color:'#e0a23c'},
+      {label:'Info',value:k.infoCalls||0,color:'#6c8cff'},
+      {label:'Otras',value:Math.max(0,(k.totalCalls||0)-(k.bookings||0)-(k.infoCalls||0)),color:'#3a4a6a'}
+    ]);
+    _anDonut(document.getElementById('an-afterhours'), [
+      {label:'Fuera de horario',value:k.afterHoursCalls||0,color:'#f6c544'},
+      {label:'En horario',value:Math.max(0,(k.totalCalls||0)-(k.afterHoursCalls||0)),color:'#21c08a'}
+    ]);
+    _anTopClients(document.getElementById('an-topclients'), d.clientes);
     var tb=document.getElementById('an-clients'), cl=d.clientes||[];
     if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }
     else tb.innerHTML=cl.map(function(c){
