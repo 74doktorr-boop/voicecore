@@ -260,6 +260,7 @@
         <div class="kpi-card"><div class="kpi-label">Churn</div><div class="kpi-value" id="anChurn">—</div><div class="kpi-sub" id="anChurnN">bajas</div></div>
         <div class="kpi-card"><div class="kpi-label">Turnos/llamada</div><div class="kpi-value" id="anTurns">—</div><div class="kpi-sub">interacción media</div></div>
       </div>
+      <div class="an-card" style="margin-bottom:20px"><h3>Crecimiento — MRR y altas por mes <span style="font-weight:400;color:var(--dim);font-size:11px">· reconstruido desde las fechas de alta</span></h3><div id="an-growth"></div></div>
       <div class="an-charts">
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
           <div class="an-legend"><span><i style="background:#6c8cff"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
@@ -943,6 +944,23 @@ function _anTopClients(el, clientes){
       +'<div style="width:82px;text-align:right;font-size:11px;font-weight:700">'+c.calls+' ll · '+c.bookings+' res</div></div>';
   }).join('');
 }
+function _anGrowth(el, trend){
+  if(!el) return;
+  if(!trend || !trend.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  var W=680,H=140,pad=10,n=trend.length;
+  var maxM=Math.max(1, Math.max.apply(null, trend.map(function(t){return t.mrr;})));
+  var x=function(i){ return pad+i*(W-2*pad)/Math.max(1,n-1); };
+  var y=function(v){ return H-pad-(v/maxM)*(H-2*pad); };
+  var line=trend.map(function(t,i){ return x(i)+','+y(t.mrr); }).join(' ');
+  var area='M '+x(0)+','+(H-pad)+' '+trend.map(function(t,i){ return 'L '+x(i)+','+y(t.mrr); }).join(' ')+' L '+x(n-1)+','+(H-pad)+' Z';
+  var dots=trend.map(function(t,i){ return '<circle cx="'+x(i)+'" cy="'+y(t.mrr)+'" r="3" fill="#21c08a"/>'; }).join('');
+  var last=trend[n-1]||{};
+  var head='<div style="font-size:12px;color:var(--dim);margin-bottom:4px">MRR actual: <b style="color:#21c08a;font-size:15px">€'+(last.mrr||0)+'</b> · '+(last.activeOrgs||0)+' activos</div>';
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><path d="'+area+'" fill="rgba(33,192,138,.12)"/><polyline points="'+line+'" fill="none" stroke="#21c08a" stroke-width="2.5" stroke-linejoin="round"/>'+dots+'</svg>';
+  var maxA=Math.max(1, Math.max.apply(null, trend.map(function(t){return t.newOrgs;})));
+  var bars=trend.map(function(t){ return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div title="'+t.newOrgs+' altas en '+t.month+'" style="width:56%;height:'+Math.max(2,t.newOrgs/maxA*34)+'px;background:#6c8cff;border-radius:2px 2px 0 0"></div><span style="font-size:8px;color:var(--dim)">'+t.month.slice(5)+'</span></div>'; }).join('');
+  el.innerHTML=head+svg+'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;margin-top:6px">'+bars+'</div><div class="an-legend"><span><i style="background:#21c08a"></i>MRR reconstruido (€)</span><span><i style="background:#6c8cff"></i>Altas/mes</span></div>';
+}
 function _anHeatmap(el, grid){
   if(!el) return;
   if(!grid || !grid.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
@@ -1016,6 +1034,7 @@ async function loadAnalytics(){
     ]);
     _anTopClients(document.getElementById('an-topclients'), d.clientes);
     _anHeatmap(document.getElementById('an-heatmap'), d.heatmap);
+    _anGrowth(document.getElementById('an-growth'), d.trend);
     var tb=document.getElementById('an-clients'), cl=d.clientes||[];
     if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }
     else tb.innerHTML=cl.map(function(c){

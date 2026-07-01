@@ -2,7 +2,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas } = require('../src/analytics/kpis');
+const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, mrrTrend } = require('../src/analytics/kpis');
 
 const NOW = new Date('2026-07-01T12:00:00Z').getTime();
 const day = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -102,6 +102,32 @@ describe('kpis.periodDeltas', () => {
   test('periodo previo a cero → +100% si hay actividad ahora', () => {
     assert.strictEqual(periodDeltas({ totalCalls: 5 }, { totalCalls: 0 }).totalCalls, 100);
     assert.strictEqual(periodDeltas({ totalCalls: 0 }, { totalCalls: 0 }).totalCalls, 0);
+  });
+});
+
+describe('kpis.mrrTrend (reconstruido desde altas)', () => {
+  const NOW2 = new Date('2026-07-15T12:00:00Z').getTime();
+  const orgs2 = [
+    { id: '1', plan: 'negocio', is_active: true,  registered_at: '2026-05-10' },
+    { id: '2', plan: 'negocio', is_active: true,  registered_at: '2026-06-20' },
+    { id: '3', plan: 'pro',     is_active: true,  registered_at: '2026-07-05' },
+    { id: '4', plan: 'negocio', is_active: false, registered_at: '2026-06-08' }, // baja
+  ];
+  const t = mrrTrend({ orgs: orgs2, months: 3, now: NOW2, planPrices: { negocio: 49, pro: 99 } });
+  test('3 meses (mayo, junio, julio)', () => {
+    assert.strictEqual(t.length, 3);
+    assert.strictEqual(t[0].month, '2026-05');
+    assert.strictEqual(t[2].month, '2026-07');
+  });
+  test('MRR acumulado de activos por fin de mes', () => {
+    assert.strictEqual(t[0].mrr, 49);            // solo org1
+    assert.strictEqual(t[2].mrr, 197);           // org1+org2 (49+49) + org3 (99)
+    assert.strictEqual(t[2].activeOrgs, 3);      // org4 (baja) excluida del MRR
+  });
+  test('altas por mes cuentan todas las registradas (incl. las que luego se dieron de baja)', () => {
+    assert.strictEqual(t[0].newOrgs, 1);         // org1 en mayo
+    assert.strictEqual(t[1].newOrgs, 2);         // org2 + org4 en junio
+    assert.strictEqual(t[2].newOrgs, 1);         // org3 en julio
   });
 });
 

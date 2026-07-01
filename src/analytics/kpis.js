@@ -174,6 +174,38 @@ function byOrg(p = {}) {
 }
 
 /**
+ * Tendencia de MRR y altas por mes, RECONSTRUIDA desde las fechas de alta
+ * (no hay histórico guardado). Para cada mes: altas nuevas, activos acumulados
+ * registrados hasta fin de mes, y MRR de esos activos. Es una estimación de
+ * "cómo se construyó la base actual".
+ * @param {object} p { orgs, months, now, planPrices }
+ * @returns {Array<{month, newOrgs, activeOrgs, mrr}>}
+ */
+function mrrTrend(p = {}) {
+  const orgs = p.orgs || [];
+  const months = p.months || 12;
+  const prices = p.planPrices || PLAN_PRICES;
+  const base = new Date(p.now || Date.now());
+  const out = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const mIdx = base.getMonth() - i;
+    const monthStart = new Date(base.getFullYear(), mIdx, 1).getTime();
+    const monthEnd = new Date(base.getFullYear(), mIdx + 1, 0, 23, 59, 59, 999).getTime();
+    const dd = new Date(base.getFullYear(), mIdx, 1);
+    const monthKey = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0');
+    let newOrgs = 0, activeOrgs = 0, mrr = 0;
+    for (const o of orgs) {
+      const t = _ts(o.registered_at || o.created_at);
+      if (t == null) continue;
+      if (t >= monthStart && t <= monthEnd) newOrgs++;
+      if (t <= monthEnd && o.is_active) { activeOrgs++; mrr += (prices[o.plan] || 0); }
+    }
+    out.push({ month: monthKey, newOrgs, activeOrgs, mrr });
+  }
+  return out;
+}
+
+/**
  * Deltas del periodo actual vs el anterior (mismo tamaño).
  * Cuentas → variación %; tasas (conversión, fuera de horario) → puntos.
  */
@@ -189,4 +221,4 @@ function periodDeltas(cur = {}, prev = {}) {
   };
 }
 
-module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, PLAN_PRICES };
+module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, mrrTrend, PLAN_PRICES };
