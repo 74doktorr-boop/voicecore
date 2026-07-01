@@ -1,10 +1,10 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 1 pendiente ⏳ — nf_callbacks (widget "¿Te llamamos?"). audit_log aplicada 2026-07-01.**
+**Estado: 0 pendientes ✅ — nf_callbacks + audit_log aplicadas 2026-07-01.**
 
 ---
 
-## nf_callbacks — solicitudes del widget "¿Te llamamos?" ⏳ VERIFICAR/APLICAR (2026-07-01)
+## nf_callbacks — solicitudes del widget "¿Te llamamos?" ✅ APLICADA 2026-07-01
 **Por qué:** el widget embebible manda las solicitudes a `POST /api/widget/callback`,
 que las guarda aquí y las lista en el portal del cliente. Sin la tabla, el negocio
 igual recibe el email (best-effort), pero no se guardan ni aparecen en el portal.
