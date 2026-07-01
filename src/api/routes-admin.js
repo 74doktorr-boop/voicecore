@@ -340,6 +340,40 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── KPIs de negocio + analíticas + gestión (derivado de la BD) ──────────────
+  app.get('/api/admin/analytics', adminAuth, async (req, res) => {
+    try {
+      const { computeKpis, timeSeries, hourlyVolume, byOrg } = require('../analytics/kpis');
+      const db = getDatabase();
+      const days = Math.min(parseInt(req.query.days) || 30, 90);
+      const sinceISO = new Date(Date.now() - days * 86400000).toISOString();
+
+      let calls = [], appointments = [], orgs = [];
+      if (db.enabled) {
+        const [callsRes, apptRes, orgRes] = await Promise.all([
+          db.client.from('calls').select('org_id, outcome, duration_ms, started_at, created_at').gte('created_at', sinceISO).limit(5000),
+          db.client.from('nf_appointments').select('organization_id, status, no_show_notified, date').gte('date', sinceISO.slice(0, 10)).limit(5000),
+          db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at').limit(1000),
+        ]);
+        calls = callsRes.data || [];
+        appointments = apptRes.data || [];
+        orgs = orgRes.data || [];
+      }
+
+      // MRR/overage por plan real (Negocio 49). Overage a 0,10 €/min.
+      const kpis   = computeKpis({ calls, appointments, orgs, includedMinutes: 500 });
+      const series = timeSeries(calls, Math.min(days, 30));
+      const hours  = hourlyVolume(calls);
+      const clientes = byOrg({ calls, orgs, includedMinutes: 500 });
+      const funnel = getAnalytics().getFunnel(days); // en memoria (complementa)
+
+      res.json({ periodDays: days, kpis, series, hours, funnel, clientes });
+    } catch (e) {
+      log.error('Admin analytics error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Reload assistants en caliente (sin redeploy) ───
   // Acepta: token de admin (dashboard) o x-api-key legacy
   app.post('/api/admin/reload', async (req, res) => {

@@ -1,0 +1,86 @@
+'use strict';
+
+const { test, describe } = require('node:test');
+const assert = require('node:assert');
+const { computeKpis, timeSeries, hourlyVolume, byOrg } = require('../src/analytics/kpis');
+
+const NOW = new Date('2026-07-01T12:00:00Z').getTime();
+const day = (d) => new Date(NOW - d * 86400000).toISOString();
+
+const calls = [
+  { org_id: 'a', outcome: 'booked', duration_ms: 120000, started_at: day(0) },
+  { org_id: 'a', outcome: 'info', duration_ms: 60000, started_at: day(1) },
+  { org_id: 'a', outcome: 'booked', duration_ms: 180000, started_at: day(2) },
+  { org_id: 'b', outcome: 'abandoned', duration_ms: 10000, started_at: day(20) }, // cliente b: última hace 20d
+];
+const appointments = [
+  { organization_id: 'a', status: 'confirmed' },
+  { organization_id: 'a', status: 'no_show' },
+  { organization_id: 'a', status: 'cancelled' },
+  { organization_id: 'a', no_show_notified: true, status: 'confirmed' },
+];
+const orgs = [
+  { id: 'a', name: 'Clínica A', plan: 'negocio', is_active: true, monthly_minutes_used: 520, registered_at: day(5) },
+  { id: 'b', name: 'Peluquería B', plan: 'negocio', is_active: true, monthly_minutes_used: 50, registered_at: day(100) },
+  { id: 'c', name: 'Inactivo C', plan: 'negocio', is_active: false, monthly_minutes_used: 0 },
+];
+
+describe('kpis.computeKpis', () => {
+  const k = computeKpis({ calls, appointments, orgs, now: NOW, includedMinutes: 500 });
+  test('conversión = reservas / llamadas', () => {
+    assert.strictEqual(k.totalCalls, 4);
+    assert.strictEqual(k.bookings, 2);
+    assert.strictEqual(k.conversionRate, 50);
+  });
+  test('minutos y duración media', () => {
+    assert.strictEqual(k.minutesUsed, 6.2); // (120+60+180+10)/60000... = 6.166→6.2
+    assert.ok(k.avgDurationSec > 0);
+  });
+  test('no-shows cuentan status no_show Y no_show_notified', () => {
+    assert.strictEqual(k.noShows, 2);
+    assert.strictEqual(k.cancelled, 1);
+    assert.strictEqual(k.noShowRate, 50);
+  });
+  test('MRR solo de activos; overage sobre lo incluido', () => {
+    assert.strictEqual(k.activeOrgs, 2);
+    assert.strictEqual(k.mrr, 98);              // 2 activos × 49
+    assert.strictEqual(k.overageMinutes, 20);   // a: 520-500
+    assert.strictEqual(k.overageRevenue, 2);    // 20 × 0,10
+  });
+  test('altas del mes', () => { assert.strictEqual(k.newOrgs, 1); }); // a hace 5d
+});
+
+describe('kpis.timeSeries / hourlyVolume', () => {
+  test('serie de 14 días con llamadas y reservas por día', () => {
+    const s = timeSeries(calls, 14, NOW);
+    assert.strictEqual(s.length, 14);
+    assert.strictEqual(s[13].date, '2026-07-01');     // hoy al final
+    assert.strictEqual(s[13].calls, 1);
+    assert.strictEqual(s[13].bookings, 1);
+  });
+  test('volumen por hora tiene 24 cubos', () => {
+    const h = hourlyVolume(calls);
+    assert.strictEqual(h.length, 24);
+    assert.strictEqual(h.reduce((a, b) => a + b, 0), 4);
+  });
+});
+
+describe('kpis.byOrg (salud)', () => {
+  const rows = byOrg({ calls, orgs, now: NOW, includedMinutes: 500 });
+  test('cliente con llamadas recientes = activo', () => {
+    const a = rows.find(r => r.id === 'a');
+    assert.strictEqual(a.health, 'activo');
+    assert.strictEqual(a.calls, 3);
+    assert.ok(a.alerts.includes('en_overage'));
+  });
+  test('cliente activo sin uso reciente = en_riesgo + alerta', () => {
+    const b = rows.find(r => r.id === 'b');
+    assert.strictEqual(b.health, 'en_riesgo');
+    assert.ok(b.alerts.includes('sin_uso_14d'));
+  });
+  test('cliente inactivo', () => {
+    const c = rows.find(r => r.id === 'c');
+    assert.strictEqual(c.health, 'inactivo');
+    assert.ok(c.alerts.includes('inactivo'));
+  });
+});

@@ -1,0 +1,138 @@
+// ============================================================
+// NodeFlow — Cálculo de KPIs de negocio (puro, testeable)
+// ------------------------------------------------------------
+// Funciones SIN dependencias de BD: reciben filas crudas (calls,
+// nf_appointments, organizations) y devuelven KPIs, series temporales
+// y desglose por cliente. El endpoint hace las queries y llama aquí.
+// Así se testea sin Supabase y se reutiliza en admin y portal.
+// ============================================================
+'use strict';
+
+const PLAN_PRICES = { negocio: 49, pro: 99, enterprise: 0, starter: 0 };
+const DAY = 86400000;
+
+function _minutes(call) { return (Number(call.duration_ms) || 0) / 60000; }
+function _ts(v) { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; }
+
+/**
+ * KPIs principales del periodo.
+ * @param {object} p { calls, appointments, orgs, now, includedMinutes, planPrices }
+ */
+function computeKpis(p = {}) {
+  const calls = p.calls || [];
+  const appts = p.appointments || [];
+  const orgs = p.orgs || [];
+  const included = p.includedMinutes ?? 500;
+  const prices = p.planPrices || PLAN_PRICES;
+  const now = p.now || Date.now();
+
+  const totalCalls = calls.length;
+  const bookings = calls.filter(c => c.outcome === 'booked').length;
+  const infoCalls = calls.filter(c => c.outcome === 'info').length;
+  const conversionRate = totalCalls ? Math.round((bookings / totalCalls) * 100) : 0;
+  const minutesUsed = Math.round(calls.reduce((s, c) => s + _minutes(c), 0) * 10) / 10;
+  const avgDurationSec = totalCalls ? Math.round(calls.reduce((s, c) => s + (Number(c.duration_ms) || 0), 0) / totalCalls / 1000) : 0;
+
+  // Citas / no-shows
+  const totalAppts = appts.length;
+  const noShows = appts.filter(a => a.status === 'no_show' || a.no_show_notified).length;
+  const cancelled = appts.filter(a => a.status === 'cancelled').length;
+  const noShowRate = totalAppts ? Math.round((noShows / totalAppts) * 100) : 0;
+
+  // Clientes / ingresos
+  const activeOrgs = orgs.filter(o => o.is_active);
+  const mrr = activeOrgs.reduce((s, o) => s + (prices[o.plan] || 0), 0);
+  const overageMinutes = Math.round(activeOrgs.reduce((s, o) => s + Math.max(0, (Number(o.monthly_minutes_used) || 0) - included), 0));
+  const overageRevenue = Math.round(overageMinutes * 0.10 * 100) / 100; // 0,10 €/min
+
+  // Altas/bajas del mes (registered_at / created_at)
+  const monthAgo = now - 30 * DAY;
+  const newOrgs = orgs.filter(o => { const t = _ts(o.registered_at || o.created_at); return t && t >= monthAgo; }).length;
+
+  return {
+    totalCalls, bookings, infoCalls, conversionRate, minutesUsed, avgDurationSec,
+    totalAppts, noShows, cancelled, noShowRate,
+    activeOrgs: activeOrgs.length, totalOrgs: orgs.length, newOrgs,
+    mrr, overageMinutes, overageRevenue,
+  };
+}
+
+/**
+ * Serie temporal de llamadas y reservas por día (últimos `days`).
+ * @returns {Array<{date, calls, bookings}>}
+ */
+function timeSeries(calls = [], days = 14, now = Date.now()) {
+  const out = [];
+  const byDay = {};
+  for (const c of calls) {
+    const t = _ts(c.started_at || c.created_at);
+    if (t == null) continue;
+    const day = new Date(t).toISOString().slice(0, 10);
+    if (!byDay[day]) byDay[day] = { calls: 0, bookings: 0 };
+    byDay[day].calls++;
+    if (c.outcome === 'booked') byDay[day].bookings++;
+  }
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(now - i * DAY).toISOString().slice(0, 10);
+    out.push({ date: day, calls: byDay[day]?.calls || 0, bookings: byDay[day]?.bookings || 0 });
+  }
+  return out;
+}
+
+/** Volumen de llamadas por hora del día (0-23), para detectar horas pico. */
+function hourlyVolume(calls = []) {
+  const hours = new Array(24).fill(0);
+  for (const c of calls) {
+    const t = _ts(c.started_at || c.created_at);
+    if (t == null) continue;
+    hours[new Date(t).getHours()]++;
+  }
+  return hours;
+}
+
+/**
+ * Desglose y SALUD por cliente (para gestión).
+ * health: 'activo' (llamadas recientes) | 'en_riesgo' (sin uso / cerca de baja) | 'inactivo'
+ */
+function byOrg(p = {}) {
+  const calls = p.calls || [];
+  const orgs = p.orgs || [];
+  const now = p.now || Date.now();
+  const included = p.includedMinutes ?? 500;
+  const recentCut = now - 14 * DAY;
+
+  const stats = {};
+  for (const c of calls) {
+    const id = c.org_id || c.organization_id;
+    if (!id) continue;
+    if (!stats[id]) stats[id] = { calls: 0, bookings: 0, minutes: 0, lastCall: 0 };
+    stats[id].calls++;
+    if (c.outcome === 'booked') stats[id].bookings++;
+    stats[id].minutes += _minutes(c);
+    const t = _ts(c.started_at || c.created_at) || 0;
+    if (t > stats[id].lastCall) stats[id].lastCall = t;
+  }
+
+  return orgs.map(o => {
+    const s = stats[o.id] || { calls: 0, bookings: 0, minutes: 0, lastCall: 0 };
+    const used = Number(o.monthly_minutes_used) || 0;
+    let health = 'inactivo';
+    if (o.is_active) health = (s.lastCall >= recentCut) ? 'activo' : 'en_riesgo';
+    const alerts = [];
+    if (o.is_active && s.lastCall < recentCut) alerts.push('sin_uso_14d');
+    if (used >= included) alerts.push('en_overage');
+    else if (used >= included * 0.8) alerts.push('cerca_del_limite');
+    if (!o.is_active) alerts.push('inactivo');
+    return {
+      id: o.id, name: o.name, plan: o.plan, isActive: !!o.is_active,
+      calls: s.calls, bookings: s.bookings,
+      conversionRate: s.calls ? Math.round((s.bookings / s.calls) * 100) : 0,
+      minutesUsed: Math.round(s.minutes * 10) / 10,
+      includedMinutes: included,
+      lastCall: s.lastCall ? new Date(s.lastCall).toISOString() : null,
+      health, alerts,
+    };
+  }).sort((a, b) => b.calls - a.calls);
+}
+
+module.exports = { computeKpis, timeSeries, hourlyVolume, byOrg, PLAN_PRICES };
