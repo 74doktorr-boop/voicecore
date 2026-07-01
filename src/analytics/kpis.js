@@ -113,6 +113,22 @@ function hourlyVolume(calls = []) {
 }
 
 /**
+ * Mapa de calor semanal: matriz 7×24 (día de la semana × hora).
+ * Fila 0 = lunes … 6 = domingo. Sirve para ver CUÁNDO llaman.
+ */
+function weekdayHourHeatmap(calls = []) {
+  const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  for (const c of calls) {
+    const t = _ts(c.started_at || c.created_at);
+    if (t == null) continue;
+    const d = new Date(t);
+    const wd = (d.getDay() + 6) % 7; // 0 = lunes
+    grid[wd][d.getHours()]++;
+  }
+  return grid;
+}
+
+/**
  * Desglose y SALUD por cliente (para gestión).
  * health: 'activo' (llamadas recientes) | 'en_riesgo' (sin uso / cerca de baja) | 'inactivo'
  */
@@ -157,4 +173,4 @@ function byOrg(p = {}) {
   }).sort((a, b) => b.calls - a.calls);
 }
 
-module.exports = { computeKpis, timeSeries, hourlyVolume, byOrg, PLAN_PRICES };
+module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, PLAN_PRICES };

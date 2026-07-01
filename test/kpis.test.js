@@ -2,7 +2,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { computeKpis, timeSeries, hourlyVolume, byOrg } = require('../src/analytics/kpis');
+const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg } = require('../src/analytics/kpis');
 
 const NOW = new Date('2026-07-01T12:00:00Z').getTime();
 const day = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -77,6 +77,13 @@ describe('kpis.timeSeries / hourlyVolume', () => {
     const h = hourlyVolume(calls);
     assert.strictEqual(h.length, 24);
     assert.strictEqual(h.reduce((a, b) => a + b, 0), 4);
+  });
+  test('heatmap semanal es 7×24 y suma el total de llamadas', () => {
+    const g = weekdayHourHeatmap(calls);
+    assert.strictEqual(g.length, 7);
+    assert.strictEqual(g[0].length, 24);
+    const total = g.reduce((s, row) => s + row.reduce((a, b) => a + b, 0), 0);
+    assert.strictEqual(total, 4);
   });
 });
 

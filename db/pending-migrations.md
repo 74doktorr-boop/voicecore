@@ -1,10 +1,10 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 1 pendiente ⏳ — audit_log (2026-07-01). Patch de escalado aplicado 2026-06-30.**
+**Estado: 0 pendientes ✅ — audit_log aplicada 2026-07-01. Patch de escalado 2026-06-30.**
 
 ---
 
-## audit_log — registro de auditoría del panel admin ⏳ PENDIENTE (2026-07-01)
+## audit_log — registro de auditoría del panel admin ✅ APLICADA 2026-07-01
 **Por qué:** trazar quién hizo qué y cuándo (login, alta/edición/baja de clientes,
 cambios de plan…). El código escribe best-effort; sin esta tabla el registro no
 persiste pero NO rompe nada. Fichero de código: `src/audit/audit-log.js`.

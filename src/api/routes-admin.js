@@ -349,7 +349,7 @@ function setupAdminRoutes(app, config, assistantManager) {
   // ─── KPIs de negocio + analíticas + gestión (derivado de la BD) ──────────────
   app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     try {
-      const { computeKpis, timeSeries, hourlyVolume, byOrg } = require('../analytics/kpis');
+      const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg } = require('../analytics/kpis');
       const db = getDatabase();
       const days = Math.min(parseInt(req.query.days) || 30, 90);
       const sinceISO = new Date(Date.now() - days * 86400000).toISOString();
@@ -370,10 +370,11 @@ function setupAdminRoutes(app, config, assistantManager) {
       const kpis   = computeKpis({ calls, appointments, orgs, includedMinutes: 500 });
       const series = timeSeries(calls, Math.min(days, 30));
       const hours  = hourlyVolume(calls);
+      const heatmap = weekdayHourHeatmap(calls);
       const clientes = byOrg({ calls, orgs, includedMinutes: 500 });
       const funnel = getAnalytics().getFunnel(days); // en memoria (complementa)
 
-      res.json({ periodDays: days, kpis, series, hours, funnel, clientes });
+      res.json({ periodDays: days, kpis, series, hours, heatmap, funnel, clientes });
     } catch (e) {
       log.error('Admin analytics error', { error: e.message });
       res.status(500).json({ error: e.message });
