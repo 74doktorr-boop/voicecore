@@ -2,7 +2,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg } = require('../src/analytics/kpis');
+const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas } = require('../src/analytics/kpis');
 
 const NOW = new Date('2026-07-01T12:00:00Z').getTime();
 const day = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -84,6 +84,24 @@ describe('kpis.timeSeries / hourlyVolume', () => {
     assert.strictEqual(g[0].length, 24);
     const total = g.reduce((s, row) => s + row.reduce((a, b) => a + b, 0), 0);
     assert.strictEqual(total, 4);
+  });
+});
+
+describe('kpis.periodDeltas', () => {
+  test('cuentas → % de variación; tasas → puntos', () => {
+    const d = periodDeltas(
+      { totalCalls: 120, bookings: 60, minutesUsed: 200, conversionRate: 50, afterHoursRate: 30 },
+      { totalCalls: 100, bookings: 40, minutesUsed: 100, conversionRate: 40, afterHoursRate: 25 },
+    );
+    assert.strictEqual(d.totalCalls, 20);        // +20%
+    assert.strictEqual(d.bookings, 50);          // +50%
+    assert.strictEqual(d.minutesUsed, 100);      // ×2
+    assert.strictEqual(d.conversionRate, 10);    // +10 puntos
+    assert.strictEqual(d.afterHoursRate, 5);     // +5 puntos
+  });
+  test('periodo previo a cero → +100% si hay actividad ahora', () => {
+    assert.strictEqual(periodDeltas({ totalCalls: 5 }, { totalCalls: 0 }).totalCalls, 100);
+    assert.strictEqual(periodDeltas({ totalCalls: 0 }, { totalCalls: 0 }).totalCalls, 0);
   });
 });
 

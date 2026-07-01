@@ -226,26 +226,35 @@
         .hbadge.en_riesgo{background:rgba(246,197,68,.16);color:#f6c544}
         .hbadge.inactivo{background:rgba(255,255,255,.06);color:var(--dim)}
         .an-alert{display:inline-block;font-size:10px;font-weight:600;color:#f0645a;background:rgba(240,100,90,.1);border-radius:5px;padding:1px 6px;margin:1px}
+        .an-delta{font-size:11px;font-weight:700;margin-left:7px;white-space:nowrap}
+        .an-delta.up{color:#21c08a} .an-delta.down{color:#f0645a} .an-delta.flat{color:var(--dim)}
+        .an-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+        .an-csv{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--dim);font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;transition:all .15s}
+        .an-csv:hover{color:var(--text);border-color:var(--accent-l)}
       </style>
       <div class="section-hd">
         <div><h2>Analíticas de negocio</h2><p id="an-period-lbl">Cargando…</p></div>
-        <select id="an-days" onchange="loadAnalytics()" class="form-select" style="width:auto">
-          <option value="7">Últimos 7 días</option>
-          <option value="30" selected>Últimos 30 días</option>
-          <option value="90">Últimos 90 días</option>
-        </select>
+        <div class="an-tools">
+          <button class="an-csv" onclick="exportSeriesCsv()">⬇ Serie CSV</button>
+          <button class="an-csv" onclick="exportClientsCsv()">⬇ Clientes CSV</button>
+          <select id="an-days" onchange="loadAnalytics()" class="form-select" style="width:auto">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+          </select>
+        </div>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
-        <div class="kpi-card"><div class="kpi-label">Conversión</div><div class="kpi-value" id="anConv">—</div><div class="kpi-sub">llamada → cita</div></div>
-        <div class="kpi-card"><div class="kpi-label">Reservas</div><div class="kpi-value" id="anBook">—</div><div class="kpi-sub" id="anCalls">— llamadas</div></div>
+        <div class="kpi-card"><div class="kpi-label">Conversión</div><div class="kpi-value"><span id="anConv">—</span><span class="an-delta" id="dConv"></span></div><div class="kpi-sub">llamada → cita</div></div>
+        <div class="kpi-card"><div class="kpi-label">Reservas</div><div class="kpi-value"><span id="anBook">—</span><span class="an-delta" id="dBook"></span></div><div class="kpi-sub" id="anCalls">— llamadas</div></div>
         <div class="kpi-card"><div class="kpi-label">No-shows</div><div class="kpi-value" id="anNoshow">—</div><div class="kpi-sub" id="anNoshowRate">—</div></div>
-        <div class="kpi-card"><div class="kpi-label">Minutos usados</div><div class="kpi-value" id="anMin">—</div><div class="kpi-sub" id="anAvg">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Minutos usados</div><div class="kpi-value"><span id="anMin">—</span><span class="an-delta" id="dMin"></span></div><div class="kpi-sub" id="anAvg">—</div></div>
         <div class="kpi-card"><div class="kpi-label">Overage</div><div class="kpi-value" id="anOver">—</div><div class="kpi-sub">min extra facturables</div></div>
         <div class="kpi-card"><div class="kpi-label">Altas (30d)</div><div class="kpi-value" id="anNew">—</div><div class="kpi-sub" id="anActive">— activos</div></div>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
         <div class="kpi-card"><div class="kpi-label">ARPU</div><div class="kpi-value" id="anArpu">—</div><div class="kpi-sub">ingreso medio/cliente</div></div>
-        <div class="kpi-card"><div class="kpi-label">Fuera de horario</div><div class="kpi-value" id="anAfter">—</div><div class="kpi-sub" id="anAfterN">llamadas captadas</div></div>
+        <div class="kpi-card"><div class="kpi-label">Fuera de horario</div><div class="kpi-value"><span id="anAfter">—</span><span class="an-delta" id="dAfter"></span></div><div class="kpi-sub" id="anAfterN">llamadas captadas</div></div>
         <div class="kpi-card"><div class="kpi-label">Recordatorios</div><div class="kpi-value" id="anRem">—</div><div class="kpi-sub">enviados (auto)</div></div>
         <div class="kpi-card"><div class="kpi-label">Reseñas pedidas</div><div class="kpi-value" id="anRev">—</div><div class="kpi-sub">tras la cita</div></div>
         <div class="kpi-card"><div class="kpi-label">Churn</div><div class="kpi-value" id="anChurn">—</div><div class="kpi-sub" id="anChurnN">bajas</div></div>
@@ -947,13 +956,36 @@ function _anHeatmap(el, grid){
   }).join('');
   el.innerHTML=hourLabels+rows+'<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--dim)">menos <span style="width:12px;height:12px;background:rgba(255,255,255,.06);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(224,162,60,.5);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(224,162,60,1);border-radius:2px;display:inline-block"></span> más</div>';
 }
+function _anDelta(id, v, unit){
+  var e=document.getElementById(id); if(!e) return;
+  if(v==null||isNaN(v)){ e.textContent=''; e.className='an-delta'; return; }
+  if(v===0){ e.className='an-delta flat'; e.textContent='='; return; }
+  var up=v>0; e.className='an-delta '+(up?'up':'down');
+  e.textContent=(up?'▲ +':'▼ ')+Math.abs(v)+(unit==='pts'?' pts':'%');
+}
+function _csvDownload(name, rows){
+  var csv=rows.map(function(r){return r.map(function(c){var s=String(c==null?'':c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(';');}).join('\n');
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+}
+function exportSeriesCsv(){
+  var s=(window._anData&&window._anData.series)||[];
+  var rows=[['Fecha','Llamadas','Reservas']]; s.forEach(function(d){rows.push([d.date,d.calls,d.bookings]);});
+  _csvDownload('nodeflow-serie.csv',rows);
+}
+function exportClientsCsv(){
+  var cl=(window._anData&&window._anData.clientes)||[];
+  var rows=[['Cliente','Plan','Salud','Llamadas','Reservas','Conversion%','MinUsados','MinIncluidos','UltimaLlamada','Alertas']];
+  cl.forEach(function(c){rows.push([c.name,c.plan,c.health,c.calls,c.bookings,c.conversionRate,c.minutesUsed,c.includedMinutes,c.lastCall||'',(c.alerts||[]).join(' ')]);});
+  _csvDownload('nodeflow-clientes.csv',rows);
+}
 async function loadAnalytics(){
   var days=(document.getElementById('an-days')||{}).value||'30';
-  var lbl=document.getElementById('an-period-lbl'); if(lbl) lbl.textContent='Últimos '+days+' días';
+  var lbl=document.getElementById('an-period-lbl'); if(lbl) lbl.textContent='Últimos '+days+' días · vs '+days+' días anteriores';
   var set=function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
   try{
     var r=await fetch('/api/admin/analytics?days='+days,{headers:h()});
-    var d=await r.json(); var k=d.kpis||{};
+    var d=await r.json(); var k=d.kpis||{}; window._anData=d;
     set('anConv',(k.conversionRate||0)+'%');
     set('anBook',k.bookings||0); set('anCalls',(k.totalCalls||0)+' llamadas');
     set('anNoshow',k.noShows||0); set('anNoshowRate',(k.noShowRate||0)+'% de citas');
@@ -965,6 +997,11 @@ async function loadAnalytics(){
     set('anRem',k.remindersSent||0); set('anRev',k.reviewsRequested||0);
     set('anChurn',(k.churnRate||0)+'%'); set('anChurnN',(k.churnedOrgs||0)+' bajas');
     set('anTurns',k.avgTurns||0);
+    var dl=d.deltas||{};
+    _anDelta('dConv', dl.conversionRate, 'pts');
+    _anDelta('dBook', dl.bookings, 'pct');
+    _anDelta('dMin', dl.minutesUsed, 'pct');
+    _anDelta('dAfter', dl.afterHoursRate, 'pts');
     _anSeries(document.getElementById('an-series'), d.series);
     _anHours(document.getElementById('an-hours'), d.hours);
     _anFunnel(document.getElementById('an-funnel'), d.funnel);

@@ -349,32 +349,42 @@ function setupAdminRoutes(app, config, assistantManager) {
   // ─── KPIs de negocio + analíticas + gestión (derivado de la BD) ──────────────
   app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     try {
-      const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg } = require('../analytics/kpis');
+      const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas } = require('../analytics/kpis');
       const db = getDatabase();
       const days = Math.min(parseInt(req.query.days) || 30, 90);
-      const sinceISO = new Date(Date.now() - days * 86400000).toISOString();
+      const DAY = 86400000;
+      const midMs = Date.now() - days * DAY;                      // corte actual/anterior
+      const prevSinceISO = new Date(Date.now() - 2 * days * DAY).toISOString();
 
-      let calls = [], appointments = [], orgs = [];
+      let allCalls = [], allAppts = [], orgs = [];
       if (db.enabled) {
         const [callsRes, apptRes, orgRes] = await Promise.all([
-          db.client.from('calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', sinceISO).limit(5000),
-          db.client.from('nf_appointments').select('organization_id, status, no_show_notified, reminder_sent, review_requested, date').gte('date', sinceISO.slice(0, 10)).limit(5000),
+          db.client.from('calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', prevSinceISO).limit(10000),
+          db.client.from('nf_appointments').select('organization_id, status, no_show_notified, reminder_sent, review_requested, date').gte('date', prevSinceISO.slice(0, 10)).limit(10000),
           db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at').limit(1000),
         ]);
-        calls = callsRes.data || [];
-        appointments = apptRes.data || [];
+        allCalls = callsRes.data || [];
+        allAppts = apptRes.data || [];
         orgs = orgRes.data || [];
       }
 
-      // MRR/overage por plan real (Negocio 49). Overage a 0,10 €/min.
-      const kpis   = computeKpis({ calls, appointments, orgs, includedMinutes: 500 });
-      const series = timeSeries(calls, Math.min(days, 30));
-      const hours  = hourlyVolume(calls);
-      const heatmap = weekdayHourHeatmap(calls);
-      const clientes = byOrg({ calls, orgs, includedMinutes: 500 });
-      const funnel = getAnalytics().getFunnel(days); // en memoria (complementa)
+      // Partir en periodo ACTUAL vs ANTERIOR (mismo tamaño) para la comparativa.
+      const inCur = (t) => { const x = t ? new Date(t).getTime() : NaN; return !Number.isNaN(x) && x >= midMs; };
+      const curCalls  = allCalls.filter(c => inCur(c.created_at || c.started_at));
+      const prevCalls = allCalls.filter(c => !inCur(c.created_at || c.started_at));
+      const curAppts  = allAppts.filter(a => inCur(a.date));
+      const prevAppts = allAppts.filter(a => !inCur(a.date));
 
-      res.json({ periodDays: days, kpis, series, hours, heatmap, funnel, clientes });
+      const kpis     = computeKpis({ calls: curCalls, appointments: curAppts, orgs, includedMinutes: 500 });
+      const kpisPrev = computeKpis({ calls: prevCalls, appointments: prevAppts, orgs, includedMinutes: 500 });
+      const deltas   = periodDeltas(kpis, kpisPrev);
+      const series   = timeSeries(curCalls, Math.min(days, 30));
+      const hours    = hourlyVolume(curCalls);
+      const heatmap  = weekdayHourHeatmap(curCalls);
+      const clientes = byOrg({ calls: curCalls, orgs, includedMinutes: 500 });
+      const funnel   = getAnalytics().getFunnel(days); // en memoria (complementa)
+
+      res.json({ periodDays: days, kpis, kpisPrev, deltas, series, hours, heatmap, funnel, clientes });
     } catch (e) {
       log.error('Admin analytics error', { error: e.message });
       res.status(500).json({ error: e.message });

@@ -173,4 +173,20 @@ function byOrg(p = {}) {
   }).sort((a, b) => b.calls - a.calls);
 }
 
-module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, PLAN_PRICES };
+/**
+ * Deltas del periodo actual vs el anterior (mismo tamaño).
+ * Cuentas → variación %; tasas (conversión, fuera de horario) → puntos.
+ */
+function periodDeltas(cur = {}, prev = {}) {
+  const pct = (c, p) => { c = Number(c) || 0; p = Number(p) || 0; if (!p) return c > 0 ? 100 : 0; return Math.round(((c - p) / p) * 100); };
+  const pts = (c, p) => Math.round((Number(c) || 0) - (Number(p) || 0));
+  return {
+    totalCalls: pct(cur.totalCalls, prev.totalCalls),
+    bookings: pct(cur.bookings, prev.bookings),
+    minutesUsed: pct(cur.minutesUsed, prev.minutesUsed),
+    conversionRate: pts(cur.conversionRate, prev.conversionRate),
+    afterHoursRate: pts(cur.afterHoursRate, prev.afterHoursRate),
+  };
+}
+
+module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, PLAN_PRICES };
