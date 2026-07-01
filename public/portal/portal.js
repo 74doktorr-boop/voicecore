@@ -70,6 +70,9 @@ function navigate(section) {
   if (navEl) navEl.classList.add('active');
 
   _currentSection = section;
+  if (section !== 'dashboard') {
+    try { localStorage.setItem('nf_last_section', section); } catch (e) {}
+  }
   closeSidebar();
 
   if (section === 'dashboard')        loadDashboard();
@@ -103,8 +106,86 @@ async function loadConocimiento() {
     var r = await api('/api/portal/knowledge');
     ta.value = r.text || '';
     st.textContent = r.chunks ? (r.chunks + ' fragmento(s) guardado(s)') : 'Vacío — añade la información de tu negocio.';
+    renderKbSuggestions();
   } catch (e) {
     st.textContent = 'Error al cargar: ' + (e.message || e); st.style.color = 'var(--red)';
+  }
+}
+
+// Añade una línea-plantilla al textarea para guiar qué escribir
+function kbAppend(label) {
+  var ta = document.getElementById('kbText');
+  if (!ta) return;
+  ta.value += (ta.value && !/\n$/.test(ta.value) ? '\n' : '') + label + ': ';
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+// Chips de sugerencia por sector — convierten la caja vacía en rellenado guiado
+function renderKbSuggestions() {
+  var box = document.getElementById('kbSuggest');
+  if (!box) return;
+  var sector = (_orgInfo && _orgInfo.sector) || '';
+  var base = ['Horario y días de cierre', 'Formas de pago', 'Aparcamiento', 'Política de cancelación', 'Promociones actuales', 'Preguntas frecuentes'];
+  var bySector = {
+    clinica: ['Seguros aceptados', 'Primera visita'], dental: ['Seguros aceptados', 'Primera visita'],
+    fisioterapia: ['Seguros aceptados', 'Especialidades'], podologia: ['Seguros aceptados'],
+    restaurante: ['Menú del día', 'Terraza / accesibilidad', 'Reservas de grupos'],
+    peluqueria: ['Servicios y precios', 'Duración de servicios'], estetica: ['Tratamientos y precios'],
+    veterinaria: ['Urgencias 24h', 'Vacunaciones'], taller: ['Marcas que atendéis', 'Coche de sustitución'],
+    gimnasio: ['Cuotas y clases', 'Horario de clases'], hotel: ['Check-in / check-out', 'Mascotas admitidas'],
+    asesoria: ['Servicios fiscales', 'Plazos importantes'], autoescuela: ['Precios de carné', 'Horario de prácticas'],
+  };
+  var chips = base.concat(bySector[sector] || []);
+  box.innerHTML = '<span style="font-size:11px;color:var(--dim);align-self:center;margin-right:2px">Sugerencias:</span>' +
+    chips.map(function(c) {
+      return '<button type="button" class="btn btn-d btn-sm" style="font-size:11px" onclick="kbAppend(\'' + c.replace(/'/g, "\\'") + '\')">+ ' + c + '</button>';
+    }).join('');
+}
+
+// Carga pdf.js SELF-HOSTED (public/portal/vendor/pdfjs/, servido desde nuestro dominio) —
+// sin dependencia de CDN de terceros en el portal autenticado. pdf.js 3.11.174 (Mozilla).
+// Se carga bajo demanda (solo al subir el primer PDF).
+function _loadPdfjs() {
+  return new Promise(function(resolve, reject) {
+    if (window.pdfjsLib) return resolve(window.pdfjsLib);
+    var s = document.createElement('script');
+    s.src = '/portal/vendor/pdfjs/pdf.min.js';
+    s.onload = function() {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/portal/vendor/pdfjs/pdf.worker.min.js'; } catch (_) {}
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = function() { reject(new Error('No se pudo cargar el lector de PDF')); };
+    document.head.appendChild(s);
+  });
+}
+
+// Extrae el texto de un PDF en el navegador y lo AÑADE al textarea (el usuario revisa y guarda).
+async function kbUploadPdf(file) {
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name || '')) { toast('Sube un archivo PDF', 'err'); return; }
+  var st = document.getElementById('kbStatus');
+  var setSt = function(msg, color) { if (st) { st.textContent = msg; st.style.color = color || 'var(--dim)'; } };
+  setSt('📄 Leyendo ' + file.name + '…');
+  try {
+    var pdfjs = await _loadPdfjs();
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjs.getDocument({ data: buf }).promise;
+    var pages = [];
+    for (var p = 1; p <= pdf.numPages; p++) {
+      var page = await pdf.getPage(p);
+      var content = await page.getTextContent();
+      pages.push(content.items.map(function(it) { return it.str; }).join(' '));
+    }
+    var text = pages.join('\n').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    if (!text) { setSt('Ese PDF no tiene texto legible (¿es un escaneo/imagen?).', 'var(--red)'); toast('PDF sin texto legible', 'err'); return; }
+    var ta = document.getElementById('kbText');
+    ta.value = (ta.value.trim() ? ta.value.trim() + '\n\n' : '') + '— ' + file.name + ' —\n' + text;
+    setSt('✓ PDF añadido (' + pdf.numPages + ' pág). Revísalo y pulsa Guardar.', 'var(--green)');
+    toast('PDF leído — revísalo y guarda');
+  } catch (e) {
+    setSt('No se pudo leer el PDF: ' + (e.message || ''), 'var(--red)');
+    toast('Error leyendo el PDF', 'err');
   }
 }
 
@@ -131,7 +212,7 @@ async function saveConocimiento() {
 async function loadEspera() {
   var box = document.getElementById('espera-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  box.innerHTML = skelPanel();
   var d;
   try { d = await api('/api/portal/waitlist'); }
   catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
@@ -187,7 +268,7 @@ async function deleteWaitlist(id) {
 async function loadOportunidades() {
   var box = document.getElementById('oportunidades-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  box.innerHTML = skelPanel();
   var d;
   try { d = await api('/api/portal/missed-opportunities'); }
   catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
@@ -217,10 +298,28 @@ async function loadOportunidades() {
 }
 
 // ════════ Insights (horas/días punta + conversión) ═══════════════════════════
+// Genera ideas accionables por reglas (sin LLM) a partir de los datos ya cargados
+function buildInsights(d) {
+  var out = [];
+  if (d.peakHour != null) {
+    out.push({ icon: '🕐', text: 'Tu hora punta es las <strong>' + d.peakHour + ':00</strong>. Asegúrate de tener el desvío activo entonces para no perder ninguna llamada.' });
+  }
+  var cr = Number(d.convRate) || 0;
+  if (cr > 0) {
+    if (cr < 40) out.push({ icon: '⚠️', text: 'Solo el <strong>' + cr + '%</strong> de tus llamadas acaba en cita. Revisa la info que da tu asistente (precios, servicios, disponibilidad) y su <a onclick="navigate(\'conocimiento\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">base de conocimiento</a>.' });
+    else if (cr >= 60) out.push({ icon: '🎯', text: '¡El <strong>' + cr + '%</strong> de tus llamadas acaba en cita! Tu asistente convierte de maravilla.' });
+    else out.push({ icon: '📈', text: 'El <strong>' + cr + '%</strong> de tus llamadas acaba en cita — hay margen: afina la info que da tu asistente.' });
+  }
+  if (d.peakDayName) {
+    out.push({ icon: '📅', text: 'Los <strong>' + esc(d.peakDayName) + '</strong> son tu día más movido. Buen momento para reforzar disponibilidad.' });
+  }
+  return out;
+}
+
 async function loadInsights() {
   var box = document.getElementById('insights-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  box.innerHTML = skelPanel();
   var d;
   try { d = await api('/api/portal/insights'); }
   catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
@@ -252,16 +351,25 @@ async function loadInsights() {
   var byDayOrdered = dayOrder.map(function(i){ return d.byDay[i]; });
   var dayLabelsOrdered = dayOrder.map(function(i){ return ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][i]; });
 
+  var insights = buildInsights(d);
+  var insightStrip = insights.length
+    ? '<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(196,245,70,.10),rgba(56,225,200,.05));border-color:rgba(196,245,70,.28)">' +
+        '<div style="font-size:12px;font-weight:800;color:var(--accent-l);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">💡 Ideas para ti</div>' +
+        insights.map(function(x){ return '<div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text);line-height:1.6;padding:5px 0"><span style="flex-shrink:0">' + x.icon + '</span><div>' + x.text + '</div></div>'; }).join('') +
+      '</div>'
+    : '';
+
   box.innerHTML =
+    insightStrip +
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">' +
       nfStat(d.total, 'Llamadas (30 días)') +
-      nfStat(d.convRate + '%', 'Acaban en cita', 'var(--green,#00cec9)') +
+      nfStat(d.convRate + '%', 'Acaban en cita', 'var(--green,#38e1c8)') +
       nfStat(d.peakDayName || '—', 'Día más activo', '#fdcb6e') +
     '</div>' +
     '<div class="card" style="margin-bottom:16px">' +
       '<div style="font-size:14px;font-weight:700;margin-bottom:2px">🕐 ¿A qué hora te llaman?</div>' +
       '<div style="font-size:12px;color:var(--dim)">Hora punta: <strong style="color:var(--accent-l)">' + (d.peakHour!=null?d.peakHour+':00':'—') + '</strong></div>' +
-      bars(d.byHour, hourLabels, 'var(--accent,#6c5ce7)') +
+      bars(d.byHour, hourLabels, 'var(--accent,#c4f546)') +
     '</div>' +
     '<div class="card">' +
       '<div style="font-size:14px;font-weight:700;margin-bottom:2px">📅 ¿Qué días te llaman?</div>' +
@@ -273,7 +381,7 @@ async function loadInsights() {
 async function loadTareas() {
   var box = document.getElementById('tareas-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  box.innerHTML = skelPanel();
 
   var data;
   try { data = await api('/api/portal/tasks'); }
@@ -430,7 +538,7 @@ function showApp() {
   document.getElementById('app').style.display         = 'block';
 
   document.getElementById('sidebarBiz').textContent = _orgInfo.name || '—';
-  var planMap = { starter: 'Plan Starter', negocio: 'Plan Negocio', pro: 'Plan Pro' };
+  var planMap = { starter: 'Plan Starter', negocio: 'Plan NodeFlow', pro: 'Plan Pro' };
   document.getElementById('sidebarPlan').textContent    = planMap[_orgInfo.plan] || 'Plan —';
   var planPrice = _orgInfo.plan === 'negocio' ? '€49' : _orgInfo.plan === 'pro' ? '€99' : 'Gratis';
   document.getElementById('sidebarPlanSub').textContent = planPrice + '/mes · Activo';
@@ -440,13 +548,24 @@ function showApp() {
   if (upgradeEl) {
     if (_orgInfo.plan === 'starter') {
       upgradeEl.innerHTML =
-        '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">🚀 Activa tu AI ahora</div>' +
+        '<div style="font-size:11px;font-weight:700;color:var(--accent-l);margin-bottom:4px">🚀 Activa tu IA ahora</div>' +
         '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.4">Atiende llamadas 24/7 y elimina las perdidas por €49/mes</div>' +
-        '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver planes →</a>';
+        '<a href="https://nodeflow.es/#precios" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#0a0b0d;border-radius:6px;padding:7px;font-size:11px;font-weight:700;text-decoration:none">Ver planes →</a>';
       upgradeEl.style.display = 'block';
     } else {
       upgradeEl.style.display = 'none';
     }
+  }
+
+  // Feedback tras volver del OAuth de Google Calendar (/portal/?cal=connected|denied|error)
+  var _calParam = new URLSearchParams(location.search).get('cal');
+  if (_calParam) {
+    if (_calParam === 'connected')   toast('✅ Google Calendar conectado');
+    else if (_calParam === 'denied') toast('Conexión de Google Calendar cancelada', 'err');
+    else                             toast('No se pudo conectar Google Calendar', 'err');
+    history.replaceState(null, '', location.pathname);
+    navigate(_calParam === 'connected' ? 'integraciones' : 'dashboard');
+    return;
   }
 
   navigate('dashboard');
@@ -584,7 +703,7 @@ function esc(str) {
 function dashActionBar(act) {
   var cards = [];
   if (act.opps > 0) cards.push({ n: act.opps, label: act.opps === 1 ? 'oportunidad por recuperar' : 'oportunidades por recuperar', icon: '💡', color: '#fdcb6e', sec: 'oportunidades' });
-  if (act.tasks > 0) cards.push({ n: act.tasks, label: act.tasks === 1 ? 'tarea pendiente' : 'tareas pendientes', icon: '✅', color: '#a29bfe', sec: 'tareas' });
+  if (act.tasks > 0) cards.push({ n: act.tasks, label: act.tasks === 1 ? 'tarea pendiente' : 'tareas pendientes', icon: '✅', color: '#d6ff5c', sec: 'tareas' });
   if (act.wait > 0) cards.push({ n: act.wait, label: act.wait === 1 ? 'cliente en lista de espera' : 'clientes en lista de espera', icon: '⏳', color: '#00b894', sec: 'espera' });
   if (!cards.length) return '';
   return '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">' +
@@ -597,127 +716,300 @@ function dashActionBar(act) {
     }).join('') + '</div>';
 }
 
+// ── Skeleton loaders (sustituyen al emoji de reloj de arena) ──────────────
+function skelBar(w, h, mb) {
+  return '<div class="skel" style="width:' + w + ';height:' + (h || 12) + 'px' + (mb != null ? ';margin-bottom:' + mb + 'px' : '') + '"></div>';
+}
+function skelPanel() {
+  var rows = '';
+  for (var i = 0; i < 5; i++) {
+    rows += '<div style="display:flex;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--border)">' +
+      skelBar('16px', 16) + skelBar('22%', 12) + skelBar('32%', 12) + skelBar('18%', 12) + '</div>';
+  }
+  return '<div class="skel-wrap"><div class="card">' + skelBar('180px', 16, 18) + rows + '</div></div>';
+}
+function skeletonDashboard() {
+  var wins = '';
+  for (var i = 0; i < 4; i++) wins += skelBar('120px', 22);
+  var pills = '';
+  for (var p = 0; p < 5; p++) pills += '<div class="skel" style="width:128px;height:36px;border-radius:999px"></div>';
+  function card() {
+    var rows = '';
+    for (var r = 0; r < 4; r++) {
+      rows += '<div style="display:flex;gap:14px;padding:11px 0;border-top:1px solid var(--border)">' +
+        skelBar('22%', 12) + skelBar('26%', 12) + skelBar('34%', 12) + '</div>';
+    }
+    return '<div class="card">' + skelBar('160px', 16, 16) + rows + '</div>';
+  }
+  return '<div class="skel-wrap">' +
+    '<div class="section-header"><div>' + skelBar('300px', 34, 8) + skelBar('190px', 13) + '</div>' +
+      '<div class="skel" style="width:120px;height:26px;border-radius:20px"></div></div>' +
+    skelBar('260px', 17, 16) +
+    '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:30px">' + wins + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:30px">' + pills + '</div>' +
+    '<div class="two-col">' + card() + card() + '</div>' +
+  '</div>';
+}
+
+// ── Empty state reutilizable (icono + título + texto + CTA opcional) ──────
+function emptyState(icon, title, text, ctaHtml) {
+  return '<div class="empty-state">' +
+    '<div class="empty-state-icon">' + icon + '</div>' +
+    (title ? '<div class="empty-state-title">' + title + '</div>' : '') +
+    '<div class="empty-state-text">' + text + '</div>' +
+    (ctaHtml || '') +
+  '</div>';
+}
+
+// ── Dashboard · copiloto ─────────────────────────────────────
+// El dashboard no es una página de métricas: cuenta lo que NodeFlow
+// ya ha hecho por ti hoy y propone el siguiente paso.
+
+var DASH_SECTION_LABELS = {
+  llamadas: 'Llamadas', citas: 'Citas', clientes: 'Clientes',
+  oportunidades: 'Oportunidades', espera: 'Lista de espera', tareas: 'Mis tareas',
+  seguimientos: 'Seguimientos', informes: 'Informes', insights: 'Insights',
+  referidos: 'Recomienda y gana', widget: 'Widget para tu web', asistente: 'Asistente',
+  conocimiento: 'Base de conocimiento', automatizaciones: 'Automatizaciones',
+  integraciones: 'Integraciones', facturacion: 'Facturación',
+  configuracion: 'Configuración', ayuda: 'Ayuda',
+};
+
+// 2.7h → "2h 42m" · 0.5h → "30m"
+function _fmtHm(h) {
+  var mins = Math.round((Number(h) || 0) * 60);
+  if (mins < 60) return mins + 'm';
+  var rest = mins % 60;
+  return Math.floor(mins / 60) + 'h' + (rest ? ' ' + rest + 'm' : '');
+}
+
+function _win(num, label, money) {
+  return '<div class="nf-win' + (money ? ' money' : '') + '">' +
+    '<span class="nf-win-check">✓</span>' +
+    '<span class="nf-win-num">' + num + '</span>' +
+    '<span class="nf-win-label">' + label + '</span></div>';
+}
+
+function dashHero(d) {
+  var hour    = new Date().getHours();
+  var greet   = hour < 14 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+  var dateStr = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  var t = d.today || {};
+  var busy = (t.callCount || 0) > 0;
+
+  var status = d.aiStatus === 'pending'
+    ? '<span class="ai-status" style="background:rgba(246,197,68,.12);color:var(--yellow);border-color:rgba(246,197,68,.25)">◌ Configurando</span>'
+    : '<span class="ai-status"><span class="nf-live-dot"></span>Asistente activo</span>';
+
+  var wins = '';
+  if (busy) {
+    wins += _win(t.callCount, t.callCount === 1 ? 'llamada atendida' : 'llamadas atendidas');
+    if (t.bookedToday)   wins += _win(t.bookedToday, t.bookedToday === 1 ? 'cita reservada' : 'citas reservadas');
+    if (t.emailsSent)    wins += _win(t.emailsSent, t.emailsSent === 1 ? 'aviso enviado' : 'avisos enviados');
+    if (d.valueEstToday) wins += _win('€' + d.valueEstToday, 'en reservas · estimado', true);
+    if (t.hoursSaved)    wins += _win(_fmtHm(t.hoursSaved), 'sin estar tú al teléfono');
+  }
+
+  var lead;
+  if (d.aiStatus === 'pending') {
+    lead = 'Tu asistente está casi listo. Completa los primeros pasos y empezará a atender llamadas.';
+  } else if (busy) {
+    lead = 'Hoy NodeFlow ya ha trabajado por ti.';
+  } else if ((d.totalCalls || 0) > 0) {
+    lead = 'Todo tranquilo por ahora. Tu asistente sigue al teléfono — en total ya ha atendido <strong>' +
+      d.totalCalls + (d.totalCalls === 1 ? ' llamada' : ' llamadas') + '</strong>' +
+      (d.totalBookings ? ' y reservado <strong>' + d.totalBookings + (d.totalBookings === 1 ? ' cita' : ' citas') + '</strong>' : '') + ' por ti.';
+  } else {
+    lead = 'Tu asistente está al teléfono, listo para su primera llamada.';
+  }
+
+  return '<div class="nf-hero">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">' +
+      '<div><div class="nf-hero-greet">' + greet + ', ' + esc(d.businessName) + '</div>' +
+      '<div class="nf-hero-date">' + dateStr + (d.daysActive ? ' · tu asistente lleva ' + d.daysActive + ' días contigo' : '') + '</div></div>' +
+      status +
+    '</div>' +
+    '<div class="nf-hero-lead">' + lead + '</div>' +
+    (wins ? '<div class="nf-wins nf-stagger">' + wins + '</div>' : '') +
+  '</div>';
+}
+
+// IA proactiva: detecta y propone, no espera órdenes
+function dashRecos(act) {
+  function reco(text, sub, btnLabel, sec) {
+    return '<div class="nf-reco">' +
+      '<div class="nf-reco-spark"><svg class="ico" width="16" height="16"><use href="#i-insights"/></svg></div>' +
+      '<div class="nf-reco-body"><div class="nf-reco-text">' + text + '</div>' +
+      (sub ? '<div class="nf-reco-sub">' + sub + '</div>' : '') + '</div>' +
+      '<button class="btn btn-accent btn-sm" onclick="navigate(\'' + sec + '\')">' + btnLabel + '</button></div>';
+  }
+  var out = '';
+  if (act.opps > 0) {
+    out += reco(
+      'He detectado <strong>' + act.opps + (act.opps === 1 ? ' cliente' : ' clientes') + '</strong> que llamaron y se quedaron sin cita.',
+      'Puedo ayudarte a recuperarlos antes de que se enfríen.',
+      'Recuperar', 'oportunidades');
+  }
+  if (act.wait > 0) {
+    out += reco(
+      '<strong>' + act.wait + (act.wait === 1 ? ' cliente espera' : ' clientes esperan') + '</strong> un hueco libre en tu agenda.',
+      'Si se cancela una cita, avísales con un toque.',
+      'Ver lista', 'espera');
+  }
+  if (!out) return '';
+  return '<div style="margin-bottom:24px">' + out + '</div>';
+}
+
+function dashContinue() {
+  var last  = localStorage.getItem('nf_last_section');
+  var label = DASH_SECTION_LABELS[last];
+  if (!label) return '';
+  return '<div><div class="nf-continue" role="button" tabindex="0" onclick="navigate(\'' + last + '\')" ' +
+    'onkeydown="if(event.key===\'Enter\')navigate(\'' + last + '\')">' +
+    '<span class="nf-continue-kicker">Continúa donde lo dejaste</span>' +
+    '<span>' + label + '</span><span class="nf-continue-arrow">→</span></div></div>';
+}
+
+function dashQuick(act) {
+  function qa(iconId, label, onclick) {
+    return '<button class="nf-qa-btn" onclick="' + onclick + '">' +
+      '<span class="qa-ico"><svg class="ico" width="15" height="15"><use href="#' + iconId + '"/></svg></span>' +
+      label + '</button>';
+  }
+  return '<div class="nf-qa-title">Acciones rápidas</div><div class="nf-qa nf-stagger">' +
+    qa('i-citas', 'Nueva cita', "navigate('citas');setTimeout(function(){if(window.openNewCita)openNewCita();},350)") +
+    qa('i-tareas', act.tasks > 0 ? 'Mis tareas · ' + act.tasks : 'Nueva tarea', "navigate('tareas')") +
+    qa('i-asistente', 'Tu asistente', "navigate('asistente')") +
+    qa('i-informes', 'Informes', "navigate('informes')") +
+    qa('i-referidos', 'Recomienda y gana', "navigate('referidos')") +
+  '</div>';
+}
+
+function dashUpcoming(d) {
+  var today = new Date().toLocaleDateString('sv-SE');
+  var stBadge = {
+    confirmed: '<span class="badge bg">Confirmada</span>',
+    pending:   '<span class="badge by">Pendiente</span>',
+    cancelled: '<span class="badge br">Cancelada</span>',
+  };
+  var html = '';
+  if (d.upcoming && d.upcoming.length) {
+    for (var i = 0; i < d.upcoming.length; i++) {
+      var a = d.upcoming[i];
+      var isToday = a.date === today;
+      html += '<div class="crit-item">' +
+        '<div><div class="crit-name">' + esc(a.patientName) + '</div>' +
+        '<div class="crit-meta">' + esc(a.service) + '</div></div>' +
+        '<div><div class="crit-date">' + (isToday ? '<span style="color:var(--accent-l)">Hoy</span>' : fmtDate(a.date)) + ' · ' + esc(a.time) + '</div>' +
+        '<div class="crit-days">' + (stBadge[a.status] || stBadge.pending) + '</div></div></div>';
+    }
+  } else {
+    html = '<div style="color:var(--dim);font-size:13px;padding:8px 0">Aún no hay citas próximas. Cuando tu asistente reserve una, aparecerá aquí.</div>';
+  }
+  return '<div class="card"><div class="card-title">Próximas citas</div>' + html +
+    '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'citas\')">Ver agenda →</button></div>';
+}
+
+function dashFeedItems(list) {
+  if (!list || !list.length) {
+    return '<div style="color:var(--dim);font-size:13px;padding:8px 0">Sin actividad todavía. En cuanto entre la primera llamada la verás aquí, en directo.</div>';
+  }
+  var html = '';
+  for (var j = 0; j < list.length; j++) {
+    var ev  = list[j];
+    var dot = ev.type === 'reserva' ? 'ok' : ev.type === 'info' ? 'info' : '';
+    var txt = ev.type === 'reserva' ? '<strong>Cita reservada</strong> · ' + esc(ev.text)
+            : ev.type === 'info'    ? 'Consulta resuelta · '                + esc(ev.text)
+            :                          esc(ev.text);
+    html += '<div class="nf-feed-item"><span class="nf-feed-dot ' + dot + '"></span>' +
+      '<div class="nf-feed-body"><div class="nf-feed-text">' + txt + '</div>' +
+      '<div class="nf-feed-time">' + timeAgo(ev.time) + '</div></div></div>';
+  }
+  return html;
+}
+
+function dashFeed(list) {
+  return '<div class="card"><div class="card-title"><span class="nf-live-dot"></span>Actividad en directo</div>' +
+    '<div class="nf-feed" id="dashFeed">' + dashFeedItems(list) + '</div>' +
+    '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'llamadas\')">Ver llamadas →</button></div>';
+}
+
+// Checklist de primeros pasos (solo cuentas sin llamadas aún)
+function dashSetup(d) {
+  if (localStorage.getItem('nf_banner_dismissed') === '1') return '';
+  if ((d.totalCalls || 0) !== 0) return '';
+  var steps =
+    '<div class="setup-step done">✅ Pago confirmado — tu cuenta está activa</div>' +
+    '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'asistente\')">⚙️ <strong>Configura tu asistente</strong> — nombre, voz, idioma y servicios <span style="color:var(--accent-l)">→</span></div>' +
+    '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'configuracion\')">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp <span style="color:var(--accent-l)">→</span></div>' +
+    (d.onboarding && d.onboarding.number_assigned
+      ? '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'asistente\')">▶ <strong>Escúchalo antes de desviar</strong> — tu asistente te llama al móvil <span style="color:var(--accent-l)">→</span></div>' +
+        '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'configuracion\')">📞 <strong>Activa el desvío de llamadas</strong>' +
+        (d.nodeflowNumber ? ' — tu número NodeFlow: <strong style="color:var(--accent-l)">' + esc(d.nodeflowNumber) + '</strong>' : '') +
+        ' <span style="color:var(--accent-l)">→</span></div>'
+      : '<div class="setup-step" style="opacity:.6">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío</div>');
+  return '<div class="card" id="setup-banner" style="border-color:rgba(196,245,70,.25)">' +
+    '<div class="card-title">🚀 Primeros pasos</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' + steps + '</div>' +
+    '<button class="btn btn-d btn-sm" style="margin-top:14px" ' +
+      'onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')">Ocultar</button>' +
+  '</div>';
+}
+
+// Dashboard vivo: refresca el feed sin recargar la vista
+var _dashLive = null;
+function startDashLive() {
+  clearInterval(_dashLive);
+  _dashLive = setInterval(async function () {
+    if (_currentSection !== 'dashboard' || document.hidden) return;
+    try {
+      var d = await api('/api/portal/dashboard');
+      var feed = document.getElementById('dashFeed');
+      if (feed) feed.innerHTML = dashFeedItems(d.recentActivity);
+    } catch (e) { /* silencioso: siguiente tick */ }
+  }, 45000);
+}
+
 async function loadDashboard() {
   var sec = document.getElementById('sec-dashboard');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando…</div></div>';
+  sec.innerHTML = skeletonDashboard();
   var d;
   try {
     d = await api('/api/portal/dashboard');
   } catch (e) {
-    sec.innerHTML = '<div class="empty-state"><div class="empty-state-text">Error al cargar: ' + esc(e.message) + '</div></div>';
+    sec.innerHTML = emptyState('⚠️', 'No se pudo cargar', esc(e.message));
     return;
   }
 
-  // Contadores accionables (en paralelo, tolerante a fallos) para la barra de acciones
+  // Contadores accionables (en paralelo, tolerante a fallos)
   var act = { opps: 0, tasks: 0, wait: 0 };
   try {
     var r = await Promise.all([
-      api('/api/portal/missed-opportunities').catch(function(){return{};}),
-      api('/api/portal/tasks').catch(function(){return{};}),
-      api('/api/portal/waitlist').catch(function(){return{};}),
+      api('/api/portal/missed-opportunities').catch(function () { return {}; }),
+      api('/api/portal/tasks').catch(function () { return {}; }),
+      api('/api/portal/waitlist').catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
-    act.tasks = (r[1].tasks || []).filter(function(t){return !t.done;}).length;
-    act.wait  = (r[2].waitlist || []).filter(function(w){return w.status==='waiting';}).length;
+    act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
+    act.wait  = (r[2].waitlist || []).filter(function (w) { return w.status === 'waiting'; }).length;
   } catch (e) {}
 
-  var hour   = new Date().getHours();
-  var greet  = hour < 14 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
-  var dateStr = new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
-
-  var today = new Date().toLocaleDateString('sv-SE');
-  var dashStatusBadge = {
-    confirmed: '<span class="badge bg">✓ Confirmada</span>',
-    pending:   '<span class="badge by">Pendiente</span>',
-    cancelled: '<span class="badge br">✕ Cancelada</span>',
-  };
-  var upcomingRows = '';
-  if (d.upcoming && d.upcoming.length > 0) {
-    for (var i = 0; i < d.upcoming.length; i++) {
-      var a = d.upcoming[i];
-      var isToday = a.date === today;
-      upcomingRows += '<tr' + (isToday ? ' style="background:rgba(108,92,231,0.08)"' : '') + '>' +
-        '<td>' + (isToday ? '<strong style="color:var(--accent-l)">Hoy</strong>' : fmtDate(a.date)) + '</td>' +
-        '<td><strong>' + esc(a.time) + '</strong></td>' +
-        '<td>' + esc(a.patientName) + '</td><td>' + esc(a.service) + '</td>' +
-        '<td>' + (dashStatusBadge[a.status] || dashStatusBadge.pending) + '</td></tr>';
-    }
-  } else {
-    upcomingRows = '<tr class="empty-row"><td colspan="5">No hay citas próximas</td></tr>';
-  }
-
-  var activityRows = '';
-  if (d.recentActivity && d.recentActivity.length > 0) {
-    for (var j = 0; j < d.recentActivity.length; j++) {
-      var ev = d.recentActivity[j];
-      var bClass = ev.type === 'reserva' ? 'bg' : ev.type === 'info' ? 'binfo' : 'bd';
-      activityRows += '<div class="activity-item">' +
-        '<span class="activity-badge badge ' + bClass + '">' + esc(ev.type) + '</span>' +
-        '<div><div class="activity-text">' + esc(ev.text) + '</div>' +
-        '<div class="activity-time">' + timeAgo(ev.time) + '</div></div></div>';
-    }
-  } else {
-    activityRows = '<div style="color:var(--dim);font-size:13px">Sin actividad reciente</div>';
-  }
-
   sec.innerHTML =
-    '<div class="section-header">' +
-      '<div>' +
-        '<div class="section-title">' + greet + ', ' + esc(d.businessName) + ' 👋</div>' +
-        '<div style="font-size:13px;color:var(--dim);margin-top:4px">' + dateStr + ' · Tu AI lleva activo ' + (d.daysActive || 0) + ' días</div>' +
-      '</div>' +
-      (d.aiStatus === 'pending'
-        ? '<span class="ai-status" style="background:rgba(249,202,36,.12);color:#f9ca24;border-color:rgba(249,202,36,.25)">◌ CONFIGURANDO</span>'
-        : '<span class="ai-status">● AI ACTIVO</span>') +
-    '</div>' +
-    dashActionBar(act) +
-    '<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Hoy</div>' +
-    '<div class="kpi-grid">' +
-      '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.callCount || 0) + '</div><div class="kpi-sub">hoy</div>' + kpiTrend(d.today.callCount, d.prevWeek && d.prevWeek.callCount) + '</div>' +
-      '<div class="kpi"><div class="kpi-label">Reservas</div><div class="kpi-val" style="color:var(--green2)">' + (d.today.bookedToday || 0) + '</div><div class="kpi-sub">' + (d.today.convRate || 0) + '% conversión</div>' + kpiTrend(d.today.bookedToday, d.prevWeek && d.prevWeek.bookedToday) + '</div>' +
-      '<div class="kpi"><div class="kpi-label">Notificaciones</div><div class="kpi-val" style="color:var(--accent-l)">' + (d.today.emailsSent || 0) + '</div><div class="kpi-sub">email + WhatsApp</div>' + kpiTrend(d.today.emailsSent, d.prevWeek && d.prevWeek.emailsSent) + '</div>' +
-      '<div class="kpi"><div class="kpi-label">Horas ahorradas</div><div class="kpi-val" style="color:#60a5fa">' + (d.today.hoursSaved || 0) + 'h</div><div class="kpi-sub">vs atención manual</div>' + kpiTrend(d.today.hoursSaved, d.prevWeek && d.prevWeek.hoursSaved) + '</div>' +
-    '</div>' +
-    '<div class="two-col">' +
-      '<div class="card"><div class="card-title">🗓️ Próximas citas</div>' +
-        '<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Estado</th></tr></thead>' +
-        '<tbody>' + upcomingRows + '</tbody></table></div>' +
-        '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'citas\')">Ver todas →</button>' +
-      '</div>' +
-      '<div class="card"><div class="card-title">⚡ Actividad reciente</div>' +
-        '<div class="activity-list">' + activityRows + '</div>' +
-        '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'llamadas\')">Ver llamadas →</button>' +
-      '</div>' +
-    '</div>';
+    dashHero(d) +
+    dashSetup(d) +
+    dashRecos(act) +
+    dashContinue() +
+    dashQuick(act) +
+    '<div class="two-col nf-stagger">' + dashUpcoming(d) + dashFeed(d.recentActivity) + '</div>' +
+    referralCta('dashboard');
 
-  // ── Setup checklist banner (show when 0 total historical calls and not dismissed) ──
-  if (localStorage.getItem('nf_banner_dismissed') !== '1') {
-    if ((d.totalCalls || 0) === 0) {
-      var bannerHTML =
-        '<div id="setup-banner" style="background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.06));border:1px solid rgba(108,92,231,.25);border-radius:14px;padding:20px 24px;margin-bottom:24px;">' +
-          '<div style="font-size:13px;font-weight:700;color:#a29bfe;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">🚀 Primeros pasos</div>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;" id="setup-steps">' +
-            '<div class="setup-step done" data-step="1">✅ Pago confirmado — tu cuenta está activa</div>' +
-            '<div class="setup-step" data-step="2" onclick="navigate(\'asistente\')" style="cursor:pointer;">⚙️ <strong>Configura tu asistente IA</strong> — nombre, voz, idioma y servicios → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
-            '<div class="setup-step" data-step="3" onclick="navigate(\'configuracion\')" style="cursor:pointer;">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp → <span style="color:#a29bfe;text-decoration:underline">Ir ahora →</span></div>' +
-            (d.onboarding && d.onboarding.number_assigned
-              ? '<div class="setup-step" data-step="4" onclick="navigate(\'configuracion\')" style="cursor:pointer">📞 <strong>Activa el desvío de llamadas</strong>' +
-                (d.nodeflowNumber ? ' — tu número NodeFlow: <strong style="color:#a29bfe">' + esc(d.nodeflowNumber) + '</strong>' : '') +
-                ' → <span style="color:#a29bfe;text-decoration:underline">Ver códigos →</span></div>'
-              : '<div class="setup-step" data-step="4" style="opacity:.6">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío en cuanto esté listo</div>'
-            ) +
-          '</div>' +
-          '<button onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;">Ocultar</button>' +
-        '</div>';
-      sec.insertAdjacentHTML('afterbegin', bannerHTML);
-    }
-  }
+  startDashLive();
 }
 
 // ── Llamadas ──────────────────────────────────────────────────
 async function loadCalls(outcome, from, to) {
   var sec = document.getElementById('sec-llamadas');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando llamadas…</div></div>';
+  sec.innerHTML = skelPanel();
 
   var params = new URLSearchParams();
   if (outcome && outcome !== 'todas') params.set('outcome', outcome);
@@ -797,6 +1089,64 @@ async function loadCalls(outcome, from, to) {
 var _citasData = [];
 var _citasFilterStatus = 'todas';
 var _citasSearch = '';
+var _citasView = localStorage.getItem('nf_citas_view') || 'semana';
+var _citasWeekOffset = 0;
+
+function setCitasView(v) {
+  _citasView = v;
+  try { localStorage.setItem('nf_citas_view', v); } catch (e) {}
+  renderCitas();
+}
+
+// Lunes de la semana actual + desplazamiento en semanas
+function _mondayOf(offsetWeeks) {
+  var d = new Date();
+  var dow = (d.getDay() + 6) % 7; // 0 = lunes
+  d.setDate(d.getDate() - dow + offsetWeeks * 7);
+  return d;
+}
+
+// Vista semanal: 7 columnas, citas como tarjetas clicables
+function citasWeekHtml(filtered, today) {
+  var mon = _mondayOf(_citasWeekOffset);
+  var names = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  var byDate = {};
+  filtered.forEach(function (a) { (byDate[a.date] = byDate[a.date] || []).push(a); });
+
+  var cols = '';
+  for (var i = 0; i < 7; i++) {
+    var dd = new Date(mon); dd.setDate(mon.getDate() + i);
+    var iso = dd.toLocaleDateString('sv-SE');
+    var apts = (byDate[iso] || []).sort(function (x, y) { return (x.time || '').localeCompare(y.time || ''); });
+    var cards = '';
+    for (var j = 0; j < apts.length; j++) {
+      var a = apts[j];
+      var cls = a.status === 'cancelled' ? ' cancelled' : a.status === 'pending' ? ' pending' : '';
+      cards += '<div class="nf-apt' + cls + '" onclick="openEditCita(\'' + esc(a.id) + '\')" role="button" tabindex="0" ' +
+        'onkeydown="if(event.key===\'Enter\')openEditCita(\'' + esc(a.id) + '\')">' +
+        '<div class="nf-apt-time">' + esc(a.time || '') + '</div>' +
+        '<div class="nf-apt-name">' + esc(a.patientName) + '</div>' +
+        '<div class="nf-apt-svc">' + esc(a.service || '') + '</div></div>';
+    }
+    cols += '<div class="nf-week-day' + (iso === today ? ' today' : '') + '">' +
+      '<div class="nf-week-head"><span>' + names[i] + '</span><span class="num">' + dd.getDate() + '</span></div>' +
+      (cards || '<div class="nf-week-empty">—</div>') + '</div>';
+  }
+
+  var monthLbl = mon.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  var weekLbl = _citasWeekOffset === 0 ? 'Esta semana'
+              : _citasWeekOffset === 1 ? 'Próxima semana'
+              : _citasWeekOffset === -1 ? 'Semana pasada'
+              : (_citasWeekOffset > 0 ? '+' : '') + _citasWeekOffset + ' semanas';
+
+  return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
+    '<button class="btn btn-d btn-sm" onclick="_citasWeekOffset--;renderCitas()" aria-label="Semana anterior">‹</button>' +
+    '<button class="btn btn-d btn-sm" onclick="_citasWeekOffset++;renderCitas()" aria-label="Semana siguiente">›</button>' +
+    (_citasWeekOffset !== 0 ? '<button class="btn btn-d btn-sm" onclick="_citasWeekOffset=0;renderCitas()">Hoy</button>' : '') +
+    '<span style="font-size:13px;font-weight:700;color:var(--white)">' + weekLbl + '</span>' +
+    '<span style="font-size:12px;color:var(--dim);text-transform:capitalize">· ' + monthLbl + '</span></div>' +
+    '<div class="nf-week-scroll"><div class="nf-week nf-stagger">' + cols + '</div></div>';
+}
 
 async function loadCitas(statusFilter, search) {
   _citasFilterStatus = statusFilter || _citasFilterStatus || 'todas';
@@ -804,7 +1154,7 @@ async function loadCitas(statusFilter, search) {
 
   var sec = document.getElementById('sec-citas');
   if (!_citasData.length) {
-    sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando citas…</div></div>';
+    sec.innerHTML = skelPanel();
   }
 
   try {
@@ -841,35 +1191,78 @@ function renderCitas() {
     return true;
   });
 
+  // ── Orden cronológico + agrupación por día (próximas arriba, pasadas al final) ──
+  var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  var tomorrowStr = tomorrow.toLocaleDateString('sv-SE');
+  var dayLabel = function(d) {
+    if (d === today) return 'Hoy';
+    if (d === tomorrowStr) return 'Mañana';
+    return fmtDate(d);
+  };
+  var keyOf = function(a) { return a.date + ' ' + (a.time || ''); };
+  var upcoming = filtered.filter(function(a) { return a.date >= today; })
+                         .sort(function(a, b) { return keyOf(a).localeCompare(keyOf(b)); });
+  var past     = filtered.filter(function(a) { return a.date < today; })
+                         .sort(function(a, b) { return keyOf(b).localeCompare(keyOf(a)); });
+
+  var apptRow = function(a) {
+    var isToday  = a.date === today;
+    var badge    = STATUS_BADGE[a.status] || STATUS_BADGE.pending;
+    var safeId   = esc(a.id);
+    var safeName = esc(a.patientName).replace(/'/g, "\\'");
+    var actions  = a.status !== 'cancelled'
+      ? '<button class="btn btn-d btn-sm" onclick="openEditCita(\'' + safeId + '\')">✏️</button> ' +
+        '<button class="btn btn-r btn-sm" onclick="cancelCitaConfirm(\'' + safeId + '\',\'' + safeName + '\')">✕</button>'
+      : '';
+    return '<tr' + (isToday ? ' style="background:rgba(196,245,70,0.08)"' : '') + '>' +
+      '<td><strong>' + esc(a.time) + '</strong></td>' +
+      '<td>' + esc(a.patientName) + '</td>' +
+      '<td>' + esc(a.phone || '—') + '</td>' +
+      '<td>' + esc(a.service) + (a.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ' + esc(a.notes) + '</div>' : '') + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td style="white-space:nowrap">' + actions + '</td></tr>';
+  };
+  var dayHeader = function(label, muted) {
+    return '<tr><td colspan="6" style="background:' + (muted ? 'rgba(255,255,255,.02)' : 'var(--card2)') +
+      ';font-weight:800;font-size:12px;color:' + (muted ? 'var(--dim)' : 'var(--accent-l)') +
+      ';padding:8px 14px;text-transform:capitalize">' + label + '</td></tr>';
+  };
+
   var rows = '';
-  if (filtered.length > 0) {
-    for (var i = 0; i < filtered.length; i++) {
-      var a = filtered[i];
-      var isToday = a.date === today;
-      var badge   = STATUS_BADGE[a.status] || STATUS_BADGE.pending;
-      var safeId  = esc(a.id);
-      var safeName = esc(a.patientName).replace(/'/g, "\\'");
-      var actions = a.status !== 'cancelled'
-        ? '<button class="btn btn-d btn-sm" onclick="openEditCita(\'' + safeId + '\')">✏️</button> ' +
-          '<button class="btn btn-r btn-sm" onclick="cancelCitaConfirm(\'' + safeId + '\',\'' + safeName + '\')">✕</button>'
-        : '';
-      rows += '<tr' + (isToday ? ' style="background:rgba(108,92,231,0.08)"' : '') + '>' +
-        '<td>' + (isToday ? '<strong style="color:var(--accent-l)">Hoy</strong>' : fmtDate(a.date)) + '</td>' +
-        '<td><strong>' + esc(a.time) + '</strong></td>' +
-        '<td>' + esc(a.patientName) + '</td>' +
-        '<td>' + esc(a.phone || '—') + '</td>' +
-        '<td>' + esc(a.service) + (a.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ' + esc(a.notes) + '</div>' : '') + '</td>' +
-        '<td>' + badge + '</td>' +
-        '<td style="white-space:nowrap">' + actions + '</td></tr>';
+  if (upcoming.length || past.length) {
+    var lastDay = null;
+    upcoming.forEach(function(a) {
+      if (a.date !== lastDay) { rows += dayHeader(dayLabel(a.date)); lastDay = a.date; }
+      rows += apptRow(a);
+    });
+    if (past.length) {
+      rows += '<tr><td colspan="6" style="background:rgba(255,255,255,.02);font-weight:700;font-size:11px;color:var(--dim);padding:8px 14px;text-transform:uppercase;letter-spacing:.06em">Pasadas</td></tr>';
+      var lastPast = null;
+      past.forEach(function(a) {
+        if (a.date !== lastPast) { rows += dayHeader(dayLabel(a.date), true); lastPast = a.date; }
+        rows += apptRow(a);
+      });
     }
   } else {
-    rows = '<tr class="empty-row"><td colspan="7">' + (_citasSearch || _citasFilterStatus !== 'todas' ? 'Sin resultados con este filtro' : 'No hay citas registradas') + '</td></tr>';
+    rows = '<tr class="empty-row"><td colspan="6">' + (_citasSearch || _citasFilterStatus !== 'todas' ? 'Sin resultados con este filtro' : 'No hay citas registradas') + '</td></tr>';
   }
+
+  var viewHtml = _citasView === 'semana'
+    ? citasWeekHtml(filtered, today)
+    : '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<div class="section-title">🗓️ Citas</div>' +
-      '<button class="btn btn-accent" onclick="openNewCita()">+ Nueva cita</button>' +
+      '<div class="section-title">Citas</div>' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+        '<div class="tabs">' +
+          '<button class="tab-btn' + (_citasView === 'semana' ? ' active' : '') + '" onclick="setCitasView(\'semana\')">Semana</button>' +
+          '<button class="tab-btn' + (_citasView === 'lista' ? ' active' : '') + '" onclick="setCitasView(\'lista\')">Lista</button>' +
+        '</div>' +
+        '<button class="btn btn-accent" onclick="openNewCita()">+ Nueva cita</button>' +
+      '</div>' +
     '</div>' +
     '<div class="filter-bar">' +
       '<input class="search-input" id="citasSearch" placeholder="Buscar cliente, teléfono o servicio…" value="' + esc(_citasSearch) + '"' +
@@ -882,9 +1275,7 @@ function renderCitas() {
         '<option value="cancelled"' + (_citasFilterStatus==='cancelled'?' selected':'') + '>Canceladas</option>' +
       '</select>' +
     '</div>' +
-    '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th>Acciones</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>' +
+    viewHtml +
     '<div style="font-size:12px;color:var(--dim);margin-top:12px">' + filtered.length + ' citas' + (_citasData.length !== filtered.length ? ' (de ' + _citasData.length + ' total)' : '') + '</div>';
 }
 
@@ -1032,7 +1423,7 @@ async function submitCancelCita(id) {
 async function loadInformes(period) {
   period = period || 'month';
   var sec = document.getElementById('sec-informes');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando informes…</div></div>';
+  sec.innerHTML = skelPanel();
 
   var data;
   try {
@@ -1092,9 +1483,22 @@ async function loadInformes(period) {
 }
 
 // ── Automatizaciones ──────────────────────────────────────────
+// Etiquetas en español de los tipos de fecha crítica (slug → texto)
+var CRIT_TYPE_LABELS = {
+  itv_expiry: 'ITV (vehículo)', vaccine_due: 'Vacuna / recordatorio sanitario',
+  tax_filing: 'Declaración de impuestos', quarterly_vat: 'IVA trimestral',
+  insurance_renewal: 'Renovación de seguro', license_renewal: 'Renovación de licencia',
+  contract_renewal: 'Renovación de contrato', pregnancy_due: 'Fecha prevista de parto',
+  treatment_cycle: 'Ciclo de tratamiento', follow_up: 'Seguimiento / revisión',
+  birthday: 'Cumpleaños', annual_review: 'Revisión anual',
+  mortgage_payment: 'Pago de hipoteca', warranty_expiry: 'Fin de garantía',
+  subscription_renewal: 'Renovación de suscripción', other: 'Otro',
+};
+function critTypeLabel(t) { return CRIT_TYPE_LABELS[t] || (t ? String(t).replace(/_/g, ' ') : '—'); }
+
 async function loadAutomatizaciones() {
   var sec = document.getElementById('sec-automatizaciones');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  sec.innerHTML = skelPanel();
 
   var autoData, critData;
   try {
@@ -1119,7 +1523,7 @@ async function loadAutomatizaciones() {
       var daysText = days > 0 ? 'en ' + days + 'd' : days === 0 ? 'hoy' : 'hace ' + (-days) + 'd';
       critRows += '<div class="crit-item">' +
         '<div><div class="crit-name">' + esc(e.clientName) + '</div>' +
-          '<div class="crit-meta"><span class="badge ' + urgClass + '">' + esc(e.type) + '</span>' + (e.notes ? ' · ' + esc(e.notes) : '') + '</div></div>' +
+          '<div class="crit-meta"><span class="badge ' + urgClass + '">' + esc(critTypeLabel(e.type)) + '</span>' + (e.notes ? ' · ' + esc(e.notes) : '') + '</div></div>' +
         '<div><div class="crit-date">' + fmtDate(e.dueDate) + '</div><div class="crit-days">' + daysText + '</div></div>' +
         '<button class="btn btn-r btn-sm" onclick="deleteCritDate(\'' + esc(e.id) + '\')">✕</button>' +
         '</div>';
@@ -1149,15 +1553,30 @@ async function loadAutomatizaciones() {
       '<div class="auto-footer"><span class="auto-label">Horas después:</span><div class="auto-hours">' +
         '<input type="number" id="hoursReviews" value="' + (rev.hoursAfter || 24) + '" min="1" max="72"' +
         ' onchange="patchAuto(\'reviews\',{hoursAfter:parseInt(this.value)})"></div></div></div>' +
-      // Rebooking card
+      // Confirmación por WhatsApp card
       '<div class="auto-card"><div class="auto-row"><div>' +
-        '<div class="auto-name">🔄 Rebooking automático</div>' +
+        '<div class="auto-name">📲 Confirmación por WhatsApp</div>' +
+        '<div class="auto-desc">Al agendar una cita, el cliente recibe la confirmación por WhatsApp</div>' +
+      '</div><label class="toggle"><input type="checkbox" id="togWaConfirm" ' + ((auto.waConfirm && auto.waConfirm.enabled !== false) ? 'checked' : '') +
+        ' onchange="patchAuto(\'waConfirm\',{enabled:this.checked})"><span class="slider"></span></label></div></div>' +
+
+      // Reactivación (rebooking) card
+      '<div class="auto-card"><div class="auto-row"><div>' +
+        '<div class="auto-name">🔄 Reactivación de clientes</div>' +
         '<div class="auto-desc">Recordatorio cuando un cliente lleva tiempo sin venir</div>' +
       '</div><label class="toggle"><input type="checkbox" id="togRebooking" ' + (reb.enabled !== false ? 'checked' : '') +
         ' onchange="patchAuto(\'rebooking\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
       '<div class="auto-footer"><span class="auto-label">Días sin venir:</span><div class="auto-hours">' +
-        '<input type="number" id="daysRebooking" value="' + (reb.daysThreshold || 42) + '" min="7" max="365"' +
-        ' onchange="patchAuto(\'rebooking\',{daysThreshold:parseInt(this.value)})"></div></div></div>' +
+        '<input type="number" id="daysRebooking" value="' + (reb.daysThreshold || nfReactivationDays() || 42) + '" min="7" max="365"' +
+        ' onchange="patchAuto(\'rebooking\',{daysThreshold:parseInt(this.value)})"></div></div>' +
+      (nfReactivationDays() ? '<div style="font-size:11px;color:var(--dim);margin-top:8px">Recomendado para tu sector: <strong style="color:var(--text)">' + nfReactivationDays() + ' días</strong></div>' : '') +
+      '</div>' +
+      // Recuperación de no-shows card
+      '<div class="auto-card"><div class="auto-row"><div>' +
+        '<div class="auto-name">🔁 Recuperación de no-shows</div>' +
+        '<div class="auto-desc">Si un cliente falta a su cita, la IA le escribe automáticamente para reagendar</div>' +
+      '</div><label class="toggle"><input type="checkbox" id="togNoshow" ' + ((auto.noshow && auto.noshow.enabled !== false) ? 'checked' : '') +
+        ' onchange="patchAuto(\'noshow\',{enabled:this.checked})"><span class="slider"></span></label></div></div>' +
     '</div>' +
     '<div class="card"><div class="card-title" style="justify-content:space-between">' +
       '<span>📅 Fechas críticas</span>' +
@@ -1191,7 +1610,7 @@ function openNewCritDate() {
     'license_renewal','contract_renewal','pregnancy_due','treatment_cycle','follow_up',
     'birthday','annual_review','mortgage_payment','warranty_expiry','subscription_renewal','other'];
   var typeOpts = TYPES.map(function(t) {
-    return '<option value="' + t + '">' + t.replace(/_/g,' ') + '</option>';
+    return '<option value="' + t + '">' + critTypeLabel(t) + '</option>';
   }).join('');
 
   openModal(
@@ -1242,7 +1661,7 @@ async function submitCritDate() {
 // ── Configuración ─────────────────────────────────────────────
 async function loadConfig() {
   var sec = document.getElementById('sec-configuracion');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  sec.innerHTML = skelPanel();
 
   var data;
   try {
@@ -1258,9 +1677,21 @@ async function loadConfig() {
     'inmobiliaria','optica','psicologia','coaching','nutricion','podologia','autoescuela',
     'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
     'agencia_viajes','reformas','otro'];
+  var SECTOR_LABELS = {
+    generico: 'Genérico', restaurante: 'Restaurante', fisioterapia: 'Fisioterapia',
+    clinica: 'Clínica / Centro médico', dental: 'Clínica dental', peluqueria: 'Peluquería',
+    barberia: 'Barbería', estetica: 'Estética', gimnasio: 'Gimnasio', academia: 'Academia',
+    veterinaria: 'Veterinaria', farmacia: 'Farmacia', asesoria: 'Asesoría / Gestoría',
+    taller: 'Taller mecánico', hotel: 'Hotel / Alojamiento', inmobiliaria: 'Inmobiliaria',
+    optica: 'Óptica', psicologia: 'Psicología', coaching: 'Coaching', nutricion: 'Nutrición',
+    podologia: 'Podología', autoescuela: 'Autoescuela', estetica_avanzada: 'Estética avanzada',
+    yoga: 'Yoga', pilates: 'Pilates', guarderia_canina: 'Guardería canina',
+    abogados: 'Abogados', notaria: 'Notaría', agencia_viajes: 'Agencia de viajes',
+    reformas: 'Reformas', otro: 'Otro',
+  };
   var sectorOpts = SECTORS.map(function(s) {
     return '<option value="' + s + '" ' + (c.sector === s ? 'selected' : '') + '>' +
-      s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
+      (SECTOR_LABELS[s] || s) + '</option>';
   }).join('');
 
   sec.innerHTML =
@@ -1278,12 +1709,8 @@ async function loadConfig() {
         '<div class="form-group"><label class="form-label">Teléfono del negocio</label>' +
           '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
           '<small style="color:var(--dim);font-size:11px">Número provisionado — no editable</small></div>' +
-        '<div class="form-group"><label class="form-label">Idioma del AI</label>' +
-          '<select class="form-input" id="cfgLang">' +
-            '<option value="es" ' + (c.language === 'es' ? 'selected' : '') + '>Español</option>' +
-            '<option value="eu" ' + (c.language === 'eu' ? 'selected' : '') + '>Euskera</option>' +
-            '<option value="gl" ' + (c.language === 'gl' ? 'selected' : '') + '>Gallego</option>' +
-          '</select></div>' +
+        '<div class="form-group"><label class="form-label">Idioma de la IA</label>' +
+          '<div style="font-size:12px;color:var(--dim);padding:9px 0;line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Asistente</a> para no tenerlo en dos sitios. Actual: <strong style="color:var(--text)">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
       '</div>' +
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
@@ -1294,7 +1721,7 @@ async function loadConfig() {
         '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button></div>' +
       '<div class="form-group"><label class="form-label">Horarios</label>' +
         '<textarea class="form-input" id="cfgSchedule" rows="3" placeholder="L-V 9:00-20:00, Sáb 9:00-14:00">' + esc(c.schedule || '') + '</textarea></div>' +
-      '<div class="form-section-title">Configuración del AI</div>' +
+      '<div class="form-section-title">Configuración de la IA</div>' +
       '<div class="form-group"><label class="form-label">Mensaje de bienvenida</label>' +
         '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea></div>' +
       '<div class="form-group"><label class="form-label">Precio medio por servicio (€)</label>' +
@@ -1342,7 +1769,7 @@ async function loadConfig() {
       : '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto;margin-top:24px;border-color:rgba(249,202,36,.3);background:rgba(249,202,36,.04)">' +
           '<div class="card-title" style="color:#f9ca24">⏳ Número NodeFlow pendiente de asignación</div>' +
           '<p style="font-size:13px;color:var(--dim);margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
-          '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#a29bfe">Escríbenos →</a></p>' +
+          '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#d6ff5c">Escríbenos →</a></p>' +
         '</div>');
 
   // Render de servicios+precios existentes (o una fila vacía para empezar)
@@ -1380,7 +1807,7 @@ function collectServiceList() {
 async function saveConfig() {
   var body = {
     name:           document.getElementById('cfgName').value.trim(),
-    language:       document.getElementById('cfgLang').value,
+    language:       (document.getElementById('cfgLang') || {}).value || undefined,
     sector:         document.getElementById('cfgSector').value,
     serviceList:    collectServiceList(),
     schedule:       document.getElementById('cfgSchedule').value.trim(),
@@ -1446,8 +1873,8 @@ function renderDesvioGuide(phone) {
   ];
 
   function codeBlock(id, code, accent) {
-    var bg  = accent ? 'rgba(0,206,201,.07)' : 'rgba(255,255,255,.03)';
-    var bdr = accent ? 'rgba(0,206,201,.25)' : 'var(--border)';
+    var bg  = accent ? 'rgba(56,225,200,.07)' : 'rgba(255,255,255,.03)';
+    var bdr = accent ? 'rgba(56,225,200,.25)' : 'var(--border)';
     var clr = accent ? 'var(--green2)' : 'var(--dim)';
     var lblClr = accent ? 'var(--green)' : 'var(--dim)';
     var lbl = accent ? 'ACTIVAR' : 'DESACTIVAR';
@@ -1462,10 +1889,10 @@ function renderDesvioGuide(phone) {
     var actId   = 'dv-act-'   + i;
     var deactId = 'dv-deact-' + i;
     var recBadge = t.recommended
-      ? '<span style="display:inline-block;background:rgba(0,206,201,.15);color:var(--green);border:1px solid rgba(0,206,201,.3);border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;margin-left:8px;vertical-align:middle">Recomendado</span>'
+      ? '<span style="display:inline-block;background:rgba(56,225,200,.15);color:var(--green);border:1px solid rgba(56,225,200,.3);border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;margin-left:8px;vertical-align:middle">Recomendado</span>'
       : '';
-    var border = t.recommended ? '1px solid rgba(0,206,201,.25)' : '1px solid var(--border)';
-    var bg     = t.recommended ? 'rgba(0,206,201,.04)' : 'transparent';
+    var border = t.recommended ? '1px solid rgba(56,225,200,.25)' : '1px solid var(--border)';
+    var bg     = t.recommended ? 'rgba(56,225,200,.04)' : 'transparent';
     return '<div style="border:' + border + ';border-radius:12px;padding:16px;margin-bottom:10px;background:' + bg + '">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
         '<span style="font-size:18px">' + t.icon + '</span>' +
@@ -1484,19 +1911,19 @@ function renderDesvioGuide(phone) {
   var steps =
     '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">' +
       '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>' +
+        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>' +
         '<span>Elige el tipo de desvío que mejor se adapta a tu negocio (ver abajo)</span>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>' +
+        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>' +
         '<span>Pulsa <strong>📋</strong> para copiar el código de activación</span>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>' +
+        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>' +
         '<span>Abre el marcador de tu móvil, pega el código y pulsa <strong>llamar ✅</strong></span>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:rgba(0,206,201,.2);color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>' +
+        '<div style="width:24px;height:24px;border-radius:50%;background:rgba(56,225,200,.2);color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>' +
         '<span style="color:var(--dim)">Para desactivarlo en cualquier momento, copia y marca el código <strong>Desactivar</strong></span>' +
       '</div>' +
     '</div>';
@@ -1552,10 +1979,39 @@ function onClientesSearch() {
 }
 
 var _clientesTag = ''; // filtro de etiqueta activo
+var _clientesAttention = false; // filtro "necesita atención" activo
+
+// Umbral de días sin llamar por sector — DEBE coincidir con REBOOKING_DEFAULTS del
+// backend (src/scheduling/rebooking-cron.js). Así la señal "necesita atención" del
+// portal coincide con cuándo el sistema envía de verdad el mensaje de reactivación.
+var NF_REBOOKING_DAYS = {
+  restaurante:21, peluqueria:42, estetica:42, barberia:28, clinica:180, dental:180,
+  veterinaria:365, taller:365, gimnasio:21, academia:30, farmacia:30, asesoria:90,
+  hotel:90, inmobiliaria:null, optica:365, psicologia:21, coaching:21, nutricion:30,
+  dietetica:30, podologia:90, autoescuela:14, estetica_avanzada:45, laser:45,
+  yoga:21, pilates:21, guarderia_canina:60, residencia_mascotas:60, abogados:60,
+  notaria:60, agencia_viajes:180, reformas:90, arquitectura:90
+};
+function nfReactivationDays() {
+  var s = (_orgInfo && _orgInfo.sector) || '';
+  var d = NF_REBOOKING_DAYS[s];
+  return (d === undefined) ? 60 : d; // 60 = WINBACK_DAYS por defecto (daily-briefing.js)
+}
+function nfDaysSince(iso) {
+  if (!iso) return null;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+function nfNeedsAttention(c) {
+  var thr = nfReactivationDays();
+  if (thr === null) return false;            // sector con reactivación desactivada
+  if ((c.callCount || 0) < 1) return false;  // sólo clientes que ya vinieron alguna vez
+  var d = nfDaysSince(c.lastCallAt);
+  return d !== null && d > thr;
+}
 
 function nfTagChip(tag, removable) {
   // color estable según el texto de la etiqueta
-  var colors = ['#6c5ce7','#00b894','#0984e3','#e17055','#fdcb6e','#e84393','#00cec9'];
+  var colors = ['#c4f546','#00b894','#0984e3','#e17055','#fdcb6e','#e84393','#38e1c8'];
   var h = 0; for (var i=0;i<tag.length;i++) h = (h*31 + tag.charCodeAt(i)) % colors.length;
   var col = colors[h];
   return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + col + '22;color:' + col +
@@ -1566,7 +2022,7 @@ function nfTagChip(tag, removable) {
 async function loadClientes(q) {
   q = q || '';
   var sec = document.getElementById('sec-clientes');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando clientes…</div></div>';
+  sec.innerHTML = skelPanel();
 
   var data;
   try {
@@ -1579,24 +2035,55 @@ async function loadClientes(q) {
     return;
   }
 
-  var rows = '';
-  if (data.contacts && data.contacts.length > 0) {
-    for (var i = 0; i < data.contacts.length; i++) {
-      var c = data.contacts[i];
-      var tagsHtml = (c.tags && c.tags.length) ? '<div style="margin-top:3px">' + c.tags.map(function(t){return nfTagChip(t,false);}).join('') + '</div>' : '';
-      rows += '<tr onclick="openContactProfile(\'' + esc(c.id) + '\')" style="cursor:pointer">' +
-        '<td><strong>' + esc(c.displayName) + '</strong>' +
-          (c.name ? '<div style="font-size:11px;color:var(--dim)">' + esc(c.phone) + '</div>' : '') + tagsHtml + '</td>' +
-        '<td>' + esc(c.email || '—') + '</td>' +
-        '<td style="text-align:center"><span class="badge bp">' + (c.callCount || 0) + '</span></td>' +
-        '<td style="color:var(--dim);font-size:12px">' + (c.lastCallAt ? timeAgo(c.lastCallAt) : '—') + '</td>' +
-        '<td><button class="btn btn-d btn-sm" onclick="event.stopPropagation();openContactProfile(\'' + esc(c.id) + '\')">Ver →</button></td>' +
-        '</tr>';
+  var _all = (data.contacts || []);
+  var attentionCount = 0;
+  for (var k = 0; k < _all.length; k++) { if (nfNeedsAttention(_all[k])) attentionCount++; }
+  var shown = _clientesAttention ? _all.filter(nfNeedsAttention) : _all;
+
+  // Día-1: sin clientes y sin filtros → empty state que enseña y empuja a activar
+  if (_all.length === 0 && !q && !_clientesTag && !_clientesAttention) {
+    sec.innerHTML =
+      '<div class="section-header"><div class="section-title">👥 Clientes</div></div>' +
+      emptyState('👥', 'Aún no tienes clientes',
+        'Cada persona que llame a tu asistente aparecerá aquí con su historial, sus citas y sus etiquetas — tu CRM se construye solo con cada llamada. Configura tu asistente para recibir la primera.',
+        '<button class="btn btn-accent" onclick="navigate(\'asistente\')">Configurar mi asistente →</button>');
+    return;
+  }
+
+  var cardsHtml = '';
+  if (shown.length > 0) {
+    for (var i = 0; i < shown.length; i++) {
+      var c = shown[i];
+      var initial = (c.displayName || '?').trim().charAt(0).toUpperCase();
+      var attention = nfNeedsAttention(c);
+      var tagsHtml = (c.tags && c.tags.length)
+        ? '<div class="nf-client-tags">' + c.tags.map(function(t){return nfTagChip(t,false);}).join('') + '</div>'
+        : '';
+      cardsHtml += '<div class="nf-client" role="button" tabindex="0" ' +
+        'onclick="openContactProfile(\'' + esc(c.id) + '\')" ' +
+        'onkeydown="if(event.key===\'Enter\')openContactProfile(\'' + esc(c.id) + '\')">' +
+        '<div class="nf-client-top">' +
+          '<div class="nf-client-avatar">' + esc(initial) + '</div>' +
+          '<div style="min-width:0;flex:1">' +
+            '<div class="nf-client-name">' + esc(c.displayName) + '</div>' +
+            '<div class="nf-client-sub">' + esc(c.phone || c.email || '—') + '</div>' +
+          '</div>' +
+        '</div>' +
+        tagsHtml +
+        '<div class="nf-client-foot">' +
+          '<span>' + (c.callCount || 0) + (c.callCount === 1 ? ' llamada' : ' llamadas') + '</span>' +
+          (attention
+            ? '<span class="badge by" title="Lleva más tiempo sin llamar que el umbral de reactivación de tu sector. Buen momento para recuperarlo.">⚠ Reactivar</span>'
+            : '<span>' + (c.lastCallAt ? timeAgo(c.lastCallAt) : '—') + '</span>') +
+        '</div>' +
+      '</div>';
     }
+    cardsHtml = '<div class="nf-client-grid nf-stagger">' + cardsHtml + '</div>';
   } else {
-    rows = '<tr class="empty-row"><td colspan="5">' +
-      (q || _clientesTag ? 'Sin resultados' : 'Aún no hay clientes registrados. Aparecerán tras las primeras llamadas.') +
-      '</td></tr>';
+    cardsHtml = '<div class="empty-state"><div class="empty-state-text">' +
+      (_clientesAttention ? 'Ningún cliente necesita atención ahora mismo 🎉' :
+       (q || _clientesTag ? 'Sin resultados con este filtro' : 'Aún no hay clientes registrados. Aparecerán tras las primeras llamadas.')) +
+      '</div></div>';
   }
 
   // Chips de filtro por etiqueta
@@ -1605,12 +2092,23 @@ async function loadClientes(q) {
     tagFilter = '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">' +
       '<span style="font-size:12px;color:var(--dim);margin-right:4px">Filtrar:</span>' +
       '<span onclick="setClientesTag(\'\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
-        (!_clientesTag ? 'background:var(--accent);color:#fff' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">Todos</span>' +
+        (!_clientesTag ? 'background:var(--accent);color:#0a0b0d' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">Todos</span>' +
       data.allTags.map(function(t){
         var on = _clientesTag === t;
         return '<span onclick="setClientesTag(\'' + esc(t) + '\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
-          (on ? 'background:var(--accent);color:#fff' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">' + esc(t) + '</span>';
+          (on ? 'background:var(--accent);color:#0a0b0d' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">' + esc(t) + '</span>';
       }).join('') + '</div>';
+  }
+
+  // Chip de filtro "necesita atención" — conecta el CRM con la promesa de reactivación
+  var attnFilter = '';
+  if (attentionCount > 0 || _clientesAttention) {
+    attnFilter = '<div style="margin-bottom:14px">' +
+      '<span onclick="toggleClientesAttention()" style="cursor:pointer;border-radius:20px;padding:4px 13px;font-size:12px;font-weight:700;' +
+        (_clientesAttention ? 'background:var(--yellow);color:#0a0b0d' : 'background:rgba(246,197,68,.12);color:var(--yellow);border:1px solid rgba(246,197,68,.3)') + '">' +
+        '⚠ Necesita atención · ' + attentionCount + '</span>' +
+      (_clientesAttention ? ' <span onclick="toggleClientesAttention()" style="cursor:pointer;font-size:12px;color:var(--dim);margin-left:8px">✕ quitar filtro</span>' : '') +
+    '</div>';
   }
 
   sec.innerHTML =
@@ -1625,14 +2123,19 @@ async function loadClientes(q) {
       '<input class="search-input" id="clientesSearch" placeholder="Buscar por nombre, teléfono o email…"' +
         ' value="' + esc(q) + '" oninput="onClientesSearch()">' +
     '</div>' +
+    attnFilter +
     tagFilter +
-    '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Cliente</th><th>Email</th><th>Llamadas</th><th>Última llamada</th><th></th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>';
+    cardsHtml;
 }
 
 function setClientesTag(tag) {
   _clientesTag = tag;
+  var q = (document.getElementById('clientesSearch') || {}).value || '';
+  loadClientes(q);
+}
+
+function toggleClientesAttention() {
+  _clientesAttention = !_clientesAttention;
   var q = (document.getElementById('clientesSearch') || {}).value || '';
   loadClientes(q);
 }
@@ -1720,7 +2223,7 @@ async function openContactProfile(id) {
     var when = cl.startedAt ? new Date(cl.startedAt) : null;
     var dur = cl.durationMs ? Math.round(cl.durationMs/1000)+'s' : '';
     var label = { booked:'reservó cita', info:'pidió información', abandoned:'colgó' }[cl.outcome] || (cl.outcome||'llamada');
-    events.push({ t: when, icon:'📞', color:'#6c5ce7',
+    events.push({ t: when, icon:'📞', color:'#c4f546',
       title:'Llamada — ' + label, meta: dur,
       action: cl.callSid ? '<button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(cl.callSid) + '\')">💬 Ver</button>' : '' });
   });
@@ -1940,7 +2443,45 @@ async function loadAsistente() {
     _asisConfig  = data.config  || {};
     _asisOrgName = data.orgName || '';
     renderAsistenteForm();
+    // Prefill del "Llámame y pruébalo" con el teléfono del dueño
+    var tp = document.getElementById('testCallPhone');
+    if (tp && !tp.value && _orgInfo && _orgInfo.phone) tp.value = _orgInfo.phone;
   } catch (e) { toast('Error cargando asistente: ' + e.message, 'err'); }
+}
+
+// ── "Llámame y pruébalo": tu asistente te llama al móvil ─────────────
+var _testCallCooldown = false;
+async function testCallMe() {
+  var inp = document.getElementById('testCallPhone');
+  var btn = document.getElementById('testCallBtn');
+  var msg = document.getElementById('testCallMsg');
+  var phone = (inp.value || '').trim();
+  if (phone.replace(/[^\d]/g, '').length < 9) {
+    msg.style.display = 'block'; msg.style.color = 'var(--red)';
+    msg.textContent = 'Escribe un número válido (con prefijo si no es español).';
+    inp.focus();
+    return;
+  }
+  if (_testCallCooldown) return;
+  _testCallCooldown = true;
+  btn.disabled = true; btn.textContent = 'Llamando…';
+  msg.style.display = 'none';
+  try {
+    await api('/api/portal/calls/outbound', 'POST', { to: phone });
+    msg.style.display = 'block'; msg.style.color = 'var(--green2)';
+    msg.innerHTML = '📱 <strong>Te estamos llamando.</strong> Descuelga y háblale como un cliente. ' +
+      'Después la verás en <a onclick="navigate(\'llamadas\')" style="cursor:pointer;text-decoration:underline;color:var(--accent-l)">Llamadas</a>, con su transcripción.';
+    // Cooldown: una llamada de prueba cada 30s
+    setTimeout(function () {
+      _testCallCooldown = false;
+      btn.disabled = false; btn.textContent = 'Llámame otra vez';
+    }, 30000);
+  } catch (e) {
+    _testCallCooldown = false;
+    btn.disabled = false; btn.textContent = 'Llámame ahora';
+    msg.style.display = 'block'; msg.style.color = 'var(--red)';
+    msg.textContent = 'No se pudo iniciar la llamada: ' + (e.message || e) + '. Si sigue fallando, escríbenos desde Ayuda.';
+  }
 }
 
 function switchAsistenteTab(tab) {
@@ -1950,6 +2491,15 @@ function switchAsistenteTab(tab) {
   document.querySelectorAll('.asis-panel').forEach(function(p) {
     p.classList.toggle('hidden', p.id !== 'asis-' + tab);
   });
+}
+
+// Atajo de activación: lleva al demo de voz desde cualquier tab
+function probarAsistente() {
+  switchAsistenteTab('voz');
+  setTimeout(function() {
+    var m = document.getElementById('portal-mic-btn');
+    if (m) m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 80);
 }
 
 // ── Selector de voz profesional (catálogo dinámico ElevenLabs) ──────────
@@ -2018,7 +2568,9 @@ function previewVoice(voice, btn) {
   var statusEl = document.getElementById('portal-demo-status');
   if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
   if (btn) btn.textContent = '⏳';
-  var previewText = 'Hola, soy tu asistente virtual. Puedo ayudarte con reservas, información y mucho más.';
+  var _pvNegocio = _asisOrgName || 'tu negocio';
+  var _pvNombre  = (document.getElementById('asis-name') || {}).value || '';
+  var previewText = '¡Hola! Ha llamado a ' + _pvNegocio + '. ' + (_pvNombre ? 'Soy ' + _pvNombre + ', su' : 'Soy su') + ' asistente virtual. ¿En qué puedo ayudarle?';
   fetch('/api/demo/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
@@ -2122,7 +2674,7 @@ function _segurosBlock(arr) {
   return '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
     '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
     (arr||[]).map(function(s) {
-      return '<span style="background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' +
+      return '<span style="background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' +
         esc(s) + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>';
     }).join('') +
     '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" ' +
@@ -2137,10 +2689,11 @@ function _getChips(chipsId) {
 }
 
 function renderAsisSectorFields(sector, sd, services) {
-  var html = '<div style="background:rgba(240,168,48,.08);border:1px solid rgba(240,168,48,.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--dim);line-height:1.6">' +
-    '💡 Tus <strong style="color:var(--text)">servicios y precios</strong> se gestionan en ' +
-    '<a onclick="navigate(\'configuracion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Configuración → Servicios y precios</a> ' +
-    '(lista estructurada que la IA dice con exactitud). Lo de aquí abajo es contexto adicional opcional.</div>';
+  var html = '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
+    '<div style="flex:1;min-width:200px;font-size:12px;color:var(--dim);line-height:1.6">' +
+      '<strong style="color:var(--text)">Servicios y precios</strong> se gestionan como lista estructurada que la IA dice con exactitud. Lo de aquí abajo es solo contexto adicional opcional.</div>' +
+    '<button class="btn btn-accent btn-sm" onclick="navigate(\'configuracion\')" style="white-space:nowrap">Gestionar servicios y precios →</button>' +
+  '</div>';
   html += _ta('asis-services', 'Servicios generales', services, 3, 'Describe los servicios que ofrece el negocio…');
 
   if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
@@ -2246,7 +2799,7 @@ function addAsisSeguro() {
   var input = document.getElementById('asis-seguro-input');
   var val = input.value.trim(); if (!val) return;
   var span = document.createElement('span');
-  span.style.cssText = 'background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px';
+  span.style.cssText = 'background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px';
   // Use DOM API (not innerHTML) to avoid XSS from user-typed insurer name
   span.appendChild(document.createTextNode(val + ' '));
   var x = document.createElement('span');
@@ -2394,7 +2947,7 @@ async function togglePortalDemo() {
     _portalDemoActive = false;
     if (_portalMediaRecorder && _portalMediaRecorder.state !== 'inactive') _portalMediaRecorder.stop();
     if (_portalAudio) { _portalAudio.pause(); _portalAudio = null; }
-    document.getElementById('portal-mic-btn').style.background = 'rgba(108,92,231,.15)';
+    document.getElementById('portal-mic-btn').style.background = 'rgba(196,245,70,.15)';
     document.getElementById('portal-demo-status').textContent = 'Pulsa para probar tu asistente';
   } else {
     try {
@@ -2460,15 +3013,17 @@ function portalCaptureChunk(stream) {
 // ── Facturación section ───────────────────────────────────────
 async function loadFacturacion() {
   var sec = document.getElementById('sec-facturacion');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Cargando facturación…</div></div>';
+  sec.innerHTML = skelPanel();
   try {
     var results  = await Promise.all([
       api('/api/billing/usage'),
       api('/api/billing/invoices'),
+      api('/api/portal/reports?period=month').catch(function(){ return {}; }),
     ]);
     var usage    = results[0];
     var invoices = results[1].invoices || [];
-    renderFacturacion(sec, usage, invoices);
+    var monthVal = (results[2] && results[2].summary) || {};
+    renderFacturacion(sec, usage, invoices, monthVal);
   } catch (e) {
     sec.innerHTML =
       '<div class="empty-state"><div class="empty-state-icon">❌</div>' +
@@ -2476,8 +3031,8 @@ async function loadFacturacion() {
   }
 }
 
-function renderFacturacion(sec, usage, invoices) {
-  var planNames  = { starter: 'Starter', negocio: 'Negocio', pro: 'Pro' };
+function renderFacturacion(sec, usage, invoices, monthVal) {
+  var planNames  = { starter: 'Starter', negocio: 'NodeFlow', pro: 'Pro' };
   var planPrices = { starter: 'Gratis', negocio: '€49/mes', pro: '€99/mes' };
   var planName   = planNames[usage.plan]  || usage.plan;
   var planPrice  = planPrices[usage.plan] || '';
@@ -2530,11 +3085,26 @@ function renderFacturacion(sec, usage, invoices) {
     ? '<button class="btn btn-d" style="font-size:12px" onclick="openStripePortal()">Gestionar suscripción →</button>'
     : '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent" style="font-size:12px;text-decoration:none">Activar plan →</a>';
 
+  var vm = monthVal || {};
+  var valueStrip = ((vm.totalCalls || 0) > 0 || (vm.bookings || 0) > 0)
+    ? '<div class="card" style="padding:18px 20px;background:linear-gradient(135deg,rgba(196,245,70,.10),rgba(56,225,200,.05));border-color:rgba(196,245,70,.25)">' +
+        '<div style="font-size:11px;color:var(--accent-l);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:12px">Lo que NodeFlow te dio este mes</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px">' +
+          '<div><div style="font-size:22px;font-weight:900">' + (vm.totalCalls || 0) + '</div><div style="font-size:11px;color:var(--dim)">llamadas atendidas</div></div>' +
+          '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">' + (vm.bookings || 0) + '</div><div style="font-size:11px;color:var(--dim)">citas capturadas</div></div>' +
+          '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">€' + (vm.revenueEst || 0) + '</div><div style="font-size:11px;color:var(--dim)">en reservas (est.)</div></div>' +
+          '<div><div style="font-size:22px;font-weight:900;color:#60a5fa">' + (vm.hoursSaved || 0) + 'h</div><div style="font-size:11px;color:var(--dim)">ahorradas</div></div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:12px">Todo esto por <strong style="color:var(--text)">' + planPrice + '</strong>.</div>' +
+      '</div>'
+    : '';
+
   sec.innerHTML =
     '<div class="section-header">' +
       '<h2 class="section-title">💳 Facturación</h2>' +
       '<p class="section-sub">Gestiona tu plan y consulta tus facturas</p>' +
     '</div>' +
+    valueStrip +
 
     // Plan card + usage bar
     '<div class="card" style="padding:20px">' +
@@ -2548,7 +3118,7 @@ function renderFacturacion(sec, usage, invoices) {
         manageBtn +
       '</div>' +
       '<div style="font-size:12px;color:var(--dim);margin-bottom:6px">' +
-        'Minutos este mes: <strong style="color:var(--fg)">' +
+        'Minutos este mes: <strong style="color:var(--text)">' +
         (usage.minutesUsed || 0).toFixed(1) + ' / ' + (usage.minutesLimit || 0) +
         '</strong>' +
       '</div>' +
@@ -2559,6 +3129,8 @@ function renderFacturacion(sec, usage, invoices) {
       '<div style="font-size:11px;color:var(--dim)">' +
         pct + '% utilizado · ' + Math.floor(usage.minutesRemaining || 0) + ' min restantes' +
       '</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin-top:4px">Minutos extra: <strong style="color:var(--text)">€' +
+        (usage.overageRate != null ? usage.overageRate.toFixed(2).replace('.', ',') : '0,20') + '/min</strong> · solo si superas tu plan</div>' +
       overageWarn +
     '</div>' +
 
@@ -2580,7 +3152,8 @@ function renderFacturacion(sec, usage, invoices) {
           '<tbody>' + invRows + '</tbody>' +
         '</table>' +
       '</div>' +
-    '</div>';
+    '</div>' +
+    referralCta('facturacion');
 }
 
 // ── Integraciones (Webhooks) ──────────────────────────────────
@@ -2700,11 +3273,14 @@ function renderWaCard(waStatus) {
 
 async function loadIntegraciones() {
   var sec = document.getElementById('sec-integraciones');
-  sec.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando integraciones…</div></div>';
+  sec.innerHTML = skelPanel();
 
   // Cargar estado WA y webhooks en paralelo
   var waStatus;
   try { waStatus = await loadWaStatus(); } catch(e) { waStatus = { connected: false }; }
+
+  var calStatus;
+  try { calStatus = await api('/api/calendar/status'); } catch(e) { calStatus = { enabled: false, connected: false }; }
 
   var data;
   try {
@@ -2750,24 +3326,21 @@ async function loadIntegraciones() {
     '<div class="section-header">' +
       '<div>' +
         '<div class="section-title">🔗 Integraciones</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tu WhatsApp Business y recibe eventos en tu servidor</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tus herramientas: WhatsApp, Google Calendar y más</div>' +
       '</div>' +
     '</div>' +
 
-    // ── Tarjeta WhatsApp ─────────────────────────────────────────
+    // ── Apps: WhatsApp + Google Calendar ─────────────────────────
     renderWaCard(waStatus) +
+    renderCalendarCard(calStatus) +
 
-    // ── Webhooks ─────────────────────────────────────────────────
-    '<div class="section-header" style="margin-top:8px">' +
-      '<div>' +
-        '<div style="font-size:15px;font-weight:800">🌐 Webhooks</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-top:2px">Recibe eventos en tu propio servidor en tiempo real</div>' +
-      '</div>' +
-      '<button class="btn btn-accent" onclick="openNewWebhookModal()">+ Nuevo webhook</button>' +
-    '</div>' +
+    // ── Avanzado: Webhooks (desarrolladores) ─────────────────────
+    '<details style="margin-top:8px">' +
+      '<summary style="cursor:pointer;font-size:14px;font-weight:800;color:var(--dim);padding:12px 0;user-select:none">🌐 Avanzado — Webhooks para desarrolladores</summary>' +
+      '<div style="display:flex;justify-content:flex-end;margin:6px 0 12px"><button class="btn btn-accent btn-sm" onclick="openNewWebhookModal()">+ Nuevo webhook</button></div>' +
 
     // Info box
-    '<div style="background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--dim);line-height:1.6">' +
+    '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--dim);line-height:1.6">' +
       '📡 <strong style="color:var(--text)">¿Para qué sirve esto?</strong> Cada vez que ocurra un evento en NodeFlow (llamada, cita, recordatorio…) ' +
       'te haremos una petición <code>POST</code> firmada con HMAC-SHA256 a la URL que configures. ' +
       'Perfecta para sincronizar con tu CRM, Zapier, Make o cualquier sistema propio.' +
@@ -2785,7 +3358,7 @@ async function loadIntegraciones() {
         'Cada petición incluye la cabecera <code>X-NodeFlow-Signature: sha256=&lt;hex&gt;</code>.<br>' +
         'Verifica con: <code>HMAC-SHA256(secret, body) === signature</code>' +
       '</div>' +
-      '<pre style="background:var(--card2);border-radius:6px;padding:12px;margin-top:10px;font-size:11px;overflow-x:auto;color:#a29bfe">' +
+      '<pre style="background:var(--card2);border-radius:6px;padding:12px;margin-top:10px;font-size:11px;overflow-x:auto;color:#d6ff5c">' +
 '// Node.js\n' +
 'const sig = req.headers[\'x-nodeflow-signature\'];\n' +
 'const expected = \'sha256=\' + crypto\n' +
@@ -2794,7 +3367,57 @@ async function loadIntegraciones() {
 'const ok = crypto.timingSafeEqual(\n' +
 '  Buffer.from(sig), Buffer.from(expected));' +
       '</pre>' +
-    '</div>';
+    '</div>' +
+    '</details>';
+}
+
+function renderCalendarCard(cal) {
+  var enabled   = cal && cal.enabled;
+  var connected = cal && cal.connected;
+  var statusBadge = connected
+    ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
+    : (enabled ? '<span class="badge br" style="font-size:11px">⭕ No conectado</span>'
+               : '<span class="badge bd" style="font-size:11px">No disponible</span>');
+  var actionBtn = connected
+    ? '<button class="btn btn-d btn-sm" onclick="disconnectCalendar()" style="margin-left:8px">Desconectar</button>'
+    : (enabled ? '<button class="btn btn-accent btn-sm" onclick="connectGoogleCalendar(this)" style="margin-left:8px">Conectar</button>' : '');
+  var info = connected
+    ? '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">El asistente consulta tu disponibilidad y crea las citas en tu calendario automáticamente durante la llamada.</div>'
+    : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Conéctalo para que el asistente <strong style="color:var(--text)">reserve citas en tu Google Calendar</strong> mientras habla con el cliente, consultando tu disponibilidad real.</div>';
+  return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(66,133,244,.3)' : 'var(--border)') + '">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+      '<div style="display:flex;align-items:center;gap:12px">' +
+        '<div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="#4285f4"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:14px">Google Calendar</div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-top:2px">Reserva y sincroniza citas automáticamente</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px">' + statusBadge + actionBtn + '</div>' +
+    '</div>' + info +
+  '</div>';
+}
+
+async function connectGoogleCalendar(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Conectando…'; }
+  try {
+    var d = await api('/api/calendar/auth');
+    if (d && d.url) { window.location.href = d.url; return; }
+    throw new Error('No se pudo iniciar la conexión');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Conectar'; }
+    toast('Error al conectar: ' + (e.message || ''), 'err');
+  }
+}
+
+async function disconnectCalendar() {
+  try {
+    await api('/api/calendar/disconnect', 'POST');
+    toast('Google Calendar desconectado');
+    loadIntegraciones();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 function openNewWebhookModal() {
@@ -2857,7 +3480,7 @@ async function submitNewWebhook() {
       '<p style="font-size:13px;color:var(--dim);margin-bottom:12px">' +
         '⚠️ <strong style="color:#f59e0b">Guarda este secreto ahora.</strong> No se volverá a mostrar.' +
       '</p>' +
-      '<textarea id="wh-secret-box" readonly style="width:100%;background:var(--card2);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#a29bfe;border:none;resize:none;box-sizing:border-box" rows="3">' +
+      '<textarea id="wh-secret-box" readonly style="width:100%;background:var(--card2);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#d6ff5c;border:none;resize:none;box-sizing:border-box" rows="3">' +
         esc(data.webhook.secret) +
       '</textarea>' +
       '<button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="copyWebhookSecret()">' +
@@ -3012,13 +3635,13 @@ async function checkSectorBanner() {
     }
     var n = data.pendingCount;
     bannerEl.innerHTML =
-      '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px">' +
+      '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px">' +
         '<div style="font-size:22px">💡</div>' +
         '<div style="flex:1">' +
-          '<div style="font-weight:700;color:#1d4ed8;font-size:14px">Activa los recordatorios automáticos</div>' +
-          '<div style="color:#3b82f6;font-size:13px;margin-top:2px">Completa los datos de ' + n + ' cliente' + (n !== 1 ? 's' : '') + ' para que el sistema empiece a funcionar</div>' +
+          '<div style="font-weight:700;color:var(--accent-l);font-size:14px">Activa los recordatorios automáticos</div>' +
+          '<div style="color:var(--dim);font-size:13px;margin-top:2px">Completa los datos de ' + n + ' cliente' + (n !== 1 ? 's' : '') + ' para que el sistema empiece a funcionar</div>' +
         '</div>' +
-        '<button onclick="openSectorWizard()" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Completar →</button>' +
+        '<button onclick="openSectorWizard()" style="background:var(--accent);color:#0a0b0d;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Completar →</button>' +
       '</div>';
     bannerEl.style.display = 'block';
   } catch (e) {
@@ -3035,7 +3658,7 @@ async function openSectorWizard() {
     _wizardFields   = data.fields;
     renderWizardModal(data.sector);
   } catch (e) {
-    openModal('<div class="modal-title">Error</div><p style="color:#ef4444">' + esc(e.message) + '</p><div class="modal-actions"><button class="btn" onclick="closeModal()">Cerrar</button></div>');
+    openModal('<div class="modal-title">Error</div><p style="color:var(--red)">' + esc(e.message) + '</p><div class="modal-actions"><button class="btn" onclick="closeModal()">Cerrar</button></div>');
   }
 }
 
@@ -3051,15 +3674,15 @@ function renderWizardModal(sectorSlug) {
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">' +
       '<div>' +
         '<div class="modal-title" style="margin-bottom:2px">Datos de sector — ' + esc(sectorLabel) + '</div>' +
-        '<div style="color:#6b7280;font-size:13px">Completa los datos de tus clientes para activar los recordatorios</div>' +
+        '<div style="color:var(--dim);font-size:13px">Completa los datos de tus clientes para activar los recordatorios</div>' +
       '</div>' +
-      '<button onclick="closeWizardModal()" style="background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer;padding:0 0 0 12px">✕</button>' +
+      '<button onclick="closeWizardModal()" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0 0 0 12px">✕</button>' +
     '</div>' +
     '<div style="margin:14px 0 4px">' +
-      '<div style="background:#e5e7eb;border-radius:8px;height:8px;overflow:hidden">' +
-        '<div id="wizard-progress-bar" style="background:#2563eb;height:8px;border-radius:8px;transition:width 0.3s;width:' + pct + '%"></div>' +
+      '<div style="background:rgba(255,255,255,.1);border-radius:8px;height:8px;overflow:hidden">' +
+        '<div id="wizard-progress-bar" style="background:var(--accent);height:8px;border-radius:8px;transition:width 0.3s;width:' + pct + '%"></div>' +
       '</div>' +
-      '<div id="wizard-progress-text" style="color:#6b7280;font-size:12px;margin-top:4px">' + done + ' de ' + total + ' completados</div>' +
+      '<div id="wizard-progress-text" style="color:var(--dim);font-size:12px;margin-top:4px">' + done + ' de ' + total + ' completados</div>' +
     '</div>' +
     '<div id="wizard-contact-list" style="margin-top:12px;max-height:50vh;overflow-y:auto">' +
       renderWizardContactList() +
@@ -3089,14 +3712,14 @@ function renderWizardContactList() {
       statusBadge = '<span style="color:#16a34a;font-size:12px">✓ completo</span>';
       rowBg = '#f0fdf4';
     } else if (c._skipped) {
-      statusBadge = '<span style="color:#9ca3af;font-size:12px">omitido</span>';
-      rowBg = '#f9fafb';
+      statusBadge = '<span style="color:var(--muted);font-size:12px">omitido</span>';
+      rowBg = 'rgba(255,255,255,.03)';
     } else {
-      statusBadge = '<span style="color:#6b7280;font-size:12px">toca para completar ▸</span>';
+      statusBadge = '<span style="color:var(--dim);font-size:12px">toca para completar ▸</span>';
       rowBg = '#fff';
     }
     return '<div id="wc-row-' + c.id + '" onclick="expandWizardContact(\'' + c.id + '\')" ' +
-      'style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + rowBg + ';border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer">' +
+      'style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + rowBg + ';border:1px solid rgba(255,255,255,.1);border-radius:8px;margin-bottom:6px;cursor:pointer">' +
       '<span style="font-weight:500;flex:1;font-size:13px">' + label + '</span>' +
       statusBadge +
       '</div>' +
@@ -3128,7 +3751,7 @@ function expandWizardContact(contactId) {
       currentVal = parts[2] + '/' + parts[1] + '/' + parts[0];
     }
     return '<div style="margin-bottom:8px">' +
-      '<label style="display:block;font-size:11px;color:#6b7280;font-weight:600;margin-bottom:3px">' + esc(f.label) + (f.optional ? ' <span style="color:#9ca3af;font-weight:400">(opcional)</span>' : '') + '</label>' +
+      '<label style="display:block;font-size:11px;color:var(--dim);font-weight:600;margin-bottom:3px">' + esc(f.label) + (f.optional ? ' <span style="color:var(--muted);font-weight:400">(opcional)</span>' : '') + '</label>' +
       '<input id="wf-' + contactId + '-' + f.key + '" type="' + (f.type === 'date' ? 'text' : f.type) + '" ' +
         'placeholder="' + esc(f.placeholder) + '" value="' + esc(currentVal) + '" ' +
         'style="width:100%;border:1px solid #93c5fd;border-radius:6px;padding:7px 10px;font-size:13px;box-sizing:border-box">' +
@@ -3136,12 +3759,12 @@ function expandWizardContact(contactId) {
   }).join('');
 
   formEl.innerHTML =
-    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:6px">' +
+    '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:8px;padding:12px 14px;margin-bottom:6px">' +
     fieldsHtml +
-    '<div id="wf-err-' + contactId + '" style="color:#ef4444;font-size:12px;display:none;margin-bottom:6px"></div>' +
+    '<div id="wf-err-' + contactId + '" style="color:var(--red);font-size:12px;display:none;margin-bottom:6px"></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">' +
-      '<button onclick="skipWizardContact(\'' + contactId + '\')" style="background:#f3f4f6;border:none;border-radius:6px;padding:7px 14px;font-size:12px;color:#6b7280;cursor:pointer">Omitir</button>' +
-      '<button onclick="saveWizardContact(\'' + contactId + '\')" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">Guardar →</button>' +
+      '<button onclick="skipWizardContact(\'' + contactId + '\')" style="background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:7px 14px;font-size:12px;color:var(--dim);cursor:pointer">Omitir</button>' +
+      '<button onclick="saveWizardContact(\'' + contactId + '\')" style="background:var(--accent);color:#0a0b0d;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">Guardar →</button>' +
     '</div>' +
     '</div>';
   formEl.style.display = 'block';
@@ -3219,9 +3842,9 @@ function skipWizardContact(contactId) {
   if (formEl) formEl.style.display = 'none';
   var rowEl = document.getElementById('wc-row-' + contactId);
   if (rowEl) {
-    rowEl.style.background = '#f9fafb';
+    rowEl.style.background = 'rgba(255,255,255,.03)';
     rowEl.onclick = null;
-    rowEl.innerHTML = '<span style="font-weight:500;flex:1;font-size:13px">' + esc(contact ? (contact.name || contact.phone || contact.id) : contactId) + '</span><span style="color:#9ca3af;font-size:12px">omitido</span>';
+    rowEl.innerHTML = '<span style="font-weight:500;flex:1;font-size:13px">' + esc(contact ? (contact.name || contact.phone || contact.id) : contactId) + '</span><span style="color:var(--muted);font-size:12px">omitido</span>';
   }
 
   advanceWizardToNext(contactId);
@@ -3266,7 +3889,7 @@ function showWizardComplete() {
       '<div style="text-align:center;padding:24px 0">' +
         '<div style="font-size:48px;margin-bottom:12px">✅</div>' +
         '<div style="font-weight:700;font-size:16px;color:#111827;margin-bottom:6px">¡Todo listo!</div>' +
-        '<div style="color:#6b7280;font-size:14px">Los recordatorios se calcularán automáticamente en los próximos minutos.</div>' +
+        '<div style="color:var(--dim);font-size:14px">Los recordatorios se calcularán automáticamente en los próximos minutos.</div>' +
       '</div>' +
       '<div class="modal-actions"><button class="btn" onclick="closeWizardModal()">Cerrar</button></div>';
   }
@@ -3317,7 +3940,7 @@ async function loadUpcomingReminders() {
     var date = entry[0];
     var reminders = entry[1];
     return '<div class="reminder-group" style="margin-bottom:16px">' +
-      '<h4 style="color:#6b7280;font-size:13px;font-weight:600;text-transform:uppercase;margin-bottom:8px">📅 ' + esc(date) + '</h4>' +
+      '<h4 style="color:var(--dim);font-size:13px;font-weight:600;text-transform:uppercase;margin-bottom:8px">📅 ' + esc(date) + '</h4>' +
       reminders.map(function(r) {
         return '<div class="reminder-row" id="reminder-' + esc(r.id) + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:8px;border:1px solid var(--border);margin-bottom:6px">' +
           '<span style="flex:1;font-weight:500">' + esc((r.contacts && r.contacts.name) || '—') + '</span>' +
@@ -3595,7 +4218,7 @@ var FAQ_DATA = [
 async function loadReferidos() {
   var box = document.getElementById('referidos-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando tu código…</div></div>';
+  box.innerHTML = skelPanel();
 
   var d;
   try { d = await api('/api/portal/referral'); }
@@ -3610,7 +4233,7 @@ async function loadReferidos() {
 
   box.innerHTML =
     // Hero explicativo
-    '<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,206,201,.08));border-color:rgba(108,92,231,.3)">' +
+    '<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(196,245,70,.12),rgba(56,225,200,.08));border-color:rgba(196,245,70,.3)">' +
       '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">' +
         '<div style="font-size:46px;line-height:1">🎁</div>' +
         '<div style="flex:1;min-width:220px">' +
@@ -3626,7 +4249,7 @@ async function loadReferidos() {
     '<div class="card" style="margin-bottom:18px">' +
       '<div style="font-size:12px;color:var(--dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Tu código</div>' +
       '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
-        '<code style="font-size:20px;font-weight:800;color:var(--accent-l);background:rgba(108,92,231,.1);border:1px solid rgba(108,92,231,.3);border-radius:10px;padding:10px 18px;letter-spacing:1px">' + esc(d.code) + '</code>' +
+        '<code style="font-size:20px;font-weight:800;color:var(--accent-l);background:rgba(196,245,70,.1);border:1px solid rgba(196,245,70,.3);border-radius:10px;padding:10px 18px;letter-spacing:1px">' + esc(d.code) + '</code>' +
         '<button class="btn btn-d btn-sm" onclick="nfCopy(\'' + esc(d.code) + '\',this)">📋 Copiar código</button>' +
         '<button class="btn btn-d btn-sm" onclick="nfCopy(\'' + esc(d.link) + '\',this)">🔗 Copiar enlace</button>' +
         '<a class="btn btn-sm" href="' + esc(waShare) + '" target="_blank" rel="noopener" style="background:#25d366;color:#fff;border:none">💬 Compartir por WhatsApp</a>' +
@@ -3636,7 +4259,7 @@ async function loadReferidos() {
     // Estadísticas
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">' +
       nfStat(d.timesShared,    'Veces compartido') +
-      nfStat(d.timesConverted, 'Se dieron de alta', 'var(--green,#00cec9)') +
+      nfStat(d.timesConverted, 'Se dieron de alta', 'var(--green,#38e1c8)') +
       nfStat(d.rewardPending,  'Recompensas pendientes', '#00b894') +
     '</div>' +
     (d.rewardPending > 0
@@ -3647,7 +4270,7 @@ async function loadReferidos() {
 async function loadWidget() {
   var box = document.getElementById('widget-body');
   if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div>Cargando…</div></div>';
+  box.innerHTML = skelPanel();
 
   var d;
   try { d = await api('/api/portal/widget'); }
@@ -3670,7 +4293,7 @@ async function loadWidget() {
       '<div style="font-size:14px;font-weight:700;margin-bottom:6px">📋 Instálalo en tu web</div>' +
       '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Copia esta línea y pégala antes de <code>&lt;/body&gt;</code> en tu página web. Aparecerá un botón flotante "¿Te llamamos?".</div>' +
       '<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">' +
-        '<code style="flex:1;min-width:240px;background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.25);border-radius:8px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text)">' + esc(d.snippet) + '</code>' +
+        '<code style="flex:1;min-width:240px;background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:8px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text)">' + esc(d.snippet) + '</code>' +
         '<button class="btn btn-d btn-sm" onclick="nfCopy(' + JSON.stringify(d.snippet).replace(/"/g,'&quot;') + ',this)">📋 Copiar</button>' +
       '</div>' +
       '<div style="margin-top:12px;font-size:12px;color:var(--dim)">💡 ¿No tienes web o usas Instagram/Google? Llámanos y te ayudamos a ponerlo.</div>' +
@@ -3679,6 +4302,17 @@ async function loadWidget() {
       '<div style="font-size:14px;font-weight:700;margin-bottom:12px">📞 Solicitudes recibidas</div>' +
       '<div class="table-wrap"><table style="width:100%"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Mensaje</th><th>Cuándo</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '</div>';
+}
+
+// CTA de referido para colocar en momentos de emoción (tras valor / buen mes)
+function referralCta(context) {
+  var msg = context === 'facturacion'
+    ? '¿Conoces otro negocio al que le vendría bien? Recomiéndalo y te llevas <strong style="color:var(--accent-l)">un mes a mitad de precio</strong>.'
+    : 'Recomienda NodeFlow a otro negocio y gana <strong style="color:var(--accent-l)">un mes a mitad de precio</strong>.';
+  return '<div class="card" style="margin-top:16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(135deg,rgba(196,245,70,.08),transparent);border-color:rgba(196,245,70,.2)">' +
+    '<div style="font-size:13px;color:var(--dim);line-height:1.6;flex:1;min-width:200px">🎁 ' + msg + '</div>' +
+    '<button class="btn btn-accent btn-sm" onclick="navigate(\'referidos\')" style="white-space:nowrap">Recomendar y ganar →</button>' +
+  '</div>';
 }
 
 function nfStat(value, label, color) {

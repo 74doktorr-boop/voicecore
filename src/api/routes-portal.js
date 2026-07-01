@@ -232,17 +232,131 @@ function setupPortalRoutes(app, pipeline, config) {
       complete:        !!nodeflowNum,
     };
 
+    // Valor estimado de las reservas de hoy — misma regla que /reports (reservas × ticket medio)
+    const avgTicket     = flowConfig.automations?.config?.avgTicket || 35;
+    const valueEstToday = bookedToday * avgTicket;
+    const allBookings   = bizCalls.filter(c => c.outcome === 'booked').length;
+
     res.json({
       businessName: flowConfig.name,
       plan:         flowConfig.plan,
       daysActive,
       aiStatus:     nodeflowNum ? 'active' : 'pending',
       totalCalls:   bizCalls.length,
+      totalBookings: allBookings,
+      valueEstToday,
       today:        { callCount, bookedToday, convRate, emailsSent, hoursSaved },
       upcoming,
       recentActivity,
       onboarding,
     });
+  });
+
+  // ── POST /api/portal/assistant-command — IA contextual del portal ──
+  // Mapea lenguaje natural a UNA acción de una lista blanca. El LLM solo
+  // interpreta; la ejecución la hace el cliente contra las APIs normales
+  // (y las acciones de escritura se confirman en la UI antes de guardar).
+  const AI_SECTIONS = ['dashboard','llamadas','citas','clientes','oportunidades','espera','tareas',
+    'seguimientos','informes','insights','referidos','widget','asistente','conocimiento',
+    'automatizaciones','integraciones','facturacion','configuracion','ayuda'];
+
+  function sanitizeAiAction(a) {
+    if (!a || typeof a !== 'object') return null;
+    const s = (v, n) => (typeof v === 'string' ? v.slice(0, n).trim() : undefined);
+    switch (a.type) {
+      case 'navigate': {
+        const section = s(a.section, 40);
+        return AI_SECTIONS.includes(section) ? { type: 'navigate', section } : null;
+      }
+      case 'new_cita': {
+        const out = { type: 'new_cita' };
+        const date = s(a.date, 10), time = s(a.time, 5);
+        if (s(a.patientName, 80)) out.patientName = s(a.patientName, 80);
+        if (s(a.service, 80))     out.service = s(a.service, 80);
+        if (s(a.phone, 20))       out.phone = s(a.phone, 20);
+        if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) out.date = date;
+        if (time && /^\d{1,2}:\d{2}$/.test(time))     out.time = time.padStart(5, '0');
+        return out;
+      }
+      case 'new_task': {
+        const title = s(a.title, 140);
+        return title ? { type: 'new_task', title } : null;
+      }
+      case 'search_clients': {
+        const q = s(a.q, 80);
+        return q ? { type: 'search_clients', q } : null;
+      }
+      case 'filter_calls': {
+        const out = { type: 'filter_calls' };
+        if (['booked', 'info', 'abandoned'].includes(a.outcome)) out.outcome = a.outcome;
+        return out;
+      }
+      case 'answer': {
+        const text = s(a.text, 400);
+        return text ? { type: 'answer', text } : null;
+      }
+      case 'test_call':
+        return { type: 'test_call' };
+      default: return null;
+    }
+  }
+
+  app.post('/api/portal/assistant-command', portalAuth, async (req, res) => {
+    const { flowConfig } = req;
+    const query   = String((req.body && req.body.query) || '').slice(0, 300).trim();
+    const context = String((req.body && req.body.context) || 'dashboard').slice(0, 40);
+    if (!query) return res.status(400).json({ error: 'query requerida' });
+
+    const router = pipeline.llmRouter;
+    if (!router || !router.providers || router.providers.size === 0) {
+      return res.json({ ok: false, error: 'ai_unavailable' });
+    }
+
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const weekday  = now.toLocaleDateString('es-ES', { weekday: 'long' });
+
+    const system = [
+      `Eres el copiloto del portal NodeFlow del negocio "${flowConfig.name}". Hoy es ${weekday}, ${todayStr}.`,
+      `El usuario está viendo la sección "${context}".`,
+      'Convierte su petición en UNA acción JSON. Responde SOLO el JSON, sin markdown ni explicación.',
+      '',
+      'Acciones posibles:',
+      '{"type":"new_cita","patientName":"...","service":"...","date":"YYYY-MM-DD","time":"HH:MM","phone":"..."} — agendar una cita (omite los campos que no se mencionen; resuelve fechas relativas como "el viernes" a fecha real futura)',
+      '{"type":"new_task","title":"..."} — crear una tarea o recordatorio para el dueño ("recuérdame...", "apunta...")',
+      '{"type":"search_clients","q":"..."} — buscar un cliente por nombre, teléfono o email',
+      '{"type":"filter_calls","outcome":"booked"} — ver llamadas; outcome opcional: booked (con cita), info (consultas), abandoned (no completadas)',
+      `{"type":"navigate","section":"..."} — abrir una sección: ${AI_SECTIONS.join('|')}`,
+      '{"type":"test_call"} — el usuario quiere probar/escuchar a su asistente ("llámame", "quiero probarlo", "hazme una demo")',
+      '{"type":"answer","text":"..."} — solo para preguntas sobre cómo usar el portal; máximo 2 frases, en el idioma del usuario',
+      '{"type":"none"} — si no puedes mapear la petición con seguridad',
+    ].join('\n');
+
+    try {
+      let out = '';
+      for await (const chunk of router.streamCompletion({
+        callId: 'portal-cmd',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: query },
+        ],
+        temperature: 0,
+        maxTokens: 200,
+      })) {
+        if (chunk.type === 'text')  out += chunk.content;
+        if (chunk.type === 'error') throw new Error(chunk.message || chunk.content || 'LLM error');
+      }
+
+      const m = out.match(/\{[\s\S]*\}/);
+      const action = m ? sanitizeAiAction(JSON.parse(m[0])) : null;
+      if (!action) return res.json({ ok: false, error: 'no_entendido' });
+
+      log.info(`Portal AI (${flowConfig.name}): "${query}" → ${action.type}`);
+      res.json({ ok: true, action });
+    } catch (e) {
+      log.warn(`assistant-command falló: ${e.message}`);
+      res.json({ ok: false, error: 'no_entendido' });
+    }
   });
 
   // ── GET /api/portal/calls ──────────────────────────────────
@@ -437,13 +551,14 @@ function setupPortalRoutes(app, pipeline, config) {
   // ── PATCH /api/portal/automations ────────────────────────
   app.patch('/api/portal/automations', portalAuth, async (req, res) => {
     const { businessId } = req;
-    const { reminders, reviews, waConfirm, rebooking } = req.body;
+    const { reminders, reviews, waConfirm, rebooking, noshow } = req.body;
 
     const patch = {};
     if (reminders !== undefined) patch.reminders = reminders;
     if (reviews   !== undefined) patch.reviews   = reviews;
     if (waConfirm !== undefined) patch.waConfirm = waConfirm;
     if (rebooking !== undefined) patch.rebooking = rebooking;
+    if (noshow    !== undefined) patch.noshow    = noshow;
 
     const updated = flowManager.patch(businessId, { automations: patch });
     if (!updated) return res.status(404).json({ error: 'Negocio no encontrado en FlowManager' });
