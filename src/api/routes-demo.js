@@ -8,6 +8,7 @@ const { getDatabase }         = require('../db/database');
 const { isAdminToken }        = require('./routes-admin');
 const { verifySessionToken }  = require('./routes-auth');
 const { generatePrompt }      = require('../assistants/prompt-generator');
+const { resolveElevenVoice }  = require('../tts/voice-map');
 const { toFile }              = require('openai');
 const OpenAI                  = require('openai').default;
 const { demoGlobalLimiter, demoSttLimiter, demoChatLimiter, demoTtsLimiter } = require('../utils/rate-limiter');
@@ -186,13 +187,31 @@ function setupDemoRoutes(app, ttsRouter) {
     if (!text) return res.status(400).json({ error: 'text requerido' });
     text = text.slice(0, 500); // cost protection
     const callId = `demo-${Date.now()}`;
+
+    // ── Caché de síntesis: la misma frase+voz se paga UNA sola vez ──────
+    // La demo repite muchísimo las mismas respuestas (saludos, muestras);
+    // sin esto cada visitante quema créditos regenerándolas idénticas.
+    const cacheKey = require('crypto').createHash('sha256')
+      .update(`${voice || ''}|${language}|${text}`).digest('hex');
+    const hit = ttsCacheGet(cacheKey);
+    if (hit) {
+      res.set('Content-Type', hit.type);
+      res.set('X-TTS-Provider', hit.provider + '+cache');
+      return res.send(hit.buf);
+    }
+
     try {
       // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
       //    Si falla (p.ej. 402 en plan Free, o cuota), cae a Azure — la demo nunca se rompe.
       const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
       if (eleven) {
         try {
-          const mp3 = await eleven.synthesize({ callId, text, voiceId: voice || undefined, language, format: 'mp3' });
+          // El selector guarda nombres de OpenAI (nova/shimmer…) que NO son IDs
+          // válidos de ElevenLabs. Los traducimos a un voiceId real para que la
+          // demo suene SIEMPRE a ElevenLabs (default seguro si es desconocido).
+          const voiceId = resolveElevenVoice(voice);
+          const mp3 = await eleven.synthesize({ callId, text, voiceId, language, format: 'mp3' });
+          ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'elevenlabs');
           res.set('Content-Type', 'audio/mpeg');
           res.set('X-TTS-Provider', 'elevenlabs');
           return res.send(mp3);
@@ -205,6 +224,7 @@ function setupDemoRoutes(app, ttsRouter) {
       const azure = ttsRouter.providers?.get?.('azure')?.instance;
       if (azure) {
         const mp3 = await azure.synthesize({ callId, text, voice, language, format: 'mp3' });
+        ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'azure');
         res.set('Content-Type', 'audio/mpeg');
         res.set('X-TTS-Provider', 'azure');
         return res.send(mp3);
@@ -214,14 +234,44 @@ function setupDemoRoutes(app, ttsRouter) {
       const mulaw = await ttsRouter.synthesize({ callId, text, voice, language });
       const { mulawToPcm } = require('../utils/audio');
       const pcm = mulawToPcm(mulaw);
+      const wav = wavFromPcm16(pcm, 8000);
+      ttsCachePut(cacheKey, wav, 'audio/wav', 'router-wav');
       res.set('Content-Type', 'audio/wav');
       res.set('X-TTS-Provider', 'router-wav');
-      return res.send(wavFromPcm16(pcm, 8000));
+      return res.send(wav);
     } catch (e) {
       log.error(`TTS error: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
   });
+}
+
+// ── Caché LRU en memoria para /api/demo/tts ──────────────────────────────
+// Clave: sha256(voz|idioma|texto). Cap por entradas y por bytes totales —
+// una frase de demo pesa ~50-150KB; 25MB dan para ~300 frases calientes.
+const _ttsCache = new Map(); // key → { buf, type, provider }
+const TTS_CACHE_MAX_ENTRIES = 300;
+const TTS_CACHE_MAX_BYTES   = 25 * 1024 * 1024;
+let _ttsCacheBytes = 0;
+
+function ttsCacheGet(key) {
+  const e = _ttsCache.get(key);
+  if (!e) return null;
+  _ttsCache.delete(key); _ttsCache.set(key, e); // refresca posición LRU
+  return e;
+}
+
+function ttsCachePut(key, buf, type, provider) {
+  if (!buf || !buf.length || buf.length > 2 * 1024 * 1024) return; // nada raro
+  if (_ttsCache.has(key)) return;
+  _ttsCache.set(key, { buf, type, provider });
+  _ttsCacheBytes += buf.length;
+  while (_ttsCache.size > TTS_CACHE_MAX_ENTRIES || _ttsCacheBytes > TTS_CACHE_MAX_BYTES) {
+    const oldest = _ttsCache.keys().next().value;
+    if (oldest === undefined) break;
+    _ttsCacheBytes -= _ttsCache.get(oldest).buf.length;
+    _ttsCache.delete(oldest);
+  }
 }
 
 /** Envuelve PCM 16-bit LE mono en una cabecera WAV (RIFF). Reproducible en navegador. */

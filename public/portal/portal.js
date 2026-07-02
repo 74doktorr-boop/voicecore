@@ -2721,10 +2721,37 @@ function selectVoice(id) {
   previewVoice(id);
 }
 
+// Muestras pregeneradas (coste cero): public/audio/voices/manifest.json.
+// Se generan UNA vez con scripts/generate-voice-samples.js; si no existen,
+// caemos a la API (que a su vez cachea por frase+voz en el servidor).
+var _voiceManifest = null;
+function _getVoiceManifest() {
+  if (_voiceManifest !== null) return Promise.resolve(_voiceManifest);
+  return fetch('/audio/voices/manifest.json')
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (m) { _voiceManifest = m || {}; return _voiceManifest; });
+}
+
 function previewVoice(voice, btn) {
   var statusEl = document.getElementById('portal-demo-status');
   if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
   if (btn) btn.textContent = '⏳';
+
+  _getVoiceManifest().then(function (manifest) {
+    if (manifest[voice]) {
+      if (btn) btn.textContent = '▶';
+      _voicePreviewAudio = new Audio('/audio/voices/' + manifest[voice]);
+      if (statusEl) statusEl.textContent = '🔊 Reproduciendo muestra…';
+      _voicePreviewAudio.onended = function () { if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente'; };
+      _voicePreviewAudio.play().catch(function () { _previewVoiceViaApi(voice, btn, statusEl); });
+      return;
+    }
+    _previewVoiceViaApi(voice, btn, statusEl);
+  });
+}
+
+function _previewVoiceViaApi(voice, btn, statusEl) {
   var _pvNegocio = _asisOrgName || 'tu negocio';
   var _pvNombre  = (document.getElementById('asis-name') || {}).value || '';
   var previewText = '¡Hola! Ha llamado a ' + _pvNegocio + '. ' + (_pvNombre ? 'Soy ' + _pvNombre + ', su' : 'Soy su') + ' asistente virtual. ¿En qué puedo ayudarle?';
