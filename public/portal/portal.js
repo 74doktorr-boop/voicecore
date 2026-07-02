@@ -3495,14 +3495,16 @@ function renderCalendarCard(cal) {
   var connected = cal && cal.connected;
   var statusBadge = connected
     ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
-    : (enabled ? '<span class="badge br" style="font-size:11px">⭕ No conectado</span>'
-               : '<span class="badge bd" style="font-size:11px">No disponible</span>');
+    : (enabled ? '<span class="badge by" style="font-size:11px">Sin conectar</span>'
+               : '<span class="badge bd" style="font-size:11px">🔜 Muy pronto</span>');
   var actionBtn = connected
     ? '<button class="btn btn-d btn-sm" onclick="disconnectCalendar()" style="margin-left:8px">Desconectar</button>'
     : (enabled ? '<button class="btn btn-accent btn-sm" onclick="connectGoogleCalendar(this)" style="margin-left:8px">Conectar</button>' : '');
   var info = connected
     ? '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">El asistente consulta tu disponibilidad y crea las citas en tu calendario automáticamente durante la llamada.</div>'
-    : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Conéctalo para que el asistente <strong style="color:var(--text)">reserve citas en tu Google Calendar</strong> mientras habla con el cliente, consultando tu disponibilidad real.</div>';
+    : (enabled
+      ? '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Conéctalo para que el asistente <strong style="color:var(--text)">reserve citas en tu Google Calendar</strong> mientras habla con el cliente, consultando tu disponibilidad real.</div>'
+      : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Estamos terminando de activar esta integración. Muy pronto tu asistente podrá <strong style="color:var(--text)">reservar directamente en tu Google Calendar</strong>, consultando tu disponibilidad real. Mientras tanto, tus citas viven en la sección Citas.</div>');
   return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(66,133,244,.3)' : 'var(--border)') + '">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
       '<div style="display:flex;align-items:center;gap:12px">' +
