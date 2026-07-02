@@ -177,7 +177,7 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/dashboard ──────────────────────────────
-  app.get('/api/portal/dashboard', portalAuth, (req, res) => {
+  app.get('/api/portal/dashboard', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
 
     const todayStr   = new Date().toISOString().slice(0, 10);
@@ -221,7 +221,22 @@ function setupPortalRoutes(app, pipeline, config) {
 
     // ── Onboarding status — muestra al cliente qué pasos están completos ──────
     const custom        = flowConfig.automations?.config || {};
-    const nodeflowNum   = custom.nodeflowNumber || custom.outboundNumber || null;
+    let nodeflowNum     = custom.nodeflowNumber || custom.outboundNumber || null;
+    // nf_phone_pool = fuente de verdad: la config en memoria (flowManager)
+    // no ve asignaciones recientes del admin → el dashboard decía
+    // "Configurando" con el número ya asignado y funcionando.
+    if (!nodeflowNum) {
+      try {
+        const db = getDatabase();
+        if (db.enabled) {
+          const { data: poolRow } = await db.client
+            .from('nf_phone_pool').select('phone_number')
+            .eq('org_id', businessId).eq('status', 'assigned')
+            .limit(1).maybeSingle();
+          if (poolRow) nodeflowNum = poolRow.phone_number;
+        }
+      } catch (_) { /* fail-open: se queda el estado de la config */ }
+    }
     const onboarding    = {
       paid:            true,                    // si llegaron aquí, pagaron
       org_created:     true,                    // si llegaron aquí, la org existe
