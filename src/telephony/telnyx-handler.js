@@ -58,22 +58,43 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
             // Resolve assistant: archivo → org (assistant_config del portal) → por número → default
             let assistant;
+            let source = 'default';
             if (assistantId) {
               assistant = assistantManager.get(assistantId);
+              if (assistant) source = 'archivo:' + assistantId;
               if (!assistant) {
                 // assistantId puede ser un orgId (lo resuelve el webhook por número):
                 // construimos el asistente real del negocio desde su config del portal.
                 try {
                   assistant = await require('../assistants/org-assistant').getOrgAssistant(assistantId);
+                  if (assistant) source = 'org:' + assistantId;
                 } catch (e) {
                   log.warn(`[${callId}] org-assistant fallo: ${e.message}`);
                 }
               }
             }
-            if (!assistant) {
-              assistant = assistantManager.getByPhoneNumber(calledNumber)
-                || assistantManager.getDefault();
+            if (!assistant && calledNumber && calledNumber !== 'unknown') {
+              // Blindaje: si el Parameter del TeXML no llegó por el stream,
+              // resolvemos la org directamente por el número llamado (pool).
+              try {
+                const orgId = await pipeline._resolveOrgId(calledNumber);
+                if (orgId) {
+                  assistant = await require('../assistants/org-assistant').getOrgAssistant(orgId);
+                  if (assistant) source = 'pool:' + orgId;
+                }
+              } catch (e) {
+                log.warn(`[${callId}] resolución por número fallo: ${e.message}`);
+              }
             }
+            if (!assistant) {
+              assistant = assistantManager.getByPhoneNumber(calledNumber);
+              if (assistant) source = 'byNumber';
+            }
+            if (!assistant) {
+              assistant = assistantManager.getDefault();
+              source = 'default';
+            }
+            log.call(`[${callId}] Asistente: ${assistant?.name || '?'} (${assistant?.id || '?'}) vía ${source} | param=${assistantId || '—'} to=${calledNumber}`);
             if (!assistant) {
               log.warn(`[${callId}] No assistant found, using built-in fallback`);
               assistant = {
