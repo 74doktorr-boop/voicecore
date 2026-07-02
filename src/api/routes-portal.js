@@ -1236,6 +1236,9 @@ function setupPortalRoutes(app, pipeline, config) {
         scheduler.setBusinessConfig(businessId, current);
       } catch (_) { /* scheduler not critical */ }
 
+      // El asistente vivo se reconstruye en la siguiente llamada
+      try { require('../assistants/org-assistant').invalidateOrgAssistant(businessId); } catch (_) {}
+
       log.info(`Portal: assistant config updated for ${businessId}`);
       res.json({ ok: true, prompt });
     } catch (e) {
@@ -1291,8 +1294,23 @@ function setupPortalRoutes(app, pipeline, config) {
               ' en el servidor. Contacta con soporte.',
           });
         }
-        const fromNumber = (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber)
+        let fromNumber = (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber)
           || config.telnyxPhoneNumber || process.env.TELNYX_PHONE_NUMBER;
+        if (!fromNumber) {
+          // nf_phone_pool es la fuente de verdad de números asignados: la
+          // asignación del admin escribe ahí (y en organizations), pero si la
+          // org vive en flowManager (memoria) su config no ve ese cambio.
+          try {
+            const db = getDatabase();
+            if (db.enabled) {
+              const { data: poolRow } = await db.client
+                .from('nf_phone_pool').select('phone_number')
+                .eq('org_id', businessId).eq('status', 'assigned')
+                .limit(1).maybeSingle();
+              if (poolRow) fromNumber = poolRow.phone_number;
+            }
+          } catch (e) { log.warn(`outbound: pool lookup falló: ${e.message}`); }
+        }
         if (!fromNumber) {
           return res.status(503).json({ error: 'No hay número de teléfono saliente configurado para este negocio. Contacta con soporte.' });
         }

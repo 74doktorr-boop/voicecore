@@ -56,10 +56,19 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
             log.call(`[${callId}] Stream started`, { streamSid, callSid, callerNumber, calledNumber, assistantId });
 
-            // Resolve assistant
+            // Resolve assistant: archivo → org (assistant_config del portal) → por número → default
             let assistant;
             if (assistantId) {
               assistant = assistantManager.get(assistantId);
+              if (!assistant) {
+                // assistantId puede ser un orgId (lo resuelve el webhook por número):
+                // construimos el asistente real del negocio desde su config del portal.
+                try {
+                  assistant = await require('../assistants/org-assistant').getOrgAssistant(assistantId);
+                } catch (e) {
+                  log.warn(`[${callId}] org-assistant fallo: ${e.message}`);
+                }
+              }
             }
             if (!assistant) {
               assistant = assistantManager.getByPhoneNumber(calledNumber)
