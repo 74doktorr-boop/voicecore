@@ -269,7 +269,9 @@ class TTSRouter {
         params.language = language;
         break;
       case 'elevenlabs':
-        params.voiceId   = voice ?? (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa');
+        // El voice puede venir como nombre de OpenAI (nova…) del selector;
+        // lo traducimos a un voiceId real de ElevenLabs (default seguro).
+        params.voiceId   = require('./voice-map').resolveElevenVoice(voice);
         params.language  = language;  // lock language — prevents mid-speech switching
         break;
       case 'openai':
