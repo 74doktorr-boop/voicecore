@@ -80,8 +80,11 @@ class VoicePipeline {
     if (!calledNumber || calledNumber === 'unknown') return null;
     const db = getDatabase();
     if (!db.enabled) return null;
+    // Formato canónico E.164 (+34843700849): el pool guarda así y los
+    // proveedores a veces envían espacios/guiones — normalizamos antes del match.
+    const clean = String(calledNumber).replace(/[^\d+]/g, '');
     const { data } = await db.client
-      .from('nf_phone_pool').select('org_id').eq('phone_number', calledNumber).maybeSingle();
+      .from('nf_phone_pool').select('org_id').eq('phone_number', clean).maybeSingle();
     return data?.org_id || null;
   }
 

@@ -285,7 +285,10 @@ function setupAdminRoutes(app, config, assistantManager) {
   // ─── Activar cliente: asignar número + enviar email con guía de desvío ────────
   app.post('/api/admin/activar-cliente', adminAuth, async (req, res) => {
     try {
-      const { orgId, numeroNodeflow } = req.body;
+      const { orgId } = req.body;
+      // Formato canónico E.164 sin espacios/guiones — el pool se consulta por
+      // match exacto con el To que envía el proveedor (+34843700849).
+      const numeroNodeflow = String(req.body.numeroNodeflow || '').replace(/[^\d+]/g, '');
       if (!orgId)          return res.status(400).json({ error: 'orgId requerido' });
       if (!numeroNodeflow) return res.status(400).json({ error: 'numeroNodeflow requerido' });
 
@@ -314,6 +317,16 @@ function setupAdminRoutes(app, config, assistantManager) {
         );
       } catch (e) {
         log.warn(`activar-cliente: no se pudo registrar el número en nf_phone_pool: ${e.message}`);
+      }
+
+      // 1c. Conectar el número al asistente de la org — es lo que enruta la
+      //     PERSONA (prompt/voz) en llamadas entrantes vía getByPhoneNumber.
+      try {
+        const a = assistantManager && assistantManager.get(orgId);
+        if (a) assistantManager.upsert(orgId, { ...a, phoneNumber: numeroNodeflow });
+        else log.warn(`activar-cliente: org ${orgId} sin asistente propio — la entrante usará el default`);
+      } catch (e) {
+        log.warn(`activar-cliente: no se pudo fijar phoneNumber en el asistente: ${e.message}`);
       }
 
       // 2. Enviar email de activación con guía de desvío
@@ -690,7 +703,8 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!orgId) return res.status(400).json({ error: 'orgId requerido' });
     const db = getDatabase();
     try {
-      let assigned = phoneNumber;
+      // Formato canónico E.164 sin espacios/guiones (match exacto con el To del proveedor)
+      let assigned = phoneNumber ? String(phoneNumber).replace(/[^\d+]/g, '') : null;
 
       if (!assigned) {
         // Auto-asignar del pool
@@ -715,6 +729,16 @@ function setupAdminRoutes(app, config, assistantManager) {
           config: { ...(existingConfig.config || {}), nodeflowNumber: assigned, outboundNumber: assigned },
         },
       }).eq('id', orgId);
+
+      // Conectar el número al asistente de la org — es lo que enruta la
+      // PERSONA (prompt/voz) en llamadas entrantes vía getByPhoneNumber.
+      try {
+        const a = assistantManager && assistantManager.get(orgId);
+        if (a) assistantManager.upsert(orgId, { ...a, phoneNumber: assigned });
+        else log.warn(`phone-pool/assign: org ${orgId} sin asistente propio — la entrante usará el default`);
+      } catch (e) {
+        log.warn(`phone-pool/assign: no se pudo fijar phoneNumber en el asistente: ${e.message}`);
+      }
 
       log.info(`Número ${assigned} asignado manualmente a org ${orgId}`);
       res.json({ ok: true, phoneNumber: assigned, orgId });
