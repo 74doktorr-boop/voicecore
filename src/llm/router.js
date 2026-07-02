@@ -102,9 +102,22 @@ class LLMRouter {
 
     try {
       log.llm(`[${callId}] Routing to ${providerName}/${resolvedModel}`);
-      yield* provider.streamCompletion({ callId, messages, model: resolvedModel, tools, temperature, maxTokens });
+      // Los proveedores emiten chunks {type:'error'} en vez de lanzar — sin
+      // esto, un fallo del primario = LLAMADA EN SILENCIO (el fallback de
+      // abajo jamás se disparaba). Si el error llega ANTES de emitir texto,
+      // lo convertimos en throw para que actúe el fallback; si ya se habló
+      // parte de la respuesta, se deja pasar (no reiniciar = no duplicar).
+      let yieldedText = false;
+      for await (const chunk of provider.streamCompletion({ callId, messages, model: resolvedModel, tools, temperature, maxTokens })) {
+        if (chunk.type === 'error' && !yieldedText) {
+          throw new Error(chunk.message || chunk.content || `${providerName} error chunk`);
+        }
+        if (chunk.type === 'text' && chunk.content) yieldedText = true;
+        yield chunk;
+      }
+      return;
     } catch (error) {
-      log.warn(`[${callId}] ${providerName} failed, trying fallback...`);
+      log.warn(`[${callId}] ${providerName} failed (${error.message}), trying fallback...`);
 
       if (fallbackModel) {
         const fb = this.getProvider(fallbackModel);

@@ -329,6 +329,16 @@ class VoicePipeline {
         session.addAssistantMessage(fullResponse);
       }
 
+      // Red de seguridad ANTI-SILENCIO: si el turno terminó sin decir nada
+      // (todos los proveedores LLM fallaron, respuesta vacía) el cliente
+      // está esperando al teléfono — jamás dejar aire muerto.
+      if (!session.interrupted && !fullResponse && pendingToolCalls.length === 0) {
+        const recovery = 'Perdone, no le he escuchado bien. ¿Me lo puede repetir?';
+        log.warn(`[${callId}] Turno sin respuesta del LLM — frase de recuperación`);
+        await this._speakText(callId, recovery);
+        session.addAssistantMessage(recovery);
+      }
+
       turnMetrics.totalTime = Date.now() - turnStart;
       session.recordTurn(turnMetrics);
 
