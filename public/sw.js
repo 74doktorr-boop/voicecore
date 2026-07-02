@@ -1,7 +1,7 @@
 // public/sw.js — NodeFlow Portal Service Worker
 'use strict';
 
-const CACHE = 'nf-portal-v10';
+const CACHE = 'nf-portal-v11';
 const PRECACHE = [
   '/portal/',
   '/portal/index.html',
@@ -36,12 +36,31 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// ── Fetch: network-first for API; cache-first for assets ──────
+// ── Fetch: network-first para HTML y JS del portal (siempre frescos,
+//    caché solo como respaldo offline); stale-while-revalidate para el resto ──
 self.addEventListener('fetch', function(e) {
   // Never intercept non-GET or API calls — always go to the network.
   if (e.request.method !== 'GET') return;
   var url = new URL(e.request.url);
   if (url.pathname.startsWith('/api/')) return;
+
+  // HTML (navegaciones) y JS/CSS del portal: la app DEBE estar al día tras
+  // cada deploy. Servir caché primero dejaba a los clientes con versiones
+  // viejas (p.ej. secciones en blanco ya arregladas en producción).
+  var isAppShell = e.request.mode === 'navigate' ||
+    /\.(html|js|css)$/.test(url.pathname) || url.pathname.endsWith('/');
+  if (isAppShell) {
+    e.respondWith(
+      fetch(e.request).then(function(res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function(c) { c.put(e.request, copy); });
+        }
+        return res;
+      }).catch(function() { return caches.match(e.request); })
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(e.request).then(function(cached) {
