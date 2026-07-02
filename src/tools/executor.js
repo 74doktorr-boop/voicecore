@@ -212,13 +212,24 @@ class ToolExecutor {
     const businessId = assistantId || 'demo-clinic';
     // Normalize field names across sectors (patient_name, client_name, owner_name, member_name)
     const name = args.patient_name || args.client_name || args.owner_name || args.member_name || '';
+    // La hora llega como la dice el cliente ("a la una y media") — el parser
+    // determinista la convierte a HH:MM. Si no se puede interpretar, se pide
+    // aclaración en vez de rechazar la reserva con "Hora inválida".
+    const { parseSpanishTime } = require('../scheduling/time-parser');
+    const normalizedTime = parseSpanishTime(args.time);
+    if (!normalizedTime) {
+      return {
+        success: false,
+        error: `No he podido interpretar la hora "${args.time || ''}". Pregunta al cliente la hora concreta (por ejemplo: "a la una y media" o "13:30") y vuelve a intentarlo.`,
+      };
+    }
     const result = scheduler.bookAppointment(businessId, {
       patientName: name,
       phone:       args.phone  || '',
       email:       args.email  || null,
       service:     args.service || args.treatment || args.activity || args.reason || '',
       date:        args.date,
-      time:        args.time,
+      time:        normalizedTime,
       notes:       args.notes || args.vehicle || '',
     });
 

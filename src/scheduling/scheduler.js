@@ -236,9 +236,17 @@ class SchedulingSystem {
       return { success: false, error: 'No se pueden reservar citas en fechas pasadas.' };
     }
     // Dentro del horario del negocio (si hay horario configurado para ese día)
+    // Los errores incluyen QUÉ días/horas SÍ — la IA los lee en voz alta y
+    // ofrece alternativas reales en vez de un "elige otro" a ciegas.
+    const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     const daySchedule = config?.schedule?.[dateObj.getDay()];
     if (config?.schedule && !daySchedule) {
-      return { success: false, error: 'Ese día el negocio está cerrado. Elige otro día.' };
+      const openDays = Object.keys(config.schedule).map(Number).sort()
+        .map(d => DAY_NAMES[d]).join(', ');
+      return {
+        success: false,
+        error: `El ${DAY_NAMES[dateObj.getDay()]} el negocio está CERRADO. Días de apertura: ${openDays}. Ofrece al cliente uno de esos días (verifica huecos con check_availability).`,
+      };
     }
     if (daySchedule) {
       const t = time.padStart(5, '0');
@@ -247,7 +255,14 @@ class SchedulingSystem {
       const inAfternoon = daySchedule.afternoon_open && daySchedule.afternoon_close &&
                           t >= daySchedule.afternoon_open && t < daySchedule.afternoon_close;
       if (!inMorning && !inAfternoon) {
-        return { success: false, error: 'Esa hora está fuera del horario de apertura. Elige otra hora.' };
+        const franjas = [
+          daySchedule.open && daySchedule.close ? `${daySchedule.open}-${daySchedule.close}` : null,
+          daySchedule.afternoon_open && daySchedule.afternoon_close ? `${daySchedule.afternoon_open}-${daySchedule.afternoon_close}` : null,
+        ].filter(Boolean).join(' y ');
+        return {
+          success: false,
+          error: `Esa hora está fuera del horario del ${DAY_NAMES[dateObj.getDay()]} (${franjas || 'sin franjas'}). Ofrece una hora dentro de ese horario.`,
+        };
       }
     }
 
