@@ -587,6 +587,9 @@ async function initAuth() {
       localStorage.setItem(SESSION_KEY, data.session_token);
       window.history.replaceState({}, '', '/portal');
       _token = data.session_token;
+      // Quien entra por enlace suele haber olvidado su contraseña →
+      // ofrecer cambiarla al llegar (obligatorio si no existe ninguna).
+      _viaMagicLink = true;
     } catch (e) {
       return showLogin('Enlace inválido o expirado: ' + e.message);
     }
@@ -620,21 +623,26 @@ function showLogin(errorMsg) {
   }
 }
 
-// ── Primer acceso: crear contraseña obligatoria ───────────────────────
-// Si la org no tiene contraseña (entró por enlace de acceso), se le pide
-// crearla antes de usar el portal. Cambios visibles al instante.
-function requirePasswordSetup() {
+// ── Crear / cambiar contraseña al entrar ──────────────────────────────
+// Obligatorio si la org no tiene contraseña; si entró por enlace mágico y
+// SÍ tiene, se ofrece cambiarla (venir por enlace suele significar olvido).
+var _viaMagicLink = false;
+function requirePasswordSetup(canSkip) {
+  var title = canSkip ? 'Cambia tu contraseña' : 'Crea tu contraseña';
+  var intro = canSkip
+    ? 'Has entrado con un enlace de acceso. Si no recuerdas tu contraseña, este es el momento de crear una nueva.'
+    : 'Es tu primer acceso. Crea una contraseña segura para entrar directamente la próxima vez, sin esperar enlaces por email.';
   openModal(
-    '<div class="modal-title">Crea tu contraseña</div>' +
-    '<p style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:16px">' +
-      'Es tu primer acceso. Crea una contraseña segura para entrar directamente la próxima vez, sin esperar enlaces por email.</p>' +
+    '<div class="modal-title">' + title + '</div>' +
+    '<p style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:16px">' + intro + '</p>' +
     '<div class="form-group"><label class="form-label">Nueva contraseña</label>' +
       '<input type="password" class="form-input" id="pwNew" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>' +
     '<div class="form-group"><label class="form-label">Repítela</label>' +
       '<input type="password" class="form-input" id="pwNew2" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')savePasswordSetup()"></div>' +
     '<div id="pwMsg" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>' +
-    '<div class="modal-actions">' +
+    '<div class="modal-actions" style="flex-direction:column;gap:8px">' +
       '<button class="btn btn-accent" id="pwSaveBtn" onclick="savePasswordSetup()" style="width:100%">Guardar y continuar</button>' +
+      (canSkip ? '<button class="btn btn-d" onclick="closeModal()" style="width:100%">Mantener mi contraseña actual</button>' : '') +
     '</div>');
   setTimeout(function () { var el = document.getElementById('pwNew'); if (el) el.focus(); }, 100);
 }
@@ -664,10 +672,14 @@ function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display         = 'block';
 
-  // Primer acceso sin contraseña → crearla antes de nada
+  // Sin contraseña → crearla (obligatorio). Con contraseña pero entrando
+  // por enlace mágico → ofrecer cambiarla (probable olvido).
   if (_orgInfo && _orgInfo.has_password === false) {
-    setTimeout(requirePasswordSetup, 400);
+    setTimeout(function () { requirePasswordSetup(false); }, 400);
+  } else if (_viaMagicLink && _orgInfo) {
+    setTimeout(function () { requirePasswordSetup(true); }, 400);
   }
+  _viaMagicLink = false;
 
   document.getElementById('sidebarBiz').textContent = _orgInfo.name || '—';
   var planMap = { starter: 'Plan Starter', negocio: 'Plan NodeFlow', pro: 'Plan Pro' };
