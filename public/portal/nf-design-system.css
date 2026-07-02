@@ -939,9 +939,40 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .nf-stagger > *:nth-child(8) { animation-delay: 390ms; }
 .nf-stagger > *:nth-child(n+9) { animation-delay: 430ms; }
 
-/* Pulso sutil para "en vivo" */
+/* Pulso sutil para "en vivo" (legacy — la firma actual es .nf-wave) */
 .nf-live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: nf-pulse 2.2s var(--ease-in-out) infinite; }
 @keyframes nf-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(33,192,138,.45); } 50% { box-shadow: 0 0 0 5px rgba(33,192,138,0); } }
+
+/* ── FIRMA DE MARCA: la onda de voz ─────────────────────────────────
+   NodeFlow ES voz. La onda sustituye a spinners genéricos y puntos
+   "en vivo": cada momento de espera o actividad es un momento de marca.
+   Color: currentColor (hereda del contexto); lima por defecto. */
+.nf-wave { display: inline-flex; align-items: center; gap: 2px; height: 14px; color: var(--accent); vertical-align: middle; }
+.nf-wave i {
+  width: 3px; border-radius: 2px; background: currentColor; height: 30%;
+  animation: nf-eq 1.15s var(--ease-in-out) infinite;
+}
+.nf-wave i:nth-child(1) { animation-delay: -.9s; }
+.nf-wave i:nth-child(2) { animation-delay: -.6s; }
+.nf-wave i:nth-child(3) { animation-delay: -.3s; }
+.nf-wave i:nth-child(4) { animation-delay: -.75s; }
+.nf-wave i:nth-child(5) { animation-delay: -.45s; }
+@keyframes nf-eq { 0%, 100% { height: 30%; } 50% { height: 100%; } }
+
+.nf-wave--sm { height: 11px; gap: 1.5px; margin-right: 7px; }
+.nf-wave--sm i { width: 2.5px; }
+.nf-wave--lg { height: 30px; gap: 3px; }
+.nf-wave--lg i { width: 4.5px; border-radius: 3px; }
+
+/* Reduced motion: onda estática pero reconocible */
+@media (prefers-reduced-motion: reduce) {
+  .nf-wave i { animation: none !important; }
+  .nf-wave i:nth-child(1) { height: 45%; }
+  .nf-wave i:nth-child(2) { height: 85%; }
+  .nf-wave i:nth-child(3) { height: 60%; }
+  .nf-wave i:nth-child(4) { height: 100%; }
+  .nf-wave i:nth-child(5) { height: 50%; }
+}
 
 
 /* ── 23 · RESPONSIVE ───────────────────────────────────────────────────── */

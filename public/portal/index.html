@@ -24,6 +24,7 @@
 <div id="loginScreen" style="display:flex">
   <div class="login-card">
     <div class="login-logo">node<em>flow</em></div>
+    <div style="margin:2px 0 10px"><span class="nf-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
     <div class="login-sub">Portal de clientes</div>
     <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">
       Entra con tu email y contraseña. ¿Aún no tienes contraseña? Te enviamos un enlace de acceso.
@@ -137,33 +138,33 @@
   <main class="main-content">
 
     <div id="sec-dashboard" class="section active">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando dashboard…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando dashboard…</div></div>
     </div>
 
     <div id="sec-llamadas" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando llamadas…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando llamadas…</div></div>
     </div>
 
     <div id="sec-citas" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando citas…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando citas…</div></div>
     </div>
 
     <div id="sec-clientes" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando clientes…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando clientes…</div></div>
     </div>
 
     <div id="sec-informes" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando informes…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando informes…</div></div>
     </div>
 
     <div id="sec-automatizaciones" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando automatizaciones…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando automatizaciones…</div></div>
     </div>
 
     <section id="sec-asistente" class="section hidden">
       <div class="section-header">
         <div>
-          <h2 class="section-title">🤖 Asistente</h2>
+          <h2 class="section-title">Asistente</h2>
           <p class="section-sub">Configura cómo habla tu asistente con tus clientes</p>
         </div>
         <button class="btn btn-accent" onclick="probarAsistente()">▶ Probar asistente</button>
@@ -290,7 +291,7 @@
     <!-- ── AYUDA / FAQ ── -->
     <div id="sec-referidos" class="section">
       <div class="section-header">
-        <h2 class="section-title">🎁 Recomienda y gana</h2>
+        <h2 class="section-title">Recomienda y gana</h2>
         <p class="section-sub">Por cada negocio que traigas, ambos salís ganando</p>
       </div>
       <div id="referidos-body"></div>
@@ -298,7 +299,7 @@
 
     <div id="sec-conocimiento" class="section">
       <div class="section-header">
-        <h2 class="section-title">📚 Base de conocimiento</h2>
+        <h2 class="section-title">Base de conocimiento</h2>
         <p class="section-sub">Escribe lo que tu asistente debe saber de tu negocio (FAQs, servicios, precios, normas, seguros...). Lo usará al atender las llamadas.</p>
       </div>
       <!-- Bucle de aprendizaje: preguntas que el asistente no supo responder -->
@@ -319,7 +320,7 @@
 
     <div id="sec-widget" class="section">
       <div class="section-header">
-        <h2 class="section-title">📞 Widget para tu web</h2>
+        <h2 class="section-title">Widget para tu web</h2>
         <p class="section-sub">Un botón "¿Te llamamos?" en tu página: tus visitas dejan su número y te avisamos al instante</p>
       </div>
       <div id="widget-body"></div>
@@ -327,7 +328,7 @@
 
     <div id="sec-tareas" class="section">
       <div class="section-header">
-        <h2 class="section-title">✅ Mis tareas</h2>
+        <h2 class="section-title">Mis tareas</h2>
         <p class="section-sub">Tu agenda personal: apunta lo que tienes que hacer y no se te escapa nada</p>
       </div>
       <div id="tareas-body"></div>
@@ -335,7 +336,7 @@
 
     <div id="sec-oportunidades" class="section">
       <div class="section-header">
-        <h2 class="section-title">💡 Oportunidades</h2>
+        <h2 class="section-title">Oportunidades</h2>
         <p class="section-sub">Llamadas que no acabaron en cita — clientes calientes a los que vale la pena devolver la llamada</p>
       </div>
       <div id="oportunidades-body"></div>
@@ -343,7 +344,7 @@
 
     <div id="sec-espera" class="section">
       <div class="section-header">
-        <h2 class="section-title">⏳ Lista de espera</h2>
+        <h2 class="section-title">Lista de espera</h2>
         <p class="section-sub">Clientes que quieren cita pero no había hueco. Cuando se cancele una cita, llámalos para rellenarla</p>
       </div>
       <div id="espera-body"></div>
@@ -351,7 +352,7 @@
 
     <div id="sec-insights" class="section">
       <div class="section-header">
-        <h2 class="section-title">📈 Insights</h2>
+        <h2 class="section-title">Insights</h2>
         <p class="section-sub">Cuándo te llaman y cuántas llamadas acaban en cita — para decidir con datos</p>
       </div>
       <div id="insights-body"></div>
@@ -359,7 +360,7 @@
 
     <div id="sec-ayuda" class="section">
       <div class="section-header">
-        <h2 class="section-title">❓ Ayuda y preguntas frecuentes</h2>
+        <h2 class="section-title">Ayuda y preguntas frecuentes</h2>
         <p class="section-sub">Todo lo que necesitas saber para sacarle el máximo partido a NodeFlow</p>
       </div>
 
@@ -380,15 +381,15 @@
     </div>
 
     <div id="sec-configuracion" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando configuración…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando configuración…</div></div>
     </div>
 
     <div id="sec-facturacion" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando facturación…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando facturación…</div></div>
     </div>
 
     <div id="sec-integraciones" class="section">
-      <div class="empty-state"><div class="spin"></div><div class="empty-state-text">Cargando integraciones…</div></div>
+      <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando integraciones…</div></div>
     </div>
 
     <section id="sec-seguimientos" class="section hidden">

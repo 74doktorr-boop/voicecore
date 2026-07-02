@@ -886,7 +886,7 @@ function dashHero(d) {
 
   var status = d.aiStatus === 'pending'
     ? '<span class="ai-status" style="background:rgba(246,197,68,.12);color:var(--yellow);border-color:rgba(246,197,68,.25)">◌ Configurando</span>'
-    : '<span class="ai-status"><span class="nf-live-dot"></span>Asistente activo</span>';
+    : '<span class="ai-status"><span class="nf-wave nf-wave--sm" style="color:var(--green2)" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>Asistente activo</span>';
 
   var wins = '';
   if (busy) {
@@ -1026,7 +1026,7 @@ function dashFeedItems(list) {
 }
 
 function dashFeed(list) {
-  return '<div class="card"><div class="card-title"><span class="nf-live-dot"></span>Actividad en directo</div>' +
+  return '<div class="card"><div class="card-title"><span class="nf-wave nf-wave--sm" style="color:var(--green2)" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>Actividad en directo</div>' +
     '<div class="nf-feed" id="dashFeed">' + dashFeedItems(list) + '</div>' +
     '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'llamadas\')">Ver llamadas →</button></div>';
 }
@@ -1157,7 +1157,7 @@ async function loadCalls(outcome, from, to) {
   }
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">📞 Llamadas</div></div>' +
+    '<div class="section-header"><div class="section-title">Llamadas</div></div>' +
     '<div class="filter-bar">' +
       '<label style="font-size:12px;color:var(--dim)">Resultado:</label>' +
       '<select id="fOutcome" onchange="loadCalls(this.value,document.getElementById(\'fFrom\').value,document.getElementById(\'fTo\').value)">' +
@@ -1568,7 +1568,7 @@ async function loadInformes(period) {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<div class="section-title">📈 Informes</div>' +
+      '<div class="section-title">Informes</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + periodBtns + '</div>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + (PERIOD_LABEL[period] || period) + '</div>' +
@@ -1645,7 +1645,7 @@ async function loadAutomatizaciones() {
   }
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">🤖 Automatizaciones</div></div>' +
+    '<div class="section-header"><div class="section-title">Automatizaciones</div></div>' +
     '<div class="auto-grid">' +
       // Reminders card
       '<div class="auto-card"><div class="auto-row"><div>' +
@@ -1807,7 +1807,7 @@ async function loadConfig() {
   }).join('');
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">⚙️ Configuración</div></div>' +
+    '<div class="section-header"><div class="section-title">Configuración</div></div>' +
     '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto">' +
       '<div class="form-section-title">Información general</div>' +
       '<div class="form-row">' +
@@ -2155,7 +2155,7 @@ async function loadClientes(q) {
   // Día-1: sin clientes y sin filtros → empty state que enseña y empuja a activar
   if (_all.length === 0 && !q && !_clientesTag && !_clientesAttention) {
     sec.innerHTML =
-      '<div class="section-header"><div class="section-title">👥 Clientes</div></div>' +
+      '<div class="section-header"><div class="section-title">Clientes</div></div>' +
       emptyState('👥', 'Aún no tienes clientes',
         'Cada persona que llame a tu asistente aparecerá aquí con su historial, sus citas y sus etiquetas — tu CRM se construye solo con cada llamada. Configura tu asistente para recibir la primera.',
         '<button class="btn btn-accent" onclick="navigate(\'asistente\')">Configurar mi asistente →</button>');
@@ -2225,7 +2225,7 @@ async function loadClientes(q) {
 
   sec.innerHTML =
     '<div class="section-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
-      '<div class="section-title">👥 Clientes</div>' +
+      '<div class="section-title">Clientes</div>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
         '<span style="font-size:13px;color:var(--dim)">' + (data.count || 0) + ' contactos</span>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
@@ -2401,7 +2401,7 @@ async function openContactProfile(id) {
       '<button class="btn btn-r btn-sm" onclick="deleteContact(\'' + esc(id) + '\')">Eliminar contacto</button>' +
     '</div>' +
 
-    '<div class="profile-section-title">🏷️ Etiquetas</div>' +
+    '<div class="profile-section-title">Etiquetas</div>' +
     '<div id="cpTagsBox" style="margin-bottom:6px">' + renderCpTags() + '</div>' +
     '<div style="display:flex;gap:6px;margin-bottom:16px">' +
       '<input class="form-input" id="cpTagInput" placeholder="Añadir etiqueta (ej. VIP)" style="flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addContactTag();}">' +
@@ -3213,7 +3213,7 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<h2 class="section-title">💳 Facturación</h2>' +
+      '<h2 class="section-title">Facturación</h2>' +
       '<p class="section-sub">Gestiona tu plan y consulta tus facturas</p>' +
     '</div>' +
     valueStrip +
@@ -3437,7 +3437,7 @@ async function loadIntegraciones() {
   sec.innerHTML =
     '<div class="section-header">' +
       '<div>' +
-        '<div class="section-title">🔗 Integraciones</div>' +
+        '<div class="section-title">Integraciones</div>' +
         '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tus herramientas: WhatsApp, Google Calendar y más</div>' +
       '</div>' +
     '</div>' +
