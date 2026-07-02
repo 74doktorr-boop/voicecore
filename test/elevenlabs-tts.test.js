@@ -42,10 +42,27 @@ describe('ElevenLabsTTS', () => {
     assert.deepStrictEqual(out, mp3); // mp3 directo, sin convertir a mulaw
   });
 
-  test('por defecto (mulaw) pide pcm y NO devuelve el buffer crudo', async () => {
+  test('por defecto (telefonía) pide ulaw_8000 nativo y devuelve los bytes tal cual', async () => {
+    const ulaw = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]);
+    mockFetch(ulaw);
     const out = await new ElevenLabsTTS('key').synthesize({ callId: 'c', text: 'hola' });
-    assert.match(lastReq.url, /output_format=pcm_24000/);
-    assert.ok(Buffer.isBuffer(out)); // convertido a mulaw (no es el buffer original)
+    assert.match(lastReq.url, /output_format=ulaw_8000/);
+    assert.deepStrictEqual(out, ulaw); // formato del teléfono directo, sin transcodificar
+  });
+
+  test('si ElevenLabs rechaza ulaw_8000 → reintenta con pcm_24000 y transcodifica', async () => {
+    const reqs = [];
+    global.fetch = async (url, opts) => {
+      reqs.push(url);
+      if (url.includes('ulaw_8000')) return { ok: false, status: 400, statusText: 'Bad Request' };
+      const body = Buffer.alloc(48); // PCM válido para el resampleo
+      return { ok: true, status: 200, statusText: 'OK', async arrayBuffer() { return body.buffer.slice(0, 48); } };
+    };
+    const out = await new ElevenLabsTTS('key').synthesize({ callId: 'c', text: 'hola' });
+    assert.strictEqual(reqs.length, 2);
+    assert.match(reqs[0], /ulaw_8000/);
+    assert.match(reqs[1], /pcm_24000/);
+    assert.ok(Buffer.isBuffer(out));
   });
 
   test('texto vacío → buffer vacío sin llamar a la API', async () => {

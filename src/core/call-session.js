@@ -38,6 +38,13 @@ class CallSession {
     this.interrupted = false;
     this.markCounter = 0;
     this.pendingMarks = new Set();
+    // Pacer de salida: cola de frames de 20ms + reloj de reproducción.
+    // Telnyx (RTP bidireccional) reproduce según llega — sin ritmo real los
+    // frames se pierden (palabras cortadas). El reloj sustituye a los marks
+    // (Telnyx no los devuelve → isSpeaking quedaba atascado en true).
+    this.outQueue = [];
+    this._pacer = null;
+    this.playbackEndsAt = 0;
     this.startTime = Date.now();
     this.endTime = null;
     this.metrics = { turns: [], totalSttTime: 0, totalLlmTime: 0, totalTtsTime: 0, totalToolTime: 0, llmTokens: 0, toolCalls: 0, interruptions: 0 };
@@ -105,26 +112,66 @@ class CallSession {
   handleInterruption() {
     this.interrupted = true;
     this.isSpeaking = false;
+    this.stopSpeaking();
     this.metrics.interruptions++;
     this.pendingMarks.clear();
     log.call(`[${this.id}] ⚡ Interrupted`);
   }
 
+  // ¿Hay audio sonando AHORA en el teléfono? Basado en el reloj de
+  // reproducción, no en acks del proveedor (Telnyx no devuelve marks).
+  // Única fuente fiable para decidir si un barge-in es legítimo.
+  isSpeakingNow() {
+    return this.outQueue.length > 0 || Date.now() < this.playbackEndsAt;
+  }
+
+  // Vacía la cola y para el pacer (interrupción o fin de llamada).
+  stopSpeaking() {
+    this.outQueue.length = 0;
+    if (this._pacer) { clearInterval(this._pacer); this._pacer = null; }
+    this.playbackEndsAt = 0;
+  }
+
   sendAudioToTwilio(mulawBuffer) {
     if (!this.twilioWs || !this.streamSid) return;
-    try {
-      const chunkSize = 160;
-      for (let i = 0; i < mulawBuffer.length; i += chunkSize) {
-        const chunk = mulawBuffer.slice(i, Math.min(i + chunkSize, mulawBuffer.length));
-        this.twilioWs.send(JSON.stringify({ event: 'media', streamSid: this.streamSid, media: { payload: chunk.toString('base64') } }));
-      }
-      const markName = `voice_${++this.markCounter}`;
-      this.pendingMarks.add(markName);
-      this.twilioWs.send(JSON.stringify({ event: 'mark', streamSid: this.streamSid, mark: { name: markName } }));
-      return markName;
-    } catch (error) {
-      log.error(`[${this.id}] Error sending audio`, { error: error.message });
+    const FRAME = 160; // 20ms de mulaw 8kHz
+    for (let i = 0; i < mulawBuffer.length; i += FRAME) {
+      this.outQueue.push(mulawBuffer.slice(i, Math.min(i + FRAME, mulawBuffer.length)));
     }
+    const frames = Math.ceil(mulawBuffer.length / FRAME);
+    this.playbackEndsAt = Math.max(this.playbackEndsAt, Date.now()) + frames * 20;
+    this._startPacer();
+  }
+
+  _startPacer() {
+    if (this._pacer) return;
+    // Pre-buffer de 8 frames (160ms) para arrancar sin hueco; después,
+    // un frame cada 20ms — el ritmo real de reproducción del teléfono.
+    let burst = 8;
+    const tick = () => {
+      try {
+        let n = burst > 0 ? burst : 1;
+        burst = 0;
+        while (n-- > 0 && this.outQueue.length) {
+          const chunk = this.outQueue.shift();
+          this.twilioWs.send(JSON.stringify({ event: 'media', streamSid: this.streamSid, media: { payload: chunk.toString('base64') } }));
+        }
+        if (!this.outQueue.length) {
+          clearInterval(this._pacer); this._pacer = null;
+          const markName = `voice_${++this.markCounter}`;
+          this.pendingMarks.add(markName);
+          this.twilioWs.send(JSON.stringify({ event: 'mark', streamSid: this.streamSid, mark: { name: markName } }));
+          // Cuando el último frame termine de sonar, dejamos de "hablar".
+          const remaining = Math.max(0, this.playbackEndsAt - Date.now());
+          setTimeout(() => { if (!this.isSpeakingNow()) this.isSpeaking = false; }, remaining + 40);
+        }
+      } catch (error) {
+        clearInterval(this._pacer); this._pacer = null;
+        log.error(`[${this.id}] Error sending audio`, { error: error.message });
+      }
+    };
+    this._pacer = setInterval(tick, 20);
+    tick();
   }
 
   clearTwilioBuffer() {
@@ -176,6 +223,7 @@ class CallSession {
   }
 
   end() {
+    this.stopSpeaking(); // limpia el pacer — sin esto el intervalo quedaría vivo
     this.status  = 'ended';
     this.endTime = Date.now();
     this.outcome = this._deriveOutcome();

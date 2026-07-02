@@ -37,14 +37,17 @@ class ElevenLabsTTS {
     const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
     const langCode = LANG_MAP[language] ?? 'es';
 
-    // mulaw 8kHz = telefonía; mp3 = reproducible en navegador (demo).
+    // mp3 = navegador (demo). Telefonía: ulaw_8000 NATIVO — ElevenLabs entrega
+    // el formato exacto del teléfono (6x menos bytes que PCM 24k, sin
+    // transcodificar en Node → menos latencia y cero pérdida por resampleo).
+    // Fallback a pcm_24000+resample si el modelo/cuenta no soporta ulaw.
     const isMp3  = format === 'mp3';
-    const outFmt = isMp3 ? 'mp3_44100_128' : 'pcm_24000';
+    let outFmt = isMp3 ? 'mp3_44100_128' : 'ulaw_8000';
 
     log.tts(`[${callId}] Synthesizing with ElevenLabs (${resolvedModel}, lang=${langCode}, ${outFmt}): "${text.substring(0, 60)}..."`);
 
     try {
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=${outFmt}`, {
+      const doFetch = (fmt) => fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=${fmt}`, {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
@@ -61,9 +64,16 @@ class ElevenLabsTTS {
             style:             0.0,
             use_speaker_boost: true,
           },
-          output_format: outFmt,
+          output_format: fmt,
         }),
       });
+
+      let response = await doFetch(outFmt);
+      if (!response.ok && outFmt === 'ulaw_8000') {
+        log.warn(`[${callId}] ElevenLabs rechazó ulaw_8000 (${response.status}) — reintento con pcm_24000`);
+        outFmt = 'pcm_24000';
+        response = await doFetch(outFmt);
+      }
 
       if (!response.ok) {
         throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
@@ -71,10 +81,10 @@ class ElevenLabsTTS {
 
       const buf = Buffer.from(await response.arrayBuffer());
       const totalTime = Date.now() - startTime;
-      log.metric(`[${callId}] ElevenLabs TTS completed in ${totalTime}ms`);
+      log.metric(`[${callId}] ElevenLabs TTS completed in ${totalTime}ms (${outFmt})`);
 
-      // mp3 → directo al navegador; pcm → mulaw 8kHz para telefonía.
-      return isMp3 ? buf : resampleToMulaw8k(buf, 24000);
+      if (isMp3) return buf;
+      return outFmt === 'ulaw_8000' ? buf : resampleToMulaw8k(buf, 24000);
     } catch (error) {
       log.error(`[${callId}] ElevenLabs error`, { error: error.message });
       throw error;

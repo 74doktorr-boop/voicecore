@@ -224,11 +224,17 @@ ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
 ${sectorStr}
 ${extraInfo ? `INFORMACIÓN ADICIONAL: ${extraInfo}` : ''}
 
+DICCIÓN TELEFÓNICA (esto se LEE EN VOZ ALTA por teléfono):
+- Di precios y horas SIEMPRE en palabras naturales: «quince euros», «a la una y media», «a las dos menos cuarto». Jamás símbolos (€) ni formatos como 13:00 o 15€.
+- Frases cortas y naturales, una idea por frase. Es una conversación hablada, no un texto.
+- Confirma los datos importantes repitiéndolos: «Perfecto, María, el jueves a las diez y media».
+
 PROHIBIDO:
 - No hables en otro idioma.
 - No repitas preguntas ya respondidas.
 - No hagas preguntas innecesarias de clarificación.
-- No uses emojis.`.replace(/\n{3,}/g, '\n\n').trim();
+- No uses emojis.
+- No uses listas, guiones ni formato de texto.`.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**

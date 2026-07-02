@@ -169,7 +169,7 @@ class VoicePipeline {
     const sttSession = sttProvider.createSession(callId, {
       language: assistant.language || 'es',
       model: assistant.sttModel || 'nova-3',
-      utteranceEndMs: assistant.utteranceEndMs || 1000,
+      utteranceEndMs: assistant.utteranceEndMs || 800,
       endpointing: assistant.endpointing || 300,
       encoding: isVonage ? 'linear16' : 'mulaw',
       sample_rate: isVonage ? 16000 : 8000,
@@ -189,9 +189,12 @@ class VoicePipeline {
       await this._processTurn(callId, text);
     };
 
-    // On speech start → handle interruption
+    // On speech start → barge-in SOLO si de verdad hay audio sonando ahora
+    // (reloj de reproducción). Antes se usaba el flag isSpeaking, que quedaba
+    // atascado en true con Telnyx (no devuelve marks) → cualquier ruido
+    // "interrumpía" y borraba la transcripción del cliente → mutismo.
     sttSession.onSpeechStart = () => {
-      if (session.isSpeaking) {
+      if (session.isSpeakingNow()) {
         session.handleInterruption();
         session.clearTwilioBuffer();
         this.sttRouter.resetTranscript(callId);
