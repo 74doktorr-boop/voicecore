@@ -1057,7 +1057,7 @@ async function loadPool(){
       <td style="font-size:12px">${fmtDate(n.assigned_at)}</td>
       <td style="font-size:11px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${n.notes||''}">${n.notes||'—'}</td>
       <td>
-        ${n.status==='available'?'<span style="font-size:11px;color:var(--dim)">disponible</span>':''}
+        ${n.status==='available'?`<button class="btn btn-p" onclick="assignPoolNumber('${n.phone_number}')" style="padding:3px 10px;font-size:11px">Asignar →</button>`:''}
         ${n.status==='assigned'?`<button class="action-btn btn-sm" onclick="releasePoolNumber('${n.id}')" style="background:rgba(225,112,85,.12);border-color:rgba(225,112,85,.3);color:#e17055;padding:3px 10px;font-size:11px">Liberar</button>`:''}
         ${n.status==='retired'?'<span style="font-size:11px;color:var(--dim)">retirado</span>':''}
       </td>
@@ -1179,6 +1179,59 @@ async function runAutomations(){
   catch{toast('Error al ejecutar','err');}
   finally{btn.disabled=false;btn.textContent='▶ Ejecutar ahora';}
 }
+
+// ── Modal genérico del admin (estilos del design system) ─────────────
+function adminModal(html){
+  document.getElementById('adminModalBox').innerHTML=html;
+  document.getElementById('adminModalOverlay').style.display='flex';
+}
+function adminCloseModal(){
+  document.getElementById('adminModalOverlay').style.display='none';
+  document.getElementById('adminModalBox').innerHTML='';
+}
+
+// ── Asignar número del pool a un negocio ─────────────────────────────
+// Conecta TODO de una vez: org (salientes) + pool (entrantes→org) + asistente (persona).
+async function assignPoolNumber(phone){
+  let orgs=[];
+  try{ const d=await api('/api/admin/orgs'); orgs=d.orgs||[]; }catch(e){}
+  if(!orgs.length){ toast('No hay clientes a los que asignar','err'); return; }
+  const esc=s=>String(s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const opts=orgs.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}${o.owner_email?' — '+esc(o.owner_email):''}</option>`).join('');
+  adminModal(`
+    <div class="modal-title">Asignar ${esc(phone)}</div>
+    <p style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:14px">
+      El número quedará conectado al negocio de una vez:
+      las <strong style="color:var(--text)">entrantes</strong> las contesta su asistente (voz, precios y conocimiento propios)
+      y las <strong style="color:var(--text)">salientes</strong> salen con este número.
+    </p>
+    <select id="assignOrgSel" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;margin-bottom:4px">${opts}</select>
+    <div class="modal-actions">
+      <button class="btn btn-d" onclick="adminCloseModal()">Cancelar</button>
+      <button class="btn btn-p" id="assignGoBtn" onclick="assignPoolNumberGo('${esc(phone)}')">Asignar</button>
+    </div>`);
+}
+
+async function assignPoolNumberGo(phone){
+  const orgId=document.getElementById('assignOrgSel').value;
+  const btn=document.getElementById('assignGoBtn');
+  btn.disabled=true;btn.textContent='Asignando…';
+  try{
+    const r=await api('/api/admin/phone-pool/assign',{method:'POST',body:JSON.stringify({orgId,phoneNumber:phone})});
+    if(r&&r.error) throw new Error(r.error);
+    adminCloseModal();
+    toast(`✅ ${phone} asignado — entrantes y salientes conectadas`);
+    loadPool();loadOrgs();
+  }catch(e){
+    btn.disabled=false;btn.textContent='Asignar';
+    toast('Error al asignar: '+(e.message||e),'err');
+  }
+}
 </script>
+
+<!-- Modal overlay (estilos del design system) -->
+<div id="adminModalOverlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)adminCloseModal()">
+  <div class="modal-box" id="adminModalBox"></div>
+</div>
 </body>
 </html>
