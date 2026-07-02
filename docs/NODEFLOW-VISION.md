@@ -1,180 +1,187 @@
 # NodeFlow Vision — documento vivo
 
 > Solo oportunidades. Los bugs viven en los planes de ejecución.
-> Proceso: al terminar cada funcionalidad, pasarla por las 9 preguntas
-> (¿10x? ¿elimina otra herramienta? ¿automatiza sin pedirlo? ¿sorprende?
-> ¿WOW? ¿hace recomendar? ¿retiene? ¿sube ARPU? ¿reduce trabajo humano?)
-> y capturar aquí lo que emerja. Revisar en cada sesión de producto.
+>
+> **Filtro de entrada (las 10 preguntas del cofundador):** antes de aceptar
+> cualquier implementación — ¿la hace más difícil de copiar? ¿permite cobrar
+> más? ¿retiene más años? ¿genera datos que solo tendremos nosotros? ¿se
+> reutiliza en otros productos? ¿reduce soporte? ¿mejora la demo? ¿ventaja
+> permanente? ¿efecto red? ¿sube el valor de TODA la plataforma?
+> Si no mejora al menos una, se cuestiona.
+>
+> **Test de demo:** toda idea declara si se enseña en <30 segundos. Si no,
+> cómo convertirla en enseñable. Vender SaaS = acumular WOWs comprensibles.
+>
+> **Regla de lenguaje:** cada entrada se escribe COMO LA VERÍA EL CLIENTE,
+> no como la construye el ingeniero. "Parser de reservas" = 😐.
+> "Entiende 'a la una y media' como una persona" = 🤯. Misma feature.
+>
+> **Reparto de esfuerzo acordado:** 40% producto visible · 30% capacidades
+> reutilizables (Cores) · 30% fosos (datos, IA por sector, red).
 
 ## La visión en una frase
 
 **NodeFlow es el sistema operativo del negocio local**: el dueño trabaja con
 las manos; NodeFlow atiende, agenda, cobra, recuerda, recupera y hace crecer.
 
-**Arco de 3 años:**
-- **Año 1 — No pierdas nada**: recepcionista que atiende cada llamada (hoy).
-- **Año 2 — Se gestiona solo**: agenda que se defiende sola, cobros, recuperación, conocimiento que se auto-mejora.
-- **Año 3 — Crece solo**: marketing autónomo por sector, benchmarks, red entre negocios, equipo completo de empleados IA.
-
-**El foso** (por qué será incopiable): (1) el mejor dataset de conversación
-comercial local en es/eu/gl, que mejora cada asistente cada semana; (2) el
-número de teléfono + historial + conocimiento entrenado = coste de cambio
-altísimo; (3) profundidad por sector que un player generalista no puede fingir.
+**Arco de 3 años:** Año 1 *no pierdas nada* → Año 2 *se gestiona solo* →
+Año 3 *crece solo*.
 
 ---
 
-## Oportunidades
+# Los Cores — capacidades, no productos
 
-### V1 · "Mi equipo" — los empleados IA como interfaz
-- **Problema:** el portal habla de "features" (secciones, toggles); el dueño no piensa en features, piensa en personas que trabajan.
-- **Oportunidad:** reencuadrar TODO el producto como un equipo: Sofía (recepción) con su tarjeta, su foto, su rol y sus resultados semanales — "Esta semana atendí 47 llamadas, reservé 12 citas y recuperé 3 clientes (210€)". Cada empleado nuevo = add-on.
-- **Valor cliente:** entiende qué paga en 5 segundos; el precio se compara con un sueldo, no con un SaaS.
-- **Complejidad:** media (es UI + copy sobre datos que ya tenemos).
-- **Impacto:** retención + pricing power + identidad de marca única. Nadie del sector lo presenta así.
-- **Prioridad:** alta (tras estabilidad).
-- **Dependencias:** dashboard actual, métricas por asistente (existen).
-- **Encaje:** ES la visión hecha interfaz — el puente natural al año 3 (más empleados).
+La plataforma que hace que el SIGUIENTE SaaS vertical se construya en semanas.
+Estado honesto de cada core hoy:
 
-### V2 · Recepcionista con la voz clonada del dueño
+| Core | Qué es | Estado hoy | Para ser Core de verdad |
+|---|---|---|---|
+| **Voice Core** | Motor de llamadas en tiempo real: pacer, reloj de reproducción, barge-in, routers STT/TTS multi-proveedor con fallback, multi-idioma es/eu/gl | ⭐ El más maduro — v2 probado en PSTN real | Extraer interfaz limpia (hoy acoplado a "asistente de negocio"); doc de integración |
+| **AI Core** | Router LLM multi-proveedor con fallback, generación de agentes desde config (org-assistant), análisis post-conversación (transcript-analyzer), intents (assistant-command) | Sólido pero disperso en 4 módulos | Unificar: "dame un agente con este prompt/tools/memoria" como API única |
+| **Identity Core** | Magic links, sesiones JWT propias, contraseñas con ciclo completo, multi-tenancy por org | Completo tras esta semana | Extraer de routes-auth a módulo con tests propios |
+| **Event Core** | webhookDispatcher con firma HMAC, eventos de dominio (call.*, appointment.*) | Existe y funciona | Catálogo de eventos formal; suscripciones internas (no solo webhooks salientes) |
+| **Automation Core** | Scheduler de citas, reminder-engine multicanal (WA→SMS→email), crons, cola de campañas (fase 1) | Funcional, acoplado al dominio citas | El dispatcher de campañas (fase 2) nace ya como módulo genérico de "trabajos salientes" |
+| **Notification Core** | Cascada WA propio/compartido → SMS → email, plantillas Meta aprobadas | Funciona con niveles | Plantillas por producto, no hardcoded |
+| **Audit Core** | recordAudit con IP/target/details en admin | Mínimo viable | Extenderlo a acciones del portal |
+| **Analytics Core** | KPIs, series, atribución, ledger de uso/coste por llamada | Datos ricos, presentación pobre | El "ledger de valor" (V4) lo convierte en producto |
+| **Design Core** | nf-design-system.css: tokens+componentes probados en portal y admin | Reutilizable YA (ETS Guard podría usarlo) | Empaquetarlo versionado |
+
+**Regla:** cada feature nueva se pregunta a qué Core alimenta. Si no alimenta
+ninguno y tampoco es WOW/Lock-in/Moat → se cuestiona su existencia.
+
+---
+
+# WOW — las que venden ("hostia")
+
+### W1 · Tu negocio contesta con TU voz (voz clonada)
+- **Como lo ve el cliente:** «Llaman a mi peluquería… y contesto YO, sin estar.»
 - **Problema:** desviar el teléfono a "una IA" da miedo; la voz genérica se siente ajena.
-- **Oportunidad:** `custom-clone` ya está en el catálogo — convertirlo en tier premium con alta guiada (5 min leyendo un texto). "Tu negocio contesta con TU voz."
-- **Valor:** WOW emocional máximo; el cliente lo enseña a todo el mundo (viralidad orgánica).
-- **Complejidad:** baja-media (ElevenLabs cloning + flujo de consentimiento y grabación).
-- **Impacto:** conversión de demo, premium +15-25€/mes, lock-in emocional.
-- **Prioridad:** alta.
-- **Dependencias:** motor de voz estable (v2 ✓), flujo legal de consentimiento de voz (contrato ya existe en docs/).
-- **Encaje:** convierte la infraestructura de voz en identidad del negocio.
+- **Oportunidad:** tier premium con alta guiada de 5 min (leer un texto). ElevenLabs cloning ya en catálogo (custom-clone).
+- **Valor/Impacto:** el WOW que se enseña en el bar; +15-25€/mes; lock-in emocional.
+- **Complejidad:** baja-media (flujo de grabación + consentimiento — contrato ya existe).
+- **Demo <30s:** SÍ — grabas 20s, llamas, te contestas a ti mismo. La mejor demo posible.
+- **Prioridad:** alta. **Dependencias:** Voice Core estable (✓). **Cores:** Voice.
 
-### V3 · Onboarding mágico: solo el nombre del negocio
-- **Problema:** configurar asistente + servicios + horarios cuesta 20-30 min y frena la activación.
-- **Oportunidad:** el alta pide UNA cosa: el nombre (o teléfono) del negocio. La IA lee su ficha de Google Business (horarios, servicios, reviews, fotos, dirección) y preconfigura todo; el dueño solo revisa y confirma. Primer "Llámame y pruébalo" en el minuto 2.
-- **Valor:** de "otro software que configurar" a "esto ya me conoce".
-- **Complejidad:** media (scraping/Places API + mapeo a assistant_config).
-- **Impacto:** activación x2-3; la demo comercial se hace EN VIVO con el negocio del prospecto delante — cierre en la primera visita.
-- **Prioridad:** alta (antes de escalar outreach).
-- **Dependencias:** ninguna técnica seria.
-- **Encaje:** "automatiza sin que lo pidan" desde el segundo cero.
+### W2 · El lunes te llama tu negocio
+- **Como lo ve el cliente:** «Mi negocio me llama los lunes y me cuenta la semana en 30 segundos.»
+- **Oportunidad:** informe semanal POR VOZ vía saliente con propósito (infra fase 1 ✓): llamadas, citas, € y un aviso accionable.
+- **Valor/Impacto:** WOW recurrente; imposible olvidar qué pagas; churn ↓.
+- **Complejidad:** baja-media (guionizar el informe semanal existente).
+- **Demo <30s:** SÍ — se lanza en vivo: "mira, me llama ahora".
+- **Prioridad:** media-alta. **Cores:** Voice, Analytics.
 
-### V4 · Ledger de valor: "NodeFlow te ha generado 3.410€"
-- **Problema:** el valor se disuelve — el dueño ve llamadas, no dinero acumulado.
-- **Oportunidad:** contador vitalicio (citas × ticket real + recuperados + no-shows evitados), en dashboard, en el informe semanal y en el email de renovación. Fórmula transparente, clicable, honesta.
-- **Valor:** justifica los 49€ cada mes sin que nadie tenga que venderlos.
-- **Complejidad:** baja (los datos ya existen; falta agregación + UI).
-- **Impacto:** retención directa; munición para subir precios y para testimonios ("me generó X").
-- **Prioridad:** alta, es barata.
-- **Dependencias:** ticket medio real configurado (nudge ya desplegado).
-- **Encaje:** la métrica única del año 1: dinero no perdido.
+### W3 · Onboarding mágico: dime tu negocio y ya te conozco
+- **Como lo ve el cliente:** «Escribí el nombre de mi bar y ya sabía mis horarios, mi carta y mis reseñas.»
+- **Oportunidad:** alta con solo nombre/teléfono → lee Google Business → preconfigura todo → "Llámame y pruébalo" en el minuto 2.
+- **Valor/Impacto:** activación ×2-3; la demo comercial se hace EN VIVO con el negocio del prospecto → cierre en primera visita.
+- **Complejidad:** media (Places API + mapeo a assistant_config).
+- **Demo <30s:** SÍ — es literalmente la demo: nombre → asistente funcionando.
+- **Prioridad:** alta (antes de escalar outreach). **Cores:** AI.
 
-### V5 · Auto-QA: el asistente se llama a sí mismo
-- **Problema:** si la voz degrada (proveedor caído, config rota), lo descubre un CLIENTE del negocio — lo peor posible.
-- **Oportunidad:** llamada de prueba automática semanal por org: guion estándar, se mide latencia/dicción/booking OK, resultado como "salud de tu recepcionista" en el portal y alerta si falla.
-- **Valor:** confianza estructural ("sé que funciona sin probarlo yo").
-- **Complejidad:** media (outbound ya existe + evaluación del transcript con LLM).
-- **Impacto:** churn evitado por incidentes silenciosos; argumento de venta enterprise (Osakin).
-- **Prioridad:** media-alta.
-- **Dependencias:** outbound validado, cola de campañas (comparte motor).
-- **Encaje:** la fiabilidad como feature visible, no como promesa.
+### W4 · "¿Lo de siempre, María?" — reserva en 20 segundos
+- **Como lo ve el cliente:** «Mis clientas fijas ni dan sus datos: les propone su cita de siempre.»
+- **Oportunidad:** memoria (✓) + caller ID (✓) + patrón de citas del historial → fast-path del habitual.
+- **Valor/Impacto:** "es mejor que mi recepcionista" dicho por el cliente FINAL; llamadas más cortas (coste ↓).
+- **Complejidad:** baja-media (falta: servicio+franja más frecuentes del historial del contacto).
+- **Demo <30s:** SÍ — segunda llamada del mismo móvil en la demo: te saluda por tu nombre y te ofrece repetir.
+- **Prioridad:** alta — culminación del CRM progresivo (✓ hoy). **Cores:** AI, Automation.
 
-### V6 · Conocimiento que se enseña solo
-- **Problema:** el bucle actual (preguntas sin respuesta → responder en 1 clic) aún exige que el dueño escriba la respuesta.
-- **Oportunidad:** la IA PROPONE la respuesta (buscando en su web, en sus reviews, en negocios similares del sector) y el dueño solo pulsa "✓ Correcto" o edita. Y agregado anónimo por sector: lo que 50 peluquerías enseñaron beneficia a la 51 (opt-in).
-- **Valor:** el asistente mejora semana a semana sin trabajo; efecto red real entre clientes.
-- **Complejidad:** media (RAG ya existe; falta generación de propuestas + flujo de aprobación).
-- **Impacto:** EL foso de datos. Cada semana de ventaja se compone.
-- **Prioridad:** alta (año 2 empieza aquí).
-- **Dependencias:** bucle v1 (✓), volumen de llamadas.
-- **Encaje:** el producto que se auto-mejora — imposible de copiar sin la base instalada.
-
-### V7 · Cobro de señal durante la llamada
-- **Problema:** los no-shows cuestan más que la cuota de NodeFlow; el recordatorio ayuda pero no compromete.
-- **Oportunidad:** en la reserva, el asistente ofrece pagar señal (o el total): "¿Quiere dejar pagada la señal de cinco euros? Le envío un enlace por WhatsApp ahora mismo" → Stripe Payment Link → confirmación en la misma llamada.
-- **Valor:** no-shows ↓ drásticamente; caja anticipada.
-- **Complejidad:** media (Stripe existe; falta link dinámico + confirmación por webhook al hilo de la llamada).
-- **Impacto:** ARPU (comisión por cobro gestionado, p.ej. 1%) + retención (nadie renuncia a lo que le llena la caja).
-- **Prioridad:** media-alta (tras campañas).
-- **Dependencias:** WhatsApp por niveles (✓), Stripe (✓).
-- **Encaje:** de agenda a CAJA — la primera pieza de "NodeFlow cobra por ti" (año 2).
-
-### V8 · El lunes te llama tu negocio
-- **Problema:** los informes por email no se leen; el dueño no entra al portal a diario.
-- **Oportunidad:** el lunes a las 8:30, tu asistente TE llama: "Buenos días Unai. La semana pasada atendí 34 llamadas, reservé 11 citas, recuperé 2 clientes: unos 340 euros. Ojo: el jueves por la tarde perdiste 3 llamadas seguidas, revisa el desvío". 30 segundos. Opt-in.
-- **Valor:** el canal ES el producto — la voz demostrándose a sí misma cada semana.
-- **Complejidad:** baja-media (informe semanal existe + outbound existe; falta guionizarlo).
-- **Impacto:** WOW recurrente, imposible de olvidar que pagas por algo que te llama; churn ↓.
-- **Prioridad:** media (quick win tras campañas).
-- **Dependencias:** outbound validado.
-- **Encaje:** la voz como interfaz universal — también hacia el dueño.
-
-### V9 · Agenda que se defiende sola (ocupación como métrica estrella)
-- **Problema:** cancelación = hueco = dinero perdido; la lista de espera actual es pasiva.
-- **Oportunidad:** al cancelarse una cita, el sistema llama/escribe SOLO a la lista de espera hasta rellenar el hueco, y reporta: "Hueco del martes 17:00 rellenado en 8 minutos". KPI visible: % de ocupación defendida.
-- **Valor:** dinero directo sin mover un dedo.
-- **Complejidad:** media (waitlist ✓ + cola de campañas).
-- **Impacto:** el caso de éxito más contable que existe; sube el ticket del add-on Crecimiento.
-- **Prioridad:** alta dentro de campañas v2.
-- **Dependencias:** cola de campañas (plan 3).
-- **Encaje:** primer "se gestiona solo" del año 2.
-
-### V10 · Benchmarks de sector
-- **Problema:** el dueño no sabe si su 38% de conversión llamada→cita es bueno.
-- **Oportunidad:** con masa crítica: "Conviertes el 38%; la media de peluquerías en Gipuzkoa es 29%. Tu hora punta desatendida son los viernes 12-14h". Agregado anónimo.
-- **Valor:** contexto que ningún contestador puede dar; consejo accionable.
-- **Complejidad:** baja técnicamente, alta en masa de datos (>50 orgs/sector).
-- **Impacto:** retención (irse = perder tu espejo) + contenido de marketing brutal.
-- **Prioridad:** media (activar al llegar la masa).
-- **Dependencias:** volumen.
-- **Encaje:** el foso de datos hecho visible al cliente.
-
-### V11 · "Háblanos ahora" — el widget de voz en su web
-- **Problema:** la web del negocio convierte fatal; el widget actual pide "te llamamos" (fricción de formulario).
-- **Oportunidad:** botón en su web que abre conversación de VOZ con su asistente en el navegador (browser-call ya existe en el engine para la demo) — sin teléfono, sin formulario, reserva en la web hablando.
-- **Valor:** su web pasa de folleto a empleado; diferenciador total frente a contestadores.
-- **Complejidad:** media (empaquetar browser-call multi-tenant en el widget).
-- **Impacto:** más reservas atribuibles + razón de recomendación entre negocios.
-- **Prioridad:** media.
-- **Dependencias:** motor de voz estable (✓), widget actual.
-- **Encaje:** mismo asistente, todos los canales — la promesa multi-canal.
-
-### V12 · Red NodeFlow: derivaciones entre negocios
-- **Problema:** "no tengo hueco esta semana" = cliente perdido para el negocio y para nadie más.
-- **Oportunidad:** red opt-in por zona/sector: si no hay hueco, el asistente ofrece derivar a otro negocio NodeFlow cercano (recíproco, con atribución). "Te he conseguido cita en X, que también trabaja con nosotros."
-- **Valor:** el cliente final siempre sale atendido; los negocios se alimentan entre sí.
-- **Complejidad:** alta (reglas, reciprocidad, confianza).
-- **Impacto:** network effect puro — cada negocio nuevo hace la red más valiosa. El candado definitivo.
-- **Prioridad:** baja hoy, estratégica año 3.
-- **Dependencias:** densidad geográfica.
-- **Encaje:** de herramienta a INFRAESTRUCTURA del comercio local.
-
-### V13 · Memoria multi-canal: una sola ficha por cliente
-- **Problema:** llamada, WhatsApp y widget hoy son hilos separados; María es "3 Marías".
-- **Oportunidad:** identidad unificada por teléfono: la conversación de WhatsApp sabe lo que se habló por teléfono ayer, y viceversa. El timeline del contacto lo muestra todo.
-- **Valor:** elimina el CRM externo del todo; conversaciones que continúan en vez de empezar.
-- **Complejidad:** media (contact_memory ya es la base; falta ingestar WA al mismo hilo).
-- **Impacto:** retención estructural + precondición de campañas inteligentes.
-- **Prioridad:** media-alta.
-- **Dependencias:** WhatsApp propio activo.
-- **Encaje:** un negocio = un cerebro, no un cajón de canales.
-
-### V14 · Marketing autónomo estacional por sector
-- **Problema:** el negocio local no hace marketing; no sabe ni cuándo.
-- **Oportunidad:** playbooks por sector que se PROPONEN solos en el momento justo: "Quedan 3 semanas para Navidad: ¿lanzo la campaña de bonos regalo a tus 120 clientas? El año pasado las peluquerías de la red facturaron +18% con esto". Un clic.
-- **Valor:** un empleado de marketing que sabe el calendario de SU sector.
-- **Complejidad:** media-alta (contenido por sector + cola de campañas + resultados).
-- **Impacto:** ARPU del add-on Crecimiento; el "sin que el usuario lo pida" hecho ingresos.
-- **Prioridad:** media (año 2).
-- **Dependencias:** cola de campañas, WhatsApp propio, ledger (para probar ROI).
-- **Encaje:** el año 3 ("crece solo") empezando por lo repetible.
-
-### V15 · "¿Lo de siempre, María?" — reserva en 20 segundos para conocidos
-- **Problema:** el cliente habitual repite todo el ritual (nombre, servicio, preferencia) en cada llamada — fricción que una recepcionista humana no tiene.
-- **Oportunidad:** con memoria + caller ID + historial de citas, el fast-path: reconocer al habitual y proponer directamente su patrón — "¿Lo de siempre? ¿Corte con Ane el jueves a las seis, como el mes pasado?" Sí → reservado. 20 segundos de llamada.
-- **Valor cliente:** la experiencia que hace decir "es mejor que mi recepcionista"; el cliente final lo comenta.
-- **Complejidad:** baja-media (memoria en vivo ✓, nombre en el saludo ✓ hoy; falta patrón de cita habitual: servicio+franja más frecuentes del historial).
-- **Impacto:** WOW recurrente + llamadas más cortas (coste/min ↓) + conversión ↑.
-- **Prioridad:** alta — es la culminación natural del CRM progresivo.
-- **Dependencias:** CRM progresivo (✓ hoy), lookup de citas del contacto (existe).
-- **Encaje:** la memoria como experiencia, no como base de datos — el año 2 sentido en 20 segundos.
+### W5 · "Háblanos ahora" — su web atiende por voz
+- **Como lo ve el cliente:** «En mi web hay un botón y la gente HABLA con mi negocio, sin llamar.»
+- **Oportunidad:** browser-call del engine (existe para la demo) empaquetado multi-tenant en el widget.
+- **Valor/Impacto:** su web pasa de folleto a empleado; diferenciador total.
+- **Complejidad:** media. **Demo <30s:** SÍ — clic en su web, hablas, reserva hecha.
+- **Prioridad:** media. **Cores:** Voice.
 
 ---
 
-*Última revisión: 2026-07-03 · Añadir aquí, no en la cabeza.*
+# Lock-in — las que retienen
+
+### L1 · Ledger de valor: "NodeFlow te ha generado 3.410€"
+- **Como lo ve el cliente:** «Sé exactamente cuánto dinero me ha traído — cada mes que pago se justifica solo.»
+- **Oportunidad:** contador vitalicio (citas × ticket real + recuperados + huecos rellenados) en dashboard + email + renovación. Fórmula transparente.
+- **Complejidad:** baja (datos ✓; falta agregación + UI).
+- **Demo <30s:** SÍ — un número gigante que crece. Se entiende en 3 segundos.
+- **Prioridad:** ALTA e infravalorada: es la más barata de la lista. **Cores:** Analytics.
+
+### L2 · Conocimiento que se enseña solo
+- **Como lo ve el cliente:** «Cada semana mi asistente sabe más — yo solo apruebo con un clic.»
+- **Oportunidad:** v1 (✓) detecta preguntas sin respuesta; v2: la IA PROPONE la respuesta (su web, sus reseñas, negocios similares) y el dueño solo pulsa ✓.
+- **Complejidad:** media. **Demo <30s:** SÍ — "mira: ayer no supo esto, hoy alguien preguntó y respondió".
+- **Prioridad:** alta. **Cores:** AI. **También es Moat** (ver M1).
+
+### L3 · Una sola ficha por cliente (memoria multi-canal)
+- **Como lo ve el cliente:** «Le da igual si María llama o escribe por WhatsApp — se acuerda de todo.»
+- **Oportunidad:** identidad por teléfono: WA y llamada comparten hilo y timeline.
+- **Complejidad:** media (contact_memory ✓; falta ingestar WA al mismo hilo).
+- **Demo <30s:** SÍ — llamas, luego escribes por WA y te contesta con contexto de la llamada.
+- **Prioridad:** media-alta. **Cores:** AI, Notification.
+
+### L4 · Agenda que se defiende sola
+- **Como lo ve el cliente:** «Se me canceló una cita y a los 8 minutos ya estaba rellenada con la lista de espera.»
+- **Oportunidad:** cancelación → llamadas/WA automáticos a la waitlist hasta rellenar; KPI "ocupación defendida".
+- **Complejidad:** media (waitlist ✓ + cola de campañas fase 2).
+- **Demo <30s:** SÍ — cancelas en vivo y ves el feed: "llamando a la lista de espera…".
+- **Prioridad:** alta dentro de campañas. **Cores:** Automation, Voice.
+
+### L5 · Auto-QA: tu recepcionista se examina sola
+- **Como lo ve el cliente:** «Cada semana veo que mi asistente funciona — sin tener que probarlo yo.»
+- **Oportunidad:** llamada de prueba automática semanal + score de salud (latencia, dicción, reserva OK) + alerta si degrada.
+- **Complejidad:** media (outbound ✓ + evaluación LLM del transcript).
+- **Demo <30s:** SÍ — el badge "Salud: 98/100 · examinada hoy" se explica solo.
+- **Prioridad:** media-alta (reduce soporte + churn silencioso). **Cores:** Voice, AI, Analytics.
+
+---
+
+# Scale — las que multiplican la velocidad (ver tabla de Cores arriba)
+
+### S1 · Dispatcher de campañas como módulo genérico
+- **Oportunidad:** la fase 2 de campañas se construye YA como "motor de trabajos salientes con ventana horaria, ritmo, reintentos y resultados" — no como feature de citas. Sirve para: recuperación, anti no-show, informes por voz (W2), Auto-QA (L5), encuestas, cobros futuros.
+- **Demo <30s:** no directamente → se enseña a través de lo que ejecuta (L4, W2).
+- **Prioridad:** ALTA — es la siguiente gran pieza y nace como Core.
+
+### S2 · Design Core empaquetado
+- **Oportunidad:** nf-design-system.css versionado y usado en el próximo producto (ETS Guard ya podría). Un solo lenguaje visual NodeFlow.
+- **Demo <30s:** indirecto — "todos nuestros productos se sienten igual de premium".
+
+### S3 · Catálogo formal de eventos (Event Core)
+- **Oportunidad:** todo lo que pasa (llamada, reserva, cancelación, pago) como evento tipado con suscriptores internos — las automatizaciones del futuro se enchufan sin tocar el emisor.
+- **Demo <30s:** no → se enseña como "cada cosa que pasa puede disparar lo que quieras" (Zapier interno).
+
+---
+
+# Moat — las que un competidor tarda años en copiar
+
+### M1 · El dataset de conversación comercial local es/eu/gl
+- **Por qué es foso:** cada llamada mejora prompts, respuestas por sector y detección de intents. Con 500 negocios: el mejor corpus del nicho en 3 idiomas. No se puede comprar.
+- **Cómo se acumula:** ya está pasando (transcripts + analyzer + KB loops). Falta: agregación anónima por sector (opt-in) para que lo aprendido en 50 peluquerías sirva a la 51.
+- **Demo <30s:** vía L2 ("mira lo que ya sabe sin que nadie se lo enseñara").
+- **Prioridad:** el trabajo de fondo del año 2. **Cores:** AI.
+
+### M2 · Benchmarks entre negocios
+- **Como lo ve el cliente:** «Contesto el 92% de llamadas; la media de mi sector es el 61%.»
+- **Por qué es foso:** requiere masa de datos que solo tiene quien llegó primero. Irse = perder tu espejo.
+- **Complejidad:** baja técnica, alta en volumen (>50 orgs/sector).
+- **Demo <30s:** SÍ — una frase comparativa. Oro para marketing.
+
+### M3 · IA especializada por sector
+- **Por qué es foso:** los playbooks (qué pregunta un cliente de fisio vs taller, calendario estacional, objeciones típicas) destilados de conversaciones REALES por sector. Un generalista no puede fingirlo.
+- **Cómo:** sector-fields (✓) + templates (✓) + M1. **Prioridad:** continua.
+
+### M4 · Red NodeFlow: derivaciones entre negocios
+- **Como lo ve el cliente:** «No tenía hueco y mi asistente le consiguió cita en otra peluquería de la red — y ellos me mandan clientes a mí.»
+- **Por qué es foso:** efecto red puro por densidad geográfica. El candado definitivo.
+- **Complejidad:** alta (reciprocidad, confianza). **Demo <30s:** SÍ — la frase del cliente de arriba.
+- **Prioridad:** año 3, pero cada negocio de Gipuzkoa que sumamos hoy la acerca.
+
+### M5 · Marketing autónomo estacional
+- **Como lo ve el cliente:** «Tres semanas antes de Navidad me propuso la campaña de bonos regalo — un clic y facturé +18%.»
+- **Por qué es foso:** playbooks por sector probados con resultados reales de la red (M1+M2 alimentan esto).
+- **Demo <30s:** SÍ — la tarjeta de propuesta con el botón "Lanzar".
+- **Prioridad:** año 2 tardío. **Cores:** Automation, AI, Analytics.
+
+---
+
+*Última revisión: 2026-07-03 · Ritual: cada feature terminada pasa por las 10
+preguntas + test de demo 30s, y lo que emerja se escribe AQUÍ en lenguaje de
+cliente. Añadir aquí, no en la cabeza.*
