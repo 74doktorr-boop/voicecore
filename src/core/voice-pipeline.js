@@ -76,6 +76,21 @@ class VoicePipeline {
    * vía la tabla indexada nf_phone_pool. Devuelve null si no hay match/BD
    * (fail-open: el RAG simplemente no se inyecta).
    */
+  // Re-enganche tras interrupción sin continuación: si cortaron al asistente
+  // y en 2,5s no llegó ninguna frase (ruido, arrepentimiento), retoma la
+  // palabra brevemente — como haría una recepcionista humana.
+  _armInterruptWatchdog(callId) {
+    const session = this.activeCalls.get(callId);
+    if (!session) return;
+    clearTimeout(session._interruptWatchdog);
+    session._interruptWatchdog = setTimeout(() => {
+      const s = this.activeCalls.get(callId);
+      if (!s || s.isProcessing || s.isSpeakingNow() || s.pendingUtterance) return;
+      log.call(`[${callId}] Interrupción sin continuación — re-enganche`);
+      this._speakText(callId, '¿Sí? Dígame.').catch(() => {});
+    }, 2500);
+  }
+
   async _resolveOrgId(calledNumber) {
     if (!calledNumber || calledNumber === 'unknown') return null;
     const db = getDatabase();
@@ -194,15 +209,19 @@ class VoicePipeline {
     sttSession.onUtteranceEnd = onTurnText;
     sttSession.onSpeechEnd    = onTurnText;
 
-    // On speech start → barge-in SOLO si de verdad hay audio sonando ahora
-    // (reloj de reproducción). Antes se usaba el flag isSpeaking, que quedaba
-    // atascado en true con Telnyx (no devuelve marks) → cualquier ruido
-    // "interrumpía" y borraba la transcripción del cliente → mutismo.
-    sttSession.onSpeechStart = () => {
+    // Barge-in con DOS condiciones: (1) hay audio sonando AHORA (reloj de
+    // reproducción) y (2) el reconocedor tiene PALABRAS reales — el VAD
+    // pelado salta con ruido de fondo y dejaba al asistente callado a
+    // mitad de frase sin que nadie le hubiera hablado.
+    sttSession.onSpeechStart = (text) => {
+      if (!text || String(text).trim().length < 3) return; // ruido/energía sin palabras
       if (session.isSpeakingNow()) {
         session.handleInterruption();
         session.clearTwilioBuffer();
         this.sttRouter.resetTranscript(callId);
+        // Si la interrupción no viene seguida de una frase (falso positivo,
+        // arrepentimiento), el asistente se re-engancha — jamás aire muerto.
+        this._armInterruptWatchdog(callId);
       }
     };
 
@@ -256,6 +275,7 @@ class VoicePipeline {
 
     session.isProcessing = true;
     session.interrupted = false;
+    clearTimeout(session._interruptWatchdog); // llegó frase real — sin re-enganche
     const turnStart = Date.now();
     let turnMetrics = {};
 
