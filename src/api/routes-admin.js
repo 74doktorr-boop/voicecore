@@ -282,6 +282,34 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Resetear contraseña del portal de una org ───────────────────────────────
+  // Borra automation_config.auth y envía un enlace de acceso: el cliente entra
+  // con el enlace y el portal le fuerza a crear contraseña nueva (has_password=false).
+  app.post('/api/admin/orgs/:id/reset-password', adminAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const { data: org } = await db.client
+        .from('organizations').select('id, owner_email, name, automation_config').eq('id', req.params.id).single();
+      if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
+
+      const merged = { ...(org.automation_config || {}) };
+      delete merged.auth;
+      const { error } = await db.client.from('organizations')
+        .update({ automation_config: merged }).eq('id', org.id);
+      if (error) throw new Error(error.message);
+
+      const token = await generateMagicToken(org.owner_email, org.id);
+      await sendMagicLinkEmail(org.owner_email, token);
+
+      recordAudit({ action: 'password_reset', targetType: 'org', targetId: org.id, ip: ipOf(req), details: { email: org.owner_email } });
+      log.info(`Password reseteada + enlace enviado a ${org.owner_email} (org ${org.id})`);
+      res.json({ ok: true, sentTo: org.owner_email });
+    } catch (e) {
+      log.error('reset-password error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Activar cliente: asignar número + enviar email con guía de desvío ────────
   app.post('/api/admin/activar-cliente', adminAuth, async (req, res) => {
     try {
@@ -517,6 +545,8 @@ function setupAdminRoutes(app, config, assistantManager) {
         // Número NodeFlow asignado (null = aún pendiente de asignación)
         nodeflow_number: customConfig.nodeflowNumber || customConfig.outboundNumber || null,
         onboarding_complete: !!(customConfig.nodeflowNumber || customConfig.outboundNumber),
+        // Si false, el portal fuerza la creación de contraseña en el primer acceso
+        has_password: !!(automConfig.auth && automConfig.auth.hash),
       });
     } catch (e) {
       log.error('Portal /me error', { error: e.message });

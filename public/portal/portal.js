@@ -620,9 +620,54 @@ function showLogin(errorMsg) {
   }
 }
 
+// ── Primer acceso: crear contraseña obligatoria ───────────────────────
+// Si la org no tiene contraseña (entró por enlace de acceso), se le pide
+// crearla antes de usar el portal. Cambios visibles al instante.
+function requirePasswordSetup() {
+  openModal(
+    '<div class="modal-title">Crea tu contraseña</div>' +
+    '<p style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:16px">' +
+      'Es tu primer acceso. Crea una contraseña segura para entrar directamente la próxima vez, sin esperar enlaces por email.</p>' +
+    '<div class="form-group"><label class="form-label">Nueva contraseña</label>' +
+      '<input type="password" class="form-input" id="pwNew" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>' +
+    '<div class="form-group"><label class="form-label">Repítela</label>' +
+      '<input type="password" class="form-input" id="pwNew2" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')savePasswordSetup()"></div>' +
+    '<div id="pwMsg" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px"></div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-accent" id="pwSaveBtn" onclick="savePasswordSetup()" style="width:100%">Guardar y continuar</button>' +
+    '</div>');
+  setTimeout(function () { var el = document.getElementById('pwNew'); if (el) el.focus(); }, 100);
+}
+
+async function savePasswordSetup() {
+  var p1 = (document.getElementById('pwNew') || {}).value || '';
+  var p2 = (document.getElementById('pwNew2') || {}).value || '';
+  var msg = document.getElementById('pwMsg');
+  function err(t) { msg.textContent = t; msg.style.display = 'block'; }
+  if (p1.length < 8) return err('Mínimo 8 caracteres.');
+  if (!/[0-9]/.test(p1) || !/[a-zA-Z]/.test(p1)) return err('Debe llevar letras y al menos un número.');
+  if (p1 !== p2) return err('No coinciden.');
+  var btn = document.getElementById('pwSaveBtn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    await api('/api/auth/set-password', 'POST', { password: p1 });
+    _orgInfo.has_password = true;
+    closeModal();
+    toast('✅ Contraseña creada — úsala en tu próximo acceso');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Guardar y continuar';
+    err(e.message || 'No se pudo guardar. Inténtalo de nuevo.');
+  }
+}
+
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display         = 'block';
+
+  // Primer acceso sin contraseña → crearla antes de nada
+  if (_orgInfo && _orgInfo.has_password === false) {
+    setTimeout(requirePasswordSetup, 400);
+  }
 
   document.getElementById('sidebarBiz').textContent = _orgInfo.name || '—';
   var planMap = { starter: 'Plan Starter', negocio: 'Plan NodeFlow', pro: 'Plan Pro' };

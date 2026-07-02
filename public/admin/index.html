@@ -680,7 +680,7 @@ async function loadOrgs() {
         <td>${plan}</td>
         <td>${minsCell}</td>
         <td>${active}</td>
-        <td><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button></td>
+        <td style="white-space:nowrap"><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
       </tr>`;
     }).join('');
     // Cargar estado de onboarding en paralelo
@@ -733,6 +733,19 @@ async function sendMagicLink(orgId, email, btn) {
     else toast('Error al enviar','err');
   } catch { toast('Error','err'); }
   finally { btn.disabled=false; btn.textContent='🔗 Enviar acceso'; }
+}
+
+// Resetea la contraseña del portal de un cliente: borra su hash y le envía
+// un enlace de acceso; al entrar, el portal le fuerza a crear una nueva.
+async function resetOrgPassword(orgId, email, btn) {
+  if (!confirm(`¿Resetear la contraseña del portal de ${email}?\n\nSe borrará la actual y recibirá un enlace para crear una nueva.`)) return;
+  btn.disabled=true; btn.textContent='Reseteando…';
+  try {
+    const r=await api(`/api/admin/orgs/${orgId}/reset-password`,{method:'POST'});
+    if(r.ok) toast(`✓ Contraseña reseteada — enlace enviado a ${r.sentTo}`);
+    else toast('Error: '+(r.error||''),'err');
+  } catch(e) { toast('Error al resetear','err'); }
+  finally { btn.disabled=false; btn.textContent='🔑 Reset'; }
 }
 
 // Citas
