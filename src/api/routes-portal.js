@@ -1302,49 +1302,27 @@ function setupPortalRoutes(app, pipeline, config) {
       const useTelnyx = (provider === 'telnyx') || (provider === 'auto' && telnyxApiKey);
 
       if (useTelnyx) {
-        if (!telnyxApiKey || !telnyxAppId) {
-          return res.status(503).json({
-            error: 'Llamadas salientes no configuradas: falta ' +
-              (!telnyxApiKey ? 'TELNYX_API_KEY' : 'TELNYX_APP_ID') +
-              ' en el servidor. Contacta con soporte.',
+        // Motor compartido (portal + campañas): resolución de número
+        // org→pool→env y registro del PROPÓSITO de la llamada — el
+        // asistente sabrá por qué llama (prueba, recuperación…).
+        const { startOutboundCall, PURPOSE_BLOCKS } = require('../telephony/outbound');
+        const purpose = ['test_call', 'recovery'].includes(req.body.purpose) ? req.body.purpose : 'test_call';
+        const promptBlock = PURPOSE_BLOCKS[purpose]
+          ? PURPOSE_BLOCKS[purpose](flowConfig.name, String(req.body.client_name || '').slice(0, 80) || null)
+          : '';
+        try {
+          const result = await startOutboundCall({
+            businessId: effAssistantId,
+            to:         safeTo,
+            from:       (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber) || null,
+            publicUrl,
+            context:    { purpose, promptBlock },
           });
+          log.info(`Portal: Telnyx outbound call → ${safeTo} for ${businessId} (${purpose})`);
+          return res.json(result);
+        } catch (e) {
+          return res.status(503).json({ error: e.message + (e.message.includes('configuradas') || e.message.includes('configurado') ? ' Contacta con soporte.' : '') });
         }
-        let fromNumber = (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber)
-          || config.telnyxPhoneNumber || process.env.TELNYX_PHONE_NUMBER;
-        if (!fromNumber) {
-          // nf_phone_pool es la fuente de verdad de números asignados: la
-          // asignación del admin escribe ahí (y en organizations), pero si la
-          // org vive en flowManager (memoria) su config no ve ese cambio.
-          try {
-            const db = getDatabase();
-            if (db.enabled) {
-              const { data: poolRow } = await db.client
-                .from('nf_phone_pool').select('phone_number')
-                .eq('org_id', businessId).eq('status', 'assigned')
-                .limit(1).maybeSingle();
-              if (poolRow) fromNumber = poolRow.phone_number;
-            }
-          } catch (e) { log.warn(`outbound: pool lookup falló: ${e.message}`); }
-        }
-        if (!fromNumber) {
-          return res.status(503).json({ error: 'No hay número de teléfono saliente configurado para este negocio. Contacta con soporte.' });
-        }
-        const resp = await fetch(`https://api.telnyx.com/v2/texml/calls/${encodeURIComponent(telnyxAppId)}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${telnyxApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            To:   safeTo.replace(/[\s\-]/g, ''),
-            From: fromNumber,
-            Url:  `${publicUrl}/voice/telnyx/${effAssistantId}`,
-          }),
-        });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
-          const detail = data.errors ? data.errors.map(e => e.detail || e.title).join('; ') : `HTTP ${resp.status}`;
-          throw new Error(`Telnyx: ${detail}`);
-        }
-        log.info(`Portal: Telnyx outbound call → ${safeTo} for ${businessId}`);
-        return res.json({ ok: true, callSid: (data.data && (data.data.call_sid || data.data.sid)) || null, provider: 'telnyx' });
       }
 
       const useVonage = (provider === 'vonage') ||

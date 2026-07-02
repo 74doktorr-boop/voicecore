@@ -108,13 +108,30 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               };
             }
 
+            // ── Saliente con propósito: si esta llamada la iniciamos NOSOTROS
+            // (test, recuperación…), el registro de outbound lo sabe. Se clona
+            // el asistente (los de org están cacheados — no mutar) añadiendo
+            // el bloque de propósito al prompt.
+            let direction = 'inbound';
+            try {
+              const { consumeOutboundContext } = require('./outbound');
+              const outCtx = consumeOutboundContext(callerNumber, calledNumber);
+              if (outCtx) {
+                direction = 'outbound';
+                if (outCtx.promptBlock) {
+                  assistant = { ...assistant, systemPrompt: (assistant.systemPrompt || '') + outCtx.promptBlock };
+                }
+                log.call(`[${callId}] Saliente con propósito: ${outCtx.purpose}${outCtx.ref ? ' (ref ' + outCtx.ref + ')' : ''}`);
+              }
+            } catch (e) { log.warn(`[${callId}] outbound context: ${e.message}`); }
+
             // Start pipeline session (same interface as Twilio)
             const started = await pipeline.startCall({
               callId,
               assistant,
               callerNumber,
               calledNumber,
-              direction: 'inbound',
+              direction,
               twilioWs: ws,      // pipeline accepts both twilio/telnyx — same WS protocol
               streamSid,
               provider: 'telnyx',

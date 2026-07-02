@@ -375,7 +375,7 @@ async function oppAiCallGo(phone) {
   var btn = document.getElementById('oppCallBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Llamando…'; }
   try {
-    await api('/api/portal/calls/outbound', 'POST', { to: phone });
+    await api('/api/portal/calls/outbound', 'POST', { to: phone, purpose: 'recovery' });
     closeModal();
     toast('📞 Tu asistente está llamando a ' + phone);
   } catch (e) {
@@ -2636,7 +2636,7 @@ async function testCallMe() {
   btn.disabled = true; btn.textContent = 'Llamando…';
   msg.style.display = 'none';
   try {
-    await api('/api/portal/calls/outbound', 'POST', { to: phone });
+    await api('/api/portal/calls/outbound', 'POST', { to: phone, purpose: 'test_call' });
     msg.style.display = 'block'; msg.style.color = 'var(--green2)';
     msg.innerHTML = '📱 <strong>Te estamos llamando.</strong> Descuelga y háblale como un cliente. ' +
       'Después la verás en <a onclick="navigate(\'llamadas\')" style="cursor:pointer;text-decoration:underline;color:var(--accent-l)">Llamadas</a>, con su transcripción.';
