@@ -129,6 +129,30 @@ class VoicePipeline {
         // 2) Base de conocimiento libre (RAG)
         const ctx = await getKnowledgeBase().getSystemContext(orgId);
         if (ctx) { sys.content += ctx; log.info(`[${callId}] RAG: KB del negocio inyectada (org ${orgId})`); }
+        // 3) Memoria del cliente que llama — aislada por negocio: el contacto
+        // se resuelve por (org_id, phone), así el mismo teléfono en dos
+        // negocios son dos historiales distintos que jamás se cruzan.
+        if (callerNumber && callerNumber !== 'unknown') {
+          try {
+            const db = getDatabase();
+            if (db.enabled) {
+              const { data: contact } = await db.client.from('contacts')
+                .select('id')
+                .eq('org_id', orgId)
+                .eq('phone', callerNumber)
+                .maybeSingle();
+              if (contact?.id) {
+                session.contactId = contact.id;
+                const { buildMemoryBlock } = require('../assistants/prompt-generator');
+                const memBlock = await buildMemoryBlock(contact.id, orgId);
+                if (memBlock) {
+                  sys.content += memBlock;
+                  log.info(`[${callId}] Memoria del cliente inyectada (contact ${contact.id})`);
+                }
+              }
+            }
+          } catch (e) { log.warn(`[${callId}] memory inject fail-open: ${e.message}`); }
+        }
       }
     } catch (e) {
       log.warn(`[${callId}] business-context inject fail-open: ${e.message}`);
