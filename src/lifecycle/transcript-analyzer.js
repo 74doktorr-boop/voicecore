@@ -27,7 +27,8 @@ Analiza la transcripción y devuelve ÚNICAMENTE un objeto JSON válido con esto
   "preferences": { "horario": "mañana|tarde|null", "idioma": "es|eu|gl|null", "tono": "formal|informal|null" },
   "sensitivities": {},
   "extracted_data": {},
-  "topics": []
+  "topics": [],
+  "unanswered_questions": []
 }
 
 Valores válidos para outcome: booked | rescheduled | declined | no_answer | callback_requested | wrong_number | do_not_contact | voicemail_left
@@ -39,6 +40,9 @@ En extracted_data incluye cualquier dato relevante mencionado:
 - frecuencia_sesiones en días (psicología, nutrición)
 
 En topics incluye tags como: vacuna, itv, cambio_aceite, presupuesto, horario, cancelación, etc.
+
+En unanswered_questions incluye las preguntas concretas sobre el negocio (precios, servicios, horarios, políticas, disponibilidad) que el cliente hizo y el asistente NO supo responder o respondió con evasivas ("no tengo esa información", "tendría que consultarlo"). Escribe cada una como pregunta corta y clara, tal y como la haría el cliente. Si no hubo ninguna, lista vacía. Máximo 5.
+
 Devuelve SOLO el JSON. Sin texto adicional.`;
 
 /**
@@ -82,6 +86,12 @@ async function analyzeTranscript(transcript, attempt = 1) {
     raw.preferences    = raw.preferences    && typeof raw.preferences    === 'object' ? raw.preferences    : {};
     raw.sensitivities  = raw.sensitivities  && typeof raw.sensitivities  === 'object' ? raw.sensitivities  : {};
     raw.extracted_data = raw.extracted_data && typeof raw.extracted_data === 'object' ? raw.extracted_data : {};
+    raw.unanswered_questions = Array.isArray(raw.unanswered_questions)
+      ? raw.unanswered_questions
+          .filter(q => typeof q === 'string' && q.trim().length > 5)
+          .map(q => q.trim().slice(0, 160))
+          .slice(0, 5)
+      : [];
     return raw;
   } catch (err) {
     const is4xx = err.status && err.status >= 400 && err.status < 500;
@@ -123,13 +133,21 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript })
     if (!db.enabled) return;
 
     // 1. Insert immutable call summary
+    // _unanswered viaja dentro de extracted_data (jsonb) — cero migraciones;
+    // lo agrega /api/portal/knowledge/unanswered para el bucle de conocimiento.
+    const extractedWithUnanswered = {
+      ...(analysis.extracted_data || {}),
+      ...(analysis.unanswered_questions && analysis.unanswered_questions.length
+        ? { _unanswered: analysis.unanswered_questions }
+        : {}),
+    };
     const { error: summaryErr } = await db.client.from('call_summaries').insert({
       call_session_id: callSessionId || null,
       org_id:          orgId,
       contact_id:      contactId,
       summary:         analysis.summary    || '',
       outcome:         analysis.outcome    || null,
-      extracted_data:  analysis.extracted_data || {},
+      extracted_data:  extractedWithUnanswered,
       topics:          analysis.topics     || [],
     });
     if (summaryErr) log.error('call_summaries insert failed', { err: summaryErr.message });

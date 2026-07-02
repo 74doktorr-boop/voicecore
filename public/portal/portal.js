@@ -107,9 +107,69 @@ async function loadConocimiento() {
     ta.value = r.text || '';
     st.textContent = r.chunks ? (r.chunks + ' fragmento(s) guardado(s)') : 'Vacío — añade la información de tu negocio.';
     renderKbSuggestions();
+    loadKbUnanswered();
   } catch (e) {
     st.textContent = 'Error al cargar: ' + (e.message || e); st.style.color = 'var(--red)';
   }
+}
+
+// ── Bucle de aprendizaje: preguntas sin respuesta → KB en 1 clic ─────
+function _kbDismissedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem('nf_kb_dismissed') || '[]')); }
+  catch (e) { return new Set(); }
+}
+function _kbQKey(q) {
+  return q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¿?¡!.,]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+async function loadKbUnanswered() {
+  var box = document.getElementById('kbUnanswered');
+  if (!box) return;
+  var qs = [];
+  try {
+    var r = await api('/api/portal/knowledge/unanswered');
+    qs = r.questions || [];
+  } catch (e) { /* silencioso: la KB funciona igual sin esto */ }
+  var dismissed = _kbDismissedSet();
+  qs = qs.filter(function (x) { return !dismissed.has(_kbQKey(x.question)); });
+  if (!qs.length) { box.innerHTML = ''; return; }
+
+  var rows = qs.slice(0, 6).map(function (x) {
+    var safeQ = esc(x.question).replace(/'/g, '&#39;');
+    return '<div class="crit-item">' +
+      '<div style="flex:1;min-width:0"><div class="crit-name">“' + esc(x.question) + '”</div>' +
+      '<div class="crit-meta">' + (x.count > 1 ? 'Preguntada ' + x.count + ' veces' : 'Preguntada 1 vez') + ' en los últimos 30 días</div></div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button class="btn btn-accent btn-sm" onclick="kbAnswerQuestion(this)" data-q="' + safeQ + '">Responder</button>' +
+        '<button class="btn btn-d btn-sm" onclick="kbDismissQuestion(this)" data-q="' + safeQ + '" aria-label="Descartar" data-tip="No volver a mostrar">✕</button>' +
+      '</div></div>';
+  }).join('');
+
+  box.innerHTML =
+    '<div class="card" style="border-color:rgba(246,197,68,.3)">' +
+      '<div class="card-title">❓ Tu asistente no supo responder esto</div>' +
+      '<div style="font-size:13px;color:var(--dim);margin:-8px 0 14px">Clientes reales hicieron estas preguntas y tu asistente no tenía la respuesta. Enséñasela en un clic — la usará desde la siguiente llamada.</div>' +
+      rows +
+    '</div>';
+}
+
+function kbAnswerQuestion(btn) {
+  var q = btn.getAttribute('data-q') || '';
+  var ta = document.getElementById('kbText');
+  if (!ta) return;
+  ta.value += (ta.value && !/\n$/.test(ta.value) ? '\n' : '') + 'P: ' + q + '\nR: ';
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toast('Escribe la respuesta y pulsa Guardar — tu asistente la aprenderá');
+}
+
+function kbDismissQuestion(btn) {
+  var q = btn.getAttribute('data-q') || '';
+  var set = _kbDismissedSet();
+  set.add(_kbQKey(q));
+  try { localStorage.setItem('nf_kb_dismissed', JSON.stringify(Array.from(set).slice(-100))); } catch (e) {}
+  loadKbUnanswered();
 }
 
 // Añade una línea-plantilla al textarea para guiar qué escribir
@@ -285,9 +345,10 @@ async function loadOportunidades() {
     return '<tr>' +
       '<td><strong>' + esc(o.phone) + '</strong>' + (o.count>1?' <span class="badge bp" style="font-size:10px">'+o.count+' llamadas</span>':'') + '</td>' +
       '<td style="color:var(--dim);font-size:12px">' + (o.lastCall?timeAgo(o.lastCall):'—') + '</td>' +
-      '<td style="text-align:right">' +
-        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none">📞 Llamar</a> ' +
-        '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + esc(tel.replace(/\+/g,'')) + '" target="_blank">💬</a>' +
+      '<td style="text-align:right;white-space:nowrap">' +
+        '<button class="btn btn-accent btn-sm" onclick="oppAiCall(\'' + esc(tel) + '\')">🤖 Que le llame</button> ' +
+        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none" data-tip="Llamar tú">📞</a> ' +
+        '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + esc(tel.replace(/\+/g,'')) + '" target="_blank" data-tip="WhatsApp">💬</a>' +
       '</td></tr>';
   }).join('');
   box.innerHTML =
@@ -295,6 +356,32 @@ async function loadOportunidades() {
       '<div style="font-size:13px;color:var(--dim);line-height:1.6">💡 Estas personas llamaron en los últimos ' + (d.sinceDays||14) + ' días pero <strong style="color:var(--text)">no llegaron a reservar cita</strong>. Una llamada o un WhatsApp puede convertirlas en clientes.</div>' +
     '</div>' +
     '<div class="table-wrap"><table><thead><tr><th>Teléfono</th><th>Última llamada</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// ── Recuperación ejecutable: el asistente llama a la oportunidad ─────
+function oppAiCall(phone) {
+  var safe = esc(phone).replace(/'/g, '');
+  openModal(
+    '<div class="modal-title">🤖 Que le llame tu asistente</div>' +
+    '<p style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:8px">Tu asistente llamará ahora a <strong>' + esc(phone) + '</strong>, se presentará como recepción de tu negocio y le ofrecerá reservar una cita.</p>' +
+    '<p style="font-size:12px;color:var(--dim);line-height:1.5">La llamada quedará registrada en Llamadas, con su transcripción.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" id="oppCallBtn" onclick="oppAiCallGo(\'' + safe + '\')">Llamar ahora</button>' +
+    '</div>');
+}
+
+async function oppAiCallGo(phone) {
+  var btn = document.getElementById('oppCallBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Llamando…'; }
+  try {
+    await api('/api/portal/calls/outbound', 'POST', { to: phone });
+    closeModal();
+    toast('📞 Tu asistente está llamando a ' + phone);
+  } catch (e) {
+    closeModal();
+    toast('No se pudo iniciar la llamada: ' + (e.message || e), 'err');
+  }
 }
 
 // ════════ Insights (horas/días punta + conversión) ═══════════════════════════
@@ -831,6 +918,10 @@ function dashHero(d) {
     '</div>' +
     '<div class="nf-hero-lead">' + lead + '</div>' +
     (wins ? '<div class="nf-wins nf-stagger">' + wins + '</div>' : '') +
+    (wins && d.valueEstToday && d.avgTicketConfigured === false
+      ? '<div style="font-size:12px;color:var(--dim);margin-top:10px">El € está calculado con un ticket medio genérico (35€). ' +
+        '<a onclick="navigate(\'configuracion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Pon el tuyo</a> y será exacto.</div>'
+      : '') +
   '</div>';
 }
 
@@ -855,6 +946,12 @@ function dashRecos(act) {
       '<strong>' + act.wait + (act.wait === 1 ? ' cliente espera' : ' clientes esperan') + '</strong> un hueco libre en tu agenda.',
       'Si se cancela una cita, avísales con un toque.',
       'Ver lista', 'espera');
+  }
+  if (act.unanswered > 0) {
+    out += reco(
+      'Tu asistente no supo responder <strong>' + act.unanswered + (act.unanswered === 1 ? ' pregunta' : ' preguntas') + '</strong> de clientes.',
+      'Enséñale la respuesta en un minuto — la usará desde la siguiente llamada.',
+      'Enseñarle', 'conocimiento');
   }
   if (!out) return '';
   return '<div style="margin-bottom:24px">' + out + '</div>';
@@ -982,16 +1079,19 @@ async function loadDashboard() {
   }
 
   // Contadores accionables (en paralelo, tolerante a fallos)
-  var act = { opps: 0, tasks: 0, wait: 0 };
+  var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
   try {
     var r = await Promise.all([
       api('/api/portal/missed-opportunities').catch(function () { return {}; }),
       api('/api/portal/tasks').catch(function () { return {}; }),
       api('/api/portal/waitlist').catch(function () { return {}; }),
+      api('/api/portal/knowledge/unanswered').catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
     act.wait  = (r[2].waitlist || []).filter(function (w) { return w.status === 'waiting'; }).length;
+    var dismissed = _kbDismissedSet();
+    act.unanswered = (r[3].questions || []).filter(function (x) { return !dismissed.has(_kbQKey(x.question)); }).length;
   } catch (e) {}
 
   sec.innerHTML =
@@ -1092,6 +1192,15 @@ var _citasSearch = '';
 var _citasView = localStorage.getItem('nf_citas_view') || 'semana';
 var _citasWeekOffset = 0;
 
+// Nueva cita con la fecha del día clicado en la vista semana
+function openNewCitaOn(dateIso) {
+  openNewCita();
+  var el = document.getElementById('mDate');
+  if (el && dateIso) el.value = dateIso;
+  var name = document.getElementById('mPatientName');
+  if (name) name.focus();
+}
+
 function setCitasView(v) {
   _citasView = v;
   try { localStorage.setItem('nf_citas_view', v); } catch (e) {}
@@ -1129,8 +1238,11 @@ function citasWeekHtml(filtered, today) {
         '<div class="nf-apt-svc">' + esc(a.service || '') + '</div></div>';
     }
     cols += '<div class="nf-week-day' + (iso === today ? ' today' : '') + '">' +
-      '<div class="nf-week-head"><span>' + names[i] + '</span><span class="num">' + dd.getDate() + '</span></div>' +
-      (cards || '<div class="nf-week-empty">—</div>') + '</div>';
+      '<div class="nf-week-head"><span>' + names[i] + '</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:4px">' +
+          '<button class="nf-week-add" onclick="openNewCitaOn(\'' + iso + '\')" aria-label="Nueva cita el ' + names[i] + ' ' + dd.getDate() + '" data-tip="Nueva cita">+</button>' +
+          '<span class="num">' + dd.getDate() + '</span></span></div>' +
+      (cards || '<button class="nf-week-empty-add" onclick="openNewCitaOn(\'' + iso + '\')">+ cita</button>') + '</div>';
   }
 
   var monthLbl = mon.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
