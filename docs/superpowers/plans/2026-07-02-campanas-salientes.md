@@ -133,6 +133,44 @@ Estimación honesta: 2-3 sesiones de trabajo, la primera entera para 1-3.
 
 ---
 
+## 3b · Calidad de conversación (del testing real 2026-07-02 — ANTES que campañas)
+
+### Voz v2 (HECHO — `8deab6f`)
+Pacer de frames 20ms, reloj de reproducción (adiós marks), ulaw_8000 nativo,
+utteranceEndMs 800, dicción telefónica en el prompt. Validar con llamada real.
+
+### Voz v3 (si tras validar v2 sigue >1,5s por turno)
+1. Verificar en logs que el LLM enruta a groq (org assistant va sin model).
+2. TTS streaming: ElevenLabs stream endpoint → frames al pacer según llegan
+   (hoy se espera la frase completa). Baja el primer audio ~300-500ms.
+3. Barge-in por contenido: interrumpir solo con transcript interim ≥2 palabras
+   (Deepgram interim ya llega), no con VAD pelado — inmune a ruido de fondo.
+
+### Reservas deterministas (bug real: ofreció viernes CERRADO y rechazó "a la una")
+- Regla: la IA NUNCA inventa disponibilidad. `check_availability` SIEMPRE antes
+  de ofrecer; el prompt prohíbe proponer huecos sin haberlo llamado en el turno.
+- Parser de hora natural en el tool (server-side, determinista): "a la una" →
+  13:00 (contexto laboral: 1-8 sin am/pm = tarde salvo sector madrugador),
+  "y media/menos cuarto", "después de comer" → 15:00-16:00, "por la mañana" →
+  rango. Tests exhaustivos con frases reales.
+- El schedule del negocio (días cerrados) se inyecta YA en el prompt (verificar
+  que llega — el bug del viernes sugiere que no llegaba o que la IA lo ignoró
+  → reforzar: lista explícita "CERRADO: viernes" + validación dura en el tool).
+
+### CRM progresivo (la IA nunca pregunta el nombre)
+- El prompt de org-assistant debe instruir: en reservas, pedir SIEMPRE nombre y
+  teléfono de contacto (natural, no interrogatorio); si cliente conocido
+  (memoria en vivo ya inyectada), saludar por nombre y NO volver a pedirlo.
+- Enriquecimiento post-llamada ya existe (transcript-analyzer → contact_memory
+  + sector_data); añadir extracción de email/consentimiento cuando se mencione.
+
+### Provisioning de número (estado "pendiente" con número asignado)
+- El dashboard lee `nodeflowNumber` de flowManager (memoria) — misma fuente
+  desincronizada que el outbound (ya parcheado ahí vía pool). Unificar: TODAS
+  las lecturas de número van a nf_phone_pool; automation_config solo caché.
+- Estados visibles: comprado → conectado a TeXML → asignado → verificado
+  (primera llamada OK). Wizard de desvío por operadora: fase posterior.
+
 ## 4 · Backlog menor (no bloquea nada)
 
 - Identidad fase 2: ilustración propia, og-images, onda en la landing.
