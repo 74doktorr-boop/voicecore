@@ -169,15 +169,18 @@ class VoicePipeline {
     const sttSession = sttProvider.createSession(callId, {
       language: assistant.language || 'es',
       model: assistant.sttModel || 'nova-3',
-      utteranceEndMs: assistant.utteranceEndMs || 800,
+      utteranceEndMs: assistant.utteranceEndMs || 1000, // mínimo de Deepgram — 800 lo desactivaba (llamada muda)
       endpointing: assistant.endpointing || 300,
       encoding: isVonage ? 'linear16' : 'mulaw',
       sample_rate: isVonage ? 16000 : 8000,
       sttProvider: assistant.sttProvider,
     });
 
-    // On utterance end → process with LLM
-    sttSession.onUtteranceEnd = async (text) => {
+    // Fin de turno del cliente → procesar con el LLM.
+    // Dos disparadores (Deepgram): speech_final (endpointing ~300ms, el
+    // RÁPIDO) y UtteranceEnd (1000ms, respaldo). deepgram.js limpia el
+    // transcript al disparar speech_final, así que no hay dobles.
+    const onTurnText = async (text) => {
       if (!text?.trim() || text.trim().length < 2) return;
       if (session.isProcessing) {
         // El cliente habló mientras procesábamos el turno anterior (típico tras
@@ -188,6 +191,8 @@ class VoicePipeline {
       }
       await this._processTurn(callId, text);
     };
+    sttSession.onUtteranceEnd = onTurnText;
+    sttSession.onSpeechEnd    = onTurnText;
 
     // On speech start → barge-in SOLO si de verdad hay audio sonando ahora
     // (reloj de reproducción). Antes se usaba el flag isSpeaking, que quedaba

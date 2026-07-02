@@ -29,7 +29,9 @@ class DeepgramSTT {
       smart_format: true,
       punctuate: true,
       interim_results: true,
-      utterance_end_ms: options.utteranceEndMs || 1000,
+      // Deepgram EXIGE >= 1000ms: por debajo, el evento UtteranceEnd se
+      // desactiva en silencio → ningún turno arranca → llamada muda.
+      utterance_end_ms: Math.max(1000, options.utteranceEndMs || 1000),
       vad_events: true,
       // BUG FIX: respect caller-supplied encoding/sample_rate so Vonage (linear16 @16kHz)
       // and Twilio (mulaw @8kHz) both get the correct Deepgram transcription config.
@@ -98,10 +100,14 @@ class DeepgramSTT {
         });
       }
 
-      // speech_final indicates the speaker has finished speaking
+      // speech_final indica que el hablante terminó (endpointing ~300ms):
+      // es el disparador RÁPIDO de fin de turno. Se limpia el transcript
+      // para que UtteranceEnd (fallback a 1000ms) no dispare doble.
       if (speechFinal && session.onSpeechEnd) {
         const fullText = session.finalTranscript;
         session.speechStarted = false;
+        session.finalTranscript = '';
+        session.currentTranscript = '';
         session.onSpeechEnd(fullText);
       }
     });
