@@ -1275,6 +1275,45 @@ function setupPortalRoutes(app, pipeline, config) {
     const publicUrl = config.publicUrl || process.env.PUBLIC_URL || '';
 
     try {
+      // ── Telnyx (proveedor actual) — TeXML outbound ─────────────────
+      // POST /v2/texml/calls/{app_id}: al descolgar, Telnyx pide el TeXML
+      // a Url (= nuestro webhook inbound) y conecta el media stream del
+      // asistente. Mismo flujo que una llamada entrante.
+      const telnyxApiKey = config.telnyxApiKey || process.env.TELNYX_API_KEY;
+      const telnyxAppId  = config.telnyxAppId  || process.env.TELNYX_APP_ID;
+      const useTelnyx = (provider === 'telnyx') || (provider === 'auto' && telnyxApiKey);
+
+      if (useTelnyx) {
+        if (!telnyxApiKey || !telnyxAppId) {
+          return res.status(503).json({
+            error: 'Llamadas salientes no configuradas: falta ' +
+              (!telnyxApiKey ? 'TELNYX_API_KEY' : 'TELNYX_APP_ID') +
+              ' en el servidor. Contacta con soporte.',
+          });
+        }
+        const fromNumber = (flowConfig.automations && flowConfig.automations.config && flowConfig.automations.config.outboundNumber)
+          || config.telnyxPhoneNumber || process.env.TELNYX_PHONE_NUMBER;
+        if (!fromNumber) {
+          return res.status(503).json({ error: 'No hay número de teléfono saliente configurado para este negocio. Contacta con soporte.' });
+        }
+        const resp = await fetch(`https://api.telnyx.com/v2/texml/calls/${encodeURIComponent(telnyxAppId)}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${telnyxApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            To:   safeTo.replace(/[\s\-]/g, ''),
+            From: fromNumber,
+            Url:  `${publicUrl}/voice/telnyx/${effAssistantId}`,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const detail = data.errors ? data.errors.map(e => e.detail || e.title).join('; ') : `HTTP ${resp.status}`;
+          throw new Error(`Telnyx: ${detail}`);
+        }
+        log.info(`Portal: Telnyx outbound call → ${safeTo} for ${businessId}`);
+        return res.json({ ok: true, callSid: (data.data && (data.data.call_sid || data.data.sid)) || null, provider: 'telnyx' });
+      }
+
       const useVonage = (provider === 'vonage') ||
         (provider === 'auto' && config.vonageApiKey && config.vonageApplicationId);
 
