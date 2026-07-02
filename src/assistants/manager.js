@@ -90,9 +90,14 @@ class AssistantManager {
    * Get assistant by phone number
    */
   getByPhoneNumber(phoneNumber) {
-    for (const [id, config] of this.assistants) {
-      if (config.phoneNumber === phoneNumber || config.phoneNumbers?.includes(phoneNumber)) {
-        return config;
+    // Comparación normalizada: '+34 843 98 76 54', '34843987654' y
+    // '+34843987654' son el mismo número (los proveedores varían el formato).
+    const norm = (n) => String(n || '').replace(/\D/g, '').replace(/^0+/, '');
+    const target = norm(phoneNumber);
+    if (target) {
+      for (const [id, config] of this.assistants) {
+        if (norm(config.phoneNumber) === target) return config;
+        if (config.phoneNumbers?.some(p => norm(p) === target)) return config;
       }
     }
     return this.getDefault();

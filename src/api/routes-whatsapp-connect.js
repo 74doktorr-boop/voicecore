@@ -88,13 +88,17 @@ function setupWhatsAppConnectRoutes(app) {
   // ── GET /api/portal/whatsapp/status ────────────────────────────────────────
   // Devuelve estado de conexión del negocio actual.
   app.get('/api/portal/whatsapp/status', requirePortalAuth, async (req, res) => {
+    // sharedActive: el número compartido de NodeFlow (nivel incluido en el
+    // plan) está operativo cuando las credenciales globales de Meta existen.
+    const { isConfigured: waSharedConfigured } = require('../notifications/client-whatsapp');
     try {
       const creds = await getWaCredentials(req.businessId);
       if (!creds) {
-        return res.json({ connected: false });
+        return res.json({ connected: false, sharedActive: waSharedConfigured() });
       }
       return res.json({
         connected:     true,
+        sharedActive:  waSharedConfigured(),
         phoneNumber:   creds.phoneNumber,
         wabaId:        creds.wabaId,
         // No exponer accessToken ni phoneNumberId al frontend

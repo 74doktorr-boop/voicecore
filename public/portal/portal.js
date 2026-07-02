@@ -3294,26 +3294,7 @@ async function loadWaStatus() {
   }
 }
 
-function openWaSignup() {
-  var partnerId = 'srMmqpPA';
-  var redirectUrl = encodeURIComponent(window.location.origin + '/api/portal/whatsapp/connect');
-  var state = encodeURIComponent((_orgInfo && _orgInfo.id) || '');
-  var url = 'https://hub.360dialog.com/dashboard/app/' + partnerId +
-    '/permissions?redirect_url=' + redirectUrl + '&state=' + state;
-  var popup = window.open(url, 'wa-connect', 'width=700,height=600,scrollbars=yes,resizable=yes');
-  if (!popup) {
-    toast('⚠️ Permite ventanas emergentes para conectar WhatsApp', 'warn');
-    return;
-  }
-  // Escuchar cuando el popup se cierre (el backend ya procesó el redirect)
-  var poll = setInterval(function() {
-    if (!popup || popup.closed) {
-      clearInterval(poll);
-      // Recargar la sección para ver si se conectó
-      setTimeout(function() { loadIntegraciones(); }, 800);
-    }
-  }, 600);
-}
+// (flujo 360dialog eliminado — la conexión de número propio la gestiona NodeFlow vía admin connect-meta)
 
 function disconnectWa() {
   openModal(
@@ -3337,50 +3318,76 @@ async function confirmDisconnectWa() {
   }
 }
 
+// Avisos por WhatsApp — dos niveles:
+//   Incluido: salen del número verificado de NodeFlow, siempre nombrando al negocio.
+//   Premium:  número propio del negocio (Meta Cloud API), montado por NodeFlow.
 function renderWaCard(waStatus) {
-  var connected = waStatus && waStatus.connected;
-  var phoneNumber = connected ? esc(waStatus.phoneNumber || '—') : '';
+  var connected = waStatus && waStatus.connected;                    // premium activo
+  var sharedActive = !waStatus || waStatus.sharedActive !== false;   // incluido operativo
 
-  var statusBadge = connected
-    ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
-    : '<span class="badge br" style="font-size:11px">⭕ No conectado</span>';
-
-  var actionBtn = connected
-    ? '<button class="btn btn-d btn-sm" onclick="disconnectWa()" style="margin-left:8px">Desconectar</button>'
-    : '<span style="font-size:11px;color:var(--dim);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 10px">Próximamente</span>';
-
-  var connectedInfo = connected
-    ? '<div style="margin-top:12px;font-size:12px;color:var(--dim)">' +
-        '<span style="color:var(--text);font-weight:600">' + phoneNumber + '</span>' +
-        ' · WABA ID: <code style="font-size:11px">' + esc(waStatus.wabaId || '—') + '</code>' +
-      '</div>'
-    : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">' +
-        'Los recordatorios y confirmaciones ya se envían automáticamente desde el número de NodeFlow. ' +
-        'Próximamente podrás conectar tu propio número de WhatsApp Business para que los mensajes salgan ' +
-        '<strong style="color:var(--text)">con el nombre de tu negocio</strong>.' +
-      '</div>';
-
-  return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(37,211,102,.3)' : 'var(--border)') + '">' +
+  var head =
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
       '<div style="display:flex;align-items:center;gap:12px">' +
         '<div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>' +
         '<div>' +
-          '<div style="font-weight:700;font-size:14px">WhatsApp Business</div>' +
-          '<div style="font-size:11px;color:var(--dim);margin-top:2px">Notificaciones a clientes desde tu número</div>' +
+          '<div style="font-weight:700;font-size:14px">Avisos por WhatsApp</div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-top:2px">Recordatorios, confirmaciones y reseñas a tus clientes</div>' +
         '</div>' +
-      '</div>' +
+      '</div>';
+
+  if (connected) {
+    return '<div class="card" style="margin-bottom:20px;border-color:rgba(37,211,102,.3)">' +
+      head +
       '<div style="display:flex;align-items:center;gap:8px">' +
-        statusBadge + actionBtn +
+        '<span class="badge bg" style="font-size:11px">✅ Tu propio número</span>' +
+        '<button class="btn btn-d btn-sm" onclick="disconnectWa()">Desconectar</button>' +
+      '</div></div>' +
+      '<div style="margin-top:12px;font-size:12px;color:var(--dim)">Cada mensaje sale desde ' +
+        '<span style="color:var(--text);font-weight:600">' + esc(waStatus.phoneNumber || '—') + '</span>, con tu marca. ' +
+        'WABA: <code style="font-size:11px">' + esc(waStatus.wabaId || '—') + '</code></div>' +
+    '</div>';
+  }
+
+  var includedBadge = sharedActive
+    ? '<span class="badge bg" style="font-size:11px">✅ Incluido en tu plan</span>'
+    : '<span class="badge by" style="font-size:11px">⏳ Activándose</span>';
+  var includedText = sharedActive
+    ? 'Tus avisos se envían desde el número verificado de NodeFlow, <strong style="color:var(--text)">siempre con el nombre de tu negocio</strong> en el mensaje. No tienes que configurar nada.'
+    : 'El canal WhatsApp de NodeFlow está en activación. Mientras tanto tus avisos salen por email — en cuanto esté listo se activará solo.';
+
+  return '<div class="card" style="margin-bottom:20px">' +
+    head +
+    '<div style="display:flex;align-items:center;gap:8px">' + includedBadge + '</div></div>' +
+    '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">' + includedText + '</div>' +
+    '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+      '<div style="font-size:12px;color:var(--dim);line-height:1.6;flex:1;min-width:220px">' +
+        '<strong style="color:var(--text)">¿Quieres que salgan desde TU número?</strong><br>' +
+        'Número de WhatsApp de empresa propio, con tu nombre y tu logo. Nos encargamos de todo: alta con Meta, verificación y plantillas.' +
       '</div>' +
+      '<button class="btn btn-accent btn-sm" onclick="openWaUpgrade()" style="white-space:nowrap">Quiero mi número →</button>' +
     '</div>' +
-    connectedInfo +
-    (connected ? '' :
-      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px;font-size:11px;color:var(--dim);flex-wrap:wrap">' +
-        '<span>✅ Notificaciones activas desde el número NodeFlow</span>' +
-        '<span>🔜 Número propio — próximamente</span>' +
-      '</div>'
-    ) +
   '</div>';
+}
+
+// Solicitud del nivel premium (alta gestionada por NodeFlow)
+function openWaUpgrade() {
+  var biz = (_orgInfo && _orgInfo.name) || '';
+  var subject = encodeURIComponent('Quiero mi propio número de WhatsApp — ' + biz);
+  var body = encodeURIComponent(
+    'Hola,\n\nQuiero que los avisos por WhatsApp de ' + biz + ' salgan desde nuestro propio número de empresa.\n\n' +
+    '· ¿Tenéis ya un número de WhatsApp de empresa? (sí/no)\n· Teléfono de contacto: \n\nGracias.');
+  openModal(
+    '<div class="modal-title">Tu propio número de WhatsApp</div>' +
+    '<p style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:12px">' +
+      'Montamos tu número de WhatsApp de empresa de principio a fin: alta y verificación con Meta, ' +
+      'plantillas aprobadas y conexión con tu asistente. Tus clientes verán <strong>tu nombre y tu logo</strong> en cada aviso.</p>' +
+    '<p style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:8px">' +
+      'Si ya tienes un número de empresa lo conectamos; si no, te conseguimos uno. ' +
+      'Es un proceso con Meta que gestionamos nosotros — tú solo firmas.</p>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Ahora no</button>' +
+      '<a class="btn btn-accent" style="text-decoration:none" href="mailto:unai@nodeflow.es?subject=' + subject + '&body=' + body + '" onclick="closeModal();toast(\'✅ Te contactamos en menos de 24h\')">Solicitar</a>' +
+    '</div>');
 }
 
 async function loadIntegraciones() {

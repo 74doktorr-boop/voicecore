@@ -179,10 +179,17 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   //
   // Optional: set TELNYX_API_KEY in .env to enable outbound calls via API
   app.post('/voice/telnyx', (req, res) => {
-    const assistantId = req.query.assistantId || null;
     const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     const calledNumber = req.body?.To   || req.body?.to   || 'unknown';
+    // Multi-tenant: todos los números comparten esta TeXML App, así que el
+    // asistente se resuelve AQUÍ por el número llamado y viaja como parámetro
+    // explícito del stream (no dependemos del payload del start event).
+    let assistantId = req.query.assistantId || null;
+    if (!assistantId && calledNumber !== 'unknown') {
+      const byNumber = assistantManager.getByPhoneNumber(calledNumber);
+      if (byNumber) assistantId = byNumber.id;
+    }
     log.call(`[Telnyx] Inbound call from ${callerNumber} → ${calledNumber} | assistant: ${assistantId || 'default'}`);
     res.type('text/xml').send(generateTeXML(wsUrl, assistantId));
   });
