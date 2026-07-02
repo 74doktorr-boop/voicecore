@@ -187,7 +187,7 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript })
         await db.client.from('contacts')
           .update({ sector_data: merged })
           .eq('id', contactId)
-          .catch(e => log.warn('sector_data auto-update failed', { err: e.message }));
+          .then(undefined, e => log.warn('sector_data auto-update failed', { err: e.message }));
       }
     }
 

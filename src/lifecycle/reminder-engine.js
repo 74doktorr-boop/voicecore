@@ -191,7 +191,7 @@ async function scheduleReminder({ orgId, contactId, serviceKey, scheduledFor, ch
     .eq('contact_id', contactId)
     .eq('service_key', serviceKey)
     .in('status', ['pending', 'postponed'])
-    .catch(e => log.warn('scheduleReminder: cancel existing failed', { err: e.message }));
+    .then(undefined, e => log.warn('scheduleReminder: cancel existing failed', { err: e.message }));
 
   // Insert new reminder
   const { error } = await db.client.from('scheduled_reminders').insert({
@@ -223,7 +223,7 @@ async function cancelRemindersForService(contactId, serviceKey) {
     .eq('contact_id', contactId)
     .eq('service_key', serviceKey)
     .in('status', ['pending', 'postponed'])
-    .catch(e => log.warn('cancelRemindersForService failed', { err: e.message }));
+    .then(undefined, e => log.warn('cancelRemindersForService failed', { err: e.message }));
 }
 
 /**

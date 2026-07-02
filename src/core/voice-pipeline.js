@@ -178,8 +178,14 @@ class VoicePipeline {
 
     // On utterance end → process with LLM
     sttSession.onUtteranceEnd = async (text) => {
-      if (session.isProcessing) return;
       if (!text?.trim() || text.trim().length < 2) return;
+      if (session.isProcessing) {
+        // El cliente habló mientras procesábamos el turno anterior (típico tras
+        // una interrupción). Antes se DESCARTABA y la llamada quedaba muda;
+        // ahora se guarda y se procesa en cuanto termine el turno en curso.
+        session.pendingUtterance = text;
+        return;
+      }
       await this._processTurn(callId, text);
     };
 
@@ -252,8 +258,11 @@ class VoicePipeline {
       // Get OpenAI tools format
       const tools = ToolExecutor.toOpenAITools(session.assistant.tools);
 
-      // Resolve LLM model — supports "provider/model" format
-      const modelSpec = session.assistant.model || 'gpt-4o-mini';
+      // Resolve LLM model — supports "provider/model" format.
+      // Sin modelo explícito, el router elige el proveedor MÁS RÁPIDO disponible
+      // (groq ~80ms TTFT > openai > anthropic) con auto-fallback si falla.
+      // Forzar gpt-4o-mini aquí ignoraba Groq y costaba ~4s por turno al teléfono.
+      const modelSpec = session.assistant.model || null;
       const fallbackModel = session.assistant.fallbackModel || null;
 
       // Stream LLM response via router
@@ -324,6 +333,12 @@ class VoicePipeline {
       log.error(`[${callId}] Turn processing error`, { error: error.message });
     } finally {
       session.isProcessing = false;
+      // Procesar lo que el cliente dijo mientras estábamos ocupados
+      const pending = session.pendingUtterance;
+      if (pending && this.activeCalls.has(callId)) {
+        session.pendingUtterance = null;
+        setImmediate(() => this._processTurn(callId, pending).catch(() => {}));
+      }
     }
   }
 

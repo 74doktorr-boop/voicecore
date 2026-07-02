@@ -206,7 +206,7 @@ async function processOneReminder(reminder, db) {
     await db.client.from('scheduled_reminders')
       .update({ status: 'failed', failed_reason: err.message.slice(0, 200), updated_at: new Date().toISOString() })
       .eq('id', reminder.id)
-      .catch(() => {});
+      .then(undefined, () => {});
     log.error(`Reminder ${reminder.id} threw: ${err.message}`);
   }
 }

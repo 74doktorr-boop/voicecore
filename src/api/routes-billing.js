@@ -442,7 +442,7 @@ function setupBillingRoutes(app, config) {
               .from('organizations')
               .select('id')
               .eq('stripe_subscription_id', result.subscriptionId)
-              .single().catch(() => ({ data: null }));
+              .single().then(r => r, () => ({ data: null }));
             orgId = orgRow?.id || null;
           }
           if (orgId) {
@@ -463,7 +463,7 @@ function setupBillingRoutes(app, config) {
               .from('organizations')
               .select('id')
               .eq('stripe_subscription_id', result.subscriptionId)
-              .single().catch(() => ({ data: null }));
+              .single().then(r => r, () => ({ data: null }));
             cancelledOrgId = orgRow?.id || null;
           }
 
@@ -496,7 +496,7 @@ function setupBillingRoutes(app, config) {
               .from('organizations')
               .select('id')
               .eq('stripe_customer_id', result.customerId)
-              .single().catch(() => ({ data: null }));
+              .single().then(r => r, () => ({ data: null }));
             if (orgRow?.id) {
               await db.updateOrg(orgRow.id, { monthly_minutes_used: 0 });
               log.info(`Usage counter reset for org ${orgRow.id} (invoice paid — new period)`);
@@ -520,7 +520,7 @@ function setupBillingRoutes(app, config) {
                 .from('registros')
                 .select('email, contacto')
                 .eq('stripe_customer_id', result.customerId)
-                .single().catch(() => ({ data: null }));
+                .single().then(r => r, () => ({ data: null }));
 
               if (registro?.email) {
                 clientEmail     = registro.email;
@@ -531,7 +531,7 @@ function setupBillingRoutes(app, config) {
                   .from('organizations')
                   .select('owner_email, owner_name')
                   .eq('stripe_customer_id', result.customerId)
-                  .single().catch(() => ({ data: null }));
+                  .single().then(r => r, () => ({ data: null }));
                 if (org?.owner_email) {
                   clientEmail     = org.owner_email;
                   clientFirstName = org.owner_name?.split(' ')[0] || '';

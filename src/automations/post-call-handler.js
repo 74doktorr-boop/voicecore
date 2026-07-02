@@ -73,7 +73,7 @@ async function handle(callData) {
       db.client.from('calls')
         .update({ followup_at: followupAt })
         .eq('call_sid', callData.id)
-        .catch(e => log.warn('followup_at persist failed', { err: e.message }));
+        .then(undefined, e => log.warn('followup_at persist failed', { err: e.message }));
     }
     setTimeout(async () => {
       try {
@@ -83,7 +83,7 @@ async function handle(callData) {
           db.client.from('calls')
             .update({ followup_sent: true })
             .eq('call_sid', callData.id)
-            .catch(() => {});
+            .then(undefined, () => {});
         }
       } catch (e) {
         log.warn('followup email failed', { err: e.message });
@@ -107,7 +107,11 @@ async function handle(callData) {
       ended_at:           callData.endTime            || null,
       status:             'ended',
     }, { onConflict: 'call_sid' })
-      .catch(e => log.warn('call DB persist failed', { err: e.message }));
+      // El builder de Supabase es thenable pero NO tiene .catch — llamarlo
+      // reventaba síncronamente y se saltaba TODO el resto del post-call
+      // (uso, webhooks, contacto, memoria). then(ok, err) cubre ambos casos.
+      .then(({ error }) => { if (error) log.warn('call DB persist failed', { err: error.message }); },
+            (e) => log.warn('call DB persist failed', { err: e.message }));
   }
 
   // ── 6. Track call usage — increments monthly_minutes_used and usage table ────
