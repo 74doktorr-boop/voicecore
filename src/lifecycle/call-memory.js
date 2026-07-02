@@ -137,13 +137,15 @@ async function buildCallContext(contactId, orgId) {
   const memory     = memRes.data;
   const recentCalls = callsRes.data || [];
   const sectorData  = contactRes.data?.sector_data || {};
+  const contactName = contactRes.data?.name || null;
 
   if (!memory || memory.call_count === 0) {
-    return { isFirstCall: true, sectorData };
+    return { isFirstCall: true, sectorData, contactName };
   }
 
   return {
     isFirstCall:       false,
+    contactName,
     callCount:         memory.call_count,
     lastCallAt:        memory.last_call_at,
     lastCallSummary:   memory.last_call_summary,

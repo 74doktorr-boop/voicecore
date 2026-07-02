@@ -165,6 +165,16 @@ altísimo; (3) profundidad por sector que un player generalista no puede fingir.
 - **Dependencias:** cola de campañas, WhatsApp propio, ledger (para probar ROI).
 - **Encaje:** el año 3 ("crece solo") empezando por lo repetible.
 
+### V15 · "¿Lo de siempre, María?" — reserva en 20 segundos para conocidos
+- **Problema:** el cliente habitual repite todo el ritual (nombre, servicio, preferencia) en cada llamada — fricción que una recepcionista humana no tiene.
+- **Oportunidad:** con memoria + caller ID + historial de citas, el fast-path: reconocer al habitual y proponer directamente su patrón — "¿Lo de siempre? ¿Corte con Ane el jueves a las seis, como el mes pasado?" Sí → reservado. 20 segundos de llamada.
+- **Valor cliente:** la experiencia que hace decir "es mejor que mi recepcionista"; el cliente final lo comenta.
+- **Complejidad:** baja-media (memoria en vivo ✓, nombre en el saludo ✓ hoy; falta patrón de cita habitual: servicio+franja más frecuentes del historial).
+- **Impacto:** WOW recurrente + llamadas más cortas (coste/min ↓) + conversión ↑.
+- **Prioridad:** alta — es la culminación natural del CRM progresivo.
+- **Dependencias:** CRM progresivo (✓ hoy), lookup de citas del contacto (existe).
+- **Encaje:** la memoria como experiencia, no como base de datos — el año 2 sentido en 20 segundos.
+
 ---
 
 *Última revisión: 2026-07-03 · Añadir aquí, no en la cabeza.*

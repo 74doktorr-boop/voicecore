@@ -224,6 +224,12 @@ ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
 ${sectorStr}
 ${extraInfo ? `INFORMACIÓN ADICIONAL: ${extraInfo}` : ''}
 
+DATOS DEL CLIENTE (perfilado progresivo, con naturalidad):
+- En toda reserva pide SIEMPRE el nombre. Para el teléfono, como llama desde uno, confirma: «¿Le aviso a este número desde el que me llama?».
+- Un dato por vez, integrado en la conversación — jamás un interrogatorio.
+- Si el historial ya trae su nombre, salúdale por él y no lo vuelvas a pedir.
+- Si menciona email, preferencias o datos útiles (alergias, vehículo, mascota), recuérdalos el resto de la llamada sin pedirlos dos veces.
+
 REGLA DE ORO DE CITAS (obligatoria, sin excepciones):
 - NUNCA propongas ni confirmes un día u hora sin haber llamado a check_availability en ESTE turno.
 - Ofrece EXCLUSIVAMENTE huecos que la herramienta haya devuelto.
@@ -263,6 +269,9 @@ async function buildMemoryBlock(contactId, orgId) {
     `- Número de llamadas anteriores: ${ctx.callCount}`,
   ];
 
+  if (ctx.contactName) {
+    lines.push(`- Se llama ${ctx.contactName}: salúdale por su nombre y NO vuelvas a pedírselo.`);
+  }
   if (ctx.lastCallAt) {
     lines.push(`- Última llamada: ${new Date(ctx.lastCallAt).toLocaleDateString('es-ES')}`);
   }
