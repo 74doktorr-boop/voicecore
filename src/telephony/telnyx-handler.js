@@ -148,10 +148,13 @@ function generateTeXML(wsUrl, assistantId = null) {
   const params = assistantId
     ? `\n      <Parameter name="assistantId" value="${assistantId}" />`
     : '';
+  // bidirectionalMode="rtp" es OBLIGATORIO en Telnyx: sin él el stream es solo
+  // de entrada y el audio del asistente se descarta (llamada en silencio).
+  // PCMU = mulaw 8kHz, el mismo formato que ya enviamos por el WS (Twilio-compat).
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${wsUrl}">${params}
+    <Stream url="${wsUrl}" bidirectionalMode="rtp" bidirectionalCodec="PCMU">${params}
     </Stream>
   </Connect>
 </Response>`;
