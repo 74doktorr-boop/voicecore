@@ -54,7 +54,22 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               || new URL('https://x' + (req.url || '')).searchParams.get('assistantId')
               || null;
 
-            log.call(`[${callId}] Stream started`, { streamSid, callSid, callerNumber, calledNumber, assistantId });
+            // ── Códec REAL del stream entrante (causa raíz 2026-07-03) ──────
+            // Telnyx entrega el audio en el códec de la llamada: en Europa es
+            // PCMA (A-law). Durante semanas se decodificó TODO como PCMU
+            // (mu-law): voz "casi" inteligible que destrozaba el STT
+            // ("corte de pelo" → "cortador de vuelo", confidence 0.78 vs
+            // 0.995 con el códec correcto — demostrado con audio capturado).
+            const rawFormat = msg.start?.media_format || msg.start?.mediaFormat || null;
+            const rawEncoding = rawFormat?.encoding || '';
+            const mediaEncoding = /alaw|PCMA/i.test(rawEncoding) ? 'alaw'
+              : /mulaw|PCMU/i.test(rawEncoding) ? 'mulaw'
+              : null;
+            if (!mediaEncoding) {
+              log.warn(`[${callId}] Stream SIN media_format reconocible (${JSON.stringify(rawFormat)}) — asumiendo alaw (PCMA, estándar europeo)`);
+            }
+
+            log.call(`[${callId}] Stream started`, { streamSid, callSid, callerNumber, calledNumber, assistantId, mediaFormat: rawEncoding || '—', sttEncoding: mediaEncoding || 'alaw' });
 
             // Resolve assistant: archivo → org (assistant_config del portal) → por número → default
             let assistant;
@@ -137,6 +152,7 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               twilioWs: ws,      // pipeline accepts both twilio/telnyx — same WS protocol
               streamSid,
               provider: 'telnyx',
+              mediaEncoding,     // códec real anunciado por Telnyx (alaw/mulaw)
             });
 
             // Rechazada por el cap de concurrentes → cerrar el stream.

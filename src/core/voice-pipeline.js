@@ -111,7 +111,7 @@ class VoicePipeline {
   /**
    * Start a new call session
    */
-  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio' }) {
+  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio', mediaEncoding = null }) {
     // Cap de concurrentes por asistente: rechaza ANTES de abrir STT (coste 0).
     // Devuelve null → el handler de telefonía cierra el WS limpiamente.
     const limit = this._concurrentLimitFor(assistant);
@@ -181,8 +181,15 @@ class VoicePipeline {
       log.warn(`[${callId}] business-context inject fail-open: ${e.message}`);
     }
 
-    // Vonage sends L16 PCM 16kHz; Twilio sends mulaw 8kHz
+    // Códec de entrada por proveedor. CRÍTICO: el STT debe recibir el códec
+    // REAL — decodificar PCMA (Europa) como PCMU destroza la transcripción
+    // sin enmudecerla (causa raíz del 2026-07-03, confidence 0.78 → 0.995).
+    // Telnyx lo anuncia en el evento start (mediaEncoding); sin anuncio, en
+    // España es alaw. Twilio siempre mulaw; Vonage L16 16kHz.
     const isVonage = provider === 'vonage';
+    const sttEncoding = isVonage ? 'linear16'
+      : provider === 'telnyx' ? (mediaEncoding || 'alaw')
+      : (mediaEncoding || 'mulaw');
 
     // Create STT session via router
     const sttProvider = this.sttRouter.getProvider(assistant.sttProvider);
@@ -191,7 +198,7 @@ class VoicePipeline {
       model: assistant.sttModel || 'nova-3',
       utteranceEndMs: assistant.utteranceEndMs || 1000, // mínimo de Deepgram — 800 lo desactivaba (llamada muda)
       endpointing: assistant.endpointing || 300,
-      encoding: isVonage ? 'linear16' : 'mulaw',
+      encoding: sttEncoding,
       sample_rate: isVonage ? 16000 : 8000,
       sttProvider: assistant.sttProvider,
     });
