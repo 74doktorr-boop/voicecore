@@ -1340,6 +1340,28 @@ function setupPortalRoutes(app, pipeline, config) {
         .update({ assistant_config: merged })
         .eq('id', businessId);
 
+      // UNA sola verdad de servicios: la edición del dueño regenera también
+      // la lista ESTRUCTURADA (automation_config.serviceList), que es la que
+      // se inyecta como "precios estructurados" en cada llamada y la que usan
+      // get_services/get_pricing. Sin esto, la IA seguía ofreciendo los
+      // servicios ANTIGUOS con total seguridad (bug real 2026-07-03: el
+      // cliente cambió sus servicios y el asistente ofrecía "mechas a 45€").
+      if (safe.services !== undefined) {
+        try {
+          const { parseServicesText } = require('../scheduling/org-config');
+          const serviceList = parseServicesText(safe.services);
+          const { data: orgAuto } = await db.client
+            .from('organizations').select('automation_config').eq('id', businessId).single();
+          const auto = orgAuto?.automation_config || {};
+          auto.config = { ...(auto.config || {}), serviceList: serviceList || [] };
+          await db.client.from('organizations')
+            .update({ automation_config: auto }).eq('id', businessId);
+          log.info(`Portal: serviceList regenerado desde la edición del dueño (${(serviceList || []).length} servicios) para ${businessId}`);
+        } catch (e) {
+          log.error(`Portal: regeneración de serviceList falló: ${e.message}`);
+        }
+      }
+
       // Sync scheduler in-memory config so changes take effect immediately.
       // SIEMPRE vía el traductor canónico: copiar merged.schedule tal cual
       // metía claves {mon,tue...} donde el scheduler indexa 0-6 y todos los

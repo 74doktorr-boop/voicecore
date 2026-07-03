@@ -101,6 +101,40 @@ function normalizeServices(serviceList, assistantServices) {
 }
 
 /**
+ * Texto libre del portal ("Corte 15€ 30 min\nTinte 45€") → serviceList
+ * estructurado. Bug real (2026-07-03): el cliente editó sus servicios en el
+ * portal (assistant_config.services) pero la lista ESTRUCTURADA
+ * (automation_config.serviceList) siguió siendo la antigua — y es la que se
+ * inyecta como "precios estructurados" en cada llamada. La IA ofrecía
+ * servicios que el negocio ya no tenía. Una edición del dueño = UNA verdad.
+ * @returns {Array|null} serviceList o null si no hay nada aprovechable
+ */
+function parseServicesText(input) {
+  if (Array.isArray(input)) {
+    // UI estructurada del futuro: normalizar y pasar
+    return input.filter(s => s && (s.name || typeof s === 'string'))
+      .map(s => (typeof s === 'string' ? { name: s.trim() } : s));
+  }
+  const text = String(input || '').trim();
+  if (!text) return null;
+  const lines = text.split(/\r?\n|;|·/).map(l => l.trim()).filter(Boolean);
+  return lines.map(line => {
+    const price = line.match(/(\d+(?:[.,]\d+)?)\s*(?:€|euros?)/i);
+    const dur = line.match(/(\d+\s*(?:min|h(?:oras?)?)|(?:\d+\s*h\s*\d+))/i);
+    let name = line
+      .replace(price ? price[0] : '', '')
+      .replace(dur ? dur[0] : '', '')
+      .replace(/[-–—:,]+\s*$/g, '').replace(/^\s*[-–—:,]+/g, '')
+      .replace(/\s{2,}/g, ' ').trim();
+    if (!name) name = line;
+    const item = { name };
+    if (price) item.price = price[1].replace(',', '.') + '€';
+    if (dur) item.duration = dur[1];
+    return item;
+  });
+}
+
+/**
  * Fila de organizations (id, name, assistant_config, automation_config)
  * → config que entiende el scheduler. Nunca lanza: siempre devuelve algo usable.
  */
@@ -141,4 +175,4 @@ async function hydrateSchedulerFromDB(deps = {}) {
   return n;
 }
 
-module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, parsePriceEuros, DEFAULT_SCHEDULE };
+module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, parsePriceEuros, parseServicesText, DEFAULT_SCHEDULE };

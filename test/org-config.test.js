@@ -120,6 +120,36 @@ describe('parsePriceEuros — el bug de APT-1002', () => {
   });
 });
 
+describe('parseServicesText — la edición del dueño ES la verdad', () => {
+  const { parseServicesText } = require('../src/scheduling/org-config');
+
+  test('líneas con precio y duración se estructuran', () => {
+    const sl = parseServicesText('Corte de pelo 15€ 30 min\nTinte completo 45€');
+    assert.strictEqual(sl.length, 2);
+    assert.strictEqual(sl[0].name, 'Corte de pelo');
+    assert.strictEqual(sl[0].price, '15€');
+    assert.match(sl[0].duration, /30\s*min/);
+    assert.strictEqual(sl[1].name, 'Tinte completo');
+    assert.strictEqual(sl[1].price, '45€');
+    assert.strictEqual(sl[1].duration, undefined);
+  });
+
+  test('texto sin precios queda como servicio con solo nombre', () => {
+    assert.deepStrictEqual(parseServicesText('asesoría fiscal para autónomos'), [{ name: 'asesoría fiscal para autónomos' }]);
+  });
+
+  test('precio con coma y "euros" hablado', () => {
+    const sl = parseServicesText('Manicura 12,50 euros');
+    assert.strictEqual(sl[0].price, '12.50€');
+  });
+
+  test('vacío → null; array (UI estructurada futura) pasa normalizado', () => {
+    assert.strictEqual(parseServicesText(''), null);
+    assert.strictEqual(parseServicesText(null), null);
+    assert.deepStrictEqual(parseServicesText([{ name: 'X', price: '5€' }, 'Y']), [{ name: 'X', price: '5€' }, { name: 'Y' }]);
+  });
+});
+
 describe('parseDurationMinutes', () => {
   const cases = [
     ['30 min', 30], ['90 min', 90], ['120 min', 120],
