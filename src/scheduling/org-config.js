@@ -142,6 +142,40 @@ function parseServicesText(input) {
 }
 
 /**
+ * Siembra ÚNICA: texto libre legacy → serviceList SOLO si la tabla está
+ * vacía. La tabla estructurada es LA fuente de verdad (#8, 2026-07-03):
+ * guardar la pestaña Asistente regeneraba serviceList desde el textarea y
+ * pisaba lo que el dueño había editado en la tabla de Configuración.
+ * @returns {Array|null} lista a escribir, o null = no tocar nada
+ */
+function seedServiceListFromText(existingList, text) {
+  if (Array.isArray(existingList) && existingList.length > 0) return null;
+  const parsed = parseServicesText(text);
+  return (parsed && parsed.length) ? parsed : null;
+}
+
+/**
+ * Tras CUALQUIER guardado de config en el portal: re-hidrata la agenda del
+ * scheduler y invalida el asistente cacheado. Antes solo lo hacía
+ * PUT /assistant — guardar la TABLA de servicios (PATCH /config) no
+ * refrescaba las duraciones hasta el siguiente deploy.
+ * @returns {Promise<boolean>} true si la org existía y se sincronizó
+ */
+async function syncOrgRuntime(businessId, deps = {}) {
+  const db = deps.db || require('../db/database').getDatabase();
+  const scheduler = deps.scheduler || require('./scheduler').scheduler;
+  const invalidate = deps.invalidate || require('../assistants/org-assistant').invalidateOrgAssistant;
+  if (!db.enabled) return false;
+  const { data: org } = await db.client
+    .from('organizations').select('id, name, assistant_config, automation_config')
+    .eq('id', businessId).single();
+  if (!org) return false;
+  scheduler.setBusinessConfig(businessId, toSchedulerConfig(org));
+  invalidate(businessId);
+  return true;
+}
+
+/**
  * Fila de organizations (id, name, assistant_config, automation_config)
  * → config que entiende el scheduler. Nunca lanza: siempre devuelve algo usable.
  */
@@ -182,4 +216,4 @@ async function hydrateSchedulerFromDB(deps = {}) {
   return n;
 }
 
-module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, parsePriceEuros, parseServicesText, DEFAULT_SCHEDULE };
+module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, parsePriceEuros, parseServicesText, seedServiceListFromText, syncOrgRuntime, DEFAULT_SCHEDULE };

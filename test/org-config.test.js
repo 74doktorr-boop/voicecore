@@ -13,6 +13,7 @@ const assert = require('node:assert');
 const {
   toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule,
   parseDurationMinutes, parsePriceEuros, DEFAULT_SCHEDULE,
+  seedServiceListFromText, syncOrgRuntime,
 } = require('../src/scheduling/org-config');
 
 // La fila REAL de la org HHR tal y como está en producción
@@ -197,5 +198,56 @@ describe('hydrateSchedulerFromDB', () => {
       () => hydrateSchedulerFromDB({ db: fakeDb(null, { message: 'boom' }), scheduler: {} }),
       /boom/
     );
+  });
+});
+
+describe('seedServiceListFromText — la tabla manda, el texto solo siembra', () => {
+  const tabla = [{ name: 'Corte de pelo', price: '15€', duration: '30 min' }];
+
+  test('con tabla existente devuelve null (JAMÁS machacar la edición del dueño)', () => {
+    assert.strictEqual(seedServiceListFromText(tabla, 'Mechas 60€ 120 min'), null);
+  });
+
+  test('con tabla vacía y texto legacy, siembra la lista parseada', () => {
+    const out = seedServiceListFromText([], 'Corte 15€ 30 min\nTinte 45€');
+    assert.strictEqual(out.length, 2);
+    assert.strictEqual(out[0].price, '15€');
+  });
+
+  test('sin tabla y sin texto aprovechable devuelve null', () => {
+    assert.strictEqual(seedServiceListFromText(undefined, '   '), null);
+    assert.strictEqual(seedServiceListFromText(null, ''), null);
+  });
+});
+
+describe('syncOrgRuntime — guardar la tabla refresca scheduler y asistente', () => {
+  test('setBusinessConfig recibe la config traducida y el asistente se invalida', async () => {
+    const calls = { sched: null, invalidated: null };
+    const fakeDb = {
+      enabled: true,
+      client: { from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: HHR }) }) }) }) },
+    };
+    const fakeScheduler = { setBusinessConfig: (id, cfg) => { calls.sched = { id, cfg }; } };
+    const ok = await syncOrgRuntime(HHR.id, {
+      db: fakeDb, scheduler: fakeScheduler,
+      invalidate: (id) => { calls.invalidated = id; },
+    });
+    assert.strictEqual(ok, true);
+    assert.strictEqual(calls.sched.id, HHR.id);
+    assert.strictEqual(calls.sched.cfg.services.length, 3); // sale del serviceList
+    assert.strictEqual(calls.invalidated, HHR.id);
+  });
+
+  test('org inexistente devuelve false y no toca nada', async () => {
+    const fakeDb = {
+      enabled: true,
+      client: { from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null }) }) }) }) },
+    };
+    const ok = await syncOrgRuntime('no-existe', {
+      db: fakeDb,
+      scheduler: { setBusinessConfig: () => { throw new Error('no debía llamarse'); } },
+      invalidate: () => { throw new Error('no debía llamarse'); },
+    });
+    assert.strictEqual(ok, false);
   });
 });
