@@ -3033,7 +3033,7 @@ function renderAsistenteForm() {
   document.getElementById('asis-schedule-grid').innerHTML = schedHtml;
 
   // Contenido
-  renderAsisSectorFields(c.sector || 'generico', c.sectorData || {}, c.services || '');
+  renderAsisSectorFields(c.sector || 'generico', c.sectorData || {});
 
   // Generated prompt preview
   var genPrompt = document.getElementById('asis-generated-prompt');
@@ -3088,13 +3088,15 @@ function _getChips(chipsId) {
   }).filter(Boolean);
 }
 
-function renderAsisSectorFields(sector, sd, services) {
+function renderAsisSectorFields(sector, sd) {
+  // #8 Editor único: los servicios y precios viven SOLO en la tabla de
+  // Configuración. Aquí ya no hay textareas de servicios — solo contexto
+  // de sector que no duplica precios.
   var html = '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
     '<div style="flex:1;min-width:200px;font-size:12px;color:var(--dim);line-height:1.6">' +
-      '<strong style="color:var(--text)">Servicios y precios</strong> se gestionan como lista estructurada que la IA dice con exactitud. Lo de aquí abajo es solo contexto adicional opcional.</div>' +
+      '<strong style="color:var(--text)">Servicios y precios</strong> se gestionan en una única tabla (nombre · precio · duración) que la IA dice con exactitud y que decide los huecos de la agenda.</div>' +
     '<button class="btn btn-accent btn-sm" onclick="navigate(\'configuracion\')" style="white-space:nowrap">Gestionar servicios y precios →</button>' +
   '</div>';
-  html += _ta('asis-services', 'Servicios generales', services, 3, 'Describe los servicios que ofrece el negocio…');
 
   if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
     html += _segurosBlock(sd.seguros);
@@ -3107,9 +3109,6 @@ function renderAsisSectorFields(sector, sd, services) {
     html += _ta('asis-carta', 'Carta (nombre – precio por línea)',
       (sd.cartaItems||[]).map(function(i){ return i.name + (i.price ? ' - ' + i.price : ''); }).join('\n'),
       5, 'Chuletón - 28€');
-
-  } else if (sector === 'peluqueria' || sector === 'podologia') {
-    html += _ta('sd-servicios', 'Servicios y precios', sd.servicios, 4, 'Ej: Corte pelo - 25€, Manicura - 18€');
 
   } else if (sector === 'gimnasio') {
     html += _ta('sd-clases', 'Clases disponibles', sd.clases, 3, 'Ej: Yoga, Pilates, Spinning…');
@@ -3187,10 +3186,8 @@ function renderAsisSectorFields(sector, sd, services) {
     html += _ta('sd-tipos',  'Tipos de inmueble', sd.tipos, 2, 'Ej: Pisos, locales, naves…');
     html += _chk('sd-alquiler', 'También gestionamos alquileres', sd.alquiler);
 
-  } else {
-    // Generic fallback (otro, generico, etc.)
-    html += _ta('sd-servicios', 'Servicios y precios', sd.servicios || services, 4, 'Lista tus servicios…');
   }
+  // Fallback genérico (otro, generico…): sin campos extra — la tabla única cubre servicios y precios.
 
   document.getElementById('asis-contenido-body').innerHTML = html;
 }
@@ -3220,7 +3217,8 @@ function collectAsisConfig() {
   c.firstMessage  = get('asis-first');
   c.extraInfo     = get('asis-extra');
   c.voice         = get('asis-voice');
-  c.services      = get('asis-services') || '';
+  // #8: 'services' (texto libre) ya no se envía — la tabla de Configuración
+  // es la única fuente; el backend solo la sembraría si estuviera vacía.
 
   c.schedule = {};
   _DAYS.forEach(function(d) {
@@ -3251,8 +3249,6 @@ function collectAsisConfig() {
     sd.cartaItems     = get('asis-carta').split('\n').filter(Boolean).map(function(l) {
       var p = l.split(' - '); return { name: p[0].trim(), price: p[1] ? p[1].trim() : null };
     });
-  } else if (sector === 'peluqueria' || sector === 'podologia') {
-    sd.servicios      = get('sd-servicios');
   } else if (sector === 'gimnasio') {
     sd.clases         = get('sd-clases');
   } else if (sector === 'spa' || sector === 'estetica_avanzada' || sector === 'laser') {
@@ -3310,9 +3306,6 @@ function collectAsisConfig() {
     sd.zona            = get('sd-zona');
     sd.tipos           = get('sd-tipos');
     sd.alquiler        = getChk('sd-alquiler');
-  } else {
-    var sdServEl = document.getElementById('sd-servicios');
-    if (sdServEl) sd.servicios = sdServEl.value.trim();
   }
   c.sectorData = sd;
   return c;
