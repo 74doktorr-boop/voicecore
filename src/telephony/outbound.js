@@ -79,6 +79,24 @@ async function resolveOutboundNumber(businessId, flowConfig = null) {
 }
 
 /**
+ * Normaliza un teléfono a E.164 — Telnyx lo EXIGE (error real 2026-07-03:
+ * el dueño escribió "666351319" en el botón Llámame y Telnyx rechazó la
+ * llamada). Nunca confiar en cómo teclee el número un humano:
+ * "666 35 13 19", "0034...", "666351319" → "+34666351319".
+ * Móviles/fijos españoles de 9 cifras (6/7/8/9) asumen +34.
+ * @returns {string|null} E.164 o null si no es un teléfono plausible
+ */
+function normalizeE164(raw) {
+  let s = String(raw || '').replace(/[\s\-().]/g, '');
+  if (!s) return null;
+  if (s.startsWith('00')) s = '+' + s.slice(2);
+  if (/^\+\d{7,15}$/.test(s)) return s;
+  if (/^[6789]\d{8}$/.test(s)) return '+34' + s;      // nacional español
+  if (/^34[6789]\d{8}$/.test(s)) return '+' + s;      // 34... sin el +
+  return null;
+}
+
+/**
  * Inicia una llamada saliente Telnyx TeXML. Al descolgar, Telnyx pide el
  * TeXML a /voice/telnyx/:assistantId y conecta el asistente (mismo flujo
  * que una entrante). Si se pasa `context`, se registra para que el
@@ -94,8 +112,8 @@ async function startOutboundCall({ businessId, to, from = null, publicUrl = null
     throw new Error(`Llamadas salientes no configuradas: falta ${!apiKey ? 'TELNYX_API_KEY' : 'TELNYX_APP_ID'} en el servidor.`);
   }
 
-  const safeTo = String(to || '').replace(/[^\d+]/g, '');
-  if (safeTo.replace(/\D/g, '').length < 7) throw new Error('Número destino no válido');
+  const safeTo = normalizeE164(to);
+  if (!safeTo) throw new Error('Número destino no válido');
 
   const fromNumber = from || await resolveOutboundNumber(businessId);
   if (!fromNumber) throw new Error('No hay número de teléfono saliente configurado para este negocio.');
@@ -142,4 +160,4 @@ ofrécele amablemente encontrar un hueco. Si no le interesa o es mal momento,
 despídete con amabilidad y NO insistas. Si no contesta un humano, cuelga.`,
 };
 
-module.exports = { startOutboundCall, resolveOutboundNumber, registerOutboundContext, consumeOutboundContext, PURPOSE_BLOCKS };
+module.exports = { startOutboundCall, resolveOutboundNumber, registerOutboundContext, consumeOutboundContext, normalizeE164, PURPOSE_BLOCKS };

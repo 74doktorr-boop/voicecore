@@ -10,6 +10,28 @@ process.env.NODE_ENV = 'test';
 const { test, describe, afterEach } = require('node:test');
 const assert = require('node:assert');
 
+const { normalizeE164 } = require('../src/telephony/outbound');
+
+// ── normalizeE164 — Telnyx exige +E164 (error real 2026-07-03: el dueño
+// tecleó "666351319" en Llámame y Telnyx rechazó la llamada) ──────────────
+describe('normalizeE164 — nunca confiar en cómo teclea un humano', () => {
+  const cases = [
+    ['666351319', '+34666351319'],        // el caso real del botón
+    ['666 35 13 19', '+34666351319'],
+    ['943-12-34-56', '+34943123456'],     // fijo Gipuzkoa
+    ['0034666351319', '+34666351319'],
+    ['34666351319', '+34666351319'],
+    ['+34666351319', '+34666351319'],
+    ['+33612345678', '+33612345678'],     // internacional se respeta
+    ['12345', null],                       // demasiado corto
+    ['hola', null],
+    ['', null],
+  ];
+  for (const [input, expected] of cases) {
+    test(`"${input}" → ${expected}`, () => assert.strictEqual(normalizeE164(input), expected));
+  }
+});
+
 const {
   startOutboundCall,
   registerOutboundContext,
