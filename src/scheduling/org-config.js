@@ -31,6 +31,16 @@ const DEFAULT_SCHEDULE = {
   5: { open: '09:00', close: '14:00' },
 };
 
+/** "15€" | "15 euros" | 15 | "consultar" → número o null (jamás string).
+ *  Bug real (APT-1002, 2026-07-03): el precio "15€" viajó como string hasta
+ *  la columna NUMERIC de nf_appointments → insert rechazado → la cita del
+ *  cliente existía solo en memoria y el siguiente deploy la habría borrado. */
+function parsePriceEuros(raw) {
+  if (typeof raw === 'number' && isFinite(raw)) return raw;
+  const m = String(raw || '').replace(',', '.').match(/(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
 /** "30 min" | "90 min" | "1h" | "1h 30" | 45 → minutos (defecto 30). */
 function parseDurationMinutes(raw) {
   if (typeof raw === 'number' && raw > 0) return Math.round(raw);
@@ -86,7 +96,7 @@ function normalizeServices(serviceList, assistantServices) {
     id: s.id || slug(s.name, i),
     name: s.name || `Servicio ${i + 1}`,
     duration: parseDurationMinutes(s.duration),
-    price: s.price !== undefined ? s.price : null,
+    price: parsePriceEuros(s.price),
   }));
 }
 
@@ -131,4 +141,4 @@ async function hydrateSchedulerFromDB(deps = {}) {
   return n;
 }
 
-module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, DEFAULT_SCHEDULE };
+module.exports = { toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule, normalizeServices, parseDurationMinutes, parsePriceEuros, DEFAULT_SCHEDULE };

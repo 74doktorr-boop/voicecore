@@ -12,7 +12,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
   toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule,
-  parseDurationMinutes, DEFAULT_SCHEDULE,
+  parseDurationMinutes, parsePriceEuros, DEFAULT_SCHEDULE,
 } = require('../src/scheduling/org-config');
 
 // La fila REAL de la org HHR tal y como está en producción
@@ -97,6 +97,26 @@ describe('toSchedulerConfig — casos límite', () => {
   test('org nula o vacía no lanza', () => {
     assert.doesNotThrow(() => toSchedulerConfig(null));
     assert.doesNotThrow(() => toSchedulerConfig({}));
+  });
+});
+
+describe('parsePriceEuros — el bug de APT-1002', () => {
+  // "15€" como string llegó hasta la columna NUMERIC de nf_appointments:
+  // insert rechazado → la cita del cliente solo existía en memoria.
+  const cases = [
+    ['15€', 15], ['45€', 45], ['60€', 60], ['12,50€', 12.5], ['15 euros', 15],
+    [15, 15], [0, 0], ['consultar', null], ['', null], [null, null],
+  ];
+  for (const [input, expected] of cases) {
+    test(`"${input}" → ${expected}`, () => assert.strictEqual(parsePriceEuros(input), expected));
+  }
+
+  test('el serviceList real de HHR produce precios numéricos', () => {
+    const cfg = toSchedulerConfig(HHR);
+    for (const s of cfg.services) {
+      assert.ok(s.price === null || typeof s.price === 'number', `${s.name}: price debe ser número o null, es ${typeof s.price}`);
+    }
+    assert.strictEqual(cfg.services.find(s => s.name === 'Corte de pelo').price, 15);
   });
 });
 

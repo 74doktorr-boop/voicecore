@@ -42,7 +42,13 @@ class AppointmentsStore {
       date:            apt.date,
       time:            apt.time,
       duration:        apt.duration  || 30,
-      price:           apt.price     || 0,
+      // La columna es NUMERIC: un precio string ("15€") rechazaba el insert
+      // entero y la cita quedaba solo en memoria (perdida en el deploy).
+      price:           (() => {
+        if (typeof apt.price === 'number' && isFinite(apt.price)) return apt.price;
+        const m = String(apt.price || '').replace(',', '.').match(/(\d+(?:\.\d+)?)/);
+        return m ? parseFloat(m[1]) : 0;
+      })(),
       notes:           apt.notes     || null,
       status:          apt.status    || 'confirmed',
       wa_confirmed:     apt.wa_confirmed     || false,
@@ -128,10 +134,12 @@ class AppointmentsStore {
         if (error.code === '23505') {
           log.warn(`⚠️ Slot collision rechazada por DB para ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado`);
         } else {
-          log.warn(`upsert ${apt.id}: ${error.message}`);
+          // Cita NO persistida = el negocio puede perder una reserva real.
+          // ERROR, no WARN: esto tiene que saltar en cualquier revisión de logs.
+          log.error(`❌ CITA NO PERSISTIDA ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}): ${error.message}`);
         }
       })
-      .catch(e => log.warn(`upsert exception ${apt.id}: ${e.message}`));
+      .catch(e => log.error(`❌ CITA NO PERSISTIDA (exception) ${apt.id}: ${e.message}`));
   }
 
   // ── Actualización parcial ─────────────────────────────────
