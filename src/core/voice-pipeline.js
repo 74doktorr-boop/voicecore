@@ -9,6 +9,7 @@ const { STTRouter } = require('../stt/router');
 const { LLMRouter } = require('../llm/router');
 const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
 const sttDebug = require('../utils/stt-debug');
+const defaultCallStore = require('../db/call-store');
 const { TTSRouter } = require('../tts/router');
 const { ToolExecutor } = require('../tools/executor');
 const { CallSession } = require('./call-session');
@@ -48,6 +49,8 @@ class VoicePipeline {
     this.callHistory = [];
     this.maxHistory = 500;
     this.webhookUrl = config.webhookUrl || null;
+    // Persistencia de llamadas (nf_calls) — inyectable en tests.
+    this.callStore = config.callStore || defaultCallStore;
 
     // Cap de llamadas concurrentes por asistente (= identidad de negocio).
     // Control de coste/abuso a escala. Override por-asistente con el campo
@@ -241,6 +244,8 @@ class VoicePipeline {
 
     // Fire webhook
     this._fireWebhook('call.started', session.toJSON());
+    // Persistencia (C1): alta fail-open — jamás bloquea ni tumba la llamada.
+    this.callStore.saveCallStart(session).catch(() => {});
     log.call(`[${callId}] Call started — ${callerNumber} → ${calledNumber}`);
     return session;
   }
@@ -580,6 +585,9 @@ class VoicePipeline {
     this.activeCalls.delete(callId);
     this.callHistory.unshift(callData);
     if (this.callHistory.length > this.maxHistory) this.callHistory.pop();
+    // Persistencia (C1): registro completo, upsert idempotente — recupera
+    // incluso las llamadas cuya alta falló (BD caída al inicio).
+    this.callStore.saveCallEnd(callData).catch(() => {});
     this._fireWebhook('call.ended', callData);
 
     // BUG-32 FIX: Wire analytics so admin dashboard callsToday reflects real calls.
