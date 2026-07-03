@@ -382,6 +382,12 @@ function setupAdminRoutes(app, config, assistantManager) {
     res.json({ enabled: sttDebug.enabled(), captures: sttDebug.list() });
   });
 
+  app.post('/api/admin/stt-debug', adminAuth, (req, res) => {
+    const sttDebug = require('../utils/stt-debug');
+    const enabled = sttDebug.setEnabled(req.body && req.body.enabled);
+    res.json({ enabled });
+  });
+
   app.get('/api/admin/stt-debug/:callId', adminAuth, (req, res) => {
     const sttDebug = require('../utils/stt-debug');
     const file = sttDebug.getPath(req.params.callId);

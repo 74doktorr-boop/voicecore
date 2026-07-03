@@ -28,8 +28,18 @@ const MAX_FILES = 3;
 
 const buffers = new Map(); // callId -> { chunks: Buffer[], bytes: number }
 
+// Activable en caliente desde el admin (POST /api/admin/stt-debug) además
+// del env var — pelearse con las vars de EasyPanel no debe bloquear un debug.
+let runtimeEnabled = false;
+
 function enabled() {
-  return process.env.STT_DEBUG === '1';
+  return runtimeEnabled || process.env.STT_DEBUG === '1';
+}
+
+function setEnabled(value) {
+  runtimeEnabled = !!value;
+  log.info(`Captura de audio ${runtimeEnabled ? 'ACTIVADA' : 'desactivada'} en caliente`);
+  return enabled();
 }
 
 function dir() {
@@ -91,4 +101,4 @@ function getPath(callId) {
   return fs.existsSync(file) ? file : null;
 }
 
-module.exports = { capture, finalize, list, getPath, enabled, MAX_BYTES_PER_CALL, MAX_FILES };
+module.exports = { capture, finalize, list, getPath, enabled, setEnabled, MAX_BYTES_PER_CALL, MAX_FILES };

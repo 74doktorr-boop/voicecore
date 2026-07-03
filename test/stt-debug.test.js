@@ -21,12 +21,22 @@ function cleanDir() {
 }
 
 describe('stt-debug — apagado por defecto', () => {
-  beforeEach(() => { delete process.env.STT_DEBUG; cleanDir(); });
+  beforeEach(() => { delete process.env.STT_DEBUG; sttDebug.setEnabled(false); cleanDir(); });
 
   test('capture/finalize no hacen nada sin STT_DEBUG=1', () => {
     sttDebug.capture('call-off', Buffer.alloc(8000));
     const file = sttDebug.finalize('call-off');
     assert.strictEqual(file, null);
+    assert.strictEqual(sttDebug.enabled(), false);
+  });
+
+  test('setEnabled(true) activa en caliente sin env var', () => {
+    assert.strictEqual(sttDebug.enabled(), false);
+    assert.strictEqual(sttDebug.setEnabled(true), true);
+    sttDebug.capture('call-hot', Buffer.alloc(8000));
+    const file = sttDebug.finalize('call-hot');
+    assert.ok(file, 'con el flag runtime debe capturar');
+    sttDebug.setEnabled(false);
     assert.strictEqual(sttDebug.enabled(), false);
   });
 });

@@ -570,6 +570,9 @@ class VoicePipeline {
     const rxLine = `[${callId}] Audio entrante: ${rxSeconds.toFixed(1)}s en ${callSeconds.toFixed(1)}s de llamada (${pct}%)`;
     if (callSeconds > 10 && pct < 85) log.warn(`${rxLine} — FRAMES PERDIDOS`);
     else log.info(rxLine);
+    // También en el registro de la llamada: diagnosticable desde la API
+    // sin acceso a los logs del host.
+    session.metrics.audioRx = { seconds: +rxSeconds.toFixed(1), callSeconds: +callSeconds.toFixed(1), pct };
     sttDebug.finalize(callId);
 
     this.sttRouter.closeSession(callId);
