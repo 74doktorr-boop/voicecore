@@ -1042,7 +1042,7 @@ function setupPortalRoutes(app, pipeline, config) {
     const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
     try {
       const { data } = await db.client
-        .from('calls')
+        .from('nf_calls')
         .select('caller_number, outcome, started_at, duration_ms')
         .eq('org_id', req.businessId)
         .gte('started_at', since)
@@ -1078,7 +1078,7 @@ function setupPortalRoutes(app, pipeline, config) {
       // Recalcular oportunidades reales (misma lógica que el GET)
       const since = new Date(Date.now() - 14 * 86400000).toISOString();
       const { data } = await db.client
-        .from('calls')
+        .from('nf_calls')
         .select('caller_number, outcome, started_at')
         .eq('org_id', req.businessId)
         .gte('started_at', since)
@@ -1110,7 +1110,7 @@ function setupPortalRoutes(app, pipeline, config) {
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
     try {
       const { data } = await db.client
-        .from('calls')
+        .from('nf_calls')
         .select('outcome, started_at')
         .eq('org_id', req.businessId)
         .gte('started_at', since)
@@ -1171,8 +1171,8 @@ function setupPortalRoutes(app, pipeline, config) {
 
     // 2. Fetch linked calls by phone
     const { data: calls } = await db.client
-      .from('calls')
-      .select('call_sid,outcome,started_at,ended_at,duration_ms,turn_count')
+      .from('nf_calls')
+      .select('id,outcome,started_at,ended_at,duration_ms,turn_count')
       .eq('org_id', businessId)
       .eq('caller_number', contact.phone)
       .order('started_at', { ascending: false })
@@ -1197,7 +1197,7 @@ function setupPortalRoutes(app, pipeline, config) {
         displayName: contact.name || contact.phone,
       },
       calls: (calls || []).map(c => ({
-        callSid:    c.call_sid,
+        callSid:    c.id,
         outcome:    c.outcome    || 'abandoned',
         startedAt:  c.started_at || null,
         endedAt:    c.ended_at   || null,

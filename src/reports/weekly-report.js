@@ -47,7 +47,7 @@ async function collectOrgStats(db, org, range) {
 
   // Llamadas de la semana
   const { data: calls } = await db.client
-    .from('calls')
+    .from('nf_calls')
     .select('duration_ms, outcome, started_at')
     .eq('org_id', org.id)
     .gte('started_at', fromTs)

@@ -152,45 +152,15 @@ class Database {
   }
 
   // ─── Calls ───
+  // (createCall/endCall legacy eliminados 2026-07-03: eran código muerto —
+  // ningún módulo los invocaba y el schema real de "calls" los rechazaba.
+  // La persistencia vive en src/db/call-store.js → nf_calls.)
 
-  async createCall(orgId, callData) {
-    if (!this.enabled) return { id: this._uuid(), org_id: orgId, ...callData };
-
-    // BUG FIX: solo insertar columnas que existen en el schema migrado de calls
-    const { data, error } = await this.client.from('calls').insert({
-      org_id:        orgId,
-      call_sid:      callData.callSid      || null,
-      caller_number: callData.callerNumber || null,
-      outcome:       callData.outcome      || null,
-      status:        'active',
-      started_at:    new Date().toISOString(),
-    }).select().single();
-
-    if (error) throw new Error(`Create call failed: ${error.message}`);
-    return data;
-  }
-
-  async endCall(callId, callData) {
-    if (!this.enabled) return callData;
-
-    // BUG FIX: columnas 'metrics', 'cost', 'total_cost' no existen en el schema de calls.
-    // Solo escribimos las columnas presentes en la migración aplicada.
-    const { data, error } = await this.client.from('calls').update({
-      status:      'ended',
-      ended_at:    new Date().toISOString(),
-      duration_ms: callData.duration,
-      turn_count:  callData.turnCount,
-      transcript:  callData.transcript,
-      outcome:     callData.outcome || null,
-    }).eq('id', callId).select().single();
-
-    if (error) log.error(`End call DB update failed: ${error.message}`);
-    return data || callData;
-  }
-
+  // nf_calls es el registro real (2026-07-03): la tabla legacy "calls" quedó
+  // vacía desde el lanzamiento (schema de otro diseño rechazaba los inserts).
   async getCalls(orgId, { limit = 50, offset = 0, status } = {}) {
     if (!this.enabled) return [];
-    let query = this.client.from('calls').select('*').eq('org_id', orgId)
+    let query = this.client.from('nf_calls').select('*').eq('org_id', orgId)
       .order('started_at', { ascending: false }).range(offset, offset + limit - 1);
     if (status) query = query.eq('status', status);
     const { data } = await query;
@@ -199,7 +169,7 @@ class Database {
 
   async getCall(orgId, callId) {
     if (!this.enabled) return null;
-    const { data } = await this.client.from('calls')
+    const { data } = await this.client.from('nf_calls')
       .select('*').eq('org_id', orgId).eq('id', callId).single();
     return data;
   }

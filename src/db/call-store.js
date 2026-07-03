@@ -70,6 +70,7 @@ async function saveCallEnd(callData, deps = {}) {
         ? callData.bookedAppointments
         : (callData.bookedAppointment || null),
       campaign_ref:  callData.campaignRef || null,
+      client_email:  callData.clientEmail || null,
       started_at:    callData.startTime || null,
       ended_at:      callData.endTime || new Date().toISOString(),
       duration_ms:   callData.duration ?? null,

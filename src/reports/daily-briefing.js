@@ -49,7 +49,7 @@ async function collectBriefing(db, businessId, today, yesterday) {
   let missedCalls = [];
   if (db.enabled) {
     const { data } = await db.client
-      .from('calls')
+      .from('nf_calls')
       .select('caller_number, outcome, started_at')
       .eq('org_id', businessId)
       .gte('started_at', `${yesterday}T00:00:00`)

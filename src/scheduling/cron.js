@@ -219,8 +219,8 @@ async function recoverMissedFollowups() {
   if (!db.enabled) return 0;
 
   const { data: rows, error } = await db.client
-    .from('calls')
-    .select('call_sid, org_id, transcript, outcome, started_at, ended_at, caller_number, client_email, booked_appointment')
+    .from('nf_calls')
+    .select('id, org_id, transcript, outcome, started_at, ended_at, caller_number, client_email, booked_appointment')
     .lte('followup_at', new Date().toISOString())
     .eq('followup_sent', false)
     .not('followup_at', 'is', null)
@@ -236,9 +236,9 @@ async function recoverMissedFollowups() {
   for (const row of rows) {
     try {
       // Mark followup_sent = true BEFORE sending to avoid double-send on concurrent cron runs
-      const { error: claimErr } = await db.client.from('calls')
+      const { error: claimErr } = await db.client.from('nf_calls')
         .update({ followup_sent: true })
-        .eq('call_sid', row.call_sid)
+        .eq('id', row.id)
         .eq('followup_sent', false); // atomic: only update if still false
       if (claimErr) continue; // another process already claimed it
 
@@ -247,7 +247,7 @@ async function recoverMissedFollowups() {
       const config = flowManager.mergeConfig(bizId, schedulerConfig);
 
       await sendCallFollowUpEmail({
-        id:           row.call_sid,
+        id:           row.id,
         outcome:      row.outcome,
         clientEmail:  row.client_email,
         callerNumber: row.caller_number,
@@ -257,9 +257,9 @@ async function recoverMissedFollowups() {
       }, config);
 
       recovered++;
-      log.info(`Recovered follow-up for call ${row.call_sid} (org ${bizId})`);
+      log.info(`Recovered follow-up for call ${row.id} (org ${bizId})`);
     } catch (e) {
-      log.warn(`Follow-up recovery failed for ${row.call_sid}`, { err: e.message });
+      log.warn(`Follow-up recovery failed for ${row.id}`, { err: e.message });
     }
   }
 

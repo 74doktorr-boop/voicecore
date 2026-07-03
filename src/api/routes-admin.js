@@ -421,7 +421,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       let allCalls = [], allAppts = [], orgs = [];
       if (db.enabled) {
         const [callsRes, apptRes, orgRes] = await Promise.all([
-          db.client.from('calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', prevSinceISO).limit(10000),
+          db.client.from('nf_calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', prevSinceISO).limit(10000),
           db.client.from('nf_appointments').select('organization_id, status, no_show_notified, reminder_sent, review_requested, date').gte('date', prevSinceISO.slice(0, 10)).limit(10000),
           db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at').limit(1000),
         ]);
@@ -625,11 +625,12 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!db.enabled) return res.json({ transcript: [], duration: 0 });
 
     try {
-      // Look up call by id OR call_sid (portal.js uses callSid)
+      // nf_calls: el id del pipeline es la clave única (la tabla legacy
+      // "calls" estaba vacía → este endpoint devolvía 404 SIEMPRE)
       const { data: call } = await db.client
-        .from('calls').select('id, call_sid, transcript, duration_ms, turn_count, outcome, booked_appointment, started_at')
+        .from('nf_calls').select('id, transcript, duration_ms, turn_count, outcome, booked_appointment, started_at')
         .eq('org_id', org.id)
-        .or(`id.eq.${req.params.id},call_sid.eq.${req.params.id}`)
+        .eq('id', req.params.id)
         .single();
 
       if (!call) return res.status(404).json({ error: 'Llamada no encontrada' });

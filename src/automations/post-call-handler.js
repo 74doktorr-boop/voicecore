@@ -83,9 +83,9 @@ async function handle(callData) {
     // Persist scheduled time so cron.js can recover on restart
     if (db.enabled && callData.id) {
       const followupAt = new Date(Date.now() + FOLLOWUP_DELAY_MS).toISOString();
-      db.client.from('calls')
+      db.client.from('nf_calls')
         .update({ followup_at: followupAt })
-        .eq('call_sid', callData.id)
+        .eq('id', callData.id)
         .then(undefined, e => log.warn('followup_at persist failed', { err: e.message }));
     }
     setTimeout(async () => {
@@ -93,9 +93,9 @@ async function handle(callData) {
         await sendCallFollowUpEmail(callData, config);
         // Mark sent so cron doesn't re-send on next run
         if (db.enabled && callData.id) {
-          db.client.from('calls')
+          db.client.from('nf_calls')
             .update({ followup_sent: true })
-            .eq('call_sid', callData.id)
+            .eq('id', callData.id)
             .then(undefined, () => {});
         }
       } catch (e) {
