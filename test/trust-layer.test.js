@@ -162,6 +162,44 @@ describe('escalera de confianza del STT (4 niveles)', () => {
   });
 });
 
+describe('end_call — el asistente cuelga tras la despedida', () => {
+  const exec = new ToolExecutor();
+
+  test('programa el cierre del transporte y pide despedida breve', async () => {
+    let closed = false;
+    const session = { twilioWs: { close: () => { closed = true; } } };
+    const r = await exec.execute('end_call', {}, 'biz-x', { session });
+    assert.strictEqual(r.success, true);
+    assert.match(r.message, /despídete/i);
+    assert.ok(session._hangupTimer, 'debe quedar programado el cierre');
+    clearTimeout(session._hangupTimer);
+    assert.strictEqual(closed, false, 'no cierra en seco: da margen a la despedida');
+  });
+
+  test('sin sesión (demo) no revienta', async () => {
+    const r = await exec.execute('end_call', {}, 'biz-x', {});
+    assert.strictEqual(r.success, true);
+  });
+});
+
+describe('check_availability — muestra repartida de huecos', () => {
+  const exec = new ToolExecutor();
+
+  test('ofrece primera, media y última hora, no solo las 3 primeras', async () => {
+    const r = await exec.execute('check_availability',
+      { from_date: '2099-01-05', to_date: '2099-01-05' }, 'demo-clinic', { session: {} });
+    assert.ok(r.days && r.days.length, JSON.stringify(r).slice(0, 200));
+    const monday = r.days[0];
+    assert.match(monday, /por ejemplo/, 'usa la muestra repartida');
+    // La muestra debe cubrir el día: no puede ser 9:00, 9:15, 9:30
+    const ejemplos = monday.match(/por ejemplo ([\d:, ]+)/)[1].split(',').map(s => s.trim());
+    const primera = ejemplos[0], ultima = ejemplos[ejemplos.length - 1];
+    assert.notStrictEqual(primera, ultima);
+    const toMin = t => parseInt(t.split(':')[0], 10) * 60 + parseInt(t.split(':')[1], 10);
+    assert.ok(toMin(ultima) - toMin(primera) > 60, `la muestra debe abrir el abanico del día: ${ejemplos.join(', ')}`);
+  });
+});
+
 describe('barge-in inmune a voces de fondo', () => {
   async function armedCall() {
     let sttCallbacks = {};

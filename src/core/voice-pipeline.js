@@ -256,6 +256,33 @@ class VoicePipeline {
       session.addAssistantMessage(firstMsg);
     }
 
+    // Vigilante de fin de llamada: (a) 75s sin turnos ni voz del asistente →
+    // despedida y cierre; (b) duración máxima (MAX_CALL_MINUTES, 15 por
+    // defecto) → cierre educado. Una línea que queda abierta se come
+    // Deepgram/€ y deja filas 'active' huérfanas (caso real 2026-07-03).
+    session.lastTurnAt = Date.now();
+    session._lifeguard = setInterval(() => {
+      if (session._closing) return;
+      const idleMs = Date.now() - Math.max(session.lastTurnAt || 0, session.playbackEndsAt || 0);
+      const ageMs = Date.now() - session.startTime;
+      const maxMs = (Number(process.env.MAX_CALL_MINUTES) || 15) * 60000;
+      if (idleMs > 75000 || ageMs > maxMs) {
+        session._closing = true;
+        const porSilencio = idleMs > 75000;
+        log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
+        const bye = porSilencio
+          ? 'Parece que se ha cortado la línea. Gracias por llamar, ¡hasta pronto!'
+          : 'Vamos a tener que dejarlo aquí. Gracias por llamar, ¡hasta pronto!';
+        this._speakText(callId, bye)
+          .then(() => session.addAssistantMessage(bye))
+          .catch(() => {})
+          .finally(() => setTimeout(() => {
+            try { (session.twilioWs || session.vonageWs)?.close(); } catch (_) {}
+          }, 6000));
+      }
+    }, 10000);
+    if (session._lifeguard.unref) session._lifeguard.unref();
+
     // Fire webhook
     this._fireWebhook('call.started', session.toJSON());
     // Persistencia (C1): alta fail-open — jamás bloquea ni tumba la llamada.
@@ -305,6 +332,7 @@ class VoicePipeline {
 
     session.isProcessing = true;
     session.interrupted = false;
+    session.lastTurnAt = Date.now(); // vigilante de silencio: hay conversación viva
     clearTimeout(session._interruptWatchdog); // llegó frase real — sin re-enganche
     const turnStart = Date.now();
     let turnMetrics = {};
@@ -655,6 +683,8 @@ class VoicePipeline {
   endCall(callId) {
     const session = this.activeCalls.get(callId);
     if (!session) return null;
+    clearInterval(session._lifeguard);
+    clearTimeout(session._hangupTimer);
 
     // Salud del audio entrante: segundos recibidos vs segundos de llamada.
     // <85% con llamada >10s = frames perdidos (red o CPU) — sospechar del

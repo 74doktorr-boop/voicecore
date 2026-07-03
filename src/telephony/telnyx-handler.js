@@ -184,6 +184,14 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
           case 'stop':
             log.call(`[${callId}] Stream stopped`);
+            // Telnyx anuncia el fin del stream: cerrar la sesión YA. Esperar
+            // solo al close del WS dejaba llamadas 'active' colgadas si el
+            // socket no moría (caso real 2026-07-03, fila 6e70d935).
+            if (sessionStarted) {
+              pipeline.endCall(callId);
+              sessionStarted = false;
+            }
+            try { ws.close(); } catch (_) {}
             break;
 
           default:

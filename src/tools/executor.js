@@ -151,7 +151,23 @@ class ToolExecutor {
 
       // ── Misc ──
       get_products:        this.getProducts.bind(this),
+      end_call:            this.endCallTool.bind(this),
     };
+  }
+
+  // Cuelga la llamada tras la despedida. Bug real (2026-07-03): el asistente
+  // se despedía pero la línea quedaba abierta hasta que colgara el cliente
+  // (o para siempre, comiéndose STT/€ y dejando filas 'active').
+  endCallTool(args, assistantId, context = {}) {
+    const session = context.session;
+    if (!session) return { success: true, message: 'Llamada finalizada.' };
+    if (!session._hangupTimer) {
+      session._hangupTimer = setTimeout(() => {
+        try { (session.twilioWs || session.vonageWs)?.close(); } catch (_) {}
+      }, 8000); // margen para que suene la despedida
+      if (session._hangupTimer.unref) session._hangupTimer.unref();
+    }
+    return { success: true, message: 'Despídete brevemente; la llamada se cerrará sola en unos segundos.' };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -198,12 +214,18 @@ class ToolExecutor {
         morning:   lang === 'eu' ? 'Goizean'       : 'Mañana',
         afternoon: lang === 'eu' ? 'Arratsaldean'  : 'Tarde',
       };
+      // Muestra REPARTIDA de huecos (primera, media, última), no solo los 3
+      // primeros: la IA ofrecía siempre "9:00, 9:15 o 9:30" y el cliente
+      // creía que no había nada más en todo el día (bug real 2026-07-03).
+      const spread = (slots) => slots.length <= 3
+        ? slots.map(s => s.time)
+        : [slots[0], slots[Math.floor(slots.length / 2)], slots[slots.length - 1]].map(s => s.time);
       const summary = result.availableDays.map(day => {
         const morning   = day.slots.filter(s => parseInt(s.time) < 14);
         const afternoon = day.slots.filter(s => parseInt(s.time) >= 14);
         let desc = `${day.dayName} ${day.date}:`;
-        if (morning.length   > 0) desc += ` ${lbl.morning} ${morning[0].time}-${morning[morning.length-1].endTime} (${morning.length} huecos), primeros: ${morning.slice(0,3).map(s=>s.time).join(', ')}`;
-        if (afternoon.length > 0) desc += ` ${lbl.afternoon} ${afternoon[0].time}-${afternoon[afternoon.length-1].endTime} (${afternoon.length} huecos), primeros: ${afternoon.slice(0,3).map(s=>s.time).join(', ')}`;
+        if (morning.length   > 0) desc += ` ${lbl.morning} de ${morning[0].time} a ${morning[morning.length-1].endTime} (${morning.length} huecos libres, por ejemplo ${spread(morning).join(', ')})`;
+        if (afternoon.length > 0) desc += ` ${lbl.afternoon} de ${afternoon[0].time} a ${afternoon[afternoon.length-1].endTime} (${afternoon.length} huecos libres, por ejemplo ${spread(afternoon).join(', ')})`;
         return desc;
       });
       return { available: result.totalSlots > 0, service: result.service, duration: result.duration, totalSlots: result.totalSlots, days: summary };
@@ -1033,6 +1055,14 @@ class ToolExecutor {
             },
             required: ['patient_name', 'service', 'date', 'time', 'confirmed_with_customer'],
           },
+        },
+      },
+      end_call: {
+        type: 'function',
+        function: {
+          name: 'end_call',
+          description: 'Cuelga la llamada. Úsalo SOLO cuando la conversación haya terminado: el cliente se ha despedido, ha dicho que no necesita nada más, o pide colgar. Despídete tú brevemente al usarlo.',
+          parameters: { type: 'object', properties: {}, required: [] },
         },
       },
       cancel_appointment: {
