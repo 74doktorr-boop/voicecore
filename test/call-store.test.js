@@ -112,6 +112,46 @@ describe('saveCallEnd', () => {
   });
 });
 
+describe('reapOrphanCalls — llamadas huérfanas (el "1989 minutos")', () => {
+  const { reapOrphanCalls } = require('../src/db/call-store');
+
+  function fakeDbUpdate(rows) {
+    const captured = { update: null, filters: [] };
+    return {
+      captured,
+      enabled: true,
+      client: {
+        from: () => ({
+          update(fields) {
+            captured.update = fields;
+            const chain = {
+              eq: (k, v) => { captured.filters.push(['eq', k, v]); return chain; },
+              lt: (k, v) => { captured.filters.push(['lt', k, v]); return chain; },
+              select: async () => ({ data: rows, error: null }),
+            };
+            return chain;
+          },
+        }),
+      },
+    };
+  }
+
+  test('cierra como lost SOLO las active antiguas', async () => {
+    const db = fakeDbUpdate([{ id: 'a' }, { id: 'b' }]);
+    const n = await reapOrphanCalls({ db, maxAgeMinutes: 90 });
+    assert.strictEqual(n, 2);
+    assert.strictEqual(db.captured.update.status, 'lost');
+    assert.ok(db.captured.update.ended_at, 'debe fijar ended_at');
+    assert.deepStrictEqual(db.captured.filters[0], ['eq', 'status', 'active']);
+    assert.strictEqual(db.captured.filters[1][0], 'lt');
+    assert.strictEqual(db.captured.filters[1][1], 'started_at');
+  });
+
+  test('BD deshabilitada → 0 sin lanzar', async () => {
+    assert.strictEqual(await reapOrphanCalls({ db: { enabled: false } }), 0);
+  });
+});
+
 describe('cableado en el pipeline', () => {
   function makePipeline(callStore) {
     const sttRouter = {

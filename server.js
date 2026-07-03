@@ -529,6 +529,31 @@ hydrateSchedulerFromDB()
   .then(n => log.info(`Scheduler hidratado: ${n} agendas de negocio cargadas desde DB`))
   .catch(e => log.warn(`Scheduler hydrate failed: ${e.message}`));
 
+// Llamadas huérfanas: si un deploy mata el proceso en mitad de una llamada,
+// la fila queda 'active' para siempre y el portal muestra duraciones de
+// reloj corriendo (caso real: "1989 minutos"). Se cierran al arrancar y
+// cada hora.
+const { reapOrphanCalls } = require('./src/db/call-store');
+reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {});
+setInterval(() => reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {}), 3600000).unref();
+
+// Drenaje elegante: al recibir SIGTERM (deploy/restart), esperar a que las
+// llamadas activas terminen (máx. 45s) antes de morir. Sin esto, el deploy
+// corta la conversación a mitad de frase y Telnyx reconecta contra el
+// contenedor nuevo → el cliente oye OTRA VEZ el saludo inicial (caso real
+// de Pablo pidiendo una cancelación, 2026-07-03 02:05).
+process.on('SIGTERM', async () => {
+  const active = () => pipeline.activeCalls?.size || 0;
+  if (active() === 0) { log.info('SIGTERM — sin llamadas activas, cierre inmediato'); process.exit(0); }
+  log.warn(`SIGTERM — drenando ${active()} llamada(s) activa(s) antes de cerrar (máx. 45s)`);
+  const started = Date.now();
+  while (active() > 0 && Date.now() - started < 45000) {
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  log.warn(`SIGTERM — cierre con ${active()} llamada(s) aún activas tras el drenaje`);
+  process.exit(0);
+});
+
 // System B: daily re-booking cron
 const { startRebookingCron }  = require('./src/scheduling/rebooking-cron');
 startRebookingCron();

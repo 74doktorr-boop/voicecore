@@ -65,7 +65,10 @@ async function saveCallEnd(callData, deps = {}) {
       transcript:    callData.transcript || [],
       metrics:       callData.metrics || {},
       cost:          callData.cost || {},
-      booked_appointment: callData.bookedAppointment || null,
+      // Varias reservas en una llamada → array; una → objeto (compat lectores)
+      booked_appointment: (callData.bookedAppointments && callData.bookedAppointments.length > 1)
+        ? callData.bookedAppointments
+        : (callData.bookedAppointment || null),
       campaign_ref:  callData.campaignRef || null,
       started_at:    callData.startTime || null,
       ended_at:      callData.endTime || new Date().toISOString(),
@@ -80,4 +83,32 @@ async function saveCallEnd(callData, deps = {}) {
   }
 }
 
-module.exports = { saveCallStart, saveCallEnd };
+/**
+ * Cierra llamadas huérfanas: filas 'active' cuyo proceso murió sin ejecutar
+ * endCall (deploy en mitad de llamada — caso real 2026-07-03: una fila
+ * quedó 'active' y el portal mostraba "1989 minutos" de reloj corriendo).
+ * Llamar al arrancar y periódicamente. Nunca lanza.
+ * @returns {Promise<number>} filas cerradas
+ */
+async function reapOrphanCalls(deps = {}) {
+  const db = _db(deps);
+  if (!db.enabled) return 0;
+  const maxAgeMinutes = deps.maxAgeMinutes || 90;
+  const cutoff = new Date(Date.now() - maxAgeMinutes * 60000).toISOString();
+  try {
+    const { data, error } = await db.client.from('nf_calls')
+      .update({ status: 'lost', ended_at: new Date().toISOString() })
+      .eq('status', 'active')
+      .lt('started_at', cutoff)
+      .select('id');
+    if (error) throw new Error(error.message);
+    const n = (data || []).length;
+    if (n > 0) log.warn(`${n} llamada(s) huérfana(s) cerradas como 'lost' (proceso murió sin endCall)`);
+    return n;
+  } catch (e) {
+    log.warn(`reapOrphanCalls: ${e.message}`);
+    return 0;
+  }
+}
+
+module.exports = { saveCallStart, saveCallEnd, reapOrphanCalls };
