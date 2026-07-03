@@ -38,7 +38,7 @@ describe('aggregateFindings — números y clústeres', () => {
   });
 
   test('carril datos: los info_gap se agrupan POR NEGOCIO con contador', () => {
-    assert.deepStrictEqual(agg.byOrg['org-a'].infoGaps, [{ gap: 'precio del plan', count: 2 }]);
+    assert.deepStrictEqual(agg.byOrg['org-a'].infoGaps, [{ gap: 'precio del plan', count: 2, recurrent: false }]);
     assert.deepStrictEqual(agg.byOrg['org-b'].infoGaps, []);
   });
 
@@ -66,6 +66,33 @@ describe('aggregateFindings — números y clústeres', () => {
     const empty = aggregateFindings([]);
     assert.strictEqual(empty.calls, 0);
     assert.deepStrictEqual(empty.candidateRules, []);
+  });
+});
+
+describe('recurrencia — un hallazgo que sobrevive a la semana anterior es señal de fix fallido', () => {
+  const PREV = [
+    row('org-a', { score: 60, info_gap: 'precio del plan',
+      problems: ['No dio el precio configurado.'], improvements: ['Dar el precio antes de pedir datos.'] }),
+  ];
+
+  test('reglas y problemas repetidos entre periodos se marcan recurrent', () => {
+    const agg = aggregateFindings(ROWS, PREV);
+    const rule = agg.candidateRules[0];
+    assert.strictEqual(rule.recurrent, true);
+    const prob = agg.topProblems.find(p => /precio configurado/.test(p.text));
+    assert.strictEqual(prob.recurrent, true);
+    const otro = agg.topProblems.find(p => /Repitió una pregunta/.test(p.text));
+    assert.strictEqual(otro.recurrent, false);
+  });
+
+  test('los info_gap por negocio también marcan recurrencia', () => {
+    const agg = aggregateFindings(ROWS, PREV);
+    assert.strictEqual(agg.byOrg['org-a'].infoGaps[0].recurrent, true);
+  });
+
+  test('sin periodo anterior, nada es recurrente', () => {
+    const agg = aggregateFindings(ROWS);
+    assert.strictEqual(agg.candidateRules[0].recurrent, false);
   });
 });
 

@@ -45,11 +45,29 @@ function _cluster(texts) {
   return [...map.values()].sort((a, b) => b.count - a.count);
 }
 
+/** Claves normalizadas de todos los hallazgos de un periodo (para recurrencia). */
+function _findingKeys(rows) {
+  const keys = new Set();
+  for (const r of rows || []) {
+    const audit = r.metrics && r.metrics.audit;
+    if (!audit) continue;
+    if (audit.info_gap) keys.add(_norm(audit.info_gap));
+    for (const p of audit.problems || []) keys.add(_norm(p));
+    for (const i of audit.improvements || []) keys.add(_norm(i));
+  }
+  keys.delete('');
+  return keys;
+}
+
 /**
  * Función PURA: filas de nf_calls (org_id, metrics.audit) → hallazgos
  * agregados. Testeable sin BD ni LLM.
+ * @param {Array} rows          - periodo actual (última semana)
+ * @param {Array} [previousRows] - periodo anterior: los hallazgos que también
+ *   estaban allí se marcan `recurrent: true` — un hallazgo que sobrevive de
+ *   una semana a otra es la señal de que el fix no funcionó (o no se hizo).
  */
-function aggregateFindings(rows) {
+function aggregateFindings(rows, previousRows) {
   const out = {
     calls: 0, audited: 0, avgAuditScore: null, hallucinationRate: null,
     byOrg: {}, topProblems: [], candidateRules: [],
@@ -76,8 +94,10 @@ function aggregateFindings(rows) {
     for (const i of audit.improvements || []) allImprovements.push(i);
   }
 
+  const prevKeys = _findingKeys(previousRows);
+
   for (const org of Object.values(out.byOrg)) {
-    org.infoGaps = _cluster(org._gaps).map(c => ({ gap: c.text, count: c.count }));
+    org.infoGaps = _cluster(org._gaps).map(c => ({ gap: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) }));
     delete org._gaps;
   }
 
@@ -85,10 +105,11 @@ function aggregateFindings(rows) {
     out.avgAuditScore = Math.round(scoreSum / out.audited);
     out.hallucinationRate = Math.round((hallucinated / out.audited) * 100);
   }
-  out.topProblems = _cluster(allProblems).slice(0, 10);
+  out.topProblems = _cluster(allProblems).slice(0, 10)
+    .map(c => ({ ...c, recurrent: prevKeys.has(_norm(c.text)) }));
   out.candidateRules = _cluster(allImprovements)
     .filter(c => c.count >= RULE_MIN_COUNT)
-    .map(c => ({ rule: c.text, count: c.count }));
+    .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) }));
 
   return out;
 }
@@ -116,7 +137,9 @@ async function runImprovementCycle(deps = {}) {
 
   let rows = [];
   try {
-    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    // 14 días: la semana actual se agrega; la anterior sirve SOLO para marcar
+    // recurrencia (un hallazgo que sobrevive de una semana a otra = fix fallido).
+    const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
     const { data, error } = await db.client
       .from('nf_calls')
       .select('org_id, started_at, metrics')
@@ -129,7 +152,10 @@ async function runImprovementCycle(deps = {}) {
     return summary;
   }
 
-  const agg = aggregateFindings(rows);
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const current  = rows.filter(r => new Date(r.started_at).getTime() >= weekAgo);
+  const previous = rows.filter(r => new Date(r.started_at).getTime() < weekAgo);
+  const agg = aggregateFindings(current, previous);
   summary.calls = agg.calls;
   summary.audited = agg.audited;
   summary.candidateRules = agg.candidateRules.length;
@@ -158,10 +184,10 @@ async function runImprovementCycle(deps = {}) {
   // ── Carril global: informe con reglas candidatas → aprobación (opción A) ──
   if (founderEmail) {
     const rules = agg.candidateRules.length
-      ? agg.candidateRules.map(r => `<li><b>${_esc(r.rule)}</b> — vista en ${r.count} llamadas</li>`).join('')
+      ? agg.candidateRules.map(r => `<li><b>${_esc(r.rule)}</b> — vista en ${r.count} llamadas${r.recurrent ? ' · <span style="color:#c0392b"><b>⟲ REINCIDENTE</b> (ya apareció la semana pasada)</span>' : ''}</li>`).join('')
       : '<li>Ninguna esta semana — sin patrones repetidos.</li>';
     const problems = agg.topProblems.slice(0, 5)
-      .map(p => `<li>${_esc(p.text)} (${p.count})</li>`).join('') || '<li>—</li>';
+      .map(p => `<li>${_esc(p.text)} (${p.count})${p.recurrent ? ' · <span style="color:#c0392b">⟲ reincidente</span>' : ''}</li>`).join('') || '<li>—</li>';
     const gapsByOrg = Object.entries(agg.byOrg)
       .filter(([, o]) => o.infoGaps.length)
       .map(([id, o]) => `<li><b>${_esc(id)}</b>: ${o.infoGaps.map(g => `«${_esc(g.gap)}» ×${g.count}`).join(', ')}</li>`)
