@@ -41,7 +41,12 @@ En extracted_data incluye cualquier dato relevante mencionado:
 
 En topics incluye tags como: vacuna, itv, cambio_aceite, presupuesto, horario, cancelación, etc.
 
-En unanswered_questions incluye las preguntas concretas sobre el negocio (precios, servicios, horarios, políticas, disponibilidad) que el cliente hizo y el asistente NO supo responder o respondió con evasivas ("no tengo esa información", "tendría que consultarlo"). Escribe cada una como pregunta corta y clara, tal y como la haría el cliente. Si no hubo ninguna, lista vacía. Máximo 5.
+En unanswered_questions incluye SOLO las preguntas que el asistente NO supo responder o respondió con evasivas explícitas ("no tengo esa información", "tendría que consultarlo").
+REGLAS ESTRICTAS:
+- Una respuesta NEGATIVA es una respuesta: "¿cortáis barba?" → "no, solo corte de pelo" está RESPONDIDA. No la incluyas.
+- NO incluyas preguntas sobre horarios, servicios, precios, disponibilidad o citas si el asistente dio una respuesta concreta (aunque fuera "no hay huecos").
+- Solo cuenta como no respondida si el asistente lo dijo explícitamente o cambió de tema sin responder.
+Escribe cada una como pregunta corta y clara, tal y como la haría el cliente. Si no hubo ninguna, lista vacía. Máximo 5.
 
 Devuelve SOLO el JSON. Sin texto adicional.`;
 
@@ -86,9 +91,17 @@ async function analyzeTranscript(transcript, attempt = 1) {
     raw.preferences    = raw.preferences    && typeof raw.preferences    === 'object' ? raw.preferences    : {};
     raw.sensitivities  = raw.sensitivities  && typeof raw.sensitivities  === 'object' ? raw.sensitivities  : {};
     raw.extracted_data = raw.extracted_data && typeof raw.extracted_data === 'object' ? raw.extracted_data : {};
+    // Filtro determinista además del prompt: horarios/servicios/precios/
+    // disponibilidad/citas salen de la CONFIGURACIÓN y de los tools — si el
+    // asistente falla ahí es un bug del sistema, no un hueco de conocimiento
+    // que el dueño deba rellenar a mano. Caso real 2026-07-03: la KB pedía
+    // al dueño "responder" ¿qué servicios tenéis? y ¿qué horarios tenéis?,
+    // preguntas que el asistente había respondido con datos de config.
+    const STRUCTURED = /horario|servicio|precio|cu[aá]nto (cuesta|vale)|disponib|cita|reserva|hueco|abr[ií]s|cerr[aá]is|ten[eé]is (libre|sitio)/i;
     raw.unanswered_questions = Array.isArray(raw.unanswered_questions)
       ? raw.unanswered_questions
           .filter(q => typeof q === 'string' && q.trim().length > 5)
+          .filter(q => !STRUCTURED.test(q))
           .map(q => q.trim().slice(0, 160))
           .slice(0, 5)
       : [];

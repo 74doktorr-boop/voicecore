@@ -710,9 +710,32 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/config ────────────────────────────────
-  app.get('/api/portal/config', portalAuth, (req, res) => {
-    const { flowConfig } = req;
+  app.get('/api/portal/config', portalAuth, async (req, res) => {
+    const { businessId, flowConfig } = req;
     const custom = flowConfig.automations?.config || {};
+    // Número asignado: nf_phone_pool/BD = fuente de verdad. La config en
+    // memoria (flowManager) no ve asignaciones recientes → Configuración
+    // decía "pendiente de asignación" con el número asignado y operativo
+    // (caso real 2026-07-03; mismo fix que ya llevaba el dashboard).
+    let outboundNumber = custom.outboundNumber || custom.nodeflowNumber || '';
+    if (!outboundNumber) {
+      try {
+        const db = getDatabase();
+        if (db.enabled) {
+          const { data: orgRow } = await db.client.from('organizations')
+            .select('automation_config').eq('id', businessId).maybeSingle();
+          const dbCustom = orgRow?.automation_config?.config || {};
+          outboundNumber = dbCustom.outboundNumber || dbCustom.nodeflowNumber || '';
+          if (!outboundNumber) {
+            const { data: poolRow } = await db.client
+              .from('nf_phone_pool').select('phone_number')
+              .eq('org_id', businessId).eq('status', 'assigned')
+              .limit(1).maybeSingle();
+            if (poolRow) outboundNumber = poolRow.phone_number;
+          }
+        }
+      } catch (_) { /* fail-open */ }
+    }
     res.json({
       ok: true,
       config: {
@@ -727,7 +750,7 @@ function setupPortalRoutes(app, pipeline, config) {
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
-        outboundNumber: custom.outboundNumber  || '',   // assigned by admin — read-only for portal users
+        outboundNumber: outboundNumber,                 // assigned by admin — read-only for portal users
         alertPhone:     custom.alertPhone      || '',   // teléfono personal dueño para alertas WA
         notifyEmail:    custom.notifyEmail     || flowConfig.ownerEmail || '',
         address:        custom.address         || '',
@@ -1406,8 +1429,9 @@ function setupPortalRoutes(app, pipeline, config) {
   // archivos (bug real 2026-07-03). Ahora viaja por el servidor.
   app.post('/api/portal/whatsapp/request', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const to = process.env.NOTIFY_EMAIL;
-    if (!to) return res.status(503).json({ error: 'Solicitudes no disponibles' });
+    // Fallback al email del fundador: sin NOTIFY_EMAIL en el host, el botón
+    // devolvía "No se pudo enviar" (caso real 2026-07-03).
+    const to = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
     try {
       const { sendEmail } = require('../notifications/email');
       await sendEmail({

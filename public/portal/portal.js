@@ -2029,7 +2029,7 @@ async function loadConfig() {
       '<div class="form-group"><label class="form-label">URL de tu ficha de Google</label>' +
         '<input class="form-input" id="cfgReviewUrl" type="url" placeholder="https://g.page/r/…/review"' +
           ' value="' + esc(c.reviewUrl || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Enlace de "Escribe una reseña" de Google Business. Se incluye en recordatorios automáticos post-cita.</small></div>' +
+        '<small style="color:var(--dim);font-size:11px">Se incluye en los mensajes automáticos post-cita para pedir reseña. <strong>Cómo conseguirlo:</strong> entra en <a href="https://business.google.com" target="_blank" style="color:var(--accent-l)">business.google.com</a> con la cuenta de tu negocio → botón <em>«Pedir reseñas»</em> (o <em>«Comparte tu perfil»</em>) → copia el enlace corto (empieza por g.page/r/…) y pégalo aquí.</small></div>' +
 
       '<div class="form-section-title">Notificaciones al propietario</div>' +
       '<div class="form-row">' +
@@ -3335,12 +3335,27 @@ async function loadFacturacion() {
   var sec = document.getElementById('sec-facturacion');
   sec.innerHTML = skelPanel();
   try {
+    // Resiliencia por bloque: si Stripe no responde (o la org aún no tiene
+    // cliente Stripe), el plan y los minutos se pintan IGUAL con los datos
+    // de la org — antes moría la sección entera y el dueño no veía ni sus
+    // minutos restantes (caso real 2026-07-03).
     var results  = await Promise.all([
-      api('/api/billing/usage'),
-      api('/api/billing/invoices'),
+      api('/api/billing/usage').catch(function(){ return null; }),
+      api('/api/billing/invoices').catch(function(){ return {}; }),
       api('/api/portal/reports?period=month').catch(function(){ return {}; }),
     ]);
-    var usage    = results[0];
+    var usage = results[0];
+    if (!usage || usage.minutesLimit === undefined) {
+      var used  = (_orgInfo && _orgInfo.monthly_minutes_used)  || 0;
+      var limit = (_orgInfo && _orgInfo.monthly_minutes_limit) || 300;
+      usage = {
+        plan: (_orgInfo && _orgInfo.plan) || 'negocio',
+        minutesUsed: used, minutesLimit: limit,
+        minutesRemaining: Math.max(0, limit - used),
+        percentUsed: limit > 0 ? Math.round((used / limit) * 100) : 0,
+        overage: Math.max(0, used - limit), overageCost: 0, overageRate: null,
+      };
+    }
     var invoices = results[1].invoices || [];
     var monthVal = (results[2] && results[2].summary) || {};
     renderFacturacion(sec, usage, invoices, monthVal);
