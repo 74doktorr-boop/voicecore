@@ -7,6 +7,7 @@
 const { Logger } = require('../utils/logger');
 const { STTRouter } = require('../stt/router');
 const { LLMRouter } = require('../llm/router');
+const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
 const { TTSRouter } = require('../tts/router');
 const { ToolExecutor } = require('../tools/executor');
 const { CallSession } = require('./call-session');
@@ -415,8 +416,14 @@ class VoicePipeline {
 
     // Get LLM response after tool results
     if (!session.interrupted) {
-      const modelSpec = session.assistant.model || 'gpt-4o-mini';
+      // Mismo criterio que el turno principal: sin modelo forzado el
+      // router elige el proveedor más rápido con auto-fallback. Forzar
+      // gpt-4o-mini aquí costaba ~4s por turno y, sin OpenAI, el turno
+      // moría en silencio JUSTO después de consultar la disponibilidad.
+      const modelSpec = session.assistant.model || null;
+      const fallbackModel = session.assistant.fallbackModel || null;
       let postToolResponse = '';
+      let accumulatedText = '';
 
       for await (const chunk of this.llmRouter.streamCompletion({
         callId,
@@ -424,15 +431,39 @@ class VoicePipeline {
         model: modelSpec,
         temperature: session.assistant.temperature || 0.7,
         maxTokens: session.assistant.maxTokens || 500,
+        fallbackModel,
       })) {
         if (session.interrupted) break;
-        if (chunk.type === 'text') postToolResponse += chunk.content;
+        if (chunk.type === 'text') {
+          accumulatedText += chunk.content;
+          // Frases al TTS según llegan — igual que el turno principal
+          const sentences = this._extractCompleteSentences(accumulatedText);
+          for (const sentence of sentences.complete) {
+            if (session.interrupted) break;
+            await this._speakText(callId, sentence);
+          }
+          if (sentences.complete.length > 0) accumulatedText = sentences.remaining;
+        }
+        if (chunk.type === 'error') {
+          log.error(`[${callId}] LLM error chunk (post-tool): ${chunk.message || chunk.content}`);
+          break;
+        }
         if (chunk.type === 'done') postToolResponse = chunk.content;
       }
 
+      if (accumulatedText.trim() && !session.interrupted) {
+        await this._speakText(callId, accumulatedText.trim());
+      }
+
       if (postToolResponse && !session.interrupted) {
-        await this._speakText(callId, postToolResponse);
         session.addAssistantMessage(postToolResponse);
+      } else if (!session.interrupted) {
+        // Anti-silencio post-herramientas: el tool YA se ejecutó y el
+        // cliente espera la respuesta — jamás dejarle en el aire.
+        const recovery = 'Perdone, se me ha cortado un momento. ¿Me lo puede repetir?';
+        log.warn(`[${callId}] Turno post-tool sin respuesta del LLM — frase de recuperación`);
+        await this._speakText(callId, recovery);
+        session.addAssistantMessage(recovery);
       }
     }
   }
@@ -443,6 +474,12 @@ class VoicePipeline {
   async _speakText(callId, text) {
     const session = this.activeCalls.get(callId);
     if (!session || session.interrupted) return;
+
+    // Red de seguridad: un tool call textualizado ("<function=...")
+    // JAMÁS se lee en voz alta — el adaptador de Groq los filtra, pero
+    // esto cubre cualquier proveedor y el turno post-herramientas.
+    text = stripTextualToolCalls(text);
+    if (!text) return;
 
     session.isSpeaking = true;
     const ttsStart = Date.now();

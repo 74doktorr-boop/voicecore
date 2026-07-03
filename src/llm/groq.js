@@ -4,6 +4,7 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { TextualToolFilter } = require('./textual-tool-filter');
 const log = new Logger('LLM:GROQ');
 
 class GroqLLM {
@@ -36,6 +37,10 @@ class GroqLLM {
       let buffer = '';
       let currentContent = '';
       let toolCalls = [];
+      // Llama a veces textualiza los tool calls ("<function=...>{...}")
+      // en vez de usar delta.tool_calls — sin este filtro, ese JSON
+      // llegaba al TTS y el cliente lo OÍA por teléfono.
+      const textualFilter = new TextualToolFilter();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -58,9 +63,12 @@ class GroqLLM {
             }
 
             if (delta.content) {
-              currentContent += delta.content;
               totalTokens++;
-              yield { type: 'text', content: delta.content, accumulated: currentContent };
+              const safe = textualFilter.push(delta.content);
+              if (safe) {
+                currentContent += safe;
+                yield { type: 'text', content: safe, accumulated: currentContent };
+              }
             }
 
             if (delta.tool_calls) {
@@ -81,12 +89,24 @@ class GroqLLM {
         }
       }
 
+      // Cierre del filtro: libera texto retenido inocuo y recupera los
+      // tool calls que Llama emitió como texto, como si fueran nativos.
+      const tail = textualFilter.finish();
+      if (tail.text) {
+        currentContent += tail.text;
+        yield { type: 'text', content: tail.text, accumulated: currentContent };
+      }
+      if (tail.toolCalls.length > 0) {
+        log.warn(`[${callId}] Llama emitió ${tail.toolCalls.length} tool call(s) como TEXTO — interceptados: ${tail.toolCalls.map(t => t.function.name).join(', ')}`);
+        for (const tc of tail.toolCalls) yield { type: 'tool_call', toolCall: tc };
+      }
+
       const totalTime = Date.now() - startTime;
       log.metric(`[${callId}] Groq completed in ${totalTime}ms (~${totalTokens} tokens)`);
 
       yield {
         type: 'done', content: currentContent,
-        toolCalls: toolCalls.filter(tc => tc.function.name),
+        toolCalls: [...toolCalls.filter(tc => tc.function.name), ...tail.toolCalls],
         metrics: { totalTime, ttft: firstTokenTime ? firstTokenTime - startTime : 0, tokens: totalTokens }
       };
     } catch (error) {
