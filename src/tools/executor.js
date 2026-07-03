@@ -676,9 +676,13 @@ class ToolExecutor {
   // 5. LEADS & PROSPECTS
   // ─────────────────────────────────────────────────────────────────────────
 
-  async registerLead(args, assistantId) {
+  async registerLead(args, assistantId, context = {}) {
     const name  = args.name || args.client_name || '';
-    const phone = args.phone || '';
+    // El teléfono del llamante entra SOLO (caller ID) — jamás pedir email
+    // por voz teniendo el mejor canal ya en la mano (llamada real d7adbdb7:
+    // seis intentos de dictar un email y el lead casi se pierde).
+    const callerPhone = context.session?.callerNumber;
+    const phone = args.phone || ((callerPhone && callerPhone !== 'unknown') ? callerPhone : '');
     const biz   = _getBizConfig(assistantId);
 
     // Persist to DB
@@ -1054,6 +1058,23 @@ class ToolExecutor {
               confirmed_with_customer: { type: 'boolean', description: 'true SOLO si has dicho al cliente el día y la hora exactos y ha respondido que sí. Si no ha confirmado, NO llames a esta función: pregunta primero.' },
             },
             required: ['patient_name', 'service', 'date', 'time', 'confirmed_with_customer'],
+          },
+        },
+      },
+      register_lead: {
+        type: 'function',
+        function: {
+          name: 'register_lead',
+          description: 'Registra a un interesado para que el equipo le llame. Úsalo SIEMPRE que alguien pida información, presupuesto o que le contacten. El teléfono del llamante se añade solo — no hace falta pedirlo.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name:  { type: 'string', description: 'Nombre del interesado' },
+              need:  { type: 'string', description: 'Qué necesita o le interesa, con sus palabras' },
+              notes: { type: 'string', description: 'Detalles útiles adicionales' },
+              urgency: { type: 'string', enum: ['alta', 'media', 'baja'] },
+            },
+            required: ['name', 'need'],
           },
         },
       },

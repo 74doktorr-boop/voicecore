@@ -162,6 +162,24 @@ describe('escalera de confianza del STT (4 niveles)', () => {
   });
 });
 
+describe('register_lead — el teléfono del llamante entra solo', () => {
+  const exec = new ToolExecutor();
+
+  test('sin phone en args, usa el caller ID (bug real: email dictado 6 veces)', async () => {
+    const session = { callerNumber: '+34600123123' };
+    const r = await exec.execute('register_lead',
+      { name: 'Raúl', need: 'presupuesto recepcionista virtual' }, 'biz-lead', { session });
+    assert.strictEqual(r.success, true);
+    assert.match(r.message, /contacto en breve/i);
+  });
+
+  test('caller unknown no inventa teléfono', async () => {
+    const r = await exec.execute('register_lead',
+      { name: 'X', need: 'info' }, 'biz-lead', { session: { callerNumber: 'unknown' } });
+    assert.strictEqual(r.success, true);
+  });
+});
+
 describe('end_call — el asistente cuelga tras la despedida', () => {
   const exec = new ToolExecutor();
 

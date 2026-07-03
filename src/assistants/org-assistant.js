@@ -27,6 +27,7 @@ const RECEPTIONIST_TOOLS = [
   'lookup_appointments',
   'cancel_appointment',
   'flag_urgent',
+  'register_lead',
   'end_call',
 ];
 

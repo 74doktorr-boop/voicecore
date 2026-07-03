@@ -36,7 +36,7 @@ const AUDIT_PROMPT = `Eres un Auditor de Calidad de Conversaciones de un asisten
 }
 
 Criterios:
-- hallucinated: afirmó servicios, precios, horarios o datos que NO aparecen respaldados en la conversación o se contradicen.
+- hallucinated: afirmó servicios, precios, horarios o datos que NO aparecen respaldados en la conversación o se contradicen. TAMBIÉN cuenta prometer acciones que el sistema no puede hacer: «le envío la información por email/WhatsApp», «le devuelvo la llamada yo» — el asistente no puede enviar nada ni llamar por iniciativa propia (llamada real: prometió un email que jamás salió).
 - confirmed_before_booking: dijo en voz alta día y hora exactos Y esperó el sí del cliente antes de dar la cita por hecha (null si no hubo intento de reserva).
 - unnecessary_questions: repetir una pregunta ya respondida cuenta.
 - customer_satisfied: ¿un cliente REAL colgaría satisfecho?
