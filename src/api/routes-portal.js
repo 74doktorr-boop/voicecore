@@ -763,6 +763,33 @@ function setupPortalRoutes(app, pipeline, config) {
     });
   });
 
+  // ── GET /api/portal/config/gaps ───────────────────────────
+  // Carril de datos del bucle de mejora (#5): qué pidió un cliente que el
+  // asistente no supo responder (info_gap del auditor, últimos 14 días).
+  // El portal lo pinta encima de la tabla de servicios — el aviso vive
+  // exactamente donde se arregla. Fail-open: sin datos, lista vacía.
+  app.get('/api/portal/config/gaps', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ ok: true, gaps: [] });
+    try {
+      const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+      const { data } = await db.client
+        .from('nf_calls')
+        .select('org_id, metrics')
+        .eq('org_id', businessId)
+        .gte('started_at', since)
+        .not('metrics', 'is', null)
+        .limit(500);
+      const { aggregateFindings } = require('../lifecycle/improvement-aggregator');
+      const agg = aggregateFindings(data || []);
+      res.json({ ok: true, gaps: (agg.byOrg[businessId] && agg.byOrg[businessId].infoGaps) || [] });
+    } catch (e) {
+      log.warn(`Portal gaps: ${e.message}`);
+      res.json({ ok: true, gaps: [] });
+    }
+  });
+
   // ── PATCH /api/portal/config ──────────────────────────────
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;

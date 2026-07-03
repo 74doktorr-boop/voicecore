@@ -2009,11 +2009,20 @@ async function loadConfig() {
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
       '<div class="form-section-title">Servicios y horarios</div>' +
       '<div class="form-group"><label class="form-label">Servicios y precios <span style="color:var(--dim);font-weight:400">— la IA se los dice a tus clientes con exactitud</span></label>' +
+        '<div id="svcGaps"></div>' +
         '<div class="svc-head"><span>Servicio</span><span>Precio</span><span>Duración</span><span>Detalle (opcional)</span><span></span></div>' +
         '<div id="svcList"></div>' +
-        '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button></div>' +
+        '<datalist id="svcPriceOpts"><option value="a presupuesto"><option value="gratis"><option value="desde 30€"></datalist>' +
+        '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button>' +
+        '<small style="display:block;margin-top:8px;color:var(--dim);font-size:11px">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small></div>' +
+      // #7: el textarea libre de horarios era un campo MUERTO (custom.schedule
+      // no lo leía nada del runtime) — el horario real es el selector por días
+      // de Asistente (assistant_config.schedule), que alimenta agenda y prompt.
       '<div class="form-group"><label class="form-label">Horarios</label>' +
-        '<textarea class="form-input" id="cfgSchedule" rows="3" placeholder="L-V 9:00-20:00, Sáb 9:00-14:00">' + esc(c.schedule || '') + '</textarea></div>' +
+        '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:12px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
+          '<div style="flex:1;min-width:200px;font-size:12px;color:var(--dim);line-height:1.6">Se configuran con el <strong style="color:var(--text)">selector por días</strong> (mañana y tarde, hora a hora) — la agenda y la IA usan exactamente lo mismo, sin formatos que adivinar.</div>' +
+          '<button type="button" class="btn btn-accent btn-sm" onclick="navigate(\'asistente\')" style="white-space:nowrap">Configurar horarios →</button>' +
+        '</div></div>' +
       '<div class="form-section-title">Configuración de la IA</div>' +
       '<div class="form-group"><label class="form-label">Mensaje de bienvenida</label>' +
         '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea></div>' +
@@ -2067,6 +2076,21 @@ async function loadConfig() {
 
   // Render de servicios+precios existentes (o una fila vacía para empezar)
   (Array.isArray(c.serviceList) && c.serviceList.length ? c.serviceList : [{}]).forEach(addServiceRow);
+
+  // Bucle de mejora (#5): lo que los clientes preguntaron y el asistente no
+  // supo responder, pintado donde se arregla. Fail-open: sin datos, nada.
+  api('/api/portal/config/gaps').then(function (d) {
+    var el = document.getElementById('svcGaps');
+    if (!el || !d || !Array.isArray(d.gaps) || !d.gaps.length) return;
+    var items = d.gaps.slice(0, 4).map(function (g) {
+      return '<strong style="color:var(--text)">«' + esc(g.gap) + '»</strong>' + (g.count > 1 ? ' <span style="opacity:.7">(×' + g.count + ')</span>' : '');
+    }).join(' · ');
+    el.innerHTML =
+      '<div style="background:rgba(249,202,36,.07);border:1px solid rgba(249,202,36,.3);border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12px;color:var(--dim);line-height:1.6">' +
+        '🧠 Estas semanas tus clientes preguntaron cosas que tu asistente no supo responder: ' + items +
+        '. Añádelo aquí abajo (o en <a onclick="navigate(\'conocimiento\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">tu Base de conocimiento</a>) y lo dirá con exactitud en la próxima llamada.' +
+      '</div>';
+  }).catch(function () {});
 }
 
 // Editor de servicios+precios (filas dinámicas)
@@ -2078,7 +2102,7 @@ function addServiceRow(s) {
   row.className = 'svc-row';
   row.innerHTML =
     '<input class="form-input svc-name" placeholder="Ej. Corte de pelo" value="' + esc(s.name || '') + '">' +
-    '<input class="form-input svc-price" placeholder="Ej. 15€" value="' + esc(s.price || '') + '">' +
+    '<input class="form-input svc-price" list="svcPriceOpts" placeholder="Ej. 15€ · a presupuesto" value="' + esc(s.price || '') + '">' +
     '<input class="form-input svc-dur" placeholder="Ej. 30 min" value="' + esc(s.duration || '') + '">' +
     '<input class="form-input svc-notes" placeholder="Ej. incluye lavado y peinado" value="' + esc(s.notes || '') + '">' +
     '<button type="button" class="btn btn-r btn-sm svc-del" title="Quitar">✕</button>';
@@ -2103,7 +2127,6 @@ async function saveConfig() {
     language:       (document.getElementById('cfgLang') || {}).value || undefined,
     sector:         document.getElementById('cfgSector').value,
     serviceList:    collectServiceList(),
-    schedule:       document.getElementById('cfgSchedule').value.trim(),
     welcomeMessage: document.getElementById('cfgWelcome').value.trim(),
     avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) || 35,
     reviewUrl:      document.getElementById('cfgReviewUrl')?.value?.trim()   || '',
