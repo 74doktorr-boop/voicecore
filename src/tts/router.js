@@ -28,7 +28,7 @@ class TTSRouter {
     // Dígame") se sintetizan UNA vez y el resto de llamadas las reutilizan
     // gratis — ahorro directo de créditos TTS en cada llamada (petición
     // Unai 2026-07-03; con 1h el saludo se re-pagaba cada hora).
-    this.cacheMaxAge = 24 * 3_600_000;
+    this.cacheMaxAge = 7 * 24 * 3_600_000; // 7 días — el límite real lo pone el deploy (caché en memoria)
     this.cacheMaxSize = 500;
 
     this._initProviders(config);
