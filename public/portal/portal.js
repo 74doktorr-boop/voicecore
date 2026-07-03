@@ -3489,11 +3489,6 @@ function renderWaCard(waStatus) {
 
 // Solicitud del nivel premium (alta gestionada por NodeFlow)
 function openWaUpgrade() {
-  var biz = (_orgInfo && _orgInfo.name) || '';
-  var subject = encodeURIComponent('Quiero mi propio número de WhatsApp — ' + biz);
-  var body = encodeURIComponent(
-    'Hola,\n\nQuiero que los avisos por WhatsApp de ' + biz + ' salgan desde nuestro propio número de empresa.\n\n' +
-    '· ¿Tenéis ya un número de WhatsApp de empresa? (sí/no)\n· Teléfono de contacto: \n\nGracias.');
   openModal(
     '<div class="modal-title">Tu propio número de WhatsApp</div>' +
     '<p style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:12px">' +
@@ -3504,8 +3499,23 @@ function openWaUpgrade() {
       'Es un proceso con Meta que gestionamos nosotros — tú solo firmas.</p>' +
     '<div class="modal-actions">' +
       '<button class="btn btn-d" onclick="closeModal()">Ahora no</button>' +
-      '<a class="btn btn-accent" style="text-decoration:none" href="mailto:unai@nodeflow.es?subject=' + subject + '&body=' + body + '" onclick="closeModal();toast(\'✅ Te contactamos en menos de 24h\')">Solicitar</a>' +
+      '<button class="btn btn-accent" onclick="requestWaUpgrade(this)">Solicitar</button>' +
     '</div>');
+}
+
+// El mailto: abría el selector de aplicaciones/archivos en equipos sin
+// cliente de correo (bug real 2026-07-03). La solicitud ahora viaja por
+// nuestro servidor: el cliente solo ve la confirmación.
+async function requestWaUpgrade(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try {
+    await api('/whatsapp/request', 'POST', {});
+    closeModal();
+    toast('✅ Solicitud enviada — te contactamos en menos de 24h');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Solicitar'; }
+    toast('No se pudo enviar. Inténtalo de nuevo.');
+  }
 }
 
 async function loadIntegraciones() {

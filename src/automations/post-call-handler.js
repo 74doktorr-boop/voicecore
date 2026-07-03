@@ -159,8 +159,12 @@ async function handle(callData) {
     // ("una para mí y otra para mi novia") no se puede saber cuál es el del
     // llamante → no adivinar (el CRM progresivo lo preguntará). Bug real:
     // el teléfono de Pablo quedó fichado como "Nerea" (la última cita).
+    // Y los nombres GENÉRICOS que a veces cuela el LLM ("cliente") jamás
+    // fichan a nadie (bug real: contacto guardado como "cliente").
+    const GENERIC_NAME = /^(el\s+|la\s+)?(cliente|clienta|desconocid[oa]|usuario|se[ñn]or(a)?|customer|unknown)$/i;
     const apt    = bookedList.length === 1 ? bookedList[0] : null;
-    const pName  = apt?.patientName || null;
+    const rawName = apt?.patientName?.trim() || '';
+    const pName  = rawName && !GENERIC_NAME.test(rawName) ? rawName : null;
     const pEmail = apt?.email || callData.clientEmail || null;
     db.client.rpc('upsert_contact', {
       p_org_id:       businessId,

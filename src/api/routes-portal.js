@@ -449,8 +449,10 @@ function setupPortalRoutes(app, pipeline, config) {
             callId:       c.id,
             startedAt:    c.started_at,
             endedAt:      c.ended_at,
-            // Sin cierre (huérfana) jamás inventar duración con el reloj
-            duration:     c.duration_ms || 0,
+            // SEGUNDOS (el frontend formatea segundos — devolver ms pintaba
+            // "2122m 54s" para una llamada de 2 minutos, bug real 2026-07-03).
+            // Huérfanas sin cierre: 0, jamás el reloj corriendo.
+            duration:     c.duration_ms ? Math.round(c.duration_ms / 1000) : 0,
             outcome:      c.status === 'lost' ? 'lost' : (c.outcome || 'abandoned'),
             clientEmail:  null,
             callerNumber: c.caller_number || null,
@@ -484,7 +486,7 @@ function setupPortalRoutes(app, pipeline, config) {
       callId:       c.id,
       startedAt:    c.startTime,
       endedAt:      c.endTime,
-      duration:     c.duration || 0,
+      duration:     c.duration ? Math.round(c.duration / 1000) : 0, // segundos
       outcome:      c.outcome || 'abandoned',
       clientEmail:  c.clientEmail || null,
       callerNumber: c.callerNumber || null,
@@ -1383,6 +1385,34 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) {
       log.error(`Portal PUT assistant error: ${e.message}`);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/whatsapp/request ─────────────────────────
+  // Solicitud del número de WhatsApp propio (nivel premium). Antes era un
+  // mailto: que en equipos sin cliente de correo abría el selector de
+  // archivos (bug real 2026-07-03). Ahora viaja por el servidor.
+  app.post('/api/portal/whatsapp/request', portalAuth, async (req, res) => {
+    const { businessId, flowConfig } = req;
+    const to = process.env.NOTIFY_EMAIL;
+    if (!to) return res.status(503).json({ error: 'Solicitudes no disponibles' });
+    try {
+      const { sendEmail } = require('../notifications/email');
+      await sendEmail({
+        to,
+        subject: `Solicitud número WhatsApp propio — ${flowConfig?.name || businessId}`,
+        html: `<h3>Solicitud de número de WhatsApp propio</h3>
+          <p><b>Negocio:</b> ${flowConfig?.name || '—'} (${businessId})<br>
+          <b>Email dueño:</b> ${flowConfig?.ownerEmail || '—'}<br>
+          <b>Teléfono dueño:</b> ${flowConfig?.ownerPhone || '—'}<br>
+          <b>Plan:</b> ${flowConfig?.plan || '—'}</p>
+          <p>Solicitado desde Integraciones del portal.</p>`,
+      });
+      log.info(`WhatsApp propio solicitado por ${businessId}`);
+      res.json({ ok: true });
+    } catch (e) {
+      log.error(`whatsapp/request: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo enviar la solicitud' });
     }
   });
 
