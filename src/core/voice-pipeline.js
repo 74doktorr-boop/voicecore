@@ -8,6 +8,7 @@ const { Logger } = require('../utils/logger');
 const { STTRouter } = require('../stt/router');
 const { LLMRouter } = require('../llm/router');
 const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
+const sttDebug = require('../utils/stt-debug');
 const { TTSRouter } = require('../tts/router');
 const { ToolExecutor } = require('../tools/executor');
 const { CallSession } = require('./call-session');
@@ -249,6 +250,13 @@ class VoicePipeline {
    */
   handleAudio(callId, audioPayload) {
     const audioBuffer = Buffer.from(audioPayload, 'base64');
+    // Contabilidad de audio entrante: ulaw son 8000 bytes/s exactos. Si en
+    // X s de llamada llegaron muchos menos segundos de audio, estamos
+    // PERDIENDO frames — la diferencia entre "el cliente se oye mal" y
+    // "nosotros perdemos audio". Se reporta al colgar (endCall).
+    const session = this.activeCalls.get(callId);
+    if (session) session.audioRxBytes = (session.audioRxBytes || 0) + audioBuffer.length;
+    sttDebug.capture(callId, audioBuffer);
     this.sttRouter.sendAudio(callId, audioBuffer);
   }
 
@@ -256,6 +264,8 @@ class VoicePipeline {
    * Handle incoming raw PCM audio from Vonage (L16 binary buffer)
    */
   handleAudioPCM(callId, pcmBuffer, sampleRate) {
+    const session = this.activeCalls.get(callId);
+    if (session) session.audioRxBytes = (session.audioRxBytes || 0) + pcmBuffer.length;
     this.sttRouter.sendAudio(callId, pcmBuffer);
   }
 
@@ -549,6 +559,18 @@ class VoicePipeline {
   endCall(callId) {
     const session = this.activeCalls.get(callId);
     if (!session) return null;
+
+    // Salud del audio entrante: segundos recibidos vs segundos de llamada.
+    // <85% con llamada >10s = frames perdidos (red o CPU) — sospechar del
+    // host antes que del llamante. Vonage manda L16 16kHz (32000 B/s).
+    const rxRate = session.provider === 'vonage' ? 32000 : 8000;
+    const rxSeconds = (session.audioRxBytes || 0) / rxRate;
+    const callSeconds = session.getDuration() / 1000;
+    const pct = callSeconds > 0 ? Math.round((rxSeconds / callSeconds) * 100) : 0;
+    const rxLine = `[${callId}] Audio entrante: ${rxSeconds.toFixed(1)}s en ${callSeconds.toFixed(1)}s de llamada (${pct}%)`;
+    if (callSeconds > 10 && pct < 85) log.warn(`${rxLine} — FRAMES PERDIDOS`);
+    else log.info(rxLine);
+    sttDebug.finalize(callId);
 
     this.sttRouter.closeSession(callId);
     const callData = session.end();

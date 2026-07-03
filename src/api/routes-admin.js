@@ -376,6 +376,21 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Depuración STT: audio entrante capturado (requiere STT_DEBUG=1) ─────────
+  app.get('/api/admin/stt-debug', adminAuth, (req, res) => {
+    const sttDebug = require('../utils/stt-debug');
+    res.json({ enabled: sttDebug.enabled(), captures: sttDebug.list() });
+  });
+
+  app.get('/api/admin/stt-debug/:callId', adminAuth, (req, res) => {
+    const sttDebug = require('../utils/stt-debug');
+    const file = sttDebug.getPath(req.params.callId);
+    if (!file) return res.status(404).json({ error: 'Captura no encontrada' });
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${req.params.callId}.ulaw"`);
+    require('fs').createReadStream(file).pipe(res);
+  });
+
   // ─── Calls analytics dashboard ───────────────────────────────────────────────
   app.get('/api/admin/calls', adminAuth, (req, res) => {
     try {
