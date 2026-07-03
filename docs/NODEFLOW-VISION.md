@@ -255,8 +255,68 @@ Core / Event Core de este documento, demostrado en un segundo dominio.
 - **Prioridad:** decisión de fundador para año 1-2; el gatillo es el primer
   cliente firme de un segundo vertical, no antes.
 
+# Oportunidades del Replay del gemelo + Modo crisis (capturadas 2026-07-03)
+
+**Origen:** al construir el replay de jornada y el modo crisis (#61) de ETS
+Guard emergieron tres activos que trascienden el vertical.
+
+- **La sombra de decisión como categoría vendible.** Cada decisión de crisis
+  guarda, capturada por el servidor, la foto operativa de lo que se sabía en
+  ese momento. En lenguaje de cliente: «cuando le reclamen dentro de un año,
+  usted podrá demostrar por qué decidió lo que decidió». Es defensa legal +
+  ISO 27001/22301 (gestión de continuidad) empaquetada. Ningún competidor de
+  seguridad privada lo tiene; aplica idéntico a mantenimiento, sanidad y
+  cualquier vertical con responsabilidad civil. Compounding: 9.
+- **El replay como demo comercial universal.** Reproducir una jornada real
+  sobre el mapa en 2 minutos es el mejor vídeo de ventas posible y lo genera
+  el propio producto con datos del cliente. Para el kit comercial: grabar el
+  replay de un día real (con permiso) vale más que cualquier mockup. Además
+  es la semilla del «gemelo digital» prometido en el pitch: mismos datos,
+  ahora con tiempo. Compounding: 7.
+- **El patrón «la UI cambia de forma».** Declarar un estado global (crisis)
+  que reconfigura toda la plataforma vía SSE es un primitivo reutilizable:
+  modo simulacro (DRILL, #63 del roadmap), modo apagón, modo evento masivo
+  (partidos/conciertos — aforo + refuerzos). Una vez existe el mecanismo,
+  cada «modo» nuevo es barato y se vende como módulo. Compounding: 8.
+
+- **(2026-07-03, ETS Guard) El cuadrante que se hace solo.** Un motor
+  determinista propone la semana entera en un clic: cobertura, descansos
+  legales, equidad de horas, continuidad de estación — y declara cada hueco
+  con su motivo («la plantilla da para 85 jornadas y pides 140»). Es EL dolor
+  de cabeza semanal de cualquier empresa de seguridad/limpieza/logística, y
+  la misma pieza sirve para VoiceCore-verticales con turnos (clínicas).
+  Demo de 30s perfecta: «genera» → semana pintada → «aplicar». Compounding: 9.
+
+- **(2026-07-03, ETS Guard) Multi-réplica por una variable de entorno.** La
+  capa Redis con fallback a memoria convierte «escala» en un argumento de
+  venta enterprise sin coste operativo hasta que hace falta. El mismo patrón
+  (adapter + degradación honesta) es plantilla para VoiceCore. Compounding: 7.
+
+# Oportunidades del editor único de servicios + landing (capturadas 2026-07-04)
+
+- **(#8) Plantillas de servicios por sector = asistente experto al minuto.**
+  La tabla única alimenta prompt, precios exactos y huecos de agenda a la
+  vez; una plantilla pre-rellenada por vertical («peluquería: corte 30 min,
+  tinte 90…») en el onboarding convierte el alta en un asistente que ya sabe
+  vender antes de la primera edición. Es la pieza W3 (self-service) más
+  barata que existe: son datos, no código. Compounding: 9.
+- **(#8) El ledger de valor puede hablar en servicios reales.** Con precio y
+  duración estructurados por cita, «NodeFlow te ha generado X€» puede
+  desglosarse en «4 tintes (180€) + 9 cortes (135€)» en vez de multiplicar
+  por ticket medio. Mismo dato, el doble de credibilidad — y enseña qué
+  servicio trae el dinero (insight que ningún fijo de recepción da).
+  Compounding: 8.
+- **(#8) «Plazas» ya tiene casa.** El diseño de capacidad de Fase 2 (seats
+  por servicio) aterriza en una columna más de la misma tabla — la UI y el
+  flujo de datos ya existen. Vender clases/grupos (yoga, academias,
+  gimnasios) deja de ser un rediseño y pasa a ser una columna. Compounding: 7.
+- **(#6) IndexNow como reflejo post-publicación.** El script de envío puede
+  colgarse del CI tras cada deploy que toque public/: cada página de sector
+  nueva queda notificada a Bing sola. SEO que se acumula sin que nadie se
+  acuerde de él. Compounding: 6.
+
 ---
 
-*Última revisión: 2026-07-03 · Ritual: cada feature terminada pasa por las 10
+*Última revisión: 2026-07-04 · Ritual: cada feature terminada pasa por las 10
 preguntas + test de demo 30s + Compounding Score, y lo que emerja se escribe
 AQUÍ en lenguaje de cliente. Añadir aquí, no en la cabeza.*
