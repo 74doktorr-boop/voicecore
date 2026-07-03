@@ -432,20 +432,32 @@ function setupPortalRoutes(app, pipeline, config) {
     const db = getDatabase();
     if (db.enabled) {
       try {
+        const limit = Math.min(parseInt(req.query.limit, 10) || 500, 500);
         let q = db.client.from('nf_calls')
           .select('id, started_at, ended_at, duration_ms, status, outcome, caller_number, turn_count, booked_appointment, metrics')
           .eq('org_id', businessId)
           .order('started_at', { ascending: false })
-          .limit(500);
+          .limit(limit);
         if (from) q = q.gte('started_at', from);
         if (to) q = q.lte('started_at', to + 'T23:59:59');
         if (outcome && ['booked', 'info', 'abandoned'].includes(outcome)) q = q.eq('outcome', outcome);
         const { data, error } = await q;
         if (error) throw new Error(error.message);
+        // Quién llamó: enlazar cada llamada con su ficha de cliente (1 consulta)
+        const phones = [...new Set((data || []).map(c => c.caller_number).filter(Boolean))];
+        const contactByPhone = {};
+        if (phones.length) {
+          const { data: cts } = await db.client.from('contacts')
+            .select('id, name, phone').eq('org_id', businessId).in('phone', phones);
+          for (const ct of (cts || [])) contactByPhone[ct.phone] = ct;
+        }
         const formatted = (data || []).map(c => {
           const apts = Array.isArray(c.booked_appointment) ? c.booked_appointment
             : (c.booked_appointment ? [c.booked_appointment] : []);
+          const ct = contactByPhone[c.caller_number] || null;
           return {
+            contactId:    ct ? ct.id : null,
+            contactName:  ct ? ct.name : null,
             callId:       c.id,
             startedAt:    c.started_at,
             endedAt:      c.ended_at,

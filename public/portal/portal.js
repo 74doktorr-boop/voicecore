@@ -705,6 +705,7 @@ async function savePasswordSetup() {
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display         = 'block';
+  startCallNotifications(); // avisos en pantalla de cada llamada (si están activados)
 
   // Sin contraseña → crearla (obligatorio). Con contraseña pero entrando
   // por enlace mágico → ofrecer cambiarla (probable olvido).
@@ -1197,6 +1198,47 @@ async function loadDashboard() {
   startDashLive();
 }
 
+// ── Notificaciones de llamadas (v1: sondeo cada 30s) ─────────────────────
+// Feedback real 2026-07-03: "cuando entre una llamada, quiero que me salte
+// en pantalla". v1 con Notification API + sondeo; v2 (tiempo real por SSE)
+// en el sprint de portal.
+var _notifPoll = null;
+function notificationsEnabled() {
+  return typeof Notification !== 'undefined' &&
+         Notification.permission === 'granted' &&
+         localStorage.getItem('nf_notif') === '1';
+}
+async function toggleCallNotifications(btn) {
+  if (typeof Notification === 'undefined') { toast('Tu navegador no soporta notificaciones', 'err'); return; }
+  if (Notification.permission !== 'granted') {
+    var p = await Notification.requestPermission();
+    if (p !== 'granted') { toast('Permiso de notificaciones denegado', 'err'); return; }
+  }
+  var on = localStorage.getItem('nf_notif') === '1';
+  localStorage.setItem('nf_notif', on ? '0' : '1');
+  toast(on ? 'Notificaciones desactivadas' : '🔔 Te avisaremos en pantalla de cada llamada');
+  if (btn) btn.textContent = on ? '🔕 Avisos' : '🔔 Avisos';
+  startCallNotifications();
+}
+function startCallNotifications() {
+  clearInterval(_notifPoll);
+  if (!notificationsEnabled()) return;
+  _notifPoll = setInterval(async function () {
+    try {
+      var d = await api('/api/portal/calls?limit=1');
+      var c = d.calls && d.calls[0];
+      if (!c) return;
+      var last = localStorage.getItem('nf_last_call_notif');
+      localStorage.setItem('nf_last_call_notif', c.callId);
+      if (!last || c.callId === last) return;
+      var quien  = c.contactName || c.callerNumber || 'Número oculto';
+      var titulo = c.outcome === 'booked' ? '📅 Nueva reserva por teléfono' : '📞 Llamada atendida por tu asistente';
+      var cuerpo = quien + (c.appointment ? ' · ' + c.appointment.service + ' · ' + fmtDate(c.appointment.date) + ' ' + c.appointment.time : '');
+      new Notification(titulo, { body: cuerpo, icon: '/favicon.svg' });
+    } catch (e) { /* siguiente tick */ }
+  }, 30000);
+}
+
 // ── Llamadas ──────────────────────────────────────────────────
 async function loadCalls(outcome, from, to) {
   var sec = document.getElementById('sec-llamadas');
@@ -1229,17 +1271,33 @@ async function loadCalls(outcome, from, to) {
         ? Math.floor(c.duration / 60) + 'm ' + (c.duration % 60) + 's'
         : c.duration + 's';
       var badge = OUTCOME_BADGE[c.outcome] || OUTCOME_BADGE.abandoned;
-      var apt = c.appointment
-        ? '<br><small style="color:var(--dim)">' + esc(c.appointment.date) + ' ' + esc(c.appointment.time) + ' · ' + esc(c.appointment.service) + '</small>'
-        : '';
+      // Detalles EN LENGUAJE DE DUEÑO: qué se reservó, no "N turnos"
+      // (feedback real 2026-07-03: "no entiendo esto de los 9 turnos").
+      var aptList = (c.appointments && c.appointments.length) ? c.appointments : (c.appointment ? [c.appointment] : []);
+      var detalle = '';
+      for (var k = 0; k < aptList.length; k++) {
+        var ap = aptList[k];
+        detalle += '<div>📅 ' + esc(fmtDate(ap.date)) + ' · ' + esc(ap.time) + ' · ' + esc(ap.service) + '</div>';
+      }
+      if (!detalle) {
+        detalle = '<div style="color:var(--dim)">' +
+          (c.outcome === 'info' ? 'Consulta atendida sin reserva'
+            : c.turnCount > 0 ? 'Conversación sin reserva' : 'Colgó sin hablar') + '</div>';
+      }
+      detalle += '<small style="color:var(--muted)">' + c.turnCount + ' intercambios</small>';
+      // Contacto: nombre enlazado a su ficha si el cliente está fichado
+      var contacto = c.contactId
+        ? '<a href="#" onclick="openContactProfile(\'' + esc(c.contactId) + '\');return false" style="color:var(--accent);text-decoration:none;font-weight:600">' + esc(c.contactName || 'Ver ficha') + '</a>' +
+          (c.callerNumber ? '<div style="font-size:12px;color:var(--dim)">' + esc(c.callerNumber) + '</div>' : '')
+        : (c.callerNumber ? '<div style="font-size:12px">' + esc(c.callerNumber) + '</div>' : '—');
       var waNum   = c.callerNumber ? c.callerNumber.replace(/[^0-9]/g,'') : '';
       var callBtn = c.callerNumber
         ? '<button class="btn btn-g btn-sm" onclick="callOutbound(\'' + esc(c.callerNumber) + '\',this)" title="Llamar">📞</button>' +
           '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + waNum + '" target="_blank" title="WhatsApp">💬</a>'
         : '<span style="color:var(--muted)">—</span>';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
-        '<td>' + c.turnCount + ' turnos' + apt + '</td>' +
-        '<td style="color:var(--dim)">' + (c.callerNumber ? '<div style="font-size:12px">' + esc(c.callerNumber) + '</div>' : '') + esc(c.clientEmail || (c.callerNumber ? '' : '—')) + '</td>' +
+        '<td>' + detalle + '</td>' +
+        '<td style="color:var(--dim)">' + contacto + '</td>' +
         '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td>' +
         '<td>' + callBtn + '</td></tr>';
     }
@@ -1248,7 +1306,9 @@ async function loadCalls(outcome, from, to) {
   }
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">Llamadas</div></div>' +
+    '<div class="section-header"><div class="section-title">Llamadas</div>' +
+      '<button class="btn btn-d btn-sm" onclick="toggleCallNotifications(this)" title="Avisarme en pantalla de cada llamada">' + (notificationsEnabled() ? '🔔 Avisos' : '🔕 Avisos') + '</button>' +
+    '</div>' +
     '<div class="filter-bar">' +
       '<label style="font-size:12px;color:var(--dim)">Resultado:</label>' +
       '<select id="fOutcome" onchange="loadCalls(this.value,document.getElementById(\'fFrom\').value,document.getElementById(\'fTo\').value)">' +
@@ -1282,6 +1342,7 @@ var _citasFilterStatus = 'todas';
 var _citasSearch = '';
 var _citasView = localStorage.getItem('nf_citas_view') || 'semana';
 var _citasWeekOffset = 0;
+var _citasAutoJumped = false;
 
 // Nueva cita con la fecha del día clicado en la vista semana
 function openNewCitaOn(dateIso) {
@@ -1366,6 +1427,24 @@ async function loadCitas(statusFilter, search) {
   } catch (e) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
+  }
+
+  // Salto automático a la semana con citas: la vista abría siempre en la
+  // semana actual aunque todas las citas fueran de la siguiente y había que
+  // descubrirlas con la flechita (feedback real 2026-07-03). Solo al entrar
+  // por primera vez — la navegación manual del dueño siempre gana.
+  if (!_citasAutoJumped) {
+    _citasAutoJumped = true;
+    var hoy = new Date().toLocaleDateString('sv-SE');
+    var prox = _citasData
+      .filter(function(a) { return a.date >= hoy && a.status !== 'cancelled'; })
+      .sort(function(a, b) { return a.date.localeCompare(b.date); });
+    if (prox.length) {
+      var mon0 = _mondayOf(0); mon0.setHours(0, 0, 0, 0);
+      var diffDays = Math.round((new Date(prox[0].date + 'T00:00:00') - mon0) / 86400000);
+      var off = Math.floor(diffDays / 7);
+      if (off > 0) _citasWeekOffset = off;
+    }
   }
 
   renderCitas();
