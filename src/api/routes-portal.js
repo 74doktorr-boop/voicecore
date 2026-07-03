@@ -422,9 +422,49 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/calls ──────────────────────────────────
-  app.get('/api/portal/calls', portalAuth, (req, res) => {
+  app.get('/api/portal/calls', portalAuth, async (req, res) => {
     const { businessId } = req;
     const { from, to, outcome } = req.query;
+
+    // Fuente de verdad: nf_calls (persistente — la memoria se borra en cada
+    // deploy; caso real 2026-07-03: el portal enseñaba 1 llamada de las ~6
+    // hechas). La memoria queda solo como fallback si la BD está caída.
+    const db = getDatabase();
+    if (db.enabled) {
+      try {
+        let q = db.client.from('nf_calls')
+          .select('id, started_at, ended_at, duration_ms, status, outcome, caller_number, turn_count, booked_appointment, metrics')
+          .eq('org_id', businessId)
+          .order('started_at', { ascending: false })
+          .limit(500);
+        if (from) q = q.gte('started_at', from);
+        if (to) q = q.lte('started_at', to + 'T23:59:59');
+        if (outcome && ['booked', 'info', 'abandoned'].includes(outcome)) q = q.eq('outcome', outcome);
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
+        const formatted = (data || []).map(c => {
+          const apts = Array.isArray(c.booked_appointment) ? c.booked_appointment
+            : (c.booked_appointment ? [c.booked_appointment] : []);
+          return {
+            callId:       c.id,
+            startedAt:    c.started_at,
+            endedAt:      c.ended_at,
+            // Sin cierre (huérfana) jamás inventar duración con el reloj
+            duration:     c.duration_ms || 0,
+            outcome:      c.status === 'lost' ? 'lost' : (c.outcome || 'abandoned'),
+            clientEmail:  null,
+            callerNumber: c.caller_number || null,
+            appointment:  apts.length ? apts[apts.length - 1] : null,
+            appointments: apts,
+            turnCount:    c.turn_count || 0,
+            quality:      c.metrics?.quality?.score ?? null,
+          };
+        });
+        return res.json({ ok: true, count: formatted.length, calls: formatted });
+      } catch (e) {
+        log.warn(`portal calls desde nf_calls falló (${e.message}) — fallback memoria`);
+      }
+    }
 
     let calls = pipeline.getCallHistory(500)
       .filter(c => (c.businessId || c.assistantId) === businessId);
@@ -560,15 +600,37 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/reports ───────────────────────────────
-  app.get('/api/portal/reports', portalAuth, (req, res) => {
+  app.get('/api/portal/reports', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
     const period  = req.query.period || 'month';
     const days    = period === 'week' ? 7 : period === 'quarter' ? 90 : 30;
     const fromTs  = Date.now() - days * 86400000;
     const fromStr = new Date(fromTs).toISOString().slice(0, 10);
 
-    const allCalls = pipeline.getCallHistory(500);
-    const bizCalls = allCalls.filter(c => (c.businessId || c.assistantId) === businessId);
+    // Fuente de verdad: nf_calls. Los informes salían de la memoria del
+    // proceso (borrada en cada deploy) → "1 llamada" tras una noche de
+    // pruebas. Fallback a memoria solo si la BD está caída.
+    let bizCalls;
+    const db = getDatabase();
+    if (db.enabled) {
+      try {
+        const { data, error } = await db.client.from('nf_calls')
+          .select('outcome, started_at, ended_at')
+          .eq('org_id', businessId)
+          .order('started_at', { ascending: false })
+          .limit(2000);
+        if (error) throw new Error(error.message);
+        bizCalls = (data || []).map(c => ({
+          outcome: c.outcome, startTime: c.started_at, endTime: c.ended_at,
+        }));
+      } catch (e) {
+        log.warn(`portal reports desde nf_calls falló (${e.message}) — fallback memoria`);
+      }
+    }
+    if (!bizCalls) {
+      bizCalls = pipeline.getCallHistory(500)
+        .filter(c => (c.businessId || c.assistantId) === businessId);
+    }
 
     // Period calls
     // BUG-30 FIX: same field name issue — use endTime/startTime from toJSON()
@@ -1207,10 +1269,12 @@ function setupPortalRoutes(app, pipeline, config) {
     const db = getDatabase();
     if (!db.enabled) return res.json({ transcript: [], available: false });
 
+    // nf_calls (el id del pipeline ES la clave — la tabla legacy "calls"
+    // estaba vacía y este endpoint devolvía 404 para TODA llamada)
     const { data, error } = await db.client
-      .from('calls')
+      .from('nf_calls')
       .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number')
-      .eq('call_sid', callSid)
+      .eq('id', callSid)
       .eq('org_id', businessId)
       .single();
 
