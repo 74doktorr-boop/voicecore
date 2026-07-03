@@ -61,7 +61,13 @@ async function getOrgAssistant(orgId) {
         `{{GREETING}}, ha llamado a ${org.name}. ¿En qué puedo ayudarle?`,
       voice:        cfg.voice || 'nova',   // voice-map lo traduce a ElevenLabs
       language,
-      // SIN model: el router LLM elige el proveedor más rápido disponible
+      // Palanca admin-only para experimentos A/B de cerebro (2026-07-03):
+      // assistant_config.model ('proveedor/modelo') fuerza el LLM de la org;
+      // sin él, el router elige el más rápido. El portal filtra 'model' de
+      // las ediciones del cliente — solo el admin la toca. El juez del A/B
+      // es el auditor + quality score (llmProvider queda en metrics.turns).
+      ...(cfg.model ? { model: cfg.model } : {}),
+      ...(cfg.fallbackModel ? { fallbackModel: cfg.fallbackModel } : {}),
       tools:        RECEPTIONIST_TOOLS,
     };
 
