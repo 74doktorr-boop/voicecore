@@ -248,9 +248,15 @@ class ToolExecutor {
         error: `No he podido interpretar la hora "${args.time || ''}". Pregunta al cliente la hora concreta (por ejemplo: "a la una y media" o "13:30") y vuelve a intentarlo.`,
       };
     }
+    // "¿Le aviso a este número?" — la promesa es DETERMINISTA: el servidor
+    // conoce el número del llamante; el LLM no. Sin esto, TODAS las citas
+    // se guardaban con phone null (verificado en prod 2026-07-03) y los
+    // recordatorios/WhatsApp no tenían destinatario.
+    const callerPhone = context.session?.callerNumber;
+    const defaultPhone = (callerPhone && callerPhone !== 'unknown') ? callerPhone : '';
     const result = scheduler.bookAppointment(businessId, {
       patientName: name,
-      phone:       args.phone  || '',
+      phone:       args.phone  || defaultPhone,
       email:       args.email  || null,
       service:     args.service || args.treatment || args.activity || args.reason || '',
       date:        args.date,

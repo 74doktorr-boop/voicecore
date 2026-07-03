@@ -52,6 +52,30 @@ describe('candados deterministas de book_appointment', () => {
     assert.strictEqual(session.bookedAppointment.patientName, 'Nerea', 'el singular sigue siendo la última (compat)');
   });
 
+  test('"le aviso a este número": el teléfono del llamante entra SOLO en la cita', async () => {
+    // Bug real: TODAS las citas de prod tenían phone null — el LLM no
+    // conoce el número del llamante y nadie se lo ponía por él.
+    const session = { availabilityChecked: true, callerNumber: '+34666351319' };
+    const r = await exec.execute('book_appointment',
+      { patient_name: 'Ane', service: 'corte', date: '2099-01-05', time: '12:00', confirmed_with_customer: true },
+      'demo-clinic', { session });
+    assert.ok(r.success, r.error);
+    assert.strictEqual(r.appointment.phone, '+34666351319');
+  });
+
+  test('caller unknown → sin teléfono inventado; phone explícito gana', async () => {
+    const session = { availabilityChecked: true, callerNumber: 'unknown' };
+    const r1 = await exec.execute('book_appointment',
+      { patient_name: 'A', service: 'corte', date: '2099-01-05', time: '12:30', confirmed_with_customer: true },
+      'demo-clinic', { session });
+    assert.ok(!r1.appointment.phone, 'sin teléfono inventado (vacío o null)');
+    const session2 = { availabilityChecked: true, callerNumber: '+34600111222' };
+    const r2 = await exec.execute('book_appointment',
+      { patient_name: 'B', service: 'corte', date: '2099-01-05', time: '13:00', phone: '+34999888777', confirmed_with_customer: true },
+      'demo-clinic', { session: session2 });
+    assert.strictEqual(r2.appointment.phone, '+34999888777');
+  });
+
   test('check_availability abre el candado en la sesión', async () => {
     const session = {};
     await exec.execute('check_availability', { from_date: '2099-01-04', to_date: '2099-01-05' }, 'demo-clinic', { session });
@@ -135,6 +159,52 @@ describe('escalera de confianza del STT (4 niveles)', () => {
     const s = p.activeCalls.get('conf-2');
     assert.strictEqual(s.metrics.turns[0].sttConfidence, undefined);
     assert.strictEqual(p._llmCalls.length, 1);
+  });
+});
+
+describe('barge-in inmune a voces de fondo', () => {
+  async function armedCall() {
+    let sttCallbacks = {};
+    const sttRouter = {
+      getProvider: () => ({ createSession: () => sttCallbacks }),
+      closeSession: () => {},
+      sendAudio: () => {},
+      resetTranscript: () => {},
+    };
+    const p = new VoicePipeline({ sttRouter, ttsRouter: {}, llmRouter: {}, callStore: { saveCallStart: async () => {}, saveCallEnd: async () => {} } });
+    const s = await p.startCall({
+      callId: 'barge-1',
+      assistant: { id: 'biz-b', name: 'B', language: 'es' },
+      callerNumber: 'x', calledNumber: 'y', direction: 'inbound',
+    });
+    s.playbackEndsAt = Date.now() + 60000; // el asistente está hablando AHORA
+    return { s, sttCallbacks };
+  }
+
+  test('interim con confianza baja (voz de fondo) NO interrumpe', async () => {
+    const { s, sttCallbacks } = await armedCall();
+    sttCallbacks.onSpeechStart('bueno pues entonces', { confidence: 0.4 });
+    assert.strictEqual(s.metrics.interruptions, 0);
+  });
+
+  test('interim corto (ruido) NO interrumpe', async () => {
+    const { s, sttCallbacks } = await armedCall();
+    sttCallbacks.onSpeechStart('eh', { confidence: 0.99 });
+    assert.strictEqual(s.metrics.interruptions, 0);
+  });
+
+  test('habla real con confianza alta SÍ interrumpe', async () => {
+    const { s, sttCallbacks } = await armedCall();
+    sttCallbacks.onSpeechStart('espera espera', { confidence: 0.95 });
+    assert.strictEqual(s.metrics.interruptions, 1);
+    clearTimeout(s._interruptWatchdog);
+  });
+
+  test('sin confidence en el interim (proveedor sin dato) mantiene el comportamiento', async () => {
+    const { s, sttCallbacks } = await armedCall();
+    sttCallbacks.onSpeechStart('espera espera', {});
+    assert.strictEqual(s.metrics.interruptions, 1);
+    clearTimeout(s._interruptWatchdog);
   });
 });
 

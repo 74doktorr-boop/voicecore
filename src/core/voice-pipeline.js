@@ -221,12 +221,19 @@ class VoicePipeline {
     sttSession.onUtteranceEnd = onTurnText;
     sttSession.onSpeechEnd    = onTurnText;
 
-    // Barge-in con DOS condiciones: (1) hay audio sonando AHORA (reloj de
-    // reproducción) y (2) el reconocedor tiene PALABRAS reales — el VAD
-    // pelado salta con ruido de fondo y dejaba al asistente callado a
-    // mitad de frase sin que nadie le hubiera hablado.
-    sttSession.onSpeechStart = (text) => {
-      if (!text || String(text).trim().length < 3) return; // ruido/energía sin palabras
+    // Barge-in con TRES condiciones: (1) hay audio sonando AHORA (reloj de
+    // reproducción), (2) el reconocedor tiene PALABRAS reales (≥4 chars —
+    // el VAD pelado salta con ruido), y (3) el interim llega con confianza
+    // alta: las voces de FONDO (tele, gente hablando cerca) transcriben con
+    // confidence bajo y dejaban al asistente callado a mitad de frase sin
+    // que el cliente le hubiera hablado (reportado de nuevo 2026-07-03).
+    sttSession.onSpeechStart = (text, meta) => {
+      if (!text || String(text).trim().length < 4) return; // ruido/energía sin palabras
+      const interimConf = meta && typeof meta.confidence === 'number' ? meta.confidence : null;
+      if (interimConf !== null && interimConf < 0.75) {
+        log.info(`[${callId}] Interim con confianza baja (${interimConf.toFixed(2)}) — NO interrumpe (voz de fondo)`);
+        return;
+      }
       if (session.isSpeakingNow()) {
         session.handleInterruption();
         session.clearTwilioBuffer();

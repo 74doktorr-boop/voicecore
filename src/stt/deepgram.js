@@ -94,12 +94,16 @@ class DeepgramSTT {
           session.currentTranscript = transcript;
         }
 
-        // Detect speech start for interruption handling
+        // Detect speech start for interruption handling. Se pasa el
+        // confidence del interim: las voces de FONDO transcriben con
+        // confianza baja — el pipeline lo usa para no dejar de hablar
+        // por una tele o una conversación ajena (bug real 2026-07-03).
         if (!session.speechStarted) {
           session.speechStarted = true;
           session.lastSpeechTime = Date.now();
           if (session.onSpeechStart) {
-            session.onSpeechStart(transcript);
+            const interimConf = data.channel?.alternatives?.[0]?.confidence;
+            session.onSpeechStart(transcript, { confidence: typeof interimConf === 'number' ? interimConf : null });
           }
         }
 
