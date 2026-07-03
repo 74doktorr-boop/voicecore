@@ -260,6 +260,7 @@ class ToolExecutor {
 
     if (result.success && result.appointment && context.session) {
       context.session.bookedAppointment = result.appointment;
+      context.session.bookedAppointments = [...(context.session.bookedAppointments || []), result.appointment];
       context.session.clientPhone       = args.phone || null;
       context.session.clientEmail       = args.email || null;
       context.session.outcome           = 'booked';

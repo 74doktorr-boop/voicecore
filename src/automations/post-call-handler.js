@@ -53,23 +53,27 @@ async function handle(callData) {
     await sendCallSummaryToOwner(callData, config).catch(e => log.warn('owner summary email failed', { err: e.message }));
   }
 
-  // ── 2. WhatsApp alert to owner for bookings ──────────────────────────────────
-  if (callData.outcome === 'booked' && callData.bookedAppointment) {
-    const apt = callData.bookedAppointment;
-    const msg = `📞 *Nueva reserva — ${config.name}*\n` +
-                `━━━━━━━━━━━━\n` +
-                `👤 ${apt.patientName}\n` +
-                `📋 ${apt.service}\n` +
-                `📅 ${apt.date} · ${apt.time}h\n` +
-                (apt.phone ? `📞 ${apt.phone}` : '') +
-                `\n━━━━━━━━━━━━\nGestionado por NodeFlow IA`;
-    sendWhatsApp(msg).catch(() => {});
-  }
-
-  // ── 3. Booking confirmation to client ───────────────────────────────────────
-  if (callData.outcome === 'booked' && callData.bookedAppointment?.email) {
-    await sendBookingConfirmationEmail(callData.bookedAppointment, config)
-      .catch(e => log.warn('booking confirmation email failed', { err: e.message }));
+  // ── 2+3. Avisos de reserva — para TODAS las citas de la llamada ─────────────
+  // Bug real (Pablo, 2026-07-03): 2 reservas en una llamada, solo se notificó
+  // la última (el campo singular machacaba la primera).
+  const bookedList = (callData.bookedAppointments && callData.bookedAppointments.length)
+    ? callData.bookedAppointments
+    : (callData.bookedAppointment ? [callData.bookedAppointment] : []);
+  if (callData.outcome === 'booked') {
+    for (const apt of bookedList) {
+      const msg = `📞 *Nueva reserva — ${config.name}*\n` +
+                  `━━━━━━━━━━━━\n` +
+                  `👤 ${apt.patientName}\n` +
+                  `📋 ${apt.service}\n` +
+                  `📅 ${apt.date} · ${apt.time}h\n` +
+                  (apt.phone ? `📞 ${apt.phone}` : '') +
+                  `\n━━━━━━━━━━━━\nGestionado por NodeFlow IA`;
+      sendWhatsApp(msg).catch(() => {});
+      if (apt.email) {
+        await sendBookingConfirmationEmail(apt, config)
+          .catch(e => log.warn('booking confirmation email failed', { err: e.message }));
+      }
+    }
   }
 
   // ── 4. Follow-up to client for info calls (30 min delay) ────────────────────
@@ -100,28 +104,10 @@ async function handle(callData) {
     }, FOLLOWUP_DELAY_MS);
   }
 
-  // ── 5. Persist call to Supabase (transcript + outcome) ──────────────────────
-  if (db.enabled && callData.id) {
-    db.client.from('calls').upsert({
-      call_sid:           callData.id,
-      org_id:             businessId,
-      outcome:            callData.outcome            || null,
-      caller_number:      callData.callerNumber       || null,
-      client_email:       callData.clientEmail        || null,
-      booked_appointment: callData.bookedAppointment  || null,
-      transcript:         callData.transcript         || [],
-      duration_ms:        callData.duration           || 0,
-      turn_count:         callData.turnCount          || 0,
-      started_at:         callData.startTime          || null,
-      ended_at:           callData.endTime            || null,
-      status:             'ended',
-    }, { onConflict: 'call_sid' })
-      // El builder de Supabase es thenable pero NO tiene .catch — llamarlo
-      // reventaba síncronamente y se saltaba TODO el resto del post-call
-      // (uso, webhooks, contacto, memoria). then(ok, err) cubre ambos casos.
-      .then(({ error }) => { if (error) log.warn('call DB persist failed', { err: error.message }); },
-            (e) => log.warn('call DB persist failed', { err: e.message }));
-  }
+  // ── 5. (eliminado 2026-07-03) La persistencia vive en nf_calls (call-store,
+  // cableado en endCall). El upsert legacy a "calls" con onConflict call_sid
+  // FALLABA en cada llamada desde el lanzamiento: la tabla real de producción
+  // no tiene columna call_sid (schema de otro diseño). Por eso estuvo vacía.
 
   // ── 6. Track call usage — increments monthly_minutes_used and usage table ────
   if (db.enabled && callData.duration > 0) {
@@ -149,7 +135,11 @@ async function handle(callData) {
 
   // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
   if (db.enabled && callData.callerNumber) {
-    const apt    = callData.bookedAppointment;
+    // El contacto es QUIEN LLAMA. Con varias reservas de nombres distintos
+    // ("una para mí y otra para mi novia") no se puede saber cuál es el del
+    // llamante → no adivinar (el CRM progresivo lo preguntará). Bug real:
+    // el teléfono de Pablo quedó fichado como "Nerea" (la última cita).
+    const apt    = bookedList.length === 1 ? bookedList[0] : null;
     const pName  = apt?.patientName || null;
     const pEmail = apt?.email || callData.clientEmail || null;
     db.client.rpc('upsert_contact', {

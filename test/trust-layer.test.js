@@ -41,6 +41,17 @@ describe('candados deterministas de book_appointment', () => {
     assert.ok(!r.error || !/RESERVA BLOQUEADA/.test(r.error), `no debe bloquear: ${r.error}`);
   });
 
+  test('varias reservas en una llamada se ACUMULAN (bug Pablo+Nerea)', async () => {
+    const session = { availabilityChecked: true };
+    const base = { service: 'corte', date: '2099-01-05', time: '10:00', confirmed_with_customer: true }; // lunes
+    const r1 = await exec.execute('book_appointment', { ...base, patient_name: 'Pablo' }, 'demo-clinic', { session });
+    const r2 = await exec.execute('book_appointment', { ...base, patient_name: 'Nerea', time: '11:00' }, 'demo-clinic', { session });
+    assert.ok(r1.success && r2.success, `ambas deben reservarse: ${r1.error || ''} ${r2.error || ''}`);
+    assert.strictEqual(session.bookedAppointments.length, 2, 'las DOS reservas quedan en la sesión');
+    assert.deepStrictEqual(session.bookedAppointments.map(a => a.patientName), ['Pablo', 'Nerea']);
+    assert.strictEqual(session.bookedAppointment.patientName, 'Nerea', 'el singular sigue siendo la última (compat)');
+  });
+
   test('check_availability abre el candado en la sesión', async () => {
     const session = {};
     await exec.execute('check_availability', { from_date: '2099-01-04', to_date: '2099-01-05' }, 'demo-clinic', { session });

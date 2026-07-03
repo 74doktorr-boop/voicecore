@@ -51,7 +51,11 @@ class CallSession {
     this.transcript = [];
     // ── Post-call context (populated by ToolExecutor during call) ────────────
     this.outcome         = 'abandoned';  // 'booked' | 'info' | 'abandoned'
-    this.bookedAppointment = null;       // set by book_appointment tool
+    this.bookedAppointment = null;       // última reserva (compat)
+    // TODAS las reservas de la llamada. Bug real (Pablo, 2026-07-03):
+    // reservó 2 citas en una llamada y solo se notificó la última —
+    // el campo singular machacaba la primera.
+    this.bookedAppointments = [];
     this.clientEmail     = null;         // set by book_appointment tool if email given
     this.businessId      = assistant?.id || null;
     if (assistant) this._initConversation();
@@ -244,6 +248,7 @@ class CallSession {
       // Post-call context
       outcome: this.outcome,
       bookedAppointment: this.bookedAppointment,
+      bookedAppointments: this.bookedAppointments,
       clientEmail: this.clientEmail,
       businessId: this.businessId,
       campaignRef: this.campaignRef || null, // job de Campaign Core que originó la saliente
