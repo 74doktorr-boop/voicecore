@@ -315,6 +315,15 @@ Guard emergieron tres activos que trascienden el vertical.
   nueva queda notificada a Bing sola. SEO que se acumula sin que nadie se
   acuerde de él. Compounding: 6.
 
+- **(2026-07-04, copiloto) «Dímelo con tus palabras» como patrón de toda la
+  plataforma.** El circuito lenguaje natural → propuesta estructurada →
+  validador determinista → confirmación del dueño (v1: servicios y horarios)
+  es EL desbloqueador del onboarding self-service (W3): un negocio entero se
+  configura dictando tres frases. El mismo patrón sirve para automatizaciones
+  («recuérdales la cita dos días antes»), campañas y cualquier formulario
+  futuro. En demo de 30s es magia visible: hablas, aparece configurado, y la
+  IA de la llamada lo dice bien. Compounding: 9.
+
 ---
 
 *Última revisión: 2026-07-04 · Ritual: cada feature terminada pasa por las 10
