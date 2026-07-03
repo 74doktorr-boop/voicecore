@@ -397,6 +397,17 @@ function setupAdminRoutes(app, config, assistantManager) {
     require('fs').createReadStream(file).pipe(res);
   });
 
+  // ─── Ciclo de mejora continua bajo demanda (el cron lo corre los lunes) ─────
+  app.post('/api/admin/improvement-cycle', adminAuth, async (req, res) => {
+    try {
+      const { runImprovementCycle } = require('../lifecycle/improvement-aggregator');
+      const summary = await runImprovementCycle();
+      res.json({ ok: true, ...summary });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Calls analytics dashboard ───────────────────────────────────────────────
   app.get('/api/admin/calls', adminAuth, (req, res) => {
     try {

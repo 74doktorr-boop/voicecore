@@ -17,6 +17,7 @@ let _stats       = { reminders: 0, reviews: 0, criticalDates: 0, noShows: 0, run
 let _history     = [];
 let _lastMonthlyResetDay = null; // 'YYYY-MM-01' — prevents duplicate resets in same day
 let _lastWeeklyReportDay = null; // 'YYYY-MM-DD' (Monday) — prevents duplicate weekly reports
+let _lastImprovementDay  = null; // 'YYYY-MM-DD' (Monday) — dedupe del ciclo de mejora
 
 async function checkAndSendCriticalDateReminders() {
   const { criticalDatesStore } = require('../scheduling/critical-dates');
@@ -313,6 +314,22 @@ async function runAutomations() {
     const noShows          = await checkAndHandleNoShows(scheduler, flowManager);
     const weeklyReports    = await sendWeeklyReports(scheduler, flowManager);
     const recoveredFollowups = await recoverMissedFollowups();
+
+    // ── Ciclo de mejora continua — lunes 09-10h Madrid, una vez por semana
+    // (opción A, 2026-07-04): huecos de datos → aviso a cada dueño; reglas
+    // candidatas globales → informe al fundador para su aprobación.
+    try {
+      const nowMadrid  = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+      const dowMadrid  = new Date(nowMadrid + 'T12:00:00').getDay();
+      const hourMadrid = parseInt(new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(new Date()), 10);
+      if (dowMadrid === 1 && hourMadrid >= 9 && hourMadrid < 10 && _lastImprovementDay !== nowMadrid) {
+        _lastImprovementDay = nowMadrid;
+        const { runImprovementCycle } = require('../lifecycle/improvement-aggregator');
+        const cycle = await runImprovementCycle();
+        _stats.improvementCycles = (_stats.improvementCycles || 0) + 1;
+        log.info(`Ciclo de mejora semanal: ${JSON.stringify(cycle)}`);
+      }
+    } catch (e) { log.warn(`ciclo de mejora: ${e.message}`); }
 
     _stats.reminders          += reminders;
     _stats.reviews            += reviews;
