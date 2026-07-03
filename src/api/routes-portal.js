@@ -837,6 +837,14 @@ function setupPortalRoutes(app, pipeline, config) {
       }
     }
 
+    // La tabla de servicios/horario editada aquí debe llegar YA al scheduler
+    // (duraciones → huecos) y al prompt (asistente cacheado 60s). Antes esta
+    // ruta no sincronizaba nada y los cambios no regían hasta el reinicio.
+    try {
+      const { syncOrgRuntime } = require('../scheduling/org-config');
+      await syncOrgRuntime(businessId);
+    } catch (_) { /* no crítico */ }
+
     const custom = flow.automations.config || {};
     log.info(`Portal: config updated for ${businessId}`);
     res.json({
