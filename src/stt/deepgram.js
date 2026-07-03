@@ -73,42 +73,46 @@ class DeepgramSTT {
       const isFinal = data.is_final;
       const speechFinal = data.speech_final;
 
-      if (!transcript) return;
+      if (transcript) {
+        if (isFinal) {
+          session.finalTranscript += (session.finalTranscript ? ' ' : '') + transcript;
+          log.stt(`[${callId}] Final: "${transcript}"`);
+        } else {
+          session.currentTranscript = transcript;
+        }
 
-      if (isFinal) {
-        session.finalTranscript += (session.finalTranscript ? ' ' : '') + transcript;
-        log.stt(`[${callId}] Final: "${transcript}"`);
-      } else {
-        session.currentTranscript = transcript;
-      }
+        // Detect speech start for interruption handling
+        if (!session.speechStarted) {
+          session.speechStarted = true;
+          session.lastSpeechTime = Date.now();
+          if (session.onSpeechStart) {
+            session.onSpeechStart(transcript);
+          }
+        }
 
-      // Detect speech start for interruption handling
-      if (!session.speechStarted && transcript.length > 0) {
-        session.speechStarted = true;
-        session.lastSpeechTime = Date.now();
-        if (session.onSpeechStart) {
-          session.onSpeechStart(transcript);
+        if (session.onTranscript) {
+          session.onTranscript({
+            text: transcript,
+            isFinal,
+            speechFinal,
+            fullTranscript: session.finalTranscript,
+          });
         }
       }
 
-      if (session.onTranscript) {
-        session.onTranscript({
-          text: transcript,
-          isFinal,
-          speechFinal,
-          fullTranscript: session.finalTranscript,
-        });
-      }
-
-      // speech_final indica que el hablante terminó (endpointing ~300ms):
-      // es el disparador RÁPIDO de fin de turno. Se limpia el transcript
-      // para que UtteranceEnd (fallback a 1000ms) no dispare doble.
+      // speech_final indica que el hablante terminó (endpointing ~300ms) y
+      // MUY A MENUDO llega en un frame VACÍO de cierre — el antiguo
+      // `if (!transcript) return` de arriba se lo tragaba y el turno jamás
+      // arrancaba. Consumirlo SIEMPRE, con o sin texto en este frame.
       if (speechFinal && session.onSpeechEnd) {
         const fullText = session.finalTranscript;
         session.speechStarted = false;
         session.finalTranscript = '';
         session.currentTranscript = '';
-        session.onSpeechEnd(fullText);
+        if (fullText) {
+          log.stt(`[${callId}] speech_final → turno: "${fullText.slice(0, 60)}"`);
+          session.onSpeechEnd(fullText);
+        }
       }
     });
 
