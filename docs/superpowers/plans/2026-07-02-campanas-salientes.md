@@ -139,6 +139,18 @@ Estimación honesta: 2-3 sesiones de trabajo, la primera entera para 1-3.
 Pacer de frames 20ms, reloj de reproducción (adiós marks), ulaw_8000 nativo,
 utteranceEndMs 800, dicción telefónica en el prompt. Validar con llamada real.
 
+### Criterios de aceptación de la llamada real (checklist del cofundador)
+La validación no es "funciona": es que TODO esto pase de forma repetible:
+- [ ] Responde consistentemente <~500ms tras terminar de hablar el usuario
+- [ ] Sin silencios largos ni respuestas truncadas
+- [ ] Barge-in correcto sin perder el contexto; ruido de fondo NO le corta
+- [ ] Entiende "a la una y media", "el martes que viene"
+- [ ] Saluda por el nombre cuando corresponde; contexto estable toda la llamada
+- [ ] JAMÁS ofrece cita sin validar con el motor de disponibilidad
+- [ ] Si falla un servicio externo, degrada con elegancia (nunca silencio)
+Cuando pase repetible → el Voice Core queda certificado como componente
+reutilizable para cualquier producto futuro.
+
 ### Voz v3 (si tras validar v2 sigue >1,5s por turno)
 1. Verificar en logs que el LLM enruta a groq (org assistant va sin model).
 2. TTS streaming: ElevenLabs stream endpoint → frames al pacer según llegan

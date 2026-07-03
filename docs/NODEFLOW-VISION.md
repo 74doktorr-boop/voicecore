@@ -32,6 +32,27 @@ Año 3 *crece solo*.
 # Los Cores — capacidades, no productos
 
 La plataforma que hace que el SIGUIENTE SaaS vertical se construya en semanas.
+
+**REGLA DE CEGUERA DE DOMINIO: ningún Core conoce el negocio.**
+Voice Core no sabe qué es una peluquería — solo habla, escucha, detecta
+silencios, interrumpe y sintetiza. Booking Core no sabe qué es un masaje —
+solo recursos, duraciones, disponibilidad y conflictos. Campaign Core no sabe
+qué vende el cliente — solo trabajos, reintentos, ventanas, colas y métricas.
+El conocimiento del negocio vive en la capa de producto (prompts, configs,
+sector-templates). Cuanto menos sabe un Core, más productos lo reutilizan.
+
+## El quinto Core — el más importante
+
+| Core | Qué es |
+|---|---|
+| **Intelligence Core** | **No IA: INTELIGENCIA.** La IA responde; la inteligencia APRENDE. Todo (llamadas, reservas, chats, campañas, valoraciones, agenda, estadísticas) desemboca en un único cerebro que **genera conocimiento nuevo, no almacena datos**. No dice "42 llamadas": dice *"las reservas del martes tarde se cancelan un 73% más"*, *"las llamadas perdidas de 13:00-14:30 te cuestan ~1.280€/mes"*, *"quien reserva mesa de dos un viernes vuelve un 47% más"*. Imposible de copiar rápido: requiere meses de datos. **Compounding 10/10.** Semillas hoy: transcript-analyzer, kpis, insights por reglas. v1 realista: job nocturno que cruza citas×cancelaciones×horas×llamadas perdidas×ticket y produce 1-3 hallazgos accionables por negocio y semana. |
+
+**NodeFlow Platform Score** (panel interno, revisar mensualmente): cada Core
+puntúa en madurez · cobertura de tests · nº de productos que lo usan · tiempo
+desde el último bug crítico · reutilización · documentación · API estable ·
+performance · escalabilidad · valor estratégico. El objetivo deja de ser
+"hacer Osakin" y pasa a ser "hacer crecer NodeFlow".
+
 Estado honesto de cada core hoy:
 
 | Core | Qué es | Estado hoy | Para ser Core de verdad |
@@ -182,6 +203,39 @@ ninguno y tampoco es WOW/Lock-in/Moat → se cuestiona su existencia.
 
 ---
 
+# Compounding Score — la ordenación que importa
+
+**Pregunta:** si lo implemento UNA vez, ¿su valor crece solo cada mes sin tocar
+código? Priorizar por interés compuesto: dentro de dos años, lo que más ingresa
+no será lo más llamativo hoy, sino lo que creció con el uso.
+
+| Idea | Compounding | Por qué |
+|---|---|---|
+| Intelligence Core | **10** | Cada dato de cada cliente lo hace más listo para todos |
+| M1 Dataset conversaciones es/eu/gl | **10** | Cada llamada lo mejora |
+| M2 Benchmarks entre negocios | **10** | Cada cliente nuevo sube el valor para todos |
+| M4 Red de derivaciones | **10** | Efecto red puro por densidad |
+| L2 Conocimiento auto-enseñado | **9** | Cada pregunta sin respuesta enseña al sistema |
+| L5 Auto-QA | **9** | Cada examen afina el motor |
+| W4 "¿Lo de siempre?" | **9** | Cada reserva mejora la siguiente |
+| M3 IA por sector | **9** | Cada conversación destila el playbook |
+| M5 Marketing estacional | **8** | Cada campaña lanzada calibra la siguiente |
+| L1 Ledger de valor | **8** | El número crece solo — y con él la retención |
+| L3 Ficha única multi-canal | **8** | Cada interacción enriquece el perfil |
+| S1 Dispatcher de campañas | **7** | Cada nuevo consumidor lo amortiza |
+| S3 Event Core formal | **7** | Cada suscriptor nuevo multiplica |
+| W2 El lunes te llama | **7** | Con Intelligence Core, el guion mejora solo |
+| L4 Agenda que se defiende | **6** | Ejecuta igual; compone vía datos de waitlist |
+| W1 Voz clonada | **6** | Espectacular hoy, igual dentro de un año |
+| S2 Design Core | **6** | Amortiza por producto nuevo |
+| W3 Onboarding mágico | **5** | Capacidad estática (enorme, pero no compone) |
+| W5 Web que habla | **5** | Ídem |
+
+**Lectura estratégica:** los WOW venden la entrada; los 9-10 construyen la
+empresa. El 30% de esfuerzo de foso va SIEMPRE a la mitad alta de esta tabla.
+
+---
+
 *Última revisión: 2026-07-03 · Ritual: cada feature terminada pasa por las 10
-preguntas + test de demo 30s, y lo que emerja se escribe AQUÍ en lenguaje de
-cliente. Añadir aquí, no en la cabeza.*
+preguntas + test de demo 30s + Compounding Score, y lo que emerja se escribe
+AQUÍ en lenguaje de cliente. Añadir aquí, no en la cabeza.*
