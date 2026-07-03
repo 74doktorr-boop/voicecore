@@ -1395,43 +1395,37 @@ function setupPortalRoutes(app, pipeline, config) {
         .update({ assistant_config: merged })
         .eq('id', businessId);
 
-      // UNA sola verdad de servicios: la edición del dueño regenera también
-      // la lista ESTRUCTURADA (automation_config.serviceList), que es la que
-      // se inyecta como "precios estructurados" en cada llamada y la que usan
-      // get_services/get_pricing. Sin esto, la IA seguía ofreciendo los
-      // servicios ANTIGUOS con total seguridad (bug real 2026-07-03: el
-      // cliente cambió sus servicios y el asistente ofrecía "mechas a 45€").
+      // UNA sola verdad de servicios (#8): la tabla estructurada
+      // (automation_config.serviceList) manda. El texto libre legacy solo
+      // SIEMBRA la tabla si aún no existe; jamás la pisa (antes, guardar la
+      // pestaña Asistente regeneraba la lista desde el textarea y machacaba
+      // los servicios editados en la tabla de Configuración).
       if (safe.services !== undefined) {
         try {
-          const { parseServicesText } = require('../scheduling/org-config');
-          const serviceList = parseServicesText(safe.services);
+          const { seedServiceListFromText } = require('../scheduling/org-config');
           const { data: orgAuto } = await db.client
             .from('organizations').select('automation_config').eq('id', businessId).single();
           const auto = orgAuto?.automation_config || {};
-          auto.config = { ...(auto.config || {}), serviceList: serviceList || [] };
-          await db.client.from('organizations')
-            .update({ automation_config: auto }).eq('id', businessId);
-          log.info(`Portal: serviceList regenerado desde la edición del dueño (${(serviceList || []).length} servicios) para ${businessId}`);
+          const seeded = seedServiceListFromText(auto.config?.serviceList, safe.services);
+          if (seeded) {
+            auto.config = { ...(auto.config || {}), serviceList: seeded };
+            await db.client.from('organizations')
+              .update({ automation_config: auto }).eq('id', businessId);
+            log.info(`Portal: serviceList SEMBRADO desde texto legacy (${seeded.length} servicios) para ${businessId}`);
+          }
         } catch (e) {
-          log.error(`Portal: regeneración de serviceList falló: ${e.message}`);
+          log.error(`Portal: siembra de serviceList falló: ${e.message}`);
         }
       }
 
-      // Sync scheduler in-memory config so changes take effect immediately.
-      // SIEMPRE vía el traductor canónico: copiar merged.schedule tal cual
-      // metía claves {mon,tue...} donde el scheduler indexa 0-6 y todos los
-      // días parecían cerrados (bug HHR 2026-07-03).
+      // Scheduler + asistente cacheado en sync — vía helper canónico
+      // (traduce SIEMPRE con toSchedulerConfig: copiar merged.schedule tal
+      // cual metía claves {mon,tue...} donde el scheduler indexa 0-6 y todos
+      // los días parecían cerrados — bug HHR 2026-07-03).
       try {
-        const { scheduler } = require('../scheduling/scheduler');
-        const { toSchedulerConfig } = require('../scheduling/org-config');
-        const { data: orgRow } = await db.client
-          .from('organizations').select('id, name, assistant_config, automation_config')
-          .eq('id', businessId).single();
-        if (orgRow) scheduler.setBusinessConfig(businessId, toSchedulerConfig(orgRow));
-      } catch (_) { /* scheduler not critical */ }
-
-      // El asistente vivo se reconstruye en la siguiente llamada
-      try { require('../assistants/org-assistant').invalidateOrgAssistant(businessId); } catch (_) {}
+        const { syncOrgRuntime } = require('../scheduling/org-config');
+        await syncOrgRuntime(businessId);
+      } catch (_) { /* runtime sync no es crítico para responder */ }
 
       log.info(`Portal: assistant config updated for ${businessId}`);
       res.json({ ok: true, prompt });
