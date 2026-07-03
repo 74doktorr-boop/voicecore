@@ -200,7 +200,7 @@ class VoicePipeline {
     // Dos disparadores (Deepgram): speech_final (endpointing ~300ms, el
     // RÁPIDO) y UtteranceEnd (1000ms, respaldo). deepgram.js limpia el
     // transcript al disparar speech_final, así que no hay dobles.
-    const onTurnText = async (text) => {
+    const onTurnText = async (text, meta) => {
       if (!text?.trim() || text.trim().length < 2) return;
       if (session.isProcessing) {
         // El cliente habló mientras procesábamos el turno anterior (típico tras
@@ -209,7 +209,7 @@ class VoicePipeline {
         session.pendingUtterance = text;
         return;
       }
-      await this._processTurn(callId, text);
+      await this._processTurn(callId, text, meta);
     };
     sttSession.onUtteranceEnd = onTurnText;
     sttSession.onSpeechEnd    = onTurnText;
@@ -285,7 +285,7 @@ class VoicePipeline {
   /**
    * Process a conversation turn: LLM → (Tools) → TTS
    */
-  async _processTurn(callId, userText) {
+  async _processTurn(callId, userText, meta = {}) {
     const session = this.activeCalls.get(callId);
     if (!session) return;
 
@@ -297,6 +297,25 @@ class VoicePipeline {
 
     // Add user message
     session.addUserMessage(userText);
+
+    // ── Capa de confianza: "nunca sacrificar fiabilidad por inteligencia" ──
+    // La llamada real del 2026-07-03 llegó con confidence 0.63-0.78 y el
+    // sistema ACTUÓ sobre la transcripción basura (reservó una cita jamás
+    // pedida). Con fiabilidad baja, el LLM recibe la orden de confirmar
+    // antes de actuar. Umbral inicial calibrable por env hasta tener
+    // baseline de llamadas buenas (se mide en metrics.turns.sttConfidence).
+    const conf = typeof meta?.confidence === 'number' ? meta.confidence : null;
+    if (conf !== null) {
+      turnMetrics.sttConfidence = +conf.toFixed(3);
+      const minConf = Number(process.env.STT_CONFIDENCE_MIN) || 0.75;
+      if (conf < minConf) {
+        session.messages.push({
+          role: 'system',
+          content: `AVISO: la última frase del cliente se ha reconocido con baja fiabilidad (${Math.round(conf * 100)}%) y puede contener palabras mal entendidas. Si implica una ACCIÓN (reservar, cancelar, apuntar datos) o un dato importante (nombre, fecha, hora, servicio), repite lo que has entendido y pide confirmación antes de actuar. Si no tiene sentido, pide amablemente que lo repita.`,
+        });
+        log.warn(`[${callId}] Turno con confidence baja (${conf.toFixed(2)}) — modo confirmación`);
+      }
+    }
 
     try {
       // Get OpenAI tools format

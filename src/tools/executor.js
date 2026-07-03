@@ -178,7 +178,10 @@ class ToolExecutor {
   // 1. CORE SCHEDULING
   // ─────────────────────────────────────────────────────────────────────────
 
-  checkAvailability(args, assistantId) {
+  checkAvailability(args, assistantId, context = {}) {
+    // Candado de confianza: reservar exige haber consultado disponibilidad
+    // en ESTA llamada (ver bookAppointment). Aquí se abre el candado.
+    if (context.session) context.session.availabilityChecked = true;
     const businessId  = assistantId || 'demo-clinic';
     const todayMadrid = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
     const fromDate    = args.from_date || todayMadrid;
@@ -209,6 +212,28 @@ class ToolExecutor {
   }
 
   bookAppointment(args, assistantId, context = {}) {
+    // ── Capa de confianza (bug real APT-1002, 2026-07-03): la IA reservó un
+    // día y hora que el cliente JAMÁS oyó ni aceptó (el transcript no
+    // menciona fecha alguna). Dos candados deterministas, server-side:
+    if (context.session) {
+      // 1. Regla de oro aplicada al tool: sin check_availability en ESTA
+      //    llamada no hay reserva — la disponibilidad no se inventa.
+      if (!context.session.availabilityChecked) {
+        return {
+          success: false,
+          error: 'RESERVA BLOQUEADA: primero consulta check_availability y di al cliente los huecos reales. Después confirma día y hora con él antes de reservar.',
+        };
+      }
+      // 2. Confirmación explícita: el modelo debe declarar que el cliente
+      //    oyó y aceptó día y hora. Sin eso, se le devuelve al paso de
+      //    confirmación (menos mágico, infinitamente más fiable).
+      if (args.confirmed_with_customer !== true) {
+        return {
+          success: false,
+          error: `RESERVA BLOQUEADA: antes de reservar debes decir al cliente en voz alta el día y la hora ("${args.date || '?'} a las ${args.time || '?'}") y esperar a que acepte. Cuando haya dicho que sí, vuelve a llamar con confirmed_with_customer=true.`,
+        };
+      }
+    }
     const businessId = assistantId || 'demo-clinic';
     // Normalize field names across sectors (patient_name, client_name, owner_name, member_name)
     const name = args.patient_name || args.client_name || args.owner_name || args.member_name || '';
@@ -987,7 +1012,7 @@ class ToolExecutor {
         type: 'function',
         function: {
           name: 'book_appointment',
-          description: 'Reserva una cita cuando el cliente confirme todos los datos',
+          description: 'Reserva una cita. SOLO cuando hayas dicho al cliente en voz alta el día y la hora exactos y el cliente haya ACEPTADO explícitamente. Jamás reserves un día u hora que el cliente no haya oído y confirmado.',
           parameters: {
             type: 'object',
             properties: {
@@ -997,8 +1022,9 @@ class ToolExecutor {
               service:      { type: 'string' },
               date:         { type: 'string', description: 'YYYY-MM-DD' },
               time:         { type: 'string', description: 'HH:MM' },
+              confirmed_with_customer: { type: 'boolean', description: 'true SOLO si has dicho al cliente el día y la hora exactos y ha respondido que sí. Si no ha confirmado, NO llames a esta función: pregunta primero.' },
             },
-            required: ['patient_name', 'service', 'date', 'time'],
+            required: ['patient_name', 'service', 'date', 'time', 'confirmed_with_customer'],
           },
         },
       },

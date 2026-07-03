@@ -8,6 +8,16 @@ const { Logger } = require('../utils/logger');
 
 const log = new Logger('STT');
 
+// Media de confidence de los frames finales del turno (o null si no hay).
+// Deepgram la emite en cada Final; hasta 2026-07-03 se TIRABA — y la
+// llamada real transcrita como basura llevaba 0.63-0.78 de confidence:
+// la señal para pedir confirmación estaba ahí y nadie la miraba.
+function _avgConfidence(session) {
+  const c = session.finalConfidences;
+  if (!c || c.length === 0) return null;
+  return c.reduce((a, b) => a + b, 0) / c.length;
+}
+
 class DeepgramSTT {
   constructor(apiKey) {
     this.client = createClient(apiKey);
@@ -52,6 +62,7 @@ class DeepgramSTT {
       isOpen: false,
       currentTranscript: '',
       finalTranscript: '',
+      finalConfidences: [],
       speechStarted: false,
       lastSpeechTime: 0,
       onTranscript: null,
@@ -76,7 +87,9 @@ class DeepgramSTT {
       if (transcript) {
         if (isFinal) {
           session.finalTranscript += (session.finalTranscript ? ' ' : '') + transcript;
-          log.stt(`[${callId}] Final: "${transcript}"`);
+          const conf = data.channel?.alternatives?.[0]?.confidence;
+          if (typeof conf === 'number') session.finalConfidences.push(conf);
+          log.stt(`[${callId}] Final: "${transcript}"${typeof conf === 'number' ? ` (conf ${conf.toFixed(2)})` : ''}`);
         } else {
           session.currentTranscript = transcript;
         }
@@ -106,12 +119,14 @@ class DeepgramSTT {
       // arrancaba. Consumirlo SIEMPRE, con o sin texto en este frame.
       if (speechFinal && session.onSpeechEnd) {
         const fullText = session.finalTranscript;
+        const meta = { confidence: _avgConfidence(session) };
         session.speechStarted = false;
         session.finalTranscript = '';
         session.currentTranscript = '';
+        session.finalConfidences = [];
         if (fullText) {
           log.stt(`[${callId}] speech_final → turno: "${fullText.slice(0, 60)}"`);
-          session.onSpeechEnd(fullText);
+          session.onSpeechEnd(fullText, meta);
         }
       }
     });
@@ -121,10 +136,12 @@ class DeepgramSTT {
       log.stt(`[${callId}] Utterance end detected`);
       if (session.finalTranscript && session.onUtteranceEnd) {
         const fullText = session.finalTranscript;
+        const meta = { confidence: _avgConfidence(session) };
         session.finalTranscript = '';
         session.currentTranscript = '';
         session.speechStarted = false;
-        session.onUtteranceEnd(fullText);
+        session.finalConfidences = [];
+        session.onUtteranceEnd(fullText, meta);
       }
     });
 
