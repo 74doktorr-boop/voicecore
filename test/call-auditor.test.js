@@ -59,6 +59,53 @@ describe('auditCall', () => {
   });
 });
 
+describe('auditor con contexto del negocio (llamada real 2026-07-04)', () => {
+  // Caso real: el auditor marcó "prometió que el equipo llamará" como
+  // alucinación — pero ES el guion diseñado tras register_lead (el dueño
+  // recibe el aviso de verdad). Y no pudo detectar el fallo real (cliente
+  // pidió información, el asistente no dio el precio configurado) porque
+  // nunca vio el catálogo. El auditor debe auditar con las mismas cartas.
+  function capturingOpenAI(payload, box) {
+    return { chat: { completions: { create: async (args) => { box.args = args; return { choices: [{ message: { content: JSON.stringify(payload) } }] }; } } } };
+  }
+
+  const CALL_INFO = {
+    id: 'call-audit-2',
+    outcome: 'info',
+    assistantMode: 'contacto',
+    serviceList: [{ name: 'Recepcionista IA', price: '49€/mes', duration: '', notes: 'todo incluido' }],
+    transcript: [
+      { role: 'assistant', content: 'Bienvenido a NodeFlow, ¿qué necesita?' },
+      { role: 'user', content: 'Quiero información de los servicios.' },
+      { role: 'assistant', content: 'Registro su interés y el equipo le llamará.' },
+    ],
+  };
+
+  test('el prompt de auditoría recibe modo y catálogo configurado', async () => {
+    const box = {};
+    await auditCall(CALL_INFO, { openai: capturingOpenAI({ score: 70 }, box) });
+    const userMsg = box.args.messages.find(m => m.role === 'user').content;
+    assert.match(userMsg, /modo contacto/i);
+    assert.match(userMsg, /Recepcionista IA: 49€\/mes/);
+    const sysMsg = box.args.messages.find(m => m.role === 'system').content;
+    assert.match(sysMsg, /equipo le llamará.*NO es alucinación|NO es alucinación.*equipo le llamará/is);
+  });
+
+  test('info_gap se clampa: string útil o null', () => {
+    assert.strictEqual(_clamp({ score: 50, info_gap: '  precio del plan  ' }).info_gap, 'precio del plan');
+    assert.strictEqual(_clamp({ score: 50, info_gap: '' }).info_gap, null);
+    assert.strictEqual(_clamp({ score: 50 }).info_gap, null);
+    assert.strictEqual(_clamp({ score: 50, info_gap: 42 }).info_gap, null);
+  });
+
+  test('sin contexto de negocio, la auditoría sigue funcionando (legacy)', async () => {
+    const box = {};
+    const audit = await auditCall(CALL, { openai: capturingOpenAI({ score: 90 }, box) });
+    assert.strictEqual(audit.score, 90);
+    assert.doesNotMatch(box.args.messages.find(m => m.role === 'user').content, /CATÁLOGO/);
+  });
+});
+
 describe('shouldAlert — cuándo se despierta al fundador', () => {
   const okAudit = { score: 90, hallucinated: false, customer_satisfied: true };
 

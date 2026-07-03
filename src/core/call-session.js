@@ -252,6 +252,10 @@ class CallSession {
       clientEmail: this.clientEmail,
       businessId: this.businessId,
       campaignRef: this.campaignRef || null, // job de Campaign Core que originó la saliente
+      // Contexto para el auditor: sin esto auditaba a ciegas (no sabía el
+      // modo ni el catálogo y puntuaba mal el guion correcto — 2026-07-04)
+      assistantMode: this.assistant?.mode || null,
+      serviceList: this.serviceList || null,
     };
   }
 }

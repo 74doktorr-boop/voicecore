@@ -95,7 +95,11 @@ async function getOrgAssistant(orgId) {
       // es el auditor + quality score (llmProvider queda en metrics.turns).
       ...(cfg.model ? { model: cfg.model } : {}),
       ...(cfg.fallbackModel ? { fallbackModel: cfg.fallbackModel } : {}),
-      // mode: 'citas' (default) | 'contacto' — decide herramientas y prompt
+      // mode: 'citas' (default) | 'contacto' — decide herramientas y prompt.
+      // Se expone también para que el AUDITOR sepa qué guion es el correcto
+      // (falso positivo real 2026-07-04: marcó como alucinación "el equipo
+      // le llamará", que es el comportamiento diseñado tras register_lead).
+      mode:         cfg.mode === 'contacto' ? 'contacto' : 'citas',
       tools:        cfg.mode === 'contacto' ? CONTACT_TOOLS : RECEPTIONIST_TOOLS,
     };
 
