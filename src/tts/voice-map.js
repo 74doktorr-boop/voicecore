@@ -32,12 +32,29 @@ const VOICE_TO_ELEVEN = {
   fable:   ELEVEN.FEM_2,
   echo:    ELEVEN.MAS_1, // Carlos — masculino profesional
   onyx:    ELEVEN.MAS_2, // Pablo — masculino con autoridad
-  // IDs del catálogo config/voices.json
+  // IDs del catálogo config/voices.json → voice_id REAL y DISTINTO de
+  // ElevenLabs (verificados contra la API 2026-07-03). El mapa anterior
+  // colapsaba todo el catálogo a 4 voces: el cliente oía la misma voz
+  // con distinto nombre.
   'sofia-es':  ELEVEN.FEM_1,
   'lucia-es':  ELEVEN.FEM_2,
-  'elena-es':  ELEVEN.FEM_1,
   'carlos-es': ELEVEN.MAS_1,
   'pablo-es':  ELEVEN.MAS_2,
+  'elena-es':  'EXAVITQu4vr4xnSDxMaL', // madura, tranquilizadora
+  'marta-es':  'FGY2WhTYpPnrIDTdsKH5', // enérgica, cercana
+  'carmen-es': 'pFZP5JQG7iQjIQuC4Bku', // aterciopelada, elegante
+  'nerea-es':  'Xb7hH8MSUJpSbSDYk0k2', // clara, didáctica
+  'andrea-es': 'cgSgspJ2msm6clMCkdW9', // alegre, brillante
+  'jorge-es':  'JBFqnCBsd6RMkjVDRZzb', // cálido, narrador
+  'daniel-es': 'onwK4e9ZLuTAKqWW03F9', // locutor, estable
+  'hugo-es':   'nPczCjzI2devNBz1zQrb', // grave, reconfortante
+  // Alias del catálogo antiguo (orgs que ya los tengan guardados):
+  // ahora también suenan DISTINTOS entre sí.
+  'marta-studio':    'FGY2WhTYpPnrIDTdsKH5',
+  'jorge-studio':    'JBFqnCBsd6RMkjVDRZzb',
+  'carmen-journey':  'pFZP5JQG7iQjIQuC4Bku',
+  'isabel-cartesia': 'EXAVITQu4vr4xnSDxMaL',
+  'andrea-11labs':   'cgSgspJ2msm6clMCkdW9',
 };
 
 /**

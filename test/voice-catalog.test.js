@@ -41,7 +41,8 @@ describe('voice-catalog', () => {
     const voices = await listVoices({ apiKey: null, fetch: okFetch, force: true });
     assert.ok(voices.length >= 1);
     assert.ok(voices.every(v => v.id && v.name));        // bien formadas
-    assert.ok(voices.some(v => v.provider === 'openai')); // viene del catálogo estático
+    // Marcador del catálogo estático: las voces euskera locales solo viven ahí
+    assert.ok(voices.some(v => v.id === 'ane-eu'));
   });
 
   test('API falla (401) → fallback estático, no lanza', async () => {
