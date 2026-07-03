@@ -173,6 +173,18 @@ async function handle(callData) {
       p_email:        pEmail,
       p_last_call_at: callData.endTime || new Date().toISOString(),
     }).then(() => {
+      // El RPC conserva el primer nombre no-nulo: si el contacto quedó
+      // fichado con un genérico antiguo ("cliente"), un nombre REAL nuevo
+      // debe ganarle (bug real: Unai dio su nombre y siguió como "cliente").
+      if (pName) {
+        db.client.from('contacts')
+          .update({ name: pName })
+          .eq('org_id', businessId)
+          .eq('phone', callData.callerNumber)
+          .or('name.is.null,name.ilike.cliente,name.ilike.clienta,name.ilike.usuario,name.ilike.desconocido,name.ilike.desconocida,name.ilike.customer,name.ilike.unknown')
+          .then(({ error }) => { if (error) log.warn(`contact name upgrade: ${error.message}`); },
+                (e) => log.warn(`contact name upgrade: ${e.message}`));
+      }
       // ── 9. Async transcript analysis (fires after upsert committed) ──────────
       if (callData.transcript?.length > 0) {
         db.client.from('contacts')

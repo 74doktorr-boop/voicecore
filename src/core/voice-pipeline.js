@@ -334,6 +334,9 @@ class VoicePipeline {
     session.interrupted = false;
     session.lastTurnAt = Date.now(); // vigilante de silencio: hay conversación viva
     clearTimeout(session._interruptWatchdog); // llegó frase real — sin re-enganche
+    // El cliente siguió hablando: cancelar el colgado por despedida
+    clearTimeout(session._farewellTimer);
+    session._farewellTimer = null;
     const turnStart = Date.now();
     let turnMetrics = {};
 
@@ -463,6 +466,23 @@ class VoicePipeline {
       turnMetrics.totalTime = Date.now() - turnStart;
       session.recordTurn(turnMetrics);
 
+      // Colgado determinista por despedida: si el CLIENTE se despide y la
+      // respuesta también es despedida, el servidor cuelga solo — el LLM no
+      // siempre invoca end_call (verificado: turno final con 0 tools tras
+      // "gracias, adiós", 2026-07-03). Una frase nueva del cliente lo cancela
+      // (el siguiente _processTurn limpia el timer).
+      const USER_BYE = /\b(adi[oó]s|hasta luego|hasta pronto|nada m[aá]s|eso es todo|chao|agur|cu[ií]date)\b/i;
+      const BOT_BYE  = /\b(adi[oó]s|hasta luego|hasta pronto|que tenga|buen d[ií]a|buenas tardes|buenas noches|agur)\b/i;
+      const lastBot = session.transcript.length ? session.transcript[session.transcript.length - 1] : null;
+      if (USER_BYE.test(userText) && lastBot?.role === 'assistant' && BOT_BYE.test(lastBot.content) && !session._farewellTimer) {
+        const waitMs = Math.max(0, (session.playbackEndsAt || 0) - Date.now()) + 2500;
+        log.info(`[${callId}] Despedida mutua — colgado automático en ${Math.round(waitMs / 1000)}s`);
+        session._farewellTimer = setTimeout(() => {
+          try { (session.twilioWs || session.vonageWs)?.close(); } catch (_) {}
+        }, waitMs);
+        if (session._farewellTimer.unref) session._farewellTimer.unref();
+      }
+
     } catch (error) {
       log.error(`[${callId}] Turn processing error`, { error: error.message });
     } finally {
@@ -501,6 +521,16 @@ class VoicePipeline {
         session.assistant.id,
         { callId, session }          // ← context for session stamping (System A)
       );
+
+      // Observabilidad: entrada y salida de CADA tool quedan en las métricas
+      // del turno (nf_calls). Sin esto, "dijo que no había disponibilidad"
+      // era indiagnosticable — no sabíamos qué vio el LLM (2026-07-03).
+      turnMetrics.tools = turnMetrics.tools || [];
+      turnMetrics.tools.push({
+        name: tc.function.name,
+        args: JSON.stringify(toolArgs).slice(0, 300),
+        result: JSON.stringify(result).slice(0, 400),
+      });
 
       session.addToolMessage(tc.id, result.success !== undefined
         ? (result.success ? JSON.stringify(result) : `Error: ${result.error}`)
@@ -685,6 +715,7 @@ class VoicePipeline {
     if (!session) return null;
     clearInterval(session._lifeguard);
     clearTimeout(session._hangupTimer);
+    clearTimeout(session._farewellTimer);
 
     // Salud del audio entrante: segundos recibidos vs segundos de llamada.
     // <85% con llamada >10s = frames perdidos (red o CPU) — sospechar del

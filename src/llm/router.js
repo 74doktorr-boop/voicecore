@@ -113,6 +113,11 @@ class LLMRouter {
           throw new Error(chunk.message || chunk.content || `${providerName} error chunk`);
         }
         if (chunk.type === 'text' && chunk.content) yieldedText = true;
+        // Etiquetar QUIÉN sirvió el turno: sin esto el A/B de modelos era
+        // ciego (llmProvider llegaba null a métricas — bug real 2026-07-03).
+        if (chunk.type === 'done') {
+          chunk.metrics = { ...(chunk.metrics || {}), provider: providerName, model: resolvedModel };
+        }
         yield chunk;
       }
       return;
@@ -121,14 +126,20 @@ class LLMRouter {
 
       if (fallbackModel) {
         const fb = this.getProvider(fallbackModel);
-        yield* fb.provider.streamCompletion({ callId, messages, model: fb.model, tools, temperature, maxTokens });
+        for await (const chunk of fb.provider.streamCompletion({ callId, messages, model: fb.model, tools, temperature, maxTokens })) {
+          if (chunk.type === 'done') chunk.metrics = { ...(chunk.metrics || {}), provider: fb.providerName, model: fb.model, viaFallback: true };
+          yield chunk;
+        }
       } else {
         // Auto-fallback to next available provider
         for (const [name, info] of this.providers) {
           if (name === providerName) continue;
           try {
             log.info(`[${callId}] Fallback to ${name}`);
-            yield* info.instance.streamCompletion({ callId, messages, model: info.models[0], tools, temperature, maxTokens });
+            for await (const chunk of info.instance.streamCompletion({ callId, messages, model: info.models[0], tools, temperature, maxTokens })) {
+              if (chunk.type === 'done') chunk.metrics = { ...(chunk.metrics || {}), provider: name, model: info.models[0], viaFallback: true };
+              yield chunk;
+            }
             return;
           } catch (e) { continue; }
         }
