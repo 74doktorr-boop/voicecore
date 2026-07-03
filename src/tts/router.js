@@ -24,8 +24,12 @@ class TTSRouter {
     this.providers = new Map();
     this.metrics = new Map();
     this.cache = new Map();
-    this.cacheMaxAge = 3_600_000; // 1 hour
-    this.cacheMaxSize = 200;
+    // 24h/500: las frases fijas (saludo, recuperación, despedida, "¿Sí?
+    // Dígame") se sintetizan UNA vez y el resto de llamadas las reutilizan
+    // gratis — ahorro directo de créditos TTS en cada llamada (petición
+    // Unai 2026-07-03; con 1h el saludo se re-pagaba cada hora).
+    this.cacheMaxAge = 24 * 3_600_000;
+    this.cacheMaxSize = 500;
 
     this._initProviders(config);
   }

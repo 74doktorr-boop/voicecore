@@ -147,6 +147,11 @@ class VoicePipeline {
             const { formatServiceList } = require('../assistants/prompt-generator');
             const priceBlock = formatServiceList(org?.automation_config?.config?.serviceList);
             if (priceBlock) { sys.content += '\n\n' + priceBlock; log.info(`[${callId}] Precios estructurados inyectados (org ${orgId})`); }
+            // Dirección del negocio: si el dueño la configuró, la IA debe
+            // saber decirla ("¿dónde estáis?") — antes no llegaba al prompt
+            // (feedback real 2026-07-03).
+            const address = org?.automation_config?.config?.address;
+            if (address) sys.content += `\n\nDIRECCIÓN DEL NEGOCIO: ${address}. Dásela al cliente si pregunta dónde está el negocio o cómo llegar.`;
           }
         } catch (e) { log.warn(`[${callId}] price-list inject fail-open: ${e.message}`); }
         // 2) Base de conocimiento libre (RAG)

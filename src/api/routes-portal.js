@@ -1310,7 +1310,7 @@ function setupPortalRoutes(app, pipeline, config) {
     // estaba vacía y este endpoint devolvía 404 para TODA llamada)
     const { data, error } = await db.client
       .from('nf_calls')
-      .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number')
+      .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number,metrics')
       .eq('id', callSid)
       .eq('org_id', businessId)
       .single();
@@ -1319,6 +1319,10 @@ function setupPortalRoutes(app, pipeline, config) {
       return res.status(404).json({ error: 'Transcripción no disponible para esta llamada' });
     }
 
+    // Análisis de calidad para el dueño: score determinista + auditoría IA
+    // (problemas y mejoras en su idioma) — ya se calculan solos por llamada.
+    const q = data.metrics?.quality || null;
+    const a = data.metrics?.audit || null;
     res.json({
       ok:           true,
       transcript:   data.transcript   || [],
@@ -1328,6 +1332,16 @@ function setupPortalRoutes(app, pipeline, config) {
       durationMs:   data.duration_ms  || 0,
       callerNumber: data.caller_number || null,
       available:    (data.transcript || []).length > 0,
+      analysis: (q || a) ? {
+        score:        a ? a.score : (q ? q.score : null),
+        satisfied:    a ? a.customer_satisfied : null,
+        hallucinated: a ? a.hallucinated : null,
+        verbosity:    a ? a.verbosity : null,
+        problems:     a ? a.problems : [],
+        improvements: a ? a.improvements : [],
+        avgConfidence: q ? q.avgConfidence : null,
+        avgLatency:    q ? q.avgLatency : null,
+      } : null,
     });
   });
 

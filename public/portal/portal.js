@@ -2713,9 +2713,33 @@ async function openTranscriptModal(callSid) {
     rows = '<div style="color:var(--dim);font-size:13px;padding:12px 0">Sin transcripción disponible para esta llamada.</div>';
   }
 
+  // Análisis de la llamada (auditor IA + métricas) — el sistema se puntúa
+  // solo tras cada llamada y el dueño ve el porqué, no solo el qué.
+  var an = data.analysis;
+  var analysisHtml = '';
+  if (an && an.score != null) {
+    var scoreColor = an.score >= 85 ? 'var(--green2)' : an.score >= 60 ? '#f39c12' : '#e74c3c';
+    var chips = '';
+    if (an.satisfied === false)    chips += '<span class="badge br">cliente insatisfecho</span> ';
+    if (an.hallucinated === true)  chips += '<span class="badge br">inventó datos</span> ';
+    if (an.verbosity === 'se_enrolla') chips += '<span class="badge by">se enrolla</span> ';
+    var probs = (an.problems || []).map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('');
+    var imps  = (an.improvements || []).map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('');
+    analysisHtml =
+      '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:12px 0">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+          '<span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)">Análisis de la llamada</span>' +
+          '<span style="font-size:16px;font-weight:900;color:' + scoreColor + '">' + an.score + '/100</span>' + chips +
+        '</div>' +
+        (probs ? '<div style="font-size:12px;color:var(--dim)"><strong>Puntos débiles:</strong><ul style="margin:4px 0 8px 18px;padding:0">' + probs + '</ul></div>' : '') +
+        (imps  ? '<div style="font-size:12px;color:var(--dim)"><strong>El asistente mejorará:</strong><ul style="margin:4px 0 0 18px;padding:0">' + imps + '</ul></div>' : '') +
+      '</div>';
+  }
+
   openModal(
     '<div class="modal-title">💬 Transcripción' + (dateStr ? ' · ' + dateStr : '') + '</div>' +
-    (durStr ? '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + durStr + ' · ' + data.transcript.length + ' turnos</div>' : '') +
+    (durStr ? '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + durStr + ' · ' + data.transcript.length + ' intercambios</div>' : '') +
+    analysisHtml +
     '<div class="transcript-list">' + rows + '</div>' +
     '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
   );

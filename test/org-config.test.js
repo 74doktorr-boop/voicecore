@@ -89,6 +89,16 @@ describe('toSchedulerConfig — casos límite', () => {
     assert.deepStrictEqual(s[2], { open: '10:00', close: '20:00' });
   });
 
+  test('00:00-00:00 significa TODO el día, no cerrado (bug real)', () => {
+    const s = normalizeSchedule({ mon: { open: '00:00', close: '00:00' } });
+    assert.deepStrictEqual(s[1], { open: '00:00', close: '24:00' });
+  });
+
+  test('cierre nocturno (09:00-02:00) se recorta a fin de día', () => {
+    const s = normalizeSchedule({ tue: { open: '09:00', close: '02:00' } });
+    assert.deepStrictEqual(s[2], { open: '09:00', close: '24:00' });
+  });
+
   test('turno de tarde se conserva', () => {
     const s = normalizeSchedule({ tue: { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' } });
     assert.deepStrictEqual(s[2], { open: '09:00', close: '14:00', afternoon_open: '15:30', afternoon_close: '20:00' });

@@ -66,10 +66,17 @@ function normalizeSchedule(schedule) {
     const dayNum = key in DAY_KEYS ? DAY_KEYS[key] : (/^[0-6]$/.test(key) ? parseInt(key, 10) : null);
     if (dayNum === null) continue;
     if (!val.open || !val.close) continue;
-    const day = { open: val.open, close: val.close };
+    // Cierres a medianoche o nocturnos: "00:00-00:00" significa TODO el día
+    // (bug real 2026-07-03: el dueño puso L-D 00:00-00:00 y el asistente lo
+    // leyó como cerrado). Un cierre menor que la apertura ("09:00-02:00")
+    // se recorta a fin de día — los tramos que cruzan medianoche de verdad
+    // van con la capacidad/seats en la revisión del scheduler.
+    let close = val.close;
+    if (close <= val.open) close = '24:00';
+    const day = { open: val.open, close };
     if (val.afternoon_open && val.afternoon_close) {
       day.afternoon_open = val.afternoon_open;
-      day.afternoon_close = val.afternoon_close;
+      day.afternoon_close = val.afternoon_close <= val.afternoon_open ? '24:00' : val.afternoon_close;
     }
     out[dayNum] = day;
   }
