@@ -133,6 +133,26 @@ async function handle(callData) {
     bookedAppointment: callData.bookedAppointment || null,
   }).catch(() => {});
 
+  // ── 7b. Auditor IA + alerta al fundador (self-diagnosing product) ───────────
+  // Cada llamada se audita sola; el veredicto se persiste junto al score
+  // determinista (re-upsert idempotente de nf_calls) y si la llamada fue
+  // mala, NodeFlow avisa al fundador ANTES de que el negocio se queje.
+  try {
+    const { auditCall } = require('../lifecycle/call-auditor');
+    const { sendFounderAlert, shouldAlert } = require('../notifications/founder-alert');
+    auditCall(callData).then(async (audit) => {
+      if (audit) {
+        callData.metrics = callData.metrics || {};
+        callData.metrics.audit = audit;
+        const { saveCallEnd } = require('../db/call-store');
+        await saveCallEnd(callData);
+      }
+      if (shouldAlert(callData, audit)) {
+        await sendFounderAlert(callData, audit, config).catch(() => {});
+      }
+    }).catch(e => log.warn(`auditor: ${e.message}`));
+  } catch (e) { log.warn(`auditor init: ${e.message}`); }
+
   // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
   if (db.enabled && callData.callerNumber) {
     // El contacto es QUIEN LLAMA. Con varias reservas de nombres distintos
