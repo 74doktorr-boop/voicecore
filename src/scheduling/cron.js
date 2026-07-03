@@ -277,6 +277,13 @@ async function runAutomations() {
     const { checkAndSendReminders,
             checkAndSendReviews }    = require('../notifications/reminders');
 
+    // ── Anti no-show por VOZ: la tarde anterior (16-19h), el asistente llama
+    // a confirmar las citas de mañana pendientes. Dedupe por cita en BD.
+    try {
+      const { enqueueNoShowConfirmations } = require('../campaigns/enqueuers');
+      await enqueueNoShowConfirmations({ scheduler, flowManager });
+    } catch (e) { log.warn(`anti no-show por voz: ${e.message}`); }
+
     // ── Monthly usage reset (1st of month, free/Starter orgs only) ──
     // Stripe-subscribed orgs are reset via invoice.paid webhook; only reset orgs without
     // a Stripe subscription so we don't interfere with mid-month billing periods.

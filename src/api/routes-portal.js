@@ -1005,6 +1005,42 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── POST /api/portal/campaigns/recovery ── recuperación en LOTE ─────────────
+  // El asistente llama, uno a uno y en horario civilizado, a los clientes que
+  // llamaron y no reservaron. Los teléfonos se validan SERVER-SIDE contra las
+  // oportunidades reales de la org (el navegador no decide a quién se llama).
+  app.post('/api/portal/campaigns/recovery', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      // Recalcular oportunidades reales (misma lógica que el GET)
+      const since = new Date(Date.now() - 14 * 86400000).toISOString();
+      const { data } = await db.client
+        .from('calls')
+        .select('caller_number, outcome, started_at')
+        .eq('org_id', req.businessId)
+        .gte('started_at', since)
+        .neq('outcome', 'booked')
+        .order('started_at', { ascending: false })
+        .limit(300);
+      const validPhones = new Set((data || []).map(c => c.caller_number).filter(Boolean));
+
+      // Si el body trae phones, intersectar; si no, todas las oportunidades.
+      const requested = Array.isArray(req.body?.phones) && req.body.phones.length
+        ? req.body.phones.filter(p => validPhones.has(p))
+        : [...validPhones];
+      if (!requested.length) return res.json({ ok: true, queued: 0, skipped: 0 });
+
+      const { enqueueRecoveryBatch } = require('../campaigns/enqueuers');
+      const result = await enqueueRecoveryBatch(req.businessId, req.flowConfig.name, requested.slice(0, 50));
+      log.info(`Campaña de recuperación (${req.flowConfig.name}): ${result.queued} en cola, ${result.skipped} saltados`);
+      res.json({ ok: true, ...result });
+    } catch (e) {
+      log.warn(`campaigns/recovery: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── GET /api/portal/insights ── horas/días punta + conversión ───────────────
   app.get('/api/portal/insights', portalAuth, async (req, res) => {
     const db = getDatabase();

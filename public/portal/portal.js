@@ -353,9 +353,43 @@ async function loadOportunidades() {
   }).join('');
   box.innerHTML =
     '<div class="card" style="margin-bottom:14px;background:rgba(253,203,110,.06);border-color:rgba(253,203,110,.25)">' +
-      '<div style="font-size:13px;color:var(--dim);line-height:1.6">💡 Estas personas llamaron en los últimos ' + (d.sinceDays||14) + ' días pero <strong style="color:var(--text)">no llegaron a reservar cita</strong>. Una llamada o un WhatsApp puede convertirlas en clientes.</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<div style="font-size:13px;color:var(--dim);line-height:1.6;flex:1;min-width:220px">💡 Estas personas llamaron en los últimos ' + (d.sinceDays||14) + ' días pero <strong style="color:var(--text)">no llegaron a reservar cita</strong>. Tu asistente puede llamarlas una a una y ofrecerles hueco.</div>' +
+        '<button class="btn btn-accent" onclick="oppAiCallAll(' + ops.length + ')" style="white-space:nowrap">🤖 Que las llame a todas (' + ops.length + ')</button>' +
+      '</div>' +
     '</div>' +
     '<div class="table-wrap"><table><thead><tr><th>Teléfono</th><th>Última llamada</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// Recuperación en LOTE: encola la campaña; el motor llama con educación
+// (L-S 10-20h, de una en una, máx. 2 intentos, sin insistir).
+function oppAiCallAll(count) {
+  openModal(
+    '<div class="modal-title">🤖 Campaña de recuperación</div>' +
+    '<p style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:10px">Tu asistente llamará a <strong>' + count + (count === 1 ? ' cliente' : ' clientes') + '</strong> que no llegaron a reservar, y les ofrecerá encontrar un hueco.</p>' +
+    '<ul style="font-size:12px;color:var(--dim);line-height:1.8;margin:0 0 8px 18px">' +
+      '<li>Solo en horario razonable: lunes a sábado, de 10:00 a 20:00</li>' +
+      '<li>De una en una — nunca en ráfaga</li>' +
+      '<li>Si no interesa, se despide con amabilidad y no insiste</li>' +
+      '<li>Cada llamada quedará en Llamadas con su resultado</li>' +
+    '</ul>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" id="oppAllBtn" onclick="oppAiCallAllGo()">Lanzar campaña</button>' +
+    '</div>');
+}
+
+async function oppAiCallAllGo() {
+  var btn = document.getElementById('oppAllBtn');
+  btn.disabled = true; btn.textContent = 'Encolando…';
+  try {
+    var r = await api('/api/portal/campaigns/recovery', 'POST', {});
+    closeModal();
+    toast('✅ ' + (r.queued || 0) + ' llamadas en cola' + (r.skipped ? ' (' + r.skipped + ' saltadas)' : '') + ' — saldrán entre 10:00 y 20:00');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Lanzar campaña';
+    toast('Error: ' + (e.message || e), 'err');
+  }
 }
 
 // ── Recuperación ejecutable: el asistente llama a la oportunidad ─────
