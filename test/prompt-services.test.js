@@ -45,3 +45,18 @@ describe('generatePrompt SIN serviceList (org legacy sin tabla)', () => {
     assert.match(prompt, /SERVICIOS Y PRECIOS:\nCorte 12€/);
   });
 });
+
+describe('informar ANTES de capturar el lead (llamada real 2026-07-04)', () => {
+  // Caso real: cliente pidió "información de los servicios"; el asistente
+  // registró el lead sin dar NI UN dato (el precio de 49€ jamás se dijo).
+  // El guion viejo mandaba directo a register_lead sin paso de informar.
+  test('modo contacto: el prompt exige responder con lo configurado primero', () => {
+    const prompt = generatePrompt({ mode: 'contacto', serviceList: LIST }, 'NodeFlow');
+    assert.match(prompt, /RESPONDE PRIMERO con los datos configurados/i);
+  });
+
+  test('modo citas: misma regla (aplica a todos los negocios)', () => {
+    const prompt = generatePrompt({ serviceList: LIST }, 'Peluquería HHR');
+    assert.match(prompt, /RESPONDE PRIMERO con los datos configurados/i);
+  });
+});
