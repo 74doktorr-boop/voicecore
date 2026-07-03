@@ -1703,13 +1703,22 @@ async function loadAutomatizaciones() {
   var sec = document.getElementById('sec-automatizaciones');
   sec.innerHTML = skelPanel();
 
-  var autoData, critData;
+  // Resiliencia por bloque: si un sub-servicio falla (p.ej. fechas críticas
+  // sin configurar), la sección NUNCA muere entera — el resto se pinta y el
+  // bloque roto muestra un aviso suave. Bug real 2026-07-03: la sección
+  // Automatizaciones quedaba en negro con el error crudo a pantalla completa.
+  var autoData, critData, critError = null;
   try {
     autoData = await api('/api/portal/automations');
-    critData = await api('/api/critical-dates/' + _orgInfo.id);
   } catch (e) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
+  }
+  try {
+    critData = await api('/api/critical-dates/' + _orgInfo.id);
+  } catch (e) {
+    critError = e.message || 'no disponible';
+    critData = { entries: [] };
   }
 
   var auto = autoData.automations || {};
@@ -1731,6 +1740,8 @@ async function loadAutomatizaciones() {
         '<button class="btn btn-r btn-sm" onclick="deleteCritDate(\'' + esc(e.id) + '\')">✕</button>' +
         '</div>';
     }
+  } else if (critError) {
+    critRows = '<div class="empty-state" style="padding:24px"><div class="empty-state-text">Los recordatorios de fechas no están disponibles ahora mismo. El resto de automatizaciones funciona con normalidad.</div></div>';
   } else {
     critRows = '<div class="empty-state" style="padding:24px"><div class="empty-state-text">No hay fechas críticas activas</div></div>';
   }
@@ -3509,7 +3520,7 @@ function openWaUpgrade() {
 async function requestWaUpgrade(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   try {
-    await api('/whatsapp/request', 'POST', {});
+    await api('/api/portal/whatsapp/request', 'POST', {});
     closeModal();
     toast('✅ Solicitud enviada — te contactamos en menos de 24h');
   } catch (e) {
