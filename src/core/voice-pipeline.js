@@ -305,26 +305,44 @@ class VoicePipeline {
     // Add user message
     session.addUserMessage(userText);
 
-    // ── Capa de confianza: "nunca sacrificar fiabilidad por inteligencia" ──
-    // La llamada real del 2026-07-03 llegó con confidence 0.63-0.78 y el
-    // sistema ACTUÓ sobre la transcripción basura (reservó una cita jamás
-    // pedida). Con fiabilidad baja, el LLM recibe la orden de confirmar
-    // antes de actuar. Umbral inicial calibrable por env hasta tener
-    // baseline de llamadas buenas (se mide en metrics.turns.sttConfidence).
+    // ── Escalera de confianza (diseño 2026-07-03): "nunca sacrificar
+    // fiabilidad por inteligencia". Nivel 1 >0.92 acción directa ·
+    // Nivel 2 0.75-0.92 repetición parcial ("Creo que ha dicho X, ¿es
+    // correcto?") · Nivel 3 0.55-0.75 pregunta abierta · Nivel 4 <0.55
+    // NI UNA SOLA ACCIÓN: el LLM ni siquiera procesa el turno.
+    // Se mide todo en metrics (sttConfidence por turno, clarifications).
     const conf = typeof meta?.confidence === 'number' ? meta.confidence : null;
-    if (conf !== null) {
-      turnMetrics.sttConfidence = +conf.toFixed(3);
-      const minConf = Number(process.env.STT_CONFIDENCE_MIN) || 0.75;
-      if (conf < minConf) {
-        session.messages.push({
-          role: 'system',
-          content: `AVISO: la última frase del cliente se ha reconocido con baja fiabilidad (${Math.round(conf * 100)}%) y puede contener palabras mal entendidas. Si implica una ACCIÓN (reservar, cancelar, apuntar datos) o un dato importante (nombre, fecha, hora, servicio), repite lo que has entendido y pide confirmación antes de actuar. Si no tiene sentido, pide amablemente que lo repita.`,
-        });
-        log.warn(`[${callId}] Turno con confidence baja (${conf.toFixed(2)}) — modo confirmación`);
-      }
-    }
+    if (conf !== null) turnMetrics.sttConfidence = +conf.toFixed(3);
 
     try {
+      if (conf !== null && conf < 0.55) {
+        // Nivel 4 — determinista, sin LLM: con esta fiabilidad cualquier
+        // "entendimiento" es una moneda al aire. Se pide repetición y punto.
+        session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
+        const ask = 'Perdone, no le he entendido bien. ¿Me lo puede repetir, por favor?';
+        log.warn(`[${callId}] Confianza nivel 4 (${conf.toFixed(2)}) — turno sin acción, se pide repetición`);
+        await this._speakText(callId, ask);
+        session.addAssistantMessage(ask);
+        session.recordTurn(turnMetrics);
+        return;
+      }
+      if (conf !== null && conf < 0.75) {
+        // Nivel 3 — pregunta abierta, prohibido actuar con estos datos.
+        session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
+        session.messages.push({
+          role: 'system',
+          content: `AVISO (fiabilidad ${Math.round(conf * 100)}%): la última frase del cliente se ha reconocido MAL. NO ejecutes ninguna acción ni registres ningún dato basándote en ella. Haz una pregunta abierta y amable para que el cliente repita lo que necesita (ej.: "No estoy seguro de haberle entendido bien, ¿me lo puede repetir?").`,
+        });
+        log.warn(`[${callId}] Confianza nivel 3 (${conf.toFixed(2)}) — pregunta abierta`);
+      } else if (conf !== null && conf < 0.92) {
+        // Nivel 2 — repetición parcial antes de usar cualquier dato.
+        session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
+        session.messages.push({
+          role: 'system',
+          content: `AVISO (fiabilidad ${Math.round(conf * 100)}%): la última frase puede contener palabras mal reconocidas. Si vas a usar un dato de ella (servicio, fecha, hora, nombre) o ejecutar una acción, PRIMERO repite lo entendido en forma de pregunta ("Creo que ha dicho X, ¿es correcto?") y espera la confirmación.`,
+        });
+        log.info(`[${callId}] Confianza nivel 2 (${conf.toFixed(2)}) — repetición parcial`);
+      }
       // Get OpenAI tools format
       const tools = ToolExecutor.toOpenAITools(session.assistant.tools);
 
@@ -402,6 +420,7 @@ class VoicePipeline {
       if (!session.interrupted && !fullResponse && pendingToolCalls.length === 0) {
         const recovery = 'Perdone, no le he escuchado bien. ¿Me lo puede repetir?';
         log.warn(`[${callId}] Turno sin respuesta del LLM — frase de recuperación`);
+        session.metrics.recoveries = (session.metrics.recoveries || 0) + 1;
         await this._speakText(callId, recovery);
         session.addAssistantMessage(recovery);
       }
@@ -503,6 +522,7 @@ class VoicePipeline {
         // cliente espera la respuesta — jamás dejarle en el aire.
         const recovery = 'Perdone, se me ha cortado un momento. ¿Me lo puede repetir?';
         log.warn(`[${callId}] Turno post-tool sin respuesta del LLM — frase de recuperación`);
+        session.metrics.recoveries = (session.metrics.recoveries || 0) + 1;
         await this._speakText(callId, recovery);
         session.addAssistantMessage(recovery);
       }
@@ -568,6 +588,44 @@ class VoicePipeline {
   }
 
   /**
+   * Conversation Success Score v1 — determinista y documentado.
+   * Entradas (todas ya medidas): completitud, confianza media del STT,
+   * latencia media por turno, fricción (aclaraciones + recuperaciones +
+   * interrupciones). 0-100. Los pesos son la calibración inicial; se
+   * revisan con datos reales (el score y sus entradas se persisten).
+   */
+  _computeQuality(session, callSeconds) {
+    const turns = session.metrics.turns || [];
+    const confs = turns.map(t => t.sttConfidence).filter(c => typeof c === 'number');
+    const avgConfidence = confs.length ? +(confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(3) : null;
+    const lats = turns.map(t => t.totalTime).filter(Boolean);
+    const avgLatency = lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : null;
+    const clarifications = session.metrics.clarifications || 0;
+    const recoveries = session.metrics.recoveries || 0;
+    const interruptions = session.metrics.interruptions || 0;
+    // Completa = hubo conversación real (≥1 turno procesado y >10s de llamada)
+    const completed = session.turnCount >= 1 && callSeconds > 10;
+
+    let score = 100;
+    if (!completed) score -= 40;
+    if (avgConfidence !== null) score -= Math.round(Math.max(0, (0.95 - avgConfidence) / 0.95) * 30);
+    if (avgLatency !== null && avgLatency > 1500) score -= Math.min(15, Math.round((avgLatency - 1500) / 200));
+    score -= Math.min(15, clarifications * 5 + recoveries * 5 + interruptions * 2);
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+      score,
+      completed,
+      booked: session.outcome === 'booked',
+      avgConfidence,
+      avgLatency,
+      clarifications,
+      recoveries,
+      interruptions,
+    };
+  }
+
+  /**
    * Extract complete sentences from accumulated text
    */
   _extractCompleteSentences(text) {
@@ -604,6 +662,10 @@ class VoicePipeline {
     // También en el registro de la llamada: diagnosticable desde la API
     // sin acceso a los logs del host.
     session.metrics.audioRx = { seconds: +rxSeconds.toFixed(1), callSeconds: +callSeconds.toFixed(1), pct };
+    // Conversation Success Score v1 — determinista, calculado de lo YA
+    // medido. Persiste en nf_calls.metrics.quality: "hoy 97 llamadas, 95
+    // con score >80" sustituye a leer logs. v2 (auditor IA) tras validar E2E.
+    session.metrics.quality = this._computeQuality(session, callSeconds);
     sttDebug.finalize(callId);
 
     this.sttRouter.closeSession(callId);

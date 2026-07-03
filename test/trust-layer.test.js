@@ -53,8 +53,9 @@ describe('candados deterministas de book_appointment', () => {
   });
 });
 
-describe('confidence del STT → modo confirmación', () => {
+describe('escalera de confianza del STT (4 niveles)', () => {
   function makePipeline() {
+    const llmCalls = [];
     const sttRouter = {
       getProvider: () => ({ createSession: () => ({}) }),
       closeSession: () => {},
@@ -62,12 +63,15 @@ describe('confidence del STT → modo confirmación', () => {
       resetTranscript: () => {},
     };
     const llmRouter = {
-      streamCompletion: async function* () {
+      streamCompletion: async function* (opts) {
+        llmCalls.push(opts);
         yield { type: 'done', content: 'vale', metrics: {} };
       },
     };
     const ttsRouter = { synthesize: async () => Buffer.alloc(0) };
-    return new VoicePipeline({ sttRouter, llmRouter, ttsRouter, callStore: { saveCallStart: async () => {}, saveCallEnd: async () => {} } });
+    const p = new VoicePipeline({ sttRouter, llmRouter, ttsRouter, callStore: { saveCallStart: async () => {}, saveCallEnd: async () => {} } });
+    p._llmCalls = llmCalls;
+    return p;
   }
 
   async function turnWithConfidence(confidence) {
@@ -78,21 +82,39 @@ describe('confidence del STT → modo confirmación', () => {
       callerNumber: 'x', calledNumber: 'y', direction: 'inbound',
     });
     await p._processTurn('conf-1', 'quiero un cortador de vuelo', { confidence });
-    return s;
+    return { s, p };
   }
 
-  test('confidence baja inyecta la orden de confirmar y queda en métricas', async () => {
-    const s = await turnWithConfidence(0.63);
-    const note = s.messages.find(m => m.role === 'system' && /baja fiabilidad/.test(m.content));
-    assert.ok(note, 'debe inyectarse el aviso de baja fiabilidad');
-    assert.match(note.content, /confirmación antes de actuar/);
-    assert.strictEqual(s.metrics.turns[0].sttConfidence, 0.63);
+  test('nivel 1 (>0.92): acción directa, sin avisos', async () => {
+    const { s, p } = await turnWithConfidence(0.95);
+    assert.ok(!s.messages.some(m => m.role === 'system' && /fiabilidad/.test(m.content)));
+    assert.strictEqual(p._llmCalls.length, 1, 'el LLM procesa el turno');
+    assert.strictEqual(s.metrics.turns[0].sttConfidence, 0.95);
+    assert.strictEqual(s.metrics.clarifications || 0, 0);
   });
 
-  test('confidence alta NO inyecta el aviso', async () => {
-    const s = await turnWithConfidence(0.95);
-    assert.ok(!s.messages.some(m => m.role === 'system' && /baja fiabilidad/.test(m.content)));
-    assert.strictEqual(s.metrics.turns[0].sttConfidence, 0.95);
+  test('nivel 2 (0.75-0.92): repetición parcial antes de usar datos', async () => {
+    const { s } = await turnWithConfidence(0.85);
+    const note = s.messages.find(m => m.role === 'system' && /es correcto/.test(m.content));
+    assert.ok(note, 'aviso de repetición parcial');
+    assert.strictEqual(s.metrics.clarifications, 1);
+  });
+
+  test('nivel 3 (0.55-0.75): pregunta abierta, prohibido actuar', async () => {
+    const { s } = await turnWithConfidence(0.63);
+    const note = s.messages.find(m => m.role === 'system' && /NO ejecutes ninguna acción/.test(m.content));
+    assert.ok(note, 'aviso de pregunta abierta');
+    assert.strictEqual(s.metrics.clarifications, 1);
+  });
+
+  test('nivel 4 (<0.55): NI UNA ACCIÓN — el LLM no procesa el turno', async () => {
+    const { s, p } = await turnWithConfidence(0.4);
+    assert.strictEqual(p._llmCalls.length, 0, 'el LLM jamás ve este turno');
+    const last = s.transcript[s.transcript.length - 1];
+    assert.strictEqual(last.role, 'assistant');
+    assert.match(last.content, /repetir/);
+    assert.strictEqual(s.metrics.clarifications, 1);
+    assert.strictEqual(s.metrics.turns[0].sttConfidence, 0.4);
   });
 
   test('sin confidence (proveedor sin dato) no rompe ni anota', async () => {
@@ -101,5 +123,47 @@ describe('confidence del STT → modo confirmación', () => {
     await p._processTurn('conf-2', 'hola buenas', {});
     const s = p.activeCalls.get('conf-2');
     assert.strictEqual(s.metrics.turns[0].sttConfidence, undefined);
+    assert.strictEqual(p._llmCalls.length, 1);
+  });
+});
+
+describe('Conversation Success Score v1', () => {
+  function makePipeline() {
+    const sttRouter = {
+      getProvider: () => ({ createSession: () => ({}) }),
+      closeSession: () => {},
+      sendAudio: () => {},
+      resetTranscript: () => {},
+    };
+    const llmRouter = { streamCompletion: async function* () { yield { type: 'done', content: 'vale', metrics: {} }; } };
+    const ttsRouter = { synthesize: async () => Buffer.alloc(0) };
+    return new VoicePipeline({ sttRouter, llmRouter, ttsRouter, callStore: { saveCallStart: async () => {}, saveCallEnd: async () => {} } });
+  }
+
+  test('cada llamada termina con metrics.quality completo y acotado', async () => {
+    const p = makePipeline();
+    await p.startCall({ callId: 'q-1', assistant: { id: 'biz-q', name: 'B', language: 'es' }, callerNumber: 'x', calledNumber: 'y', direction: 'inbound' });
+    await p._processTurn('q-1', 'quiero cita para el corte', { confidence: 0.97 });
+    const callData = p.endCall('q-1');
+    const q = callData.metrics.quality;
+    assert.ok(q, 'quality debe existir');
+    assert.ok(q.score >= 0 && q.score <= 100);
+    assert.strictEqual(typeof q.completed, 'boolean');
+    assert.strictEqual(q.avgConfidence, 0.97);
+    assert.strictEqual(q.clarifications, 0);
+    assert.strictEqual(q.booked, false);
+  });
+
+  test('la fricción baja el score: turnos dudosos puntúan peor que limpios', async () => {
+    const run = async (confs) => {
+      const p = makePipeline();
+      const id = 'q-' + confs.join('-');
+      await p.startCall({ callId: id, assistant: { id: 'biz-q2', name: 'B', language: 'es' }, callerNumber: 'x', calledNumber: 'y', direction: 'inbound' });
+      for (const c of confs) await p._processTurn(id, 'frase del cliente', { confidence: c });
+      return p.endCall(id).metrics.quality.score;
+    };
+    const limpia = await run([0.97, 0.96]);
+    const sucia  = await run([0.6, 0.5, 0.62]);
+    assert.ok(limpia > sucia, `limpia (${limpia}) debe puntuar más que sucia (${sucia})`);
   });
 });
