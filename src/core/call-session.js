@@ -246,6 +246,7 @@ class CallSession {
       bookedAppointment: this.bookedAppointment,
       clientEmail: this.clientEmail,
       businessId: this.businessId,
+      campaignRef: this.campaignRef || null, // job de Campaign Core que originó la saliente
     };
   }
 }

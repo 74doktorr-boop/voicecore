@@ -39,6 +39,15 @@ async function handle(callData) {
 
   log.info(`Post-call [${callData.id}] — outcome:${callData.outcome} biz:${businessId}`);
 
+  // ── 0. Campaign Core: cerrar el job que originó esta saliente ───────────────
+  if (callData.campaignRef) {
+    try {
+      const { completeCampaignCall } = require('../campaigns/dispatcher');
+      completeCampaignCall(callData.campaignRef, { outcome: callData.outcome, callSid: callData.id })
+        .catch(e => log.warn(`campaign complete failed: ${e.message}`));
+    } catch (e) { log.warn(`campaign complete: ${e.message}`); }
+  }
+
   // ── 1. Email summary to owner (always) ──────────────────────────────────────
   if (config.ownerEmail) {
     await sendCallSummaryToOwner(callData, config).catch(e => log.warn('owner summary email failed', { err: e.message }));

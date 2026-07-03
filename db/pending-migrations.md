@@ -267,3 +267,6 @@ CREATE POLICY "service_role_all" ON nf_phone_pool TO service_role USING (true) W
 - `nf_rebooking_log` + índice + RLS ✅ 2026-06-10
 - `nf_phone_pool` + índice + RLS ✅ 2026-06-10
 - `idx_reminders_due` + `idx_nf_appointments_org_phone` (lifecycle scaling patch 2) ✅ 2026-06-30
+
+## PENDIENTE 2026-07-03: migration-campaign-calls.sql
+Tabla nf_campaign_calls (cola del Campaign Core — dispatcher de salientes). Aplicar en Supabase SQL editor. Sin ella el dispatcher no lanza nada (fail-soft: warns en logs).

@@ -82,6 +82,7 @@ async function checkAndHandleNoShows(scheduler, flowManager) {
     if (apt.status !== 'confirmed') continue;   // only process confirmed (pending/completed/cancelled = skip)
     if (apt.noShowNotified) continue;           // already sent a no-show email
     if (!apt.email) continue;                   // no email to send to
+    if (!flowManager.isEnabled(apt.businessId, 'noshow')) continue; // respetar el toggle del negocio
 
     let aptMs;
     try {
@@ -331,11 +332,16 @@ function startCron(intervalMinutes = 30) {
   log.info(`Cron started — interval: ${intervalMinutes} min`);
   _warmupTimer = setTimeout(runAutomations, 60 * 1000);
   _interval = setInterval(runAutomations, intervalMinutes * 60 * 1000);
+  // Campaign Core: tick propio de 60s (ventana horaria y ritmo los gestiona él)
+  try {
+    require('../campaigns/dispatcher').startCampaignDispatcher();
+  } catch (e) { log.warn(`campaign dispatcher no arrancó: ${e.message}`); }
 }
 
 function stopCron() {
   if (_warmupTimer) { clearTimeout(_warmupTimer); _warmupTimer = null; }
   if (_interval) { clearInterval(_interval); _interval = null; log.info('Cron stopped'); }
+  try { require('../campaigns/dispatcher').stopCampaignDispatcher(); } catch (_) {}
 }
 
 function getCronStats() {

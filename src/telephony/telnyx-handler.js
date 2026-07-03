@@ -109,15 +109,17 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
             }
 
             // ── Saliente con propósito: si esta llamada la iniciamos NOSOTROS
-            // (test, recuperación…), el registro de outbound lo sabe. Se clona
-            // el asistente (los de org están cacheados — no mutar) añadiendo
-            // el bloque de propósito al prompt.
+            // (test, recuperación, campaña…), el registro de outbound lo sabe.
+            // Se clona el asistente (los de org están cacheados — no mutar)
+            // añadiendo el bloque de propósito al prompt.
             let direction = 'inbound';
+            let campaignRef = null;
             try {
               const { consumeOutboundContext } = require('./outbound');
               const outCtx = consumeOutboundContext(callerNumber, calledNumber);
               if (outCtx) {
                 direction = 'outbound';
+                campaignRef = outCtx.ref || null;
                 if (outCtx.promptBlock) {
                   assistant = { ...assistant, systemPrompt: (assistant.systemPrompt || '') + outCtx.promptBlock };
                 }
@@ -145,6 +147,11 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
             }
 
             sessionStarted = true;
+            // Enlace Campaign Core: el post-call cerrará el job con el outcome real.
+            if (campaignRef) {
+              const s = pipeline.activeCalls?.get?.(callId);
+              if (s) s.campaignRef = campaignRef;
+            }
             break;
 
           case 'media':
