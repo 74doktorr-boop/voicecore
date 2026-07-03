@@ -56,7 +56,7 @@ async function getOrgAssistant(orgId) {
   try {
     const { data: org } = await db.client
       .from('organizations')
-      .select('id, name, language, assistant_config, is_active')
+      .select('id, name, language, assistant_config, automation_config, is_active')
       .eq('id', orgId)
       .maybeSingle();
     if (!org || org.is_active === false) return null;
@@ -64,10 +64,17 @@ async function getOrgAssistant(orgId) {
     const cfg      = org.assistant_config || {};
     const language = cfg.language || org.language || 'es';
 
+    // La tabla estructurada entra al prompt base (#8). voice-pipeline sigue
+    // inyectando la versión fresca de BD como red — con dedupe.
+    const structuredList = org.automation_config?.config?.serviceList;
+    const cfgConLista = (Array.isArray(structuredList) && structuredList.length)
+      ? { ...cfg, serviceList: structuredList }
+      : cfg;
+
     const assistant = {
       id:           org.id,
       name:         cfg.assistantName || org.name,
-      systemPrompt: generatePrompt(cfg, org.name),
+      systemPrompt: generatePrompt(cfgConLista, org.name),
       firstMessage: cfg.firstMessage ||
         `{{GREETING}}, ha llamado a ${org.name}. ¿En qué puedo ayudarle?`,
       // La voz elegida decide también el PROVEEDOR (tiers 2026-07-03):

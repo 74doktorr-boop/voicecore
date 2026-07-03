@@ -146,7 +146,9 @@ class VoicePipeline {
             if (Array.isArray(sl) && sl.length) session.serviceList = sl; // para get_services / get_pricing
             const { formatServiceList } = require('../assistants/prompt-generator');
             const priceBlock = formatServiceList(org?.automation_config?.config?.serviceList);
-            if (priceBlock) { sys.content += '\n\n' + priceBlock; log.info(`[${callId}] Precios estructurados inyectados (org ${orgId})`); }
+            // Dedupe (#8): el prompt base del asistente ya puede traer el
+            // bloque (org-assistant lo genera desde la misma tabla).
+            if (priceBlock && !sys.content.includes('SERVICIOS Y PRECIOS (datos EXACTOS')) { sys.content += '\n\n' + priceBlock; log.info(`[${callId}] Precios estructurados inyectados (org ${orgId})`); }
             // Dirección del negocio: si el dueño la configuró, la IA debe
             // saber decirla ("¿dónde estáis?") — antes no llegaba al prompt
             // (feedback real 2026-07-03).

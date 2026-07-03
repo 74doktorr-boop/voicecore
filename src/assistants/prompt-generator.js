@@ -41,7 +41,7 @@ function formatLanguage(lang) {
   return 'Responde exclusivamente en español de España.';
 }
 
-function sectorBlock(sector, sectorData = {}) {
+function sectorBlock(sector, sectorData = {}, hasStructuredServices = false) {
   switch (sector) {
     case 'restaurante': {
       const carta = Array.isArray(sectorData.cartaItems) && sectorData.cartaItems.length > 0
@@ -66,7 +66,8 @@ function sectorBlock(sector, sectorData = {}) {
       return [seguros, espec].filter(Boolean).join('\n');
     }
     case 'peluqueria': {
-      return sectorData.servicios
+      // Con tabla estructurada, este texto legacy calla (#8): era la 2ª verdad.
+      return (!hasStructuredServices && sectorData.servicios)
         ? `SERVICIOS Y PRECIOS:\n${sectorData.servicios}`
         : '';
     }
@@ -94,7 +95,7 @@ function sectorBlock(sector, sectorData = {}) {
       return [programas, metodo].filter(Boolean).join('\n');
     }
     case 'podologia': {
-      return sectorData.servicios ? `SERVICIOS Y PRECIOS:\n${sectorData.servicios}` : '';
+      return (!hasStructuredServices && sectorData.servicios) ? `SERVICIOS Y PRECIOS:\n${sectorData.servicios}` : '';
     }
     case 'autoescuela': {
       const carnets = sectorData.carnets ? `CARNETS: ${sectorData.carnets}` : null;
@@ -200,7 +201,7 @@ function generatePrompt(config, orgName) {
   const serviceListStr = formatServiceList(config.serviceList);
   const extraInfo     = config.extraInfo || '';
   const langInstr     = formatLanguage(language);
-  const sectorStr     = sectorBlock(sector, config.sectorData || {});
+  const sectorStr     = sectorBlock(sector, config.sectorData || {}, !!serviceListStr);
 
   return `Eres ${assistantName}, la recepcionista de ${orgName}.
 Hablas por teléfono con clientes.
