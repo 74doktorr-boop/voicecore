@@ -31,6 +31,16 @@ const RECEPTIONIST_TOOLS = [
   'end_call',
 ];
 
+// Modo "contacto" (negocios SIN agenda — asesorías, abogados, el propio
+// NodeFlow): informa y toma recados; NO PUEDE ni intentar agendar (las
+// herramientas de citas ni existen para él — determinista, no prompt).
+const CONTACT_TOOLS = [
+  'get_client_memory',
+  'flag_urgent',
+  'register_lead',
+  'end_call',
+];
+
 /**
  * Devuelve el asistente vivo de una org, construido desde assistant_config.
  * null si la org no existe, está inactiva o no hay BD.
@@ -69,7 +79,8 @@ async function getOrgAssistant(orgId) {
       // es el auditor + quality score (llmProvider queda en metrics.turns).
       ...(cfg.model ? { model: cfg.model } : {}),
       ...(cfg.fallbackModel ? { fallbackModel: cfg.fallbackModel } : {}),
-      tools:        RECEPTIONIST_TOOLS,
+      // mode: 'citas' (default) | 'contacto' — decide herramientas y prompt
+      tools:        cfg.mode === 'contacto' ? CONTACT_TOOLS : RECEPTIONIST_TOOLS,
     };
 
     _cache.set(orgId, { assistant, at: Date.now() });

@@ -204,6 +204,13 @@
               </select>
             </div>
           </div>
+          <div class="form-group"><label class="form-label">¿Qué hace tu asistente?</label>
+            <select class="form-ctrl" id="asis-mode">
+              <option value="citas">📅 Agendar citas — consulta tu agenda y reserva huecos reales</option>
+              <option value="contacto">📞 Informar y tomar recados — explica tus servicios y apunta a quien quiera que le llames</option>
+            </select>
+            <small style="color:var(--dim);font-size:11px">En modo recados el asistente no puede agendar: registra al interesado (nombre, teléfono automático y qué necesita) y te avisa al momento para que le devuelvas la llamada.</small>
+          </div>
           <div class="form-group"><label class="form-label">Mensaje de bienvenida</label><input class="form-ctrl" id="asis-first" placeholder="Buenas, ¿en qué puedo ayudarle?"></div>
           <div class="form-group"><label class="form-label">Información adicional</label><textarea class="form-ctrl" id="asis-extra" rows="3" placeholder="Parking, accesibilidad, notas..."></textarea></div>
         </div>

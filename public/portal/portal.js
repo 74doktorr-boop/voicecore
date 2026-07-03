@@ -2937,6 +2937,7 @@ function renderAsistenteForm() {
 
   setVal('asis-name',  c.assistantName || '');
   setVal('asis-lang',  c.language || 'es');
+  setVal('asis-mode',  c.mode || 'citas');
   setVal('asis-first', c.firstMessage || '');
   setVal('asis-extra', c.extraInfo || '');
   setVal('asis-voice', c.voice || '');
@@ -3160,6 +3161,7 @@ function collectAsisConfig() {
   var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
   c.assistantName = get('asis-name');
   c.language      = get('asis-lang');
+  c.mode          = get('asis-mode') || 'citas';
   c.firstMessage  = get('asis-first');
   c.extraInfo     = get('asis-extra');
   c.voice         = get('asis-voice');
