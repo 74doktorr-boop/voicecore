@@ -2014,7 +2014,8 @@ async function loadConfig() {
         '<div id="svcList"></div>' +
         '<datalist id="svcPriceOpts"><option value="a presupuesto"><option value="gratis"><option value="desde 30€"></datalist>' +
         '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button>' +
-        '<small style="display:block;margin-top:8px;color:var(--dim);font-size:11px">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small></div>' +
+        '<small style="display:block;margin-top:8px;color:var(--dim);font-size:11px">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small>' +
+        copilotBox('services', 'Ej: corte de pelo 15 euros media hora, tinte 45 hora y media, mechas a presupuesto') + '</div>' +
       // #7: el textarea libre de horarios era un campo MUERTO (custom.schedule
       // no lo leía nada del runtime) — el horario real es el selector por días
       // de Asistente (assistant_config.schedule), que alimenta agenda y prompt.
@@ -2805,6 +2806,97 @@ var _asisOrgName = '';
 var _DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
 var _DAY_LABELS = { mon:'Lun', tue:'Mar', wed:'Mié', thu:'Jue', fri:'Vie', sat:'Sáb', sun:'Dom' };
 
+// ── Copiloto de configuración (#8): "dímelo con tus palabras" ─────────
+// Doble puerta SIEMPRE: la IA propone → el dueño ve la propuesta y pulsa
+// Aplicar (solo rellena el formulario) → su Guardar de siempre persiste.
+var _copProposal = {};
+function copilotBox(kind, placeholder) {
+  return '<div style="margin-top:12px">' +
+    '<button type="button" class="btn btn-d btn-sm" onclick="toggleCopilot(\'' + kind + '\')" id="cop-btn-' + kind + '">✨ Dímelo con tus palabras</button>' +
+    '<div id="cop-panel-' + kind + '" style="display:none;margin-top:10px;background:rgba(196,245,70,.05);border:1px solid rgba(196,245,70,.2);border-radius:10px;padding:14px">' +
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Escríbelo como se lo contarías a una persona y te propongo cómo queda. Nada se aplica sin tu confirmación.</div>' +
+      '<textarea class="form-input" id="cop-text-' + kind + '" rows="2" placeholder="' + placeholder + '"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">' +
+        '<button type="button" class="btn btn-accent btn-sm" onclick="copilotPropose(\'' + kind + '\')" id="cop-go-' + kind + '">Proponer</button>' +
+        '<span id="cop-status-' + kind + '" style="font-size:11px;color:var(--dim)"></span>' +
+      '</div>' +
+      '<div id="cop-preview-' + kind + '" style="margin-top:10px"></div>' +
+    '</div>' +
+  '</div>';
+}
+function toggleCopilot(kind) {
+  var p = document.getElementById('cop-panel-' + kind);
+  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+async function copilotPropose(kind) {
+  var ta = document.getElementById('cop-text-' + kind);
+  var st = document.getElementById('cop-status-' + kind);
+  var pv = document.getElementById('cop-preview-' + kind);
+  if (!ta || !ta.value.trim()) { if (st) st.textContent = 'Escribe algo primero.'; return; }
+  st.textContent = 'Pensando…'; pv.innerHTML = '';
+  try {
+    var d = await api('/api/portal/copilot/parse', 'POST', { kind: kind, text: ta.value.trim() });
+    st.textContent = '';
+    if (!d || !d.ok) { st.textContent = (d && d.error) || 'No he podido procesarlo.'; return; }
+    _copProposal[kind] = d;
+    pv.innerHTML = copilotPreviewHtml(kind, d) +
+      '<div style="display:flex;gap:8px;margin-top:10px">' +
+        '<button type="button" class="btn btn-accent btn-sm" onclick="copilotApply(\'' + kind + '\')">Aplicar al formulario</button>' +
+        '<button type="button" class="btn btn-d btn-sm" onclick="document.getElementById(\'cop-preview-' + kind + '\').innerHTML=\'\'">Descartar</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin-top:6px">«Aplicar» solo rellena el formulario — no se guarda nada hasta que pulses Guardar.</div>';
+  } catch (e) { if (st) st.textContent = 'Error: ' + e.message; }
+}
+function copilotPreviewHtml(kind, d) {
+  if (kind === 'services') {
+    return '<div style="font-size:12px;color:var(--text);line-height:1.8">' + d.services.map(function (s) {
+      return '• <strong>' + esc(s.name) + '</strong>' + (s.price ? ' — ' + esc(s.price) : '') +
+        (s.duration ? ' · ' + esc(s.duration) : '') + (s.notes ? ' · ' + esc(s.notes) : '');
+    }).join('<br>') + '</div>';
+  }
+  return '<div style="font-size:12px;color:var(--text);line-height:1.8">' + _DAYS.filter(function (day) { return day in d.schedule; }).map(function (day) {
+    var s = d.schedule[day];
+    if (s === null) return '• <strong>' + _DAY_LABELS[day] + '</strong>: cerrado';
+    return '• <strong>' + _DAY_LABELS[day] + '</strong>: ' + s.open + '–' + s.close +
+      (s.afternoon_open ? ' y ' + s.afternoon_open + '–' + s.afternoon_close : '');
+  }).join('<br>') + '</div>';
+}
+function copilotApply(kind) {
+  var d = _copProposal[kind];
+  if (!d) return;
+  if (kind === 'services') {
+    d.services.forEach(addServiceRow);
+    toast('Servicios añadidos a la tabla — revisa y pulsa Guardar');
+  } else {
+    applyScheduleToAsisGrid(d.schedule);
+    toast('Horario aplicado al selector — revisa y pulsa Guardar');
+  }
+  var p = document.getElementById('cop-panel-' + kind); if (p) p.style.display = 'none';
+  var pv = document.getElementById('cop-preview-' + kind); if (pv) pv.innerHTML = '';
+}
+function applyScheduleToAsisGrid(schedule) {
+  _DAYS.forEach(function (day) {
+    if (!(day in schedule)) return;
+    var cb = document.getElementById('asis-day-' + day);
+    if (!cb) return;
+    var slot = schedule[day];
+    cb.checked = slot !== null;
+    toggleAsisDayClosed(day);
+    if (!slot) return;
+    var set = function (id, v) { var el = document.getElementById(id); if (el && v) el.value = v; };
+    set('asis-open-' + day, slot.open);
+    set('asis-close-' + day, slot.close);
+    var pmEl  = document.getElementById('asis-pm-' + day);
+    var btnEl = document.getElementById('asis-pm-btn-' + day);
+    var wantPm = !!(slot.afternoon_open && slot.afternoon_close);
+    if (pmEl) {
+      pmEl.style.display = wantPm ? 'flex' : 'none';
+      if (btnEl) btnEl.textContent = wantPm ? '– Tarde' : '+ Tarde';
+      if (wantPm) { set('asis-pm-open-' + day, slot.afternoon_open); set('asis-pm-close-' + day, slot.afternoon_close); }
+    }
+  });
+}
+
 async function loadAsistente() {
   try {
     var data = await api('/api/portal/assistant');
@@ -3054,6 +3146,16 @@ function renderAsistenteForm() {
     '</div>';
   }).join('');
   document.getElementById('asis-schedule-grid').innerHTML = schedHtml;
+
+  // Copiloto de horarios (#8): una vez, encima del grid
+  var horPanel = document.getElementById('asis-horario');
+  if (horPanel && !document.getElementById('cop-panel-schedule')) {
+    horPanel.insertAdjacentHTML('afterbegin',
+      '<div class="card" style="padding:16px 20px;margin-bottom:14px;margin-top:0">' +
+        '<div style="font-size:12px;color:var(--dim);margin-bottom:2px">¿Prefieres no ir día a día?</div>' +
+        copilotBox('schedule', 'Ej: de lunes a viernes de 9 a 2 y de 4 a 8, sábados solo mañana') +
+      '</div>');
+  }
 
   // Contenido
   renderAsisSectorFields(c.sector || 'generico', c.sectorData || {});

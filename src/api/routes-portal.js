@@ -763,6 +763,22 @@ function setupPortalRoutes(app, pipeline, config) {
     });
   });
 
+  // ── POST /api/portal/copilot/parse ────────────────────────
+  // Copiloto de configuración (#8): texto libre del dueño → propuesta
+  // estructurada (servicios u horario). Solo PROPONE: el portal la enseña,
+  // el dueño la aplica al formulario y su Guardar normal persiste.
+  app.post('/api/portal/copilot/parse', portalAuth, async (req, res) => {
+    try {
+      const { parseConfigText } = require('../assistants/config-copilot');
+      const { kind, text } = req.body || {};
+      const out = await parseConfigText(kind, text);
+      res.json(out);
+    } catch (e) {
+      log.warn(`copilot parse: ${e.message}`);
+      res.status(500).json({ ok: false, error: 'No he podido procesarlo ahora mismo.' });
+    }
+  });
+
   // ── GET /api/portal/config/gaps ───────────────────────────
   // Carril de datos del bucle de mejora (#5): qué pidió un cliente que el
   // asistente no supo responder (info_gap del auditor, últimos 14 días).
