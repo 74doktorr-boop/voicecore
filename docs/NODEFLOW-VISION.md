@@ -148,7 +148,7 @@ ninguno y tampoco es WOW/Lock-in/Moat → se cuestiona su existencia.
 ### L5 · Auto-QA: tu recepcionista se examina sola
 - **Como lo ve el cliente:** «Cada semana veo que mi asistente funciona — sin tener que probarlo yo.»
 - **Oportunidad:** llamada de prueba automática semanal + score de salud (latencia, dicción, reserva OK) + alerta si degrada.
-- **Complejidad:** media (outbound ✓ + evaluación LLM del transcript).
+- **Semilla construida (2026-07-03):** cada llamada real YA se puntúa sola (Conversation Success Score 0-100 en nf_calls: confianza, latencia, fricción) + salud de audio por llamada. Falta: agregación por negocio, tendencia («tu asistente lleva 3 días oyendo peor»), badge en portal y auditor IA post-llamada (diseñado sobre transcript-analyzer). El producto se AUTODIAGNOSTICA: el dueño no reporta bugs — NodeFlow se los cuenta ya arreglados.
 - **Demo <30s:** SÍ — el badge "Salud: 98/100 · examinada hoy" se explica solo.
 - **Prioridad:** media-alta (reduce soporte + churn silencioso). **Cores:** Voice, AI, Analytics.
 
@@ -233,6 +233,27 @@ no será lo más llamativo hoy, sino lo que creció con el uso.
 
 **Lectura estratégica:** los WOW venden la entrada; los 9-10 construyen la
 empresa. El 30% de esfuerzo de foso va SIEMPRE a la mitad alta de esta tabla.
+
+---
+
+# Oportunidad ETS Guard → NodeFlow Platform (capturada 2026-07-03)
+
+**Origen:** al revisar ETS Guard como producto europeo, emergió que el activo
+más valioso no es el vertical sino el motor: auth+RBAC+auditoría, tiempo real
+(SSE+outbox offline), mapas vivos, PWA, capa de IA determinista explicable,
+push, informes narrativos, motor normativo. Es el mismo patrón Intelligence
+Core / Event Core de este documento, demostrado en un segundo dominio.
+
+- **La jugada:** no extraer la plataforma todavía (trampa de plataforma:
+  modularizar con n=1 congela la velocidad). Regla de tres: construir el
+  SEGUNDO vertical (mantenimiento/inspecciones es el más cercano: mismas
+  primitivas ronda-checklist-parte-SLA) copiando descaradamente de ETS Guard,
+  y extraer solo lo que se repita idéntico. La plataforma emerge, no se diseña.
+- **Compounding: 10.** Cada vertical nuevo amortiza el motor y cada mejora del
+  motor sube a todos los verticales — es el interés compuesto estructural de
+  NodeFlow (VoiceCore=voz, ETS Guard=operaciones de campo, mismo tronco).
+- **Prioridad:** decisión de fundador para año 1-2; el gatillo es el primer
+  cliente firme de un segundo vertical, no antes.
 
 ---
 
