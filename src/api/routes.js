@@ -12,6 +12,10 @@ const { getDatabase } = require('../db/database');
 
 const log = new Logger('API');
 
+// Identifica ESTE arranque del proceso (ver /health): cambia con cada
+// deploy y el portal lo usa para auto-actualizarse en los clientes.
+const BOOT_ID = String(Date.now());
+
 // BUG-21 FIX: Twilio webhook signature validation middleware.
 // Validates X-Twilio-Signature header when TWILIO_AUTH_TOKEN is configured.
 // Without this, anyone who discovers the webhook URL can POST fake call events.
@@ -409,10 +413,16 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   });
 
   // ─── Health (no auth) ───
+  // bootId: identifica ESTE arranque del servidor. El portal lo compara al
+  // abrir y, si cambió (hubo deploy), purga su caché y se recarga solo —
+  // fin de los clientes con HTML/JS viejos tras cada deploy (caso real
+  // 2026-07-03: el dueño no veía features ya desplegadas).
   app.get('/health', (req, res) => {
+    res.set('Cache-Control', 'no-store');
     res.json({
       status: 'ok',
       version: '2.0.0',
+      bootId: BOOT_ID,
       uptime: process.uptime(),
       activeCalls: pipeline.getActiveCalls().length,
       assistants: assistantManager.list().length,

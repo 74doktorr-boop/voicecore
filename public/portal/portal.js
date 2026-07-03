@@ -2745,6 +2745,34 @@ async function openTranscriptModal(callSid) {
   );
 }
 
+// ── Auto-actualización tras deploy ────────────────────────────────────────
+// El servidor estrena bootId en cada arranque (/health). Si esta copia del
+// portal se cargó con otro bootId, purgamos SW+caché y recargamos UNA vez
+// (anti-bucle por sessionStorage). Fin de "no veo la feature que ya está
+// desplegada" — caso real 2026-07-03 con service workers antiguos.
+(function autoRefreshOnDeploy() {
+  fetch('/health', { cache: 'no-store' })
+    .then(function(r) { return r.json(); })
+    .then(function(h) {
+      if (!h || !h.bootId) return;
+      var seen = localStorage.getItem('nf_boot_id');
+      localStorage.setItem('nf_boot_id', h.bootId);
+      if (!seen || seen === h.bootId) return;
+      if (sessionStorage.getItem('nf_boot_reloaded') === h.bootId) return;
+      sessionStorage.setItem('nf_boot_reloaded', h.bootId);
+      var work = [];
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        work.push(navigator.serviceWorker.getRegistrations()
+          .then(function(rs) { return Promise.all(rs.map(function(reg) { return reg.unregister(); })); }));
+      }
+      if (window.caches && caches.keys) {
+        work.push(caches.keys().then(function(ks) { return Promise.all(ks.map(function(k) { return caches.delete(k); })); }));
+      }
+      Promise.all(work).catch(function() {}).then(function() { location.reload(); });
+    })
+    .catch(function() {});
+})();
+
 // ── Boot ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', initAuth);
 
@@ -2760,9 +2788,16 @@ async function loadAsistente() {
     _asisConfig  = data.config  || {};
     _asisOrgName = data.orgName || '';
     renderAsistenteForm();
-    // Prefill del "Llámame y pruébalo" con el teléfono del dueño
+    // Prefill del "Llámame y pruébalo" con el teléfono del dueño, SIEMPRE
+    // en formato internacional (el backend normaliza igualmente: "666...",
+    // con espacios o con +34, todo vale — feedback real 2026-07-03).
     var tp = document.getElementById('testCallPhone');
-    if (tp && !tp.value && _orgInfo && _orgInfo.phone) tp.value = _orgInfo.phone;
+    if (tp) {
+      if (!tp.value && _orgInfo && _orgInfo.phone) tp.value = _orgInfo.phone;
+      if (tp.value && /^[6789]\d{8}$/.test(tp.value.replace(/\s/g, ''))) tp.value = '+34' + tp.value.replace(/\s/g, '');
+      if (!tp.value) tp.value = '+34';
+      tp.placeholder = '+34 600 000 000';
+    }
   } catch (e) { toast('Error cargando asistente: ' + e.message, 'err'); }
 }
 
