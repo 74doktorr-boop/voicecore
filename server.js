@@ -521,6 +521,14 @@ flowManager.loadFromDB()
   .catch(() => {})
   .finally(() => startCron(30));
 
+// Rehidratar las AGENDAS del scheduler (viven en memoria): sin esto, tras
+// cada deploy toda org queda "Business not configured" y la IA responde
+// "no puedo ofrecerte una cita" a todo — bug real de HHR el 2026-07-03.
+const { hydrateSchedulerFromDB } = require('./src/scheduling/org-config');
+hydrateSchedulerFromDB()
+  .then(n => log.info(`Scheduler hidratado: ${n} agendas de negocio cargadas desde DB`))
+  .catch(e => log.warn(`Scheduler hydrate failed: ${e.message}`));
+
 // System B: daily re-booking cron
 const { startRebookingCron }  = require('./src/scheduling/rebooking-cron');
 startRebookingCron();

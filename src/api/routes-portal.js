@@ -1276,15 +1276,17 @@ function setupPortalRoutes(app, pipeline, config) {
         .update({ assistant_config: merged })
         .eq('id', businessId);
 
-      // Sync scheduler in-memory config so changes take effect immediately
-      // (no restart required for schedule/services changes)
+      // Sync scheduler in-memory config so changes take effect immediately.
+      // SIEMPRE vía el traductor canónico: copiar merged.schedule tal cual
+      // metía claves {mon,tue...} donde el scheduler indexa 0-6 y todos los
+      // días parecían cerrados (bug HHR 2026-07-03).
       try {
         const { scheduler } = require('../scheduling/scheduler');
-        const current = scheduler.getBusinessConfig(businessId) || {};
-        if (merged.schedule !== undefined) current.schedule = merged.schedule;
-        if (merged.services  !== undefined) current.services = merged.services;
-        if (merged.assistantName !== undefined) current.name = merged.assistantName;
-        scheduler.setBusinessConfig(businessId, current);
+        const { toSchedulerConfig } = require('../scheduling/org-config');
+        const { data: orgRow } = await db.client
+          .from('organizations').select('id, name, assistant_config, automation_config')
+          .eq('id', businessId).single();
+        if (orgRow) scheduler.setBusinessConfig(businessId, toSchedulerConfig(orgRow));
       } catch (_) { /* scheduler not critical */ }
 
       // El asistente vivo se reconstruye en la siguiente llamada
