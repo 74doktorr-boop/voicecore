@@ -32,8 +32,11 @@ Analiza la transcripción y devuelve ÚNICAMENTE un objeto JSON válido con esto
 }
 
 Valores válidos para outcome: booked | rescheduled | declined | no_answer | callback_requested | wrong_number | do_not_contact | voicemail_left
+- callback_requested TAMBIÉN cuando el asistente registró el interés del cliente y prometió que el equipo le devolverá la llamada.
 
 En extracted_data incluye cualquier dato relevante mencionado:
+- nombre_llamante: el nombre que el LLAMANTE dio para SÍ MISMO («me llamo X», «soy X»). null si no lo dio o si el nombre era de OTRA persona («cita para mi novia Nerea» → null).
+- interes: qué servicio o información buscaba, en pocas palabras (null si no aplica)
 - fecha_itv, fecha_ultimo_aceite, matricula, marca_modelo (taller)
 - nombre_mascota, fecha_proxima_vacuna, especie_raza (veterinaria)
 - fecha_cumpleanos, fecha_aniversario (cualquier sector)
@@ -128,7 +131,7 @@ async function analyzeTranscript(transcript, attempt = 1) {
  *
  * Call fire-and-forget: processCallAsync({...}).catch(() => {})
  */
-async function processCallAsync({ callSessionId, contactId, orgId, transcript }) {
+async function processCallAsync({ callSessionId, contactId, orgId, transcript, callerNumber, leadRegistered }) {
   try {
     if (!contactId || !orgId) {
       log.warn('processCallAsync: missing contactId or orgId — skipping');
@@ -144,6 +147,13 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript })
 
     const db = getDatabase();
     if (!db.enabled) return;
+
+    // Red de seguridad (2026-07-04): ficha el nombre que dio el llamante y
+    // recupera el lead si el asistente lo prometió pero no llamó al tool.
+    try {
+      const { applyLeadSafetyNet } = require('./lead-safety-net');
+      await applyLeadSafetyNet({ analysis, contactId, orgId, callerNumber, leadRegistered, callSessionId });
+    } catch (e) { log.warn(`lead safety net: ${e.message}`); }
 
     // 1. Insert immutable call summary
     // _unanswered viaja dentro de extracted_data (jsonb) — cero migraciones;

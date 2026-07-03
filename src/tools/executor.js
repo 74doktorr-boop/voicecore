@@ -1200,4 +1200,6 @@ class ToolExecutor {
   }
 }
 
-module.exports = { ToolExecutor };
+// _notifyOwner se exporta para la red de seguridad de leads (aviso al dueño
+// con las mismas credenciales multi-tenant que usa register_lead).
+module.exports = { ToolExecutor, _notifyOwner };

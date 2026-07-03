@@ -194,11 +194,18 @@ async function handle(callData) {
           .maybeSingle()
           .then(({ data: contact }) => {
             if (contact?.id) {
+              // ¿Se ejecutó register_lead DE VERDAD durante la llamada? La red
+              // de seguridad solo actúa si el tool jamás corrió (caso real
+              // 2026-07-04: el asistente lo verbalizó sin invocarlo).
+              const leadRegistered = (callData.metrics?.turns || []).some(t =>
+                (t.tools || []).some(x => x && (x.name === 'register_lead' || x.name === 'register_prospect')));
               processCallAsync({
                 callSessionId: callData.id         || null,
                 contactId:     contact.id,
                 orgId:         businessId,
                 transcript:    callData.transcript || [],
+                callerNumber:  callData.callerNumber || null,
+                leadRegistered,
               }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
             }
           })
