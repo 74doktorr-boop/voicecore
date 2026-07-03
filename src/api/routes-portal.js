@@ -257,6 +257,10 @@ function setupPortalRoutes(app, pipeline, config) {
       businessName: flowConfig.name,
       plan:         flowConfig.plan,
       daysActive,
+      // El banner de Primeros pasos lee d.nodeflowNumber (raíz) — solo
+      // estaba dentro de onboarding y el número asignado jamás se pintaba
+      // (caso real 2026-07-03: checklist en rama "asignado" pero sin número).
+      nodeflowNumber: nodeflowNum,
       aiStatus:     nodeflowNum ? 'active' : 'pending',
       totalCalls:   bizCalls.length,
       totalBookings: allBookings,
