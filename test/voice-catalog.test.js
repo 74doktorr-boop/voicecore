@@ -29,12 +29,14 @@ describe('voice-catalog', () => {
     assert.ok(v.labels.includes('narration'));
   });
 
-  test('listVoices con API ok → voces normalizadas (profesional antes que premade)', async () => {
+  test('listVoices con API ok → estático curado + SOLO las clonadas/profesionales añadidas', async () => {
     const voices = await listVoices({ apiKey: 'k', fetch: okFetch, force: true });
-    assert.strictEqual(voices.length, 2);
-    assert.strictEqual(voices[0].name, 'Mateo');  // professional primero
-    assert.strictEqual(voices[1].name, 'Bella');
-    assert.strictEqual(voices[0].provider, 'elevenlabs');
+    // 'Mateo' (professional) se añade delante; 'Bella' (premade de cuenta)
+    // NO entra: el catálogo curado ya trae las premade con tier/honestidad.
+    assert.strictEqual(voices[0].name, 'Mateo');
+    assert.strictEqual(voices[0].tier, 'premium');
+    assert.ok(!voices.some(v => v.name === 'Bella'), 'las premade de la API no sustituyen al catálogo curado');
+    assert.ok(voices.some(v => v.id === 'sofia-es'), 'el catálogo curado está presente');
   });
 
   test('sin apiKey → catálogo estático (config/voices.json)', async () => {

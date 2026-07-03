@@ -28,25 +28,52 @@ describe('catálogo de voces honesto', () => {
       `hay voces compartiendo ID real: ${ids.filter((x, i) => ids.indexOf(x) !== i).join(', ')}`);
   });
 
-  test('el traductor voice-map también resuelve cada id de catálogo a un ID único', () => {
-    const resueltos = castellano.map(v => resolveElevenVoice(v.id));
+  // voice-map solo traduce voces de ElevenLabs; las Azure/local van por
+  // resolveVoiceEntry (proveedor propio) — se testean más abajo.
+  const eleven = castellano.filter(v => v.provider === 'elevenlabs');
+
+  test('el traductor voice-map también resuelve cada id ElevenLabs a un ID único', () => {
+    const resueltos = eleven.map(v => resolveElevenVoice(v.id));
     const unicos = new Set(resueltos);
     assert.strictEqual(unicos.size, resueltos.length,
       'voice-map colapsa varias voces del catálogo al mismo ID real');
   });
 
-  test('catálogo y voice-map están alineados (mismo ID real por voz)', () => {
-    for (const v of castellano) {
+  test('catálogo y voice-map están alineados (mismo ID real por voz ElevenLabs)', () => {
+    for (const v of eleven) {
       assert.strictEqual(resolveElevenVoice(v.id), v.providerVoiceId,
         `${v.id}: catálogo dice ${v.providerVoiceId} pero voice-map resuelve ${resolveElevenVoice(v.id)}`);
     }
   });
 
-  test('ningún proveedor fantasma: las voces es-ES son elevenlabs de verdad', () => {
+  test('ningún proveedor fantasma: es-ES solo elevenlabs o azure, con IDs con pinta real', () => {
     for (const v of castellano) {
-      assert.strictEqual(v.provider, 'elevenlabs', `${v.id} declara proveedor "${v.provider}"`);
-      assert.match(v.providerVoiceId, /^[A-Za-z0-9]{20}$/, `${v.id}: providerVoiceId no parece un ID real de ElevenLabs`);
+      assert.ok(['elevenlabs', 'azure'].includes(v.provider), `${v.id} declara proveedor "${v.provider}"`);
+      if (v.provider === 'elevenlabs') {
+        assert.match(v.providerVoiceId, /^[A-Za-z0-9]{20}$/, `${v.id}: providerVoiceId no parece un ID real de ElevenLabs`);
+      } else {
+        assert.match(v.providerVoiceId, /^es-ES-\w+Neural$/, `${v.id}: no parece una voz Neural de Azure`);
+      }
     }
+  });
+
+  test('tiers: cada voz tiene tier y los tiers declaran su oferta (minutos/overage)', () => {
+    const { getTiers } = require('../src/tts/voice-catalog');
+    const tiers = getTiers();
+    for (const v of catalog.voices) assert.ok(v.tier, `${v.id} sin tier`);
+    assert.strictEqual(tiers.estandar.monthlyExtra, 0);
+    assert.strictEqual(tiers.premium.monthlyExtra, 10);
+    assert.ok(tiers.estandar.minutesIncluded > 0 && tiers.estandar.overagePerMin > 0);
+    assert.ok(tiers.ultra.comingSoon, 'Cartesia es "próximamente" hasta activar cuenta');
+  });
+
+  test('resolveVoiceEntry decide el proveedor por voz (Azure ↔ ElevenLabs ↔ local)', () => {
+    const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
+    assert.deepStrictEqual(resolveVoiceEntry('elvira-az'),
+      { provider: 'azure', providerVoiceId: 'es-ES-ElviraNeural', tier: 'estandar' });
+    assert.strictEqual(resolveVoiceEntry('sofia-es').provider, 'elevenlabs');
+    assert.strictEqual(resolveVoiceEntry('ane-eu').provider, 'local');
+    assert.strictEqual(resolveVoiceEntry('no-existe'), null);
   });
 
   test('los alias del catálogo antiguo siguen sonando (y distintos entre sí)', () => {

@@ -48,14 +48,14 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   const twilioSig = twilioValidate(config);
 
   // ── GET /api/voices — catálogo de voces para el selector ──────────────
-  // Tira EN DIRECTO de la cuenta de ElevenLabs (premade + las que añadas),
-  // normalizado y cacheado; cae al catálogo estático si no hay key/API.
+  // Catálogo estático curado (tiers Estándar/Premium/Ultra) + las voces
+  // CLONADAS de la cuenta ElevenLabs añadidas en vivo (W1: tu propia voz).
   app.get('/api/voices', async (req, res) => {
     try {
-      const { listVoices } = require('../tts/voice-catalog');
+      const { listVoices, getTiers } = require('../tts/voice-catalog');
       const voices = await listVoices();
       res.set('Cache-Control', 'public, max-age=300');
-      res.json({ voices, count: voices.length });
+      res.json({ voices, tiers: getTiers(), count: voices.length });
     } catch (e) {
       res.status(500).json({ error: 'No se pudo cargar el catálogo de voces' });
     }

@@ -1,6 +1,132 @@
 {
-  "_nota": "Catálogo HONESTO (2026-07-03): cada entrada apunta a un voice_id REAL y DISTINTO de ElevenLabs, verificado contra la API. El catálogo anterior inventaba variedad (voces 'de Google' y 'Cartesia' inexistentes) y todo colapsaba a 4 voces — el cliente oía la misma voz con distinto nombre.",
+  "_nota": "Catálogo HONESTO (2026-07-03): cada entrada apunta a un voice_id REAL y DISTINTO, verificado. Tiers decididos por Unai 2026-07-03: Estándar (Azure, incluida) · Premium (ElevenLabs, +10€/mes) · Ultra-rápida (Cartesia, próximamente al activar cuenta).",
+  "tiers": {
+    "estandar": {
+      "label": "Estándar",
+      "badge": "INCLUIDA EN TU PLAN",
+      "monthlyExtra": 0,
+      "minutesIncluded": 300,
+      "overagePerMin": 0.1,
+      "blurb": "Voces naturales incluidas en tu plan · 300 min/mes · minuto extra 0,10€"
+    },
+    "premium": {
+      "label": "Premium",
+      "badge": "PREMIUM · +10€/mes",
+      "monthlyExtra": 10,
+      "minutesIncluded": 300,
+      "overagePerMin": 0.1,
+      "blurb": "Voces ultra-realistas ElevenLabs (y tu voz clonada) · +10€/mes · 300 min/mes · minuto extra 0,10€"
+    },
+    "ultra": {
+      "label": "Ultra-rápida",
+      "badge": "PRÓXIMAMENTE",
+      "comingSoon": true,
+      "blurb": "Respuesta casi instantánea (40-90ms) — muy pronto"
+    }
+  },
   "voices": [
+    {
+      "id": "elvira-az",
+      "name": "Elvira",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-ElviraNeural",
+      "tier": "estandar",
+      "tags": [
+        "natural",
+        "clara",
+        "incluida"
+      ],
+      "description": "Voz femenina natural y clara, la todoterreno del día a día",
+      "latency": "medium"
+    },
+    {
+      "id": "alvaro-az",
+      "name": "Álvaro",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-AlvaroNeural",
+      "tier": "estandar",
+      "tags": [
+        "natural",
+        "profesional",
+        "incluida"
+      ],
+      "description": "Voz masculina natural y profesional",
+      "latency": "medium"
+    },
+    {
+      "id": "abril-az",
+      "name": "Abril",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-AbrilNeural",
+      "tier": "estandar",
+      "tags": [
+        "joven",
+        "fresca",
+        "incluida"
+      ],
+      "description": "Voz femenina joven y fresca",
+      "latency": "medium"
+    },
+    {
+      "id": "arnau-az",
+      "name": "Arnau",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-ArnauNeural",
+      "tier": "estandar",
+      "tags": [
+        "cercano",
+        "amable",
+        "incluida"
+      ],
+      "description": "Voz masculina cercana y amable",
+      "latency": "medium"
+    },
+    {
+      "id": "triana-az",
+      "name": "Triana",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-TrianaNeural",
+      "tier": "estandar",
+      "tags": [
+        "cálida",
+        "expresiva",
+        "incluida"
+      ],
+      "description": "Voz femenina cálida con acento andaluz suave",
+      "latency": "medium"
+    },
+    {
+      "id": "dario-az",
+      "name": "Darío",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "azure",
+      "providerVoiceId": "es-ES-DarioNeural",
+      "tier": "estandar",
+      "tags": [
+        "serio",
+        "corporativo",
+        "incluida"
+      ],
+      "description": "Voz masculina seria para entornos formales",
+      "latency": "medium"
+    },
     {
       "id": "sofia-es",
       "name": "Sofía",
@@ -9,9 +135,15 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "dNjJKg63Fr5AXwIdkATa",
-      "tags": ["profesional", "cálida", "recepcionista", "default"],
+      "tags": [
+        "profesional",
+        "cálida",
+        "recepcionista",
+        "default"
+      ],
       "description": "Voz femenina cálida y profesional, ideal para recepción y atención al cliente",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "lucia-es",
@@ -21,9 +153,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "kwNLkNjbQHMw9YUFZsHI",
-      "tags": ["suave", "amable", "clínica"],
+      "tags": [
+        "suave",
+        "amable",
+        "clínica"
+      ],
       "description": "Voz suave y tranquila, perfecta para clínicas y consultas médicas",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "carlos-es",
@@ -33,9 +170,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "JngPf0lmRkKhY3qSJz0f",
-      "tags": ["profesional", "serio", "corporativo"],
+      "tags": [
+        "profesional",
+        "serio",
+        "corporativo"
+      ],
       "description": "Voz masculina firme y profesional para entornos corporativos",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "pablo-es",
@@ -45,9 +187,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "uVoJJFOcQglSD16zUGOl",
-      "tags": ["grave", "autoridad", "premium"],
+      "tags": [
+        "grave",
+        "autoridad",
+        "premium"
+      ],
       "description": "Voz masculina grave con presencia, transmite confianza",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "elena-es",
@@ -57,9 +204,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "EXAVITQu4vr4xnSDxMaL",
-      "tags": ["madura", "tranquilizadora", "segura"],
+      "tags": [
+        "madura",
+        "tranquilizadora",
+        "segura"
+      ],
       "description": "Voz femenina madura y tranquilizadora, transmite experiencia",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "marta-es",
@@ -69,9 +221,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "FGY2WhTYpPnrIDTdsKH5",
-      "tags": ["enérgica", "cercana", "joven"],
+      "tags": [
+        "enérgica",
+        "cercana",
+        "joven"
+      ],
       "description": "Voz femenina enérgica y cercana, con chispa",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "carmen-es",
@@ -81,9 +238,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "pFZP5JQG7iQjIQuC4Bku",
-      "tags": ["cálida", "aterciopelada", "elegante"],
+      "tags": [
+        "cálida",
+        "aterciopelada",
+        "elegante"
+      ],
       "description": "Voz femenina aterciopelada y elegante, para negocios premium",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "nerea-es",
@@ -93,9 +255,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "Xb7hH8MSUJpSbSDYk0k2",
-      "tags": ["clara", "didáctica", "precisa"],
+      "tags": [
+        "clara",
+        "didáctica",
+        "precisa"
+      ],
       "description": "Voz femenina clara y precisa, explica muy bien",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "andrea-es",
@@ -105,9 +272,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "cgSgspJ2msm6clMCkdW9",
-      "tags": ["alegre", "brillante", "acogedora"],
+      "tags": [
+        "alegre",
+        "brillante",
+        "acogedora"
+      ],
       "description": "Voz femenina alegre y brillante, da la bienvenida con una sonrisa",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "jorge-es",
@@ -117,9 +289,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "JBFqnCBsd6RMkjVDRZzb",
-      "tags": ["cálido", "narrador", "cercano"],
+      "tags": [
+        "cálido",
+        "narrador",
+        "cercano"
+      ],
       "description": "Voz masculina cálida y envolvente, de narrador",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "daniel-es",
@@ -129,9 +306,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "onwK4e9ZLuTAKqWW03F9",
-      "tags": ["locutor", "estable", "claro"],
+      "tags": [
+        "locutor",
+        "estable",
+        "claro"
+      ],
       "description": "Voz masculina de locutor, estable y clarísima",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "hugo-es",
@@ -141,9 +323,14 @@
       "accent": "castellano",
       "provider": "elevenlabs",
       "providerVoiceId": "nPczCjzI2devNBz1zQrb",
-      "tags": ["grave", "profundo", "reconfortante"],
+      "tags": [
+        "grave",
+        "profundo",
+        "reconfortante"
+      ],
       "description": "Voz masculina grave y profunda, muy reconfortante",
-      "latency": "low"
+      "latency": "low",
+      "tier": "premium"
     },
     {
       "id": "custom-clone",
@@ -153,10 +340,15 @@
       "accent": "custom",
       "provider": "elevenlabs",
       "providerVoiceId": "custom",
-      "tags": ["clonada", "personalizada", "premium"],
+      "tags": [
+        "clonada",
+        "personalizada",
+        "premium"
+      ],
       "description": "Tu negocio contesta con TU voz: la clonamos con unos minutos de audio",
       "latency": "low",
-      "isClone": true
+      "isClone": true,
+      "tier": "premium"
     },
     {
       "id": "ane-eu",
@@ -166,12 +358,19 @@
       "accent": "euskera-nativa",
       "provider": "local",
       "providerVoiceId": "ane",
-      "tags": ["euskera", "nativa", "clonada", "femenina", "profesional"],
+      "tags": [
+        "euskera",
+        "nativa",
+        "clonada",
+        "femenina",
+        "profesional"
+      ],
       "description": "Voz femenina vasca nativa, clonada con XTTS v2 en RTX 4090. Requiere voices/ane.wav.",
       "latency": "medium",
       "isClone": true,
       "requiresLocalServer": true,
-      "voiceFile": "voices/ane.wav"
+      "voiceFile": "voices/ane.wav",
+      "tier": "estandar"
     },
     {
       "id": "mikel-eu",
@@ -181,12 +380,19 @@
       "accent": "euskera-nativo",
       "provider": "local",
       "providerVoiceId": "mikel",
-      "tags": ["euskera", "nativo", "clonado", "masculino", "profesional"],
+      "tags": [
+        "euskera",
+        "nativo",
+        "clonado",
+        "masculino",
+        "profesional"
+      ],
       "description": "Voz masculina vasca nativa, clonada con XTTS v2 en RTX 4090. Requiere voices/mikel.wav.",
       "latency": "medium",
       "isClone": true,
       "requiresLocalServer": true,
-      "voiceFile": "voices/mikel.wav"
+      "voiceFile": "voices/mikel.wav",
+      "tier": "estandar"
     }
   ],
   "defaults": {

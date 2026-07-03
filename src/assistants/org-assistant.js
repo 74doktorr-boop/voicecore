@@ -70,7 +70,16 @@ async function getOrgAssistant(orgId) {
       systemPrompt: generatePrompt(cfg, org.name),
       firstMessage: cfg.firstMessage ||
         `{{GREETING}}, ha llamado a ${org.name}. ¿En qué puedo ayudarle?`,
-      voice:        cfg.voice || 'nova',   // voice-map lo traduce a ElevenLabs
+      // La voz elegida decide también el PROVEEDOR (tiers 2026-07-03):
+      // Estándar = Azure (voz por nombre neural), Premium = ElevenLabs
+      // (voice-map resuelve id/alias), euskera = servidor local.
+      ...(() => {
+        const { resolveVoiceEntry } = require('../tts/voice-catalog');
+        const entry = resolveVoiceEntry(cfg.voice);
+        if (entry && entry.provider === 'azure') return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
+        if (entry && entry.provider === 'local') return { voice: entry.providerVoiceId, ttsProvider: 'local' };
+        return { voice: cfg.voice || 'nova' }; // elevenlabs por defecto (voice-map traduce)
+      })(),
       language,
       // Palanca admin-only para experimentos A/B de cerebro (2026-07-03):
       // assistant_config.model ('proveedor/modelo') fuerza el LLM de la org;

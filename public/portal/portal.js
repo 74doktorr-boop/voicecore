@@ -2830,11 +2830,12 @@ function _voiceEsc(s) {
   });
 }
 
+var _voiceTiers = {};
 function loadVoiceCatalog() {
   var grid = document.getElementById('voice-grid');
   fetch('/api/voices')
     .then(function(r) { return r.json(); })
-    .then(function(d) { _voiceCatalog = (d && d.voices) || []; renderVoiceGrid(); })
+    .then(function(d) { _voiceCatalog = (d && d.voices) || []; _voiceTiers = (d && d.tiers) || {}; renderVoiceGrid(); })
     .catch(function() { if (grid) grid.innerHTML = '<div class="voice-empty">No se pudo cargar el catálogo de voces.</div>'; });
 }
 
@@ -2860,7 +2861,14 @@ function renderVoiceGrid() {
     return true;
   });
   if (!list.length) { grid.innerHTML = '<div class="voice-empty">Sin voces que coincidan.</div>'; return; }
-  grid.innerHTML = list.map(function(v) {
+
+  // Agrupado por tier: el dueño ve QUÉ incluye cada nivel (características,
+  // minutos y coste del minuto extra) antes de elegir — petición Unai.
+  var TIER_ORDER = ['estandar', 'premium', 'ultra'];
+  var byTier = {};
+  list.forEach(function(v) { var t = v.tier || 'premium'; (byTier[t] = byTier[t] || []).push(v); });
+
+  var card = function(v) {
     var g = v.gender === 'female' ? 'fem' : (v.gender === 'male' ? 'mal' : '');
     var ico = v.gender === 'female' ? '👩' : (v.gender === 'male' ? '👨' : '🎙️');
     var sub = [v.accent, v.age].filter(Boolean).join(' · ') || (v.gender || '');
@@ -2872,7 +2880,19 @@ function renderVoiceGrid() {
       + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 95)) + '</div>'
       + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
       + '<div class="vc-check">✓</div></div>';
-  }).join('');
+  };
+
+  grid.innerHTML = TIER_ORDER.filter(function(t) { return byTier[t] && byTier[t].length; })
+    .map(function(t) {
+      var info = _voiceTiers[t] || {};
+      var header = '<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:' + (t === TIER_ORDER[0] ? '0' : '14px') + ' 0 2px">'
+        + '<span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;'
+        + (t === 'premium' ? 'background:rgba(196,245,70,.15);color:var(--accent-l);border:1px solid rgba(196,245,70,.35)'
+                           : 'background:rgba(255,255,255,.06);color:var(--dim);border:1px solid var(--border)') + '">'
+        + _voiceEsc(info.badge || t) + '</span>'
+        + '<span style="font-size:11px;color:var(--dim)">' + _voiceEsc(info.blurb || '') + '</span></div>';
+      return header + byTier[t].map(card).join('');
+    }).join('');
 }
 
 function selectVoice(id) {
