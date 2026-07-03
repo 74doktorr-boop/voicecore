@@ -66,7 +66,23 @@ jobs:
 
           sleep 2
 
-          # 2. Disparar el deploy. EasyPanel mantiene la conexión abierta mientras
+          # 2. VENTANA TRANQUILA: no reiniciar el contenedor con llamadas dentro.
+          #    Caso real (2026-07-03 02:05): un deploy mató una llamada en vivo —
+          #    el cliente oyó otra vez el saludo inicial en mitad de su
+          #    cancelación y la fila quedó huérfana ("1989 minutos"). Se espera
+          #    hasta 5 min a que /health reporte activeCalls=0; si no se despeja
+          #    o /health no responde, se despliega igual (un deploy jamás queda
+          #    bloqueado para siempre).
+          echo "→ Esperando ventana sin llamadas activas (máx. 5 min)…"
+          for i in $(seq 1 20); do
+            ACTIVE=$(curl -sS --connect-timeout 10 --max-time 15 https://nodeflow.es/health | grep -o '"activeCalls":[0-9]*' | cut -d: -f2)
+            if [ -z "$ACTIVE" ]; then echo "   /health no responde — seguimos"; break; fi
+            if [ "$ACTIVE" = "0" ]; then echo "   ✓ Sin llamadas activas."; break; fi
+            echo "   $ACTIVE llamada(s) en curso — espera $i/20 (15s)"
+            sleep 15
+          done
+
+          # 3. Disparar el deploy. EasyPanel mantiene la conexión abierta mientras
           #    descarga+reinicia, así que un timeout aquí es NORMAL: el deploy
           #    continúa en el servidor. Lo intentamos un par de veces y toleramos timeout.
           echo "→ Disparando deploy…"
