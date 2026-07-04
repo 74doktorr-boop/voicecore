@@ -206,13 +206,35 @@ async function runImprovementCycle(deps = {}) {
     }
   }
 
-  // ── Carril global: informe con reglas candidatas → aprobación (opción A) ──
+  // ── Carril de reglas: informe POR SECTOR → aprobación (opción A) ──
+  const { resolveSector } = require('../sectors/sector-registry');
+  const sectorLabel = (slug) => slug === 'generico' ? 'Sin sector asignado' : resolveSector(slug).label;
+  summary.sectors = Object.keys(agg.bySector).length;
+  summary.sectorCandidateRules = Object.values(agg.bySector).reduce((n, s) => n + s.candidateRules.length, 0);
+
   if (founderEmail) {
-    const rules = agg.candidateRules.length
-      ? agg.candidateRules.map(r => `<li><b>${_esc(r.rule)}</b> — vista en ${r.count} llamadas${r.recurrent ? ' · <span style="color:#c0392b"><b>⟲ REINCIDENTE</b> (ya apareció la semana pasada)</span>' : ''}</li>`).join('')
-      : '<li>Ninguna esta semana — sin patrones repetidos.</li>';
-    const problems = agg.topProblems.slice(0, 5)
-      .map(p => `<li>${_esc(p.text)} (${p.count})${p.recurrent ? ' · <span style="color:#c0392b">⟲ reincidente</span>' : ''}</li>`).join('') || '<li>—</li>';
+    // Bloque por sector (primario): "aprende de un restaurante → aplica a los
+    // restaurantes". Ordenado por nº de llamadas auditadas.
+    const sectorsHtml = Object.entries(agg.bySector)
+      .sort((a, b) => b[1].audited - a[1].audited)
+      .map(([slug, s]) => {
+        const rules = s.candidateRules.length
+          ? '<ul style="margin:4px 0">' + s.candidateRules.map(r => `<li><b>${_esc(r.rule)}</b> — ${r.count} llamadas${r.recurrent ? ' · <span style="color:#c0392b"><b>⟲ REINCIDENTE</b></span>' : ''}</li>`).join('') + '</ul>'
+          : '<p style="color:#888;margin:4px 0 0">Sin reglas candidatas (ningún patrón repetido ≥2).</p>';
+        const probs = s.topProblems.slice(0, 3).map(p => `${_esc(p.text)} (${p.count})`).join(' · ') || '—';
+        return `<div style="margin:10px 0;padding:10px 12px;border:1px solid #eee;border-radius:8px">
+          <b style="font-size:15px">${_esc(sectorLabel(slug))}</b>
+          <span style="color:#666"> · score ${s.avgScore == null ? '—' : s.avgScore}/100 · ${s.audited} auditada(s)</span>
+          ${rules}
+          <p style="color:#666;font-size:13px;margin:6px 0 0">Problemas: ${probs}</p>
+        </div>`;
+      }).join('') || '<p>—</p>';
+
+    // Patrones que CRUZAN sectores (mejora global, p.ej. "no prometer plazos").
+    const globalRules = agg.candidateRules.length
+      ? '<ul>' + agg.candidateRules.map(r => `<li><b>${_esc(r.rule)}</b> — ${r.count} llamadas${r.recurrent ? ' · <span style="color:#c0392b"><b>⟲ REINCIDENTE</b></span>' : ''}</li>`).join('') + '</ul>'
+      : '<p style="color:#888">Ninguno esta semana.</p>';
+
     const gapsByOrg = Object.entries(agg.byOrg)
       .filter(([, o]) => o.infoGaps.length)
       .map(([id, o]) => `<li><b>${_esc(id)}</b>: ${o.infoGaps.map(g => `«${_esc(g.gap)}» ×${g.count}`).join(', ')}</li>`)
@@ -222,17 +244,18 @@ async function runImprovementCycle(deps = {}) {
       <h2>🧠 Informe de mejora continua — última semana</h2>
       <p><b>Llamadas:</b> ${agg.calls} · <b>Auditadas:</b> ${agg.audited} ·
       <b>Score medio:</b> ${agg.avgAuditScore}/100 · <b>Alucinación:</b> ${agg.hallucinationRate}%</p>
-      <h3>Reglas candidatas (globales — aplicarían a TODOS los negocios)</h3>
-      <ul>${rules}</ul>
-      <p><b>Responde a este email con las reglas que apruebas</b> y se implementan como cambio de prompt versionado, con tests y replay de llamadas reales antes de desplegar (opción A acordada el 2026-07-04).</p>
-      <h3>Problemas más repetidos</h3><ul>${problems}</ul>
+      <h3>Reglas candidatas POR SECTOR (se aplican SOLO a los negocios de ese sector)</h3>
+      ${sectorsHtml}
+      <p><b>Responde con las reglas que apruebas indicando el sector</b> y se implementan como cambio de prompt versionado, con tests y replay de llamadas de ESE sector antes de desplegar (opción A, 2026-07-04).</p>
+      <h3>Patrones que cruzan sectores (mejora global)</h3>
+      ${globalRules}
       <h3>Huecos de datos por negocio (sus dueños ya han recibido el aviso)</h3><ul>${gapsByOrg}</ul>
       <p style="color:#888">Generado automáticamente por el agregador de mejora de NodeFlow.</p>`;
 
     try {
       await sendEmail({
         to: founderEmail,
-        subject: `🧠 Mejora continua: ${agg.candidateRules.length} regla(s) candidata(s) · score medio ${agg.avgAuditScore}/100`,
+        subject: `🧠 Mejora continua: ${summary.sectorCandidateRules} regla(s) por sector · score medio ${agg.avgAuditScore}/100`,
         html,
       });
       summary.emailSent = true;

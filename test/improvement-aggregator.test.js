@@ -132,6 +132,20 @@ describe('runImprovementCycle — el ciclo completo con fakes', () => {
     assert.strictEqual(deps.calls.ownerMsgs.length, 0);
     assert.strictEqual(deps.calls.email, null);
   });
+
+  test('el informe al fundador trae secciones POR SECTOR (Fase 2b)', async () => {
+    const rowSec = (org, sector, audit) => ({ org_id: org, started_at: new Date().toISOString(), metrics: { audit: { ...audit, sector } } });
+    const deps = fakeDeps([
+      rowSec('r1', 'restaurante', { score: 60, problems: ['No preguntó comensales.'], improvements: ['Preguntar siempre el número de comensales.'] }),
+      rowSec('r2', 'restaurante', { score: 55, problems: [], improvements: ['Preguntar siempre el número de comensales.'] }),
+    ]);
+    const out = await runImprovementCycle(deps);
+    assert.ok(deps.calls.email, 'email enviado');
+    assert.match(deps.calls.email.html, /Reglas candidatas POR SECTOR/);
+    assert.match(deps.calls.email.html, /Restaurante/);          // etiqueta del sector
+    assert.match(deps.calls.email.html, /comensales/i);          // su regla candidata
+    assert.ok(out.sectorCandidateRules >= 1, 'cuenta reglas por sector');
+  });
 });
 
 // ── Sector-aware (2026-07-04): reglas candidatas POR VERTICAL ──────────────
