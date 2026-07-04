@@ -421,6 +421,10 @@ const db = getDatabase({
   supabaseKey: process.env.SUPABASE_SERVICE_KEY,
 });
 
+// ─── Hidratar sectores custom aprobados (escalar sin deploy) ───
+// Fire-and-forget, fail-open: si falta la tabla nf_sectors se usa solo la semilla.
+require('./src/sectors/sector-store').hydrateFromDb(db).catch(() => {});
+
 // ─── Initialize Appointments Store (persistencia de citas) ───
 const { appointmentsStore } = require('./src/db/appointments-store');
 appointmentsStore.init(db.client);

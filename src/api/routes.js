@@ -72,6 +72,20 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ── GET /api/sectors — lista de sectores (semilla + custom) ────────────────
+  // Fuente ÚNICA para el desplegable del onboarding/portal: se acabaron las
+  // listas hardcodeadas en el front (2026-07-04). Añadir/aprobar un sector nuevo
+  // aparece aquí sin tocar el front.
+  app.get('/api/sectors', (req, res) => {
+    try {
+      const { allSectors } = require('../sectors/sector-registry');
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({ sectors: allSectors() });
+    } catch (e) {
+      res.status(500).json({ error: 'No se pudo cargar la lista de sectores' });
+    }
+  });
+
   // ── POST /api/widget/callback — solicitudes del widget "¿Te llamamos?" ──────
   // Público (lo llama el widget desde la web del cliente). Guarda en nf_callbacks
   // y avisa al negocio por email — best-effort: si una vía falla, la otra salva

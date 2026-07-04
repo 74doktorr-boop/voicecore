@@ -408,6 +408,29 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Sectores: auto-borrador + aprobación (escalar sin deploy) ──────────────
+  // 1) Pide al LLM un borrador de sector desde una descripción (NO guarda).
+  app.post('/api/admin/sectors/draft', adminAuth, async (req, res) => {
+    try {
+      const { draftSector } = require('../sectors/sector-drafter');
+      const def = await draftSector({ label: req.body?.label, description: req.body?.description });
+      if (!def) return res.status(422).json({ error: 'No se pudo generar un borrador válido. Da más contexto del negocio.' });
+      res.json({ ok: true, draft: def });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  // 2) Aprueba un sector (revisado/editado por el fundador) → caché + BD.
+  app.post('/api/admin/sectors', adminAuth, async (req, res) => {
+    try {
+      const { saveSector } = require('../sectors/sector-store');
+      const out = await saveSector(getDatabase(), req.body);
+      res.status(out.ok ? 200 : 400).json(out);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Calls analytics dashboard ───────────────────────────────────────────────
   app.get('/api/admin/calls', adminAuth, (req, res) => {
     try {
