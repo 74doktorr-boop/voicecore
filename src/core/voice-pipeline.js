@@ -8,6 +8,7 @@ const { Logger } = require('../utils/logger');
 const { STTRouter } = require('../stt/router');
 const { LLMRouter } = require('../llm/router');
 const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
+const { toSpeakable } = require('../tts/speakable');
 const sttDebug = require('../utils/stt-debug');
 const defaultCallStore = require('../db/call-store');
 const { TTSRouter } = require('../tts/router');
@@ -613,6 +614,8 @@ class VoicePipeline {
     // esto cubre cualquier proveedor y el turno post-herramientas.
     text = stripTextualToolCalls(text);
     if (!text) return;
+    // Dicción determinista: €→euros, "1 hora"→"una hora"… antes del TTS.
+    text = toSpeakable(text);
 
     session.isSpeaking = true;
     const ttsStart = Date.now();

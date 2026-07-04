@@ -186,6 +186,7 @@ function setupDemoRoutes(app, ttsRouter) {
     let { text, voice, language = 'es' } = req.body;
     if (!text) return res.status(400).json({ error: 'text requerido' });
     text = text.slice(0, 500); // cost protection
+    text = require('../tts/speakable').toSpeakable(text); // €→euros, "1 hora"→"una hora"
     const callId = `demo-${Date.now()}`;
 
     // ── Caché de síntesis: la misma frase+voz se paga UNA sola vez ──────
