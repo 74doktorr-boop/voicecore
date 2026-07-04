@@ -78,7 +78,7 @@ describe('catálogo de voces honesto', () => {
   test('resolveVoiceEntry decide el proveedor por voz (Azure ↔ ElevenLabs ↔ local)', () => {
     const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
     assert.deepStrictEqual(resolveVoiceEntry('elvira-az'),
-      { provider: 'azure', providerVoiceId: 'es-ES-ElviraNeural', tier: 'estandar' });
+      { provider: 'azure', providerVoiceId: 'es-ES-ElviraNeural', tier: 'estandar', gender: 'female' });
     assert.strictEqual(resolveVoiceEntry('sofia-es').provider, 'elevenlabs');
     assert.strictEqual(resolveVoiceEntry('ane-eu').provider, 'local');
     assert.strictEqual(resolveVoiceEntry('no-existe'), null);

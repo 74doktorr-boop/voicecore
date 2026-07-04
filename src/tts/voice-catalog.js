@@ -70,7 +70,7 @@ function resolveVoiceEntry(voiceId) {
   if (!voiceId) return null;
   try {
     const v = (_readStaticFile().voices || []).find(x => x.id === voiceId || x.providerVoiceId === voiceId);
-    return v ? { provider: v.provider, providerVoiceId: v.providerVoiceId, tier: v.tier || 'premium' } : null;
+    return v ? { provider: v.provider, providerVoiceId: v.providerVoiceId, tier: v.tier || 'premium', gender: v.gender || null } : null;
   } catch { return null; }
 }
 

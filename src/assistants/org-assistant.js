@@ -56,13 +56,22 @@ async function getOrgAssistant(orgId) {
   try {
     const { data: org } = await db.client
       .from('organizations')
-      .select('id, name, language, assistant_config, automation_config, is_active')
+      .select('id, name, language, assistant_config, automation_config, is_active, monthly_minutes_used')
       .eq('id', orgId)
       .maybeSingle();
     if (!org || org.is_active === false) return null;
 
     const cfg      = org.assistant_config || {};
     const language = cfg.language || org.language || 'es';
+
+    // Cupo de voz Premium/Ultra (2026-07-04): el plan básico incluye pocos
+    // minutos de voz cara; superado el cupo, se degrada a Azure (protege el
+    // margen). El add-on voice_premium y los minutos extra comprados lo suben.
+    const { hasAddon } = require('../billing/addons');
+    const { shouldDowngradeVoice, azureFallbackFor } = require('../tts/voice-quota');
+    const hasVoiceAddon  = hasAddon(org, 'voice_premium');
+    const extraVoiceMin  = Number(org.automation_config?.config?.premiumExtraMinutes) || 0;
+    const minutesUsed    = Number(org.monthly_minutes_used) || 0;
 
     // La tabla estructurada entra al prompt base (#8). voice-pipeline sigue
     // inyectando la versión fresca de BD como red — con dedupe.
@@ -83,6 +92,14 @@ async function getOrgAssistant(orgId) {
       ...(() => {
         const { resolveVoiceEntry } = require('../tts/voice-catalog');
         const entry = resolveVoiceEntry(cfg.voice);
+        // Degradación por cupo: si la voz configurada es premium/ultra y la org
+        // ya agotó su cupo de minutos caros este mes, suena por Azure.
+        if (entry && shouldDowngradeVoice(entry.tier, minutesUsed, hasVoiceAddon, extraVoiceMin)) {
+          const azId = azureFallbackFor(entry.gender);
+          const az = resolveVoiceEntry(azId);
+          log.info(`[${orgId}] Voz ${cfg.voice} (${entry.tier}) degradada a Azure ${azId} — cupo agotado (${minutesUsed} min)`);
+          return { voice: az ? az.providerVoiceId : 'es-ES-ElviraNeural', ttsProvider: 'azure', voiceDowngraded: true };
+        }
         if (entry && entry.provider === 'azure')    return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
         if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };
         if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier Ultra
