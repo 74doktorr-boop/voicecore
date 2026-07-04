@@ -228,6 +228,7 @@
       <div class="an-card" style="margin-bottom:20px"><h3>Embudo de conversión</h3><div id="an-funnel"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>Mapa de calor — cuándo llaman (día × hora)</h3><div id="an-heatmap"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>Salud por sector</h3><div id="an-sectores"></div></div>
+      <div class="an-card" id="an-pending-card" style="margin-bottom:20px;display:none"><h3>🆕 Sectores nuevos por revisar <span id="an-pending-count" style="font-size:12px;color:var(--dim)"></span></h3><div style="font-size:12px;color:var(--dim);margin-bottom:10px">Borradores generados en altas de verticales que aún no cubríamos. Revisa las normas y apruébalos para que se apliquen a todos los negocios de ese sector.</div><div id="an-pending"></div></div>
       <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
       <div class="table-wrap">
         <table><thead><tr><th>Cliente</th><th>Plan</th><th>Salud</th><th>Llamadas</th><th>Conv.</th><th>Minutos</th><th>Alertas</th></tr></thead>
@@ -912,6 +913,40 @@ function _anTopClients(el, clientes){
       +'<div style="width:82px;text-align:right;font-size:11px;font-weight:700">'+c.calls+' ll · '+c.bookings+' res</div></div>';
   }).join('');
 }
+function _secEsc(x){ return String(x==null?'':x).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];}); }
+async function _loadPendingSectors(){
+  var card=document.getElementById('an-pending-card'), box=document.getElementById('an-pending');
+  if(!card||!box) return;
+  try{
+    var d=await (await fetch('/api/admin/sectors/pending',{headers:h()})).json();
+    var list=(d&&d.pending)||[];
+    if(!list.length){ card.style.display='none'; return; }
+    card.style.display='';
+    document.getElementById('an-pending-count').textContent='('+list.length+')';
+    box.innerHTML=list.map(function(s){
+      var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
+      var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
+      return '<div style="border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
+        +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveSector(\''+_secEsc(s.slug)+'\')">Aprobar</button>'
+        +'<button class="btn" onclick="discardSector(\''+_secEsc(s.slug)+'\')">Descartar</button></div></div>'
+        +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul>'
+        +'<div style="font-size:11px">'+mets+'</div></div>';
+    }).join('');
+  }catch(e){ card.style.display='none'; }
+}
+async function approveSector(slug){
+  try{ var r=await fetch('/api/admin/sectors/'+encodeURIComponent(slug)+'/approve',{method:'POST',headers:h()}); var j=await r.json();
+    if(j.ok){ toast('Sector aprobado: '+slug); } else { toast(j.error||'No se pudo aprobar','err'); } }
+  catch(e){ toast('Error al aprobar','err'); }
+  _loadPendingSectors();
+}
+async function discardSector(slug){
+  try{ await fetch('/api/admin/sectors/'+encodeURIComponent(slug)+'/discard',{method:'POST',headers:h()}); toast('Borrador descartado'); }
+  catch(e){}
+  _loadPendingSectors();
+}
 function _anSectores(el, sectores){
   if(!el) return;
   var rows=(sectores||[]);
@@ -1014,6 +1049,7 @@ async function loadAnalytics(){
     _anTopClients(document.getElementById('an-topclients'), d.clientes);
     _anHeatmap(document.getElementById('an-heatmap'), d.heatmap);
     _anSectores(document.getElementById('an-sectores'), d.sectores);
+    _loadPendingSectors();
     _anGrowth(document.getElementById('an-growth'), d.trend);
     var tb=document.getElementById('an-clients'), cl=d.clientes||[];
     if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }

@@ -430,6 +430,34 @@ function setupAdminRoutes(app, config, assistantManager) {
       res.status(500).json({ error: e.message });
     }
   });
+  // 3) Cola de revisión: borradores pendientes (los que generó el onboarding).
+  app.get('/api/admin/sectors/pending', adminAuth, async (req, res) => {
+    try {
+      const { listPending } = require('../sectors/sector-store');
+      res.json({ ok: true, pending: await listPending(getDatabase()) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  // 4) Aprobar / descartar un borrador pendiente por slug.
+  app.post('/api/admin/sectors/:slug/approve', adminAuth, async (req, res) => {
+    try {
+      const { approveSector } = require('../sectors/sector-store');
+      const out = await approveSector(getDatabase(), req.params.slug);
+      res.status(out.ok ? 200 : 400).json(out);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  app.post('/api/admin/sectors/:slug/discard', adminAuth, async (req, res) => {
+    try {
+      const { discardSector } = require('../sectors/sector-store');
+      const out = await discardSector(getDatabase(), req.params.slug);
+      res.status(out.ok ? 200 : 400).json(out);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // ─── Calls analytics dashboard ───────────────────────────────────────────────
   app.get('/api/admin/calls', adminAuth, (req, res) => {

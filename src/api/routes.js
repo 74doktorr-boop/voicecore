@@ -94,6 +94,11 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     try {
       const { profileBusiness } = require('../sectors/onboarding-profiler');
       const p = await profileBusiness({ name: req.body?.name, description: req.body?.description });
+      // Vertical nuevo: guardamos el borrador en la cola de revisión del fundador
+      // (best-effort) para que se cure — así el auto-borrador no se pierde.
+      if (p.suggested && p.suggested.draft) {
+        try { require('../sectors/sector-store').saveDraft(getDatabase(), p.suggested.draft); } catch (_) {}
+      }
       res.json({ ok: true, ...p });
     } catch (e) {
       res.status(500).json({ error: e.message });
