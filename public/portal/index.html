@@ -237,23 +237,49 @@
                 .vf-chip{background:rgba(255,255,255,.04);border:1px solid var(--border,rgba(255,255,255,.1));color:var(--dim);font-size:12px;font-weight:600;padding:6px 13px;border-radius:30px;cursor:pointer;transition:all .15s}
                 .vf-chip:hover{color:var(--text,#fff);border-color:var(--accent-l)}
                 .vf-chip.active{background:var(--accent,#c4f546);color:#0a0b0d;border-color:var(--accent)}
-                .voice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;max-height:360px;overflow-y:auto;padding:2px}
-                .voice-card{position:relative;background:var(--card2,rgba(255,255,255,.03));border:1.5px solid var(--border,rgba(255,255,255,.09));border-radius:14px;padding:14px 14px 12px;cursor:pointer;transition:all .15s}
-                .voice-card:hover{border-color:var(--accent-l);transform:translateY(-2px)}
-                .voice-card.selected{border-color:var(--accent,#c4f546);background:rgba(196,245,70,.08);box-shadow:0 0 0 3px rgba(196,245,70,.18)}
-                .voice-card .vc-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
-                .voice-card .vc-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(255,255,255,.06)}
-                .voice-card.fem .vc-avatar{background:rgba(244,114,182,.14)} .voice-card.mal .vc-avatar{background:rgba(96,165,250,.14)}
-                .voice-card .vc-name{font-weight:700;font-size:14px;color:var(--text,#fff)}
-                .voice-card .vc-sub{font-size:11px;color:var(--dim)}
-                .voice-card .vc-desc{font-size:11.5px;color:var(--dim);line-height:1.45;min-height:32px}
-                .voice-card .vc-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-                .voice-card .vc-tag{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--accent-l);background:rgba(196,245,70,.1);border-radius:5px;padding:2px 6px}
-                .voice-card .vc-play{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--border,rgba(255,255,255,.12));background:rgba(255,255,255,.05);color:var(--accent-l);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-                .voice-card .vc-play:hover{background:var(--accent);color:#0a0b0d;border-color:var(--accent)}
-                .voice-card .vc-check{position:absolute;bottom:12px;right:12px;color:var(--accent);font-weight:800;font-size:14px;display:none}
-                .voice-card.selected .vc-check{display:block}
-                .voice-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:13px;padding:24px}
+                .voice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;max-height:62vh;overflow-y:auto;padding:6px 4px 4px}
+                /* Encabezado de nivel — vende cada tier */
+                .voice-tier{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+                .voice-tier.mt{margin-top:20px}
+                .voice-tier-title{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--white);letter-spacing:-.01em}
+                .voice-tier-badge{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+                .voice-tier-badge.inc{color:var(--green2);background:rgba(25,184,148,.12);border:1px solid rgba(25,184,148,.32)}
+                .voice-tier-badge.prem{color:var(--on-accent);background:var(--accent);box-shadow:var(--glow-accent-soft)}
+                .voice-tier-note{font-size:12px;color:var(--dim);flex:1;min-width:130px}
+                .voice-tier-cta{font-size:12px;font-weight:800;color:var(--accent-l);cursor:pointer;white-space:nowrap;transition:color var(--dur-1)}
+                .voice-tier-cta:hover{color:var(--accent)}
+                /* Tarjeta de voz */
+                .voice-card{position:relative;display:flex;flex-direction:column;gap:8px;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--r-4);padding:15px 15px 14px;cursor:pointer;overflow:hidden;transition:border-color var(--dur-2) var(--ease-out),transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),background var(--dur-2)}
+                .voice-card:hover{border-color:var(--border-accent);transform:translateY(-3px);box-shadow:var(--glow-accent)}
+                .voice-card.selected{border-color:var(--accent);background:rgba(var(--accent-rgb),.06)}
+                .voice-card.playing{border-color:var(--accent-l);box-shadow:var(--glow-accent-soft)}
+                .voice-card.tier-premium::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.75),transparent)}
+                .voice-card .vc-top{display:flex;align-items:center;gap:10px}
+                .voice-card .vc-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:rgba(255,255,255,.06)}
+                .voice-card.fem .vc-avatar{background:rgba(244,114,182,.15)} .voice-card.mal .vc-avatar{background:rgba(96,165,250,.15)}
+                .voice-card .vc-id{min-width:0;flex:1}
+                .voice-card .vc-name{font-weight:700;font-size:15px;color:var(--white);line-height:1.15}
+                .voice-card .vc-sub{font-size:11px;color:var(--dim);text-transform:capitalize;margin-top:1px}
+                .voice-card .vc-sel{display:none;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--on-accent);background:var(--accent);border-radius:999px;padding:3px 8px;flex-shrink:0}
+                .voice-card.selected .vc-sel{display:inline-block}
+                .voice-card .vc-desc{font-size:12px;color:var(--dim);line-height:1.45;min-height:34px}
+                .voice-card .vc-chips{display:flex;flex-wrap:wrap;gap:4px}
+                .voice-card .vc-tag{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--accent-l);background:rgba(var(--accent-rgb),.1);border-radius:5px;padding:2px 6px}
+                /* Botón Escuchar — el protagonista */
+                .voice-card .vc-listen{margin-top:2px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--border-2);background:rgba(255,255,255,.04);color:var(--accent-l);font-family:var(--font-ui);font-size:12.5px;font-weight:700;cursor:pointer;transition:background var(--dur-1),color var(--dur-1),border-color var(--dur-1),box-shadow var(--dur-1)}
+                .voice-card .vc-listen:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent);box-shadow:var(--glow-accent)}
+                .voice-card.playing .vc-listen{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+                .voice-card .vc-listen .vc-ico{font-size:11px;line-height:1}
+                .voice-card .vc-listen .vc-spin{display:none;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:vcSpin .6s linear infinite}
+                .voice-card .vc-listen .vc-eq{display:none;align-items:flex-end;gap:2px;height:13px}
+                .voice-card .vc-listen .vc-eq i{width:2.5px;height:5px;background:currentColor;border-radius:2px;animation:vcEq .85s var(--ease-in-out) infinite}
+                .voice-card .vc-listen .vc-eq i:nth-child(2){animation-delay:.12s} .voice-card .vc-listen .vc-eq i:nth-child(3){animation-delay:.26s} .voice-card .vc-listen .vc-eq i:nth-child(4){animation-delay:.38s}
+                .voice-card.loading .vc-listen .vc-ico{display:none} .voice-card.loading .vc-listen .vc-spin{display:inline-block}
+                .voice-card.playing .vc-listen .vc-ico{display:none} .voice-card.playing .vc-listen .vc-eq{display:inline-flex}
+                @keyframes vcEq{0%,100%{height:5px}50%{height:13px}}
+                @keyframes vcSpin{to{transform:rotate(360deg)}}
+                .voice-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:13px;padding:28px}
+                @media (prefers-reduced-motion:reduce){.voice-card:hover{transform:none}.voice-card .vc-listen .vc-eq i{animation:none;height:9px}.voice-card .vc-listen .vc-spin{animation-duration:1.4s}}
               </style>
               <div class="voice-picker">
                 <div class="voice-bar">

@@ -3134,30 +3134,52 @@ function renderVoiceGrid() {
     var sub = [v.accent, v.age].filter(Boolean).join(' · ') || (v.gender || '');
     var chips = (v.labels || []).slice(0, 3).map(function(t) { return '<span class="vc-tag">' + _voiceEsc(t) + '</span>'; }).join('');
     var id = _voiceEsc(v.id);
-    return '<div class="voice-card ' + g + (v.id === sel ? ' selected' : '') + '" onclick="selectVoice(\'' + id + '\')">'
-      + '<button type="button" class="vc-play" title="Escuchar muestra" onclick="event.stopPropagation();previewVoice(\'' + id + '\',this)">▶</button>'
-      + '<div class="vc-top"><div class="vc-avatar">' + ico + '</div><div><div class="vc-name">' + _voiceEsc(v.name) + '</div><div class="vc-sub">' + _voiceEsc(sub) + '</div></div></div>'
-      + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 95)) + '</div>'
+    return '<div class="voice-card ' + g + ' tier-' + _voiceEsc(v.tier || 'premium') + (v.id === sel ? ' selected' : '') + '" data-vid="' + id + '" onclick="selectVoice(\'' + id + '\')">'
+      + '<div class="vc-top">'
+        + '<div class="vc-avatar">' + ico + '</div>'
+        + '<div class="vc-id"><div class="vc-name">' + _voiceEsc(v.name) + '</div><div class="vc-sub">' + _voiceEsc(sub) + '</div></div>'
+        + '<span class="vc-sel">Tu voz</span>'
+      + '</div>'
+      + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 88)) + '</div>'
       + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
-      + '<div class="vc-check">✓</div></div>';
+      + '<button type="button" class="vc-listen" onclick="event.stopPropagation();previewVoice(\'' + id + '\',this)" aria-label="Escuchar a ' + _voiceEsc(v.name) + '">'
+        + '<span class="vc-ico">▶</span><span class="vc-spin"></span>'
+        + '<span class="vc-eq"><i></i><i></i><i></i><i></i></span>'
+        + '<span class="vc-listen-label">Escuchar</span>'
+      + '</button>'
+    + '</div>';
   };
 
-  grid.innerHTML = TIER_ORDER.filter(function(t) { return byTier[t] && byTier[t].length; })
-    .map(function(t) {
-      var info = _voiceTiers[t] || {};
-      var header = '<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:' + (t === TIER_ORDER[0] ? '0' : '14px') + ' 0 2px">'
-        + '<span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;'
-        + (t === 'premium' ? 'background:rgba(196,245,70,.15);color:var(--accent-l);border:1px solid rgba(196,245,70,.35)'
-                           : 'background:rgba(255,255,255,.06);color:var(--dim);border:1px solid var(--border)') + '">'
-        + _voiceEsc(info.badge || t) + '</span>'
-        + '<span style="font-size:11px;color:var(--dim)">' + _voiceEsc(info.blurb || '') + '</span></div>';
-      return header + byTier[t].map(card).join('');
-    }).join('');
+  // Copy que VENDE cada nivel (no el blurb técnico del backend).
+  var TIER_COPY = {
+    estandar: { title: 'Incluidas en tu plan', badge: 'Sin coste extra', cls: 'inc',
+                note: 'Voces naturales y rápidas, listas para tus llamadas.' },
+    premium:  { title: 'Voces Premium',        badge: '+10€/mes',        cls: 'prem',
+                note: 'Ultrarrealistas: quien llama cree hablar con una persona. Pruébalas gratis.' },
+    ultra:    { title: 'Incluidas en tu plan', badge: 'Sin coste extra', cls: 'inc',
+                note: 'Voces rápidas incluidas en tu plan.' },
+  };
+  var shown = TIER_ORDER.filter(function(t) { return byTier[t] && byTier[t].length; });
+  grid.innerHTML = shown.map(function(t, i) {
+    var c = TIER_COPY[t] || { title: t, badge: '', cls: 'inc', note: '' };
+    var header = '<div class="voice-tier' + (i > 0 ? ' mt' : '') + '">'
+      + '<span class="voice-tier-title">' + _voiceEsc(c.title) + '</span>'
+      + '<span class="voice-tier-badge ' + c.cls + '">' + _voiceEsc(c.badge) + '</span>'
+      + '<span class="voice-tier-note">' + _voiceEsc(c.note) + '</span>'
+      + (t === 'premium' ? '<span class="voice-tier-cta" onclick="navigate(\'facturacion\')">Activar Premium →</span>' : '')
+      + '</div>';
+    return header + byTier[t].map(card).join('');
+  }).join('');
 }
 
 function selectVoice(id) {
   var h = document.getElementById('asis-voice'); if (h) h.value = id;
-  renderVoiceGrid();
+  // Actualizar el resaltado SIN re-renderizar (evita repetir la animación de
+  // entrada en cada clic) y escuchar la voz elegida al instante.
+  var cards = document.querySelectorAll('#voice-grid .voice-card');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.toggle('selected', cards[i].getAttribute('data-vid') === id);
+  }
   previewVoice(id);
 }
 
@@ -3173,25 +3195,54 @@ function _getVoiceManifest() {
     .then(function (m) { _voiceManifest = m || {}; return _voiceManifest; });
 }
 
+// Estado visual de reproducción en la tarjeta: idle → loading (spinner) →
+// playing (ecualizador en vivo). Hace que ESCUCHAR sea satisfactorio.
+var _voicePlayingCard = null;
+function _vcState(card, state) {
+  if (!card) return;
+  card.classList.remove('loading', 'playing');
+  var label = card.querySelector('.vc-listen-label');
+  if (state === 'loading') { card.classList.add('loading'); if (label) label.textContent = 'Cargando'; }
+  else if (state === 'playing') { card.classList.add('playing'); if (label) label.textContent = 'Sonando'; }
+  else if (label) label.textContent = 'Escuchar';
+}
+function _vcStop() {
+  if (_voicePreviewAudio) { try { _voicePreviewAudio.pause(); } catch (e) {} _voicePreviewAudio = null; }
+  if (_voicePlayingCard) { _vcState(_voicePlayingCard, 'idle'); _voicePlayingCard = null; }
+}
+function _vcCardFor(voice, btn) {
+  if (btn && btn.closest) return btn.closest('.voice-card');
+  try { return document.querySelector('.voice-card[data-vid="' + voice + '"]'); } catch (e) { return null; }
+}
+
 function previewVoice(voice, btn) {
   var statusEl = document.getElementById('portal-demo-status');
-  if (_voicePreviewAudio) { _voicePreviewAudio.pause(); _voicePreviewAudio = null; }
-  if (btn) btn.textContent = '⏳';
+  var card = _vcCardFor(voice, btn);
+  // Toggle: si esta misma voz ya suena, parar.
+  if (card && card === _voicePlayingCard) { _vcStop(); if (statusEl) statusEl.textContent = 'Pulsa una voz para escucharla'; return; }
+  _vcStop();
+  _vcState(card, 'loading');
 
   _getVoiceManifest().then(function (manifest) {
-    if (manifest[voice]) {
-      if (btn) btn.textContent = '▶';
-      _voicePreviewAudio = new Audio('/audio/voices/' + manifest[voice]);
-      if (statusEl) statusEl.textContent = '🔊 Reproduciendo muestra…';
-      _voicePreviewAudio.onended = function () { if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente'; };
-      _voicePreviewAudio.play().catch(function () { _previewVoiceViaApi(voice, btn, statusEl); });
-      return;
-    }
-    _previewVoiceViaApi(voice, btn, statusEl);
+    if (manifest[voice]) { _vcPlay(new Audio('/audio/voices/' + manifest[voice]), card, statusEl); return; }
+    _previewVoiceViaApi(voice, card, statusEl);
   });
 }
 
-function _previewVoiceViaApi(voice, btn, statusEl) {
+function _vcPlay(audio, card, statusEl) {
+  _voicePreviewAudio = audio;
+  _voicePlayingCard = card;
+  _vcState(card, 'playing');
+  var nm = card ? (card.querySelector('.vc-name') || {}).textContent : '';
+  if (statusEl) statusEl.textContent = '🔊 Escuchando' + (nm ? ' a ' + nm : '') + '…';
+  audio.onended = function () {
+    if (card === _voicePlayingCard) _vcStop();
+    if (statusEl) statusEl.textContent = '¿Te gusta? Pulsa "Elegir" o prueba otra.';
+  };
+  audio.play().catch(function () { _vcState(card, 'idle'); if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
+}
+
+function _previewVoiceViaApi(voice, card, statusEl) {
   var _pvNegocio = _asisOrgName || 'tu negocio';
   var _pvNombre  = (document.getElementById('asis-name') || {}).value || '';
   var previewText = '¡Hola! Ha llamado a ' + _pvNegocio + '. ' + (_pvNombre ? 'Soy ' + _pvNombre + ', su' : 'Soy su') + ' asistente virtual. ¿En qué puedo ayudarle?';
@@ -3201,14 +3252,8 @@ function _previewVoiceViaApi(voice, btn, statusEl) {
     body: JSON.stringify({ text: previewText, voice: voice }),
   })
   .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.blob(); })
-  .then(function(blob) {
-    if (btn) btn.textContent = '▶';
-    _voicePreviewAudio = new Audio(URL.createObjectURL(blob));
-    if (statusEl) statusEl.textContent = '🔊 Reproduciendo muestra…';
-    _voicePreviewAudio.onended = function() { if (statusEl) statusEl.textContent = 'Pulsa para probar tu asistente'; };
-    _voicePreviewAudio.play().catch(function() { if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
-  })
-  .catch(function() { if (btn) btn.textContent = '▶'; if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
+  .then(function(blob) { _vcPlay(new Audio(URL.createObjectURL(blob)), card, statusEl); })
+  .catch(function() { _vcState(card, 'idle'); if (statusEl) statusEl.textContent = 'Escucharás la voz en la prueba de llamada'; });
 }
 
 function renderAsistenteForm() {
