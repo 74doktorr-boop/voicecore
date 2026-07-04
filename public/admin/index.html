@@ -229,6 +229,14 @@
       <div class="an-card" style="margin-bottom:20px"><h3>Mapa de calor — cuándo llaman (día × hora)</h3><div id="an-heatmap"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>Salud por sector</h3><div id="an-sectores"></div></div>
       <div class="an-card" id="an-pending-card" style="margin-bottom:20px;display:none"><h3>🆕 Sectores nuevos por revisar <span id="an-pending-count" style="font-size:12px;color:var(--dim)"></span></h3><div style="font-size:12px;color:var(--dim);margin-bottom:10px">Borradores generados en altas de verticales que aún no cubríamos. Revisa las normas y apruébalos para que se apliquen a todos los negocios de ese sector.</div><div id="an-pending"></div></div>
+      <div class="an-card" style="margin-bottom:20px"><h3>➕ Crear un sector</h3>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Describe un tipo de negocio y la IA propone sus normas y métricas; revísalas y actívalo. Sin deploy.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="sec-new-desc" placeholder="p.ej. Floristería: venta de flores, ramos y entregas a domicilio" style="flex:1;min-width:260px;padding:9px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--card2,#12151b);color:var(--text,#e9ecf3)">
+          <button class="btn btn-y" onclick="draftNewSector()">Generar borrador</button>
+        </div>
+        <div id="sec-new-result" style="margin-top:12px"></div>
+      </div>
       <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
       <div class="table-wrap">
         <table><thead><tr><th>Cliente</th><th>Plan</th><th>Salud</th><th>Llamadas</th><th>Conv.</th><th>Minutos</th><th>Alertas</th></tr></thead>
@@ -947,6 +955,36 @@ async function discardSector(slug){
   try{ await fetch('/api/admin/sectors/'+encodeURIComponent(slug)+'/discard',{method:'POST',headers:h()}); toast('Borrador descartado'); }
   catch(e){}
   _loadPendingSectors();
+}
+var _lastNewDraft=null;
+async function draftNewSector(){
+  var desc=(document.getElementById('sec-new-desc').value||'').trim();
+  var res=document.getElementById('sec-new-result');
+  if(desc.length<4){ toast('Describe el negocio con un poco más de detalle','err'); return; }
+  res.innerHTML='<span style="color:var(--dim);font-size:13px">Generando borrador…</span>';
+  try{
+    var r=await fetch('/api/admin/sectors/draft',{method:'POST',headers:h(),body:JSON.stringify({label:desc,description:desc})});
+    var j=await r.json();
+    if(!j.ok||!j.draft){ res.innerHTML='<span style="color:#e17055;font-size:13px">'+_secEsc(j.error||'No se pudo generar un borrador. Da más contexto.')+'</span>'; return; }
+    _lastNewDraft=j.draft;
+    var s=j.draft;
+    var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
+    var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
+    res.innerHTML='<div style="border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
+      +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveNewDraft()">Aprobar y activar</button>'
+      +'<button class="btn" onclick="document.getElementById(\'sec-new-result\').innerHTML=\'\'">Descartar</button></div></div>'
+      +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul><div style="font-size:11px">'+mets+'</div></div>';
+  }catch(e){ res.innerHTML='<span style="color:#e17055;font-size:13px">Error al generar el borrador.</span>'; }
+}
+async function approveNewDraft(){
+  if(!_lastNewDraft) return;
+  try{
+    var r=await fetch('/api/admin/sectors',{method:'POST',headers:h(),body:JSON.stringify(_lastNewDraft)});
+    var j=await r.json();
+    if(j.ok){ toast('Sector "'+(_lastNewDraft.label||_lastNewDraft.slug)+'" activado'); document.getElementById('sec-new-result').innerHTML=''; document.getElementById('sec-new-desc').value=''; _lastNewDraft=null; }
+    else toast(j.error||'No se pudo activar','err');
+  }catch(e){ toast('Error al activar','err'); }
 }
 function _anSectores(el, sectores){
   if(!el) return;

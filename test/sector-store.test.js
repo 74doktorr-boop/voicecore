@@ -106,6 +106,7 @@ describe('approveSector — activa + AUTO-VINCULA orgs que ahora encajan', () =>
       b.update = (p) => { b._upd = p; return b; };
       b.eq = (k, v) => { b._eq[k] = v; return b; };
       b.select = (c) => { b._sel = c; return b; };
+      b.or = () => b; b.limit = () => b; // filtros del autolink (el fake devuelve todas y filtra el JS)
       b.maybeSingle = async () => (table === 'nf_sectors' && b._upd) ? { data: { definition: pendingDef }, error: null } : { data: null, error: null };
       b.then = (res, rej) => {
         let out;

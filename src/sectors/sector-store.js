@@ -125,7 +125,19 @@ async function approveSector(db, slug) {
 async function _autolinkOrgs(db, slug) {
   const { resolveSector } = require('./sector-registry');
   const { _deterministicMatch } = require('./onboarding-profiler');
-  const { data: orgs } = await db.client.from('organizations').select('id, name, assistant_config');
+  // Solo las candidatas: sector nulo o 'generico' (no escanear todo el padrón).
+  // Intento el filtro JSONB en BD; si el motor no lo soporta, caigo a escanear
+  // (con cap) y el chequeo JS de abajo hace de red. Aprobar es una acción rara.
+  let orgs = [];
+  try {
+    const r = await db.client.from('organizations').select('id, name, assistant_config')
+      .or('assistant_config->>sector.is.null,assistant_config->>sector.eq.generico').limit(2000);
+    if (r.error) throw new Error(r.error.message);
+    orgs = r.data || [];
+  } catch (_) {
+    const r = await db.client.from('organizations').select('id, name, assistant_config').limit(2000);
+    orgs = r.data || [];
+  }
   let linked = 0;
   for (const o of (orgs || [])) {
     const cur = o.assistant_config && o.assistant_config.sector;
