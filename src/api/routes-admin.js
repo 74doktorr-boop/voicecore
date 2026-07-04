@@ -422,7 +422,8 @@ function setupAdminRoutes(app, config, assistantManager) {
   // ─── KPIs de negocio + analíticas + gestión (derivado de la BD) ──────────────
   app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     try {
-      const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, mrrTrend } = require('../analytics/kpis');
+      const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, bySector, periodDeltas, mrrTrend } = require('../analytics/kpis');
+      const { resolveSector } = require('../sectors/sector-registry');
       const db = getDatabase();
       const days = Math.min(parseInt(req.query.days) || 30, 90);
       const DAY = 86400000;
@@ -434,7 +435,7 @@ function setupAdminRoutes(app, config, assistantManager) {
         const [callsRes, apptRes, orgRes] = await Promise.all([
           db.client.from('nf_calls').select('org_id, outcome, duration_ms, turn_count, started_at, created_at').gte('created_at', prevSinceISO).limit(10000),
           db.client.from('nf_appointments').select('organization_id, status, no_show_notified, reminder_sent, review_requested, date').gte('date', prevSinceISO.slice(0, 10)).limit(10000),
-          db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at').limit(1000),
+          db.client.from('organizations').select('id, name, plan, is_active, monthly_minutes_used, registered_at, created_at, assistant_config').limit(1000),
         ]);
         allCalls = callsRes.data || [];
         allAppts = apptRes.data || [];
@@ -455,10 +456,14 @@ function setupAdminRoutes(app, config, assistantManager) {
       const hours    = hourlyVolume(curCalls);
       const heatmap  = weekdayHourHeatmap(curCalls);
       const clientes = byOrg({ calls: curCalls, orgs, includedMinutes: 500 });
+      // Salud por SECTOR (2026-07-04): cada llamada hereda el sector de su org.
+      const orgSector = {};
+      for (const o of orgs) orgSector[o.id] = resolveSector(o.assistant_config && o.assistant_config.sector).slug;
+      const sectores = bySector({ calls: curCalls, orgSector });
       const funnel   = getAnalytics().getFunnel(days); // en memoria (complementa)
       const trend    = mrrTrend({ orgs, months: 12 }); // crecimiento reconstruido (12 meses)
 
-      res.json({ periodDays: days, kpis, kpisPrev, deltas, series, hours, heatmap, funnel, clientes, trend });
+      res.json({ periodDays: days, kpis, kpisPrev, deltas, series, hours, heatmap, funnel, clientes, sectores, trend });
     } catch (e) {
       log.error('Admin analytics error', { error: e.message });
       res.status(500).json({ error: e.message });

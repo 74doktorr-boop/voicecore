@@ -174,6 +174,41 @@ function byOrg(p = {}) {
 }
 
 /**
+ * KPIs por SECTOR (vertical) — la foto de salud por sector en el admin
+ * (2026-07-04). El sector es propiedad de la org, así que cada llamada lo
+ * hereda: se agrupa por el sector del negocio que la recibió.
+ * @param {{calls:Array, orgSector:Object}} p  orgSector = { [orgId]: 'sectorSlug' }
+ */
+function bySector(p = {}) {
+  const calls = p.calls || [];
+  const orgSector = p.orgSector || {};
+  const { resolveSector } = require('../sectors/sector-registry');
+  const stats = {};
+  for (const c of calls) {
+    const id = c.org_id || c.organization_id;
+    const sector = orgSector[id] || 'generico';
+    if (!stats[sector]) stats[sector] = { calls: 0, bookings: 0, info: 0, minutes: 0, orgs: new Set() };
+    const s = stats[sector];
+    s.calls++;
+    if (c.outcome === 'booked') s.bookings++;
+    else if (c.outcome === 'info') s.info++;
+    s.minutes += _minutes(c);
+    if (id) s.orgs.add(id);
+  }
+  return Object.entries(stats).map(([sector, s]) => ({
+    sector,
+    label: sector === 'generico' ? 'Sin sector' : resolveSector(sector).label,
+    businesses: s.orgs.size,
+    calls: s.calls,
+    bookings: s.bookings,
+    info: s.info,
+    conversionRate: s.calls ? Math.round((s.bookings / s.calls) * 100) : 0,
+    minutesUsed: Math.round(s.minutes * 10) / 10,
+    avgMinutesPerCall: s.calls ? Math.round((s.minutes / s.calls) * 10) / 10 : 0,
+  })).sort((a, b) => b.calls - a.calls);
+}
+
+/**
  * Tendencia de MRR y altas por mes, RECONSTRUIDA desde las fechas de alta
  * (no hay histórico guardado). Para cada mes: altas nuevas, activos acumulados
  * registrados hasta fin de mes, y MRR de esos activos. Es una estimación de
@@ -221,4 +256,4 @@ function periodDeltas(cur = {}, prev = {}) {
   };
 }
 
-module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, mrrTrend, PLAN_PRICES };
+module.exports = { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, bySector, periodDeltas, mrrTrend, PLAN_PRICES };

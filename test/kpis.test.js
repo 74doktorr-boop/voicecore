@@ -2,7 +2,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, periodDeltas, mrrTrend } = require('../src/analytics/kpis');
+const { computeKpis, timeSeries, hourlyVolume, weekdayHourHeatmap, byOrg, bySector, periodDeltas, mrrTrend } = require('../src/analytics/kpis');
 
 const NOW = new Date('2026-07-01T12:00:00Z').getTime();
 const day = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -148,5 +148,29 @@ describe('kpis.byOrg (salud)', () => {
     const c = rows.find(r => r.id === 'c');
     assert.strictEqual(c.health, 'inactivo');
     assert.ok(c.alerts.includes('inactivo'));
+  });
+});
+
+describe('kpis.bySector — salud por vertical (Fase 4)', () => {
+  // a → dental (3 llamadas: 2 booked, 1 info); b → peluqueria (1 abandoned)
+  const rows = bySector({ calls, orgSector: { a: 'dental', b: 'peluqueria' } });
+  const dental = rows.find(r => r.sector === 'dental');
+  const pelu   = rows.find(r => r.sector === 'peluqueria');
+
+  test('agrupa por el sector de cada negocio', () => {
+    assert.strictEqual(dental.calls, 3);
+    assert.strictEqual(dental.bookings, 2);
+    assert.strictEqual(dental.businesses, 1);
+    assert.strictEqual(pelu.calls, 1);
+  });
+  test('conversión y etiqueta por sector', () => {
+    assert.strictEqual(dental.conversionRate, 67); // 2/3
+    assert.strictEqual(dental.label, 'Clínica dental');
+    assert.strictEqual(pelu.conversionRate, 0);
+  });
+  test('org sin sector conocido → "Sin sector" (generico)', () => {
+    const r = bySector({ calls: [{ org_id: 'z', outcome: 'info' }], orgSector: {} });
+    assert.strictEqual(r[0].sector, 'generico');
+    assert.strictEqual(r[0].label, 'Sin sector');
   });
 });
