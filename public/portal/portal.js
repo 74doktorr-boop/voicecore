@@ -1196,6 +1196,14 @@ async function showVoiceModels() {
   var d; try { d = await api('/api/voices'); } catch (e) { toast('No se pudieron cargar los modelos de voz', 'err'); return; }
   var voices = (d && d.voices) || [];
   var n = {}; voices.forEach(function (v) { if (v.provider !== 'local') n[v.tier] = (n[v.tier] || 0) + 1; });
+  // Voz/modelo ACTUAL del asistente — para marcarlo (petición Unai: "no se ve").
+  var curVoice = '', curTier = '', curName = '';
+  try {
+    var a = await api('/api/portal/assistant');
+    curVoice = (a && a.config && a.config.voice) || '';
+    var cur = voices.filter(function (v) { return v.id === curVoice || v.providerVoiceId === curVoice; })[0];
+    if (cur) { curTier = cur.tier; curName = cur.name; }
+  } catch (e) { /* si no se puede, el modal sale sin marcar la actual */ }
   var TIERS = [
     { key: 'estandar', name: 'Estándar', icon: '🎙️', price: 'Incluida en tu plan', col: 'var(--dim)', bd: 'var(--border)',
       desc: 'Voces naturales y claras. Sin límite dentro de tus minutos del mes.' },
@@ -1205,9 +1213,11 @@ async function showVoiceModels() {
       desc: 'Respuesta casi instantánea (Cartesia). Conversaciones más ágiles. Mismo complemento que Premium.' },
   ];
   var cards = TIERS.map(function (t) {
-    return '<div style="border:1px solid ' + t.bd + ';border-radius:12px;padding:16px;margin-bottom:10px">' +
+    var isCur = t.key === curTier;
+    return '<div style="border:1px solid ' + (isCur ? t.col : t.bd) + ';border-radius:12px;padding:16px;margin-bottom:10px;' + (isCur ? 'box-shadow:0 0 0 1px ' + t.col + ' inset' : '') + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">' +
-        '<div style="font-size:15px;font-weight:800">' + t.icon + ' ' + t.name + '</div>' +
+        '<div style="font-size:15px;font-weight:800">' + t.icon + ' ' + t.name +
+          (isCur ? ' <span style="font-size:10px;font-weight:800;color:' + t.col + ';border:1px solid ' + t.col + ';border-radius:999px;padding:1px 7px;margin-left:4px">TU VOZ AHORA</span>' : '') + '</div>' +
         '<span style="font-size:11px;font-weight:800;color:' + t.col + '">' + t.price + '</span></div>' +
       '<div style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:10px">' + t.desc + '</div>' +
       '<div style="display:flex;justify-content:space-between;align-items:center">' +
@@ -1215,9 +1225,13 @@ async function showVoiceModels() {
         '<button class="btn btn-d btn-sm" onclick="closeModal();navigate(\'asistente\')">Elegir voz →</button></div>' +
     '</div>';
   }).join('');
+  var curLine = curName
+    ? '<div style="font-size:12px;color:var(--text);background:var(--card2);border-radius:8px;padding:8px 12px;margin-bottom:12px">🔊 Ahora mismo tu asistente usa <strong>' + esc(curName) + '</strong>' + (curTier ? ' · ' + (curTier === 'estandar' ? 'Estándar' : curTier === 'premium' ? 'Premium' : 'Ultra-rápida') : '') + '</div>'
+    : '';
   openModal(
     '<div style="font-size:16px;font-weight:800;margin-bottom:4px">🎚️ Modelos de voz</div>' +
     '<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Elige cómo suena tu asistente. Puedes probarlas todas en la demo o en Asistente.</div>' +
+    curLine +
     cards +
     '<div style="font-size:11px;color:var(--dim);margin:8px 0 12px">¿Se te acaban los minutos de voz premium? Cómpralos en <a onclick="closeModal();navigate(\'facturacion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Facturación</a> (packs desde 5€).</div>' +
     '<div style="text-align:right"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
