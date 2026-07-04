@@ -220,12 +220,9 @@
         <div class="chat-sub">Asistente de voz IA · NodeFlow</div>
       </div>
       <div class="status-dot" title="Online"></div>
-      <select id="voicePicker" onchange="onVoiceChange()" title="Voz del asistente (ElevenLabs)"
-        style="background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;cursor:pointer;max-width:140px;margin-right:8px;">
+      <select id="voicePicker" onchange="onVoiceChange()" title="Voz del asistente — pruébalas todas"
+        style="background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;cursor:pointer;max-width:170px;margin-right:8px;">
         <option value="dNjJKg63Fr5AXwIdkATa" style="background:#1a160e;color:#fff;">👩 Femenina 1</option>
-        <option value="kwNLkNjbQHMw9YUFZsHI" style="background:#1a160e;color:#fff;">👩 Femenina 2</option>
-        <option value="JngPf0lmRkKhY3qSJz0f" style="background:#1a160e;color:#fff;">👨 Masculina 1</option>
-        <option value="uVoJJFOcQglSD16zUGOl" style="background:#1a160e;color:#fff;">👨 Masculina 2</option>
       </select>
       <button id="voiceToggleBtn" onclick="toggleVoice()" title="Activar/desactivar voz del asistente"
         style="background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
@@ -677,7 +674,41 @@ window.onload = () => {
     else localStorage.removeItem('server_token');
   });
   setSector(document.querySelector('.sector-btn.active'), 'dental', '🦷', 'María', 'Clínica Dental Demo');
+  loadVoicesIntoPicker();
 };
+
+// Carga TODAS las voces del catálogo en el selector de la demo, agrupadas por
+// nivel (Estándar / Premium / Ultra-rápida). Así el visitante prueba las voces
+// reales — cada una suena por su proveedor (fix del preview honesto).
+async function loadVoicesIntoPicker() {
+  try {
+    const r = await fetch('/api/voices');
+    const d = await r.json();
+    const sel = document.getElementById('voicePicker');
+    if (!sel || !d.voices || !d.voices.length) return;
+    const labels = { estandar: 'Estándar (incluida)', premium: 'Premium', ultra: 'Ultra-rápida' };
+    const byTier = { estandar: [], premium: [], ultra: [] };
+    for (const v of d.voices) {
+      if (!v.language || !v.language.startsWith('es')) continue; // la demo es en castellano
+      if (byTier[v.tier]) byTier[v.tier].push(v);
+    }
+    sel.innerHTML = '';
+    for (const t of ['estandar', 'premium', 'ultra']) {
+      if (!byTier[t].length) continue;
+      const og = document.createElement('optgroup');
+      og.label = labels[t] || t;
+      for (const v of byTier[t]) {
+        const o = document.createElement('option');
+        o.value = v.id;
+        o.style.cssText = 'background:#1a160e;color:#fff';
+        o.textContent = (v.gender === 'male' ? '👨 ' : '👩 ') + v.name;
+        og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
+    if (sel.options.length) _selectedVoice = sel.value;
+  } catch (e) { /* si /api/voices falla, se queda la voz por defecto */ }
+}
 
 function setSectorChip(chip, sector, emoji, name, biz) {
   // Sincronizar chip activo en móvil
