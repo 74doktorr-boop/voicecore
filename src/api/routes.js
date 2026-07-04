@@ -86,6 +86,20 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ── POST /api/onboarding/profile — alta self-serve ─────────────────────────
+  // El cliente describe su negocio → deducimos sector + modo (sin desplegables
+  // ni configuración manual). Público (pre-alta), rate-limit por IP.
+  const onbLimiter = require('../utils/rate-limiter').rateLimit({ max: 30, windowMs: 60 * 60 * 1000, keyPrefix: 'onb:profile', message: 'Demasiadas peticiones. Inténtalo en un momento.' });
+  app.post('/api/onboarding/profile', onbLimiter, async (req, res) => {
+    try {
+      const { profileBusiness } = require('../sectors/onboarding-profiler');
+      const p = await profileBusiness({ name: req.body?.name, description: req.body?.description });
+      res.json({ ok: true, ...p });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── POST /api/widget/callback — solicitudes del widget "¿Te llamamos?" ──────
   // Público (lo llama el widget desde la web del cliente). Guarda en nf_callbacks
   // y avisa al negocio por email — best-effort: si una vía falla, la otra salva

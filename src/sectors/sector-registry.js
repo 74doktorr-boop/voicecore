@@ -501,7 +501,9 @@ function normalizeSectorDef(raw) {
     .filter(m => m.key && m.label && !seenKeys.has(m.key) && seenKeys.add(m.key)).slice(0, 5);
   if (!norms.length || !metricChecks.length) return null; // un sector sin normas ni métricas no aporta
   const requiredFields = Array.isArray(raw.requiredFields) ? raw.requiredFields : [];
-  return { slug, label, aliases, norms, metricChecks, requiredFields, custom: true };
+  const def = { slug, label, aliases, norms, metricChecks, requiredFields, custom: true };
+  if (raw.defaultMode === 'citas' || raw.defaultMode === 'contacto') def.defaultMode = raw.defaultMode;
+  return def;
 }
 
 /**
@@ -522,6 +524,25 @@ function resolveSector(slug) {
 /** ¿Tiene este sector normas/métricas propias (no cae a genérico)? */
 function isCurated(slug) {
   return resolveSector(slug).slug !== 'generico';
+}
+
+// Sectores que por defecto NO agendan cita: informan y captan el lead para que
+// el equipo llame (presupuestos, servicios a medida). El resto agenda ('citas').
+const CONTACTO_SECTORS = new Set([
+  'abogados', 'notaria', 'asesoria', 'reformas', 'arquitectura',
+  'agencia_viajes', 'inmobiliaria',
+]);
+
+/**
+ * Modo por defecto sugerido para un sector al dar de alta: 'citas' (agenda) o
+ * 'contacto' (informa + capta lead). El dueño puede cambiarlo. Un sector custom
+ * puede declarar su propio defaultMode; si no, se infiere.
+ */
+function defaultModeFor(slug) {
+  const s = resolveSector(slug);
+  if (s.defaultMode === 'citas' || s.defaultMode === 'contacto') return s.defaultMode;
+  if (s.slug === 'generico') return 'contacto'; // negocio desconocido: no ofrezcas agenda a ciegas
+  return CONTACTO_SECTORS.has(s.slug) ? 'contacto' : 'citas';
 }
 
 /**
@@ -559,6 +580,6 @@ function allSectors() {
 }
 
 module.exports = {
-  resolveSector, isCurated, normalizeSectorDef, hydrate, upsertSector, allSectors,
+  resolveSector, isCurated, defaultModeFor, normalizeSectorDef, hydrate, upsertSector, allSectors,
   SECTORS, GENERICO,
 };

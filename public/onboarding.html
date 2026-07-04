@@ -7,33 +7,29 @@
 <meta name="robots" content="noindex, nofollow">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c0a08;--bg2:#141009;--card:rgba(255,250,242,.035);--border:rgba(255,248,236,.09);--accent:#e0a23c;--accent-l:#f2bd5e;--text:rgba(234,226,214,.74);--white:#fbf6ec;--green:#2ea96f;--display:'Fraunces',Georgia,serif;--radius:14px;}
+:root{--bg:#0a0b0d;--bg2:#0f1216;--card:rgba(255,255,255,.035);--border:rgba(232,242,238,.10);--accent:#c4f546;--accent-l:#d6ff5c;--text:rgba(226,232,231,.82);--white:#f4f7f5;--green:#2ea96f;--display:'Fraunces',Georgia,serif;--radius:14px;}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 16px 80px;}
-.logo{font-family:var(--display);font-size:1.4rem;font-weight:600;color:var(--white);margin-bottom:36px;text-decoration:none;letter-spacing:-.02em;}
+.logo{font-family:var(--display);font-size:1.4rem;font-weight:600;color:var(--white);margin-bottom:26px;text-decoration:none;letter-spacing:-.02em;}
 .logo span{color:var(--accent-l);}
-.progress{display:flex;gap:10px;margin-bottom:36px;}
-.prog-step{width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);transition:background .3s;}
+.plan-banner{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:40px;padding:7px 16px;margin-bottom:24px;font-size:.82rem;}
+.plan-banner .pb-name{color:var(--white);font-weight:700;}
+.plan-banner .pb-price{color:var(--accent-l);font-weight:800;}
+.progress{display:flex;gap:10px;margin-bottom:32px;}
+.prog-step{width:34px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);transition:background .3s;}
 .prog-step.active{background:var(--accent-l);}
 .prog-step.done{background:var(--green);}
 .card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;}
 .card h1{font-family:var(--display);font-size:1.55rem;font-weight:600;letter-spacing:-.015em;color:var(--white);margin-bottom:6px;}
-.card p{font-size:.9rem;color:var(--text);margin-bottom:28px;line-height:1.6;}
-.plan-box{border:2px solid var(--accent);border-radius:14px;padding:22px;margin-bottom:28px;background:rgba(224,162,60,.06);}
-.plan-name{font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:4px;}
-.plan-price{font-size:2rem;font-weight:900;color:var(--accent-l);margin-bottom:10px;}
-.plan-price span{font-size:1rem;color:var(--text);}
-.plan-feats{list-style:none;display:flex;flex-direction:column;gap:6px;}
-.plan-feats li{font-size:.85rem;color:var(--text);}
-.plan-feats li::before{content:'✓ ';color:var(--green);font-weight:700;}
+.card p.sub{font-size:.9rem;color:var(--text);margin-bottom:28px;line-height:1.6;}
 .form-group{margin-bottom:18px;}
 label{display:block;font-size:.82rem;font-weight:600;color:var(--white);margin-bottom:7px;}
 input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:.9rem;font-family:inherit;outline:none;transition:border-color .25s;}
-input::placeholder{color:rgba(234,226,214,.3);}
-input:focus,select:focus{border-color:rgba(224,162,60,.5);}
-select option{background:#141009;color:var(--white);}
-.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent-l),var(--accent));color:#241803;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .3s;}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,162,60,.4);}
+input::placeholder{color:rgba(226,232,231,.3);}
+input:focus,select:focus{border-color:rgba(196,245,70,.5);}
+select option{background:#0f1216;color:var(--white);}
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent-l),var(--accent));color:#0a0b0d;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .3s;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,245,70,.4);}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 .btn-back{background:none;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 20px;font-size:.88rem;cursor:pointer;font-family:inherit;margin-bottom:16px;transition:all .25s;}
 .btn-back:hover{border-color:rgba(255,255,255,.2);color:var(--white);}
@@ -45,41 +41,51 @@ select option{background:#141009;color:var(--white);}
 .summary-row:last-child{border:none;}
 .summary-row .val{color:var(--white);font-weight:600;}
 .discount-badge{display:inline-block;background:rgba(16,185,129,.12);color:#4ade80;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(10,11,13,.3);border-top-color:#0a0b0d;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg);}}
-    a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
-  </style>
+
+/* ── Voice player (momento wow) ── */
+.vp{border:1px solid rgba(196,245,70,.2);border-radius:16px;padding:22px;background:linear-gradient(180deg,rgba(196,245,70,.04),transparent);margin-bottom:24px;}
+.vp-voices{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.vp-voice{flex:1;min-width:78px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 6px;cursor:pointer;text-align:center;transition:all .2s;}
+.vp-voice:hover{border-color:rgba(196,245,70,.3);}
+.vp-voice.active{background:rgba(196,245,70,.14);border-color:rgba(196,245,70,.45);}
+.vp-voice .vn{font-size:.85rem;font-weight:700;color:var(--white);}
+.vp-voice .vd{font-size:.68rem;color:var(--text);margin-top:1px;}
+.vp-player{display:flex;align-items:center;gap:14px;}
+.vp-play{width:56px;height:56px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent-l),var(--accent));color:#0a0b0d;font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 28px rgba(196,245,70,.5);transition:transform .2s;}
+.vp-play:hover{transform:scale(1.06);}
+.vp-wave{flex:1;display:flex;align-items:center;gap:3px;height:38px;}
+.vp-wave i{flex:1;min-width:2px;max-width:5px;border-radius:3px;background:rgba(196,245,70,.35);height:18%;font-style:normal;}
+.vp.playing .vp-wave i{background:rgba(214,255,92,.9);animation:vpbar .9s ease-in-out infinite alternate;}
+.vp-wave i:nth-child(2n){animation-delay:.12s;}.vp-wave i:nth-child(3n){animation-delay:.3s;}.vp-wave i:nth-child(4n){animation-delay:.42s;}.vp-wave i:nth-child(5n){animation-delay:.18s;}
+@keyframes vpbar{from{height:14%;}to{height:92%;}}
+.vp-transcript{margin-top:16px;background:rgba(196,245,70,.06);border:1px solid rgba(196,245,70,.18);border-radius:12px;padding:14px 16px;font-size:.92rem;color:var(--white);line-height:1.5;font-style:italic;}
+.vp-note{font-size:.72rem;color:var(--text);margin-top:10px;text-align:center;}
+@media (prefers-reduced-motion: reduce){.vp.playing .vp-wave i{animation:none;}}
+
+a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#d6ff5c);outline-offset:3px;border-radius:6px;}
+</style>
 </head>
 <body>
 
 <a href="/" class="logo">node<span>flow</span></a>
 
+<div class="plan-banner" id="plan-banner"></div>
+
 <div class="progress">
   <div class="prog-step active" id="prog-1"></div>
   <div class="prog-step" id="prog-2"></div>
   <div class="prog-step" id="prog-3"></div>
+  <div class="prog-step" id="prog-4"></div>
 </div>
 
 <div class="card">
 
-  <!-- Step 1: Plan confirmation -->
+  <!-- Step 1: Business essentials (drive the voice preview) -->
   <div class="step active" id="step-1">
-    <h1>Tu plan seleccionado</h1>
-    <p>Confirma el plan que quieres activar para tu negocio.</p>
-    <div class="plan-box" id="plan-display"></div>
-    <button class="btn-primary" onclick="goStep(2)">Continuar →</button>
-    <p class="hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Activo en minutos</p>
-  </div>
-
-  <!-- Step 2: Business data -->
-  <div class="step" id="step-2">
-    <button class="btn-back" onclick="goStep(1)">← Volver</button>
-    <h1>Datos de tu negocio</h1>
-    <p>Necesitamos esta información para configurar tu asistente IA.</p>
-    <div class="form-group">
-      <label for="contacto">Nombre completo *</label>
-      <input type="text" id="contacto" placeholder="Ana García López" autocomplete="name">
-    </div>
+    <h1>Vamos a crear tu asistente</h1>
+    <p class="sub">Con dos datos generamos la voz de tu recepcionista para que la escuches ahora mismo.</p>
     <div class="form-group">
       <label for="negocio">Nombre del negocio *</label>
       <input type="text" id="negocio" placeholder="Restaurante El Asador" autocomplete="organization">
@@ -125,6 +131,46 @@ select option{background:#141009;color:var(--white);}
         </optgroup>
         <option value="otro">Otro sector</option>
       </select>
+      <small id="sectorHint" style="display:none;font-size:12px;margin-top:6px"></small>
+    </div>
+    <div class="form-group">
+      <label for="idioma">Idioma de tu asistente *</label>
+      <select id="idioma">
+        <option value="es">Castellano</option>
+        <option value="eu">Euskera</option>
+        <option value="gl">Galego</option>
+      </select>
+    </div>
+    <div class="error-msg" id="step1-error" role="alert" aria-live="assertive"></div>
+    <button class="btn-primary" onclick="enterWow()">🔊 Escuchar mi asistente →</button>
+    <p class="hint">✓ Sin permanencia &nbsp;·&nbsp; ✓ Sin cambiar tu número &nbsp;·&nbsp; ✓ Activo en minutos</p>
+  </div>
+
+  <!-- Step 2: WOW — listen to your assistant -->
+  <div class="step" id="step-2">
+    <button class="btn-back" onclick="goStep(1)">← Volver</button>
+    <h1>Así sonará tu recepcionista</h1>
+    <p class="sub">Esta es la voz que atenderá cada llamada de tu negocio. Prueba distintas voces.</p>
+    <div class="vp" id="voicePlayer">
+      <div class="vp-voices" id="vp-voices"></div>
+      <div class="vp-player">
+        <button class="vp-play" id="vp-play" onclick="togglePlay()" aria-label="Reproducir">▶</button>
+        <div class="vp-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="vp-transcript" id="vp-transcript"></div>
+      <div class="vp-note" id="vp-note">Generando la voz de tu asistente…</div>
+    </div>
+    <button class="btn-primary" onclick="goStep(3)">Me encanta, activarlo →</button>
+  </div>
+
+  <!-- Step 3: Contact data -->
+  <div class="step" id="step-3">
+    <button class="btn-back" onclick="goStep(2)">← Volver</button>
+    <h1>Tus datos</h1>
+    <p class="sub">Para crear tu cuenta y darte acceso a tu panel.</p>
+    <div class="form-group">
+      <label for="contacto">Nombre completo *</label>
+      <input type="text" id="contacto" placeholder="Ana García López" autocomplete="name">
     </div>
     <div class="form-group">
       <label for="telefono">Teléfono del negocio *</label>
@@ -135,27 +181,18 @@ select option{background:#141009;color:var(--white);}
       <input type="email" id="email" placeholder="tu@negocio.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label for="idioma">Idioma de tu asistente *</label>
-      <select id="idioma">
-        <option value="es">Castellano</option>
-        <option value="eu">Euskera</option>
-        <option value="gl">Galego</option>
-      </select>
-      <p style="font-size:.72rem;color:var(--text);margin-top:6px;line-height:1.4;">Es el idioma en el que tu asistente atenderá las llamadas y enviará los recordatorios a tus clientes. Podrás cambiarlo cuando quieras.</p>
-    </div>
-    <div class="form-group">
       <label for="coupon">Código de descuento (opcional)</label>
-      <input type="text" id="coupon" placeholder="HEMENTXE10" style="text-transform:uppercase">
+      <input type="text" id="coupon" placeholder="Introduce tu código" style="text-transform:uppercase">
     </div>
-    <div class="error-msg" id="step2-error" role="alert" aria-live="assertive"></div>
-    <button class="btn-primary" id="step2-btn" onclick="submitRegistro()">Ver resumen →</button>
+    <div class="error-msg" id="step3-error" role="alert" aria-live="assertive"></div>
+    <button class="btn-primary" id="step3-btn" onclick="submitRegistro()">Ver resumen →</button>
   </div>
 
-  <!-- Step 3: Summary + pay -->
-  <div class="step" id="step-3">
-    <button class="btn-back" onclick="goStep(2)">← Volver</button>
+  <!-- Step 4: Summary + pay -->
+  <div class="step" id="step-4">
+    <button class="btn-back" onclick="goStep(3)">← Volver</button>
     <h1>Resumen y pago</h1>
-    <p>Revisa tu pedido y haz clic en "Pagar con Stripe".</p>
+    <p class="sub">Revisa tu pedido y confirma.</p>
     <div id="summary-rows" style="margin-bottom:24px;"></div>
     <button class="btn-primary" id="pay-btn" onclick="redirectToStripe()">🔒 Pagar con Stripe →</button>
     <p class="hint">Pago seguro con Stripe · SSL · Sin permanencia · Cancela cuando quieras</p>
@@ -164,6 +201,7 @@ select option{background:#141009;color:var(--white);}
 </div>
 
 <script>
+const PRICE_EUR = 49; // fuente única del precio dentro del onboarding
 const PLANS = {
   starter: {
     name: 'Pruébalo',
@@ -173,7 +211,7 @@ const PLANS = {
   },
   negocio: {
     name: 'NodeFlow · Todo incluido',
-    price: '49€<span>/mes</span>',
+    price: PRICE_EUR + '€<span>/mes</span>',
     features: ['Atiende tus llamadas 24/7', 'Castellano, euskera y galego', 'Agenda citas + memoria de clientes', 'Recordatorios y reseñas por WhatsApp', 'Widget web + insights + lista de espera', '500 min/mes · sin permanencia'],
     stripeUrl: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
   },
@@ -187,7 +225,6 @@ const urlSector  = params.get('sector') || '';
 const urlCiudad  = params.get('ciudad') || '';
 const urlIdioma  = (params.get('idioma') || '').toLowerCase();
 // Atribución: de qué landing vino el lead (sector/ciudad), o el referrer si no hay params.
-// Limitado a 60 chars y saneado para no guardar basura.
 const landingSource = (function () {
   const sc = [urlSector, urlCiudad].filter(Boolean).join('/');
   if (sc) return sc.toLowerCase().replace(/[^a-z0-9/_-]/g, '').slice(0, 60);
@@ -205,31 +242,59 @@ let registroId   = null;
 let stripeCode   = null;
 let discountPct  = 0;
 
+// Plan banner
+document.getElementById('plan-banner').innerHTML =
+  '<span class="pb-name">' + plan.name.replace(' · Todo incluido','') + '</span>' +
+  '<span class="pb-price">' + plan.price + '</span>';
+
 // Pre-select sector dropdown if passed from a sector landing page
 if (urlSector) {
   const sectorEl = document.getElementById('sector');
   if (sectorEl) {
-    // Find the matching option (case-insensitive)
     const opt = Array.from(sectorEl.options).find(o => o.value.toLowerCase() === urlSector.toLowerCase());
     if (opt) sectorEl.value = opt.value;
   }
 }
-
 // Pre-select language if a landing (e.g. Galicia/Euskadi) passed ?idioma=
 if (['es', 'eu', 'gl'].includes(urlIdioma)) {
   const idiomaEl = document.getElementById('idioma');
   if (idiomaEl) idiomaEl.value = urlIdioma;
 }
 
-// Render plan box
-document.getElementById('plan-display').innerHTML = `
-  <div class="plan-name">${plan.name}</div>
-  <div class="plan-price">${plan.price}</div>
-  <ul class="plan-feats">${plan.features.map(f => `<li>${f}</li>`).join('')}</ul>
-`;
+// ── Onboarding self-serve: al escribir el nombre, deducimos el sector ────────
+// El cliente no tiene que bucear en el desplegable. Si detectamos su vertical,
+// lo preseleccionamos; si es uno nuevo, se lo dejamos preparado ("lo activamos").
+let _sectorTouched = false, _autodetecting = false;
+document.getElementById('sector').addEventListener('change', () => { _sectorTouched = true; });
+async function autodetectSector() {
+  const name = (document.getElementById('negocio').value || '').trim();
+  const hint = document.getElementById('sectorHint');
+  const sel  = document.getElementById('sector');
+  if (name.length < 3 || _sectorTouched || _autodetecting) return; // no pisar lo que el usuario elija
+  _autodetecting = true;
+  try {
+    const r = await fetch('/api/onboarding/profile', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const p = await r.json();
+    if (!p || !p.ok) return;
+    if (p.matched && Array.from(sel.options).some(o => o.value === p.sector)) {
+      if (!_sectorTouched) sel.value = p.sector;
+      hint.style.display = 'block'; hint.style.color = 'var(--accent,#7c5cff)';
+      hint.textContent = '✓ Detectado: ' + (p.sectorLabel || p.sector) + ' — puedes cambiarlo.';
+    } else if (p.suggested) {
+      if (!_sectorTouched) sel.value = 'otro';
+      hint.style.display = 'block'; hint.style.color = 'var(--muted,#888)';
+      hint.textContent = 'Tu sector (' + p.suggested.label + ') aún no está en la lista — lo activaremos para ti. Elige "Otro" o el más parecido.';
+    }
+  } catch (_) { /* silencioso: el desplegable sigue disponible */ }
+  finally { _autodetecting = false; }
+}
+document.getElementById('negocio').addEventListener('blur', autodetectSector);
 
 function setProgress(step) {
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('prog-' + i);
     el.className = 'prog-step' + (i < step ? ' done' : i === step ? ' active' : '');
   }
@@ -242,6 +307,97 @@ function goStep(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ─── Momento wow: escucha tu asistente ───────────────────────────────────
+const VOICES = [
+  { id: 'nova',    name: 'Sofía',  desc: 'Cálida' },
+  { id: 'shimmer', name: 'Lucía',  desc: 'Suave' },
+  { id: 'alloy',   name: 'Elena',  desc: 'Versátil' },
+  { id: 'echo',    name: 'Carlos', desc: 'Serio' },
+  { id: 'onyx',    name: 'Pablo',  desc: 'Grave' },
+];
+let currentVoice = 'nova';
+let vpLoading = false;
+const vpAudio = new Audio();
+
+function greetingText() {
+  const n = (document.getElementById('negocio').value.trim()) || 'tu negocio';
+  const idioma = document.getElementById('idioma').value;
+  if (idioma === 'eu') return '¡Kaixo! ' + n + '-era deitu duzu. Zure laguntzaile birtuala naiz. Zertan lagundu diezazuket?';
+  if (idioma === 'gl') return '¡Ola! Chamou a ' + n + '. Son o seu asistente virtual. En que podo axudarlle?';
+  return '¡Hola! Ha llamado a ' + n + '. Soy su asistente virtual. ¿En qué puedo ayudarle?';
+}
+
+function renderVoices() {
+  document.getElementById('vp-voices').innerHTML = VOICES.map(v =>
+    '<div class="vp-voice' + (v.id === currentVoice ? ' active' : '') + '" onclick="pickVoice(\'' + v.id + '\')" tabindex="0">' +
+      '<div class="vn">' + v.name + '</div><div class="vd">' + v.desc + '</div></div>').join('');
+}
+
+function pickVoice(id) { currentVoice = id; renderVoices(); loadGreeting(true); }
+
+function enterWow() {
+  const negocio = document.getElementById('negocio').value.trim();
+  const sector  = document.getElementById('sector').value;
+  const err     = document.getElementById('step1-error');
+  if (!negocio || !sector) {
+    err.textContent = 'Dinos el nombre y el sector de tu negocio para generar tu asistente.';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  goStep(2);
+  renderVoices();
+  loadGreeting(true); // auto-genera y reproduce (el clic actúa de gesto de usuario)
+}
+
+function loadGreeting(autoplay) {
+  const text = greetingText();
+  document.getElementById('vp-transcript').textContent = text;
+  document.getElementById('vp-note').textContent = 'Generando la voz de tu asistente…';
+  document.getElementById('voicePlayer').classList.remove('playing');
+  vpAudio.pause();
+  vpLoading = true;
+  document.getElementById('vp-play').innerHTML = '<span class="spinner"></span>';
+  vpAudio.src = '/api/tts/preview?provider=openai&voice=' + encodeURIComponent(currentVoice) + '&text=' + encodeURIComponent(text);
+  if (autoplay) {
+    const p = vpAudio.play();
+    if (p && p.catch) p.catch(function () {
+      vpLoading = false;
+      document.getElementById('vp-play').innerHTML = '▶';
+      document.getElementById('vp-note').textContent = 'Pulsa ▶ para escuchar tu asistente';
+    });
+  }
+}
+
+vpAudio.addEventListener('playing', function () {
+  vpLoading = false;
+  document.getElementById('voicePlayer').classList.add('playing');
+  document.getElementById('vp-play').innerHTML = '❚❚';
+  document.getElementById('vp-note').textContent = 'Reproduciendo… así atenderá tus llamadas';
+});
+vpAudio.addEventListener('pause', function () {
+  document.getElementById('voicePlayer').classList.remove('playing');
+  document.getElementById('vp-play').innerHTML = '▶';
+});
+vpAudio.addEventListener('ended', function () {
+  document.getElementById('voicePlayer').classList.remove('playing');
+  document.getElementById('vp-play').innerHTML = '▶';
+  document.getElementById('vp-note').textContent = 'Prueba otra voz o continúa →';
+});
+vpAudio.addEventListener('error', function () {
+  vpLoading = false;
+  document.getElementById('vp-play').innerHTML = '▶';
+  document.getElementById('vp-note').textContent = 'No se pudo generar el audio ahora. Inténtalo de nuevo.';
+});
+
+function togglePlay() {
+  if (vpLoading) return;
+  if (!vpAudio.src) { loadGreeting(true); return; }
+  if (vpAudio.paused) { const p = vpAudio.play(); if (p && p.catch) p.catch(function(){}); }
+  else vpAudio.pause();
+}
+
+// ─── Registro + pago ─────────────────────────────────────────────────────
 async function submitRegistro() {
   const contacto = document.getElementById('contacto').value.trim();
   const negocio  = document.getElementById('negocio').value.trim();
@@ -250,7 +406,7 @@ async function submitRegistro() {
   const email    = document.getElementById('email').value.trim();
   const idioma   = document.getElementById('idioma').value;
   const coupon   = document.getElementById('coupon').value.trim();
-  const errEl    = document.getElementById('step2-error');
+  const errEl    = document.getElementById('step3-error');
 
   if (!contacto || !negocio || !sector || !telefono || !email) {
     errEl.textContent = 'Por favor rellena todos los campos obligatorios.';
@@ -264,7 +420,7 @@ async function submitRegistro() {
   }
 
   errEl.style.display = 'none';
-  const btn = document.getElementById('step2-btn');
+  const btn = document.getElementById('step3-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
@@ -272,7 +428,7 @@ async function submitRegistro() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText() }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
@@ -288,23 +444,28 @@ async function submitRegistro() {
     localStorage.setItem('nf_reg_lang',    data.idioma || 'es');
 
     // Build summary
-    const basePrice  = 49;
+    const basePrice  = PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
     const idiomaLabels = { es: 'Castellano', eu: 'Euskera', gl: 'Galego' };
+    const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Sofía';
     const summary = document.getElementById('summary-rows');
-    summary.innerHTML = `
-      <div class="summary-row"><span>Plan</span><span class="val">${plan.name}</span></div>
-      <div class="summary-row"><span>Negocio</span><span class="val">${negocio}</span></div>
-      <div class="summary-row"><span>Email</span><span class="val">${email}</span></div>
-      <div class="summary-row"><span>Idioma del asistente</span><span class="val">${idiomaLabels[idioma] || 'Castellano'}</span></div>`;
-    summary.innerHTML += `
-      <div class="summary-row"><span>Precio</span><span class="val">
-        ${discountPct ? `<s style="color:rgba(234,226,214,.4)">${basePrice}€</s> ${finalPrice}€/mes` : (planKey === 'starter' ? 'Gratis' : basePrice + '€/mes')}
-        ${discountPct ? `<span class="discount-badge">-${discountPct}%</span>` : ''}
-      </span></div>
-    `;
+    summary.innerHTML =
+      '<div class="summary-row"><span>Plan</span><span class="val">' + plan.name + '</span></div>' +
+      '<div class="summary-row"><span>Negocio</span><span class="val">' + negocio + '</span></div>' +
+      '<div class="summary-row"><span>Voz del asistente</span><span class="val">' + voiceName + '</span></div>' +
+      '<div class="summary-row"><span>Email</span><span class="val">' + email + '</span></div>' +
+      '<div class="summary-row"><span>Idioma del asistente</span><span class="val">' + (idiomaLabels[idioma] || 'Castellano') + '</span></div>';
+    summary.innerHTML +=
+      '<div class="summary-row"><span>Precio</span><span class="val">' +
+        (discountPct ? '<s style="color:rgba(226,232,231,.4)">' + basePrice + '€</s> ' + finalPrice + '€/mes' : (planKey === 'starter' ? 'Gratis' : basePrice + '€/mes')) +
+        (discountPct ? '<span class="discount-badge">-' + discountPct + '%</span>' : '') +
+      '</span></div>';
 
-    goStep(3);
+    // Free plan: no payment — send straight to the portal
+    const payBtn = document.getElementById('pay-btn');
+    if (planKey === 'starter') payBtn.innerHTML = 'Empezar gratis →';
+
+    goStep(4);
   } catch (e) {
     errEl.textContent = e.message;
     errEl.style.display = 'block';
@@ -325,16 +486,12 @@ function redirectToStripe() {
     return;
   }
 
-  // Append registro ID as client_reference_id so webhook can identify the registro
   const separator = url.includes('?') ? '&' : '?';
-  url += `${separator}client_reference_id=${encodeURIComponent(registroId)}`;
+  url += separator + 'client_reference_id=' + encodeURIComponent(registroId);
 
-  // Append prefilled email
   const emailVal = document.getElementById('email').value.trim();
-  if (emailVal) url += `&prefilled_email=${encodeURIComponent(emailVal)}`;
-
-  // Apply coupon code to the Stripe Payment Link (pre-fill the promotion code field)
-  if (stripeCode) url += `&prefilled_promo_code=${encodeURIComponent(stripeCode)}`;
+  if (emailVal) url += '&prefilled_email=' + encodeURIComponent(emailVal);
+  if (stripeCode) url += '&prefilled_promo_code=' + encodeURIComponent(stripeCode);
 
   const btn = document.getElementById('pay-btn');
   btn.disabled = true;
