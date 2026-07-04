@@ -15,8 +15,9 @@
 // para candidato y para el original, así que el delta sigue
 // siendo informativo.
 //
-// Uso manual:  node scripts/run-replay-gate.js  (últimas 10
-// llamadas de prod contra el prompt ACTUAL del código)
+// Uso manual:  node scripts/run-replay-gate.js [n=10] [tol=5] [sector]
+// (últimas n llamadas de prod contra el prompt ACTUAL; si se da un
+// sector, valida SOLO contra llamadas de ese vertical)
 // ============================================================
 'use strict';
 
@@ -81,20 +82,31 @@ function gateVerdict(originalAvg, replayAvg, tolerance = 5) {
 /**
  * Gate completo: re-juega cada llamada con el prompt candidato, audita las
  * conversaciones sintéticas y compara medias.
- * @param {object} opts  - { candidatePrompt, calls, tolerance }
- *   calls: filas con { id, transcript, assistantMode?, serviceList?, metrics.audit.score }
- * @returns {Promise<{pass, reason, replayed, originalAvg, replayAvg, details}>}
+ * @param {object} opts  - { candidatePrompt, calls, tolerance, sector }
+ *   calls: filas con { id, transcript, assistantMode?, serviceList?, metrics.audit.{score,sector} }
+ *   sector (opcional): valida SOLO contra llamadas de ese vertical — una regla
+ *     aprobada para restaurantes se prueba con llamadas de restaurantes, no con
+ *     una mezcla (2026-07-04). El re-audit usa la rúbrica del sector.
+ * @returns {Promise<{pass, reason, replayed, originalAvg, replayAvg, sector, details}>}
  */
-async function runReplayGate({ candidatePrompt, calls, tolerance = 5 }, deps = {}) {
+async function runReplayGate({ candidatePrompt, calls, tolerance = 5, sector = null }, deps = {}) {
   const audit = deps.audit || (async (callData) => {
     const { auditCall } = require('./call-auditor');
     return auditCall(callData, deps.openai !== undefined ? { openai: deps.openai } : {});
   });
 
+  // Filtro por sector: solo llamadas de ESE vertical (por el sector que el
+  // auditor estampó en metrics.audit.sector). Sin sector → todas (global).
+  const { resolveSector } = require('../sectors/sector-registry');
+  const wantSector = sector ? resolveSector(sector).slug : null;
+  const pool = wantSector
+    ? (calls || []).filter(c => (c?.metrics?.audit?.sector || 'generico') === wantSector)
+    : (calls || []);
+
   const details = [];
   let origSum = 0, replaySum = 0, n = 0;
 
-  for (const call of calls || []) {
+  for (const call of pool) {
     const origScore = call && call.metrics && call.metrics.audit && call.metrics.audit.score;
     if (!Array.isArray(call?.transcript) || call.transcript.length < 2 || typeof origScore !== 'number') continue;
 
@@ -107,6 +119,8 @@ async function runReplayGate({ candidatePrompt, calls, tolerance = 5 }, deps = {
         transcript: synthetic,
         assistantMode: call.assistantMode || null,
         serviceList: call.serviceList || null,
+        // Re-auditar con la rúbrica del sector de la propia llamada (o el pedido).
+        sector: call.metrics?.audit?.sector || wantSector || null,
       });
       if (!verdict || typeof verdict.score !== 'number') continue;
       origSum += origScore;
@@ -121,8 +135,8 @@ async function runReplayGate({ candidatePrompt, calls, tolerance = 5 }, deps = {
   const originalAvg = n ? Math.round(origSum / n) : null;
   const replayAvg = n ? Math.round(replaySum / n) : null;
   const verdict = gateVerdict(originalAvg, replayAvg, tolerance);
-  log.info(`Replay gate: ${n} llamadas — ${verdict.reason}`);
-  return { ...verdict, replayed: n, originalAvg, replayAvg, details };
+  log.info(`Replay gate${wantSector ? ` [${wantSector}]` : ''}: ${n} llamadas — ${verdict.reason}`);
+  return { ...verdict, replayed: n, originalAvg, replayAvg, sector: wantSector, details };
 }
 
 module.exports = { replayConversation, gateVerdict, runReplayGate };

@@ -12,6 +12,7 @@ require('dotenv').config();
 
 const N = parseInt(process.argv[2], 10) || 10;
 const TOL = parseInt(process.argv[3], 10) || 5;
+const SECTOR = process.argv[4] || null; // opcional: validar SOLO ese vertical
 
 (async () => {
   const { getDatabase } = require('../src/db/database');
@@ -56,11 +57,21 @@ const TOL = parseInt(process.argv[3], 10) || 5;
     };
   });
 
-  console.log(`Replay gate: ${enriched.length} llamadas, tolerancia ${TOL}…`);
+  // Filtro por sector: valida SOLO contra llamadas de ese vertical (2026-07-04).
+  let pool = enriched;
+  if (SECTOR) {
+    const { resolveSector } = require('../src/sectors/sector-registry');
+    const want = resolveSector(SECTOR).slug;
+    pool = enriched.filter(c => (c.metrics?.audit?.sector || 'generico') === want);
+    console.log(`Sector "${want}": ${pool.length}/${enriched.length} llamadas auditadas de ese vertical.`);
+    if (!pool.length) { console.error('No hay llamadas auditadas de ese sector para re-jugar — el gate no aprueba a ciegas.'); process.exit(1); }
+  }
+
+  console.log(`Replay gate: ${pool.length} llamadas, tolerancia ${TOL}…`);
   // El gate corre por-llamada con el prompt de SU org (multi-tenant)
   let origSum = 0, repSum = 0, n = 0;
   const details = [];
-  for (const call of enriched) {
+  for (const call of pool) {
     const out = await runReplayGate({ candidatePrompt: call._prompt, calls: [call], tolerance: TOL });
     if (out.replayed === 1) {
       origSum += out.originalAvg; repSum += out.replayAvg; n++;

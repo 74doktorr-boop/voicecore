@@ -106,3 +106,46 @@ describe('runReplayGate — el ciclo completo con fakes', () => {
     assert.strictEqual(out.pass, false);
   });
 });
+
+describe('runReplayGate — filtro por SECTOR (2026-07-04)', () => {
+  const mk = (id, sector, score) => ({ id, transcript: TRANSCRIPT, metrics: { audit: { score, sector } } });
+  const calls = [mk('r1', 'restaurante', 60), mk('r2', 'restaurante', 60), mk('d1', 'dental', 80)];
+
+  test('valida SOLO contra llamadas del sector pedido y re-audita con su rúbrica', async () => {
+    const seenSectors = [];
+    const out = await runReplayGate(
+      { candidatePrompt: 'P', calls, tolerance: 5, sector: 'restaurante' },
+      { openai: seqOpenAI(['a', 'b']), audit: async (cd) => { seenSectors.push(cd.sector); return { score: 62 }; } },
+    );
+    assert.strictEqual(out.replayed, 2);            // solo r1, r2 (no dental)
+    assert.strictEqual(out.sector, 'restaurante');
+    assert.ok(seenSectors.length && seenSectors.every(s => s === 'restaurante'));
+  });
+
+  test('un ALIAS de sector resuelve al canónico y filtra', async () => {
+    const out = await runReplayGate(
+      { candidatePrompt: 'P', calls, tolerance: 5, sector: 'dentista' }, // alias → dental
+      { openai: seqOpenAI(['a']), audit: async () => ({ score: 82 }) },
+    );
+    assert.strictEqual(out.replayed, 1);            // solo d1
+    assert.strictEqual(out.sector, 'dental');
+  });
+
+  test('sector sin llamadas → no aprueba a ciegas', async () => {
+    const out = await runReplayGate(
+      { candidatePrompt: 'P', calls, tolerance: 5, sector: 'taller' },
+      { openai: seqOpenAI(['a']), audit: async () => ({ score: 90 }) },
+    );
+    assert.strictEqual(out.replayed, 0);
+    assert.strictEqual(out.pass, false);
+  });
+
+  test('sin sector → valida contra TODAS (global, compat)', async () => {
+    const out = await runReplayGate(
+      { candidatePrompt: 'P', calls, tolerance: 5 },
+      { openai: seqOpenAI(['a']), audit: async () => ({ score: 70 }) },
+    );
+    assert.strictEqual(out.replayed, 3);
+    assert.strictEqual(out.sector, null);
+  });
+});
