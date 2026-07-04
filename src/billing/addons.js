@@ -86,7 +86,7 @@ async function _loadOrg(db, orgId) {
   return data;
 }
 
-async function _saveAddons(db, orgId, org, addons) {
+async function _saveAddons(db, orgId, org, addons, flowMgr) {
   const auto = org.automation_config || {};
   auto.config = { ...(auto.config || {}), addons };
   const { error } = await db.client
@@ -94,6 +94,17 @@ async function _saveAddons(db, orgId, org, addons) {
     .update({ automation_config: auto })
     .eq('id', orgId);
   if (error) throw new Error(error.message);
+  // El flow EN MEMORIA también (gotcha 2026-07-04): el cron de reactivación
+  // lee flowManager — sin esto, el add-on recién pagado no regiría hasta el
+  // siguiente reinicio (estado en memoria muere con cada deploy, y viceversa).
+  try {
+    const fm = flowMgr || require('../automations/flow-manager').flowManager;
+    const flow = fm.get(orgId);
+    if (flow) {
+      flow.automations = flow.automations || {};
+      flow.automations.config = { ...(flow.automations.config || {}), addons };
+    }
+  } catch (_) { /* sin flow en memoria: la rehidratación del arranque lo trae */ }
 }
 
 /**
@@ -127,7 +138,7 @@ async function activateAddon(orgId, key, deps = {}) {
     });
 
     addons[key] = { itemId: item.id, since: new Date().toISOString() };
-    await _saveAddons(db, orgId, org, addons);
+    await _saveAddons(db, orgId, org, addons, deps.flowManager);
     log.info(`Add-on ${key} ACTIVADO para ${orgId} (item ${item.id})`);
     return { ok: true, itemId: item.id };
   } catch (e) {
@@ -155,7 +166,7 @@ async function cancelAddon(orgId, key, deps = {}) {
       await billing.stripe.subscriptionItems.del(current.itemId, { proration_behavior: 'create_prorations' });
     }
     delete addons[key];
-    await _saveAddons(db, orgId, org, addons);
+    await _saveAddons(db, orgId, org, addons, deps.flowManager);
     log.info(`Add-on ${key} CANCELADO para ${orgId}`);
     return { ok: true };
   } catch (e) {

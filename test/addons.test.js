@@ -154,4 +154,16 @@ describe('activateAddon / cancelAddon — subscription items de Stripe', () => {
     const out = await activateAddon('org-1', 'no-existe', fakeDeps(ORG_ROW()));
     assert.strictEqual(out.ok, false);
   });
+
+  test('activar sincroniza también el flow EN MEMORIA (el cron de reactivación lo lee)', async () => {
+    process.env.STRIPE_ADDON_VOICE_PRICE_ID = 'price_test_voice';
+    const flow = { automations: { rebooking: { enabled: true }, config: {} } };
+    const deps = fakeDeps(ORG_ROW());
+    deps.flowManager = { get: (id) => (id === 'org-1' ? flow : null) };
+    const out = await activateAddon('org-1', 'voice_premium', deps);
+    assert.strictEqual(out.ok, true);
+    assert.ok(flow.automations.config.addons.voice_premium, 'flow en memoria actualizado');
+    // y el formato es EXACTAMENTE el que consulta el gate del rebooking-cron:
+    assert.strictEqual(hasAddon({ automation_config: flow.automations }, 'voice_premium'), true);
+  });
 });

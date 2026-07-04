@@ -9,6 +9,7 @@ const { flowManager }          = require('../automations/flow-manager');
 const { scheduler }            = require('./scheduler');
 const { sendRebookingEmail, sendRebookingFollowUp } = require('../notifications/rebooking-notifications');
 const { getDatabase }          = require('../db/database');
+const { hasAddon }             = require('../billing/addons');
 const { Logger }               = require('../utils/logger');
 
 const log = new Logger('REBOOKING-CRON');
@@ -135,6 +136,16 @@ async function checkAndSendRebookings() {
     const rebooking = automations?.rebooking;
 
     if (!rebooking?.enabled) continue;
+
+    // Add-on Crecimiento (+39€): la REACTIVACIÓN de clientes antiguos —por
+    // email, WhatsApp o voz— es de pago (decisión Unai 2026-07-04). Candado
+    // server-side: con el toggle encendido pero sin add-on, no sale nada.
+    // (Recordatorios, reseñas, anti no-show y recuperación de perdidas NO
+    // pasan por aquí: van incluidos en el plan, como anuncia la landing.)
+    if (!hasAddon({ automation_config: automations }, 'growth')) {
+      log.info(`Rebooking omitido para ${businessId}: requiere add-on Crecimiento`);
+      continue;
+    }
 
     const threshold = rebooking.daysThreshold ?? REBOOKING_DEFAULTS[sector] ?? null;
     if (threshold == null) continue; // sector disabled (e.g. inmobiliaria)
