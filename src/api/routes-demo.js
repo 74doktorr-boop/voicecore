@@ -201,6 +201,37 @@ function setupDemoRoutes(app, ttsRouter) {
     }
 
     try {
+      // 0. PREVIEW HONESTO (2026-07-04): respeta el PROVEEDOR REAL de la voz
+      //    elegida. Antes todo es-ES se mandaba a ElevenLabs, así que
+      //    previsualizar una voz Azure o Cartesia sonaba a otra cosa. Ahora
+      //    Azure→Azure, Cartesia→Cartesia; ElevenLabs y voces sueltas siguen
+      //    el atajo de abajo.
+      const { resolveVoiceEntry } = require('../tts/voice-catalog');
+      const entry = resolveVoiceEntry(voice);
+      if (entry && (entry.provider === 'cartesia' || entry.provider === 'local')) {
+        try {
+          const mulaw = await ttsRouter.synthesize({ callId, text, voice: entry.providerVoiceId, provider: entry.provider, strategy: 'specific', language });
+          const { mulawToPcm } = require('../utils/audio');
+          const wav = wavFromPcm16(mulawToPcm(mulaw), 8000);
+          ttsCachePut(cacheKey, wav, 'audio/wav', entry.provider);
+          res.set('Content-Type', 'audio/wav');
+          res.set('X-TTS-Provider', entry.provider);
+          return res.send(wav);
+        } catch (e) { log.warn(`Demo TTS: ${entry.provider} falló (${e.message}) — fallback`); }
+      }
+      if (entry && entry.provider === 'azure') {
+        const az = ttsRouter.providers?.get?.('azure')?.instance;
+        if (az) {
+          try {
+            const mp3 = await az.synthesize({ callId, text, voice: entry.providerVoiceId, language, format: 'mp3' });
+            ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'azure');
+            res.set('Content-Type', 'audio/mpeg');
+            res.set('X-TTS-Provider', 'azure');
+            return res.send(mp3);
+          } catch (e) { log.warn(`Demo TTS: Azure falló (${e.message}) — fallback`); }
+        }
+      }
+
       // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
       //    Si falla (p.ej. 402 en plan Free, o cuota), cae a Azure — la demo nunca se rompe.
       const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
