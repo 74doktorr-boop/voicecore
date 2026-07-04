@@ -1159,6 +1159,37 @@ function startDashLive() {
   }, 45000);
 }
 
+// Widget de consumo del mes: minutos incluidos · usados · disponibles, barra,
+// y accesos a comprar más minutos / cambiar de voz (petición Unai 2026-07-04).
+function dashMinutes(u) {
+  if (!u || u.minutesLimit === undefined || u.minutesLimit === null) return '';
+  var used  = Math.round(u.minutesUsed || 0);
+  var limit = u.minutesLimit || 0;
+  var rem   = Math.max(0, Math.floor(u.minutesRemaining != null ? u.minutesRemaining : (limit - used)));
+  var pct   = u.percentUsed != null ? u.percentUsed : (limit > 0 ? Math.round((used / limit) * 100) : 0);
+  var barColor = pct >= 90 ? '#e74c3c' : pct >= 70 ? '#f39c12' : 'var(--accent)';
+  var rate = (u.overageRate != null ? u.overageRate : 0.15).toFixed(2).replace('.', ',');
+  return '<div class="card" style="padding:18px 20px;margin-bottom:16px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">' +
+      '<div style="font-size:13px;font-weight:700">📞 Minutos de este mes</div>' +
+      '<div style="font-size:11px;color:var(--dim)">Se renueva cada mes</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;text-align:center">' +
+      '<div><div style="font-size:22px;font-weight:900">' + limit + '</div><div style="font-size:11px;color:var(--dim)">incluidos</div></div>' +
+      '<div><div style="font-size:22px;font-weight:900;color:#f39c12">' + used + '</div><div style="font-size:11px;color:var(--dim)">usados</div></div>' +
+      '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">' + rem + '</div><div style="font-size:11px;color:var(--dim)">disponibles</div></div>' +
+    '</div>' +
+    '<div style="background:var(--card2);border-radius:6px;height:9px;overflow:hidden;margin-bottom:6px">' +
+      '<div style="height:100%;width:' + Math.min(pct, 100) + '%;background:' + barColor + ';border-radius:6px;transition:width .4s"></div></div>' +
+    '<div style="font-size:11px;color:var(--dim)">' + pct + '% usado' +
+      ((u.overage > 0) ? ' · <span style="color:#e74c3c">' + u.overage.toFixed(1) + ' min extra a ' + rate + '€/min</span>' : ' · el extra se cobra a ' + rate + '€/min') + '</div>' +
+    '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">' +
+      '<button class="btn btn-accent btn-sm" onclick="navigate(\'facturacion\')">Comprar más minutos</button>' +
+      '<button class="btn btn-d btn-sm" onclick="navigate(\'asistente\')">Cambiar de voz</button>' +
+    '</div>' +
+  '</div>';
+}
+
 async function loadDashboard() {
   var sec = document.getElementById('sec-dashboard');
   sec.innerHTML = skeletonDashboard();
@@ -1170,24 +1201,28 @@ async function loadDashboard() {
     return;
   }
 
-  // Contadores accionables (en paralelo, tolerante a fallos)
+  // Contadores accionables + consumo de minutos (en paralelo, tolerante a fallos)
   var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
+  var usage = null;
   try {
     var r = await Promise.all([
       api('/api/portal/missed-opportunities').catch(function () { return {}; }),
       api('/api/portal/tasks').catch(function () { return {}; }),
       api('/api/portal/waitlist').catch(function () { return {}; }),
       api('/api/portal/knowledge/unanswered').catch(function () { return {}; }),
+      api('/api/billing/usage').catch(function () { return null; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
     act.wait  = (r[2].waitlist || []).filter(function (w) { return w.status === 'waiting'; }).length;
     var dismissed = _kbDismissedSet();
     act.unanswered = (r[3].questions || []).filter(function (x) { return !dismissed.has(_kbQKey(x.question)); }).length;
+    usage = r[4];
   } catch (e) {}
 
   sec.innerHTML =
     dashHero(d) +
+    dashMinutes(usage) +
     dashSetup(d) +
     dashRecos(act) +
     dashContinue() +
