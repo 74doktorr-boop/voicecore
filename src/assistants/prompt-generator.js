@@ -202,6 +202,12 @@ function generatePrompt(config, orgName) {
   const extraInfo     = config.extraInfo || '';
   const langInstr     = formatLanguage(language);
   const sectorStr     = sectorBlock(sector, config.sectorData || {}, !!serviceListStr);
+  // Normas de COMPORTAMIENTO propias del sector (registro canónico, 2026-07-04):
+  // lo que el bucle de mejora aprende y aprueba se aplica AQUÍ, por vertical.
+  const secDef        = require('../sectors/sector-registry').resolveSector(sector);
+  const sectorNorms   = secDef.norms.length
+    ? `\nNORMAS DE TU SECTOR (${secDef.label}):\n${secDef.norms.map(n => `- ${n}`).join('\n')}\n`
+    : '';
 
   return `Eres ${assistantName}, la recepcionista de ${orgName}.
 Hablas por teléfono con clientes.
@@ -219,6 +225,7 @@ CÓMO GESTIONAR LA CONVERSACIÓN:
 - Pregunta UNA sola cosa cada vez.
 - Si el cliente te da información que no pediste, recógela. No la ignores.
 - NUNCA pidas algo que ya te hayan dicho.
+${sectorNorms}
 
 HORARIO: ${scheduleStr}
 ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
