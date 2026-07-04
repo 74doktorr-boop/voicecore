@@ -689,7 +689,9 @@ async function loadVoicesIntoPicker() {
     const labels = { estandar: 'Estándar (incluida)', premium: 'Premium', ultra: 'Ultra-rápida' };
     const byTier = { estandar: [], premium: [], ultra: [] };
     for (const v of d.voices) {
-      if (!v.language || !v.language.startsWith('es')) continue; // la demo es en castellano
+      // /api/voices normaliza sin campo 'language' (usa 'accent'); las voces
+      // castellanas son azure/elevenlabs/cartesia. Fuera solo las 'local' (eu/gl).
+      if (v.provider === 'local') continue;
       if (byTier[v.tier]) byTier[v.tier].push(v);
     }
     sel.innerHTML = '';
