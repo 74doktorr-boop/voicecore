@@ -63,16 +63,19 @@ async function saveSector(db, rawDef) {
  * genera el onboarding para un vertical nuevo. NO entra en la caché viva hasta
  * que el fundador lo apruebe. Idempotente por slug; no pisa un sector ya activo.
  */
-async function saveDraft(db, rawDef) {
+async function saveDraft(db, rawDef, suggestedBy) {
   const def = normalizeSectorDef(rawDef);
   if (!def) return { ok: false, error: 'Definición inválida' };
   if (isCurated(def.slug)) return { ok: true, already: true, sector: def }; // ya existe (semilla o activo)
+  // Contexto para tu revisión: qué negocio disparó el borrador (no afecta al
+  // sector activo — normalizeSectorDef lo descarta al aprobar).
+  const persisted = suggestedBy ? { ...def, _suggestedBy: String(suggestedBy).slice(0, 80) } : def;
   if (!db || !db.enabled) return { ok: true, persisted: false, pending: true, sector: def };
   try {
     const { data: existing } = await db.client.from(TABLE).select('active').eq('slug', def.slug).maybeSingle();
     if (existing && existing.active) return { ok: true, already: true, sector: def };
     const { error } = await db.client.from(TABLE)
-      .upsert({ slug: def.slug, definition: def, active: false, updated_at: new Date().toISOString() }, { onConflict: 'slug' });
+      .upsert({ slug: def.slug, definition: persisted, active: false, updated_at: new Date().toISOString() }, { onConflict: 'slug' });
     if (error) throw new Error(error.message);
     log.info(`Borrador de sector pendiente: ${def.slug}`);
     return { ok: true, persisted: true, pending: true, sector: def };
@@ -95,7 +98,12 @@ async function listPending(db) {
   }
 }
 
-/** Aprueba un borrador: lo activa en BD y lo mete en la caché viva. */
+/**
+ * Aprueba un borrador: lo activa en BD, lo mete en la caché viva y AUTO-VINCULA
+ * las orgs en 'generico' cuyo nombre encaja determinísticamente con el sector
+ * recién aprobado (así el negocio que disparó el borrador deja de ser genérico).
+ * El re-escaneo es barato (sin LLM) y best-effort.
+ */
 async function approveSector(db, slug) {
   if (!db || !db.enabled) return { ok: false, error: 'Sin BD' };
   try {
@@ -103,11 +111,31 @@ async function approveSector(db, slug) {
       .update({ active: true, updated_at: new Date().toISOString() }).eq('slug', slug).select('definition').maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) return { ok: false, error: 'No existe ese borrador' };
-    const def = upsertSector(data.definition); // a la caché viva
-    return { ok: !!def, sector: def };
+    const def = upsertSector(data.definition); // a la caché viva (ya resoluble)
+    if (!def) return { ok: false, error: 'La definición aprobada no es válida' };
+
+    const linked = await _autolinkOrgs(db, def.slug).catch(() => 0);
+    return { ok: true, sector: def, linked };
   } catch (e) {
     return { ok: false, error: e.message };
   }
+}
+
+/** Asigna el sector recién aprobado a las orgs en generico que ahora encajan. */
+async function _autolinkOrgs(db, slug) {
+  const { resolveSector } = require('./sector-registry');
+  const { _deterministicMatch } = require('./onboarding-profiler');
+  const { data: orgs } = await db.client.from('organizations').select('id, name, assistant_config');
+  let linked = 0;
+  for (const o of (orgs || [])) {
+    const cur = o.assistant_config && o.assistant_config.sector;
+    if (cur && resolveSector(cur).slug !== 'generico') continue; // ya tiene sector propio
+    if (_deterministicMatch(o.name) !== slug) continue;
+    const ac = { ...(o.assistant_config || {}), sector: slug };
+    const { error } = await db.client.from('organizations').update({ assistant_config: ac }).eq('id', o.id);
+    if (!error) { linked++; log.info(`Org ${o.id} auto-vinculada al sector ${slug}`); }
+  }
+  return linked;
 }
 
 /** Descarta un borrador pendiente. */

@@ -926,9 +926,10 @@ async function _loadPendingSectors(){
     box.innerHTML=list.map(function(s){
       var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
       var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
+      var by=s._suggestedBy?' <span style="font-size:11px;color:var(--dim);font-weight:400">· sugerido por '+_secEsc(s._suggestedBy)+'</span>':'';
       return '<div style="border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-        +'<b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
+        +'<b style="font-size:15px">'+_secEsc(s.label||s.slug)+by+'</b>'
         +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveSector(\''+_secEsc(s.slug)+'\')">Aprobar</button>'
         +'<button class="btn" onclick="discardSector(\''+_secEsc(s.slug)+'\')">Descartar</button></div></div>'
         +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul>'
@@ -938,7 +939,7 @@ async function _loadPendingSectors(){
 }
 async function approveSector(slug){
   try{ var r=await fetch('/api/admin/sectors/'+encodeURIComponent(slug)+'/approve',{method:'POST',headers:h()}); var j=await r.json();
-    if(j.ok){ toast('Sector aprobado: '+slug); } else { toast(j.error||'No se pudo aprobar','err'); } }
+    if(j.ok){ toast('Sector aprobado: '+slug+(j.linked?' · '+j.linked+' negocio(s) vinculado(s)':'')); } else { toast(j.error||'No se pudo aprobar','err'); } }
   catch(e){ toast('Error al aprobar','err'); }
   _loadPendingSectors();
 }

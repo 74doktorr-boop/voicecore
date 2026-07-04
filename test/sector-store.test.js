@@ -90,3 +90,48 @@ describe('saveDraft — cola de revisión (guardas puras)', () => {
     assert.strictEqual(out.persisted, false);
   });
 });
+
+describe('approveSector — activa + AUTO-VINCULA orgs que ahora encajan', () => {
+  const { approveSector } = require('../src/sectors/sector-store');
+  const { resolveSector, hydrate } = require('../src/sectors/sector-registry');
+
+  // Borrador pendiente: floristería (alias 'flores')
+  const pendingDef = { slug: 'floristeria', label: 'Floristería', aliases: ['flores', 'floreria'],
+    norms: ['Pregunta el tipo de arreglo y la entrega.'], metricChecks: [{ key: 'arreglo', label: '¿Capturó el arreglo?' }], custom: true };
+
+  function fakeDb3(orgs) {
+    const updates = [];
+    function builder(table) {
+      const b = { _t: table, _eq: {}, _upd: null, _sel: null };
+      b.update = (p) => { b._upd = p; return b; };
+      b.eq = (k, v) => { b._eq[k] = v; return b; };
+      b.select = (c) => { b._sel = c; return b; };
+      b.maybeSingle = async () => (table === 'nf_sectors' && b._upd) ? { data: { definition: pendingDef }, error: null } : { data: null, error: null };
+      b.then = (res, rej) => {
+        let out;
+        if (table === 'organizations' && b._upd) { updates.push({ id: b._eq.id, sector: b._upd.assistant_config.sector }); out = { error: null }; }
+        else if (table === 'organizations') out = { data: orgs, error: null };
+        else out = { data: null, error: null };
+        return Promise.resolve(out).then(res, rej);
+      };
+      return b;
+    }
+    return { enabled: true, _updates: updates, client: { from: builder } };
+  }
+
+  test('vincula las orgs en generico que matchean, no las que ya tienen sector', async () => {
+    const db = fakeDb3([
+      { id: 'o1', name: 'Flores Bella', assistant_config: { sector: 'generico' } },   // → flores → floristeria
+      { id: 'o2', name: 'Bar Pepe',     assistant_config: { sector: 'restaurante' } }, // ya tiene sector
+      { id: 'o3', name: 'Mi Floristería', assistant_config: {} },                       // → floristeria
+    ]);
+    const out = await approveSector(db, 'floristeria');
+    assert.strictEqual(out.ok, true);
+    assert.strictEqual(resolveSector('floristeria').slug, 'floristeria'); // activado en caché
+    assert.strictEqual(out.linked, 2);                                    // o1 y o3
+    const linkedIds = db._updates.map(u => u.id).sort();
+    assert.deepStrictEqual(linkedIds, ['o1', 'o3']);
+    assert.ok(db._updates.every(u => u.sector === 'floristeria'));
+    hydrate([]); // limpieza
+  });
+});
