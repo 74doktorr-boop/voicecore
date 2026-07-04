@@ -820,6 +820,38 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── GET /api/portal/voice-quota ───────────────────────────
+  // "Te quedan X min de voz premium este mes". Deriva del MISMO estado que la
+  // degradación real (org-assistant): la cifra que ve el cliente coincide con
+  // lo que suena. Fail-open: si no hay BD, no bloquea el dashboard.
+  app.get('/api/portal/voice-quota', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.json({ ok: false });
+      const { data: org } = await db.client
+        .from('organizations')
+        .select('monthly_minutes_used, automation_config, assistant_config')
+        .eq('id', req.businessId).maybeSingle();
+      if (!org) return res.json({ ok: false });
+
+      const { hasAddon } = require('../billing/addons');
+      const { resolveVoiceEntry } = require('../tts/voice-catalog');
+      const { voiceQuotaSummary } = require('../tts/voice-quota');
+
+      const entry = resolveVoiceEntry(org.assistant_config?.voice);
+      const summary = voiceQuotaSummary({
+        voiceTier:     entry?.tier || 'estandar',
+        minutesUsed:   Number(org.monthly_minutes_used) || 0,
+        hasVoiceAddon: hasAddon(org, 'voice_premium'),
+        extraMinutes:  Number(org.automation_config?.config?.premiumExtraMinutes) || 0,
+      });
+      res.json({ ok: true, ...summary });
+    } catch (e) {
+      log.warn(`/api/portal/voice-quota error: ${e.message}`);
+      res.json({ ok: false });
+    }
+  });
+
   // ── WhatsApp número propio (Fase 2, Meta directo) ──────────
   // GET status: número compartido activo + número propio conectado (si hay).
   app.get('/api/portal/whatsapp/status', portalAuth, async (req, res) => {

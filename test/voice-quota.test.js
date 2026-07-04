@@ -12,6 +12,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
+  voiceQuotaSummary,
 } = require('../src/tts/voice-quota');
 
 describe('premiumQuota', () => {
@@ -48,6 +49,45 @@ describe('shouldDowngradeVoice', () => {
   test('minutos extra comprados evitan la degradación', () => {
     assert.strictEqual(shouldDowngradeVoice('premium', 55, false, 30), false); // cupo 40+30=70
     assert.strictEqual(shouldDowngradeVoice('premium', 75, false, 30), true);  // 75 >= 70
+  });
+});
+
+describe('voiceQuotaSummary — lo que ve el portal ("te quedan X min premium")', () => {
+  test('voz estándar → no consume cupo (metered:false) pero informa la asignación premium', () => {
+    const s = voiceQuotaSummary({ voiceTier: 'estandar', minutesUsed: 10, hasVoiceAddon: false });
+    assert.strictEqual(s.metered, false);
+    assert.strictEqual(s.quota, 40);
+    assert.strictEqual(s.remaining, 30);
+    assert.strictEqual(s.downgraded, false);
+  });
+  test('premium bajo cupo → remaining correcto, sin degradar', () => {
+    const s = voiceQuotaSummary({ voiceTier: 'premium', minutesUsed: 12.5, hasVoiceAddon: false });
+    assert.strictEqual(s.metered, true);
+    assert.strictEqual(s.quota, 40);
+    assert.strictEqual(s.used, 12.5);
+    assert.strictEqual(s.remaining, 27.5);
+    assert.strictEqual(s.downgraded, false);
+  });
+  test('premium con cupo agotado → remaining 0 y downgraded:true (suena Azure)', () => {
+    const s = voiceQuotaSummary({ voiceTier: 'premium', minutesUsed: 55, hasVoiceAddon: false });
+    assert.strictEqual(s.remaining, 0);
+    assert.strictEqual(s.downgraded, true);
+  });
+  test('add-on + packs amplían el cupo mostrado', () => {
+    const s = voiceQuotaSummary({ voiceTier: 'ultra', minutesUsed: 210, hasVoiceAddon: true, extraMinutes: 100 });
+    assert.strictEqual(s.quota, 300);       // 200 add-on + 100 pack
+    assert.strictEqual(s.remaining, 90);
+    assert.strictEqual(s.extraMinutes, 100);
+    assert.strictEqual(s.hasAddon, true);
+    assert.strictEqual(s.downgraded, false);
+  });
+  test('remaining nunca negativo; consistente con shouldDowngradeVoice', () => {
+    const s = voiceQuotaSummary({ voiceTier: 'premium', minutesUsed: 999, hasVoiceAddon: false });
+    assert.strictEqual(s.remaining, 0);
+    assert.strictEqual(
+      s.downgraded,
+      shouldDowngradeVoice('premium', 999, false, 0),
+    );
   });
 });
 

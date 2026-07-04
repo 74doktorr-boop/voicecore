@@ -1204,6 +1204,9 @@ async function showVoiceModels() {
     var cur = voices.filter(function (v) { return v.id === curVoice || v.providerVoiceId === curVoice; })[0];
     if (cur) { curTier = cur.tier; curName = cur.name; }
   } catch (e) { /* si no se puede, el modal sale sin marcar la actual */ }
+  // Cupo premium real de esta org — la cifra coincide con la degradación real.
+  var q = null;
+  try { var qr = await api('/api/portal/voice-quota'); if (qr && qr.ok) q = qr; } catch (e) { /* fail-open */ }
   var TIERS = [
     { key: 'estandar', name: 'Estándar', icon: '🎙️', price: 'Incluida en tu plan', col: 'var(--dim)', bd: 'var(--border)',
       desc: 'Voces naturales y claras. Sin límite dentro de tus minutos del mes.' },
@@ -1228,10 +1231,31 @@ async function showVoiceModels() {
   var curLine = curName
     ? '<div style="font-size:12px;color:var(--text);background:var(--card2);border-radius:8px;padding:8px 12px;margin-bottom:12px">🔊 Ahora mismo tu asistente usa <strong>' + esc(curName) + '</strong>' + (curTier ? ' · ' + (curTier === 'estandar' ? 'Estándar' : curTier === 'premium' ? 'Premium' : 'Ultra-rápida') : '') + '</div>'
     : '';
+  // Cupo premium: "te quedan X de Y min este mes" + barra. Solo relevante si la
+  // org gasta cupo (voz premium/ultra) o si tiene minutos asignados que enseñar.
+  var quotaLine = '';
+  if (q) {
+    var qUsed = Math.round(q.used || 0), qTot = q.quota || 0, qRem = Math.floor(q.remaining || 0);
+    var qPct = qTot > 0 ? Math.min(100, Math.round((qUsed / qTot) * 100)) : 0;
+    var qColor = q.downgraded ? '#e74c3c' : qPct >= 80 ? '#f39c12' : 'var(--accent)';
+    var head = q.downgraded
+      ? '<span style="color:#e74c3c;font-weight:700">Cupo premium agotado</span> — tu asistente suena en Estándar hasta fin de mes'
+      : 'Te quedan <strong style="color:var(--green2)">' + qRem + ' min</strong> de voz premium este mes';
+    quotaLine =
+      '<div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:12px">' +
+        '<div style="font-size:12px;color:var(--text);margin-bottom:7px">✨ ' + head + '</div>' +
+        '<div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;margin-bottom:5px">' +
+          '<div style="height:100%;width:' + qPct + '%;background:' + qColor + ';border-radius:6px;transition:width .4s"></div></div>' +
+        '<div style="font-size:11px;color:var(--dim)">' + qUsed + ' / ' + qTot + ' min usados' +
+          (q.hasAddon ? ' · complemento Voz Premium activo' : '') +
+          (q.extraMinutes > 0 ? ' · +' + q.extraMinutes + ' min comprados' : '') + '</div>' +
+      '</div>';
+  }
   openModal(
     '<div style="font-size:16px;font-weight:800;margin-bottom:4px">🎚️ Modelos de voz</div>' +
     '<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Elige cómo suena tu asistente. Puedes probarlas todas en la demo o en Asistente.</div>' +
     curLine +
+    quotaLine +
     cards +
     '<div style="font-size:11px;color:var(--dim);margin:8px 0 12px">¿Se te acaban los minutos de voz premium? Cómpralos en <a onclick="closeModal();navigate(\'facturacion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Facturación</a> (packs desde 5€).</div>' +
     '<div style="text-align:right"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
