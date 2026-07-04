@@ -67,7 +67,29 @@ function voiceQuotaSummary({ voiceTier, minutesUsed, hasVoiceAddon, extraMinutes
   };
 }
 
+/**
+ * Nuevo saldo de packs tras cerrar el mes (decisión Unai 2026-07-04: los
+ * minutos comprados NO caducan con el ciclo, PERO se gastan). Al resetear
+ * monthly_minutes_used, descontamos del pack SOLO los minutos que realmente
+ * salieron de él este mes (los que desbordaron el cupo base); lo consumido por
+ * encima del techo ya sonó en Azure y no descuenta. El cupo base sí se renueva.
+ * @param {object} p
+ * @param {number} p.minutesUsed    - monthly_minutes_used al cerrar el mes
+ * @param {boolean} p.hasVoiceAddon
+ * @param {number} [p.extraMinutes] - saldo de packs al empezar el mes
+ * @returns {number} saldo de packs para el mes siguiente
+ */
+function depletePackOnReset({ minutesUsed, hasVoiceAddon, extraMinutes = 0 }) {
+  const extra = Number(extraMinutes) > 0 ? Number(extraMinutes) : 0;
+  if (extra === 0) return 0;
+  const base       = premiumQuota(hasVoiceAddon, 0);          // cupo base sin packs
+  const used       = Math.max(0, Number(minutesUsed) || 0);
+  const premiumUse = Math.min(used, base + extra);            // lo que sonó premium (techo)
+  const packUsed   = Math.max(0, premiumUse - base);          // parte que salió del pack
+  return Math.max(0, r1(extra - packUsed));
+}
+
 module.exports = {
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
-  voiceQuotaSummary,
+  voiceQuotaSummary, depletePackOnReset,
 };

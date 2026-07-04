@@ -57,4 +57,43 @@ async function applyVoicePack(orgId, { sessionId, minutes } = {}, deps = {}) {
   }
 }
 
-module.exports = { PACKS, applyVoicePack };
+/**
+ * Cierre de mes de una org: los packs "persisten hasta gastarse" (decisión Unai
+ * 2026-07-04), así que al renovar el ciclo descontamos SOLO los minutos del pack
+ * que se usaron este mes (los que desbordaron el cupo base) y el resto se
+ * arrastra. NO toca monthly_minutes_used — de eso se encarga el reset del
+ * llamante; aquí solo ajustamos premiumExtraMinutes cuando hay algo que gastar.
+ * @param {{id:string, monthly_minutes_used:number, automation_config:object}} orgRow
+ */
+async function settleMonthlyPack(orgRow, deps = {}) {
+  const db = deps.db || require('../db/database').getDatabase();
+  const auto   = (orgRow && orgRow.automation_config) || {};
+  const config = auto.config || {};
+  const extra  = Number(config.premiumExtraMinutes) || 0;
+  if (!db.enabled || !orgRow || !orgRow.id || extra <= 0) {
+    return { changed: false, extraMinutes: extra };
+  }
+
+  const { hasAddon } = require('./addons');
+  const { depletePackOnReset } = require('../tts/voice-quota');
+  const newExtra = depletePackOnReset({
+    minutesUsed:   Number(orgRow.monthly_minutes_used) || 0,
+    hasVoiceAddon: hasAddon(orgRow, 'voice_premium'),
+    extraMinutes:  extra,
+  });
+  if (newExtra === extra) return { changed: false, extraMinutes: extra };
+
+  auto.config = { ...config, premiumExtraMinutes: newExtra };
+  try {
+    const { error } = await db.client.from('organizations')
+      .update({ automation_config: auto }).eq('id', orgRow.id);
+    if (error) throw new Error(error.message);
+    log.info(`Cierre de mes org ${orgRow.id}: pack ${extra} → ${newExtra} min (gastado ${extra - newExtra})`);
+    return { changed: true, extraMinutes: newExtra };
+  } catch (e) {
+    log.warn(`settleMonthlyPack(${orgRow.id}) falló: ${e.message}`);
+    return { changed: false, error: e.message, extraMinutes: extra };
+  }
+}
+
+module.exports = { PACKS, applyVoicePack, settleMonthlyPack };

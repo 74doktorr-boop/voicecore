@@ -10,7 +10,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { applyVoicePack, PACKS } = require('../src/billing/voice-packs');
+const { applyVoicePack, settleMonthlyPack, PACKS } = require('../src/billing/voice-packs');
 
 function fakeDb(orgRow) {
   const saved = {};
@@ -59,5 +59,40 @@ describe('applyVoicePack', () => {
   test('db apagada o sin minutos → no lanza', async () => {
     assert.strictEqual((await applyVoicePack('o1', { sessionId: 's', minutes: 50 }, { db: { enabled: false } })).ok, false);
     assert.strictEqual((await applyVoicePack('o1', { sessionId: 's', minutes: 0 }, { db: fakeDb({}) })).ok, false);
+  });
+});
+
+describe('settleMonthlyPack — cierre de mes: los packs se gastan, no caducan', () => {
+  test('cupo base no agotado → el pack no se toca ni se reescribe', async () => {
+    const db = fakeDb({ id: 'o1', monthly_minutes_used: 20, automation_config: { config: { premiumExtraMinutes: 50 } } });
+    const out = await settleMonthlyPack({ id: 'o1', monthly_minutes_used: 20, automation_config: { config: { premiumExtraMinutes: 50 } } }, { db });
+    assert.strictEqual(out.changed, false);
+    assert.strictEqual(out.extraMinutes, 50);
+    assert.strictEqual(db._saved.patch, undefined, 'sin cambio no debe escribir');
+  });
+
+  test('desbordó el base → descuenta solo lo del pack y persiste el resto', async () => {
+    const db = fakeDb({});
+    const org = { id: 'o1', monthly_minutes_used: 60, automation_config: { config: { premiumExtraMinutes: 50 } } };
+    const out = await settleMonthlyPack(org, { db });        // base 40; 20 salieron del pack → 30
+    assert.strictEqual(out.changed, true);
+    assert.strictEqual(out.extraMinutes, 30);
+    assert.strictEqual(db._saved.patch.automation_config.config.premiumExtraMinutes, 30);
+  });
+
+  test('con add-on el base es 200 (el pack aguanta más)', async () => {
+    const db = fakeDb({});
+    const org = { id: 'o1', monthly_minutes_used: 210, automation_config: { config: { premiumExtraMinutes: 50, addons: { voice_premium: { since: 'x' } } } } };
+    const out = await settleMonthlyPack(org, { db });        // base 200; 10 del pack → 40
+    assert.strictEqual(out.extraMinutes, 40);
+  });
+
+  test('sin pack o db apagada → no escribe', async () => {
+    const db = fakeDb({});
+    const out = await settleMonthlyPack({ id: 'o1', monthly_minutes_used: 99, automation_config: { config: {} } }, { db });
+    assert.strictEqual(out.changed, false);
+    assert.strictEqual(db._saved.patch, undefined);
+    const off = await settleMonthlyPack({ id: 'o1', automation_config: { config: { premiumExtraMinutes: 50 } } }, { db: { enabled: false } });
+    assert.strictEqual(off.changed, false);
   });
 });

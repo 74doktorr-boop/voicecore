@@ -295,6 +295,24 @@ async function runAutomations() {
         const { getDatabase } = require('../db/database');
         const db = getDatabase();
         if (db.enabled) {
+          // Packs de voz persisten hasta gastarse (2026-07-04): antes de poner
+          // el contador a cero, descontar del pack lo que se usó este mes en las
+          // orgs que tienen saldo comprado. El cupo base sí se renueva.
+          try {
+            const { settleMonthlyPack } = require('../billing/voice-packs');
+            const { data: usedOrgs } = await db.client
+              .from('organizations')
+              .select('id, monthly_minutes_used, automation_config')
+              .is('stripe_subscription_id', null)
+              .gt('monthly_minutes_used', 0);
+            for (const o of (usedOrgs || [])) {
+              if (Number(o.automation_config?.config?.premiumExtraMinutes) > 0) {
+                await settleMonthlyPack(o, { db });
+              }
+            }
+          } catch (e) {
+            log.warn('Pack settlement on monthly reset failed', { err: e.message });
+          }
           await db.client
             .from('organizations')
             .update({ monthly_minutes_used: 0 })

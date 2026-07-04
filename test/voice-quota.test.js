@@ -12,7 +12,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
-  voiceQuotaSummary,
+  voiceQuotaSummary, depletePackOnReset,
 } = require('../src/tts/voice-quota');
 
 describe('premiumQuota', () => {
@@ -88,6 +88,28 @@ describe('voiceQuotaSummary — lo que ve el portal ("te quedan X min premium")'
       s.downgraded,
       shouldDowngradeVoice('premium', 999, false, 0),
     );
+  });
+});
+
+describe('depletePackOnReset — packs "persisten hasta gastarse" (decisión Unai 2026-07-04)', () => {
+  test('sin pack → 0 (nada que arrastrar)', () => {
+    assert.strictEqual(depletePackOnReset({ minutesUsed: 999, hasVoiceAddon: false, extraMinutes: 0 }), 0);
+  });
+  test('cupo base no agotado → el pack no se toca (persiste entero)', () => {
+    // base 40; usó 30 < 40 → no entró al pack
+    assert.strictEqual(depletePackOnReset({ minutesUsed: 30, hasVoiceAddon: false, extraMinutes: 50 }), 50);
+  });
+  test('desborda el base → gasta solo lo del pack usado', () => {
+    // base 40; usó 60 → 20 salieron del pack → quedan 30
+    assert.strictEqual(depletePackOnReset({ minutesUsed: 60, hasVoiceAddon: false, extraMinutes: 50 }), 30);
+  });
+  test('agota base + pack → pack a 0 (el resto ya sonó en Azure, no descuenta de más)', () => {
+    // base 40 + pack 50 = techo 90; usó 100 → pack usado 50 → 0
+    assert.strictEqual(depletePackOnReset({ minutesUsed: 100, hasVoiceAddon: false, extraMinutes: 50 }), 0);
+  });
+  test('con add-on el base es 200 (el pack se gasta después)', () => {
+    // base 200 + pack 50 = 250; usó 210 → pack usado 10 → quedan 40
+    assert.strictEqual(depletePackOnReset({ minutesUsed: 210, hasVoiceAddon: true, extraMinutes: 50 }), 40);
   });
 });
 

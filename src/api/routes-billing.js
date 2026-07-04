@@ -502,10 +502,14 @@ function setupBillingRoutes(app, config) {
           try {
             const { data: orgRow } = await db.client
               .from('organizations')
-              .select('id')
+              .select('id, monthly_minutes_used, automation_config')
               .eq('stripe_customer_id', result.customerId)
               .single().then(r => r, () => ({ data: null }));
             if (orgRow?.id) {
+              // Packs de voz persisten hasta gastarse: descontar lo usado ANTES
+              // de resetear el contador del mes (2026-07-04).
+              const { settleMonthlyPack } = require('../billing/voice-packs');
+              await settleMonthlyPack(orgRow, { db });
               await db.updateOrg(orgRow.id, { monthly_minutes_used: 0 });
               log.info(`Usage counter reset for org ${orgRow.id} (invoice paid — new period)`);
             }
