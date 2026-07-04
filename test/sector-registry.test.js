@@ -7,7 +7,10 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { resolveSector, isCurated, SECTORS } = require('../src/sectors/sector-registry');
+const {
+  resolveSector, isCurated, SECTORS,
+  normalizeSectorDef, hydrate, upsertSector, allSectors,
+} = require('../src/sectors/sector-registry');
 
 describe('resolveSector', () => {
   test('resuelve un sector piloto con sus 3 pilares', () => {
@@ -104,4 +107,60 @@ describe('cobertura: TODOS los sectores del prompt-generator están curados', ()
       assert.ok(s.norms.length >= 1 && s.metricChecks.length >= 1);
     });
   }
+});
+
+// ── Sectores como DATO: alta en caliente sin deploy (2026-07-04) ──────────
+describe('normalizeSectorDef — valida candidatos (LLM/BD) sin confiar a ciegas', () => {
+  test('def válida se normaliza (slug del label, alias/keys normalizados)', () => {
+    const d = normalizeSectorDef({
+      label: 'Floristería', aliases: ['Flores', 'floristeria'],
+      norms: ['Pregunta el tipo de arreglo y la fecha de entrega.'],
+      metricChecks: [{ key: 'Tipo Arreglo', label: '¿Capturó el tipo de arreglo?' }],
+    });
+    assert.strictEqual(d.slug, 'floristeria');
+    assert.strictEqual(d.label, 'Floristería');
+    assert.ok(d.aliases.includes('flores'));
+    assert.strictEqual(d.metricChecks[0].key, 'tipo_arreglo');
+    assert.strictEqual(d.custom, true);
+  });
+  test('sin normas o sin métricas → null (no aporta)', () => {
+    assert.strictEqual(normalizeSectorDef({ label: 'X', norms: [], metricChecks: [] }), null);
+    assert.strictEqual(normalizeSectorDef({ label: 'X', norms: ['a'], metricChecks: [] }), null);
+    assert.strictEqual(normalizeSectorDef(null), null);
+  });
+});
+
+describe('upsertSector / hydrate / allSectors — sin deploy', () => {
+  test('upsert añade un sector custom resoluble al instante', () => {
+    const def = upsertSector({
+      label: 'Cerrajería', aliases: ['cerrajero'],
+      norms: ['Pregunta si es una urgencia (persona/mascota atrapada) y la dirección.'],
+      metricChecks: [{ key: 'urgencia', label: '¿Detectó urgencia?' }],
+    });
+    assert.ok(def);
+    assert.strictEqual(resolveSector('cerrajeria').slug, 'cerrajeria');
+    assert.strictEqual(resolveSector('cerrajero').slug, 'cerrajeria'); // por alias
+    assert.strictEqual(isCurated('cerrajeria'), true);
+  });
+  test('NO puede pisar un sector de la semilla', () => {
+    assert.strictEqual(upsertSector({ label: 'dental', norms: ['x'], metricChecks: [{ key: 'k', label: 'l' }] }), null);
+    assert.match(resolveSector('dental').label, /dental/i); // sigue siendo el de semilla
+  });
+  test('hydrate carga un conjunto custom y descarta lo inválido', () => {
+    const n = hydrate([
+      { slug: 'tatuador', label: 'Estudio de tatuaje', norms: ['Pregunta zona y tamaño y si trae diseño.'], metricChecks: [{ key: 'diseno', label: '¿Capturó el diseño?' }] },
+      { label: 'malo' }, // sin normas/métricas → descartado
+    ]);
+    assert.strictEqual(n, 1);
+    assert.strictEqual(resolveSector('tatuador').slug, 'tatuador');
+    hydrate([]); // limpia para no afectar a otros tests
+    assert.strictEqual(resolveSector('tatuador').slug, 'generico');
+  });
+  test('allSectors incluye semilla + custom, ordenado', () => {
+    upsertSector({ label: 'Óptica ZZZ test', norms: ['x'], metricChecks: [{ key: 'k', label: 'l' }] });
+    const all = allSectors();
+    assert.ok(all.some(s => s.slug === 'dental'), 'incluye semilla');
+    assert.ok(all.some(s => s.custom), 'incluye custom');
+    hydrate([]); // limpieza
+  });
 });

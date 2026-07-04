@@ -463,32 +463,102 @@ function _norm(s) {
     .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
-// Índice de alias → sector canónico (una vez).
-const _aliasIndex = (() => {
+// ── Sectores DATO (2026-07-04): la semilla (SECTORS, 32 curados en código) se
+// mezcla con sectores CUSTOM cargados en caliente desde BD/otra fuente. Añadir
+// o afinar un vertical deja de ser un deploy: es una fila. resolveSector sigue
+// siendo SÍNCRONO (lee la caché en memoria) para no romper a sus llamadores.
+let _custom = {};        // slug → def (normalizada)
+let _index = null;       // alias/slug (normalizado) → slug canónico
+
+function _all() { return { ...SECTORS, ..._custom }; }
+function _buildIndex() {
   const idx = {};
-  for (const s of Object.values(SECTORS)) {
-    idx[s.slug] = s.slug;
-    for (const a of s.aliases || []) idx[_norm(a)] = s.slug;
+  for (const s of Object.values(_all())) {
+    idx[_norm(s.slug)] = s.slug;
+    for (const a of s.aliases || []) if (!idx[_norm(a)]) idx[_norm(a)] = s.slug;
   }
   return idx;
-})();
+}
+function _getIndex() { return _index || (_index = _buildIndex()); }
+
+/**
+ * Normaliza un candidato a sector (venga de un LLM o de la BD) a la forma
+ * canónica y segura. Descarta lo mal formado; nunca confía a ciegas.
+ * @returns {object|null}
+ */
+function normalizeSectorDef(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const slug = _norm(raw.slug || raw.label);
+  if (!slug) return null;
+  const label = String(raw.label || slug).trim().slice(0, 60);
+  const aliases = Array.from(new Set((Array.isArray(raw.aliases) ? raw.aliases : [])
+    .map(a => _norm(a)).filter(a => a && a !== slug))).slice(0, 12);
+  const norms = (Array.isArray(raw.norms) ? raw.norms : [])
+    .map(n => String(n || '').trim()).filter(Boolean).slice(0, 6);
+  const seenKeys = new Set();
+  const metricChecks = (Array.isArray(raw.metricChecks) ? raw.metricChecks : [])
+    .map(m => ({ key: _norm(m && m.key || m && m.label), label: String(m && m.label || '').trim() }))
+    .filter(m => m.key && m.label && !seenKeys.has(m.key) && seenKeys.add(m.key)).slice(0, 5);
+  if (!norms.length || !metricChecks.length) return null; // un sector sin normas ni métricas no aporta
+  const requiredFields = Array.isArray(raw.requiredFields) ? raw.requiredFields : [];
+  return { slug, label, aliases, norms, metricChecks, requiredFields, custom: true };
+}
 
 /**
  * Resuelve un slug de sector (o alias) a su entrada canónica. Lo desconocido
- * cae a GENERICO — nunca null, para que el resto del sistema no tenga que
- * comprobar. Incluye requiredFields desde sector-fields.js.
- * @param {string} slug
- * @returns {{slug,label,aliases,norms,metricChecks,requiredFields}}
+ * cae a GENERICO — nunca null. Incluye requiredFields (custom del propio def o,
+ * si no, de sector-fields.js para los de semilla).
  */
 function resolveSector(slug) {
-  const key = _aliasIndex[_norm(slug)];
-  const base = (key && SECTORS[key]) || GENERICO;
-  return { ...base, requiredFields: SECTOR_REQUIRED_FIELDS[base.slug] || [] };
+  const all = _all();
+  const key = _getIndex()[_norm(slug)];
+  const base = (key && all[key]) || GENERICO;
+  const req = (base.requiredFields && base.requiredFields.length)
+    ? base.requiredFields
+    : (SECTOR_REQUIRED_FIELDS[base.slug] || []);
+  return { ...base, requiredFields: req };
 }
 
-/** ¿Tiene este sector normas/métricas propias curadas (no cae a genérico)? */
+/** ¿Tiene este sector normas/métricas propias (no cae a genérico)? */
 function isCurated(slug) {
   return resolveSector(slug).slug !== 'generico';
 }
 
-module.exports = { resolveSector, isCurated, SECTORS, GENERICO };
+/**
+ * Carga sectores CUSTOM (de BD) en la caché. Reemplaza el conjunto custom
+ * entero. Los mal formados se descartan. Invalida el índice.
+ */
+function hydrate(list) {
+  _custom = {};
+  for (const raw of (Array.isArray(list) ? list : [])) {
+    const def = normalizeSectorDef(raw);
+    if (def && !SECTORS[def.slug]) _custom[def.slug] = def; // la semilla no se pisa
+  }
+  _index = null;
+  return Object.keys(_custom).length;
+}
+
+/**
+ * Alta/edición de UN sector custom en caliente (tras aprobación del fundador).
+ * Devuelve la def normalizada (para persistirla) o null si no es válida.
+ * No pisa un sector de la semilla.
+ */
+function upsertSector(raw) {
+  const def = normalizeSectorDef(raw);
+  if (!def || SECTORS[def.slug]) return null;
+  _custom[def.slug] = def;
+  _index = null;
+  return def;
+}
+
+/** Lista completa (semilla + custom) para el selector/onboarding. */
+function allSectors() {
+  return Object.values(_all())
+    .map(s => ({ slug: s.slug, label: s.label, aliases: s.aliases || [], custom: !!s.custom }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+}
+
+module.exports = {
+  resolveSector, isCurated, normalizeSectorDef, hydrate, upsertSector, allSectors,
+  SECTORS, GENERICO,
+};
