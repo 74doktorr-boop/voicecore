@@ -2058,6 +2058,31 @@ async function submitCritDate() {
 }
 
 // ── Configuración ─────────────────────────────────────────────
+// Lista de sectores (semilla + custom aprobados) desde /api/sectors — FUENTE
+// ÚNICA. Fallback mínimo para que el primer render nunca falle; tras cargar se
+// repuebla el desplegable. Añadir un sector nuevo aparece aquí sin tocar el front.
+var _sectorsCache = null;
+var _SECTOR_FALLBACK = [
+  { slug: 'generico', label: 'Genérico' }, { slug: 'restaurante', label: 'Restaurante' },
+  { slug: 'dental', label: 'Clínica dental' }, { slug: 'clinica', label: 'Clínica médica' },
+  { slug: 'peluqueria', label: 'Peluquería' }, { slug: 'taller', label: 'Taller mecánico' },
+  { slug: 'otro', label: 'Otro' },
+];
+function sectorOptionsHtml(selected) {
+  var list = _sectorsCache || _SECTOR_FALLBACK;
+  return list.map(function (s) {
+    return '<option value="' + s.slug + '"' + (selected === s.slug ? ' selected' : '') + '>' + esc(s.label || s.slug) + '</option>';
+  }).join('');
+}
+function _ensureSectors(cb) {
+  if (_sectorsCache) { if (cb) cb(); return; }
+  fetch('/api/sectors').then(function (r) { return r.json(); }).then(function (d) {
+    var arr = (d && d.sectors) || [];
+    _sectorsCache = [{ slug: 'generico', label: 'Genérico' }].concat(arr).concat([{ slug: 'otro', label: 'Otro' }]);
+    if (cb) cb();
+  }).catch(function () { if (cb) cb(); });
+}
+
 async function loadConfig() {
   var sec = document.getElementById('sec-configuracion');
   sec.innerHTML = skelPanel();
@@ -2071,27 +2096,13 @@ async function loadConfig() {
   }
 
   var c = data.config || {};
-  var SECTORS = ['generico','restaurante','fisioterapia','clinica','dental','peluqueria','barberia',
-    'estetica','gimnasio','academia','veterinaria','farmacia','asesoria','taller','hotel',
-    'inmobiliaria','optica','psicologia','coaching','nutricion','podologia','autoescuela',
-    'estetica_avanzada','yoga','pilates','guarderia_canina','abogados','notaria',
-    'agencia_viajes','reformas','otro'];
-  var SECTOR_LABELS = {
-    generico: 'Genérico', restaurante: 'Restaurante', fisioterapia: 'Fisioterapia',
-    clinica: 'Clínica / Centro médico', dental: 'Clínica dental', peluqueria: 'Peluquería',
-    barberia: 'Barbería', estetica: 'Estética', gimnasio: 'Gimnasio', academia: 'Academia',
-    veterinaria: 'Veterinaria', farmacia: 'Farmacia', asesoria: 'Asesoría / Gestoría',
-    taller: 'Taller mecánico', hotel: 'Hotel / Alojamiento', inmobiliaria: 'Inmobiliaria',
-    optica: 'Óptica', psicologia: 'Psicología', coaching: 'Coaching', nutricion: 'Nutrición',
-    podologia: 'Podología', autoescuela: 'Autoescuela', estetica_avanzada: 'Estética avanzada',
-    yoga: 'Yoga', pilates: 'Pilates', guarderia_canina: 'Guardería canina',
-    abogados: 'Abogados', notaria: 'Notaría', agencia_viajes: 'Agencia de viajes',
-    reformas: 'Reformas', otro: 'Otro',
-  };
-  var sectorOpts = SECTORS.map(function(s) {
-    return '<option value="' + s + '" ' + (c.sector === s ? 'selected' : '') + '>' +
-      (SECTOR_LABELS[s] || s) + '</option>';
-  }).join('');
+  // Sectores desde /api/sectors (fuente única). Primer paint con fallback; tras
+  // cargar, se repuebla el <select> — así los sectores nuevos aparecen sin deploy.
+  var sectorOpts = sectorOptionsHtml(c.sector);
+  _ensureSectors(function () {
+    var el = document.getElementById('cfgSector');
+    if (el) el.innerHTML = sectorOptionsHtml(c.sector);
+  });
 
   sec.innerHTML =
     '<div class="section-header"><div class="section-title">Configuración</div></div>' +
