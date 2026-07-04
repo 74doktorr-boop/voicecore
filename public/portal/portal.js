@@ -3668,6 +3668,9 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
       overageWarn +
     '</div>' +
 
+    // Add-ons (voz Premium +10€, Crecimiento +39€) — carga async abajo
+    '<div id="addonsBox"></div>' +
+
     proUpsell +
 
     // Invoice history
@@ -3688,6 +3691,56 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
       '</div>' +
     '</div>' +
     referralCta('facturacion');
+
+  loadAddonsBox();
+}
+
+// ── Complementos de suscripción (voz Premium +10€, Crecimiento +39€) ──
+async function loadAddonsBox() {
+  try {
+    var d = await api('/api/portal/addons');
+    var el = document.getElementById('addonsBox');
+    if (!el || !d || !Array.isArray(d.addons)) return;
+    el.innerHTML =
+      '<div class="card" style="padding:20px;margin-top:16px">' +
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px">✨ Complementos</div>' +
+        '<div style="font-size:11px;color:var(--dim);margin-bottom:14px">Amplía tu plan cuando lo necesites — se añaden a tu suscripción y Stripe prorratea el mes en curso automáticamente.</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">' +
+        d.addons.map(function (a) {
+          var price = '+' + (a.monthlyCents / 100).toFixed(0) + '€/mes';
+          var btn;
+          if (a.active) {
+            btn = '<button class="btn btn-d btn-sm" onclick="addonAction(\'' + a.key + '\',\'cancel\')">Cancelar</button>';
+          } else if (a.available) {
+            btn = '<button class="btn btn-accent btn-sm" onclick="addonAction(\'' + a.key + '\',\'activate\')">Activar ' + price + '</button>';
+          } else {
+            btn = '<span style="font-size:11px;color:var(--dim)">Muy pronto online — escríbenos y lo activamos hoy</span>';
+          }
+          return '<div style="background:var(--card2);border:1px solid ' + (a.active ? 'rgba(196,245,70,.4)' : 'var(--border)') + ';border-radius:10px;padding:14px 16px">' +
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">' +
+              '<strong style="font-size:13px">' + esc(a.label) + '</strong>' +
+              (a.active
+                ? '<span style="font-size:10px;color:var(--accent-l);font-weight:800">ACTIVO · ' + price + '</span>'
+                : '<span style="font-size:11px;color:var(--dim)">' + price + '</span>') +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--dim);margin:8px 0 12px;line-height:1.5">' + esc(a.blurb || '') + '</div>' +
+            btn +
+          '</div>';
+        }).join('') +
+        '</div></div>';
+  } catch (e) { /* fail-open: sin tarjetas */ }
+}
+async function addonAction(key, action) {
+  if (action === 'cancel' && !confirm('¿Cancelar este complemento? Dejará de cobrarse desde tu próxima factura.')) return;
+  try {
+    var d = await api('/api/portal/addons/' + key + '/' + action, 'POST', {});
+    if (d && d.ok) {
+      toast(action === 'activate' ? '✅ Complemento activado' : 'Complemento cancelado');
+      loadAddonsBox();
+    } else {
+      toast((d && d.error) || 'No se pudo completar', 'err');
+    }
+  } catch (e) { toast('❌ ' + e.message, 'err'); }
 }
 
 // ── Integraciones (Webhooks) ──────────────────────────────────

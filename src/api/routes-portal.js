@@ -763,6 +763,36 @@ function setupPortalRoutes(app, pipeline, config) {
     });
   });
 
+  // ── Add-ons de suscripción (voz Premium +10€, Crecimiento +39€) ──
+  app.get('/api/portal/addons', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    try {
+      let org = null;
+      if (db.enabled) {
+        const { data } = await db.client
+          .from('organizations').select('automation_config').eq('id', businessId).single();
+        org = data;
+      }
+      const { listAddons } = require('../billing/addons');
+      res.json({ ok: true, addons: listAddons(org) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/portal/addons/:key/activate', portalAuth, async (req, res) => {
+    const { activateAddon } = require('../billing/addons');
+    const out = await activateAddon(req.businessId, req.params.key);
+    res.status(out.ok ? 200 : 400).json(out);
+  });
+
+  app.post('/api/portal/addons/:key/cancel', portalAuth, async (req, res) => {
+    const { cancelAddon } = require('../billing/addons');
+    const out = await cancelAddon(req.businessId, req.params.key);
+    res.status(out.ok ? 200 : 400).json(out);
+  });
+
   // ── POST /api/portal/copilot/parse ────────────────────────
   // Copiloto de configuración (#8): texto libre del dueño → propuesta
   // estructurada (servicios u horario). Solo PROPONE: el portal la enseña,
@@ -1435,7 +1465,18 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       // Merge with existing config (don't overwrite fields not sent)
       const { data: existing } = await db.client
-        .from('organizations').select('name, assistant_config').eq('id', businessId).single();
+        .from('organizations').select('name, assistant_config, automation_config').eq('id', businessId).single();
+
+      // Candado de voz Premium (add-on +10€): server-side y determinista.
+      // Sin castigo retroactivo — solo bloquea CAMBIAR a una voz premium.
+      if (safe.voice) {
+        const { voiceChangeAllowed } = require('../billing/addons');
+        const check = voiceChangeAllowed(existing, safe.voice);
+        if (!check.allowed) {
+          return res.status(402).json({ error: check.reason, addonRequired: 'voice_premium' });
+        }
+      }
+
       const merged = { ...(existing?.assistant_config || {}), ...safe };
 
       const { generatePrompt } = require('../assistants/prompt-generator');
