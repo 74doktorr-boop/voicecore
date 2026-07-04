@@ -3727,8 +3727,25 @@ async function loadAddonsBox() {
             btn +
           '</div>';
         }).join('') +
-        '</div></div>';
+        '</div>' +
+        // Packs de minutos de voz (compra puntual — amplían el cupo del mes)
+        '<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+          '<div style="font-size:12px;font-weight:700;margin-bottom:2px">🎙️ ¿Se te acaban los minutos de voz premium?</div>' +
+          '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">Compra minutos extra cuando los necesites. Se suman a tu cupo de este mes.</div>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+            '<button class="btn btn-d btn-sm" onclick="buyVoicePack(\'premium\')">+50 min Premium · 5€</button>' +
+            '<button class="btn btn-d btn-sm" onclick="buyVoicePack(\'ultra\')">+100 min Ultra (Cartesia) · 5€</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
   } catch (e) { /* fail-open: sin tarjetas */ }
+}
+async function buyVoicePack(kind) {
+  try {
+    var d = await api('/api/portal/voice-pack/' + kind + '/checkout', 'POST', {});
+    if (d && d.url) { window.location.href = d.url; }
+    else { toast((d && d.error) || 'No se pudo iniciar la compra', 'err'); }
+  } catch (e) { toast('❌ ' + e.message, 'err'); }
 }
 async function addonAction(key, action) {
   if (action === 'cancel' && !confirm('¿Cancelar este complemento? Dejará de cobrarse desde tu próxima factura.')) return;

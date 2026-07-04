@@ -80,6 +80,30 @@ class StripeBilling {
   }
 
   /**
+   * Aplica un CRÉDITO al saldo del cliente (p.ej. recompensa de referido).
+   * `cents` POSITIVOS → se registra como saldo NEGATIVO (crédito que reduce la
+   * próxima factura). `idempotencyKey` evita doble-crédito si se reintenta.
+   * ⚠️ SIN VERIFICAR contra Stripe test mode — probar antes de confiar en producción.
+   * @returns {Promise<{ok?:boolean,id?:string,amount?:number,skipped?:string,error?:string}>}
+   */
+  async applyCredit({ customerId, cents, description, idempotencyKey }) {
+    if (!this.enabled) return { skipped: 'billing_disabled' };
+    if (!customerId)   return { skipped: 'no_customer' };
+    const amount = Math.round(Number(cents));
+    if (!(amount > 0)) return { skipped: 'invalid_amount' };
+    try {
+      const txn = await this.stripe.customers.createBalanceTransaction(
+        customerId,
+        { amount: -amount, currency: 'eur', description: description || 'Crédito NodeFlow' },
+        idempotencyKey ? { idempotencyKey } : undefined
+      );
+      return { ok: true, id: txn.id, amount: txn.amount };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  /**
    * Create a checkout session for plan subscription
    */
   async createCheckoutSession({ orgId, plan, customerId, successUrl, cancelUrl }) {
@@ -231,6 +255,16 @@ class StripeBilling {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+
+        // ── Pack de minutos de voz (compra puntual, mode:payment) ──
+        if (session.metadata?.voicePackMinutes) {
+          return {
+            action:    'voice_pack_paid',
+            orgId:     session.metadata.orgId,
+            minutes:   Number(session.metadata.voicePackMinutes) || 0,
+            sessionId: session.id,
+          };
+        }
 
         // ── Viene de un Payment Link (landing de nodeflow.es) ──
         if (session.payment_link || session.client_reference_id?.startsWith('reg_')) {

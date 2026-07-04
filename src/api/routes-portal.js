@@ -793,6 +793,33 @@ function setupPortalRoutes(app, pipeline, config) {
     res.status(out.ok ? 200 : 400).json(out);
   });
 
+  // ── POST /api/portal/voice-pack/:kind/checkout ────────────
+  // Compra puntual de un pack de minutos de voz (premium/ultra). Devuelve la
+  // URL de Stripe Checkout; al pagar, el webhook suma los minutos al cupo.
+  app.post('/api/portal/voice-pack/:kind/checkout', portalAuth, async (req, res) => {
+    try {
+      const { PACKS } = require('../billing/voice-packs');
+      const pack = PACKS[req.params.kind];
+      if (!pack) return res.status(400).json({ error: 'Pack desconocido' });
+      const priceId = process.env[pack.envPriceVar];
+      if (!priceId) return res.status(400).json({ error: 'Ese pack aún no está disponible online — escríbenos y te lo activamos.' });
+      const billing = require('../billing/stripe').getBilling();
+      if (!billing.enabled) return res.status(400).json({ error: 'Facturación no disponible ahora mismo.' });
+      const baseUrl = process.env.PUBLIC_URL || 'https://nodeflow.es';
+      const session = await billing.stripe.checkout.sessions.create({
+        mode: 'payment',
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${baseUrl}/portal?pack=ok`,
+        cancel_url:  `${baseUrl}/portal?pack=cancel`,
+        metadata: { orgId: req.businessId, voicePackMinutes: String(pack.minutes), voicePackKind: pack.key },
+      });
+      res.json({ url: session.url });
+    } catch (e) {
+      log.error(`voice-pack checkout: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── WhatsApp número propio (Fase 2, Meta directo) ──────────
   // GET status: número compartido activo + número propio conectado (si hay).
   app.get('/api/portal/whatsapp/status', portalAuth, async (req, res) => {

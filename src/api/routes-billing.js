@@ -184,6 +184,14 @@ function setupBillingRoutes(app, config) {
         const sig = req.headers['stripe-signature'];
         const result = await billing.handleWebhook(req.body, sig);
 
+        // ── Pack de minutos de voz pagado → sumar al cupo (idempotente) ──
+        if (result.action === 'voice_pack_paid' && result.orgId) {
+          const { applyVoicePack } = require('../billing/voice-packs');
+          await applyVoicePack(result.orgId, { sessionId: result.sessionId, minutes: result.minutes })
+            .catch(e => log.warn(`voice pack apply: ${e.message}`));
+          return res.json({ received: true });
+        }
+
         // ── Payment Link completado (nuevo cliente desde la landing) ──
         if (result.action === 'payment_link_completed') {
           const { registroId, stripeCustomerId, subscriptionId, email, planKey } = result;
