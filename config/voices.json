@@ -497,6 +497,210 @@
       ],
       "description": "Voz masculina reflexiva y clara, transmite información con seguridad",
       "latency": "ultra-low"
+    },
+    {
+      "id": "rosa-ca",
+      "name": "Rosa",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "fb936dd1-66ea-43a0-86bd-18a6203dcda2",
+      "tier": "ultra",
+      "tags": [
+        "cálida",
+        "alegre",
+        "cercana"
+      ],
+      "description": "Voz femenina alegre y cercana, transmite buen rollo",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "carolina-ca",
+      "name": "Carolina",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "3797b3c0-ab71-40dc-bfa0-a8c6ff9c1e8b",
+      "tier": "ultra",
+      "tags": [
+        "amable",
+        "cercana",
+        "cálida"
+      ],
+      "description": "Voz femenina amable y acogedora para trato diario",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "alondra-ca",
+      "name": "Alondra",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "ccfea4bf-b3f4-421e-87ed-dd05dae01431",
+      "tier": "ultra",
+      "tags": [
+        "cálida",
+        "apoyo",
+        "amable"
+      ],
+      "description": "Voz femenina cálida y de apoyo, muy reconfortante",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "javier-ca",
+      "name": "Javier",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "e9f0368b-3662-4a01-b037-e13ca5203c74",
+      "tier": "ultra",
+      "tags": [
+        "cercano",
+        "natural",
+        "casual"
+      ],
+      "description": "Voz masculina cercana y natural, tono de tú a tú",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "manuel-ca",
+      "name": "Manuel",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "948196a7-fe02-417b-9b6d-c45ee0803565",
+      "tier": "ultra",
+      "tags": [
+        "claro",
+        "autoridad",
+        "formal"
+      ],
+      "description": "Voz masculina clara y con autoridad, tipo presentador",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "luis-ca",
+      "name": "Luis",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "b5aa8098-49ef-475d-89b0-c9262ecf33fd",
+      "tier": "ultra",
+      "tags": [
+        "claro",
+        "distinguido",
+        "formal"
+      ],
+      "description": "Voz masculina clara y distinguida, tono refinado",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "vera-es",
+      "name": "Vera",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "SAz9YHcvj6GT2YYXdXww",
+      "tier": "premium",
+      "tags": [
+        "relajada",
+        "neutral",
+        "informativa"
+      ],
+      "description": "Voz femenina relajada y neutral, clara para informar",
+      "latency": "low"
+    },
+    {
+      "id": "matilde-es",
+      "name": "Matilde",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "XrExE9yKIg1WjnnlVkGX",
+      "tier": "premium",
+      "tags": [
+        "profesional",
+        "clara",
+        "experta"
+      ],
+      "description": "Voz femenina profesional y clara, tono experto",
+      "latency": "low"
+    },
+    {
+      "id": "belen-es",
+      "name": "Belén",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "hpp4J3VqNfWAUOO0d1Us",
+      "tier": "premium",
+      "tags": [
+        "cálida",
+        "luminosa",
+        "profesional"
+      ],
+      "description": "Voz femenina cálida y luminosa, muy profesional",
+      "latency": "low"
+    },
+    {
+      "id": "enrique-es",
+      "name": "Enrique",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "cjVigY5qzO86Huf0OWal",
+      "tier": "premium",
+      "tags": [
+        "suave",
+        "confianza",
+        "elegante"
+      ],
+      "description": "Voz masculina suave y de confianza, elegante",
+      "latency": "low"
+    },
+    {
+      "id": "guillermo-es",
+      "name": "Guillermo",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "pqHfZKP75CvOlQylNhV4",
+      "tier": "premium",
+      "tags": [
+        "sereno",
+        "equilibrado",
+        "maduro"
+      ],
+      "description": "Voz masculina serena y equilibrada, madura",
+      "latency": "low"
+    },
+    {
+      "id": "bruno-es",
+      "name": "Bruno",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "elevenlabs",
+      "providerVoiceId": "bIHbv24MWmeRgasZH58o",
+      "tier": "premium",
+      "tags": [
+        "relajado",
+        "optimista",
+        "cercano"
+      ],
+      "description": "Voz masculina relajada y optimista",
+      "latency": "low"
     }
   ],
   "defaults": {

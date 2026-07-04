@@ -48,6 +48,13 @@ const VOICE_TO_ELEVEN = {
   'jorge-es':  'JBFqnCBsd6RMkjVDRZzb', // cálido, narrador
   'daniel-es': 'onwK4e9ZLuTAKqWW03F9', // locutor, estable
   'hugo-es':   'nPczCjzI2devNBz1zQrb', // grave, reconfortante
+  // Lote 2026-07-04 (más variedad Premium — IDs premade reales de la cuenta):
+  'vera-es':      'SAz9YHcvj6GT2YYXdXww', // relajada, neutral
+  'matilde-es':   'XrExE9yKIg1WjnnlVkGX', // profesional, clara
+  'belen-es':     'hpp4J3VqNfWAUOO0d1Us', // cálida, luminosa
+  'enrique-es':   'cjVigY5qzO86Huf0OWal', // suave, de confianza
+  'guillermo-es': 'pqHfZKP75CvOlQylNhV4', // sereno, equilibrado
+  'bruno-es':     'bIHbv24MWmeRgasZH58o', // relajado, optimista
   // Alias del catálogo antiguo (orgs que ya los tengan guardados):
   // ahora también suenan DISTINTOS entre sí.
   'marta-studio':    'FGY2WhTYpPnrIDTdsKH5',
