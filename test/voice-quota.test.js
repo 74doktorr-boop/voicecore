@@ -12,7 +12,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
-  voiceQuotaSummary, depletePackOnReset,
+  includedFallbackFor, voiceQuotaSummary, depletePackOnReset,
 } = require('../src/tts/voice-quota');
 
 describe('premiumQuota', () => {
@@ -118,5 +118,21 @@ describe('azureFallbackFor', () => {
     assert.strictEqual(azureFallbackFor('male'), 'alvaro-az');
     assert.strictEqual(azureFallbackFor('female'), 'elvira-az');
     assert.strictEqual(azureFallbackFor(undefined), 'elvira-az'); // default femenina
+  });
+});
+
+describe('includedFallbackFor — degradación a voz INCLUIDA fiable (Cartesia)', () => {
+  test('devuelve una voz incluida del mismo género', () => {
+    assert.strictEqual(includedFallbackFor('male'), 'marcos-ca');
+    assert.strictEqual(includedFallbackFor('female'), 'blanca-ca');
+    assert.strictEqual(includedFallbackFor(undefined), 'blanca-ca');
+  });
+  test('los ids devueltos EXISTEN en el catálogo como cartesia/estandar (guard anti-drift)', () => {
+    const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
+    for (const g of ['male', 'female']) {
+      const e = resolveVoiceEntry(includedFallbackFor(g));
+      assert.ok(e && e.provider === 'cartesia' && e.tier === 'estandar',
+        `${includedFallbackFor(g)} debe ser una voz Cartesia incluida vigente`);
+    }
   });
 });

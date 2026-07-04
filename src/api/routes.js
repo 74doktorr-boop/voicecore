@@ -52,13 +52,26 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   const twilioSig = twilioValidate(config);
 
   // ── GET /api/voices — catálogo de voces para el selector ──────────────
-  // Catálogo estático curado (tiers Estándar/Premium/Ultra) + las voces
-  // CLONADAS de la cuenta ElevenLabs añadidas en vivo (W1: tu propia voz).
+  // Catálogo estático curado (tiers Estándar/Premium) + las voces CLONADAS de
+  // la cuenta ElevenLabs añadidas en vivo (W1: tu propia voz). SOLO ofrece
+  // voces cuyo proveedor está activo (ver renderableVoices).
   app.get('/api/voices', async (req, res) => {
     try {
-      const { listVoices, getTiers } = require('../tts/voice-catalog');
-      const voices = await listVoices();
-      res.set('Cache-Control', 'public, max-age=300');
+      const { listVoices, getTiers, renderableVoices } = require('../tts/voice-catalog');
+      // Proveedores REALMENTE activos (con key/URL). Si Azure no está
+      // configurado, sus voces se ocultan en vez de colapsar todas a un mismo
+      // fallback y "sonar igual" (bug 2026-07-04).
+      const available = new Set(Object.entries({
+        azure:      config.azureSpeechKey,
+        cartesia:   config.cartesiaApiKey,
+        elevenlabs: config.elevenlabsApiKey,
+        openai:     config.openaiApiKey,
+        google:     config.googleApiKey,
+        local:      config.localTtsUrl,
+        'local-gl': config.localTtsUrlGl,
+      }).filter(([, v]) => !!v).map(([k]) => k));
+      const voices = renderableVoices(await listVoices(), available);
+      res.set('Cache-Control', 'public, max-age=60');
       res.json({ voices, tiers: getTiers(), count: voices.length });
     } catch (e) {
       res.status(500).json({ error: 'No se pudo cargar el catálogo de voces' });

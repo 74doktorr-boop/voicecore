@@ -118,4 +118,23 @@ async function listVoices(opts = {}) {
 
 function clearCache() { _cache = null; }
 
-module.exports = { listVoices, normalizeEleven, staticCatalog, getTiers, resolveVoiceEntry, clearCache, TTL_MS };
+/**
+ * Filtra el catálogo a las voces cuyo proveedor está REALMENTE activo (tiene
+ * key/URL). Sin esto, /api/voices ofrecía p.ej. 6 voces Azure aunque Azure no
+ * estuviera configurado; al previsualizarlas todas caían al MISMO fallback y
+ * "sonaban igual" (bug real 2026-07-04). Fail-open: si no sabemos qué
+ * proveedores hay (Set vacío), no ocultamos nada — mejor de más que un selector
+ * vacío por un fallo de cableado.
+ * @param {Array} voices
+ * @param {Set<string>|string[]} availableProviders  nombres de proveedores con engine listo
+ */
+function renderableVoices(voices, availableProviders) {
+  const list = Array.isArray(voices) ? voices : [];
+  const avail = availableProviders instanceof Set
+    ? availableProviders
+    : new Set(availableProviders || []);
+  if (avail.size === 0) return list;
+  return list.filter(v => avail.has(v.provider));
+}
+
+module.exports = { listVoices, normalizeEleven, staticCatalog, getTiers, resolveVoiceEntry, renderableVoices, clearCache, TTL_MS };

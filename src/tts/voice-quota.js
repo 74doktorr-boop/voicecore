@@ -36,6 +36,16 @@ function azureFallbackFor(gender) {
   return gender === 'male' ? 'alvaro-az' : 'elvira-az';
 }
 
+/**
+ * Voz INCLUIDA fiable a la que degradar cuando se agota el cupo premium
+ * (2026-07-04). Cartesia (tier estándar) cuesta ~lo mismo que Azure, suena bien
+ * y —a diferencia de Azure— está configurado en prod, así que protege el margen
+ * HOY sin depender de la key de Azure. Mismo género que la voz premium.
+ */
+function includedFallbackFor(gender) {
+  return gender === 'male' ? 'marcos-ca' : 'blanca-ca';
+}
+
 const r1 = n => Math.round((Number(n) || 0) * 10) / 10;
 
 /**
@@ -91,5 +101,5 @@ function depletePackOnReset({ minutesUsed, hasVoiceAddon, extraMinutes = 0 }) {
 
 module.exports = {
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
-  voiceQuotaSummary, depletePackOnReset,
+  includedFallbackFor, voiceQuotaSummary, depletePackOnReset,
 };

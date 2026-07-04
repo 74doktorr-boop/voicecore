@@ -36,7 +36,7 @@ describe('voice-catalog', () => {
     assert.strictEqual(voices[0].name, 'Mateo');
     assert.strictEqual(voices[0].tier, 'premium');
     assert.ok(!voices.some(v => v.name === 'Bella'), 'las premade de la API no sustituyen al catálogo curado');
-    assert.ok(voices.some(v => v.id === 'sofia-es'), 'el catálogo curado está presente');
+    assert.ok(voices.some(v => v.id === 'cristina-es'), 'el catálogo curado está presente');
   });
 
   test('sin apiKey → catálogo estático (config/voices.json)', async () => {

@@ -68,7 +68,7 @@ async function getOrgAssistant(orgId) {
     // minutos de voz cara; superado el cupo, se degrada a Azure (protege el
     // margen). El add-on voice_premium y los minutos extra comprados lo suben.
     const { hasAddon } = require('../billing/addons');
-    const { shouldDowngradeVoice, azureFallbackFor } = require('../tts/voice-quota');
+    const { shouldDowngradeVoice, includedFallbackFor } = require('../tts/voice-quota');
     const hasVoiceAddon  = hasAddon(org, 'voice_premium');
     const extraVoiceMin  = Number(org.automation_config?.config?.premiumExtraMinutes) || 0;
     const minutesUsed    = Number(org.monthly_minutes_used) || 0;
@@ -95,10 +95,14 @@ async function getOrgAssistant(orgId) {
         // Degradación por cupo: si la voz configurada es premium/ultra y la org
         // ya agotó su cupo de minutos caros este mes, suena por Azure.
         if (entry && shouldDowngradeVoice(entry.tier, minutesUsed, hasVoiceAddon, extraVoiceMin)) {
-          const azId = azureFallbackFor(entry.gender);
-          const az = resolveVoiceEntry(azId);
-          log.info(`[${orgId}] Voz ${cfg.voice} (${entry.tier}) degradada a Azure ${azId} — cupo agotado (${minutesUsed} min)`);
-          return { voice: az ? az.providerVoiceId : 'es-ES-ElviraNeural', ttsProvider: 'azure', voiceDowngraded: true };
+          // Degradar a una voz INCLUIDA fiable (Cartesia estándar): protege el
+          // margen HOY sin depender de la key de Azure (2026-07-04).
+          const fbId = includedFallbackFor(entry.gender);
+          const fb = resolveVoiceEntry(fbId);
+          log.info(`[${orgId}] Voz ${cfg.voice} (${entry.tier}) degradada a ${fbId} (${fb?.provider || 'incluida'}) — cupo agotado (${minutesUsed} min)`);
+          return fb
+            ? { voice: fb.providerVoiceId, ttsProvider: fb.provider, voiceDowngraded: true }
+            : { voice: cfg.voice || 'nova', voiceDowngraded: true };
         }
         if (entry && entry.provider === 'azure')    return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
         if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };

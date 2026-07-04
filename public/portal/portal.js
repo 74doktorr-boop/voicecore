@@ -1209,11 +1209,9 @@ async function showVoiceModels() {
   try { var qr = await api('/api/portal/voice-quota'); if (qr && qr.ok) q = qr; } catch (e) { /* fail-open */ }
   var TIERS = [
     { key: 'estandar', name: 'Estándar', icon: '🎙️', price: 'Incluida en tu plan', col: 'var(--dim)', bd: 'var(--border)',
-      desc: 'Voces naturales y claras. Sin límite dentro de tus minutos del mes.' },
+      desc: 'Voces naturales de alta calidad y respuesta rápida (Cartesia + Azure). Sin límite dentro de tus minutos del mes.' },
     { key: 'premium', name: 'Premium', icon: '✨', price: '+10€/mes', col: 'var(--accent-l)', bd: 'rgba(196,245,70,.4)',
       desc: 'Voces ultrarrealistas (ElevenLabs) y tu voz clonada. 40 min/mes incluidos · 200 con el complemento.' },
-    { key: 'ultra', name: 'Ultra-rápida', icon: '⚡', price: '+10€/mes', col: '#38e1c8', bd: 'rgba(56,225,200,.4)',
-      desc: 'Respuesta casi instantánea (Cartesia). Conversaciones más ágiles. Mismo complemento que Premium.' },
   ];
   var cards = TIERS.map(function (t) {
     var isCur = t.key === curTier;
@@ -1231,10 +1229,11 @@ async function showVoiceModels() {
   var curLine = curName
     ? '<div style="font-size:12px;color:var(--text);background:var(--card2);border-radius:8px;padding:8px 12px;margin-bottom:12px">🔊 Ahora mismo tu asistente usa <strong>' + esc(curName) + '</strong>' + (curTier ? ' · ' + (curTier === 'estandar' ? 'Estándar' : curTier === 'premium' ? 'Premium' : 'Ultra-rápida') : '') + '</div>'
     : '';
-  // Cupo premium: "te quedan X de Y min este mes" + barra. Solo relevante si la
-  // org gasta cupo (voz premium/ultra) o si tiene minutos asignados que enseñar.
+  // Cupo premium: "te quedan X de Y min este mes" + barra. SOLO cuando la voz
+  // actual consume cupo (premium/ElevenLabs) o ya degradó — las voces incluidas
+  // (Cartesia/Azure estándar) no gastan cupo, así que no mostramos la barra.
   var quotaLine = '';
-  if (q) {
+  if (q && (q.metered || q.downgraded)) {
     var qUsed = Math.round(q.used || 0), qTot = q.quota || 0, qRem = Math.floor(q.remaining || 0);
     var qPct = qTot > 0 ? Math.min(100, Math.round((qUsed / qTot) * 100)) : 0;
     var qColor = q.downgraded ? '#e74c3c' : qPct >= 80 ? '#f39c12' : 'var(--accent)';
@@ -3121,6 +3120,10 @@ function renderVoiceGrid() {
 
   // Agrupado por tier: el dueño ve QUÉ incluye cada nivel (características,
   // minutos y coste del minuto extra) antes de elegir — petición Unai.
+  // 'ultra' se conserva por compatibilidad durante la ventana de deploy (el
+  // backend viejo aún etiqueta Cartesia como ultra); tras el deploy no hay voces
+  // ultra y el grupo se auto-oculta (filter de abajo). Evita que Cartesia
+  // desaparezca del selector si el frontend (raw) va por delante del backend.
   var TIER_ORDER = ['estandar', 'premium', 'ultra'];
   var byTier = {};
   list.forEach(function(v) { var t = v.tier || 'premium'; (byTier[t] = byTier[t] || []).push(v); });

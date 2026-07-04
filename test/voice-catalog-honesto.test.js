@@ -59,27 +59,52 @@ describe('catálogo de voces honesto', () => {
     }
   });
 
-  test('tiers: cada voz tiene tier y los tiers declaran su oferta (minutos/overage)', () => {
+  test('tiers (Unai 2026-07-04, "las dos cosas"): solo Estándar (incluida) y Premium', () => {
     const { getTiers } = require('../src/tts/voice-catalog');
     const tiers = getTiers();
     for (const v of catalog.voices) assert.ok(v.tier, `${v.id} sin tier`);
+    // El tier "ultra" se disolvió: Cartesia pasó a ser INCLUIDO, no un upsell.
+    assert.deepStrictEqual(Object.keys(tiers).sort(), ['estandar', 'premium']);
+    assert.strictEqual(tiers.ultra, undefined, 'el tier ultra ya no existe');
     assert.strictEqual(tiers.estandar.monthlyExtra, 0);
     assert.strictEqual(tiers.premium.monthlyExtra, 10);
     assert.ok(tiers.estandar.minutesIncluded > 0 && tiers.estandar.overagePerMin > 0);
-    // Cartesia ACTIVADO 2026-07-04 (clave viva, síntesis real verificada): el
-    // tier ultra ya no es "próximamente" y usa el mismo add-on de voz (+10€).
-    assert.ok(!tiers.ultra.comingSoon, 'Cartesia ya está activo');
-    assert.strictEqual(tiers.ultra.monthlyExtra, 10);
-    const cartesiaVoices = catalog.voices.filter(v => v.provider === 'cartesia');
-    assert.ok(cartesiaVoices.length >= 4, 'debe haber voces reales de Cartesia en el tier ultra');
-    assert.ok(cartesiaVoices.every(v => v.tier === 'ultra'));
+    // El tier incluido lo respaldan Azure (barato) Y Cartesia (rápido) — ambos incluidos.
+    const incluidas = catalog.voices.filter(v => v.tier === 'estandar');
+    const provsIncluidos = new Set(incluidas.map(v => v.provider));
+    assert.ok(provsIncluidos.has('cartesia'), 'Cartesia debe estar en el tier incluido');
+    const cartesia = catalog.voices.filter(v => v.provider === 'cartesia');
+    assert.ok(cartesia.length >= 6, 'las 6 voces curadas de Cartesia');
+    assert.ok(cartesia.every(v => v.tier === 'estandar'), 'toda Cartesia es incluida ahora');
+    // Ninguna voz debe quedar en el tier fantasma
+    assert.ok(catalog.voices.every(v => v.tier === 'estandar' || v.tier === 'premium'));
+  });
+
+  describe('renderableVoices — el catálogo solo ofrece voces cuyo proveedor está ACTIVO', () => {
+    const { renderableVoices } = require('../src/tts/voice-catalog');
+    const sample = [
+      { id: 'a', provider: 'azure' }, { id: 'b', provider: 'cartesia' },
+      { id: 'c', provider: 'elevenlabs' }, { id: 'd', provider: 'local' },
+    ];
+    test('sin la key de Azure, las voces Azure NO se ofrecen (evita el colapso a una sola)', () => {
+      const out = renderableVoices(sample, new Set(['cartesia', 'elevenlabs']));
+      assert.deepStrictEqual(out.map(v => v.id), ['b', 'c']);
+    });
+    test('con Azure activo, reaparecen', () => {
+      const out = renderableVoices(sample, new Set(['azure', 'cartesia', 'elevenlabs', 'local']));
+      assert.deepStrictEqual(out.map(v => v.id), ['a', 'b', 'c', 'd']);
+    });
+    test('fail-open: sin info de proveedores no oculta nada (no dejar el selector vacío por un bug de wiring)', () => {
+      assert.strictEqual(renderableVoices(sample, new Set()).length, 4);
+      assert.strictEqual(renderableVoices(sample).length, 4);
+    });
   });
 
   test('resolveVoiceEntry decide el proveedor por voz (Azure ↔ ElevenLabs ↔ local)', () => {
     const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
     assert.deepStrictEqual(resolveVoiceEntry('elvira-az'),
       { provider: 'azure', providerVoiceId: 'es-ES-ElviraNeural', tier: 'estandar', gender: 'female' });
-    assert.strictEqual(resolveVoiceEntry('sofia-es').provider, 'elevenlabs');
+    assert.strictEqual(resolveVoiceEntry('cristina-es').provider, 'elevenlabs');
     assert.strictEqual(resolveVoiceEntry('ane-eu').provider, 'local');
     assert.strictEqual(resolveVoiceEntry('no-existe'), null);
   });
