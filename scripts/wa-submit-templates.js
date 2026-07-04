@@ -58,58 +58,8 @@ if (!/^\d+$/.test(WABA_ID)) {
 }
 
 // ── Las 3 plantillas de NodeFlow (categoría UTILITY) ────────────────────────
-const TEMPLATES = [
-  {
-    name: 'nodeflow_cita_confirmada',
-    category: 'UTILITY',
-    language: 'es',
-    components: [
-      {
-        type: 'BODY',
-        text: 'Hola {{1}}, tu cita en {{2}} ha sido confirmada para el {{3}} a las {{4}}. Servicio: {{5}}.',
-        example: { body_text: [['María', 'Clínica Osakin', '5 de julio', '10:00', 'Fisioterapia']] },
-      },
-      { type: 'FOOTER', text: 'NodeFlow — Sistema de citas inteligente' },
-    ],
-  },
-  {
-    name: 'nodeflow_cita_recordatorio',
-    category: 'UTILITY',
-    language: 'es',
-    components: [
-      {
-        type: 'BODY',
-        text: 'Hola {{1}}, te recordamos tu cita en {{2}} mañana {{3}} a las {{4}}. Servicio: {{5}}.',
-        example: { body_text: [['María', 'Clínica Osakin', '5 de julio', '10:00', 'Fisioterapia']] },
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          { type: 'QUICK_REPLY', text: 'CONFIRMAR' },
-          { type: 'QUICK_REPLY', text: 'CANCELAR' },
-        ],
-      },
-    ],
-  },
-  {
-    name: 'nodeflow_resena',
-    category: 'UTILITY',
-    language: 'es',
-    components: [
-      {
-        type: 'BODY',
-        text: '¡Hola {{1}}! ¿Qué tal tu experiencia en {{2}}? Tu opinión nos ayuda mucho. Déjanos una reseña, solo te llevará un momento.',
-        example: { body_text: [['María', 'Clínica Osakin']] },
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          { type: 'URL', text: 'Dejar reseña', url: 'https://g.page/r/{{1}}', example: ['example/review'] },
-        ],
-      },
-    ],
-  },
-];
+// Fuente única compartida con el alta automática (src/whatsapp/meta-connect.js).
+const { WA_TEMPLATES: TEMPLATES } = require('../src/whatsapp/templates');
 
 function submit(tpl) {
   return new Promise((resolve) => {

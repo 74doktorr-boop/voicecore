@@ -793,6 +793,69 @@ function setupPortalRoutes(app, pipeline, config) {
     res.status(out.ok ? 200 : 400).json(out);
   });
 
+  // ── WhatsApp número propio (Fase 2, Meta directo) ──────────
+  // GET status: número compartido activo + número propio conectado (si hay).
+  app.get('/api/portal/whatsapp/status', portalAuth, async (req, res) => {
+    const { isConfigured: waSharedConfigured } = require('../notifications/client-whatsapp');
+    try {
+      const { getWaCredentials } = require('../whatsapp/accounts');
+      const creds = await getWaCredentials(req.businessId);
+      const { hasAddon } = require('../billing/addons');
+      let org = null;
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data } = await db.client.from('organizations')
+          .select('automation_config').eq('id', req.businessId).maybeSingle();
+        org = data;
+      }
+      res.json({
+        connected:    !!creds,
+        sharedActive: waSharedConfigured(),
+        hasAddon:     hasAddon(org, 'wa_own_number'),
+        phoneNumber:  creds?.phoneNumber || null,
+        wabaId:       creds?.wabaId || null,   // sin exponer token ni phoneNumberId
+      });
+    } catch (e) {
+      log.warn(`wa status: ${e.message}`);
+      res.status(500).json({ error: 'Error al obtener estado' });
+    }
+  });
+
+  // POST connect-meta: self-service Embedded Signup. Requiere el add-on de pago.
+  // Body: { code, phoneNumberId, wabaId, phoneNumber, displayName? } del popup de Meta.
+  app.post('/api/portal/whatsapp/connect-meta', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      let org = null;
+      if (db.enabled) {
+        const { data } = await db.client.from('organizations')
+          .select('automation_config').eq('id', req.businessId).maybeSingle();
+        org = data;
+      }
+      const { hasAddon } = require('../billing/addons');
+      if (!hasAddon(org, 'wa_own_number')) {
+        return res.status(402).json({ error: 'Conectar tu propio número requiere el complemento "WhatsApp con tu número" (+15€/mes). Actívalo en Facturación.', addonRequired: 'wa_own_number' });
+      }
+      const { connectMetaNumber } = require('../whatsapp/meta-connect');
+      const out = await connectMetaNumber(req.businessId, req.body || {});
+      res.status(out.ok ? 200 : 400).json(out);
+    } catch (e) {
+      log.error(`wa connect-meta: ${e.message}`);
+      res.status(500).json({ error: 'Error al conectar WhatsApp' });
+    }
+  });
+
+  // DELETE connect: revoca el número propio (cae al compartido).
+  app.delete('/api/portal/whatsapp/connect', portalAuth, async (req, res) => {
+    try {
+      const { revokeWaCredentials } = require('../whatsapp/accounts');
+      await revokeWaCredentials(req.businessId);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: 'Error al desconectar' });
+    }
+  });
+
   // ── POST /api/portal/copilot/parse ────────────────────────
   // Copiloto de configuración (#8): texto libre del dueño → propuesta
   // estructurada (servicios u horario). Solo PROPONE: el portal la enseña,
