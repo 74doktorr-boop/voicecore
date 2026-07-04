@@ -60,7 +60,13 @@ async function handle(callData) {
     ? callData.bookedAppointments
     : (callData.bookedAppointment ? [callData.bookedAppointment] : []);
   if (callData.outcome === 'booked') {
+    const { sendWaConfirmation } = require('../notifications/reminders');
     for (const apt of bookedList) {
+      // El businessId de la cita puede no venir sellado en el apt suelto —
+      // lo necesita sendWaConfirmation para resolver el WABA del negocio.
+      const aptWithBiz = { ...apt, businessId: apt.businessId || businessId };
+
+      // 1) Aviso al DUEÑO (Callmebot — su canal de siempre)
       const msg = `📞 *Nueva reserva — ${config.name}*\n` +
                   `━━━━━━━━━━━━\n` +
                   `👤 ${apt.patientName}\n` +
@@ -69,6 +75,16 @@ async function handle(callData) {
                   (apt.phone ? `📞 ${apt.phone}` : '') +
                   `\n━━━━━━━━━━━━\nGestionado por NodeFlow IA`;
       sendWhatsApp(msg).catch(() => {});
+
+      // 2) Confirmación al CLIENTE por WhatsApp desde el número del NEGOCIO,
+      //    al instante de colgar (petición Unai 2026-07-04). Respeta el toggle
+      //    'waConfirm' del portal; fail-open si no hay plantilla/credenciales.
+      if (flowManager.isEnabled(businessId, 'waConfirm')) {
+        sendWaConfirmation(aptWithBiz, config)
+          .catch(e => log.warn('WA confirmation to client failed', { err: e.message }));
+      }
+
+      // 3) Confirmación por email (complementaria, si hay email)
       if (apt.email) {
         await sendBookingConfirmationEmail(apt, config)
           .catch(e => log.warn('booking confirmation email failed', { err: e.message }));

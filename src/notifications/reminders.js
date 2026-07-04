@@ -378,6 +378,52 @@ function madridDateTimeToMs(dateStr, timeStr) {
   return localAsUtc + offsetMs; // UTC timestamp for the Madrid local datetime
 }
 
+// ── WhatsApp: confirmación INMEDIATA al reservar via Meta template ────────────
+// Template: nodeflow_cita_confirmada (solo cuerpo + footer, sin botones)
+// Variables: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
+// Se envía desde el número del NEGOCIO (multi-tenant) en cuanto la llamada
+// crea la cita — el cliente cuelga y ya tiene el WhatsApp (petición Unai
+// 2026-07-04). deps inyectable para tests; en prod usa los módulos reales.
+async function sendWaConfirmation(apt, config, deps = {}) {
+  const _sendTemplate    = deps.sendTemplate    || sendTemplate;
+  const _getWaCreds      = deps.getWaCredentials || getWaCredentials;
+  const _waIsConfigured  = deps.waIsConfigured   || waIsConfigured;
+
+  if (!apt.phone) return false;
+
+  const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
+  if (!credentials && !_waIsConfigured()) return false;
+
+  const lang         = config?.language || 'es';
+  const name         = firstName(apt.patientName);
+  const businessName = config?.name || 'el negocio';
+  const dateStr      = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
+  const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+
+  try {
+    const result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: name },
+          { type: 'text', text: businessName },
+          { type: 'text', text: dateStr },
+          { type: 'text', text: apt.time },
+          { type: 'text', text: apt.service },
+        ],
+      },
+    ], credentials);
+    if (result?.ok) {
+      log.info(`WA confirmation sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+      return true;
+    }
+    log.warn(`WA confirmation not ok for ${apt.id}: ${result?.error}`);
+  } catch (e) {
+    log.warn(`WA confirmation failed for ${apt.id}: ${e.message}`);
+  }
+  return false;
+}
+
 // ── WhatsApp: envía recordatorio de cita via Meta template ───────────────────
 // Template: nodeflow_cita_recordatorio (botones CONFIRMAR / CANCELAR)
 // Variables esperadas en el cuerpo: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
@@ -560,6 +606,7 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
 module.exports = {
   sendAppointmentReminder,
   sendReviewRequest,
+  sendWaConfirmation,
   sendWaReminder,
   sendWaReview,
   generateWhatsAppConfirmation,
