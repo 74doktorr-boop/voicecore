@@ -221,9 +221,11 @@
       </div>
       <div class="status-dot" title="Online"></div>
       <select id="voicePicker" onchange="onVoiceChange()" title="Voz del asistente — pruébalas todas"
-        style="background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;cursor:pointer;max-width:170px;margin-right:8px;">
+        style="background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;cursor:pointer;max-width:170px;margin-right:6px;">
         <option value="dNjJKg63Fr5AXwIdkATa" style="background:#1a160e;color:#fff;">👩 Femenina 1</option>
       </select>
+      <span id="voiceTierBadge" title="Nivel de la voz seleccionada"
+        style="font-size:10px;font-weight:800;letter-spacing:.04em;padding:3px 8px;border-radius:999px;margin-right:8px;white-space:nowrap;"></span>
       <button id="voiceToggleBtn" onclick="toggleVoice()" title="Activar/desactivar voz del asistente"
         style="background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text);transition:all 0.2s;"
         >🔊</button>
@@ -686,12 +688,15 @@ async function loadVoicesIntoPicker() {
     const d = await r.json();
     const sel = document.getElementById('voicePicker');
     if (!sel || !d.voices || !d.voices.length) return;
-    const labels = { estandar: 'Estándar (incluida)', premium: 'Premium', ultra: 'Ultra-rápida' };
+    _voiceTiersInfo = d.tiers || {};
+    // Nivel + precio en el nombre del grupo, para que el visitante lo vea al elegir.
+    const labels = { estandar: 'Estándar · incluida', premium: 'Premium · +10€/mes', ultra: 'Ultra-rápida · +10€/mes' };
     const byTier = { estandar: [], premium: [], ultra: [] };
     for (const v of d.voices) {
       // /api/voices normaliza sin campo 'language' (usa 'accent'); las voces
       // castellanas son azure/elevenlabs/cartesia. Fuera solo las 'local' (eu/gl).
       if (v.provider === 'local') continue;
+      _voiceTierById[v.id] = v.tier || 'estandar';
       if (byTier[v.tier]) byTier[v.tier].push(v);
     }
     sel.innerHTML = '';
@@ -709,7 +714,25 @@ async function loadVoicesIntoPicker() {
       sel.appendChild(og);
     }
     if (sel.options.length) _selectedVoice = sel.value;
+    updateVoiceTierBadge();
   } catch (e) { /* si /api/voices falla, se queda la voz por defecto */ }
+}
+
+// Badge junto al selector: qué NIVEL (y coste) tiene la voz que se escucha ahora.
+let _voiceTierById = {};
+let _voiceTiersInfo = {};
+function updateVoiceTierBadge() {
+  const el = document.getElementById('voiceTierBadge');
+  if (!el) return;
+  const tier = _voiceTierById[_selectedVoice] || 'estandar';
+  const styles = {
+    estandar: { txt: 'Incluida en tu plan', bg: 'rgba(255,255,255,.08)', col: '#cfe3d8', bd: 'rgba(255,255,255,.18)' },
+    premium:  { txt: '✨ Premium · +10€/mes', bg: 'rgba(196,245,70,.15)', col: '#c4f546', bd: 'rgba(196,245,70,.4)' },
+    ultra:    { txt: '⚡ Ultra · +10€/mes',   bg: 'rgba(56,225,200,.15)', col: '#38e1c8', bd: 'rgba(56,225,200,.4)' },
+  };
+  const s = styles[tier] || styles.estandar;
+  el.textContent = s.txt;
+  el.style.background = s.bg; el.style.color = s.col; el.style.border = '1px solid ' + s.bd;
 }
 
 function setSectorChip(chip, sector, emoji, name, biz) {
@@ -841,6 +864,7 @@ let _selectedVoice = 'dNjJKg63Fr5AXwIdkATa'; // voz ElevenLabs por defecto (Feme
 function onVoiceChange() {
   const sel = document.getElementById('voicePicker');
   if (sel) _selectedVoice = sel.value;
+  updateVoiceTierBadge();
   _stopSpeaking();
 }
 
