@@ -1,9 +1,9 @@
 // ============================================================
-// NodeFlow — Cupo de voz Premium/Ultra (decisión Unai 2026-07-04)
-// El plan básico ofrece TODAS las voces, pero las caras (ElevenLabs
-// Premium ~5-7cts/min, Cartesia Ultra ~2-4cts/min) solo hasta un cupo
-// de minutos/mes; superado, el asistente sigue hablando pero con voz
-// Estándar (Azure ~1cts/min). El add-on voice_premium sube el cupo;
+// NodeFlow — Cupo de voz Premium (decisión Unai 2026-07-04)
+// El plan básico ofrece TODAS las voces, pero la cara (ElevenLabs
+// Premium ~5-7cts/min) solo hasta un cupo de minutos/mes; superado, el
+// asistente sigue hablando pero con una voz incluida (Cartesia, más
+// barata). El add-on voice_premium sube el cupo;
 // los minutos extra comprados lo amplían más. Determinista, server-side:
 // el margen no depende de que el LLM ni el frontend se porten bien.
 // ============================================================
@@ -31,16 +31,10 @@ function shouldDowngradeVoice(voiceTier, minutesUsedThisMonth, hasVoiceAddon, ex
   return used >= premiumQuota(hasVoiceAddon, extraMinutes);
 }
 
-/** Voz Azure (estándar) de reemplazo, del mismo género que la premium. */
-function azureFallbackFor(gender) {
-  return gender === 'male' ? 'alvaro-az' : 'elvira-az';
-}
-
 /**
  * Voz INCLUIDA fiable a la que degradar cuando se agota el cupo premium
- * (2026-07-04). Cartesia (tier estándar) cuesta ~lo mismo que Azure, suena bien
- * y —a diferencia de Azure— está configurado en prod, así que protege el margen
- * HOY sin depender de la key de Azure. Mismo género que la voz premium.
+ * (Cartesia, tier estándar). Protege el margen: sale más barata que ElevenLabs
+ * y suena natural. Mismo género que la voz premium.
  */
 function includedFallbackFor(gender) {
   return gender === 'male' ? 'marcos-ca' : 'blanca-ca';
@@ -82,7 +76,7 @@ function voiceQuotaSummary({ voiceTier, minutesUsed, hasVoiceAddon, extraMinutes
  * minutos comprados NO caducan con el ciclo, PERO se gastan). Al resetear
  * monthly_minutes_used, descontamos del pack SOLO los minutos que realmente
  * salieron de él este mes (los que desbordaron el cupo base); lo consumido por
- * encima del techo ya sonó en Azure y no descuenta. El cupo base sí se renueva.
+ * encima del techo ya sonó en la voz incluida y no descuenta. El cupo base sí se renueva.
  * @param {object} p
  * @param {number} p.minutesUsed    - monthly_minutes_used al cerrar el mes
  * @param {boolean} p.hasVoiceAddon
@@ -100,6 +94,6 @@ function depletePackOnReset({ minutesUsed, hasVoiceAddon, extraMinutes = 0 }) {
 }
 
 module.exports = {
-  QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
+  QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice,
   includedFallbackFor, voiceQuotaSummary, depletePackOnReset,
 };

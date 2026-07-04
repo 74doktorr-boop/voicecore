@@ -384,8 +384,6 @@ const sttRouter = new STTRouter({
 });
 
 const ttsRouter = new TTSRouter({
-  azureSpeechKey:   process.env.AZURE_SPEECH_KEY,     // castellano por defecto (margen máx.)
-  azureSpeechRegion: process.env.AZURE_SPEECH_REGION, // p.ej. 'westeurope'
   cartesiaApiKey:  process.env.CARTESIA_API_KEY,
   elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
   openaiApiKey:    process.env.OPENAI_API_KEY,

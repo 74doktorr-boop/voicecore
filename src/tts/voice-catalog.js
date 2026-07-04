@@ -87,7 +87,7 @@ async function listVoices(opts = {}) {
   const fetchImpl = opts.fetch || (typeof fetch !== 'undefined' ? fetch : null);
 
   // El catálogo ESTÁTICO curado es la autoridad (tiers, proveedores mixtos
-  // Azure/ElevenLabs, honestidad verificada). La API de ElevenLabs solo
+  // Cartesia/ElevenLabs, honestidad verificada). La API de ElevenLabs solo
   // AÑADE las voces clonadas/profesionales de la cuenta (W1: "tu negocio
   // contesta con TU voz") — nunca sustituye al catálogo curado.
   const base = staticCatalog();
@@ -120,7 +120,7 @@ function clearCache() { _cache = null; }
 
 /**
  * Filtra el catálogo a las voces cuyo proveedor está REALMENTE activo (tiene
- * key/URL). Sin esto, /api/voices ofrecía p.ej. 6 voces Azure aunque Azure no
+ * key/URL). Sin esto, /api/voices ofrecía voces cuyo proveedor no
  * estuviera configurado; al previsualizarlas todas caían al MISMO fallback y
  * "sonaban igual" (bug real 2026-07-04). Fail-open: si no sabemos qué
  * proveedores hay (Set vacío), no ocultamos nada — mejor de más que un selector

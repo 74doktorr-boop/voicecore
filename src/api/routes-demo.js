@@ -178,8 +178,8 @@ function setupDemoRoutes(app, ttsRouter) {
   // ── POST /api/demo/tts ────────────────────────────────────────
   // body: { text: string, voice?: string, language?: string }
   // Devuelve audio REPRODUCIBLE EN NAVEGADOR con voz natural:
-  //   - Azure (si está configurado) → MP3 (castellano natural, máxima calidad).
-  //   - Si no, el router (mulaw 8kHz) se envuelve en WAV reproducible.
+  //   - ElevenLabs → MP3 (castellano premium); Cartesia/local → WAV.
+  //   - Fallback: el router (mulaw 8kHz) se envuelve en WAV reproducible.
   // (Antes devolvía mulaw etiquetado como audio/mpeg → el navegador no podía
   //  reproducirlo y la demo caía a la voz robótica del navegador.)
   app.post('/api/demo/tts', demoAuth, demoGlobalLimiter, demoTtsLimiter, async (req, res) => {
@@ -202,10 +202,8 @@ function setupDemoRoutes(app, ttsRouter) {
     }
 
     try {
-      // 0. PREVIEW HONESTO (2026-07-04): respeta el PROVEEDOR REAL de la voz
-      //    elegida. Antes todo es-ES se mandaba a ElevenLabs, así que
-      //    previsualizar una voz Azure o Cartesia sonaba a otra cosa. Ahora
-      //    Azure→Azure, Cartesia→Cartesia; ElevenLabs y voces sueltas siguen
+      // 0. PREVIEW HONESTO: respeta el PROVEEDOR REAL de la voz elegida
+      //    (Cartesia→Cartesia, local→local). ElevenLabs y voces sueltas siguen
       //    el atajo de abajo.
       const { resolveVoiceEntry } = require('../tts/voice-catalog');
       const entry = resolveVoiceEntry(voice);
@@ -220,21 +218,9 @@ function setupDemoRoutes(app, ttsRouter) {
           return res.send(wav);
         } catch (e) { log.warn(`Demo TTS: ${entry.provider} falló (${e.message}) — fallback`); }
       }
-      if (entry && entry.provider === 'azure') {
-        const az = ttsRouter.providers?.get?.('azure')?.instance;
-        if (az) {
-          try {
-            const mp3 = await az.synthesize({ callId, text, voice: entry.providerVoiceId, language, format: 'mp3' });
-            ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'azure');
-            res.set('Content-Type', 'audio/mpeg');
-            res.set('X-TTS-Provider', 'azure');
-            return res.send(mp3);
-          } catch (e) { log.warn(`Demo TTS: Azure falló (${e.message}) — fallback`); }
-        }
-      }
 
       // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
-      //    Si falla (p.ej. 402 en plan Free, o cuota), cae a Azure — la demo nunca se rompe.
+      //    Si falla (p.ej. 402 en plan Free, o cuota), cae al router — la demo nunca se rompe.
       const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
       if (eleven) {
         try {
@@ -248,21 +234,11 @@ function setupDemoRoutes(app, ttsRouter) {
           res.set('X-TTS-Provider', 'elevenlabs');
           return res.send(mp3);
         } catch (e) {
-          log.warn(`Demo TTS: ElevenLabs falló (${e.message}) — fallback a Azure`);
+          log.warn(`Demo TTS: ElevenLabs falló (${e.message}) — fallback al router`);
         }
       }
 
-      // 2. Azure directo → MP3 natural (voz castellana de calidad). Fallback.
-      const azure = ttsRouter.providers?.get?.('azure')?.instance;
-      if (azure) {
-        const mp3 = await azure.synthesize({ callId, text, voice, language, format: 'mp3' });
-        ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'azure');
-        res.set('Content-Type', 'audio/mpeg');
-        res.set('X-TTS-Provider', 'azure');
-        return res.send(mp3);
-      }
-
-      // 3. Fallback final: router (mulaw 8kHz) → WAV PCM 8kHz (reproducible en navegador).
+      // 2. Fallback final: router (mulaw 8kHz) → WAV PCM 8kHz (reproducible en navegador).
       const mulaw = await ttsRouter.synthesize({ callId, text, voice, language });
       const { mulawToPcm } = require('../utils/audio');
       const pcm = mulawToPcm(mulaw);

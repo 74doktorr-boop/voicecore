@@ -28,7 +28,7 @@ describe('catálogo de voces honesto', () => {
       `hay voces compartiendo ID real: ${ids.filter((x, i) => ids.indexOf(x) !== i).join(', ')}`);
   });
 
-  // voice-map solo traduce voces de ElevenLabs; las Azure/local van por
+  // voice-map solo traduce voces de ElevenLabs; las de Cartesia/local van por
   // resolveVoiceEntry (proveedor propio) — se testean más abajo.
   const eleven = castellano.filter(v => v.provider === 'elevenlabs');
 
@@ -46,15 +46,13 @@ describe('catálogo de voces honesto', () => {
     }
   });
 
-  test('ningún proveedor fantasma: es-ES es elevenlabs/azure/cartesia, con IDs con pinta real', () => {
+  test('ningún proveedor fantasma: es-ES es elevenlabs/cartesia, con IDs con pinta real', () => {
     for (const v of castellano) {
-      assert.ok(['elevenlabs', 'azure', 'cartesia'].includes(v.provider), `${v.id} declara proveedor "${v.provider}"`);
+      assert.ok(['elevenlabs', 'cartesia'].includes(v.provider), `${v.id} declara proveedor "${v.provider}"`);
       if (v.provider === 'elevenlabs') {
         assert.match(v.providerVoiceId, /^[A-Za-z0-9]{20}$/, `${v.id}: providerVoiceId no parece un ID real de ElevenLabs`);
-      } else if (v.provider === 'cartesia') {
-        assert.match(v.providerVoiceId, /^[0-9a-f-]{36}$/, `${v.id}: providerVoiceId no parece un UUID de Cartesia`);
       } else {
-        assert.match(v.providerVoiceId, /^es-ES-\w+Neural$/, `${v.id}: no parece una voz Neural de Azure`);
+        assert.match(v.providerVoiceId, /^[0-9a-f-]{36}$/, `${v.id}: providerVoiceId no parece un UUID de Cartesia`);
       }
     }
   });
@@ -69,7 +67,7 @@ describe('catálogo de voces honesto', () => {
     assert.strictEqual(tiers.estandar.monthlyExtra, 0);
     assert.strictEqual(tiers.premium.monthlyExtra, 10);
     assert.ok(tiers.estandar.minutesIncluded > 0 && tiers.estandar.overagePerMin > 0);
-    // El tier incluido lo respaldan Azure (barato) Y Cartesia (rápido) — ambos incluidos.
+    // El tier incluido lo respalda Cartesia (rápido, barato). Azure eliminado 2026-07-04.
     const incluidas = catalog.voices.filter(v => v.tier === 'estandar');
     const provsIncluidos = new Set(incluidas.map(v => v.provider));
     assert.ok(provsIncluidos.has('cartesia'), 'Cartesia debe estar en el tier incluido');
@@ -83,15 +81,15 @@ describe('catálogo de voces honesto', () => {
   describe('renderableVoices — el catálogo solo ofrece voces cuyo proveedor está ACTIVO', () => {
     const { renderableVoices } = require('../src/tts/voice-catalog');
     const sample = [
-      { id: 'a', provider: 'azure' }, { id: 'b', provider: 'cartesia' },
+      { id: 'a', provider: 'google' }, { id: 'b', provider: 'cartesia' },
       { id: 'c', provider: 'elevenlabs' }, { id: 'd', provider: 'local' },
     ];
-    test('sin la key de Azure, las voces Azure NO se ofrecen (evita el colapso a una sola)', () => {
-      const out = renderableVoices(sample, new Set(['cartesia', 'elevenlabs']));
-      assert.deepStrictEqual(out.map(v => v.id), ['b', 'c']);
+    test('un proveedor sin key NO se ofrece (evita el colapso a una sola voz)', () => {
+      const out = renderableVoices(sample, new Set(['cartesia', 'elevenlabs', 'local']));
+      assert.deepStrictEqual(out.map(v => v.id), ['b', 'c', 'd']);
     });
-    test('con Azure activo, reaparecen', () => {
-      const out = renderableVoices(sample, new Set(['azure', 'cartesia', 'elevenlabs', 'local']));
+    test('con el proveedor activo, reaparece', () => {
+      const out = renderableVoices(sample, new Set(['google', 'cartesia', 'elevenlabs', 'local']));
       assert.deepStrictEqual(out.map(v => v.id), ['a', 'b', 'c', 'd']);
     });
     test('fail-open: sin info de proveedores no oculta nada (no dejar el selector vacío por un bug de wiring)', () => {
@@ -100,10 +98,10 @@ describe('catálogo de voces honesto', () => {
     });
   });
 
-  test('resolveVoiceEntry decide el proveedor por voz (Azure ↔ ElevenLabs ↔ local)', () => {
+  test('resolveVoiceEntry decide el proveedor por voz (Cartesia ↔ ElevenLabs ↔ local)', () => {
     const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
-    assert.deepStrictEqual(resolveVoiceEntry('elvira-az'),
-      { provider: 'azure', providerVoiceId: 'es-ES-ElviraNeural', tier: 'estandar', gender: 'female' });
+    assert.deepStrictEqual(resolveVoiceEntry('blanca-ca'),
+      { provider: 'cartesia', providerVoiceId: '538a8872-3799-4df5-b373-b78493b766c6', tier: 'estandar', gender: 'female' });
     assert.strictEqual(resolveVoiceEntry('cristina-es').provider, 'elevenlabs');
     assert.strictEqual(resolveVoiceEntry('ane-eu').provider, 'local');
     assert.strictEqual(resolveVoiceEntry('no-existe'), null);

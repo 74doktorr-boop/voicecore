@@ -1,5 +1,5 @@
 {
-  "_nota": "Catálogo HONESTO. Tiers (Unai 2026-07-04): Estándar INCLUIDA (Azure barato + Cartesia Sonic ultra-rápida, ambos incluidos) · Premium ElevenLabs +10€/mes (ultra-realista y voz clonada). /api/voices filtra por proveedor ACTIVO: una voz solo aparece si su proveedor tiene key.",
+  "_nota": "Catálogo HONESTO. Azure ELIMINADO 2026-07-04 (decisión Unai). Tiers: Estándar INCLUIDA (Cartesia Sonic ultra-rápida + euskera local) · Premium ElevenLabs +10€/mes (ultra-realista y voz clonada). /api/voices filtra por proveedor ACTIVO.",
   "tiers": {
     "estandar": {
       "label": "Estándar",
@@ -19,108 +19,6 @@
     }
   },
   "voices": [
-    {
-      "id": "elvira-az",
-      "name": "Elvira",
-      "gender": "female",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-ElviraNeural",
-      "tier": "estandar",
-      "tags": [
-        "natural",
-        "clara",
-        "incluida"
-      ],
-      "description": "Voz femenina natural y clara, la todoterreno del día a día",
-      "latency": "medium"
-    },
-    {
-      "id": "alvaro-az",
-      "name": "Álvaro",
-      "gender": "male",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-AlvaroNeural",
-      "tier": "estandar",
-      "tags": [
-        "natural",
-        "profesional",
-        "incluida"
-      ],
-      "description": "Voz masculina natural y profesional",
-      "latency": "medium"
-    },
-    {
-      "id": "abril-az",
-      "name": "Abril",
-      "gender": "female",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-AbrilNeural",
-      "tier": "estandar",
-      "tags": [
-        "joven",
-        "fresca",
-        "incluida"
-      ],
-      "description": "Voz femenina joven y fresca",
-      "latency": "medium"
-    },
-    {
-      "id": "arnau-az",
-      "name": "Arnau",
-      "gender": "male",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-ArnauNeural",
-      "tier": "estandar",
-      "tags": [
-        "cercano",
-        "amable",
-        "incluida"
-      ],
-      "description": "Voz masculina cercana y amable",
-      "latency": "medium"
-    },
-    {
-      "id": "triana-az",
-      "name": "Triana",
-      "gender": "female",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-TrianaNeural",
-      "tier": "estandar",
-      "tags": [
-        "cálida",
-        "expresiva",
-        "incluida"
-      ],
-      "description": "Voz femenina cálida con acento andaluz suave",
-      "latency": "medium"
-    },
-    {
-      "id": "dario-az",
-      "name": "Darío",
-      "gender": "male",
-      "language": "es-ES",
-      "accent": "castellano",
-      "provider": "azure",
-      "providerVoiceId": "es-ES-DarioNeural",
-      "tier": "estandar",
-      "tags": [
-        "serio",
-        "corporativo",
-        "incluida"
-      ],
-      "description": "Voz masculina seria para entornos formales",
-      "latency": "medium"
-    },
     {
       "id": "carlos-es",
       "name": "Carlos",

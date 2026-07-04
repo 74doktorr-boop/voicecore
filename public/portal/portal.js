@@ -1209,7 +1209,7 @@ async function showVoiceModels() {
   try { var qr = await api('/api/portal/voice-quota'); if (qr && qr.ok) q = qr; } catch (e) { /* fail-open */ }
   var TIERS = [
     { key: 'estandar', name: 'Estándar', icon: '🎙️', price: 'Incluida en tu plan', col: 'var(--dim)', bd: 'var(--border)',
-      desc: 'Voces naturales de alta calidad y respuesta rápida (Cartesia + Azure). Sin límite dentro de tus minutos del mes.' },
+      desc: 'Voces naturales de alta calidad y respuesta rápida (Cartesia). Sin límite dentro de tus minutos del mes.' },
     { key: 'premium', name: 'Premium', icon: '✨', price: '+10€/mes', col: 'var(--accent-l)', bd: 'rgba(196,245,70,.4)',
       desc: 'Voces ultrarrealistas (ElevenLabs) y tu voz clonada. 40 min/mes incluidos · 200 con el complemento.' },
   ];
@@ -1231,7 +1231,7 @@ async function showVoiceModels() {
     : '';
   // Cupo premium: "te quedan X de Y min este mes" + barra. SOLO cuando la voz
   // actual consume cupo (premium/ElevenLabs) o ya degradó — las voces incluidas
-  // (Cartesia/Azure estándar) no gastan cupo, así que no mostramos la barra.
+  // (Cartesia estándar) no gastan cupo, así que no mostramos la barra.
   var quotaLine = '';
   if (q && (q.metered || q.downgraded)) {
     var qUsed = Math.round(q.used || 0), qTot = q.quota || 0, qRem = Math.floor(q.remaining || 0);

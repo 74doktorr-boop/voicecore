@@ -65,7 +65,7 @@ async function getOrgAssistant(orgId) {
     const language = cfg.language || org.language || 'es';
 
     // Cupo de voz Premium/Ultra (2026-07-04): el plan básico incluye pocos
-    // minutos de voz cara; superado el cupo, se degrada a Azure (protege el
+    // minutos de voz cara; superado el cupo, se degrada a una voz incluida (protege el
     // margen). El add-on voice_premium y los minutos extra comprados lo suben.
     const { hasAddon } = require('../billing/addons');
     const { shouldDowngradeVoice, includedFallbackFor } = require('../tts/voice-quota');
@@ -86,17 +86,16 @@ async function getOrgAssistant(orgId) {
       systemPrompt: generatePrompt(cfgConLista, org.name),
       firstMessage: cfg.firstMessage ||
         `{{GREETING}}, ha llamado a ${org.name}. ¿En qué puedo ayudarle?`,
-      // La voz elegida decide también el PROVEEDOR (tiers 2026-07-03):
-      // Estándar = Azure (voz por nombre neural), Premium = ElevenLabs
-      // (voice-map resuelve id/alias), euskera = servidor local.
+      // La voz elegida decide también el PROVEEDOR: Estándar = Cartesia
+      // (incluida), Premium = ElevenLabs (voice-map resuelve id/alias),
+      // euskera = servidor local.
       ...(() => {
         const { resolveVoiceEntry } = require('../tts/voice-catalog');
         const entry = resolveVoiceEntry(cfg.voice);
-        // Degradación por cupo: si la voz configurada es premium/ultra y la org
-        // ya agotó su cupo de minutos caros este mes, suena por Azure.
+        // Degradación por cupo: si la voz configurada es premium y la org ya
+        // agotó su cupo de minutos caros este mes, suena por una voz incluida.
         if (entry && shouldDowngradeVoice(entry.tier, minutesUsed, hasVoiceAddon, extraVoiceMin)) {
-          // Degradar a una voz INCLUIDA fiable (Cartesia estándar): protege el
-          // margen HOY sin depender de la key de Azure (2026-07-04).
+          // Degradar a una voz INCLUIDA fiable (Cartesia estándar): protege el margen.
           const fbId = includedFallbackFor(entry.gender);
           const fb = resolveVoiceEntry(fbId);
           log.info(`[${orgId}] Voz ${cfg.voice} (${entry.tier}) degradada a ${fbId} (${fb?.provider || 'incluida'}) — cupo agotado (${minutesUsed} min)`);
@@ -104,9 +103,8 @@ async function getOrgAssistant(orgId) {
             ? { voice: fb.providerVoiceId, ttsProvider: fb.provider, voiceDowngraded: true }
             : { voice: cfg.voice || 'nova', voiceDowngraded: true };
         }
-        if (entry && entry.provider === 'azure')    return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
         if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };
-        if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier Ultra
+        if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier incluido
         return { voice: cfg.voice || 'nova' }; // elevenlabs por defecto (voice-map traduce)
       })(),
       language,

@@ -16,7 +16,7 @@ const {
 
 const RESOLVE = (id) => ({
   'premium-1':  { provider: 'elevenlabs', providerVoiceId: 'x', tier: 'premium' },
-  'estandar-1': { provider: 'azure', providerVoiceId: 'y', tier: 'estandar' },
+  'estandar-1': { provider: 'cartesia', providerVoiceId: 'y', tier: 'estandar' },
 }[id] || null);
 
 function org(addons, currentVoice) {

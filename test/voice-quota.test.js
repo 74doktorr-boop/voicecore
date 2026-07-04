@@ -2,7 +2,7 @@
 // NodeFlow — Cupo de voz Premium/Ultra (decisión Unai 2026-07-04)
 // El plan básico incluye TODAS las voces, pero las caras (ElevenLabs
 // Premium, Cartesia Ultra) solo hasta un cupo de minutos/mes; superado
-// el cupo, el asistente sigue hablando pero con voz Estándar (Azure).
+// el cupo, el asistente sigue hablando pero con una voz incluida (Cartesia).
 // El add-on voice_premium sube el cupo. Extra comprado lo amplía más.
 // Determinista y server-side: protege el margen sin depender del LLM.
 // ============================================================
@@ -11,7 +11,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
-  QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice, azureFallbackFor,
+  QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice,
   includedFallbackFor, voiceQuotaSummary, depletePackOnReset,
 } = require('../src/tts/voice-quota');
 
@@ -29,7 +29,7 @@ describe('premiumQuota', () => {
 });
 
 describe('shouldDowngradeVoice', () => {
-  test('voz estándar NUNCA degrada (Azure/local no gastan cupo)', () => {
+  test('voz estándar NUNCA degrada (Cartesia/local no gastan cupo)', () => {
     assert.strictEqual(shouldDowngradeVoice('estandar', 999, false), false);
     assert.strictEqual(shouldDowngradeVoice(null, 999, false), false);
   });
@@ -68,7 +68,7 @@ describe('voiceQuotaSummary — lo que ve el portal ("te quedan X min premium")'
     assert.strictEqual(s.remaining, 27.5);
     assert.strictEqual(s.downgraded, false);
   });
-  test('premium con cupo agotado → remaining 0 y downgraded:true (suena Azure)', () => {
+  test('premium con cupo agotado → remaining 0 y downgraded:true (suena voz incluida)', () => {
     const s = voiceQuotaSummary({ voiceTier: 'premium', minutesUsed: 55, hasVoiceAddon: false });
     assert.strictEqual(s.remaining, 0);
     assert.strictEqual(s.downgraded, true);
@@ -103,21 +103,13 @@ describe('depletePackOnReset — packs "persisten hasta gastarse" (decisión Una
     // base 40; usó 60 → 20 salieron del pack → quedan 30
     assert.strictEqual(depletePackOnReset({ minutesUsed: 60, hasVoiceAddon: false, extraMinutes: 50 }), 30);
   });
-  test('agota base + pack → pack a 0 (el resto ya sonó en Azure, no descuenta de más)', () => {
+  test('agota base + pack → pack a 0 (el resto ya sonó en voz incluida, no descuenta de más)', () => {
     // base 40 + pack 50 = techo 90; usó 100 → pack usado 50 → 0
     assert.strictEqual(depletePackOnReset({ minutesUsed: 100, hasVoiceAddon: false, extraMinutes: 50 }), 0);
   });
   test('con add-on el base es 200 (el pack se gasta después)', () => {
     // base 200 + pack 50 = 250; usó 210 → pack usado 10 → quedan 40
     assert.strictEqual(depletePackOnReset({ minutesUsed: 210, hasVoiceAddon: true, extraMinutes: 50 }), 40);
-  });
-});
-
-describe('azureFallbackFor', () => {
-  test('devuelve una voz Azure del mismo género', () => {
-    assert.strictEqual(azureFallbackFor('male'), 'alvaro-az');
-    assert.strictEqual(azureFallbackFor('female'), 'elvira-az');
-    assert.strictEqual(azureFallbackFor(undefined), 'elvira-az'); // default femenina
   });
 });
 

@@ -80,15 +80,15 @@ describe('TTSRouter — ElevenLabs preferente para castellano', () => {
     assert.deepStrictEqual(el.languageAffinity, ['es']);
   });
 
-  test('para "es": elevenlabs va primero, azure de fallback', () => {
-    const r = new TTSRouter({ elevenlabsApiKey: 'x', azureSpeechKey: 'a' });
+  test('para "es": elevenlabs va primero, cartesia de fallback', () => {
+    const r = new TTSRouter({ elevenlabsApiKey: 'x', cartesiaApiKey: 'c' });
     const chain = r._buildProviderChain(null, null, 'latency', 'es');
     assert.strictEqual(chain[0], 'elevenlabs');
-    assert.ok(chain.includes('azure'), 'azure sigue en la cadena como fallback');
+    assert.ok(chain.includes('cartesia'), 'cartesia sigue en la cadena como fallback');
   });
 
-  test('para "eu": elevenlabs NO entra (lo sirve azure/local), no se usa para euskera', () => {
-    const r = new TTSRouter({ elevenlabsApiKey: 'x', azureSpeechKey: 'a' });
+  test('para "eu": elevenlabs NO entra (lo sirve el modelo local), no se usa para euskera', () => {
+    const r = new TTSRouter({ elevenlabsApiKey: 'x', localTtsUrl: 'http://local' });
     const chain = r._buildProviderChain(null, null, 'latency', 'eu');
     assert.ok(!chain.includes('elevenlabs'));
   });
