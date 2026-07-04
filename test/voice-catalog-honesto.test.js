@@ -46,11 +46,13 @@ describe('catálogo de voces honesto', () => {
     }
   });
 
-  test('ningún proveedor fantasma: es-ES solo elevenlabs o azure, con IDs con pinta real', () => {
+  test('ningún proveedor fantasma: es-ES es elevenlabs/azure/cartesia, con IDs con pinta real', () => {
     for (const v of castellano) {
-      assert.ok(['elevenlabs', 'azure'].includes(v.provider), `${v.id} declara proveedor "${v.provider}"`);
+      assert.ok(['elevenlabs', 'azure', 'cartesia'].includes(v.provider), `${v.id} declara proveedor "${v.provider}"`);
       if (v.provider === 'elevenlabs') {
         assert.match(v.providerVoiceId, /^[A-Za-z0-9]{20}$/, `${v.id}: providerVoiceId no parece un ID real de ElevenLabs`);
+      } else if (v.provider === 'cartesia') {
+        assert.match(v.providerVoiceId, /^[0-9a-f-]{36}$/, `${v.id}: providerVoiceId no parece un UUID de Cartesia`);
       } else {
         assert.match(v.providerVoiceId, /^es-ES-\w+Neural$/, `${v.id}: no parece una voz Neural de Azure`);
       }
@@ -64,7 +66,13 @@ describe('catálogo de voces honesto', () => {
     assert.strictEqual(tiers.estandar.monthlyExtra, 0);
     assert.strictEqual(tiers.premium.monthlyExtra, 10);
     assert.ok(tiers.estandar.minutesIncluded > 0 && tiers.estandar.overagePerMin > 0);
-    assert.ok(tiers.ultra.comingSoon, 'Cartesia es "próximamente" hasta activar cuenta');
+    // Cartesia ACTIVADO 2026-07-04 (clave viva, síntesis real verificada): el
+    // tier ultra ya no es "próximamente" y usa el mismo add-on de voz (+10€).
+    assert.ok(!tiers.ultra.comingSoon, 'Cartesia ya está activo');
+    assert.strictEqual(tiers.ultra.monthlyExtra, 10);
+    const cartesiaVoices = catalog.voices.filter(v => v.provider === 'cartesia');
+    assert.ok(cartesiaVoices.length >= 4, 'debe haber voces reales de Cartesia en el tier ultra');
+    assert.ok(cartesiaVoices.every(v => v.tier === 'ultra'));
   });
 
   test('resolveVoiceEntry decide el proveedor por voz (Azure ↔ ElevenLabs ↔ local)', () => {

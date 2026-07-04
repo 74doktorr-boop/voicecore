@@ -19,9 +19,11 @@
     },
     "ultra": {
       "label": "Ultra-rápida",
-      "badge": "PRÓXIMAMENTE",
-      "comingSoon": true,
-      "blurb": "Respuesta casi instantánea (40-90ms) — muy pronto"
+      "badge": "ULTRA · +10€/mes",
+      "monthlyExtra": 10,
+      "minutesIncluded": 300,
+      "overagePerMin": 0.15,
+      "blurb": "Voces Cartesia Sonic con respuesta casi instantánea (~90 ms) · +10€/mes · 500 min/mes · minuto extra 0,15€"
     }
   },
   "voices": [
@@ -393,6 +395,108 @@
       "requiresLocalServer": true,
       "voiceFile": "voices/mikel.wav",
       "tier": "estandar"
+    },
+    {
+      "id": "blanca-ca",
+      "name": "Blanca",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "538a8872-3799-4df5-b373-b78493b766c6",
+      "tier": "ultra",
+      "tags": [
+        "profesional",
+        "cálida",
+        "recepcionista"
+      ],
+      "description": "Voz femenina cálida y acogedora, ideal para recepción — respuesta casi instantánea",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "nuria-ca",
+      "name": "Nuria",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "9d8c6b2e-0a23-4a15-ae1b-121d5b5af417",
+      "tier": "ultra",
+      "tags": [
+        "serena",
+        "confianza",
+        "atención"
+      ],
+      "description": "Voz femenina serena y de confianza, perfecta para atención al cliente",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "isabel-ca",
+      "name": "Isabel",
+      "gender": "female",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "c0c374aa-09be-42d9-9828-4d2d7df86962",
+      "tier": "ultra",
+      "tags": [
+        "suave",
+        "cercana",
+        "clara"
+      ],
+      "description": "Voz femenina suave y cercana, tono amable y profesional",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "gonzalo-ca",
+      "name": "Gonzalo",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "58e531e3-b212-49df-adee-c335a19c2429",
+      "tier": "ultra",
+      "tags": [
+        "cálido",
+        "auténtico",
+        "castellano"
+      ],
+      "description": "Voz masculina cálida y auténtica española",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "marcos-ca",
+      "name": "Marcos",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "13ff5deb-2591-42ad-a356-63a04e524411",
+      "tier": "ultra",
+      "tags": [
+        "sereno",
+        "profesional",
+        "medido"
+      ],
+      "description": "Voz masculina serena y profesional, ideal para negocios",
+      "latency": "ultra-low"
+    },
+    {
+      "id": "iker-ca",
+      "name": "Iker",
+      "gender": "male",
+      "language": "es-ES",
+      "accent": "castellano",
+      "provider": "cartesia",
+      "providerVoiceId": "e4411d96-83e8-4e3a-b336-1d55a6f5eb31",
+      "tier": "ultra",
+      "tags": [
+        "reflexivo",
+        "claro",
+        "informativo"
+      ],
+      "description": "Voz masculina reflexiva y clara, transmite información con seguridad",
+      "latency": "ultra-low"
     }
   ],
   "defaults": {

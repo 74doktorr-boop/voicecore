@@ -83,8 +83,9 @@ async function getOrgAssistant(orgId) {
       ...(() => {
         const { resolveVoiceEntry } = require('../tts/voice-catalog');
         const entry = resolveVoiceEntry(cfg.voice);
-        if (entry && entry.provider === 'azure') return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
-        if (entry && entry.provider === 'local') return { voice: entry.providerVoiceId, ttsProvider: 'local' };
+        if (entry && entry.provider === 'azure')    return { voice: entry.providerVoiceId, ttsProvider: 'azure' };
+        if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };
+        if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier Ultra
         return { voice: cfg.voice || 'nova' }; // elevenlabs por defecto (voice-map traduce)
       })(),
       language,
