@@ -120,6 +120,9 @@ async function getOrgAssistant(orgId) {
       // (falso positivo real 2026-07-04: marcó como alucinación "el equipo
       // le llamará", que es el comportamiento diseñado tras register_lead).
       mode:         cfg.mode === 'contacto' ? 'contacto' : 'citas',
+      // sector: para que el AUDITOR juzgue con la rúbrica del vertical y el
+      // bucle de mejora agrupe por sector (2026-07-04).
+      sector:       cfg.sector || null,
       tools:        cfg.mode === 'contacto' ? CONTACT_TOOLS : RECEPTIONIST_TOOLS,
     };
 

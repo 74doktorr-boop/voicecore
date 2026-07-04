@@ -101,6 +101,14 @@ async function auditCall(callData, deps = {}) {
         return l;
       }).join('\n'));
   }
+  // Sector-aware (2026-07-04): el auditor juzga con la RÚBRICA del sector.
+  // "Bien hecho" en una clínica dental no es lo mismo que en un restaurante.
+  const { resolveSector } = require('../sectors/sector-registry');
+  const sector = resolveSector(callData.sector);
+  if (sector.slug !== 'generico' && sector.metricChecks.length) {
+    ctxParts.push(`SECTOR: ${sector.label}. Además de lo general, evalúa específicamente estos puntos propios de este sector; si el asistente falla alguno, refléjalo en "problems" o "improvements":\n` +
+      sector.metricChecks.map(m => `- ${m.label}`).join('\n'));
+  }
   const ctx = ctxParts.length ? ctxParts.join('\n') + '\n\n' : '';
 
   try {
@@ -115,7 +123,9 @@ async function auditCall(callData, deps = {}) {
       response_format: { type: 'json_object' },
     });
     const audit = _clamp(JSON.parse(resp.choices[0].message.content));
-    if (audit) log.info(`[${callData.id}] Auditoría: score ${audit.score}, satisfecho ${audit.customer_satisfied}, alucinación ${audit.hallucinated}`);
+    // Estampar el sector: es la clave que el agregador usa para agrupar por
+    // vertical y sacar reglas candidatas POR SECTOR (no globales).
+    if (audit) { audit.sector = sector.slug; log.info(`[${callData.id}] Auditoría [${sector.slug}]: score ${audit.score}, satisfecho ${audit.customer_satisfied}, alucinación ${audit.hallucinated}`); }
     return audit;
   } catch (e) {
     log.warn(`[${callData.id}] Auditoría falló: ${e.message}`);

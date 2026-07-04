@@ -70,10 +70,14 @@ function _findingKeys(rows) {
 function aggregateFindings(rows, previousRows) {
   const out = {
     calls: 0, audited: 0, avgAuditScore: null, hallucinationRate: null,
-    byOrg: {}, topProblems: [], candidateRules: [],
+    byOrg: {}, bySector: {}, topProblems: [], candidateRules: [],
   };
   const allProblems = [];
   const allImprovements = [];
+  // Por SECTOR (2026-07-04): "aprende de un restaurante → mejora los
+  // restaurantes", sin contaminar a las clínicas. La clave la estampa el
+  // auditor en audit.sector.
+  const sectorRaw = {}; // sector → { audited, scoreSum, problems[], improvements[] }
   let scoreSum = 0, hallucinated = 0;
 
   for (const r of rows || []) {
@@ -92,6 +96,14 @@ function aggregateFindings(rows, previousRows) {
     if (audit.info_gap) org._gaps.push(audit.info_gap);
     for (const p of audit.problems || []) allProblems.push(p);
     for (const i of audit.improvements || []) allImprovements.push(i);
+
+    const sec = audit.sector || 'generico';
+    if (!sectorRaw[sec]) sectorRaw[sec] = { audited: 0, scoreSum: 0, problems: [], improvements: [] };
+    const s = sectorRaw[sec];
+    s.audited++;
+    s.scoreSum += audit.score;
+    for (const p of audit.problems || []) s.problems.push(p);
+    for (const i of audit.improvements || []) s.improvements.push(i);
   }
 
   const prevKeys = _findingKeys(previousRows);
@@ -110,6 +122,19 @@ function aggregateFindings(rows, previousRows) {
   out.candidateRules = _cluster(allImprovements)
     .filter(c => c.count >= RULE_MIN_COUNT)
     .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) }));
+
+  // Reglas candidatas y problemas POR SECTOR — se aprueban y aplican a la
+  // plantilla de ESE vertical, no a todos.
+  for (const [sec, s] of Object.entries(sectorRaw)) {
+    out.bySector[sec] = {
+      audited: s.audited,
+      avgScore: s.audited > 0 ? Math.round(s.scoreSum / s.audited) : null,
+      topProblems: _cluster(s.problems).slice(0, 5).map(c => ({ ...c, recurrent: prevKeys.has(_norm(c.text)) })),
+      candidateRules: _cluster(s.improvements)
+        .filter(c => c.count >= RULE_MIN_COUNT)
+        .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) })),
+    };
+  }
 
   return out;
 }

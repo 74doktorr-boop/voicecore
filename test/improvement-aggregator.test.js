@@ -133,3 +133,32 @@ describe('runImprovementCycle — el ciclo completo con fakes', () => {
     assert.strictEqual(deps.calls.email, null);
   });
 });
+
+// ── Sector-aware (2026-07-04): reglas candidatas POR VERTICAL ──────────────
+describe('aggregateFindings — agrupación POR SECTOR', () => {
+  const rowSec = (org, sector, audit) => ({ org_id: org, started_at: new Date().toISOString(), metrics: { audit: { ...audit, sector } } });
+  const ROWS_SEC = [
+    rowSec('r1', 'restaurante', { score: 60, problems: ['No preguntó comensales.'], improvements: ['Preguntar siempre el número de comensales.'] }),
+    rowSec('r2', 'restaurante', { score: 55, problems: ['No preguntó comensales.'], improvements: ['Preguntar siempre el número de comensales.'] }),
+    rowSec('d1', 'dental',      { score: 85, problems: [], improvements: ['Preguntar si es primera visita.'] }),
+  ];
+  const agg = aggregateFindings(ROWS_SEC);
+
+  test('cada sector tiene su bloque con media y reglas propias', () => {
+    assert.ok(agg.bySector.restaurante && agg.bySector.dental);
+    assert.strictEqual(agg.bySector.restaurante.audited, 2);
+    assert.strictEqual(agg.bySector.restaurante.avgScore, 58); // (60+55)/2 ≈ 58
+  });
+
+  test('la regla candidata del restaurante NO contamina a dental', () => {
+    const rRules = agg.bySector.restaurante.candidateRules.map(r => r.rule);
+    assert.ok(rRules.some(r => /comensales/i.test(r)), 'restaurante aprende lo suyo (≥2)');
+    const dRules = agg.bySector.dental.candidateRules.map(r => r.rule);
+    assert.ok(!dRules.some(r => /comensales/i.test(r)), 'dental no hereda la regla de restaurante');
+  });
+
+  test('audits sin sector caen a generico', () => {
+    const agg2 = aggregateFindings([{ org_id: 'x', metrics: { audit: { score: 70, problems: [], improvements: [] } } }]);
+    assert.ok(agg2.bySector.generico, 'sin sector → generico');
+  });
+});

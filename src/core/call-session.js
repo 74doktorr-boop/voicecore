@@ -255,6 +255,7 @@ class CallSession {
       // Contexto para el auditor: sin esto auditaba a ciegas (no sabía el
       // modo ni el catálogo y puntuaba mal el guion correcto — 2026-07-04)
       assistantMode: this.assistant?.mode || null,
+      sector: this.assistant?.sector || null,
       serviceList: this.serviceList || null,
     };
   }
