@@ -33,6 +33,13 @@ const ADDONS = {
     envPriceVar: 'STRIPE_ADDON_GROWTH_PRICE_ID',
     blurb: 'Campañas de reactivación por voz: tu asistente llama a clientes antiguos para traerlos de vuelta.',
   },
+  wa_own_number: {
+    key: 'wa_own_number',
+    label: 'WhatsApp con tu número',
+    monthlyCents: 1500,
+    envPriceVar: 'STRIPE_ADDON_WA_PRICE_ID',
+    blurb: 'Los avisos a tus clientes (confirmación, recordatorio, reseña) salen desde el número de WhatsApp de tu propio negocio, no desde uno compartido.',
+  },
 };
 
 function _orgAddons(org) {

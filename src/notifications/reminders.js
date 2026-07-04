@@ -400,24 +400,38 @@ async function sendWaConfirmation(apt, config, deps = {}) {
   const dateStr      = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
   const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
+  const components = [
+    {
+      type: 'body',
+      parameters: [
+        { type: 'text', text: name },
+        { type: 'text', text: businessName },
+        { type: 'text', text: dateStr },
+        { type: 'text', text: apt.time },
+        { type: 'text', text: apt.service },
+      ],
+    },
+  ];
+
   try {
-    const result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, [
-      {
-        type: 'body',
-        parameters: [
-          { type: 'text', text: name },
-          { type: 'text', text: businessName },
-          { type: 'text', text: dateStr },
-          { type: 'text', text: apt.time },
-          { type: 'text', text: apt.service },
-        ],
-      },
-    ], credentials);
+    const result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, components, credentials);
     if (result?.ok) {
       log.info(`WA confirmation sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
       return true;
     }
     log.warn(`WA confirmation not ok for ${apt.id}: ${result?.error}`);
+
+    // REGLA DE ORO (#Fase2): si el envío por el número PROPIO del negocio
+    // falla (token roto, plantilla aún en revisión…) pero existe el número
+    // compartido de NodeFlow, el aviso al cliente NO se pierde: reintenta por
+    // el compartido. El número propio es siempre una mejora, jamás un riesgo.
+    if (credentials && _waIsConfigured()) {
+      const fb = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, components, null);
+      if (fb?.ok) {
+        log.warn(`WA confirmation → ${apt.id}: número propio falló, enviado por el COMPARTIDO`);
+        return true;
+      }
+    }
   } catch (e) {
     log.warn(`WA confirmation failed for ${apt.id}: ${e.message}`);
   }

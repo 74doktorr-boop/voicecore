@@ -86,7 +86,35 @@ describe('sendWaConfirmation', () => {
   test('el envío que falla en Meta devuelve false sin lanzar', async () => {
     const deps = fakeDeps();
     deps.sendTemplate = async () => ({ ok: false, error: 'template not approved' });
+    deps.waIsConfigured = () => false; // sin número compartido → no hay red
     const ok = await sendWaConfirmation(APT, CFG, deps);
     assert.strictEqual(ok, false);
+  });
+
+  test('REGLA DE ORO: si el número propio falla, reintenta por el compartido', async () => {
+    // El negocio tiene número propio pero su token está roto. El aviso NO se
+    // pierde: sale por el número compartido de NodeFlow (credentials=null).
+    const deps = fakeDeps();
+    const intentos = [];
+    deps.sendTemplate = async (phone, name, lang, comp, credentials) => {
+      intentos.push(credentials);
+      if (credentials) return { ok: false, error: 'invalid access token' }; // propio falla
+      return { ok: true, messageId: 'wamid.SHARED' };                        // compartido va
+    };
+    const ok = await sendWaConfirmation(APT, CFG, deps);
+    assert.strictEqual(ok, true, 'el aviso debe salir por el compartido');
+    assert.strictEqual(intentos.length, 2, 'reintenta una vez');
+    assert.ok(intentos[0], 'primer intento con credenciales propias');
+    assert.strictEqual(intentos[1], null, 'reintento con el número compartido');
+  });
+
+  test('no reintenta si NO hay número compartido configurado', async () => {
+    const deps = fakeDeps();
+    deps.waIsConfigured = () => false;
+    let n = 0;
+    deps.sendTemplate = async () => { n++; return { ok: false, error: 'x' }; };
+    const ok = await sendWaConfirmation(APT, CFG, deps);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(n, 1, 'sin compartido, no hay reintento');
   });
 });

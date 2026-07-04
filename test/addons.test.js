@@ -46,6 +46,16 @@ describe('hasAddon / listAddons', () => {
     assert.strictEqual(growth.available, false);
     assert.strictEqual(growth.monthlyCents, 3900);
   });
+
+  test('wa_own_number (número propio +15€) está en el catálogo', () => {
+    process.env.STRIPE_ADDON_WA_PRICE_ID = 'price_test_wa';
+    const out = listAddons(org({ wa_own_number: { itemId: 'si_wa' } }));
+    const wa = out.find(a => a.key === 'wa_own_number');
+    assert.ok(wa, 'wa_own_number debe estar en el catálogo');
+    assert.strictEqual(wa.monthlyCents, 1500);
+    assert.strictEqual(wa.active, true);
+    assert.strictEqual(wa.available, true);
+  });
 });
 
 describe('voiceChangeAllowed — el candado de la voz premium', () => {
