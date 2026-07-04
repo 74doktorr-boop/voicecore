@@ -507,9 +507,9 @@ setupWebhookRoutes(app);
 const { setupWhatsAppWebhook } = require('./src/api/routes-whatsapp');
 setupWhatsAppWebhook(app);
 
-// Setup WhatsApp Connect — 360dialog Embedded Signup (multi-tenant)
-const { setupWhatsAppConnectRoutes } = require('./src/api/routes-whatsapp-connect');
-setupWhatsAppConnectRoutes(app);
+// (2026-07-04) WhatsApp Connect de 360dialog retirado: la conexión de número
+// propio es 100% Meta directo. Alta manual: POST /api/admin/whatsapp/connect-meta.
+// Self-service (Embedded Signup): POST /api/portal/whatsapp/connect-meta.
 
 // Widget "¿Te llamamos?" — captura de callback embebible
 const { setupWidgetRoutes } = require('./src/api/routes-widget');

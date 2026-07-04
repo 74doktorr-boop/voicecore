@@ -1,9 +1,11 @@
 // ============================================================
 // NodeFlow — WhatsApp Accounts (multi-tenant credential cache)
-// Cada negocio tiene su propio WABA conectado via 360dialog.
-// Este módulo gestiona credenciales por businessId con caché
-// en memoria (TTL 5 min) para evitar queries a Supabase en
-// cada mensaje.
+// Cada negocio puede conectar su propio WABA por Meta Cloud API
+// directo (2026-07-04: 360dialog retirado). Este módulo gestiona
+// credenciales por businessId con caché en memoria (TTL 5 min)
+// para evitar queries a Supabase en cada mensaje.
+// La columna api_base se conserva por compatibilidad de datos,
+// pero hoy siempre es null (Meta directo).
 //
 // Dependencias:
 //   SUPABASE_URL, SUPABASE_SERVICE_KEY — Supabase

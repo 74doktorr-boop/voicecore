@@ -12,8 +12,9 @@ const log = new Logger('CLIENT-WA');
 
 const META_API_VERSION = 'v19.0';
 const META_API_BASE    = 'graph.facebook.com';
-// 360dialog usa base URL diferente cuando el negocio tiene WABA propio
-const DIALOG360_API_BASE = 'waba.360dialog.io';
+// (2026-07-04) 360dialog retirado: todo va por Meta Cloud API directo.
+// Las credenciales de negocio (multi-tenant) usan el mismo host y auth Bearer
+// que el número compartido — solo cambian phoneNumberId y accessToken.
 
 function isConfigured() {
   return !!(process.env.WA_PHONE_NUMBER_ID && process.env.WA_ACCESS_TOKEN);
@@ -43,10 +44,6 @@ function sendTemplate(phone, templateName, languageCode, components = [], creden
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
-    // 360dialog: auth via D360-API-KEY header; Meta: Bearer token
-    const is360dialog = !!(credentials?.apiBase?.includes('360dialog'));
-    const hostname    = is360dialog ? DIALOG360_API_BASE : META_API_BASE;
-
     // Normalize phone: strip spaces, dashes, +
     let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
     if (normalizedPhone.startsWith('00')) normalizedPhone = normalizedPhone.slice(2);
@@ -64,15 +61,11 @@ function sendTemplate(phone, templateName, languageCode, components = [], creden
     });
 
     const options = {
-      hostname,
-      path:    is360dialog
-        ? `/v1/messages`                                      // 360dialog path
-        : `/${META_API_VERSION}/${phoneNumberId}/messages`,  // Meta Cloud API path
-      method:  'POST',
-      headers: {
-        ...(is360dialog
-          ? { 'D360-API-KEY': accessToken }                  // 360dialog auth
-          : { 'Authorization': `Bearer ${accessToken}` }),   // Meta auth
+      hostname: META_API_BASE,
+      path:     `/${META_API_VERSION}/${phoneNumberId}/messages`,
+      method:   'POST',
+      headers:  {
+        'Authorization':  `Bearer ${accessToken}`,
         'Content-Type':   'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
@@ -127,9 +120,6 @@ function sendText(phone, text, credentials = null) {
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
-    const is360dialog = !!(credentials?.apiBase?.includes('360dialog'));
-    const hostname    = is360dialog ? DIALOG360_API_BASE : META_API_BASE;
-
     let normalizedPhone = String(phone).replace(/[\s\-+() ]/g, '');
     if (normalizedPhone.startsWith('00')) normalizedPhone = normalizedPhone.slice(2);
     if (normalizedPhone.length === 9) normalizedPhone = '34' + normalizedPhone;
@@ -141,15 +131,11 @@ function sendText(phone, text, credentials = null) {
     });
 
     const options = {
-      hostname,
-      path:    is360dialog
-        ? `/v1/messages`
-        : `/${META_API_VERSION}/${phoneNumberId}/messages`,
-      method:  'POST',
-      headers: {
-        ...(is360dialog
-          ? { 'D360-API-KEY': accessToken }
-          : { 'Authorization': `Bearer ${accessToken}` }),
+      hostname: META_API_BASE,
+      path:     `/${META_API_VERSION}/${phoneNumberId}/messages`,
+      method:   'POST',
+      headers:  {
+        'Authorization':  `Bearer ${accessToken}`,
         'Content-Type':   'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
