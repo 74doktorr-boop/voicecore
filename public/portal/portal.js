@@ -924,8 +924,8 @@ function skeletonDashboard() {
     '<div class="section-header"><div>' + skelBar('300px', 34, 8) + skelBar('190px', 13) + '</div>' +
       '<div class="skel" style="width:120px;height:26px;border-radius:20px"></div></div>' +
     skelBar('260px', 17, 16) +
-    '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:30px">' + wins + '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:30px">' + pills + '</div>' +
+    '<div class="u-flex u-gap-6 u-wrap u-mb-6">' + wins + '</div>' +
+    '<div class="u-flex u-gap-2 u-wrap u-mb-6">' + pills + '</div>' +
     '<div class="two-col">' + card() + card() + '</div>' +
   '</div>';
 }
@@ -1003,7 +1003,7 @@ function dashHero(d) {
   }
 
   return '<div class="nf-hero">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">' +
+    '<div class="u-flex u-justify-between u-items-start u-gap-3 u-wrap">' +
       '<div><div class="nf-hero-greet">' + greet + ', ' + esc(d.businessName) + '</div>' +
       '<div class="nf-hero-date">' + dateStr + (d.daysActive ? ' · tu asistente lleva ' + d.daysActive + ' días contigo' : '') + '</div></div>' +
       status +
@@ -1011,8 +1011,8 @@ function dashHero(d) {
     '<div class="nf-hero-lead">' + lead + '</div>' +
     (wins ? '<div class="nf-wins nf-stagger">' + wins + '</div>' : '') +
     (wins && d.valueEstToday && d.avgTicketConfigured === false
-      ? '<div style="font-size:12px;color:var(--dim);margin-top:10px">El € está calculado con un ticket medio genérico (35€). ' +
-        '<a onclick="navigate(\'configuracion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Pon el tuyo</a> y será exacto.</div>'
+      ? '<div class="u-text-sm u-dim u-mt-2">El € está calculado con un ticket medio genérico (35€). ' +
+        '<a onclick="navigate(\'configuracion\')" class="u-accent u-pointer" style="text-decoration:underline">Pon el tuyo</a> y será exacto.</div>'
       : '') +
   '</div>';
 }
@@ -1089,14 +1089,14 @@ function dashUpcoming(d) {
       html += '<div class="crit-item">' +
         '<div><div class="crit-name">' + esc(a.patientName) + '</div>' +
         '<div class="crit-meta">' + esc(a.service) + '</div></div>' +
-        '<div><div class="crit-date">' + (isToday ? '<span style="color:var(--accent-l)">Hoy</span>' : fmtDate(a.date)) + ' · ' + esc(a.time) + '</div>' +
+        '<div><div class="crit-date">' + (isToday ? '<span class="u-accent">Hoy</span>' : fmtDate(a.date)) + ' · ' + esc(a.time) + '</div>' +
         '<div class="crit-days">' + (stBadge[a.status] || stBadge.pending) + '</div></div></div>';
     }
   } else {
-    html = '<div style="color:var(--dim);font-size:13px;padding:8px 0">Aún no hay citas próximas. Cuando tu asistente reserve una, aparecerá aquí.</div>';
+    html = '<div class="u-dim u-text-md u-py-2">Aún no hay citas próximas. Cuando tu asistente reserve una, aparecerá aquí.</div>';
   }
   return '<div class="card"><div class="card-title">Próximas citas</div>' + html +
-    '<button class="btn btn-d btn-sm" style="margin-top:12px" onclick="navigate(\'citas\')">Ver agenda →</button></div>';
+    '<button class="btn btn-d btn-sm u-mt-3" onclick="navigate(\'citas\')">Ver agenda →</button></div>';
 }
 
 function dashFeedItems(list) {
@@ -1127,20 +1127,21 @@ function dashFeed(list) {
 function dashSetup(d) {
   if (localStorage.getItem('nf_banner_dismissed') === '1') return '';
   if ((d.totalCalls || 0) !== 0) return '';
+  var arrow = ' <span class="u-accent">→</span>';
   var steps =
     '<div class="setup-step done">✅ Pago confirmado — tu cuenta está activa</div>' +
-    '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'asistente\')">⚙️ <strong>Configura tu asistente</strong> — nombre, voz, idioma y servicios <span style="color:var(--accent-l)">→</span></div>' +
-    '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'configuracion\')">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp <span style="color:var(--accent-l)">→</span></div>' +
+    '<div class="setup-step u-pointer" onclick="navigate(\'asistente\')">⚙️ <strong>Configura tu asistente</strong> — nombre, voz, idioma y servicios' + arrow + '</div>' +
+    '<div class="setup-step u-pointer" onclick="navigate(\'configuracion\')">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp' + arrow + '</div>' +
     (d.onboarding && d.onboarding.number_assigned
-      ? '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'asistente\')">▶ <strong>Escúchalo antes de desviar</strong> — tu asistente te llama al móvil <span style="color:var(--accent-l)">→</span></div>' +
-        '<div class="setup-step" style="cursor:pointer" onclick="navigate(\'configuracion\')">📞 <strong>Activa el desvío de llamadas</strong>' +
-        (d.nodeflowNumber ? ' — tu número NodeFlow: <strong style="color:var(--accent-l)">' + esc(d.nodeflowNumber) + '</strong>' : '') +
-        ' <span style="color:var(--accent-l)">→</span></div>'
-      : '<div class="setup-step" style="opacity:.6">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío</div>');
-  return '<div class="card" id="setup-banner" style="border-color:rgba(196,245,70,.25)">' +
+      ? '<div class="setup-step u-pointer" onclick="navigate(\'asistente\')">▶ <strong>Escúchalo antes de desviar</strong> — tu asistente te llama al móvil' + arrow + '</div>' +
+        '<div class="setup-step u-pointer" onclick="navigate(\'configuracion\')">📞 <strong>Activa el desvío de llamadas</strong>' +
+        (d.nodeflowNumber ? ' — tu número NodeFlow: <strong class="u-accent">' + esc(d.nodeflowNumber) + '</strong>' : '') +
+        arrow + '</div>'
+      : '<div class="setup-step u-dim-2">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío</div>');
+  return '<div class="card u-border-accent" id="setup-banner">' +
     '<div class="card-title">🚀 Primeros pasos</div>' +
-    '<div style="display:flex;flex-direction:column;gap:8px">' + steps + '</div>' +
-    '<button class="btn btn-d btn-sm" style="margin-top:14px" ' +
+    '<div class="u-flex u-col u-gap-2">' + steps + '</div>' +
+    '<button class="btn btn-d btn-sm u-mt-4" ' +
       'onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')">Ocultar</button>' +
   '</div>';
 }
@@ -1167,23 +1168,23 @@ function dashMinutes(u) {
   var limit = u.minutesLimit || 0;
   var rem   = Math.max(0, Math.floor(u.minutesRemaining != null ? u.minutesRemaining : (limit - used)));
   var pct   = u.percentUsed != null ? u.percentUsed : (limit > 0 ? Math.round((used / limit) * 100) : 0);
-  var barColor = pct >= 90 ? '#e74c3c' : pct >= 70 ? '#f39c12' : 'var(--accent)';
+  // Color de la barra por umbral — tokens del sistema, no hex sueltos.
+  var barColor = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--yellow)' : 'var(--accent)';
   var rate = (u.overageRate != null ? u.overageRate : 0.15).toFixed(2).replace('.', ',');
-  return '<div class="card" style="padding:18px 20px;margin-bottom:16px">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">' +
-      '<div style="font-size:13px;font-weight:700">📞 Minutos de este mes</div>' +
-      '<div style="font-size:11px;color:var(--dim)">Se renueva cada mes</div>' +
+  return '<div class="card u-mb-4">' +
+    '<div class="u-flex u-justify-between u-items-center u-wrap u-gap-2 u-mb-4">' +
+      '<div class="u-text-md u-bold">📞 Minutos de este mes</div>' +
+      '<div class="u-text-xs u-dim">Se renueva cada mes</div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;text-align:center">' +
-      '<div><div style="font-size:22px;font-weight:900">' + limit + '</div><div style="font-size:11px;color:var(--dim)">incluidos</div></div>' +
-      '<div><div style="font-size:22px;font-weight:900;color:#f39c12">' + used + '</div><div style="font-size:11px;color:var(--dim)">usados</div></div>' +
-      '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">' + rem + '</div><div style="font-size:11px;color:var(--dim)">disponibles</div></div>' +
+    '<div class="u-grid u-gap-2 u-center u-mb-3" style="grid-template-columns:repeat(3,1fr)">' +
+      '<div><div class="u-text-2xl u-black u-white">' + limit + '</div><div class="u-text-xs u-dim">incluidos</div></div>' +
+      '<div><div class="u-text-2xl u-black u-yellow">' + used + '</div><div class="u-text-xs u-dim">usados</div></div>' +
+      '<div><div class="u-text-2xl u-black u-green">' + rem + '</div><div class="u-text-xs u-dim">disponibles</div></div>' +
     '</div>' +
-    '<div style="background:var(--card2);border-radius:6px;height:9px;overflow:hidden;margin-bottom:6px">' +
-      '<div style="height:100%;width:' + Math.min(pct, 100) + '%;background:' + barColor + ';border-radius:6px;transition:width .4s"></div></div>' +
-    '<div style="font-size:11px;color:var(--dim)">' + pct + '% usado' +
-      ((u.overage > 0) ? ' · <span style="color:#e74c3c">' + u.overage.toFixed(1) + ' min extra a ' + rate + '€/min</span>' : ' · el extra se cobra a ' + rate + '€/min') + '</div>' +
-    '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">' +
+    '<div class="progress u-mb-1"><div class="progress-bar" style="width:' + Math.min(pct, 100) + '%;background:' + barColor + '"></div></div>' +
+    '<div class="u-text-xs u-dim">' + pct + '% usado' +
+      ((u.overage > 0) ? ' · <span class="u-red">' + u.overage.toFixed(1) + ' min extra a ' + rate + '€/min</span>' : ' · el extra se cobra a ' + rate + '€/min') + '</div>' +
+    '<div class="u-flex u-gap-3 u-wrap u-mt-4">' +
       '<button class="btn btn-accent btn-sm" onclick="navigate(\'facturacion\')">Comprar más minutos</button>' +
       '<button class="btn btn-d btn-sm" onclick="showVoiceModels()">Ver modelos de voz</button>' +
     '</div>' +
