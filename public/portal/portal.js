@@ -3664,7 +3664,7 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
         pct + '% utilizado · ' + Math.floor(usage.minutesRemaining || 0) + ' min restantes' +
       '</div>' +
       '<div style="font-size:11px;color:var(--dim);margin-top:4px">Minutos extra: <strong style="color:var(--text)">€' +
-        (usage.overageRate != null ? usage.overageRate.toFixed(2).replace('.', ',') : '0,20') + '/min</strong> · solo si superas tu plan</div>' +
+        (usage.overageRate != null ? usage.overageRate.toFixed(2).replace('.', ',') : '0,15') + '/min</strong> · solo si superas tu plan</div>' +
       overageWarn +
     '</div>' +
 

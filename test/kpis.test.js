@@ -45,7 +45,7 @@ describe('kpis.computeKpis', () => {
     assert.strictEqual(k.activeOrgs, 2);
     assert.strictEqual(k.mrr, 98);              // 2 activos × 49
     assert.strictEqual(k.overageMinutes, 20);   // a: 520-500
-    assert.strictEqual(k.overageRevenue, 2);    // 20 × 0,10
+    assert.strictEqual(k.overageRevenue, 3);    // 20 × 0,15 (decisión Unai 2026-07-04)
   });
   test('altas del mes', () => { assert.strictEqual(k.newOrgs, 1); }); // a hace 5d
   test('ARPU = MRR / activos', () => { assert.strictEqual(k.arpu, 49); }); // 98/2

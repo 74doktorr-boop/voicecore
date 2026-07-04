@@ -63,7 +63,7 @@ function computeKpis(p = {}) {
   const mrr = activeOrgs.reduce((s, o) => s + (prices[o.plan] || 0), 0);
   const arpu = activeOrgs.length ? Math.round(mrr / activeOrgs.length) : 0;
   const overageMinutes = Math.round(activeOrgs.reduce((s, o) => s + Math.max(0, (Number(o.monthly_minutes_used) || 0) - included), 0));
-  const overageRevenue = Math.round(overageMinutes * 0.10 * 100) / 100; // 0,10 €/min
+  const overageRevenue = Math.round(overageMinutes * 0.15 * 100) / 100; // 0,15 €/min (decisión Unai 2026-07-04)
 
   // Altas/bajas del mes (registered_at / created_at)
   const monthAgo = now - 30 * DAY;

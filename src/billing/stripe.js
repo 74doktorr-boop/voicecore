@@ -51,7 +51,10 @@ class StripeBilling {
     this.plans = {
       negocio: {
         name: 'Negocio', price: 4900, priceId: config.proPriceId || process.env.STRIPE_PRO_PRICE_ID,
-        minutes: 500, assistants: 999, overagePerMinute: 0.05,
+        // 0,15€/min — decisión Unai 2026-07-04, precio ÚNICO de overage en
+        // todas partes (landing, portal, voices.json, KPIs). El Meter de
+        // Stripe debe decir lo mismo. (Antes 0.05: por debajo de coste.)
+        minutes: 500, assistants: 999, overagePerMinute: 0.15,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,
