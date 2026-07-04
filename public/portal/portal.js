@@ -3087,12 +3087,20 @@ function _voiceEsc(s) {
 }
 
 var _voiceTiers = {};
+var _hasPremiumVoice = false; // ¿el negocio tiene el add-on de voz Premium?
 function loadVoiceCatalog() {
   var grid = document.getElementById('voice-grid');
-  fetch('/api/voices')
-    .then(function(r) { return r.json(); })
-    .then(function(d) { _voiceCatalog = (d && d.voices) || []; _voiceTiers = (d && d.tiers) || {}; renderVoiceGrid(); })
-    .catch(function() { if (grid) grid.innerHTML = '<div class="voice-empty">No se pudo cargar el catálogo de voces.</div>'; });
+  // El estado del add-on decide si las Premium salen con candado (se ven y se
+  // escuchan igual — el candado es el gancho de venta, no un muro).
+  api('/api/portal/addons').then(function(d) {
+    var a = (d && d.addons || []).filter(function(x) { return x.key === 'voice_premium' && x.active; });
+    _hasPremiumVoice = a.length > 0;
+  }).catch(function() {}).then(function() {
+    fetch('/api/voices')
+      .then(function(r) { return r.json(); })
+      .then(function(d) { _voiceCatalog = (d && d.voices) || []; _voiceTiers = (d && d.tiers) || {}; renderVoiceGrid(); })
+      .catch(function() { if (grid) grid.innerHTML = '<div class="voice-empty">No se pudo cargar el catálogo de voces.</div>'; });
+  });
 }
 
 function setVoiceFilter(g, btn) {
@@ -3134,11 +3142,13 @@ function renderVoiceGrid() {
     var sub = [v.accent, v.age].filter(Boolean).join(' · ') || (v.gender || '');
     var chips = (v.labels || []).slice(0, 3).map(function(t) { return '<span class="vc-tag">' + _voiceEsc(t) + '</span>'; }).join('');
     var id = _voiceEsc(v.id);
-    return '<div class="voice-card ' + g + ' tier-' + _voiceEsc(v.tier || 'premium') + (v.id === sel ? ' selected' : '') + '" data-vid="' + id + '" onclick="selectVoice(\'' + id + '\')">'
+    var locked = (v.tier === 'premium') && !_hasPremiumVoice;
+    return '<div class="voice-card ' + g + ' tier-' + _voiceEsc(v.tier || 'premium') + (v.id === sel ? ' selected' : '') + (locked ? ' locked' : '') + '" data-vid="' + id + '" onclick="selectVoice(\'' + id + '\')">'
       + '<div class="vc-top">'
         + '<div class="vc-avatar">' + ico + '</div>'
         + '<div class="vc-id"><div class="vc-name">' + _voiceEsc(v.name) + '</div><div class="vc-sub">' + _voiceEsc(sub) + '</div></div>'
         + '<span class="vc-sel">Tu voz</span>'
+        + '<span class="vc-lock" title="Voz Premium — actívala para usarla">🔒 Premium</span>'
       + '</div>'
       + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 88)) + '</div>'
       + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
@@ -3173,6 +3183,14 @@ function renderVoiceGrid() {
 }
 
 function selectVoice(id) {
+  var v = _voiceCatalog.filter(function(x) { return x.id === id; })[0];
+  // Premium sin add-on: se escucha (gancho) pero no se puede fijar como voz —
+  // en vez de dejar que falle al guardar (402), empujamos a activarla.
+  if (v && v.tier === 'premium' && !_hasPremiumVoice) {
+    previewVoice(id);
+    toast('🔒 ' + (v.name || 'Esta voz') + ' es Premium. Escúchala y actívala (+10€/mes) en Facturación para usarla.', 'info');
+    return;
+  }
   var h = document.getElementById('asis-voice'); if (h) h.value = id;
   // Actualizar el resaltado SIN re-renderizar (evita repetir la animación de
   // entrada en cada clic) y escuchar la voz elegida al instante.
