@@ -14,8 +14,31 @@ const { getDatabase }        = require('../db/database');
 const { getOrgReminderConfig, scheduleReminder, recalculate } = require('../lifecycle/reminder-engine');
 const { SECTOR_REQUIRED_FIELDS, getCompletionStatus } = require('../lifecycle/sector-fields');
 const { getKnowledgeBase } = require('../knowledge/base');
+const { normalizePhone } = require('../utils/phone');
 
 const log = new Logger('ROUTES-PORTAL');
+
+// Teléfonos que NO son oportunidad de recuperación: ya reservaron (llamada
+// 'booked' en la ventana) o tienen una cita próxima. Compartido por el GET de
+// oportunidades y el POST de recuperación para NO llamar "te recuperamos" a quien
+// ya tiene cita (antes solo se excluía la llamada con outcome='booked', así que
+// quien reservaba en una llamada POSTERIOR seguía apareciendo).
+async function _excludedRecoveryPhones(db, businessId, sinceISO) {
+  const excluded = new Set();
+  try {
+    const { data } = await db.client.from('nf_calls')
+      .select('caller_number').eq('org_id', businessId)
+      .gte('started_at', sinceISO).eq('outcome', 'booked').limit(500);
+    for (const c of (data || [])) { const n = normalizePhone(c.caller_number); if (n) excluded.add(n); }
+  } catch (_) { /* fail-open: sin exclusión extra */ }
+  try {
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    for (const a of scheduler.getAppointments(businessId)) {
+      if (a && a.status !== 'cancelled' && a.date >= todayStr) { const n = normalizePhone(a.phone); if (n) excluded.add(n); }
+    }
+  } catch (_) {}
+  return excluded;
+}
 
 // ── Auth middleware ──────────────────────────────────────────
 async function portalAuth(req, res, next) {
@@ -1294,10 +1317,13 @@ function setupPortalRoutes(app, pipeline, config) {
         .order('started_at', { ascending: false })
         .limit(300);
 
+      // Excluir a quien YA reservó (en una llamada posterior) o tiene cita próxima.
+      const excluded = await _excludedRecoveryPhones(db, req.businessId, since);
       // Agrupar por número: nos quedamos con la llamada más reciente de cada uno
       const byPhone = {};
       for (const c of (data || [])) {
         if (!c.caller_number) continue;
+        if (excluded.has(normalizePhone(c.caller_number))) continue;
         if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, count: 0, lastOutcome: c.outcome };
         byPhone[c.caller_number].count++;
       }
@@ -1329,7 +1355,10 @@ function setupPortalRoutes(app, pipeline, config) {
         .neq('outcome', 'booked')
         .order('started_at', { ascending: false })
         .limit(300);
-      const validPhones = new Set((data || []).map(c => c.caller_number).filter(Boolean));
+      // Misma exclusión que el GET: no llamar a quien ya reservó / tiene cita.
+      const excluded = await _excludedRecoveryPhones(db, req.businessId, since);
+      const validPhones = new Set((data || []).map(c => c.caller_number)
+        .filter(p => p && !excluded.has(normalizePhone(p))));
 
       // Si el body trae phones, intersectar; si no, todas las oportunidades.
       const requested = Array.isArray(req.body?.phones) && req.body.phones.length
