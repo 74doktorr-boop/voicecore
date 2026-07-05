@@ -537,16 +537,25 @@ class ToolExecutor {
       return { success: false, message: 'Faltan datos (teléfono, fecha u hora) para enviar el recordatorio.' };
     }
 
+    // Fecha y hora deterministas por si el LLM las pasa habladas: ISO/HH:MM se
+    // usan tal cual; "el martes"/"a la una" se resuelven. Evita "Invalid Date a
+    // las a la unah" en el recordatorio al cliente.
+    const { parseSpanishTime } = require('../scheduling/time-parser');
+    const { parseSpanishDate } = require('../scheduling/date-parser');
+    const todayMadrid = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const nDate = parseSpanishDate(date, todayMadrid) || date;
+    const nTime = parseSpanishTime(time) || time;
+
     // Normalise date for display
-    let displayDate = date;
+    let displayDate = nDate;
     try {
-      displayDate = new Date(date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      displayDate = new Date(nDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     } catch (_) {}
 
     const text =
       `Hola ${name} 👋\n\n` +
       `Te recordamos que mañana tienes cita${petName} en nuestro centro:\n\n` +
-      `📅 ${displayDate} a las ${time}h\n` +
+      `📅 ${displayDate} a las ${nTime}h\n` +
       `📋 ${service}` +
       address +
       `\n\nSi necesitas cambiarla, llámanos. ¡Hasta mañana!`;
@@ -994,18 +1003,26 @@ class ToolExecutor {
       notes:        `${args.property_type || ''} ${args.address || ''}`.trim(),
     }, assistantId);
 
+    // Solo avisar al dueño si REALMENTE se agendó (antes se avisaba aunque la
+    // reserva fallara). Y usar la fecha/hora NORMALIZADAS de la cita (no el crudo
+    // del LLM), para que no salga "el martes a las a la unah".
+    if (!result.success) {
+      return { success: false, message: 'No pudo agendarse en ese horario. ¿Prefiere otra fecha?' };
+    }
+    const appt = result.appointment || {};
+    const whenDate = appt.date || args.date;
+    const whenTime = appt.time || args.time;
+
     _notifyOwner(
       `🏠 *Valoración programada — ${biz.name || assistantId}*\n` +
       `👤 ${name} (${phone})\n` +
-      `📅 ${args.date} a las ${args.time}h\n` +
+      `📅 ${whenDate} a las ${whenTime}h\n` +
       `📍 ${args.address || 'Sin dirección'}\n` +
       `Tipo: ${args.property_type || 'sin especificar'}`,
       assistantId
     );
 
-    return result.success
-      ? { success: true, message: `Valoración gratuita agendada para el ${args.date} a las ${args.time}h. El agente confirmará por WhatsApp.` }
-      : { success: false, message: 'No pudo agendarse en ese horario. ¿Prefiere otra fecha?' };
+    return { success: true, message: `Valoración gratuita agendada para el ${whenDate} a las ${whenTime}h. El agente confirmará por WhatsApp.` };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
