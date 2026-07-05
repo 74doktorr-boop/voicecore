@@ -457,16 +457,32 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   // abrir y, si cambió (hubo deploy), purga su caché y se recarga solo —
   // fin de los clientes con HTML/JS viejos tras cada deploy (caso real
   // 2026-07-03: el dueño no veía features ya desplegadas).
-  app.get('/health', (req, res) => {
+  app.get('/health', async (req, res) => {
     res.set('Cache-Control', 'no-store');
+    // Readiness real: antes devolvía SIEMPRE status:'ok' y database:'connected'
+    // (derivado de db.enabled, fijado al arrancar) → si la BD caía en runtime el
+    // monitor no se enteraba jamás. Ahora hace un ping ligero con timeout.
+    let database = db.enabled ? 'connected' : 'memory';
+    let status = 'ok';
+    if (db.enabled) {
+      try {
+        await Promise.race([
+          db.client.from('organizations').select('id').limit(1),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('db ping timeout')), 2500)),
+        ]);
+      } catch (_) {
+        database = 'unreachable';
+        status = 'degraded'; // el monitor alerta por status!=='ok'; mantenemos HTTP 200
+      }                       // para NO provocar reinicios en bucle si la BD está caída
+    }
     res.json({
-      status: 'ok',
+      status,
       version: '2.0.0',
       bootId: BOOT_ID,
       uptime: process.uptime(),
       activeCalls: pipeline.getActiveCalls().length,
       assistants: assistantManager.list().length,
-      database: db.enabled ? 'connected' : 'memory',
+      database,
     });
   });
 
