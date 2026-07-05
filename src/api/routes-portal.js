@@ -1413,18 +1413,24 @@ function setupPortalRoutes(app, pipeline, config) {
 
     if (cErr || !contact) return res.status(404).json({ error: 'Contacto no encontrado' });
 
+    // Emparejado por teléfono TOLERANTE al formato: el contacto puede estar
+    // guardado en un formato (portal/import) y las llamadas/citas en otro (E.164 de
+    // la telefonía) → antes casaba exacto y la ficha salía con 0 llamadas/citas.
+    const { phoneVariants, normalizePhone } = require('../utils/phone');
+    const cPhone9 = normalizePhone(contact.phone);
+
     // 2. Fetch linked calls by phone
     const { data: calls } = await db.client
       .from('nf_calls')
       .select('id,outcome,started_at,ended_at,duration_ms,turn_count')
       .eq('org_id', businessId)
-      .eq('caller_number', contact.phone)
+      .in('caller_number', phoneVariants(contact.phone))
       .order('started_at', { ascending: false })
       .limit(50);
 
     // 3. Fetch linked appointments by phone (in-memory)
     const apts = scheduler.getAppointments(businessId)
-      .filter(a => a.phone === contact.phone)
+      .filter(a => normalizePhone(a.phone) === cPhone9 && cPhone9)
       .sort((a, b) => new Date(b.date + 'T' + (b.time || '00:00')) - new Date(a.date + 'T' + (a.time || '00:00')));
 
     res.json({
