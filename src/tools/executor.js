@@ -270,6 +270,18 @@ class ToolExecutor {
         error: `No he podido interpretar la hora "${args.time || ''}". Pregunta al cliente la hora concreta (por ejemplo: "a la una y media" o "13:30") y vuelve a intentarlo.`,
       };
     }
+    // La FECHA también determinista (los LLM fallan en aritmética de calendario:
+    // "el martes" → día equivocado). ISO se valida y pasa; lo hablado se resuelve
+    // en Madrid; lo imposible/ambiguo → se pide aclarar, no se reserva a ciegas.
+    const { parseSpanishDate } = require('../scheduling/date-parser');
+    const todayMadrid = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const normalizedDate = parseSpanishDate(args.date, todayMadrid);
+    if (!normalizedDate) {
+      return {
+        success: false,
+        error: `No he podido interpretar la fecha "${args.date || ''}". Pregunta al cliente el día concreto (por ejemplo: "el martes", "mañana" o "el 15") y vuelve a intentarlo.`,
+      };
+    }
     // "¿Le aviso a este número?" — la promesa es DETERMINISTA: el servidor
     // conoce el número del llamante; el LLM no. Sin esto, TODAS las citas
     // se guardaban con phone null (verificado en prod 2026-07-03) y los
@@ -281,7 +293,7 @@ class ToolExecutor {
       phone:       args.phone  || defaultPhone,
       email:       args.email  || null,
       service:     args.service || args.treatment || args.activity || args.reason || '',
-      date:        args.date,
+      date:        normalizedDate,
       time:        normalizedTime,
       notes:       args.notes || args.vehicle || '',
     });
