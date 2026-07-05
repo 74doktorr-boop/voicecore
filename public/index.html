@@ -89,7 +89,7 @@ nav.stuck{border-bottom-color:var(--line)}
 .hero-top .live{color:var(--lime)}
 .hero h1{font-size:clamp(3rem,8.4vw,7rem);letter-spacing:-.035em;line-height:.94}
 .hero h1 .lime{color:var(--lime)}
-.hero-lower{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:end;margin-top:clamp(36px,4vw,52px)}
+.hero-lower{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;margin-top:clamp(36px,4vw,52px)}
 .hero-lead{font-size:1.25rem;line-height:1.5;color:var(--ink-2);max-width:44ch}
 .hero-lead b{color:var(--ink);font-weight:600}
 .hero-ctas{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:32px}
@@ -166,8 +166,8 @@ nav.stuck{border-bottom-color:var(--line)}
 .cap.feat .tag{color:var(--lime)}
 
 /* ── sectors (running line) ── */
-.sectors-line{font-family:var(--disp);font-weight:500;font-size:clamp(1.4rem,3vw,2.4rem);line-height:1.35;color:var(--ink);letter-spacing:-.02em;max-width:24ch}
-.sectors-line .sep{color:var(--lime);margin:0 .28em;font-weight:600}
+.sectors-line{font-family:var(--disp);font-weight:500;font-size:clamp(1.15rem,2.2vw,1.7rem);line-height:1.45;color:var(--ink);letter-spacing:-.01em}
+.sectors-line .sep{color:var(--lime);font-weight:600}
 .sectors-line .own{color:var(--lime)}
 
 /* ── trust ── */
@@ -192,7 +192,8 @@ nav.stuck{border-bottom-color:var(--line)}
 .price-tag .per{font-family:var(--sans);font-size:.16em;font-weight:500;color:var(--ink-3);letter-spacing:0}
 .price-note{font-size:1.05rem;color:var(--ink-2);margin:22px 0 30px;max-width:32ch;line-height:1.5}
 .price-feats{border-top:1px solid var(--line)}
-.price-feats li{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);list-style:none;font-size:1.02rem;color:var(--ink-2)}
+.price-feats li{display:flex;align-items:baseline;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);list-style:none;font-size:1.02rem;color:var(--ink-2)}
+.price-feats .m{flex:none;width:16px}
 .price-feats .m{font-family:var(--mono);color:var(--lime)}
 .price-feats b{color:var(--ink);font-weight:600}
 .addons{display:grid;grid-template-columns:repeat(3,1fr);margin-top:40px;border-top:1px solid var(--line)}
@@ -366,7 +367,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <h2 class="h2">Aprende cómo se habla en lo tuyo.</h2>
       <p class="lead">Se adapta al vocabulario, los servicios y las normas de tu negocio. No es genérico: sabe de lo tuyo.</p>
     </div>
-    <div class="sectors-line">Clínicas dentales<span class="sep">·</span>Peluquerías<span class="sep">·</span>Estética<span class="sep">·</span>Fisioterapia<span class="sep">·</span>Veterinarias<span class="sep">·</span>Gimnasios<span class="sep">·</span>Restaurantes<span class="sep">·</span>Despachos<span class="sep">·</span>Talleres<span class="sep">·</span>Yoga<span class="sep">·</span>Hoteles<span class="sep">·</span><span class="own">+ el tuyo</span></div>
+    <div class="sectors-line">Clínicas dentales <span class="sep">·</span> Peluquerías <span class="sep">·</span> Estética <span class="sep">·</span> Fisioterapia <span class="sep">·</span> Veterinarias <span class="sep">·</span> Gimnasios <span class="sep">·</span> Restaurantes <span class="sep">·</span> Despachos <span class="sep">·</span> Talleres <span class="sep">·</span> Yoga <span class="sep">·</span> Hoteles <span class="sep">·</span> <span class="own">+ el tuyo</span></div>
   </div>
 </div></section>
 
@@ -400,13 +401,13 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <a href="/onboarding.html?plan=negocio" class="btn btn-fill">Empezar ahora →</a>
     </div>
     <ul class="price-feats">
-      <li><span class="m">✓</span> Atiende tus llamadas <b>24/7</b>, también festivos</li>
-      <li><span class="m">✦</span> Voz natural en <b>castellano, euskera y galego</b></li>
-      <li><span class="m">✦</span> Agenda citas en tu <b>Google Calendar</b></li>
-      <li><span class="m">✦</span> Memoria de clientes + <b>CRM completo</b></li>
-      <li><span class="m">✦</span> Recordatorios y reseñas por <b>WhatsApp</b></li>
-      <li><span class="m">✦</span> Recupera perdidas + lista de espera + reactivación</li>
-      <li><span class="m">✓</span> <b>500 min/mes</b> · sin permanencia</li>
+      <li><span class="m">✓</span><span>Atiende tus llamadas <b>24/7</b>, también festivos</span></li>
+      <li><span class="m">✦</span><span>Voz natural en <b>castellano, euskera y galego</b></span></li>
+      <li><span class="m">✦</span><span>Agenda citas en tu <b>Google Calendar</b></span></li>
+      <li><span class="m">✦</span><span>Memoria de clientes + <b>CRM completo</b></span></li>
+      <li><span class="m">✦</span><span>Recordatorios y reseñas por <b>WhatsApp</b></span></li>
+      <li><span class="m">✦</span><span>Recupera perdidas + lista de espera + reactivación</span></li>
+      <li><span class="m">✓</span><span><b>500 min/mes</b> · sin permanencia</span></li>
     </ul>
   </div>
   <div class="addons">
