@@ -203,12 +203,16 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/dashboard', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
 
-    const todayStr   = new Date().toISOString().slice(0, 10);
+    // "Hoy" en MADRID, no en UTC: con toISOString el dueño veía las stats de AYER
+    // entre las 00:00-02:00 (y las llamadas de esa franja se atribuían al día
+    // anterior). Se compara la fecha civil de Madrid de cada llamada.
+    const madridDay  = (ts) => ts ? new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }) : '';
+    const todayStr   = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     const allCalls   = pipeline.getCallHistory(500);
     const bizCalls   = allCalls.filter(c => (c.businessId || c.assistantId) === businessId);
     // BUG-30 FIX: callSession.toJSON() emits 'endTime'/'startTime', not 'endedAt'/'startedAt'.
     // Wrong field names made todayCalls always empty, so dashboard always showed zero calls.
-    const todayCalls = bizCalls.filter(c => (c.endTime || c.startTime || '').startsWith(todayStr));
+    const todayCalls = bizCalls.filter(c => madridDay(c.endTime || c.startTime) === todayStr);
 
     const callCount   = todayCalls.length;
     const bookedToday = todayCalls.filter(c => c.outcome === 'booked').length;
@@ -402,8 +406,8 @@ function setupPortalRoutes(app, pipeline, config) {
     }
 
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const weekday  = now.toLocaleDateString('es-ES', { weekday: 'long' });
+    const todayStr = now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const weekday  = now.toLocaleDateString('es-ES', { weekday: 'long', timeZone: 'Europe/Madrid' });
 
     const system = [
       `Eres el copiloto del portal NodeFlow del negocio "${flowConfig.name}". Hoy es ${weekday}, ${todayStr}.`,

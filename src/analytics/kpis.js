@@ -93,13 +93,13 @@ function timeSeries(calls = [], days = 14, now = Date.now()) {
   for (const c of calls) {
     const t = _ts(c.started_at || c.created_at);
     if (t == null) continue;
-    const day = new Date(t).toISOString().slice(0, 10);
+    const day = new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     if (!byDay[day]) byDay[day] = { calls: 0, bookings: 0 };
     byDay[day].calls++;
     if (c.outcome === 'booked') byDay[day].bookings++;
   }
   for (let i = days - 1; i >= 0; i--) {
-    const day = new Date(now - i * DAY).toISOString().slice(0, 10);
+    const day = new Date(now - i * DAY).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     out.push({ date: day, calls: byDay[day]?.calls || 0, bookings: byDay[day]?.bookings || 0 });
   }
   return out;
