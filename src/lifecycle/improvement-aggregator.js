@@ -33,14 +33,31 @@ function _norm(s) {
     .replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Temas canónicos: agrupan hallazgos aunque el auditor los redacte distinto, para
+// que un patrón recurrente (p.ej. "repetición") emerja como regla candidata en vez
+// de diluirse en variantes count-1. El clustering literal no lo pillaba.
+const THEMES = [
+  { key: 'repite',           re: /repet|repit|innecesari|ya (respond|dad|dich|dio)|volvi[oó] a (pregunt|pedir)/,        rule: 'No repetir preguntas ni datos que el cliente ya dio.' },
+  { key: 'promete_plazo',    re: /muy pronto|hoy mismo|en unos? minut|\bplazo\b/,                                        rule: 'No prometer un plazo concreto para el contacto del equipo.' },
+  { key: 'promete_envio',    re: /email|correo|whatsapp|env[ií]|adjunt/,                                                 rule: 'No prometer enviar nada (email/WhatsApp): el asistente no puede.' },
+  { key: 'falta_precio',     re: /precio|tarifa|coste|cu[aá]nto (cuesta|vale)/,                                          rule: 'Dar el precio configurado cuando lo piden.' },
+  { key: 'falta_horario',    re: /horario|hora de apertura|cu[aá]ndo abr|abiert/,                                        rule: 'Dar el horario configurado cuando lo piden.' },
+  { key: 'no_confirma_cita', re: /confirm.*(cita|reserva|d[ií]a|hora)|antes de (dar|reservar|confirmar)/,               rule: 'Confirmar día y hora en voz alta antes de dar la cita por hecha.' },
+];
+function _theme(normed) { for (const t of THEMES) if (t.re.test(normed)) return t; return null; }
+/** Clave de clúster theme-aware: por tema si encaja, si no por texto normalizado. */
+function _keyOf(text) { const n = _norm(text); if (!n) return ''; const th = _theme(n); return th ? 'theme:' + th.key : n; }
+
 function _cluster(texts) {
   const map = new Map();
   for (const t of texts) {
-    const key = _norm(t);
+    const key = _keyOf(t);
     if (!key) continue;
     const hit = map.get(key);
     if (hit) hit.count++;
-    else map.set(key, { text: String(t).trim(), count: 1 });
+    // Se agrupa por TEMA (la clave), pero se muestra el PRIMER texto real como
+    // representante — no se reescribe el hallazgo del auditor.
+    else map.set(key, { key, text: String(t).trim(), count: 1 });
   }
   return [...map.values()].sort((a, b) => b.count - a.count);
 }
@@ -51,9 +68,9 @@ function _findingKeys(rows) {
   for (const r of rows || []) {
     const audit = r.metrics && r.metrics.audit;
     if (!audit) continue;
-    if (audit.info_gap) keys.add(_norm(audit.info_gap));
-    for (const p of audit.problems || []) keys.add(_norm(p));
-    for (const i of audit.improvements || []) keys.add(_norm(i));
+    if (audit.info_gap) keys.add(_keyOf(audit.info_gap));
+    for (const p of audit.problems || []) keys.add(_keyOf(p));
+    for (const i of audit.improvements || []) keys.add(_keyOf(i));
   }
   keys.delete('');
   return keys;
@@ -109,7 +126,7 @@ function aggregateFindings(rows, previousRows) {
   const prevKeys = _findingKeys(previousRows);
 
   for (const org of Object.values(out.byOrg)) {
-    org.infoGaps = _cluster(org._gaps).map(c => ({ gap: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) }));
+    org.infoGaps = _cluster(org._gaps).map(c => ({ gap: c.text, count: c.count, recurrent: prevKeys.has(c.key) }));
     delete org._gaps;
   }
 
@@ -118,10 +135,10 @@ function aggregateFindings(rows, previousRows) {
     out.hallucinationRate = Math.round((hallucinated / out.audited) * 100);
   }
   out.topProblems = _cluster(allProblems).slice(0, 10)
-    .map(c => ({ ...c, recurrent: prevKeys.has(_norm(c.text)) }));
+    .map(c => ({ text: c.text, count: c.count, recurrent: prevKeys.has(c.key) }));
   out.candidateRules = _cluster(allImprovements)
     .filter(c => c.count >= RULE_MIN_COUNT)
-    .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) }));
+    .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(c.key) }));
 
   // Reglas candidatas y problemas POR SECTOR — se aprueban y aplican a la
   // plantilla de ESE vertical, no a todos.
@@ -129,10 +146,10 @@ function aggregateFindings(rows, previousRows) {
     out.bySector[sec] = {
       audited: s.audited,
       avgScore: s.audited > 0 ? Math.round(s.scoreSum / s.audited) : null,
-      topProblems: _cluster(s.problems).slice(0, 5).map(c => ({ ...c, recurrent: prevKeys.has(_norm(c.text)) })),
+      topProblems: _cluster(s.problems).slice(0, 5).map(c => ({ text: c.text, count: c.count, recurrent: prevKeys.has(c.key) })),
       candidateRules: _cluster(s.improvements)
         .filter(c => c.count >= RULE_MIN_COUNT)
-        .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(_norm(c.text)) })),
+        .map(c => ({ rule: c.text, count: c.count, recurrent: prevKeys.has(c.key) })),
     };
   }
 

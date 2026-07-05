@@ -148,6 +148,43 @@ describe('runImprovementCycle — el ciclo completo con fakes', () => {
   });
 });
 
+// ── Clustering TEMÁTICO (2026-07-05): variantes de un patrón se agrupan ────
+// Antes el clustering era por string exacto → "Repetición del nombre" y
+// "Repetición de preguntas" salían count-1 cada una y no cruzaban el umbral.
+// Ahora agrupan por TEMA (la clave), mostrando el primer texto real.
+describe('clustering temático — agrupa variantes del mismo patrón', () => {
+  test('mejoras de "repetición" redactadas distinto → una sola regla candidata (count 2)', () => {
+    const agg = aggregateFindings([
+      row('o', { score: 60, improvements: ['No repetir el nombre del cliente tantas veces.'] }),
+      row('o', { score: 60, improvements: ['Evitar repetir preguntas ya respondidas.'] }),
+    ]);
+    const rep = agg.candidateRules.find(r => /repet|repit/i.test(r.rule));
+    assert.ok(rep, 'las variantes de repetición se agrupan en una regla');
+    assert.strictEqual(rep.count, 2);
+  });
+
+  test('recurrencia por TEMA: promesa de envío redactada distinto entre periodos = recurrente', () => {
+    const prev = [row('o', { score: 50, problems: ['Prometió enviar un email que no puede.'] })];
+    const agg = aggregateFindings([
+      row('o', { score: 50, problems: ['Dijo que mandaría la info por WhatsApp.'] }),
+      row('o', { score: 50, problems: ['Dijo que mandaría la info por WhatsApp.'] }),
+    ], prev);
+    const env = agg.topProblems.find(p => /whatsapp/i.test(p.text));
+    assert.ok(env, 'el problema de envío aparece');
+    assert.strictEqual(env.count, 2);
+    assert.strictEqual(env.recurrent, true); // email (antes) y whatsapp (ahora) = mismo tema
+  });
+
+  test('hallazgos SIN tema siguen agrupando por texto exacto (no se sobre-mezclan)', () => {
+    const agg = aggregateFindings([
+      row('o', { score: 60, improvements: ['Hablar un poco más despacio.'] }),
+      row('o', { score: 60, improvements: ['Saludar con el nombre del negocio.'] }),
+    ]);
+    // dos temas distintos, ninguno con tema conocido → no se agrupan → ninguna ≥2
+    assert.strictEqual(agg.candidateRules.length, 0);
+  });
+});
+
 // ── Sector-aware (2026-07-04): reglas candidatas POR VERTICAL ──────────────
 describe('aggregateFindings — agrupación POR SECTOR', () => {
   const rowSec = (org, sector, audit) => ({ org_id: org, started_at: new Date().toISOString(), metrics: { audit: { ...audit, sector } } });
