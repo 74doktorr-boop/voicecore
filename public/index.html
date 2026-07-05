@@ -162,7 +162,18 @@ nav.stuck{border-bottom-color:var(--border)}
 .step p{font-size:1rem;color:var(--text);line-height:1.55}
 
 /* outcomes */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.bento .oc{grid-column:1/-1}
+.oc--feature{background:linear-gradient(150deg,rgba(var(--accent-rgb),.06),var(--surface));border-color:rgba(var(--accent-rgb),.24)}
+@media(min-width:921px){
+  .bento .oc{grid-column:span 4}
+  .bento .oc--wide8{grid-column:span 8}
+  .bento .oc--full{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:32px;row-gap:6px;align-content:center;padding:34px 38px}
+  .bento .oc--full .oc-ico{grid-column:1;grid-row:1/span 3;align-self:center;margin:0;width:62px;height:62px;font-size:2rem}
+  .bento .oc--full h3{grid-column:2;grid-row:1;font-size:1.5rem}
+  .bento .oc--full p{grid-column:2;grid-row:2;max-width:72ch}
+  .bento .oc--full .tag{grid-column:2;grid-row:3;justify-self:start}
+}
 .oc{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:30px;transition:border-color .3s,transform .3s var(--ease)}
 .oc:hover{border-color:rgba(var(--accent-rgb),.35);transform:translateY(-4px)}
 .oc-ico{font-size:1.55rem;width:46px;height:46px;border-radius:12px;background:none;border:1px solid var(--border-2);display:grid;place-items:center;margin-bottom:18px}
@@ -240,7 +251,7 @@ footer{border-top:1px solid var(--border);padding:48px 0 40px;margin-top:40px}
   .hero{grid-template-columns:1fr;gap:40px;padding:34px 0 56px}.nav-links{display:none}.callcard{order:2}
   .proof .wrap{gap:18px;justify-content:center;text-align:center}.proof-div{display:none}.proof-num{font-size:1.6rem}
   .cost,.trust,.price-grid{grid-template-columns:1fr;gap:32px}
-  .steps,.grid-2{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
   .trust{padding:34px}
   .wa-float{bottom:82px;width:52px;height:52px}
   .mobile-cta{display:block;position:fixed;left:0;right:0;bottom:0;z-index:55;padding:11px 16px calc(11px + env(safe-area-inset-bottom));background:rgba(8,9,11,.93);backdrop-filter:blur(12px);border-top:1px solid var(--border)}
@@ -343,13 +354,13 @@ footer{border-top:1px solid var(--border);padding:48px 0 40px;margin-top:40px}
 <!-- CAPABILITIES / OUTCOMES -->
 <section class="sec" id="capacidades"><div class="wrap">
   <div class="sec-head"><div class="eyebrow">Qué hace por ti</div><h2>No es un contestador. Es tu negocio <span class="u-line">trabajando solo</span>.</h2><p>Todo incluido en el plan. Sin módulos que activar ni sorpresas.</p></div>
-  <div class="grid-2">
+  <div class="bento">
     <div class="oc"><div class="oc-ico">📅</div><h3>Agenda citas mientras trabajas</h3><p>Consulta tu disponibilidad real y reserva en tu Google Calendar durante la llamada. El cliente cuelga con su cita hecha.</p><span class="tag">Sincroniza con tu calendario</span></div>
-    <div class="oc"><div class="oc-ico">🧠</div><h3>Recuerda a cada cliente</h3><p>Sabe quién llama, qué pidió la última vez y cómo se llama. Cada conversación es personal, como con un empleado de años.</p><span class="tag">CRM que se llena solo</span></div>
+    <div class="oc oc--feature oc--wide8"><div class="oc-ico">🧠</div><h3>Recuerda a cada cliente</h3><p>Sabe quién llama, qué pidió la última vez y cómo se llama. Cada conversación es personal, como con un empleado de años. No es un contestador: es memoria que trabaja a tu favor en cada llamada.</p><span class="tag">CRM que se llena solo</span></div>
     <div class="oc"><div class="oc-ico">💬</div><h3>Confirma y recuerda por WhatsApp</h3><p>Manda la confirmación al instante y un recordatorio el día antes con botones. Menos ausencias, sin que muevas un dedo.</p><span class="tag">Menos no-shows</span></div>
     <div class="oc"><div class="oc-ico">🔄</div><h3>Recupera lo que se perdía</h3><p>Rellena huecos con la lista de espera y vuelve a llamar a clientes que hace tiempo no vienen. Ingresos que antes se escapaban.</p><span class="tag">Reactivación automática</span></div>
     <div class="oc"><div class="oc-ico">⭐</div><h3>Consigue más reseñas</h3><p>Tras cada cita, pide la reseña al cliente en el momento justo por WhatsApp. Más valoraciones sin que tengas que pedirlas tú.</p><span class="tag">Reputación en piloto automático</span></div>
-    <div class="oc"><div class="oc-ico">📊</div><h3>Te dice qué hacer</h3><p>Resume cómo va tu negocio, detecta lo que se te escapa y te propone la acción con un clic. Como un socio que mira los números por ti.</p><span class="tag">Análisis + recomendaciones</span></div>
+    <div class="oc oc--feature oc--full"><div class="oc-ico">📊</div><h3>Y te dice qué hacer con todo ello</h3><p>Resume cómo va tu negocio, detecta lo que se te escapa y te propone la acción con un clic. No solo ejecuta: piensa por ti. Como un socio que mira los números mientras tú trabajas.</p><span class="tag">Análisis + recomendaciones</span></div>
   </div>
 </div></section>
 
