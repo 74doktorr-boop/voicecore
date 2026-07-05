@@ -618,8 +618,8 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   content: ''; position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
   width: 1px; height: calc(100% + 14px); background: var(--border-2);
 }
-.nf-feed-dot.ok   { background: var(--green);  box-shadow: 0 0 10px rgba(33,192,138,.5); }
-.nf-feed-dot.brand{ background: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb),.5); }
+.nf-feed-dot.ok   { background: var(--green); }
+.nf-feed-dot.brand{ background: var(--accent); }
 .nf-feed-dot.info { background: var(--blue); }
 .nf-feed-body { flex: 1; min-width: 0; }
 .nf-feed-text { font-size: var(--fs-md); color: var(--text); }
@@ -1140,7 +1140,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .chart-bars { display: flex; align-items: flex-end; gap: var(--sp-2); height: 160px; position: relative; }
 .chart-bar {
   flex: 1; min-width: 6px; border-radius: var(--r-1) var(--r-1) 0 0;
-  background: linear-gradient(180deg, var(--accent), rgba(var(--accent-rgb),.35));
+  background: var(--accent);
   transition: filter var(--dur-1); align-self: flex-end;
 }
 .chart-bar:hover { filter: brightness(1.15); }
