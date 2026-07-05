@@ -199,9 +199,14 @@ nav.stuck{border-bottom-color:var(--line)}
 .price-feats .m{flex:none;width:16px}
 .price-feats .m{font-family:var(--mono);color:var(--lime)}
 .price-feats b{color:var(--ink);font-weight:600}
-.addons{display:grid;grid-template-columns:repeat(3,1fr);margin-top:40px;border-top:1px solid var(--line)}
-.addon{padding:22px 20px 22px 0;border-left:1px solid var(--line);padding-left:20px}
+.addons-head{display:block;margin-top:40px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-decoration:none}
+.addons-head span{color:var(--ink-3)}
+.addons-head:hover span{color:var(--lime)}
+.addons{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line)}
+.addon{display:block;text-decoration:none;color:inherit;padding:22px 20px 22px 0;border-left:1px solid var(--line);padding-left:20px;transition:background .2s}
 .addon:first-child{border-left:none;padding-left:0}
+.addon:hover{background:rgba(240,244,240,.02)}
+.addon:hover h4{color:var(--lime)}
 .addon h4{font-size:1rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
 .addon .ap{font-family:var(--mono);color:var(--lime);font-weight:500}
 .addon p{font-size:.9rem;color:var(--ink-3);line-height:1.45}
@@ -271,7 +276,6 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
 <header class="section hero" id="hero" style="border-top:none"><div class="wrap">
   <div class="hero-top">
     <span>Recepcionista IA · Euskal Herria</span>
-    <span class="live">● Castellano · Euskera · Galego</span>
   </div>
   <h1>Nunca más pierdas<br>un <span class="lime">cliente</span>.</h1>
   <div class="hero-lower">
@@ -313,7 +317,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <div class="stat"><div class="fig">24/7</div><div class="lbl">Atiende siempre · noches y festivos</div></div>
     <div class="stat"><div class="fig"><em>0</em></div><div class="lbl">Llamadas perdidas = clientes perdidos</div></div>
     <div class="stat"><div class="fig">&lt;2 s</div><div class="lbl">Responde como una persona</div></div>
-    <div class="stat"><div class="fig"><em>49€</em></div><div class="lbl">Todo incluido · vs 800€ de recepcionista</div></div>
+    <div class="stat"><div class="fig"><em>49€</em></div><div class="lbl">Al mes · todo incluido, sin sorpresas</div></div>
   </div>
 </div></section>
 
@@ -327,7 +331,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <div class="cost-list">
         <div class="cost-row"><span class="mk">✕</span><div>El <b>62% de quien no es atendido no vuelve a llamar</b>. Se va a la competencia.</div></div>
         <div class="cost-row"><span class="mk">✕</span><div>Las llamadas caen <b>fuera de horario, en festivos y a la hora punta</b> — justo cuando no puedes cogerlas.</div></div>
-        <div class="cost-row"><span class="mk">✕</span><div>Un contestador <b>no agenda ni resuelve</b> nada. Y contratar a alguien cuesta 800–1.000€/mes.</div></div>
+        <div class="cost-row"><span class="mk">✕</span><div>Un contestador <b>no agenda ni resuelve</b> nada, y estar pendiente del teléfono te <b>saca de lo tuyo</b> todo el día.</div></div>
       </div>
     </div>
     <div class="figure">
@@ -391,7 +395,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       </div>
     </div>
     <div class="quote">
-      <div class="q">Detrás de NodeFlow hay una persona, no un call center. Si algo no funciona, me escribes tú a mí y lo arreglo.</div>
+      <div class="q">Detrás de NodeFlow hay una persona de verdad, no un call center. Trato directo y cercano, y soporte humano en español siempre que lo necesites.</div>
       <div class="by"><div class="fa">U</div><div><div class="fn">Unai · fundador de NodeFlow</div><div class="fr">Euskal Herria · soporte humano en español</div></div></div>
     </div>
   </div>
@@ -403,7 +407,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   <div class="price-split">
     <div>
       <div class="price-tag"><sup>€</sup>49<span class="per"> /mes</span></div>
-      <p class="price-note">Tu recepcionista 24/7, por menos que una mañana de un empleado.</p>
+      <p class="price-note">Tu asistente atendiendo cada llamada del negocio, 24/7 y sin descanso.</p>
       <a href="/onboarding.html?plan=negocio" class="btn btn-fill">Empezar ahora →</a>
     </div>
     <ul class="price-feats">
@@ -416,12 +420,13 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <li><span class="m">✓</span><span><b>500 min/mes</b> · sin permanencia</span></li>
     </ul>
   </div>
+  <a class="addons-head" href="/onboarding.html?plan=negocio">Extras opcionales <span>— los activas cuando quieras desde tu panel →</span></a>
   <div class="addons">
-    <div class="addon"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
-    <div class="addon"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
-    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></div>
+    <a class="addon" href="/onboarding.html?plan=negocio"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></a>
+    <a class="addon" href="/onboarding.html?plan=negocio"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></a>
+    <a class="addon" href="/onboarding.html?plan=negocio"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></a>
   </div>
-  <div class="price-foot">Un recepcionista a tiempo parcial cuesta 800–1.000€/mes. NodeFlow atiende cada llamada por <b>49€</b> · IVA incluido · Cancela cuando quieras</div>
+  <div class="price-foot">Todo lo de arriba por <b>49€ al mes</b> · IVA incluido · Sin permanencia · Cancela cuando quieras</div>
 </div></section>
 
 <!-- FAQ -->
