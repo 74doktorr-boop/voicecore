@@ -687,7 +687,10 @@ function setupPortalRoutes(app, pipeline, config) {
     const DOW_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const callsByDow = Array(7).fill(0);
     for (const c of periodCalls) {
-      const d = new Date(c.endTime || c.startTime || Date.now());
+      // Día de la semana en MADRID (no en el huso del servidor UTC): una llamada de
+      // madrugada podía caer en el día anterior y descuadrar el gráfico del portal.
+      const d = new Date(new Date(c.endTime || c.startTime || Date.now())
+        .toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
       callsByDow[d.getDay()]++;
     }
     const callsByDayOfWeek = DOW_LABELS.map((label, i) => ({ label, value: callsByDow[i] }));

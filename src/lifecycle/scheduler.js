@@ -254,10 +254,11 @@ async function processCampaigns() {
   const db = getDatabase();
   if (!db.enabled) return;
 
-  const now   = new Date();
-  const month = now.getMonth() + 1;
-  const day   = now.getDate();
-  const year  = now.getFullYear();
+  // Fecha de HOY en MADRID (no en el huso del servidor): las campañas por día del
+  // mes (fire_month/fire_day) deben dispararse en el día civil del negocio; con la
+  // hora del servidor (UTC) el cron cerca de medianoche las lanzaría el día erróneo.
+  const [year, month, day] = new Date()
+    .toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }).split('-').map(Number);
 
   const { data: campaigns } = await db.client
     .from('org_campaigns')
