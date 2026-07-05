@@ -1163,20 +1163,13 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .progress { background: var(--surface-2); border-radius: var(--r-pill); height: 8px; overflow: hidden; }
 .progress-bar { height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width var(--dur-3) var(--ease-out); }
 
-/* -- 29c · CALLOUT / ALERT --------------------------------------------- */
-.callout { display: flex; gap: var(--sp-2); align-items: flex-start; padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--r-3); font-size: var(--fs-sm); line-height: 1.5;
-  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
-.callout-error  { color: var(--red);      background: rgba(240,100,90,.1);          border-color: rgba(240,100,90,.24); }
-.callout-warn   { color: var(--yellow);   background: rgba(246,197,68,.1);          border-color: rgba(246,197,68,.26); }
-.callout-accent { color: var(--accent-l); background: rgba(var(--accent-rgb),.08);  border-color: var(--border-accent); }
-
-/* -- 29c · CALLOUT + tarjeta semantica --------------------------------- */
+/* -- 29c · CALLOUT / ALERT + tarjeta semantica ------------------------- */
 .callout { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
   padding: 12px 16px; border-radius: var(--r-2); border: 1px solid var(--border);
   font-size: var(--fs-sm); color: var(--dim); line-height: 1.6; }
 .callout--accent { background: rgba(var(--accent-rgb),.08); border-color: var(--border-accent); }
 .callout--warn   { background: rgba(var(--yellow-rgb),.07); border-color: rgba(var(--yellow-rgb),.30); }
+.callout--error  { color: var(--red); background: rgba(240,100,90,.1); border-color: rgba(240,100,90,.24); }
 .callout--block  { display: block; }                 /* variante solo-texto (sin fila) */
 .card--warn { background: rgba(var(--yellow-rgb),.04); border-color: rgba(var(--yellow-rgb),.30); }
 

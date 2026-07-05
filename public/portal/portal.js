@@ -3759,7 +3759,7 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
   var overageWarn = '';
   if (usage.overage > 0) {
     overageWarn =
-      '<div class="callout callout-error u-mt-2">' +
+      '<div class="callout callout--error u-mt-2">' +
         '⚠️ Has superado tu límite de minutos en <strong>' + usage.overage.toFixed(1) + ' min</strong>. ' +
         'Cargo adicional estimado: <strong>€' + usage.overageCost.toFixed(2) + '</strong>.' +
       '</div>';
