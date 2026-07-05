@@ -175,8 +175,9 @@ h1, h2, h3 { text-wrap: balance; color: var(--white); }
   font-family: var(--font-display); font-size: clamp(30px, 3.4vw, 44px);
   font-weight: 600; letter-spacing: -.03em; line-height: 1.02;
 }
-/* Kicker mono opcional dentro de la cabecera (categoría de la vista) */
-.section-header .kicker { margin-bottom: var(--sp-2); }
+/* Kicker mono de categoría dentro de la cabecera: ocupa su propia línea (sobre
+   el título) vía flex-wrap, sin reestructurar el markup (título + acciones bajan). */
+.section-header .kicker { order: -1; width: 100%; margin: 0 0 var(--sp-1); }
 .section-hd-titles { min-width: 0; }
 .section-desc, .section-sub { font-size: var(--fs-md); color: var(--dim); margin-top: var(--sp-2); }
 

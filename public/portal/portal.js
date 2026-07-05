@@ -1413,7 +1413,7 @@ async function loadCalls(outcome, from, to) {
   }
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">Llamadas</div>' +
+    '<div class="section-header"><div class="kicker">Actividad</div><div class="section-title">Llamadas</div>' +
       '<button class="btn btn-d btn-sm" onclick="toggleCallNotifications(this)" title="Avisarme en pantalla de cada llamada">' + (notificationsEnabled() ? '🔔 Avisos' : '🔕 Avisos') + '</button>' +
     '</div>' +
     '<div class="filter-bar">' +
@@ -1644,7 +1644,7 @@ function renderCitas() {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<div class="section-title">Citas</div>' +
+      '<div class="kicker">Actividad</div><div class="section-title">Citas</div>' +
       '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
         '<div class="tabs">' +
           '<button class="tab-btn' + (_citasView === 'semana' ? ' active' : '') + '" onclick="setCitasView(\'semana\')">Semana</button>' +
@@ -1845,7 +1845,7 @@ async function loadInformes(period) {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<div class="section-title">Informes</div>' +
+      '<div class="kicker">Crecimiento</div><div class="section-title">Informes</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + periodBtns + '</div>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + (PERIOD_LABEL[period] || period) + '</div>' +
@@ -1933,7 +1933,7 @@ async function loadAutomatizaciones() {
   }
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">Automatizaciones</div></div>' +
+    '<div class="section-header"><div class="kicker">Tu asistente</div><div class="section-title">Automatizaciones</div></div>' +
     '<div class="auto-grid">' +
       // Reminders card
       '<div class="auto-card"><div class="auto-row"><div>' +
@@ -2112,7 +2112,7 @@ async function loadConfig() {
   });
 
   sec.innerHTML =
-    '<div class="section-header"><div class="section-title">Configuración</div></div>' +
+    '<div class="section-header"><div class="kicker">Cuenta</div><div class="section-title">Configuración</div></div>' +
     '<div class="card u-mx-auto u-maxw-form">' +
       '<div class="form-section-title">Información general</div>' +
       '<div class="form-row">' +
@@ -2478,7 +2478,7 @@ async function loadClientes(q) {
   // Día-1: sin clientes y sin filtros → empty state que enseña y empuja a activar
   if (_all.length === 0 && !q && !_clientesTag && !_clientesAttention) {
     sec.innerHTML =
-      '<div class="section-header"><div class="section-title">Clientes</div></div>' +
+      '<div class="section-header"><div class="kicker">Actividad</div><div class="section-title">Clientes</div></div>' +
       emptyState('👥', 'Aún no tienes clientes',
         'Cada persona que llame a tu asistente aparecerá aquí con su historial, sus citas y sus etiquetas — tu CRM se construye solo con cada llamada. Configura tu asistente para recibir la primera.',
         '<button class="btn btn-accent" onclick="navigate(\'asistente\')">Configurar mi asistente →</button>');
@@ -2545,7 +2545,7 @@ async function loadClientes(q) {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<div class="section-title">Clientes</div>' +
+      '<div class="kicker">Actividad</div><div class="section-title">Clientes</div>' +
       '<div class="u-flex u-items-center u-gap-2">' +
         '<span class="u-text-md u-dim">' + (data.count || 0) + ' contactos</span>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
@@ -3818,7 +3818,7 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
 
   sec.innerHTML =
     '<div class="section-header">' +
-      '<h2 class="section-title">Facturación</h2>' +
+      '<div class="kicker">Cuenta</div><h2 class="section-title">Facturación</h2>' +
       '<p class="section-sub">Gestiona tu plan y consulta tus facturas</p>' +
     '</div>' +
     valueStrip +
@@ -4119,7 +4119,7 @@ async function loadIntegraciones() {
   sec.innerHTML =
     '<div class="section-header">' +
       '<div>' +
-        '<div class="section-title">Integraciones</div>' +
+        '<div class="kicker">Tu asistente</div><div class="section-title">Integraciones</div>' +
         '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tus herramientas: WhatsApp, Google Calendar y más</div>' +
       '</div>' +
     '</div>' +
