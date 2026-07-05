@@ -3097,8 +3097,15 @@ function _voiceEsc(s) {
 
 var _voiceTiers = {};
 var _hasPremiumVoice = false; // ¿el negocio tiene el add-on de voz Premium?
+var _voiceUsage = null;       // consumo del mes (minutos incluidos/usados/extra) para la barra de plan
 function loadVoiceCatalog() {
   var grid = document.getElementById('voice-grid');
+  // Minutos del plan: para que el dueño VALORE (cuántos incluye, cuánto el extra)
+  // antes de elegir voz. Sale del plan REAL — no se hardcodea (enterprise=ilimitado).
+  api('/api/billing/usage').then(function(u) {
+    _voiceUsage = u;
+    if (document.getElementById('voice-grid')) renderVoiceGrid();
+  }).catch(function() {});
   // El estado del add-on decide si las Premium salen con candado (se ven y se
   // escuchan igual — el candado es el gancho de venta, no un muro).
   api('/api/portal/addons').then(function(d) {
@@ -3117,6 +3124,37 @@ function setVoiceFilter(g, btn) {
   var chips = document.querySelectorAll('.vf-chip');
   for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('active', chips[i] === btn);
   renderVoiceGrid();
+}
+
+// Barra de plan sobre el grid: minutos incluidos + coste del extra + qué cuestan
+// las voces. Responde "¿qué me da mi plan?" justo donde el dueño decide la voz.
+function _voicePlanBar() {
+  var u = _voiceUsage;
+  var planName = (_orgInfo && _orgInfo.plan === 'negocio') ? 'NodeFlow'
+    : (_orgInfo && _orgInfo.plan ? (_orgInfo.plan.charAt(0).toUpperCase() + _orgInfo.plan.slice(1)) : '');
+  var line1;
+  if (u && u.minutesLimit != null) {
+    var limit = u.minutesLimit;
+    if (limit >= 99999) {
+      line1 = 'Tu plan' + (planName ? ' <strong>' + _voiceEsc(planName) + '</strong>' : '') + ' incluye <strong>minutos ilimitados</strong> de voz.';
+    } else {
+      var rem  = Math.max(0, Math.floor(u.minutesRemaining != null ? u.minutesRemaining : (limit - (u.minutesUsed || 0))));
+      var rate = (u.overageRate != null ? u.overageRate : 0.15).toFixed(2).replace('.', ',');
+      line1 = 'Tu plan' + (planName ? ' <strong>' + _voiceEsc(planName) + '</strong>' : '') + ' incluye <strong>' + limit
+        + ' min/mes</strong> · te quedan <strong>' + rem + ' min</strong> este mes · el minuto extra, ' + rate + '€.';
+    }
+  } else {
+    line1 = 'La voz que elijas usa los <strong>minutos incluidos en tu plan</strong> — la Premium no gasta más.';
+  }
+  var showCta = !!(u && u.minutesLimit != null && u.minutesLimit < 99999);
+  return '<div class="voice-planbar">'
+    + '<span class="vpb-ico">📞</span>'
+    + '<div class="vpb-txt">'
+      + '<div class="vpb-1">' + line1 + '</div>'
+      + '<div class="vpb-2">Voz <strong>estándar incluida</strong> · voces <strong>Premium +10€/mes</strong>, mismas llamadas y mismos minutos.</div>'
+    + '</div>'
+    + (showCta ? '<span class="vpb-cta" onclick="navigate(\'facturacion\')">Ver mis minutos →</span>' : '')
+    + '</div>';
 }
 
 function renderVoiceGrid() {
@@ -3179,7 +3217,7 @@ function renderVoiceGrid() {
                 note: 'Voces rápidas incluidas en tu plan.' },
   };
   var shown = TIER_ORDER.filter(function(t) { return byTier[t] && byTier[t].length; });
-  grid.innerHTML = shown.map(function(t, i) {
+  grid.innerHTML = _voicePlanBar() + shown.map(function(t, i) {
     var c = TIER_COPY[t] || { title: t, badge: '', cls: 'inc', note: '' };
     var header = '<div class="voice-tier' + (i > 0 ? ' mt' : '') + '">'
       + '<span class="voice-tier-title">' + _voiceEsc(c.title) + '</span>'

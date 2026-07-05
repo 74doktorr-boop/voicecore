@@ -23,7 +23,7 @@ class ElevenLabsTTS {
    * @param {string} params.modelId - Model ID
    * @returns {Buffer} mulaw 8kHz audio
    */
-  async synthesize({ callId, text, voiceId = (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa'), modelId, stability = 0.5, similarityBoost = 0.75, language = 'es', format = 'mulaw' }) {
+  async synthesize({ callId, text, voiceId = (process.env.ELEVENLABS_VOICE_ID || 'dNjJKg63Fr5AXwIdkATa'), modelId, stability = 0.65, similarityBoost = 0.75, language = 'es', format = 'mulaw' }) {
     const startTime = Date.now();
 
     if (!text || text.trim().length === 0) {
@@ -33,6 +33,10 @@ class ElevenLabsTTS {
     // eleven_flash_v2_5: baja latencia + coste ~mitad de Turbo, recomendado para teléfono.
     const resolvedModel = modelId ?? 'eleven_flash_v2_5';
 
+    // language_code SOLO lo aceptan los modelos v2_5 (flash/turbo). En
+    // eleven_multilingual_v2 (calidad máxima, lo usa la DEMO) la API devuelve
+    // 400 si se envía → auto-detecta idioma. Lo omitimos según el modelo.
+    const supportsLangCode = /_v2_5$/.test(resolvedModel);
     // Map BCP-47 to ElevenLabs language codes
     const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
     const langCode = LANG_MAP[language] ?? 'es';
@@ -57,7 +61,7 @@ class ElevenLabsTTS {
         body: JSON.stringify({
           text,
           model_id:      resolvedModel,
-          language_code: langCode,
+          ...(supportsLangCode ? { language_code: langCode } : {}),
           voice_settings: {
             stability,
             similarity_boost: similarityBoost,
@@ -100,6 +104,7 @@ class ElevenLabsTTS {
     if (!text || text.trim().length === 0) return;
 
     const resolvedModel = modelId ?? 'eleven_flash_v2_5';
+    const supportsLangCode = /_v2_5$/.test(resolvedModel);
     const LANG_MAP = { es: 'es', eu: 'es', gl: 'es', en: 'en', fr: 'fr', de: 'de', pt: 'pt', it: 'it' };
     const langCode = LANG_MAP[language] ?? 'es';
 
@@ -115,9 +120,9 @@ class ElevenLabsTTS {
         body: JSON.stringify({
           text,
           model_id:      resolvedModel,
-          language_code: langCode,
+          ...(supportsLangCode ? { language_code: langCode } : {}),
           voice_settings: {
-            stability:         0.5,
+            stability:         0.65,
             similarity_boost:  0.75,
             style:             0.0,
             use_speaker_boost: true,

@@ -228,7 +228,10 @@ function setupDemoRoutes(app, ttsRouter) {
           // válidos de ElevenLabs. Los traducimos a un voiceId real para que la
           // demo suene SIEMPRE a ElevenLabs (default seguro si es desconocido).
           const voiceId = resolveElevenVoice(voice);
-          const mp3 = await eleven.synthesize({ callId, text, voiceId, language, format: 'mp3' });
+          // Modelo de CALIDAD, no de latencia: la demo se pregraba una vez y se
+          // sirve estática — aquí lo único que importa es que suene de 10 (Flash
+          // tartamudea/repite; multilingual_v2 es el más estable y natural).
+          const mp3 = await eleven.synthesize({ callId, text, voiceId, language, format: 'mp3', modelId: 'eleven_multilingual_v2' });
           ttsCachePut(cacheKey, mp3, 'audio/mpeg', 'elevenlabs');
           res.set('Content-Type', 'audio/mpeg');
           res.set('X-TTS-Provider', 'elevenlabs');
