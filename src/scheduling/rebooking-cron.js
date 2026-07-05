@@ -9,6 +9,7 @@ const { flowManager }          = require('../automations/flow-manager');
 const { scheduler }            = require('./scheduler');
 const { sendRebookingEmail, sendRebookingFollowUp } = require('../notifications/rebooking-notifications');
 const { reactivationEligible, enqueueReactivationCall } = require('../campaigns/enqueuers');
+const { sendWaReactivation }   = require('../notifications/reminders');
 const { getDatabase }          = require('../db/database');
 const { hasAddon }             = require('../billing/addons');
 const { Logger }               = require('../utils/logger');
@@ -186,11 +187,11 @@ async function checkAndSendRebookings() {
       checked++;
       const key = _sentKey(businessId, client.phone || client.email);
 
-      // ── Canal VOZ (opt-in) — el asistente LLAMA al cliente antiguo ─────
+      // ── Canal VOZ / WHATSAPP (opt-in) — reactivación por teléfono ─────
       // Mismos candados que email: umbral del sector, tope anual, do-not-contact
-      // (dentro del enqueuer) y ventana horaria (dispatcher). Una llamada, sin
-      // segundo toque: es una invitación, no una campaña de acoso.
-      if (channel === 'voice') {
+      // y ventana horaria (voz → dispatcher). Una sola toma, sin segundo toque:
+      // es una invitación, no una campaña de acoso.
+      if (channel === 'voice' || channel === 'whatsapp') {
         if (!reactivationEligible(client, threshold)) continue;
         const lastSent = _sentLog.get(key);
         if (lastSent && Math.floor((Date.now() - lastSent) / 86400000) < threshold) continue;
@@ -198,16 +199,24 @@ async function checkAndSendRebookings() {
         const sentThisYear = _sentLog.get(yearKey) || 0;
         if (sentThisYear >= maxPerYear) continue;
         try {
-          const r = await enqueueReactivationCall(businessId, flow.name, client);
-          if (r && r.queued) {
+          let ok = false;
+          if (channel === 'voice') {
+            const r = await enqueueReactivationCall(businessId, flow.name, client);
+            ok = !!(r && r.queued);
+          } else {
+            const config = flowManager.mergeConfig(businessId, scheduler.getBusinessConfig(businessId) || {});
+            config.sector = sector;
+            ok = await sendWaReactivation({ phone: client.phone, name: client.name, businessId }, config);
+          }
+          if (ok) {
             _sentLog.set(key, Date.now());
             _sentLog.set(yearKey, sentThisYear + 1);
             _persistSent(businessId, key, 1, sentThisYear + 1).catch(() => {});
             sent++;
-            log.info(`Reactivación por voz encolada: ${client.phone} (${businessId}/${sector}, last:${client.lastVisitDate})`);
+            log.info(`Reactivación por ${channel}: ${client.phone} (${businessId}/${sector}, last:${client.lastVisitDate})`);
           }
         } catch (e) {
-          log.warn(`Reactivación voz fallida: ${client.phone}`, { err: e.message });
+          log.warn(`Reactivación ${channel} fallida: ${client.phone}`, { err: e.message });
         }
         continue;
       }

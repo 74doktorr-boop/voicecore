@@ -1973,6 +1973,7 @@ async function loadAutomatizaciones() {
         '<select id="chanRebooking" class="form-ctrl" style="width:auto" onchange="patchAuto(\'rebooking\',{channel:this.value})">' +
           '<option value="email"' + ((reb.channel || 'email') === 'email' ? ' selected' : '') + '>✉️ Email</option>' +
           '<option value="voice"' + (reb.channel === 'voice' ? ' selected' : '') + '>📞 El asistente le llama</option>' +
+          '<option value="whatsapp"' + (reb.channel === 'whatsapp' ? ' selected' : '') + '>💬 WhatsApp</option>' +
         '</select></div>' +
       (nfReactivationDays() ? '<div class="u-text-xs u-dim u-mt-2">Recomendado para tu sector: <strong class="u-text">' + nfReactivationDays() + ' días</strong>. La reactivación (email o voz) es del add-on Crecimiento.</div>' : '<div class="u-text-xs u-dim u-mt-2">La reactivación (email o voz) es del add-on Crecimiento.</div>') +
       '</div>' +

@@ -59,6 +59,22 @@ const WA_TEMPLATES = [
       },
     ],
   },
+  {
+    // Reactivación de clientes antiguos (add-on Crecimiento, canal 'whatsapp').
+    // OJO: categoría MARKETING (win-back), NO utility — Meta la revisa distinto
+    // y exige opt-out. Requiere aprobación de Meta antes de poder enviarse.
+    name: 'nodeflow_reactivacion',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, hace un tiempo que no te vemos por {{2}} y nos encantaría volver a atenderte. ¿Te reservamos una cita cuando te venga bien? Responde a este mensaje y te ayudamos.',
+        example: { body_text: [['María', 'Clínica Osakin']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más mensajes' },
+    ],
+  },
 ];
 
 module.exports = { WA_TEMPLATES };

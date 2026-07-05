@@ -384,6 +384,39 @@ function madridDateTimeToMs(dateStr, timeStr) {
 // Se envía desde el número del NEGOCIO (multi-tenant) en cuanto la llamada
 // crea la cita — el cliente cuelga y ya tiene el WhatsApp (petición Unai
 // 2026-07-04). deps inyectable para tests; en prod usa los módulos reales.
+// Reactivación por WhatsApp (add-on Crecimiento, canal 'whatsapp'). Plantilla
+// MARKETING nodeflow_reactivacion ({{1}}=nombre {{2}}=negocio). Misma regla de
+// oro que las confirmaciones: si el número propio falla, reintenta por el
+// compartido. deps inyectable para test. Requiere plantilla aprobada en Meta.
+async function sendWaReactivation(client, config = {}, deps = {}) {
+  const _sendTemplate   = deps.sendTemplate    || sendTemplate;
+  const _getWaCreds     = deps.getWaCredentials || getWaCredentials;
+  const _waIsConfigured = deps.waIsConfigured   || waIsConfigured;
+
+  if (!client || !client.phone) return false;
+  const credentials = client.businessId ? await _getWaCreds(client.businessId) : null;
+  if (!credentials && !_waIsConfigured()) return false;
+
+  const lang     = config.language || 'es';
+  const langCode = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+  const name     = firstName(client.name);
+  const bizName  = config.name || 'tu negocio';
+  const components = [{ type: 'body', parameters: [{ type: 'text', text: name }, { type: 'text', text: bizName }] }];
+
+  try {
+    const result = await _sendTemplate(client.phone, 'nodeflow_reactivacion', langCode, components, credentials);
+    if (result?.ok) return true;
+    if (credentials && _waIsConfigured()) {
+      const fb = await _sendTemplate(client.phone, 'nodeflow_reactivacion', langCode, components, null);
+      if (fb?.ok) return true;
+    }
+    return false;
+  } catch (e) {
+    log.warn(`WA reactivación falló (${client.phone}): ${e.message}`);
+    return false;
+  }
+}
+
 async function sendWaConfirmation(apt, config, deps = {}) {
   const _sendTemplate    = deps.sendTemplate    || sendTemplate;
   const _getWaCreds      = deps.getWaCredentials || getWaCredentials;
@@ -620,6 +653,7 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
 module.exports = {
   sendAppointmentReminder,
   sendReviewRequest,
+  sendWaReactivation,
   sendWaConfirmation,
   sendWaReminder,
   sendWaReview,

@@ -10,6 +10,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
+const { WA_TEMPLATES } = require('../src/whatsapp/templates');
 const {
   exchangeCodeForToken, registerNumber, subscribeAppToWaba,
   submitTemplates, connectMetaNumber,
@@ -74,23 +75,24 @@ describe('registerNumber / subscribeAppToWaba', () => {
 });
 
 describe('submitTemplates', () => {
-  test('da de alta las 3 plantillas en el WABA del cliente', async () => {
+  test('da de alta TODAS las plantillas en el WABA del cliente', async () => {
     const graph = fakeGraph([{ match: 'message_templates', res: { status: 200, body: { id: 't1' } } }]);
     const out = await submitTemplates('TOK', 'WABA1', { graph });
     assert.strictEqual(out.ok, true);
-    assert.strictEqual(out.submitted, 3, 'las 3 plantillas');
+    assert.strictEqual(out.submitted, WA_TEMPLATES.length, 'todas las plantillas');
     assert.ok(graph.calls.every(c => /WABA1\/message_templates/.test(c.path)));
     const names = graph.calls.map(c => c.body.name);
     assert.ok(names.includes('nodeflow_cita_confirmada'));
     assert.ok(names.includes('nodeflow_cita_recordatorio'));
     assert.ok(names.includes('nodeflow_resena'));
+    assert.ok(names.includes('nodeflow_reactivacion'));
   });
 
   test('si una plantilla falla, sigue con las demás y no lanza', async () => {
     let n = 0;
     const graph = async (m, p, opts) => { n++; return n === 1 ? { status: 400, body: { error: { message: 'x' } } } : { status: 200, body: { id: 't' } }; };
     const out = await submitTemplates('TOK', 'WABA1', { graph });
-    assert.strictEqual(out.submitted, 2, 'las 2 que sí entraron');
+    assert.strictEqual(out.submitted, WA_TEMPLATES.length - 1, 'todas menos la que falló');
     assert.strictEqual(out.ok, true);
   });
 });

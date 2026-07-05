@@ -54,3 +54,49 @@ describe('PURPOSE_BLOCKS.reactivation — bloque de propósito', () => {
     assert.doesNotMatch(b, /null/); // nunca colar "null" en el prompt
   });
 });
+
+describe('canal WhatsApp — plantilla + envío (add-on Crecimiento)', () => {
+  const { WA_TEMPLATES } = require('../src/whatsapp/templates');
+  const { sendWaReactivation } = require('../src/notifications/reminders');
+
+  test('WA_TEMPLATES incluye nodeflow_reactivacion como MARKETING con {{1}} y {{2}}', () => {
+    const t = WA_TEMPLATES.find((x) => x.name === 'nodeflow_reactivacion');
+    assert.ok(t, 'la plantilla existe');
+    assert.equal(t.category, 'MARKETING'); // reactivación = win-back, NO utility
+    assert.equal(t.language, 'es');
+    const body = t.components.find((c) => c.type === 'BODY').text;
+    assert.match(body, /\{\{1\}\}/);
+    assert.match(body, /\{\{2\}\}/);
+  });
+
+  test('sendWaReactivation envía nodeflow_reactivacion con nombre + negocio', async () => {
+    const calls = [];
+    const deps = {
+      sendTemplate: async (phone, tpl, lang, components) => { calls.push({ phone, tpl, lang, components }); return { ok: true }; },
+      getWaCredentials: async () => ({ token: 'x' }),
+      waIsConfigured: () => true,
+    };
+    const ok = await sendWaReactivation({ phone: '600111222', name: 'María García', businessId: 'org1' }, { name: 'Clínica Osakin', language: 'es' }, deps);
+    assert.equal(ok, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].tpl, 'nodeflow_reactivacion');
+    const params = calls[0].components[0].parameters.map((p) => p.text);
+    assert.deepEqual(params, ['María', 'Clínica Osakin']); // firstName() + negocio
+  });
+
+  test('sin teléfono → false y NO envía', async () => {
+    let sent = false;
+    const ok = await sendWaReactivation({ phone: '', name: 'X', businessId: 'o' }, {}, {
+      sendTemplate: async () => { sent = true; return { ok: true }; }, getWaCredentials: async () => null, waIsConfigured: () => true,
+    });
+    assert.equal(ok, false);
+    assert.equal(sent, false);
+  });
+
+  test('sin credenciales de negocio ni WA global → false', async () => {
+    const ok = await sendWaReactivation({ phone: '600111222', name: 'X', businessId: 'o' }, {}, {
+      sendTemplate: async () => ({ ok: true }), getWaCredentials: async () => null, waIsConfigured: () => false,
+    });
+    assert.equal(ok, false);
+  });
+});
