@@ -250,4 +250,52 @@ async function handleOptOut({ from, businessId }) {
   return persisted;
 }
 
-module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut };
+// ── Texto libre (ni confirmar/cancelar/baja): mensajes de puro agradecimiento
+//    que NO merecen molestar al dueño ("gracias", "vale", "ok gracias"…) ──────
+const COURTESY_RE = /^\s*(muchas\s+|mil\s+)?(gracias|vale|ok(ey)?|genial|perfecto|estupendo|de\s*acuerdo|guay|👍|🙏|👌|❤️|😊)+[\s!.,👍🙏👌❤️😊]*$/i;
+function isCourtesy(text = '') { return COURTESY_RE.test(String(text || '')); }
+
+/**
+ * El cliente ha escrito algo por WhatsApp que NodeFlow aún no gestiona solo
+ * (ni confirmar/cancelar/baja). En vez de tirarlo en silencio: avisa al dueño con
+ * el mensaje (para que responda él) y acusa recibo HONESTO al cliente — solo le
+ * dice "te contactarán" si de verdad hemos podido avisar al negocio.
+ * @returns {Promise<boolean>} true si se avisó al dueño.
+ */
+async function notifyOwnerFreeText({ from, businessId, text }) {
+  const credentials = businessId ? await getWaCredentials(businessId).catch(() => null) : null;
+  const bizName = getBusinessName(businessId);
+  const cfg = businessId ? scheduler.getBusinessConfig(businessId) : null;
+  const ownerPhone = cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE;
+
+  // Contexto para el dueño: ¿este cliente tiene una cita próxima?
+  const apt = findNextAppointment(from);
+  const who = apt?.patientName ? `${apt.patientName} (${from})` : from;
+  const aptLine = apt ? `\n📅 Su cita: ${humanDate(apt.date)} · ${apt.time}h — ${apt.service}` : '';
+
+  const ownerMsg =
+    `💬 *Un cliente te ha escrito por WhatsApp*\n━━━━━━━━━━━━━━\n` +
+    `👤 ${who}${aptLine}\n\n` +
+    `«${String(text).slice(0, 500)}»\n\n` +
+    `━━━━━━━━━━━━━━\nNodeFlow aún no responde mensajes libres — contáctale tú. 🤖 ${bizName}`;
+
+  let notified = false;
+  if (ownerPhone) {
+    try { const r = await sendText(ownerPhone, ownerMsg, credentials); if (r?.ok) notified = true; } catch (_) {}
+  }
+  if (!notified) {
+    // Fallback: Callmebot (no necesita credenciales del negocio)
+    try { await sendWhatsApp(ownerMsg); notified = true; } catch (e) { log.warn(`freeText owner alert fallback: ${e.message}`); }
+  }
+
+  // Acuse HONESTO al cliente: solo prometemos contacto si avisamos al negocio.
+  const ack = notified
+    ? `¡Gracias por tu mensaje! 🙌 Se lo hemos hecho llegar a ${bizName} y te contactarán. Si es urgente, llámanos.`
+    : `¡Gracias por tu mensaje! Para gestionarlo cuanto antes, por favor llámanos directamente. 😊`;
+  await sendText(from, ack, credentials).catch(() => {});
+
+  log.info(`Texto libre de ${from} (org ${businessId || '?'}) → dueño avisado=${notified}`);
+  return notified;
+}
+
+module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText };

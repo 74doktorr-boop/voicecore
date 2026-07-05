@@ -8,7 +8,7 @@
 
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
-const { handleReply, isOptOut, handleOptOut } = require('../whatsapp/reply-handler');
+const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText } = require('../whatsapp/reply-handler');
 const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
@@ -134,9 +134,14 @@ function setupWhatsAppWebhook(app) {
                 await handleReply({ from, type: 'button', payload: 'CANCELAR' }).catch(e =>
                   log.error(`reply-handler error: ${e.message}`)
                 );
+              } else if (text && !isCourtesy(text)) {
+                // Texto libre que NodeFlow aún no gestiona solo: NO lo tiramos en
+                // silencio — avisamos al dueño con el mensaje del cliente y le
+                // acusamos recibo. (Las cortesías "gracias/vale" no molestan al dueño.)
+                await notifyOwnerFreeText({ from, businessId, text }).catch(e =>
+                  log.error(`freeText handler error: ${e.message}`)
+                );
               }
-              // Texto libre que no es CONFIRMAR/CANCELAR → ignorar por ahora
-              // (en el futuro: pasar al bot conversacional)
             }
           }
         }

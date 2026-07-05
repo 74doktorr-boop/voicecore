@@ -37,7 +37,18 @@ function chain() {
 }
 dbmod.getDatabase = () => ({ enabled: true, client: { from: () => chain() } });
 
-const { isOptOut, handleOptOut } = require('../src/whatsapp/reply-handler');
+const { isOptOut, handleOptOut, isCourtesy } = require('../src/whatsapp/reply-handler');
+
+describe('isCourtesy — cortesías que NO molestan al dueño', () => {
+  const courtesy = ['gracias', 'Gracias!', 'muchas gracias', 'mil gracias', 'vale', 'ok', 'okey',
+                    'genial', 'perfecto', 'de acuerdo', '👍', '🙏', 'gracias 😊'];
+  for (const t of courtesy) test(`cortesía: "${t}" → true`, () => assert.strictEqual(isCourtesy(t), true));
+
+  const real = ['no puedo el martes', '¿puedo cambiar la hora?', 'quiero otra fecha',
+                'gracias, pero necesito cambiarla', 'me viene mejor el jueves', 'hola'];
+  for (const t of real) test(`mensaje real: "${t}" → false (sí avisa al dueño)`, () =>
+    assert.strictEqual(isCourtesy(t), false));
+});
 
 describe('isOptOut — detección de baja', () => {
   const yes = ['BAJA', 'baja', 'Me doy de baja', 'STOP', 'stop', 'no quiero más mensajes',
