@@ -36,413 +36,408 @@
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#08090b; --bg-2:#0d0f13; --surface:rgba(255,255,255,.035); --surface-2:rgba(255,255,255,.06);
-  --border:rgba(232,242,238,.09); --border-2:rgba(232,242,238,.16);
-  --ink:#f4f7f5; --text:rgba(230,236,235,.72); --text-2:rgba(230,236,235,.50);
-  --accent:#c4f546; --accent-l:#d6ff5c; --accent-rgb:196,245,70; --cyan:#38e1c8; --red:#ff6b5c;
-  --display:'Clash Display',system-ui,sans-serif; --r:20px; --ease:cubic-bezier(.16,1,.3,1);
+  --bg:#0a0b0d; --bg-2:#101216;
+  --ink:#f3f5f1; --ink-2:#9aa09a; --ink-3:#636963;
+  --line:rgba(240,244,240,.13); --line-2:rgba(240,244,240,.28);
+  --lime:#c4f546; --lime-d:#aee02c; --red:#ff6f5e;
+  --disp:'Clash Display',system-ui,sans-serif;
+  --sans:'Satoshi',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
-body{font-family:'Satoshi',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
-.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.55;overflow-x:hidden;font-size:16px}
 a{color:inherit;text-decoration:none}
-h1,h2,h3,h4{font-family:var(--display);color:var(--ink);letter-spacing:-.02em;font-weight:600;line-height:1.08;text-wrap:balance}
-.proof-num,.cost-card .big,.cost-card .flip,.pc-price,.step-n,.h-eyebrow,.cc-status,.cc-chip{font-variant-numeric:tabular-nums lining-nums}
-.accent{color:var(--accent-l)}
+::selection{background:var(--lime);color:#0a0b0d}
+h1,h2,h3{font-family:var(--disp);color:var(--ink);font-weight:600;letter-spacing:-.025em;line-height:1;text-wrap:balance}
+.wrap{max-width:1220px;margin:0 auto;padding:0 40px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lime{color:var(--lime)}
 
-/* section scaffold */
-section{position:relative;z-index:1}
-.sec{padding:96px 0}
-.sec-head{max-width:640px;margin:0 auto 56px;text-align:center}
-.eyebrow{display:inline-flex;align-items:center;gap:12px;font-family:'Satoshi',sans-serif;font-size:.76rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-2);margin-bottom:22px}
-.eyebrow::before{content:"";width:28px;height:2px;background:var(--accent);border-radius:2px}
-.sec-head h2{font-size:clamp(2rem,3.6vw,3rem);margin-bottom:16px}
-.sec-head p{font-size:1.12rem;color:var(--text);line-height:1.55}
-.u-line{position:relative;color:var(--accent-l);white-space:nowrap}
-.u-line::after{content:"";position:absolute;left:0;right:0;bottom:0;height:.07em;background:var(--accent);border-radius:2px}
+/* ── section scaffold ── */
+.section{padding:clamp(76px,9vw,132px) 0;border-top:1px solid var(--line)}
+.kicker{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:.73rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:clamp(40px,5vw,60px)}
+.kicker .n{color:var(--lime);font-variant-numeric:tabular-nums}
+.kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+.h2{font-size:clamp(2rem,4.6vw,3.5rem);line-height:1.02;max-width:20ch}
+.deck{font-size:1.12rem;color:var(--ink-2);line-height:1.5;max-width:52ch;margin-top:18px}
+.deck b,.lead b{color:var(--ink);font-weight:600}
 
-/* ambient */
-.amb{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.amb::before{content:"";position:absolute;inset:0;background:
-  radial-gradient(60% 45% at 80% 4%,rgba(var(--accent-rgb),.13),transparent 70%),
-  radial-gradient(45% 40% at 6% 26%,rgba(56,225,200,.06),transparent 70%)}
-.amb-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:64px 64px;opacity:.5;
-  -webkit-mask-image:radial-gradient(100% 55% at 72% 0%,#000 25%,transparent 72%);mask-image:radial-gradient(100% 55% at 72% 0%,#000 25%,transparent 72%)}
+/* ── nav ── */
+nav{position:sticky;top:0;z-index:50;background:rgba(10,11,13,.86);backdrop-filter:blur(6px);border-bottom:1px solid transparent;transition:border-color .25s}
+nav.stuck{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px}
+.logo{font-family:var(--disp);font-weight:600;font-size:1.4rem;letter-spacing:-.03em;color:var(--ink)}
+.logo b{color:var(--lime);font-weight:600}
+.nav-links{display:flex;gap:30px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.nav-links a{transition:color .2s}.nav-links a:hover{color:var(--ink)}
+.nav-cta{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0a0b0d;background:var(--lime);padding:11px 18px;transition:background .2s}
+.nav-cta:hover{background:#fff}
 
-/* nav */
-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:18px 0;background:rgba(8,9,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
-nav.stuck{border-bottom-color:var(--border)}
-.logo{font-family:var(--display);font-weight:600;font-size:1.35rem;letter-spacing:-.02em;color:var(--ink)}
-.logo b{color:var(--accent-l);font-weight:600}
-.nav-links{display:flex;gap:30px;font-size:.92rem;font-weight:500;color:var(--text)}
-.nav-links a:hover{color:var(--ink)}
-.nav-cta{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;font-weight:700;color:var(--bg);background:var(--accent);padding:9px 18px;border-radius:100px;transition:transform .25s var(--ease),box-shadow .25s}
-.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 30px -6px rgba(var(--accent-rgb),.5)}
+/* ── buttons (flat, sharp, no glow) ── */
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);font-weight:700;font-size:1rem;padding:16px 26px;transition:background .2s,color .2s,border-color .2s;cursor:pointer;border:1px solid transparent}
+.btn-fill{background:var(--lime);color:#0a0b0d}
+.btn-fill:hover{background:#fff}
+.btn-line{background:none;border-color:var(--line-2);color:var(--ink)}
+.btn-line:hover{border-color:var(--lime);color:var(--lime)}
+.tlink{display:inline-flex;align-items:center;gap:9px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line-2);padding-bottom:3px;transition:color .2s,border-color .2s;cursor:pointer}
+.tlink:hover{color:var(--lime);border-color:var(--lime)}
 
-/* buttons */
-.btn-primary{display:inline-flex;align-items:center;gap:10px;font-size:1.02rem;font-weight:700;color:var(--bg);background:linear-gradient(180deg,var(--accent-l),var(--accent));padding:16px 30px;border-radius:14px;box-shadow:0 10px 40px -10px rgba(var(--accent-rgb),.55);transition:transform .3s var(--ease),box-shadow .3s}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 50px -10px rgba(var(--accent-rgb),.7)}
-.btn-ghost{display:inline-flex;align-items:center;gap:10px;font-size:1rem;font-weight:600;color:var(--ink);padding:15px 22px;border-radius:14px;border:1px solid var(--border-2);transition:border-color .25s,background .25s}
-.btn-ghost:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.05)}
-.btn-ghost .pl{width:26px;height:26px;border-radius:50%;background:rgba(var(--accent-rgb),.15);display:grid;place-items:center;color:var(--accent-l);font-size:.7rem}
+/* ── hero ── */
+.hero{padding-top:clamp(48px,6vw,84px);padding-bottom:clamp(64px,7vw,96px)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:26px;border-bottom:1px solid var(--line);margin-bottom:clamp(40px,5vw,64px)}
+.hero-top .live{color:var(--lime)}
+.hero h1{font-size:clamp(3rem,8.4vw,7rem);letter-spacing:-.035em;line-height:.94}
+.hero h1 .lime{color:var(--lime)}
+.hero-lower{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:end;margin-top:clamp(36px,4vw,52px)}
+.hero-lead{font-size:1.25rem;line-height:1.5;color:var(--ink-2);max-width:44ch}
+.hero-lead b{color:var(--ink);font-weight:600}
+.hero-ctas{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:32px}
+.hero-risk{display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:28px}
+.hero-risk span{display:inline-flex;gap:8px}.hero-risk .k{color:var(--lime)}
 
-/* hero */
-.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:60px 0 80px}
-.h-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:.82rem;font-weight:600;letter-spacing:.02em;color:var(--text-2);margin-bottom:26px}
-.h-eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2.4s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.5)}70%{box-shadow:0 0 0 9px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
-.hero h1{font-size:clamp(2.9rem,5.4vw,4.6rem);line-height:1.03;letter-spacing:-.03em;margin-bottom:24px;font-weight:600}
-.sub{font-size:1.2rem;line-height:1.55;color:var(--text);max-width:34ch;margin-bottom:34px}
-.sub b{color:var(--ink);font-weight:600}
-.ctas{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-.risk{display:flex;gap:20px;flex-wrap:wrap;font-size:.9rem;color:var(--text-2);font-weight:500}
-.risk span{display:inline-flex;align-items:center;gap:7px}.risk .ck{color:var(--accent)}
+/* ── voice demo (editorial transcript, real audio) ── */
+.demo{border:1px solid var(--line);background:var(--bg-2)}
+.demo-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px}
+.demo-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.demo-tabs{display:flex;gap:18px}
+.cc-tab{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);background:none;border:none;cursor:pointer;padding:0 0 2px;border-bottom:1px solid transparent;transition:color .2s,border-color .2s}
+.cc-tab:hover{color:var(--ink-2)}
+.cc-tab.active{color:var(--lime);border-bottom-color:var(--lime)}
+.demo-name{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:16px 20px 6px}
+.cc-transcript{max-height:210px;overflow-y:auto;padding:4px 20px 12px}
+.cc-transcript::-webkit-scrollbar{width:3px}.cc-transcript::-webkit-scrollbar-thumb{background:var(--line-2)}
+.msg{padding:11px 0;border-left:2px solid transparent;padding-left:15px;transition:border-color .3s}
+.msg.ai{margin-left:0}
+.msg .who{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.msg.ai .who{color:var(--lime)}
+.msg .bub{font-size:.98rem;color:var(--ink-2);line-height:1.5;background:none;border:none;padding:0}
+.cc-seg.on{border-left-color:var(--lime)}
+.cc-seg.on .bub{color:var(--ink)}
+.demo-foot{display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid var(--line)}
+.cc-playbtn{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0a0b0d;background:var(--lime);border:none;padding:9px 15px;cursor:pointer;white-space:nowrap;transition:background .2s}
+.cc-playbtn:hover{background:#fff}
+.cc-wave{flex:1;display:flex;align-items:center;gap:3px;height:20px;overflow:hidden}
+.cc-wave i{flex:1;background:var(--line-2);height:30%;transform-origin:center;animation:wv 1.05s ease-in-out infinite alternate}
+.cc-wave.idle i{animation-play-state:paused;background:var(--line);height:24%}
+@keyframes wv{from{height:16%;background:var(--line-2)}to{height:88%;background:var(--lime-d)}}
+.demo-status{font-family:var(--mono);font-size:.64rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+.demo-status .d{display:none}
 
-/* call card */
-.callcard{position:relative;background:linear-gradient(165deg,rgba(255,255,255,.055),rgba(255,255,255,.02));border:1px solid var(--border-2);border-radius:26px;padding:26px;box-shadow:0 40px 90px -40px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(8px)}
-.cc-glow{position:absolute;inset:-1px;border-radius:26px;background:linear-gradient(140deg,rgba(var(--accent-rgb),.32),transparent 40%);z-index:-1;filter:blur(14px);opacity:.5}
-.cc-top{display:flex;align-items:center;gap:13px;padding-bottom:20px;border-bottom:1px solid var(--border)}
-.cc-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--accent-l),var(--accent));display:grid;place-items:center;color:var(--bg);font-size:1.3rem;flex-shrink:0;box-shadow:0 0 26px rgba(var(--accent-rgb),.45)}
-.cc-id{flex:1;min-width:0}.cc-name{font-family:'Satoshi';font-weight:700;color:var(--ink);font-size:.98rem}
-.cc-status{font-size:.8rem;color:var(--accent-l);display:flex;align-items:center;gap:6px;margin-top:2px}
-.cc-status .d{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
-.cc-live{font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--text-2);border:1px solid var(--border-2);padding:5px 10px;border-radius:100px}
-.cc-playbtn{cursor:pointer;font-family:'Satoshi',sans-serif;background:rgba(var(--accent-rgb),.12);color:var(--accent-l);border:1px solid rgba(var(--accent-rgb),.3);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background .2s,transform .2s}
-.cc-playbtn:hover{background:rgba(var(--accent-rgb),.22);transform:translateY(-1px)}
-.cc-wave.idle i{animation-play-state:paused}
-.cc-wave{display:flex;align-items:center;gap:3px;height:44px;margin:22px 2px}
-.cc-wave i{flex:1;background:linear-gradient(180deg,var(--accent-l),rgba(var(--accent-rgb),.35));border-radius:3px;animation:wv 1.1s ease-in-out infinite alternate}
-@keyframes wv{from{height:14%;opacity:.5}to{height:92%;opacity:1}}
-.msg{margin:14px 0;max-width:88%}
-.msg .who{font-family:'Satoshi';font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:5px}
-.msg .bub{padding:13px 16px;border-radius:16px;font-size:.95rem;line-height:1.45;color:var(--ink)}
-.msg.ai{margin-left:auto}.msg.ai .who{text-align:right;color:var(--accent-l)}
-.msg.ai .bub{background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.22)}
-.msg.cli .bub{background:var(--surface);border:1px solid var(--border)}
-.cc-foot{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2);flex-wrap:wrap}.cc-foot b{color:var(--accent-l);font-weight:700}
-.cc-chip{margin-left:auto;font-family:'Satoshi';font-size:.78rem;font-weight:600;color:var(--cyan);background:rgba(56,225,200,.1);border:1px solid rgba(56,225,200,.25);padding:5px 12px;border-radius:100px}
-.cc-tabs{display:flex;gap:6px;margin-bottom:18px}
-.cc-tab{flex:1;font-family:'Satoshi',sans-serif;font-size:.82rem;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 8px;cursor:pointer;transition:color .2s,background .2s,border-color .2s}
-.cc-tab:hover{color:var(--ink)}
-.cc-tab.active{color:var(--bg);background:var(--accent);border-color:var(--accent)}
-.cc-transcript{position:relative;max-height:224px;overflow-y:auto;margin:6px 0;padding-right:6px}
-.cc-transcript::-webkit-scrollbar{width:4px}.cc-transcript::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
-.cc-seg .bub{transition:border-color .3s,box-shadow .3s}
-.cc-seg.on .bub{border-color:rgba(var(--accent-rgb),.5);box-shadow:0 0 18px -4px rgba(var(--accent-rgb),.35)}
+/* ── stats ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:clamp(26px,3vw,38px) 0 clamp(26px,3vw,38px) 26px;border-left:1px solid var(--line)}
+.stat:first-child{padding-left:0;border-left:none}
+.stat .fig{font-family:var(--disp);font-weight:600;font-size:clamp(2rem,3.4vw,2.9rem);color:var(--ink);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.stat .fig em{color:var(--lime);font-style:normal}
+.stat .lbl{font-size:.9rem;color:var(--ink-3);margin-top:12px;line-height:1.4;max-width:24ch}
 
-/* proof strip */
-.proof{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
-.proof .wrap{display:flex;align-items:center;justify-content:space-between;gap:32px;padding:26px 32px;flex-wrap:wrap}
-.proof-num{font-family:var(--display);font-weight:600;font-size:1.9rem;color:var(--ink);line-height:1}.proof-num em{color:var(--accent-l);font-style:normal}
-.proof-lbl{font-size:.82rem;color:var(--text-2);margin-top:5px}
-.proof-div{width:1px;height:38px;background:var(--border-2)}
+/* ── problem ── */
+.split{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(40px,5vw,72px);align-items:start}
+.lead{font-size:1.18rem;color:var(--ink-2);line-height:1.5;margin-top:20px;max-width:46ch}
+.cost-list{margin-top:34px}
+.cost-row{display:grid;grid-template-columns:auto 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line);font-size:1.04rem;color:var(--ink-2)}
+.cost-row:last-child{border-bottom:1px solid var(--line)}
+.cost-row .mk{font-family:var(--mono);color:var(--red);font-weight:700}
+.cost-row b{color:var(--ink);font-weight:600}
+.figure{border-top:2px solid var(--red);padding-top:24px}
+.figure .big{font-family:var(--disp);font-weight:600;font-size:clamp(3.2rem,6vw,4.6rem);color:var(--red);line-height:.92;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.figure .fcap{font-size:.98rem;color:var(--ink-2);margin-top:14px;line-height:1.5}
+.figure .flip{font-family:var(--disp);font-weight:600;font-size:clamp(1.6rem,3vw,2.2rem);color:var(--lime);margin-top:30px;padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.02em}
+.figure .flip-cap{font-size:.92rem;color:var(--ink-3);margin-top:10px}
 
-/* cost / problem */
-.cost{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.cost h2{font-size:clamp(2rem,3.6vw,3rem);margin-bottom:20px}
-.cost .lead{font-size:1.14rem;color:var(--text);margin-bottom:28px;line-height:1.55}
-.cost-list{display:flex;flex-direction:column;gap:14px}
-.cost-item{display:flex;gap:13px;align-items:flex-start;font-size:1.02rem;color:var(--text)}
-.cost-item .x{color:var(--red);font-weight:700;flex-shrink:0;margin-top:2px}
-.cost-item b{color:var(--ink);font-weight:600}
-.cost-card{background:linear-gradient(165deg,rgba(255,107,92,.06),rgba(255,255,255,.02));border:1px solid rgba(255,107,92,.22);border-radius:24px;padding:34px}
-.cost-card .big{font-family:var(--display);font-weight:600;font-size:3.2rem;color:#ff8578;line-height:1;letter-spacing:-.03em}
-.cost-card .cap{font-size:.95rem;color:var(--text);margin-top:8px}
-.cost-card hr{border:none;border-top:1px solid var(--border);margin:24px 0}
-.cost-card .flip{font-family:var(--display);font-weight:600;font-size:2rem;color:var(--accent-l);line-height:1.1}
-.cost-card .flip-cap{font-size:.92rem;color:var(--text-2);margin-top:6px}
+/* ── steps ── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,3vw,44px)}
+.step{border-top:2px solid var(--lime);padding-top:22px}
+.step .n{font-family:var(--mono);font-size:.8rem;font-weight:500;letter-spacing:.1em;color:var(--lime);margin-bottom:20px}
+.step h3{font-size:1.5rem;margin-bottom:12px;letter-spacing:-.02em}
+.step p{font-size:1.02rem;color:var(--ink-2);line-height:1.5}
 
-/* steps */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.step{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:32px;transition:border-color .3s,transform .3s var(--ease)}
-.step:hover{border-color:var(--border-2);transform:translateY(-4px)}
-.step-n{font-family:var(--display);font-weight:600;font-size:1rem;color:var(--bg);background:var(--accent);width:38px;height:38px;border-radius:12px;display:grid;place-items:center;margin-bottom:20px}
-.step h3{font-size:1.35rem;margin-bottom:10px}
-.step p{font-size:1rem;color:var(--text);line-height:1.55}
+/* ── capabilities (editorial index) ── */
+.caps{border-bottom:1px solid var(--line)}
+.cap{display:grid;grid-template-columns:52px 1fr 220px;gap:clamp(18px,2.5vw,40px);align-items:baseline;padding:clamp(24px,3vw,34px) 0;border-top:1px solid var(--line);transition:background .2s}
+.cap:hover{background:rgba(240,244,240,.02)}
+.cap .n{font-family:var(--mono);font-size:.92rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cap.feat .n{color:var(--lime)}
+.cap h3{font-size:clamp(1.35rem,2.4vw,1.9rem);letter-spacing:-.02em;margin-bottom:9px}
+.cap.feat h3 .dot{color:var(--lime)}
+.cap p{font-size:1.02rem;color:var(--ink-2);line-height:1.5;max-width:56ch}
+.cap .tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.cap.feat .tag{color:var(--lime)}
 
-/* outcomes */
-.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
-.bento .oc{grid-column:1/-1}
-.oc--feature{background:linear-gradient(150deg,rgba(var(--accent-rgb),.06),var(--surface));border-color:rgba(var(--accent-rgb),.24)}
-@media(min-width:921px){
-  .bento .oc{grid-column:span 4}
-  .bento .oc--wide8{grid-column:span 8}
-  .bento .oc--full{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:32px;row-gap:6px;align-content:center;padding:34px 38px}
-  .bento .oc--full .oc-ico{grid-column:1;grid-row:1/span 3;align-self:center;margin:0;width:62px;height:62px;font-size:2rem}
-  .bento .oc--full h3{grid-column:2;grid-row:1;font-size:1.5rem}
-  .bento .oc--full p{grid-column:2;grid-row:2;max-width:72ch}
-  .bento .oc--full .tag{grid-column:2;grid-row:3;justify-self:start}
-}
-.oc{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:30px;transition:border-color .3s,transform .3s var(--ease)}
-.oc:hover{border-color:rgba(var(--accent-rgb),.35);transform:translateY(-4px)}
-.oc-ico{font-size:1.55rem;width:46px;height:46px;border-radius:12px;background:none;border:1px solid var(--border-2);display:grid;place-items:center;margin-bottom:18px}
-.oc h3{font-size:1.3rem;margin-bottom:9px}
-.oc p{font-size:1rem;color:var(--text);line-height:1.55}
-.oc .tag{display:inline-block;margin-top:14px;font-family:'Satoshi';font-size:.78rem;font-weight:600;color:var(--accent-l);background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);padding:4px 11px;border-radius:100px}
+/* ── sectors (running line) ── */
+.sectors-line{font-family:var(--disp);font-weight:500;font-size:clamp(1.4rem,3vw,2.4rem);line-height:1.35;color:var(--ink);letter-spacing:-.02em;max-width:24ch}
+.sectors-line .sep{color:var(--lime);margin:0 .28em;font-weight:600}
+.sectors-line .own{color:var(--lime)}
 
-/* sectors */
-.sectors{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:900px;margin:0 auto}
-.sec-chip{display:inline-flex;align-items:center;gap:9px;font-size:1rem;font-weight:500;color:var(--text);background:var(--surface);border:1px solid var(--border);padding:12px 20px;border-radius:100px;transition:all .25s var(--ease)}
-.sec-chip:hover{color:var(--ink);border-color:rgba(var(--accent-rgb),.4);background:rgba(var(--accent-rgb),.06)}
+/* ── trust ── */
+.guar{margin-top:6px}
+.guar-row{display:grid;grid-template-columns:auto 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--line);font-size:1.04rem;color:var(--ink-2)}
+.guar-row:last-child{border-bottom:1px solid var(--line)}
+.guar-row .k{font-family:var(--mono);color:var(--lime);font-weight:700}
+.guar-row b{color:var(--ink);font-weight:600}
+.quote{border-left:2px solid var(--lime);padding-left:clamp(22px,3vw,34px)}
+.quote .q{font-family:var(--disp);font-weight:500;font-size:clamp(1.5rem,2.8vw,2.1rem);line-height:1.28;color:var(--ink);letter-spacing:-.02em}
+.quote .q::before{content:"“";color:var(--lime)}
+.quote .q::after{content:"”";color:var(--lime)}
+.quote .by{display:flex;align-items:center;gap:14px;margin-top:28px}
+.quote .fa{width:44px;height:44px;background:var(--lime);color:#0a0b0d;display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:1.1rem}
+.quote .fn{font-weight:700;color:var(--ink);font-size:.98rem}
+.quote .fr{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}
 
-/* trust / guarantee */
-.trust{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;background:linear-gradient(165deg,rgba(var(--accent-rgb),.05),rgba(255,255,255,.015));border:1px solid var(--border-2);border-radius:30px;padding:52px}
-.trust h2{font-size:clamp(1.8rem,3vw,2.5rem);margin-bottom:18px}
-.guar{display:flex;flex-direction:column;gap:14px}
-.guar-item{display:flex;gap:12px;align-items:flex-start;font-size:1.04rem;color:var(--text)}
-.guar-item .ck{color:var(--accent);font-weight:700;flex-shrink:0;margin-top:2px}
-.guar-item b{color:var(--ink);font-weight:600}
-.founder{background:var(--bg-2);border:1px solid var(--border);border-radius:20px;padding:28px}
-.founder .q{font-family:var(--display);font-size:1.28rem;line-height:1.4;color:var(--ink);font-weight:500}
-.founder .by{display:flex;align-items:center;gap:12px;margin-top:20px}
-.founder .fa{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-l),var(--accent));display:grid;place-items:center;color:var(--bg);font-weight:700;font-family:'Satoshi'}
-.founder .fn{font-family:'Satoshi';font-weight:700;color:var(--ink);font-size:.95rem}
-.founder .fr{font-size:.85rem;color:var(--text-2)}
+/* ── pricing ── */
+.price-split{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(40px,5vw,72px);align-items:start}
+.price-tag{font-family:var(--disp);font-weight:600;font-size:clamp(4rem,9vw,7rem);color:var(--ink);line-height:.86;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.price-tag sup{font-size:.32em;vertical-align:top;top:.5em;position:relative;color:var(--ink-2)}
+.price-tag .per{font-family:var(--sans);font-size:.16em;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.price-note{font-size:1.05rem;color:var(--ink-2);margin:22px 0 30px;max-width:32ch;line-height:1.5}
+.price-feats{border-top:1px solid var(--line)}
+.price-feats li{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);list-style:none;font-size:1.02rem;color:var(--ink-2)}
+.price-feats .m{font-family:var(--mono);color:var(--lime)}
+.price-feats b{color:var(--ink);font-weight:600}
+.addons{display:grid;grid-template-columns:repeat(3,1fr);margin-top:40px;border-top:1px solid var(--line)}
+.addon{padding:22px 20px 22px 0;border-left:1px solid var(--line);padding-left:20px}
+.addon:first-child{border-left:none;padding-left:0}
+.addon h4{font-size:1rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+.addon .ap{font-family:var(--mono);color:var(--lime);font-weight:500}
+.addon p{font-size:.9rem;color:var(--ink-3);line-height:1.45}
+.price-foot{font-family:var(--mono);font-size:.8rem;letter-spacing:.04em;color:var(--ink-3);margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
+.price-foot b{color:var(--lime);font-weight:500}
 
-/* pricing */
-.price-grid{display:grid;grid-template-columns:1fr;gap:24px;max-width:480px;margin:0 auto;align-items:stretch}
-.pc{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:34px;display:flex;flex-direction:column}
-.pc.pop{border-color:rgba(var(--accent-rgb),.4);background:linear-gradient(165deg,rgba(var(--accent-rgb),.06),rgba(255,255,255,.02));position:relative;box-shadow:0 30px 80px -50px rgba(var(--accent-rgb),.5)}
-.pc-badge{position:absolute;top:-12px;left:34px;font-family:'Satoshi';font-size:.75rem;font-weight:700;color:var(--bg);background:var(--accent);padding:5px 14px;border-radius:100px}
-.pc-name{font-family:'Satoshi';font-weight:700;color:var(--ink);font-size:1.05rem;margin-bottom:8px}
-.pc-price{font-family:var(--display);font-weight:600;color:var(--ink);font-size:3.4rem;line-height:1;letter-spacing:-.03em}
-.pc-price sup{font-size:1.4rem;vertical-align:top;color:var(--text)}
-.pc-price .per{font-family:'Satoshi';font-size:1rem;font-weight:500;color:var(--text-2)}
-.pc-note{font-size:.92rem;color:var(--text);margin:12px 0 20px}
-.pc-feats{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:26px;flex:1}
-.pc-feats li{display:flex;gap:11px;font-size:.98rem;color:var(--text)}
-.pc-feats .ck{color:var(--accent);flex-shrink:0}.pc-feats .sp{color:var(--accent-l)}
-.pc .btn-primary,.pc .btn-ghost{justify-content:center;width:100%}
-.addons{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:34px;max-width:920px;margin-left:auto;margin-right:auto}
-.addon{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px}
-.addon h4{font-family:'Satoshi';font-size:.95rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
-.addon .ap{color:var(--accent-l);font-weight:700}
-.addon p{font-size:.85rem;color:var(--text-2);line-height:1.45}
-.price-foot{text-align:center;margin-top:30px;font-size:.98rem;color:var(--text)}.price-foot b{color:var(--accent-l)}
+/* ── faq ── */
+.faq-row{display:grid;grid-template-columns:1fr 1.5fr;gap:clamp(24px,4vw,64px);padding:clamp(24px,3vw,32px) 0;border-top:1px solid var(--line)}
+.faq-row:last-child{border-bottom:1px solid var(--line)}
+.faq-row h4{font-size:1.2rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.25}
+.faq-row p{font-size:1.02rem;color:var(--ink-2);line-height:1.55}
 
-/* faq */
-.faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
-.qa{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 26px}
-.qa h4{font-family:'Satoshi';font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:9px}
-.qa p{font-size:.98rem;color:var(--text);line-height:1.55}
+/* ── final (lime poster) ── */
+.poster{background:var(--lime);color:#0a0b0d;border-top:none}
+.poster h2{font-family:var(--disp);font-weight:600;color:#0a0b0d;font-size:clamp(2.6rem,6.5vw,5.4rem);line-height:.94;letter-spacing:-.035em;max-width:16ch}
+.poster p{font-size:1.2rem;color:#1a1c16;max-width:40ch;margin-top:24px;line-height:1.45}
+.poster .btn-dark{display:inline-flex;align-items:center;gap:10px;background:#0a0b0d;color:var(--lime);font-weight:700;font-size:1.05rem;padding:18px 30px;margin-top:38px;transition:transform .2s}
+.poster .btn-dark:hover{transform:translateX(4px)}
+.poster-risk{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#2a2c22;margin-top:32px}
 
-/* final cta */
-.final{text-align:center;background:linear-gradient(165deg,rgba(var(--accent-rgb),.08),rgba(255,255,255,.015));border:1px solid var(--border-2);border-radius:32px;padding:72px 40px;position:relative;overflow:hidden}
-.final::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 80% at 50% 120%,rgba(var(--accent-rgb),.22),transparent 70%)}
-.final>*{position:relative}
-.final h2{font-size:clamp(2.2rem,4vw,3.4rem);margin-bottom:18px}
-.final p{font-size:1.15rem;color:var(--text);max-width:520px;margin:0 auto 32px}
+/* ── footer ── */
+footer{border-top:1px solid var(--line);padding:64px 0 48px}
+.foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
+.foot-brand p{font-size:.92rem;color:var(--ink-3);line-height:1.55;margin-top:14px;max-width:32ch}
+.foot-col h5{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px}
+.foot-col a{display:block;font-size:.94rem;color:var(--ink-2);margin-bottom:11px;transition:color .2s}
+.foot-col a:hover{color:var(--lime)}
+.foot-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:26px;border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3)}
 
-/* footer */
-footer{border-top:1px solid var(--border);padding:48px 0 40px;margin-top:40px}
-.foot-grid{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;margin-bottom:36px}
-.foot-brand{max-width:280px}.foot-brand .logo{margin-bottom:12px;display:inline-block}
-.foot-brand p{font-size:.9rem;color:var(--text-2);line-height:1.55}
-.foot-col h5{font-family:'Satoshi';font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);margin-bottom:14px}
-.foot-col a{display:block;font-size:.92rem;color:var(--text);margin-bottom:9px;transition:color .2s}.foot-col a:hover{color:var(--accent-l)}
-.foot-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2)}
-
-.wa-float{position:fixed;right:20px;bottom:20px;z-index:60;width:56px;height:56px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;font-size:1.55rem;box-shadow:0 10px 30px -8px rgba(0,0,0,.55);transition:transform .25s var(--ease)}
-.wa-float:hover{transform:scale(1.08)}
 .mobile-cta{display:none}
-@media(max-width:920px){
-  .wrap{padding:0 22px}.sec{padding:68px 0}
-  .hero{grid-template-columns:1fr;gap:40px;padding:34px 0 56px}.nav-links{display:none}.callcard{order:2}
-  .proof .wrap{gap:18px;justify-content:center;text-align:center}.proof-div{display:none}.proof-num{font-size:1.6rem}
-  .cost,.trust,.price-grid{grid-template-columns:1fr;gap:32px}
+@media(max-width:900px){
+  .wrap{padding:0 22px}
+  .nav-links{display:none}
+  .hero-lower{grid-template-columns:1fr;gap:40px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:24px}
+  .stat:first-child{border-top:none}
+  .split,.price-split{grid-template-columns:1fr;gap:44px}
   .steps{grid-template-columns:1fr}
-  .trust{padding:34px}
-  .wa-float{bottom:82px;width:52px;height:52px}
-  .mobile-cta{display:block;position:fixed;left:0;right:0;bottom:0;z-index:55;padding:11px 16px calc(11px + env(safe-area-inset-bottom));background:rgba(8,9,11,.93);backdrop-filter:blur(12px);border-top:1px solid var(--border)}
-  .mobile-cta .btn-primary{width:100%;justify-content:center;padding:14px}
+  .cap{grid-template-columns:36px 1fr;gap:16px}
+  .cap .tag{grid-column:2;text-align:left;margin-top:10px}
+  .addons{grid-template-columns:1fr}
+  .addon{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:20px}
+  .addon:first-child{border-top:none}
+  .faq-row{grid-template-columns:1fr;gap:12px}
+  .foot-grid{grid-template-columns:1fr 1fr;gap:32px}
+  .mobile-cta{display:block;position:fixed;left:0;right:0;bottom:0;z-index:55;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,11,13,.95);border-top:1px solid var(--line)}
+  .mobile-cta .btn{width:100%;justify-content:center}
 }
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<div class="amb"><div class="amb-grid"></div></div>
 
-<div class="wrap">
-  <nav id="nav">
-    <div class="logo">node<b>flow</b></div>
-    <div class="nav-links">
-      <a href="#como">Cómo funciona</a><a href="#capacidades">Qué hace</a><a href="#sectores">Sectores</a><a href="#precio">Precio</a>
-    </div>
-    <a href="#precio" class="nav-cta">Empezar →</a>
-  </nav>
+<nav id="nav"><div class="wrap"><div class="nav-in">
+  <div class="logo">node<b>flow</b></div>
+  <div class="nav-links">
+    <a href="#como">Cómo funciona</a><a href="#capacidades">Qué hace</a><a href="#sectores">Sectores</a><a href="#precio">Precio</a>
+  </div>
+  <a href="#precio" class="nav-cta">Empezar</a>
+</div></div></nav>
 
-  <!-- HERO -->
-  <header class="hero" id="hero">
+<!-- HERO -->
+<header class="section hero" id="hero" style="border-top:none"><div class="wrap">
+  <div class="hero-top">
+    <span>Recepcionista IA · Euskal Herria</span>
+    <span class="live">● Castellano · Euskera · Galego</span>
+  </div>
+  <h1>Nunca más pierdas<br>un <span class="lime">cliente</span>.</h1>
+  <div class="hero-lower">
     <div>
-      <div class="h-eyebrow"><span class="pulse"></span>Voz natural · castellano, euskera y galego</div>
-      <h1>Nunca más<br>pierdas un<br><span class="u-line">cliente</span>.</h1>
-      <p class="sub"><b>No solo contesta el teléfono</b> 24/7: agenda citas, recuerda a cada cliente por su nombre, recupera a los que se fueron y te dice qué hacer. Tu negocio entero, cuidando a sus clientes <b>solo</b>.</p>
-      <div class="ctas">
-        <a href="#precio" class="btn-primary">Activar mi asistente →</a>
-        <a href="#hero" class="btn-ghost" id="heroListen"><span class="pl">▶</span>Escúchalo en 20 s</a>
+      <p class="hero-lead"><b>No solo contesta el teléfono</b> 24/7: agenda citas, recuerda a cada cliente por su nombre, recupera a los que se fueron y te dice qué hacer. Tu negocio entero, cuidando a sus clientes <b>solo</b>.</p>
+      <div class="hero-ctas">
+        <a href="/onboarding.html?plan=negocio" class="btn btn-fill">Activar mi asistente →</a>
+        <a href="#hero" class="tlink" id="heroListen">▶ Escúchalo en 20 s</a>
       </div>
-      <div class="risk">
-        <span><span class="ck">✓</span> Escúchalo antes de pagar</span>
-        <span><span class="ck">✓</span> Sin cambiar tu número</span>
-        <span><span class="ck">✓</span> Cancela cuando quieras</span>
+      <div class="hero-risk">
+        <span><span class="k">✓</span> Escúchalo antes de pagar</span>
+        <span><span class="k">✓</span> Sin cambiar tu número</span>
+        <span><span class="k">✓</span> Cancela cuando quieras</span>
       </div>
     </div>
-    <div class="callcard">
-      <div class="cc-glow"></div>
-      <div class="cc-tabs" id="ccTabs">
-        <button class="cc-tab active" data-id="clinica">🦷 Clínica</button>
-        <button class="cc-tab" data-id="peluqueria">✂️ Peluquería</button>
-        <button class="cc-tab" data-id="restaurante">🍽️ Restaurante</button>
+    <div class="demo">
+      <div class="demo-head">
+        <span class="demo-label">Transcripción · llamada real</span>
+        <div class="demo-tabs" id="ccTabs">
+          <button class="cc-tab active" data-id="clinica">Clínica</button>
+          <button class="cc-tab" data-id="peluqueria">Peluquería</button>
+          <button class="cc-tab" data-id="restaurante">Restaurante</button>
+        </div>
       </div>
-      <div class="cc-top">
-        <div class="cc-avatar">🎙️</div>
-        <div class="cc-id"><div class="cc-name" id="ccName">Asistente</div><div class="cc-status" id="ccStatus"><span class="d"></span>Ejemplo real · pulsa para escuchar</div></div>
-        <button class="cc-live cc-playbtn" id="ccPlay" aria-label="Escuchar ejemplo real">▶ Escuchar</button>
-      </div>
-      <div class="cc-wave idle" id="ccWave">
-        <i style="animation-delay:0s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.25s"></i><i style="animation-delay:.15s"></i><i style="animation-delay:.35s"></i><i style="animation-delay:.05s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.2s"></i><i style="animation-delay:.4s"></i><i style="animation-delay:.12s"></i><i style="animation-delay:.28s"></i><i style="animation-delay:.18s"></i><i style="animation-delay:.33s"></i><i style="animation-delay:.08s"></i><i style="animation-delay:.24s"></i><i style="animation-delay:.38s"></i>
-      </div>
+      <div class="demo-name" id="ccName">Asistente</div>
       <div class="cc-transcript" id="ccTranscript"></div>
-      <div class="cc-foot">Conversación y cita reales · <b>agenda en Google Calendar</b><span class="cc-chip">🔊 voz natural</span></div>
-    </div>
-  </header>
-</div>
-
-<!-- PROOF STRIP -->
-<div class="proof"><div class="wrap">
-  <div><div class="proof-num">24/7</div><div class="proof-lbl">Atiende siempre · noches y festivos</div></div>
-  <div class="proof-div"></div>
-  <div><div class="proof-num"><em>0</em></div><div class="proof-lbl">Llamadas perdidas = clientes perdidos</div></div>
-  <div class="proof-div"></div>
-  <div><div class="proof-num">&lt;2 s</div><div class="proof-lbl">Responde como una persona</div></div>
-  <div class="proof-div"></div>
-  <div><div class="proof-num"><em>49€</em></div><div class="proof-lbl">Todo incluido · vs 800€ de recepcionista</div></div>
-</div></div>
-
-<!-- COST OF LOST CALLS -->
-<section class="sec"><div class="wrap"><div class="cost">
-  <div>
-    <div class="eyebrow">El problema</div>
-    <h2>Cada llamada que no coges es un cliente que llama <span class="u-line">al de al lado</span>.</h2>
-    <p class="lead">Estás con las manos ocupadas y el teléfono suena. No llegas. Ese cliente no deja mensaje: llama al siguiente de Google. Y no vuelve.</p>
-    <div class="cost-list">
-      <div class="cost-item"><span class="x">✕</span><div>El <b>62% de quien no es atendido no vuelve a llamar</b>. Se va a la competencia.</div></div>
-      <div class="cost-item"><span class="x">✕</span><div>Las llamadas caen <b>fuera de horario, en festivos y a la hora punta</b> — justo cuando no puedes cogerlas.</div></div>
-      <div class="cost-item"><span class="x">✕</span><div>Un contestador <b>no agenda ni resuelve</b> nada. Y contratar a alguien cuesta 800–1.000€/mes.</div></div>
+      <div class="demo-foot">
+        <button class="cc-playbtn" id="ccPlay" aria-label="Escuchar ejemplo real">▶ Escuchar</button>
+        <div class="cc-wave idle" id="ccWave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <span class="demo-status" id="ccStatus">Ejemplo real</span>
+      </div>
     </div>
   </div>
-  <div class="cost-card">
-    <div class="big">2.400€</div>
-    <div class="cap">Lo que pierde de media al mes un negocio local por llamadas sin atender (5 al día × ticket medio).</div>
-    <hr>
-    <div class="flip">→ 0€ perdidos con NodeFlow</div>
-    <div class="flip-cap">Atiende el 100% por 49€/mes. Se paga solo con recuperar una cita.</div>
-  </div>
-</div></div></section>
+</div></header>
 
-<!-- HOW IT WORKS -->
-<section class="sec" id="como"><div class="wrap">
-  <div class="sec-head"><div class="eyebrow">Cómo funciona</div><h2>Listo en minutos. Sin técnicos.</h2><p>Tres pasos y tu teléfono ya no se queda sin atender.</p></div>
+<!-- STATS -->
+<section class="section" style="padding-top:0;border-top:none"><div class="wrap">
+  <div class="stats">
+    <div class="stat"><div class="fig">24/7</div><div class="lbl">Atiende siempre · noches y festivos</div></div>
+    <div class="stat"><div class="fig"><em>0</em></div><div class="lbl">Llamadas perdidas = clientes perdidos</div></div>
+    <div class="stat"><div class="fig">&lt;2 s</div><div class="lbl">Responde como una persona</div></div>
+    <div class="stat"><div class="fig"><em>49€</em></div><div class="lbl">Todo incluido · vs 800€ de recepcionista</div></div>
+  </div>
+</div></section>
+
+<!-- 01 PROBLEM -->
+<section class="section"><div class="wrap">
+  <div class="kicker"><span class="n">01</span><span>El problema</span></div>
+  <div class="split">
+    <div>
+      <h2 class="h2">Cada llamada que no coges es un cliente que llama <span class="lime">al de al lado</span>.</h2>
+      <p class="lead">Estás con las manos ocupadas y el teléfono suena. No llegas. Ese cliente no deja mensaje: llama al siguiente de Google. Y no vuelve.</p>
+      <div class="cost-list">
+        <div class="cost-row"><span class="mk">✕</span><div>El <b>62% de quien no es atendido no vuelve a llamar</b>. Se va a la competencia.</div></div>
+        <div class="cost-row"><span class="mk">✕</span><div>Las llamadas caen <b>fuera de horario, en festivos y a la hora punta</b> — justo cuando no puedes cogerlas.</div></div>
+        <div class="cost-row"><span class="mk">✕</span><div>Un contestador <b>no agenda ni resuelve</b> nada. Y contratar a alguien cuesta 800–1.000€/mes.</div></div>
+      </div>
+    </div>
+    <div class="figure">
+      <div class="big">2.400€</div>
+      <div class="fcap">Lo que pierde de media al mes un negocio local por llamadas sin atender (5 al día × ticket medio).</div>
+      <div class="flip">→ 0€ perdidos con NodeFlow</div>
+      <div class="flip-cap">Atiende el 100% por 49€/mes. Se paga solo con recuperar una cita.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 02 HOW -->
+<section class="section" id="como"><div class="wrap">
+  <div class="kicker"><span class="n">02</span><span>Cómo funciona</span></div>
+  <h2 class="h2" style="margin-bottom:clamp(40px,5vw,60px)">Listo en minutos. Sin técnicos.</h2>
   <div class="steps">
-    <div class="step"><div class="step-n">1</div><h3>Configúralo</h3><p>Cuéntale a qué te dedicas, tus servicios y horarios. Elige su voz y escúchalo antes de nada.</p></div>
-    <div class="step"><div class="step-n">2</div><h3>Desvía tu teléfono</h3><p>Un código en tu móvil y las llamadas que no coges saltan a tu asistente. Sigues con tu número de siempre.</p></div>
-    <div class="step"><div class="step-n">3</div><h3>Vuelve a lo tuyo</h3><p>NodeFlow atiende, agenda en tu calendario y te avisa por WhatsApp. Tú, a trabajar tranquilo.</p></div>
+    <div class="step"><div class="n">Paso 01</div><h3>Configúralo</h3><p>Cuéntale a qué te dedicas, tus servicios y horarios. Elige su voz y escúchalo antes de nada.</p></div>
+    <div class="step"><div class="n">Paso 02</div><h3>Desvía tu teléfono</h3><p>Un código en tu móvil y las llamadas que no coges saltan a tu asistente. Sigues con tu número de siempre.</p></div>
+    <div class="step"><div class="n">Paso 03</div><h3>Vuelve a lo tuyo</h3><p>NodeFlow atiende, agenda en tu calendario y te avisa por WhatsApp. Tú, a trabajar tranquilo.</p></div>
   </div>
 </div></section>
 
-<!-- CAPABILITIES / OUTCOMES -->
-<section class="sec" id="capacidades"><div class="wrap">
-  <div class="sec-head"><div class="eyebrow">Qué hace por ti</div><h2>No es un contestador. Es tu negocio <span class="u-line">trabajando solo</span>.</h2><p>Todo incluido en el plan. Sin módulos que activar ni sorpresas.</p></div>
-  <div class="bento">
-    <div class="oc"><div class="oc-ico">📅</div><h3>Agenda citas mientras trabajas</h3><p>Consulta tu disponibilidad real y reserva en tu Google Calendar durante la llamada. El cliente cuelga con su cita hecha.</p><span class="tag">Sincroniza con tu calendario</span></div>
-    <div class="oc oc--feature oc--wide8"><div class="oc-ico">🧠</div><h3>Recuerda a cada cliente</h3><p>Sabe quién llama, qué pidió la última vez y cómo se llama. Cada conversación es personal, como con un empleado de años. No es un contestador: es memoria que trabaja a tu favor en cada llamada.</p><span class="tag">CRM que se llena solo</span></div>
-    <div class="oc"><div class="oc-ico">💬</div><h3>Confirma y recuerda por WhatsApp</h3><p>Manda la confirmación al instante y un recordatorio el día antes con botones. Menos ausencias, sin que muevas un dedo.</p><span class="tag">Menos no-shows</span></div>
-    <div class="oc"><div class="oc-ico">🔄</div><h3>Recupera lo que se perdía</h3><p>Rellena huecos con la lista de espera y vuelve a llamar a clientes que hace tiempo no vienen. Ingresos que antes se escapaban.</p><span class="tag">Reactivación automática</span></div>
-    <div class="oc"><div class="oc-ico">⭐</div><h3>Consigue más reseñas</h3><p>Tras cada cita, pide la reseña al cliente en el momento justo por WhatsApp. Más valoraciones sin que tengas que pedirlas tú.</p><span class="tag">Reputación en piloto automático</span></div>
-    <div class="oc oc--feature oc--full"><div class="oc-ico">📊</div><h3>Y te dice qué hacer con todo ello</h3><p>Resume cómo va tu negocio, detecta lo que se te escapa y te propone la acción con un clic. No solo ejecuta: piensa por ti. Como un socio que mira los números mientras tú trabajas.</p><span class="tag">Análisis + recomendaciones</span></div>
+<!-- 03 CAPABILITIES -->
+<section class="section" id="capacidades"><div class="wrap">
+  <div class="kicker"><span class="n">03</span><span>Qué hace por ti</span></div>
+  <h2 class="h2" style="margin-bottom:8px">No es un contestador. Es tu negocio <span class="lime">trabajando solo</span>.</h2>
+  <p class="deck" style="margin-bottom:clamp(36px,4vw,52px)">Todo incluido en el plan. Sin módulos que activar ni sorpresas.</p>
+  <div class="caps">
+    <div class="cap"><div class="n">01</div><div><h3>Agenda citas mientras trabajas</h3><p>Consulta tu disponibilidad real y reserva en tu Google Calendar durante la llamada. El cliente cuelga con su cita hecha.</p></div><div class="tag">Sincroniza con tu calendario</div></div>
+    <div class="cap feat"><div class="n">02</div><div><h3>Recuerda a cada cliente <span class="dot">●</span></h3><p>Sabe quién llama, qué pidió la última vez y cómo se llama. Cada conversación es personal, como con un empleado de años. No es un contestador: es memoria que trabaja a tu favor en cada llamada.</p></div><div class="tag">CRM que se llena solo</div></div>
+    <div class="cap"><div class="n">03</div><div><h3>Confirma y recuerda por WhatsApp</h3><p>Manda la confirmación al instante y un recordatorio el día antes con botones. Menos ausencias, sin que muevas un dedo.</p></div><div class="tag">Menos no-shows</div></div>
+    <div class="cap"><div class="n">04</div><div><h3>Recupera lo que se perdía</h3><p>Rellena huecos con la lista de espera y vuelve a llamar a clientes que hace tiempo no vienen. Ingresos que antes se escapaban.</p></div><div class="tag">Reactivación automática</div></div>
+    <div class="cap"><div class="n">05</div><div><h3>Consigue más reseñas</h3><p>Tras cada cita, pide la reseña al cliente en el momento justo por WhatsApp. Más valoraciones sin que tengas que pedirlas tú.</p></div><div class="tag">Reputación en piloto</div></div>
+    <div class="cap feat"><div class="n">06</div><div><h3>Y te dice qué hacer con todo ello <span class="dot">●</span></h3><p>Resume cómo va tu negocio, detecta lo que se te escapa y te propone la acción con un clic. No solo ejecuta: piensa por ti. Como un socio que mira los números mientras tú trabajas.</p></div><div class="tag">Análisis + recomienda</div></div>
   </div>
 </div></section>
 
-<!-- SECTORS -->
-<section class="sec" id="sectores"><div class="wrap">
-  <div class="sec-head"><div class="eyebrow">Para tu sector</div><h2>Aprende cómo se habla en lo tuyo.</h2><p>Se adapta al vocabulario, los servicios y las normas de tu negocio.</p></div>
-  <div class="sectors">
-    <a class="sec-chip">🦷 Clínicas dentales</a><a class="sec-chip">✂️ Peluquerías</a><a class="sec-chip">💆 Estética</a>
-    <a class="sec-chip">🏥 Fisioterapia</a><a class="sec-chip">🐾 Veterinarias</a><a class="sec-chip">💪 Gimnasios</a>
-    <a class="sec-chip">🍽️ Restaurantes</a><a class="sec-chip">⚖️ Despachos</a><a class="sec-chip">🔧 Talleres</a>
-    <a class="sec-chip">🧘 Yoga y pilates</a><a class="sec-chip">🏨 Hoteles</a><a class="sec-chip">+ el tuyo</a>
+<!-- 04 SECTORS -->
+<section class="section" id="sectores"><div class="wrap">
+  <div class="kicker"><span class="n">04</span><span>Para tu sector</span></div>
+  <div class="split" style="align-items:center">
+    <div>
+      <h2 class="h2">Aprende cómo se habla en lo tuyo.</h2>
+      <p class="lead">Se adapta al vocabulario, los servicios y las normas de tu negocio. No es genérico: sabe de lo tuyo.</p>
+    </div>
+    <div class="sectors-line">Clínicas dentales<span class="sep">·</span>Peluquerías<span class="sep">·</span>Estética<span class="sep">·</span>Fisioterapia<span class="sep">·</span>Veterinarias<span class="sep">·</span>Gimnasios<span class="sep">·</span>Restaurantes<span class="sep">·</span>Despachos<span class="sep">·</span>Talleres<span class="sep">·</span>Yoga<span class="sep">·</span>Hoteles<span class="sep">·</span><span class="own">+ el tuyo</span></div>
   </div>
 </div></section>
 
-<!-- TRUST / GUARANTEE -->
-<section class="sec"><div class="wrap"><div class="trust">
-  <div>
-    <div class="eyebrow">Sin humo</div>
-    <h2>Desviar tu teléfono da respeto. Por eso no te pedimos fe.</h2>
-    <div class="guar">
-      <div class="guar-item"><span class="ck">✓</span><div><b>Escúchalo antes de desviar nada.</b> Te llama a tu móvil para que lo pruebes tú primero.</div></div>
-      <div class="guar-item"><span class="ck">✓</span><div><b>Sin permanencia.</b> Cancelas cuando quieras, desde tu panel, sin llamadas ni letra pequeña.</div></div>
-      <div class="guar-item"><span class="ck">✓</span><div><b>Tu número no cambia.</b> Solo desvías lo que no coges. Cero riesgo para lo que ya funciona.</div></div>
-      <div class="guar-item"><span class="ck">✓</span><div><b>Hecho en Euskadi, cumple RGPD.</b> La IA avisa de que lo es y tus datos se quedan en Europa.</div></div>
+<!-- TRUST -->
+<section class="section"><div class="wrap">
+  <div class="kicker"><span class="n">05</span><span>Sin humo</span></div>
+  <div class="split">
+    <div>
+      <h2 class="h2">Desviar tu teléfono da respeto. Por eso no te pedimos fe.</h2>
+      <div class="guar">
+        <div class="guar-row"><span class="k">✓</span><div><b>Escúchalo antes de desviar nada.</b> Te llama a tu móvil para que lo pruebes tú primero.</div></div>
+        <div class="guar-row"><span class="k">✓</span><div><b>Sin permanencia.</b> Cancelas cuando quieras, desde tu panel, sin llamadas ni letra pequeña.</div></div>
+        <div class="guar-row"><span class="k">✓</span><div><b>Tu número no cambia.</b> Solo desvías lo que no coges. Cero riesgo para lo que ya funciona.</div></div>
+        <div class="guar-row"><span class="k">✓</span><div><b>Hecho en Euskadi, cumple RGPD.</b> La IA avisa de que lo es y tus datos se quedan en Europa.</div></div>
+      </div>
+    </div>
+    <div class="quote">
+      <div class="q">Detrás de NodeFlow hay una persona, no un call center. Si algo no funciona, me escribes tú a mí y lo arreglo.</div>
+      <div class="by"><div class="fa">U</div><div><div class="fn">Unai · fundador de NodeFlow</div><div class="fr">Euskal Herria · soporte humano en español</div></div></div>
     </div>
   </div>
-  <div class="founder">
-    <div class="q">"Detrás de NodeFlow hay una persona, no un call center. Si algo no funciona, me escribes tú a mí y lo arreglo."</div>
-    <div class="by"><div class="fa">U</div><div><div class="fn">Unai · fundador de NodeFlow</div><div class="fr">Euskal Herria · soporte humano en español</div></div></div>
-  </div>
-</div></div></section>
+</div></section>
 
-<!-- PRICING -->
-<section class="sec" id="precio"><div class="wrap">
-  <div class="sec-head"><div class="eyebrow">Precio</div><h2>Un precio. <span class="u-line">Todo incluido</span>.</h2><p>Sin planes confusos ni sorpresas en la factura. Los únicos extras, opcionales y a la vista.</p></div>
-  <div class="price-grid">
-    <div class="pc pop">
-      <div class="pc-badge">TODO INCLUIDO</div>
-      <div class="pc-name">NodeFlow</div>
-      <div class="pc-price"><sup>€</sup>49<span class="per">/mes</span></div>
-      <div class="pc-note">Tu recepcionista 24/7, por menos que una mañana de un empleado.</div>
-      <ul class="pc-feats">
-        <li><span class="ck">✓</span> Atiende tus llamadas 24/7, también festivos</li>
-        <li><span class="sp">✦</span> Voz natural en castellano, euskera y galego</li>
-        <li><span class="sp">✦</span> Agenda citas en tu Google Calendar</li>
-        <li><span class="sp">✦</span> Memoria de clientes + CRM completo</li>
-        <li><span class="sp">✦</span> Recordatorios y reseñas por WhatsApp</li>
-        <li><span class="sp">✦</span> Recupera perdidas + lista de espera + reactivación</li>
-        <li><span class="ck">✓</span> 500 min/mes · sin permanencia</li>
-      </ul>
-      <a href="/onboarding.html?plan=negocio" class="btn-primary">Empezar ahora →</a>
+<!-- 06 PRICING -->
+<section class="section" id="precio"><div class="wrap">
+  <div class="kicker"><span class="n">06</span><span>Precio</span></div>
+  <div class="price-split">
+    <div>
+      <div class="price-tag"><sup>€</sup>49<span class="per"> /mes</span></div>
+      <p class="price-note">Tu recepcionista 24/7, por menos que una mañana de un empleado.</p>
+      <a href="/onboarding.html?plan=negocio" class="btn btn-fill">Empezar ahora →</a>
     </div>
+    <ul class="price-feats">
+      <li><span class="m">✓</span> Atiende tus llamadas <b>24/7</b>, también festivos</li>
+      <li><span class="m">✦</span> Voz natural en <b>castellano, euskera y galego</b></li>
+      <li><span class="m">✦</span> Agenda citas en tu <b>Google Calendar</b></li>
+      <li><span class="m">✦</span> Memoria de clientes + <b>CRM completo</b></li>
+      <li><span class="m">✦</span> Recordatorios y reseñas por <b>WhatsApp</b></li>
+      <li><span class="m">✦</span> Recupera perdidas + lista de espera + reactivación</li>
+      <li><span class="m">✓</span> <b>500 min/mes</b> · sin permanencia</li>
+    </ul>
   </div>
   <div class="addons">
     <div class="addon"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
     <div class="addon"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
     <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></div>
   </div>
-  <p class="price-foot">Un recepcionista a tiempo parcial cuesta 800–1.000€/mes. NodeFlow atiende cada llamada por <b>49€</b> · IVA incluido · Cancela cuando quieras</p>
+  <div class="price-foot">Un recepcionista a tiempo parcial cuesta 800–1.000€/mes. NodeFlow atiende cada llamada por <b>49€</b> · IVA incluido · Cancela cuando quieras</div>
 </div></section>
 
 <!-- FAQ -->
-<section class="sec"><div class="wrap">
-  <div class="sec-head"><div class="eyebrow">Dudas</div><h2>Lo que todo el mundo pregunta.</h2></div>
+<section class="section"><div class="wrap">
+  <div class="kicker"><span class="n">07</span><span>Dudas</span></div>
   <div class="faq">
-    <div class="qa"><h4>¿Tengo que cambiar mi número de teléfono?</h4><p>No. Mantienes tu número de siempre. Solo configuras un desvío para las llamadas que no coges — un código sencillo en tu móvil. Lo que ya funciona no se toca.</p></div>
-    <div class="qa"><h4>¿Se nota que es una IA?</h4><p>Suena natural y habla con normalidad. Además, por transparencia y por ley (RGPD), avisa al inicio de que es un asistente virtual. Puedes escucharlo tú antes de activar nada.</p></div>
-    <div class="qa"><h4>¿Cuánto tarda en estar listo?</h4><p>Minutos. Completas el registro, eliges la voz y configuras tu negocio; el asistente queda activo y recibes las instrucciones de desvío al momento.</p></div>
-    <div class="qa"><h4>¿Y si el cliente quiere hablar con una persona?</h4><p>El asistente lo detecta y te avisa al instante por WhatsApp con el resumen, para que llames tú cuando puedas. Nunca deja a nadie tirado.</p></div>
-    <div class="qa"><h4>¿Puedo cancelar cuando quiera?</h4><p>Sí, sin permanencia ni penalizaciones. Cancelas desde tu panel cuando quieras, sin llamadas ni letra pequeña.</p></div>
+    <div class="faq-row"><h4>¿Tengo que cambiar mi número de teléfono?</h4><p>No. Mantienes tu número de siempre. Solo configuras un desvío para las llamadas que no coges — un código sencillo en tu móvil. Lo que ya funciona no se toca.</p></div>
+    <div class="faq-row"><h4>¿Se nota que es una IA?</h4><p>Suena natural y habla con normalidad. Además, por transparencia y por ley (RGPD), avisa al inicio de que es un asistente virtual. Puedes escucharlo tú antes de activar nada.</p></div>
+    <div class="faq-row"><h4>¿Cuánto tarda en estar listo?</h4><p>Minutos. Completas el registro, eliges la voz y configuras tu negocio; el asistente queda activo y recibes las instrucciones de desvío al momento.</p></div>
+    <div class="faq-row"><h4>¿Y si el cliente quiere hablar con una persona?</h4><p>El asistente lo detecta y te avisa al instante por WhatsApp con el resumen, para que llames tú cuando puedas. Nunca deja a nadie tirado.</p></div>
+    <div class="faq-row"><h4>¿Puedo cancelar cuando quiera?</h4><p>Sí, sin permanencia ni penalizaciones. Cancelas desde tu panel cuando quieras, sin llamadas ni letra pequeña.</p></div>
   </div>
 </div></section>
 
-<!-- FINAL CTA -->
-<section class="sec"><div class="wrap"><div class="final">
-  <h2>Deja de perder clientes<br>por no coger el teléfono.</h2>
-  <p>Escúchalo antes de contratar y decide. Sin compromiso.</p>
-  <a href="/onboarding.html?plan=negocio" class="btn-primary">Activar mi asistente →</a>
-  <div class="risk" style="justify-content:center;margin-top:20px">
-    <span><span class="ck">✓</span> Sin permanencia</span><span><span class="ck">✓</span> Sin cambiar tu número</span><span><span class="ck">✓</span> Activo en minutos</span>
+<!-- FINAL POSTER -->
+<section class="section poster"><div class="wrap">
+  <h2>Deja de perder clientes por no coger el teléfono.</h2>
+  <p>Escúchalo antes de contratar y decide. Sin compromiso, activo en minutos.</p>
+  <a href="/onboarding.html?plan=negocio" class="btn-dark">Activar mi asistente →</a>
+  <div class="poster-risk">
+    <span>✓ Sin permanencia</span><span>✓ Sin cambiar tu número</span><span>✓ Activo en minutos</span>
   </div>
-</div></div></section>
+</div></section>
 
 <!-- FOOTER -->
 <footer><div class="wrap">
@@ -455,8 +450,7 @@ footer{border-top:1px solid var(--border);padding:48px 0 40px;margin-top:40px}
   <div class="foot-bot"><div>© 2026 NodeFlow · Hecho en Euskadi</div><div>Cumple RGPD · Soporte humano en español</div></div>
 </div></footer>
 
-<a href="https://wa.me/34666351319?text=Hola%2C%20quiero%20info%20de%20NodeFlow" target="_blank" rel="noopener" class="wa-float" aria-label="Escríbenos por WhatsApp">💬</a>
-<div class="mobile-cta"><a href="/onboarding.html?plan=negocio" class="btn-primary">Activar mi asistente →</a></div>
+<div class="mobile-cta"><a href="/onboarding.html?plan=negocio" class="btn btn-fill">Activar mi asistente →</a></div>
 <audio id="demoAudio" preload="none"></audio>
 <script>
   const nav=document.getElementById('nav');
@@ -475,7 +469,7 @@ footer{border-top:1px solid var(--border);padding:48px 0 40px;margin-top:40px}
   function setPlaying(on){
     wave.classList.toggle('idle',!on);
     playBtn.innerHTML=on?'⏸ Sonando':'▶ Escuchar';
-    st.innerHTML='<span class="d"></span>'+(on?'Reproduciendo ejemplo real…':'Ejemplo real · pulsa para escuchar');
+    st.innerHTML='<span class="d"></span>'+(on?'Reproduciendo…':'Ejemplo real');
   }
   async function loadDemo(id){
     audio.pause();
