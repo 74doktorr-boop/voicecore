@@ -22,6 +22,13 @@ const WINBACK_DAYS = 60; // cliente "a recuperar" si no llama desde hace > X dí
 function madridToday() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
 }
+// Instante UTC de las 00:00 en MADRID de una fecha civil (offset calculado por
+// fecha → DST-safe). Para filtrar timestamptz por el día del NEGOCIO, no el UTC.
+function madridMidnightUtc(dateStr) {
+  const asUtc = new Date(`${dateStr}T00:00:00Z`);
+  const offH  = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(asUtc));
+  return new Date(asUtc.getTime() - offH * 3600000);
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -52,8 +59,8 @@ async function collectBriefing(db, businessId, today, yesterday) {
       .from('nf_calls')
       .select('caller_number, outcome, started_at')
       .eq('org_id', businessId)
-      .gte('started_at', `${yesterday}T00:00:00`)
-      .lte('started_at', `${yesterday}T23:59:59`)
+      .gte('started_at', madridMidnightUtc(yesterday).toISOString())
+      .lt('started_at',  madridMidnightUtc(today).toISOString())
       .neq('outcome', 'booked')
       .limit(50);
     missedCalls = (data || []).filter(c => c.caller_number);

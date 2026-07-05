@@ -23,6 +23,12 @@ const log = new Logger('WEEKLY-REPORT');
 function madridToday() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
 }
+// Instante UTC de las 00:00 en Madrid de una fecha civil (offset por fecha → DST-safe).
+function madridMidnightUtc(dateStr) {
+  const asUtc = new Date(`${dateStr}T00:00:00Z`);
+  const offH  = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(asUtc));
+  return new Date(asUtc.getTime() - offH * 3600000);
+}
 
 /** Devuelve { from, to } ISO (YYYY-MM-DD) de los últimos 7 días completos. */
 function lastWeekRange() {
@@ -42,8 +48,11 @@ function fmtDate(iso, lang = 'es') {
 // ── Recogida de métricas por organización ────────────────────────────────────
 
 async function collectOrgStats(db, org, range) {
-  const fromTs = `${range.from}T00:00:00`;
-  const toTs   = `${range.to}T23:59:59`;
+  // Límites del rango en el DÍA CIVIL de Madrid (no UTC): fin exclusivo = 00:00
+  // Madrid del día siguiente al último día del rango.
+  const dayAfter = new Date(`${range.to}T12:00:00Z`); dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  const fromTs = madridMidnightUtc(range.from).toISOString();
+  const toTs   = madridMidnightUtc(dayAfter.toISOString().slice(0, 10)).toISOString();
 
   // Llamadas de la semana
   const { data: calls } = await db.client
@@ -51,7 +60,7 @@ async function collectOrgStats(db, org, range) {
     .select('duration_ms, outcome, started_at')
     .eq('org_id', org.id)
     .gte('started_at', fromTs)
-    .lte('started_at', toTs)
+    .lt('started_at', toTs)
     .limit(2000);
 
   // Citas creadas durante la semana (las agendó el asistente)
