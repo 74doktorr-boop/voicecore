@@ -25,6 +25,10 @@ const KEEP_LAST = 8;
 // Tablas críticas — datos de clientes que no se pueden perder.
 // (calls y usage se excluyen: son voluminosas y reconstruibles en parte;
 //  añadir aquí si se quiere backup completo.)
+// dumpTable salta con un warn las tablas que no existan en un despliegue → es
+// seguro incluir de más. Faltaban tablas CRÍTICAS: nf_calls (la fuente de verdad
+// de llamadas: transcript/auditoría/todo), referidos (dinero), la KB (RAG), los
+// sectores custom, tareas, lista de espera, leads, fechas críticas y el uso.
 const TABLES = [
   'registros',
   'organizations',
@@ -32,7 +36,18 @@ const TABLES = [
   'contacts',
   'contact_memory',
   'call_summaries',
+  'nf_calls',
   'nf_appointments',
+  'nf_tasks',
+  'nf_waitlist',
+  'nf_callbacks',
+  'nf_referrals',
+  'nf_referral_conversions',
+  'knowledge_chunks',
+  'nf_sectors',
+  'critical_dates',
+  'leads',
+  'usage',
   'nf_phone_pool',
   'nf_rebooking_log',
   'whatsapp_accounts',
@@ -131,6 +146,26 @@ async function pruneOldBackups(db) {
   }
 }
 
+/** Avisa al fundador si el backup falla — sin esto, un fallo de upload solo iba a
+ *  los logs (que nadie vigila) → datos sin respaldo, sin que nadie se entere. */
+async function _alertBackupFailure(reason) {
+  try {
+    const { sendEmail } = require('../notifications/email');
+    await sendEmail({
+      to: process.env.NOTIFY_EMAIL || 'unai@nodeflow.es',
+      subject: '⚠️ El backup semanal de NodeFlow FALLÓ',
+      html: `<h2 style="color:#c0392b">El respaldo automático no se completó</h2>
+        <p>El backup de la base de datos (domingos 04:00 Madrid) ha fallado:</p>
+        <pre style="background:#f5f5f5;padding:10px;border-radius:6px">${String(reason).slice(0, 600)}</pre>
+        <p>Revisa el almacenamiento de Supabase y los logs. <b>Sin backups, los datos están en riesgo.</b></p>
+        <p style="color:#999;font-size:12px">NodeFlow · aviso automático de infraestructura</p>`,
+    });
+    log.info('Backup: aviso de fallo enviado al fundador');
+  } catch (e) {
+    log.error(`Backup: no se pudo avisar del fallo (${e.message})`);
+  }
+}
+
 // ── Cron: domingo 04:00 Madrid ───────────────────────────────────────────────
 
 let _interval = null;
@@ -149,7 +184,9 @@ function startBackupCron() {
 
     if (parts.weekday === 'Sun' && `${parts.hour}:${parts.minute}` === '04:00' && _lastRunDate !== today) {
       _lastRunDate = today;
-      runBackup().catch(e => log.error(`Backup cron error: ${e.message}`));
+      runBackup()
+        .then(res => { if (!res || !res.ok) _alertBackupFailure(res && res.error ? res.error : 'resultado no ok'); })
+        .catch(e => { log.error(`Backup cron error: ${e.message}`); _alertBackupFailure(e.message); });
     }
   }, 60 * 1000);
   _interval.unref();
@@ -160,4 +197,4 @@ function stopBackupCron() {
   if (_interval) { clearInterval(_interval); _interval = null; }
 }
 
-module.exports = { runBackup, startBackupCron, stopBackupCron };
+module.exports = { runBackup, startBackupCron, stopBackupCron, BACKUP_TABLES: TABLES };
