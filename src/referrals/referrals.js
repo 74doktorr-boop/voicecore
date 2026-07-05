@@ -150,13 +150,23 @@ async function recordConversion(code, refereeRegistroId) {
   if (!db.enabled || !code) return null;
   const norm = code.toUpperCase().trim();
   try {
-    // Marcar la conversión (si existe el registro de signup)
+    // IDEMPOTENCIA: procesar la recompensa SOLO en la primera conversión de este
+    // referido. El update condicional 'signup'→'converted' solo afecta filas aún no
+    // convertidas; si no afecta ninguna (ya procesado — p.ej. reintento del webhook
+    // de Stripe tras liberarse el claim de provisión por un fallo posterior) NO se
+    // vuelve a sumar la recompensa (antes se doblaba el crédito manual pendiente).
     if (refereeRegistroId) {
-      await db.client.from('nf_referral_conversions')
+      const { data: converted } = await db.client.from('nf_referral_conversions')
         .update({ status: 'converted', converted_at: new Date().toISOString() })
-        .eq('referee_registro_id', refereeRegistroId);
+        .eq('referee_registro_id', refereeRegistroId)
+        .eq('status', 'signup')
+        .select('id');
+      if (!converted || !converted.length) {
+        log.info(`Conversión de referido ${norm} ya procesada (${refereeRegistroId}) — idempotente, sin re-sumar`);
+        return null;
+      }
     }
-    // Sumar conversión + recompensa pendiente al referrer
+    // Sumar conversión + recompensa pendiente al referrer (solo la primera vez)
     const { data: ref } = await db.client
       .from('nf_referrals')
       .select('referrer_org_id, referrer_email, times_converted, reward_pending')
@@ -164,13 +174,40 @@ async function recordConversion(code, refereeRegistroId) {
       .maybeSingle();
     if (!ref) return null;
 
+    // Intentar aplicar la recompensa como CRÉDITO en Stripe (medio mes), idempotente.
+    // ⚠️ SIN VERIFICAR contra Stripe test mode. Defensivo: si no se aplica (sin customer,
+    // billing off o error), cae a `reward_pending` para gestión manual — nunca rompe el flujo.
+    let creditApplied = false;
+    try {
+      const { data: org } = await db.client.from('organizations')
+        .select('plan, stripe_customer_id')
+        .eq('id', ref.referrer_org_id).maybeSingle();
+      if (org && org.stripe_customer_id) {
+        const planPrice = ({ negocio: 4900 })[org.plan] || 4900; // medio mes del plan
+        const { getBilling } = require('../billing/stripe');
+        const res = await getBilling().applyCredit({
+          customerId:     org.stripe_customer_id,
+          cents:          Math.round(planPrice / 2),
+          description:    'Recompensa por referido — medio mes',
+          idempotencyKey: 'ref_credit_' + norm + '_' + (refereeRegistroId || 'na'),
+        });
+        creditApplied = !!(res && res.ok);
+        log.info(`Recompensa referido ${norm}: crédito Stripe ${JSON.stringify(res)}`);
+      } else {
+        log.info(`Recompensa referido ${norm}: referrer sin stripe_customer_id → pendiente manual`);
+      }
+    } catch (e) {
+      log.warn(`Crédito referido ${norm}: ${e.message}`);
+    }
+
     await db.client.from('nf_referrals').update({
       times_converted: (ref.times_converted || 0) + 1,
-      reward_pending:  (ref.reward_pending || 0) + 1,
+      // Si el crédito se aplicó en Stripe, NO cuenta como pendiente manual.
+      reward_pending:  (ref.reward_pending || 0) + (creditApplied ? 0 : 1),
       updated_at: new Date().toISOString(),
     }).eq('code', norm);
 
-    log.info(`Conversión de referido: ${norm} → recompensa pendiente para ${ref.referrer_org_id}`);
+    log.info(`Conversión de referido: ${norm} → ${creditApplied ? 'crédito aplicado' : 'recompensa pendiente'} para ${ref.referrer_org_id}`);
     return { referrerOrgId: ref.referrer_org_id, referrerEmail: ref.referrer_email };
   } catch (e) {
     log.warn(`recordConversion(${norm}): ${e.message}`);
