@@ -152,7 +152,7 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
   <div class="step" id="step-2">
     <button class="btn-back" onclick="goStep(1)">← Volver</button>
     <h1>Así sonará tu recepcionista</h1>
-    <p class="sub">Esta es la voz que atenderá cada llamada de tu negocio. Prueba distintas voces.</p>
+    <p class="sub">Voces ultrarrealistas de última generación. Prueba varias — en tus llamadas saludará con el nombre de tu negocio.</p>
     <div class="vp" id="voicePlayer">
       <div class="vp-voices" id="vp-voices"></div>
       <div class="vp-player">
@@ -310,14 +310,18 @@ function goStep(n) {
 }
 
 // ─── Momento wow: escucha tu asistente ───────────────────────────────────
+// Voces PREMIUM de ElevenLabs (catálogo config/voices.json) con muestra PREGRABADA
+// en /audio/voices/{id}.mp3 → calidad real y ultrarrealista al instante (sin TTS
+// en vivo). Es lo primero que oye el cliente: cuanta más calidad, más ventas.
 const VOICES = [
-  { id: 'nova',    name: 'Sofía',  desc: 'Cálida' },
-  { id: 'shimmer', name: 'Lucía',  desc: 'Suave' },
-  { id: 'alloy',   name: 'Elena',  desc: 'Versátil' },
-  { id: 'echo',    name: 'Carlos', desc: 'Serio' },
-  { id: 'onyx',    name: 'Pablo',  desc: 'Grave' },
+  { id: 'cristina-es', name: 'Cristina', desc: 'Recepción' },
+  { id: 'laura-es',    name: 'Laura',    desc: 'Cálida' },
+  { id: 'gabriela-es', name: 'Gabriela', desc: 'Expresiva' },
+  { id: 'carlos-es',   name: 'Carlos',   desc: 'Profesional' },
+  { id: 'marcos-es',   name: 'Marcos',   desc: 'Firme' },
+  { id: 'tony-es',     name: 'Tony',     desc: 'Cercano' },
 ];
-let currentVoice = 'nova';
+let currentVoice = 'cristina-es';
 let vpLoading = false;
 const vpAudio = new Audio();
 
@@ -352,21 +356,24 @@ function enterWow() {
   loadGreeting(true); // auto-genera y reproduce (el clic actúa de gesto de usuario)
 }
 
+// Lo que dicen las muestras pregrabadas (coincide con el audio real reproducido).
+const SAMPLE_TEXT = '¡Hola! Ha llamado a su negocio. Soy su asistente virtual. ¿En qué puedo ayudarle?';
+
 function loadGreeting(autoplay) {
-  const text = greetingText();
-  document.getElementById('vp-transcript').textContent = text;
-  document.getElementById('vp-note').textContent = 'Generando la voz de tu asistente…';
+  document.getElementById('vp-transcript').textContent = SAMPLE_TEXT;
+  document.getElementById('vp-note').textContent = 'Preparando la voz…';
   document.getElementById('voicePlayer').classList.remove('playing');
   vpAudio.pause();
   vpLoading = true;
   document.getElementById('vp-play').innerHTML = '<span class="spinner"></span>';
-  vpAudio.src = '/api/tts/preview?provider=openai&voice=' + encodeURIComponent(currentVoice) + '&text=' + encodeURIComponent(text);
+  // Muestra PREGRABADA de la voz premium → suena al instante, calidad real.
+  vpAudio.src = '/audio/voices/' + currentVoice + '.mp3';
   if (autoplay) {
     const p = vpAudio.play();
     if (p && p.catch) p.catch(function () {
       vpLoading = false;
       document.getElementById('vp-play').innerHTML = '▶';
-      document.getElementById('vp-note').textContent = 'Pulsa ▶ para escuchar tu asistente';
+      document.getElementById('vp-note').textContent = 'Pulsa ▶ para escuchar la voz';
     });
   }
 }
@@ -449,7 +456,7 @@ async function submitRegistro() {
     const basePrice  = PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
     const idiomaLabels = { es: 'Castellano', eu: 'Euskera', gl: 'Galego' };
-    const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Sofía';
+    const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Cristina';
     const summary = document.getElementById('summary-rows');
     summary.innerHTML =
       '<div class="summary-row"><span>Plan</span><span class="val">' + plan.name + '</span></div>' +
