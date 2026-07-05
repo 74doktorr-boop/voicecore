@@ -552,9 +552,21 @@ class ToolExecutor {
       displayDate = new Date(nDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     } catch (_) {}
 
+    // Día relativo correcto: no decir "mañana" si la cita no es mañana (antes se
+    // hardcodeaba → "mañana tienes cita el jueves 9", contradictorio).
+    let tomorrowISO = '';
+    try {
+      const t = new Date(todayMadrid + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + 1);
+      tomorrowISO = t.toISOString().slice(0, 10);
+    } catch (_) {}
+    const rel = nDate === todayMadrid ? 'hoy ' : nDate === tomorrowISO ? 'mañana ' : '';
+    const reminderLine = rel
+      ? `Te recordamos que ${rel}tienes cita${petName} en nuestro centro:`
+      : `Te recordamos tu cita${petName} en nuestro centro:`;
+
     const text =
       `Hola ${name} 👋\n\n` +
-      `Te recordamos que mañana tienes cita${petName} en nuestro centro:\n\n` +
+      `${reminderLine}\n\n` +
       `📅 ${displayDate} a las ${nTime}h\n` +
       `📋 ${service}` +
       address +
