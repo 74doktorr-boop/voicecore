@@ -1,7 +1,7 @@
 // public/sw.js — NodeFlow Portal Service Worker
 'use strict';
 
-const CACHE = 'nf-portal-v11';
+const CACHE = 'nf-portal-v12';
 const PRECACHE = [
   '/portal/',
   '/portal/index.html',
@@ -51,7 +51,9 @@ self.addEventListener('fetch', function(e) {
     /\.(html|js|css)$/.test(url.pathname) || url.pathname.endsWith('/');
   if (isAppShell) {
     e.respondWith(
-      fetch(e.request).then(function(res) {
+      // cache:'reload' → salta la caché HTTP del navegador y va SIEMPRE a la red
+      // (si el asset lleva max-age, el fetch normal devolvía la copia vieja).
+      fetch(e.request, { cache: 'reload' }).then(function(res) {
         if (res && res.ok) {
           var copy = res.clone();
           caches.open(CACHE).then(function(c) { c.put(e.request, copy); });

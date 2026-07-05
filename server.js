@@ -338,9 +338,17 @@ app.get('/:sector/:ciudad', (req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false, // root handled above
   setHeaders(res, filePath) {
-    res.set('Cache-Control', filePath.endsWith('.html')
-      ? 'no-cache, no-store, must-revalidate'
-      : 'public, max-age=3600');
+    // App shell (HTML + JS + CSS del portal/admin) DEBE quedar fresco tras cada
+    // deploy: los assets NO van versionados, así que se revalidan siempre (304 si
+    // no cambió). Antes iban max-age=3600 → tras un deploy los clientes veían el
+    // portal viejo hasta 1h (la landing no se veía afectada por tener el CSS inline).
+    if (filePath.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (/\.(js|css)$/.test(filePath)) {
+      res.set('Cache-Control', 'no-cache, must-revalidate');
+    } else {
+      res.set('Cache-Control', 'public, max-age=3600');
+    }
   }
 }));
 app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'), {
