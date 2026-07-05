@@ -334,6 +334,23 @@ const SECTORS = {
       { key: 'stage_captured',   label: '¿Aclaró si empieza de cero o continúa?' },
     ],
   },
+  reconocimientos: {
+    slug: 'reconocimientos', label: 'Centro de reconocimientos médicos',
+    aliases: ['reconocimiento_medico', 'reconocimientos_medicos', 'psicotecnico', 'psicotecnicos',
+              'crc', 'centro_medico_conductores', 'certificado_medico', 'revision_medica_carnet'],
+    norms: [
+      'Pregunta QUÉ tipo de reconocimiento necesita: carnet de conducir (y qué permiso: B, C, D…), armas, náutica, grúa/perros peligrosos, u otro.',
+      'Aclara si es RENOVACIÓN o primera obtención. Si el cliente no lo sabe, no insistas: ofrece confirmarlo en el centro.',
+      'Muchos centros atienden por orden de llegada SIN cita; ofrece cita solo si el centro la usa. Informa del horario y de qué traer (DNI, y las gafas o lentillas si las usa).',
+      'Informa del precio del reconocimiento si está configurado (suele ser tarifa cerrada por tipo).',
+      'NUNCA valores el estado de salud del cliente ni anticipes si pasará o no las pruebas: eso lo decide el personal médico en el centro.',
+    ],
+    metricChecks: [
+      { key: 'exam_type_captured',   label: '¿Identificó el tipo de reconocimiento (carnet/armas/náutica…)?' },
+      { key: 'renewal_or_new',       label: '¿Aclaró si es renovación o primera vez?' },
+      { key: 'no_medical_judgement', label: '¿Evitó valorar la salud o anticipar el resultado?' },
+    ],
+  },
   academia: {
     slug: 'academia', label: 'Academia / clases',
     aliases: ['academia_idiomas', 'clases_particulares', 'refuerzo', 'formacion'],

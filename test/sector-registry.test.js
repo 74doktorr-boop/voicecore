@@ -36,6 +36,18 @@ describe('resolveSector', () => {
     assert.strictEqual(resolveSector('clinica').label, 'Clínica médica');
   });
 
+  // Vertical de Osakin (2026-07-05): centro de reconocimientos médicos / psicotécnicos
+  // (CRC), distinto de autoescuela (enseñar a conducir) y de clínica (médica general).
+  test('reconocimientos (CRC/psicotécnicos) resuelve por sus alias y no colisiona', () => {
+    assert.strictEqual(resolveSector('psicotecnico').slug, 'reconocimientos');
+    assert.strictEqual(resolveSector('crc').slug, 'reconocimientos');
+    assert.strictEqual(resolveSector('certificado_medico').slug, 'reconocimientos');
+    // no se confunde con autoescuela (conducir) ni con clínica (médica general)
+    assert.strictEqual(resolveSector('autoescuela').slug, 'autoescuela');
+    const r = resolveSector('reconocimientos');
+    assert.ok(r.norms.some(n => /nunca valores el estado de salud/i.test(n)), 'no anticipa el resultado médico');
+  });
+
   test('normaliza mayúsculas/acentos/espacios', () => {
     assert.strictEqual(resolveSector('  Odontología ').slug, 'dental');
   });
