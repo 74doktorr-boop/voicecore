@@ -1387,24 +1387,24 @@ async function loadCalls(outcome, from, to) {
         detalle += '<div>📅 ' + esc(fmtDate(ap.date)) + ' · ' + esc(ap.time) + ' · ' + esc(ap.service) + '</div>';
       }
       if (!detalle) {
-        detalle = '<div style="color:var(--dim)">' +
+        detalle = '<div class="u-dim">' +
           (c.outcome === 'info' ? 'Consulta atendida sin reserva'
             : c.turnCount > 0 ? 'Conversación sin reserva' : 'Colgó sin hablar') + '</div>';
       }
-      detalle += '<small style="color:var(--muted)">' + c.turnCount + ' intercambios</small>';
+      detalle += '<small class="u-muted">' + c.turnCount + ' intercambios</small>';
       // Contacto: nombre enlazado a su ficha si el cliente está fichado
       var contacto = c.contactId
-        ? '<a href="#" onclick="openContactProfile(\'' + esc(c.contactId) + '\');return false" style="color:var(--accent);text-decoration:none;font-weight:600">' + esc(c.contactName || 'Ver ficha') + '</a>' +
-          (c.callerNumber ? '<div style="font-size:12px;color:var(--dim)">' + esc(c.callerNumber) + '</div>' : '')
-        : (c.callerNumber ? '<div style="font-size:12px">' + esc(c.callerNumber) + '</div>' : '—');
+        ? '<a href="#" onclick="openContactProfile(\'' + esc(c.contactId) + '\');return false" class="u-accent u-no-underline" style="font-weight:600">' + esc(c.contactName || 'Ver ficha') + '</a>' +
+          (c.callerNumber ? '<div class="u-text-sm u-dim">' + esc(c.callerNumber) + '</div>' : '')
+        : (c.callerNumber ? '<div class="u-text-sm">' + esc(c.callerNumber) + '</div>' : '—');
       var waNum   = c.callerNumber ? c.callerNumber.replace(/[^0-9]/g,'') : '';
       var callBtn = c.callerNumber
         ? '<button class="btn btn-g btn-sm" onclick="callOutbound(\'' + esc(c.callerNumber) + '\',this)" title="Llamar">📞</button>' +
-          '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + waNum + '" target="_blank" title="WhatsApp">💬</a>'
-        : '<span style="color:var(--muted)">—</span>';
+          '<a class="btn btn-sm btn-wa u-no-underline" href="https://wa.me/' + waNum + '" target="_blank" title="WhatsApp">💬</a>'
+        : '<span class="u-muted">—</span>';
       rows += '<tr><td>' + timeAgo(c.startedAt) + '</td><td>' + dur + '</td><td>' + badge + '</td>' +
         '<td>' + detalle + '</td>' +
-        '<td style="color:var(--dim)">' + contacto + '</td>' +
+        '<td class="u-dim">' + contacto + '</td>' +
         '<td><button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(c.callId || '') + '\')">💬</button></td>' +
         '<td>' + callBtn + '</td></tr>';
     }
@@ -1417,23 +1417,23 @@ async function loadCalls(outcome, from, to) {
       '<button class="btn btn-d btn-sm" onclick="toggleCallNotifications(this)" title="Avisarme en pantalla de cada llamada">' + (notificationsEnabled() ? '🔔 Avisos' : '🔕 Avisos') + '</button>' +
     '</div>' +
     '<div class="filter-bar">' +
-      '<label style="font-size:12px;color:var(--dim)">Resultado:</label>' +
+      '<label class="u-text-sm u-dim">Resultado:</label>' +
       '<select id="fOutcome" onchange="loadCalls(this.value,document.getElementById(\'fFrom\').value,document.getElementById(\'fTo\').value)">' +
         '<option value="todas">Todas</option>' +
         '<option value="booked">Reserva</option>' +
         '<option value="info">Informativas</option>' +
         '<option value="abandoned">Abandonadas</option>' +
       '</select>' +
-      '<label style="font-size:12px;color:var(--dim)">Desde:</label>' +
+      '<label class="u-text-sm u-dim">Desde:</label>' +
       '<input type="date" id="fFrom" onchange="loadCalls(document.getElementById(\'fOutcome\').value,this.value,document.getElementById(\'fTo\').value)">' +
-      '<label style="font-size:12px;color:var(--dim)">Hasta:</label>' +
+      '<label class="u-text-sm u-dim">Hasta:</label>' +
       '<input type="date" id="fTo" onchange="loadCalls(document.getElementById(\'fOutcome\').value,document.getElementById(\'fFrom\').value,this.value)">' +
       '<button class="btn btn-d btn-sm" onclick="loadCalls()">Limpiar</button>' +
     '</div>' +
     '<div class="table-wrap"><table>' +
       '<thead><tr><th>Cuándo</th><th>Duración</th><th>Resultado</th><th>Detalles</th><th>Contacto</th><th>Transcript</th><th>Acciones</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
-    '<div style="font-size:12px;color:var(--dim);margin-top:12px">Total: ' + (data.count || 0) + ' llamadas</div>';
+    '<div class="u-text-sm u-dim u-mt-3">Total: ' + (data.count || 0) + ' llamadas</div>';
 
   if (outcome && outcome !== 'todas') {
     var sel = document.getElementById('fOutcome');
@@ -2493,7 +2493,7 @@ async function loadClientes(q) {
         'onkeydown="if(event.key===\'Enter\')openContactProfile(\'' + esc(c.id) + '\')">' +
         '<div class="nf-client-top">' +
           '<div class="nf-client-avatar">' + esc(initial) + '</div>' +
-          '<div style="min-width:0;flex:1">' +
+          '<div class="u-flex-1" style="min-width:0">' +
             '<div class="nf-client-name">' + esc(c.displayName) + '</div>' +
             '<div class="nf-client-sub">' + esc(c.phone || c.email || '—') + '</div>' +
           '</div>' +
@@ -2518,33 +2518,30 @@ async function loadClientes(q) {
   // Chips de filtro por etiqueta
   var tagFilter = '';
   if (data.allTags && data.allTags.length) {
-    tagFilter = '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">' +
-      '<span style="font-size:12px;color:var(--dim);margin-right:4px">Filtrar:</span>' +
-      '<span onclick="setClientesTag(\'\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
-        (!_clientesTag ? 'background:var(--accent);color:#0a0b0d' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">Todos</span>' +
+    tagFilter = '<div class="u-flex u-wrap u-gap-1 u-items-center u-mb-4">' +
+      '<span class="u-text-sm u-dim" style="margin-right:4px">Filtrar:</span>' +
+      '<span onclick="setClientesTag(\'\')" class="chip u-pointer' + (!_clientesTag ? ' chip-solid' : '') + '">Todos</span>' +
       data.allTags.map(function(t){
         var on = _clientesTag === t;
-        return '<span onclick="setClientesTag(\'' + esc(t) + '\')" style="cursor:pointer;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;' +
-          (on ? 'background:var(--accent);color:#0a0b0d' : 'background:var(--bg2);color:var(--dim);border:1px solid var(--border)') + '">' + esc(t) + '</span>';
+        return '<span onclick="setClientesTag(\'' + esc(t) + '\')" class="chip u-pointer' + (on ? ' chip-solid' : '') + '">' + esc(t) + '</span>';
       }).join('') + '</div>';
   }
 
   // Chip de filtro "necesita atención" — conecta el CRM con la promesa de reactivación
   var attnFilter = '';
   if (attentionCount > 0 || _clientesAttention) {
-    attnFilter = '<div style="margin-bottom:14px">' +
-      '<span onclick="toggleClientesAttention()" style="cursor:pointer;border-radius:20px;padding:4px 13px;font-size:12px;font-weight:700;' +
-        (_clientesAttention ? 'background:var(--yellow);color:#0a0b0d' : 'background:rgba(246,197,68,.12);color:var(--yellow);border:1px solid rgba(246,197,68,.3)') + '">' +
+    attnFilter = '<div class="u-mb-4">' +
+      '<span onclick="toggleClientesAttention()" class="chip u-pointer ' + (_clientesAttention ? 'chip-solid-warn' : 'chip-yellow') + '">' +
         '⚠ Necesita atención · ' + attentionCount + '</span>' +
-      (_clientesAttention ? ' <span onclick="toggleClientesAttention()" style="cursor:pointer;font-size:12px;color:var(--dim);margin-left:8px">✕ quitar filtro</span>' : '') +
+      (_clientesAttention ? ' <span onclick="toggleClientesAttention()" class="u-pointer u-text-sm u-dim" style="margin-left:8px">✕ quitar filtro</span>' : '') +
     '</div>';
   }
 
   sec.innerHTML =
-    '<div class="section-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+    '<div class="section-header">' +
       '<div class="section-title">Clientes</div>' +
-      '<div style="display:flex;align-items:center;gap:10px">' +
-        '<span style="font-size:13px;color:var(--dim)">' + (data.count || 0) + ' contactos</span>' +
+      '<div class="u-flex u-items-center u-gap-2">' +
+        '<span class="u-text-md u-dim">' + (data.count || 0) + ' contactos</span>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
       '</div>' +
     '</div>' +

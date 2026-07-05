@@ -323,6 +323,9 @@ textarea:focus-visible, [tabindex]:focus-visible, .btn:focus-visible, .faq-q:foc
 
 .btn-g { background: rgba(33,192,138,.12); color: var(--green); border: 1px solid rgba(33,192,138,.25); }
 .btn-g:hover { background: rgba(33,192,138,.2); }
+/* WhatsApp: verde de marca externo (fijo, no es color de NodeFlow) */
+.btn-wa { background: #25d366; color: #fff; border: 1px solid #25d366; }
+.btn-wa:hover { background: #1fb959; }
 .btn-r { background: rgba(240,100,90,.1); color: var(--red); border: 1px solid rgba(240,100,90,.22); }
 .btn-r:hover { background: rgba(240,100,90,.18); }
 .btn-d { background: rgba(255,255,255,.05); color: var(--dim); border: 1px solid var(--border); }
@@ -1081,6 +1084,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .chip-red    { color: var(--red);    background: rgba(240,100,90,.1);   border-color: rgba(240,100,90,.24); }
 .chip-yellow { color: var(--yellow); background: rgba(246,197,68,.12);  border-color: rgba(246,197,68,.28); }
 .chip-solid  { color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 800; }
+.chip-solid-warn { color: var(--on-accent); background: var(--yellow); border-color: var(--yellow); font-weight: 800; }
 .chip-sm { font-size: var(--fs-2xs); padding: 2px 7px; }
 .chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
