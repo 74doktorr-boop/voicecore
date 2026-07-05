@@ -79,6 +79,42 @@ async function enqueueRecoveryBatch(orgId, orgName, phones) {
   return { queued, skipped };
 }
 
+// ── Consumidor 3: reactivación por VOZ (add-on Crecimiento) ──────────
+// El canal por defecto de la reactivación es email; con rebooking.channel
+// = 'voice' el asistente LLAMA al cliente antiguo. La elegibilidad es la
+// misma que la de email pero por TELÉFONO (no email): sin cita próxima,
+// con última visita, y pasado el umbral del sector. Predicado puro para
+// poder testear la regla de negocio sin BD (charter: reglas fuera del LLM).
+function reactivationEligible(client, threshold, now = Date.now()) {
+  if (!client || !client.phone) return false;         // la voz necesita móvil
+  if (client.upcomingCount !== 0) return false;        // ya va a volver
+  if (!client.lastVisitDate) return false;             // sin historial de visita
+  const t = new Date(client.lastVisitDate).getTime();
+  if (Number.isNaN(t)) return false;
+  const days = Math.floor((now - t) / 86400000);
+  return days >= threshold;
+}
+
+/**
+ * Encola UNA llamada de reactivación para un cliente antiguo. Respeta las
+ * bajas (do_not_contact). Devuelve {queued, reason}. Una sola llamada por
+ * cliente/umbral (el anti-spam vive en el cron, como en email).
+ */
+async function enqueueReactivationCall(orgId, bizName, client) {
+  const phone = String((client && client.phone) || '').replace(/[^\d+]/g, '');
+  if (phone.replace(/\D/g, '').length < 7) return { queued: false, reason: 'phone_invalid' };
+  const info = await contactInfo(orgId, phone);
+  if (info.blocked) { log.info(`Reactivación: ${phone} saltado (baja)`); return { queued: false, reason: 'blocked' }; }
+  await enqueueCampaignCall({
+    orgId,
+    campaignType: 'reactivation',
+    phone,
+    contactId: info.contactId,
+    payload: { promptBlock: PURPOSE_BLOCKS.reactivation(bizName, info.name || client.name, client.lastVisitDate) },
+  });
+  return { queued: true };
+}
+
 // ── Consumidor 2: confirmación anti no-show (cron) ───────────────────
 // Franja de encolado: 16:00-18:59 Madrid — las llamadas salen la tarde
 // anterior a la cita, cuando el cliente puede reorganizarse.
@@ -137,4 +173,4 @@ async function enqueueNoShowConfirmations({ scheduler, flowManager }) {
   return { queued };
 }
 
-module.exports = { enqueueRecoveryBatch, enqueueNoShowConfirmations, buildNoShowBlock, isNoShowEnqueueWindow, contactInfo };
+module.exports = { enqueueRecoveryBatch, enqueueNoShowConfirmations, buildNoShowBlock, isNoShowEnqueueWindow, contactInfo, reactivationEligible, enqueueReactivationCall };

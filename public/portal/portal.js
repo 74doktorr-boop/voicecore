@@ -1963,13 +1963,18 @@ async function loadAutomatizaciones() {
       // Reactivación (rebooking) card
       '<div class="auto-card"><div class="auto-row"><div>' +
         '<div class="auto-name">🔄 Reactivación de clientes</div>' +
-        '<div class="auto-desc">Recordatorio cuando un cliente lleva tiempo sin venir</div>' +
+        '<div class="auto-desc">Cuando un cliente lleva tiempo sin venir, le recuerdas por email o el asistente le llama para invitarle a volver</div>' +
       '</div><label class="toggle"><input type="checkbox" id="togRebooking" ' + (reb.enabled !== false ? 'checked' : '') +
         ' onchange="patchAuto(\'rebooking\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
       '<div class="auto-footer"><span class="auto-label">Días sin venir:</span><div class="auto-hours">' +
         '<input type="number" id="daysRebooking" value="' + (reb.daysThreshold || nfReactivationDays() || 42) + '" min="7" max="365"' +
         ' onchange="patchAuto(\'rebooking\',{daysThreshold:parseInt(this.value)})"></div></div>' +
-      (nfReactivationDays() ? '<div style="font-size:11px;color:var(--dim);margin-top:8px">Recomendado para tu sector: <strong style="color:var(--text)">' + nfReactivationDays() + ' días</strong></div>' : '') +
+      '<div class="auto-footer"><span class="auto-label">Cómo avisar:</span>' +
+        '<select id="chanRebooking" class="form-ctrl" style="width:auto" onchange="patchAuto(\'rebooking\',{channel:this.value})">' +
+          '<option value="email"' + ((reb.channel || 'email') === 'email' ? ' selected' : '') + '>✉️ Email</option>' +
+          '<option value="voice"' + (reb.channel === 'voice' ? ' selected' : '') + '>📞 El asistente le llama</option>' +
+        '</select></div>' +
+      (nfReactivationDays() ? '<div class="u-text-xs u-dim u-mt-2">Recomendado para tu sector: <strong class="u-text">' + nfReactivationDays() + ' días</strong>. La reactivación (email o voz) es del add-on Crecimiento.</div>' : '<div class="u-text-xs u-dim u-mt-2">La reactivación (email o voz) es del add-on Crecimiento.</div>') +
       '</div>' +
       // Recuperación de no-shows card
       '<div class="auto-card"><div class="auto-row"><div>' +

@@ -8,6 +8,7 @@
 const { flowManager }          = require('../automations/flow-manager');
 const { scheduler }            = require('./scheduler');
 const { sendRebookingEmail, sendRebookingFollowUp } = require('../notifications/rebooking-notifications');
+const { reactivationEligible, enqueueReactivationCall } = require('../campaigns/enqueuers');
 const { getDatabase }          = require('../db/database');
 const { hasAddon }             = require('../billing/addons');
 const { Logger }               = require('../utils/logger');
@@ -151,6 +152,10 @@ async function checkAndSendRebookings() {
     if (threshold == null) continue; // sector disabled (e.g. inmobiliaria)
 
     const maxPerYear = rebooking.maxPerYear ?? 4;
+    // Canal de reactivación: 'email' (defecto) o 'voice' (el asistente llama al
+    // cliente antiguo vía Campaign Core). Opt-in por org → ninguna org existente
+    // cambia de comportamiento. La voz usa teléfono; el email, email.
+    const channel = rebooking.channel || 'email';
 
     // Get all appointments for this business
     const allApts = scheduler.getAppointments(businessId);
@@ -181,6 +186,33 @@ async function checkAndSendRebookings() {
       checked++;
       const key = _sentKey(businessId, client.phone || client.email);
 
+      // ── Canal VOZ (opt-in) — el asistente LLAMA al cliente antiguo ─────
+      // Mismos candados que email: umbral del sector, tope anual, do-not-contact
+      // (dentro del enqueuer) y ventana horaria (dispatcher). Una llamada, sin
+      // segundo toque: es una invitación, no una campaña de acoso.
+      if (channel === 'voice') {
+        if (!reactivationEligible(client, threshold)) continue;
+        const lastSent = _sentLog.get(key);
+        if (lastSent && Math.floor((Date.now() - lastSent) / 86400000) < threshold) continue;
+        const yearKey = `${key}:${new Date().getFullYear()}`;
+        const sentThisYear = _sentLog.get(yearKey) || 0;
+        if (sentThisYear >= maxPerYear) continue;
+        try {
+          const r = await enqueueReactivationCall(businessId, flow.name, client);
+          if (r && r.queued) {
+            _sentLog.set(key, Date.now());
+            _sentLog.set(yearKey, sentThisYear + 1);
+            _persistSent(businessId, key, 1, sentThisYear + 1).catch(() => {});
+            sent++;
+            log.info(`Reactivación por voz encolada: ${client.phone} (${businessId}/${sector}, last:${client.lastVisitDate})`);
+          }
+        } catch (e) {
+          log.warn(`Reactivación voz fallida: ${client.phone}`, { err: e.message });
+        }
+        continue;
+      }
+
+      // ── Canal EMAIL (por defecto) — comportamiento SIN CAMBIOS ─────────
       if (client.email && client.upcomingCount === 0 && client.lastVisitDate) {
         const daysSince = _daysSince(client.lastVisitDate);
 

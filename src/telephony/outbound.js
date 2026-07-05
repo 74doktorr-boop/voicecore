@@ -158,6 +158,17 @@ Estás llamando TÚ en nombre de ${bizName} a ${clientName || 'un cliente'} que
 llamó hace poco y no llegó a reservar. Preséntate, di de dónde llamas, y
 ofrécele amablemente encontrar un hueco. Si no le interesa o es mal momento,
 despídete con amabilidad y NO insistas. Si no contesta un humano, cuelga.`,
+
+  reactivation: (bizName, clientName, lastVisit) => `
+
+## ESTA ES UNA LLAMADA SALIENTE DE REACTIVACIÓN
+Estás llamando TÚ en nombre de ${bizName} a ${clientName || 'un cliente'}, que
+vino por última vez${lastVisit ? ' el ' + lastVisit : ' hace un tiempo'} y hace
+tiempo que no vuelve. Preséntate con calidez, di de dónde llamas y ofrécele
+volver a reservar cuando le venga bien. Es una INVITACIÓN, no una venta: si no le
+interesa o es mal momento, despídete con amabilidad y NO insistas. Nunca
+presiones ni prometas nada que no puedas cumplir. Si no contesta un humano o
+salta un buzón, cuelga sin dejar mensaje.`,
 };
 
 module.exports = { startOutboundCall, resolveOutboundNumber, registerOutboundContext, consumeOutboundContext, normalizeE164, PURPOSE_BLOCKS };
