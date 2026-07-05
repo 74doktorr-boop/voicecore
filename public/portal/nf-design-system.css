@@ -33,6 +33,8 @@
   --accent:    #c4f546;                      /* lima eléctrica. LA marca */
   --accent-l:  #d6ff5c;                      /* lima clara: hover, texto realzado */
   --accent-rgb: 196,245,70;
+  --cyan-rgb:   56,225,200;                  /* tints de cian (guías, datos) */
+  --yellow-rgb: 246,197,68;                  /* tints de aviso */
   --on-accent: #0a0b0d;                      /* texto/iconos SOBRE lima: casi-negro, nunca blanco */
   --cyan:      #38e1c8;                      /* acento secundario, datos */
 
@@ -370,6 +372,7 @@ select.form-input, select.form-ctrl { cursor: pointer; }
   text-transform: uppercase; letter-spacing: .06em;
   margin: var(--sp-6) 0 var(--sp-3); padding-bottom: 6px; border-bottom: 1px solid var(--border-2);
 }
+.form-hint { display: block; margin-top: 6px; font-size: var(--fs-xs); color: var(--dim); line-height: 1.5; }
 
 .search-bar { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-5); }
 .search-bar .search-input { flex: 1; }
@@ -470,6 +473,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .bp    { background: rgba(var(--accent-rgb),.14); color: var(--accent-l); border: 1px solid rgba(var(--accent-rgb),.3); }
 .bd    { background: rgba(255,255,255,.05); color: var(--dim);      border: 1px solid var(--border); }
 .binfo { background: rgba(96,165,250,.12);  color: var(--blue);     border: 1px solid rgba(96,165,250,.25); }
+.bc    { background: rgba(var(--cyan-rgb),.15); color: var(--cyan);  border: 1px solid rgba(var(--cyan-rgb),.3); }
 
 .ai-status {
   background: rgba(33,192,138,.1); border: 1px solid rgba(33,192,138,.2);
@@ -1153,6 +1157,35 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .progress { background: var(--surface-2); border-radius: var(--r-pill); height: 8px; overflow: hidden; }
 .progress-bar { height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width var(--dur-3) var(--ease-out); }
 
+/* -- 29c · CALLOUT + tarjeta semantica --------------------------------- */
+.callout { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  padding: 12px 16px; border-radius: var(--r-2); border: 1px solid var(--border);
+  font-size: var(--fs-sm); color: var(--dim); line-height: 1.6; }
+.callout--accent { background: rgba(var(--accent-rgb),.08); border-color: var(--border-accent); }
+.callout--warn   { background: rgba(var(--yellow-rgb),.07); border-color: rgba(var(--yellow-rgb),.30); }
+.callout--block  { display: block; }                 /* variante solo-texto (sin fila) */
+.card--warn { background: rgba(var(--yellow-rgb),.04); border-color: rgba(var(--yellow-rgb),.30); }
+
+/* -- 29d · PASOS numerados + code-chip (guias) ------------------------- */
+.step-row { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-md); }
+.step-num { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: var(--on-accent); font-size: var(--fs-xs); font-weight: 700; }
+.step-num--done { background: rgba(var(--cyan-rgb),.20); color: var(--green); }
+.code-chip { display: flex; align-items: center; gap: 6px; min-width: 0;
+  padding: 7px 12px; border-radius: var(--r-1); border: 1px solid var(--border); background: rgba(255,255,255,.03); }
+.code-chip__lbl  { font-size: 9px; font-weight: 700; text-transform: uppercase; white-space: nowrap; color: var(--dim); }
+.code-chip code  { font-size: var(--fs-md); font-weight: 700; letter-spacing: .02em; white-space: nowrap; color: var(--dim); }
+.code-chip__copy { background: none; border: none; cursor: pointer; padding: 0 0 0 2px; font-size: var(--fs-md); flex-shrink: 0; color: var(--dim); }
+.code-chip--on   { background: rgba(var(--cyan-rgb),.07); border-color: rgba(var(--cyan-rgb),.25); }
+.code-chip--on code { color: var(--green2); }
+.code-chip--on .code-chip__lbl, .code-chip--on .code-chip__copy { color: var(--green); }
+.code-inline { background: rgba(0,0,0,.3); padding: 1px 4px; border-radius: 3px; }
+
+/* -- 29e · desvio: tipo de desvio -------------------------------------- */
+.dv-type { border: 1px solid var(--border); border-radius: var(--r-3); padding: var(--sp-4); margin-bottom: var(--sp-3); }
+.dv-type--rec { border-color: rgba(var(--cyan-rgb),.25); background: rgba(var(--cyan-rgb),.04); }
+
 /* -- 30 · UTILIDADES (migrar estilos inline de forma mecanica) --------- */
 .u-flex{display:flex}.u-inline-flex{display:inline-flex}.u-grid{display:grid}.u-block{display:block}.u-hidden{display:none}
 .u-items-center{align-items:center}.u-items-start{align-items:flex-start}.u-items-end{align-items:flex-end}
@@ -1172,3 +1205,6 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .u-round-2{border-radius:var(--r-2)}.u-round-3{border-radius:var(--r-3)}.u-round-4{border-radius:var(--r-4)}.u-pill{border-radius:var(--r-pill)}
 .u-shadow-2{box-shadow:var(--shadow-2)}.u-glow{box-shadow:var(--glow-accent)}.u-full{width:100%}
 .u-border-accent{border-color:var(--border-accent)}.u-pointer{cursor:pointer}.u-dim-2{opacity:.6}.u-py-2{padding-top:var(--sp-2);padding-bottom:var(--sp-2)}
+.u-mx-auto{margin-left:auto;margin-right:auto}.u-maxw-form{max-width:860px}.u-nowrap{white-space:nowrap}.u-normal{font-weight:400}
+.u-mt-5{margin-top:var(--sp-5)}.u-mb-5{margin-bottom:var(--sp-5)}.u-underline{text-decoration:underline}.u-no-underline{text-decoration:none}
+.u-link{color:var(--accent-l);cursor:pointer;text-decoration:underline}.u-cyan{color:var(--cyan)}.u-mono{font-family:monospace}

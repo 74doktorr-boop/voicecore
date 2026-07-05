@@ -2107,40 +2107,40 @@ async function loadConfig() {
 
   sec.innerHTML =
     '<div class="section-header"><div class="section-title">Configuración</div></div>' +
-    '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto">' +
+    '<div class="card u-mx-auto u-maxw-form">' +
       '<div class="form-section-title">Información general</div>' +
       '<div class="form-row">' +
         '<div class="form-group"><label class="form-label">Nombre del negocio</label>' +
           '<input class="form-input" id="cfgName" value="' + esc(c.name || '') + '"></div>' +
         '<div class="form-group"><label class="form-label">Email del propietario</label>' +
           '<input class="form-input" readonly value="' + esc(c.ownerEmail || '') + '">' +
-          '<small style="color:var(--dim);font-size:11px">Para cambiar el email, contacta con soporte</small></div>' +
+          '<small class="form-hint">Para cambiar el email, contacta con soporte</small></div>' +
       '</div>' +
       '<div class="form-row">' +
         '<div class="form-group"><label class="form-label">Teléfono del negocio</label>' +
           '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
-          '<small style="color:var(--dim);font-size:11px">Número provisionado — no editable</small></div>' +
+          '<small class="form-hint">Número provisionado — no editable</small></div>' +
         '<div class="form-group"><label class="form-label">Idioma de la IA</label>' +
-          '<div style="font-size:12px;color:var(--dim);padding:9px 0;line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Asistente</a> para no tenerlo en dos sitios. Actual: <strong style="color:var(--text)">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
+          '<div class="u-text-sm u-dim u-py-2" style="line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a> para no tenerlo en dos sitios. Actual: <strong class="u-text">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
       '</div>' +
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
       '<div class="form-section-title">Servicios y horarios</div>' +
-      '<div class="form-group"><label class="form-label">Servicios y precios <span style="color:var(--dim);font-weight:400">— la IA se los dice a tus clientes con exactitud</span></label>' +
+      '<div class="form-group"><label class="form-label">Servicios y precios <span class="u-normal">— la IA se los dice a tus clientes con exactitud</span></label>' +
         '<div id="svcGaps"></div>' +
         '<div class="svc-head"><span>Servicio</span><span>Precio</span><span>Duración</span><span>Detalle (opcional)</span><span></span></div>' +
         '<div id="svcList"></div>' +
         '<datalist id="svcPriceOpts"><option value="a presupuesto"><option value="gratis"><option value="desde 30€"></datalist>' +
-        '<button type="button" class="btn btn-d btn-sm" style="margin-top:10px" onclick="addServiceRow()">+ Añadir servicio</button>' +
-        '<small style="display:block;margin-top:8px;color:var(--dim);font-size:11px">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small>' +
+        '<button type="button" class="btn btn-d btn-sm u-mt-2" onclick="addServiceRow()">+ Añadir servicio</button>' +
+        '<small class="form-hint">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small>' +
         copilotBox('services', 'Ej: corte de pelo 15 euros media hora, tinte 45 hora y media, mechas a presupuesto') + '</div>' +
       // #7: el textarea libre de horarios era un campo MUERTO (custom.schedule
       // no lo leía nada del runtime) — el horario real es el selector por días
       // de Asistente (assistant_config.schedule), que alimenta agenda y prompt.
       '<div class="form-group"><label class="form-label">Horarios</label>' +
-        '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:12px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
-          '<div style="flex:1;min-width:200px;font-size:12px;color:var(--dim);line-height:1.6">Se configuran con el <strong style="color:var(--text)">selector por días</strong> (mañana y tarde, hora a hora) — la agenda y la IA usan exactamente lo mismo, sin formatos que adivinar.</div>' +
-          '<button type="button" class="btn btn-accent btn-sm" onclick="navigate(\'asistente\')" style="white-space:nowrap">Configurar horarios →</button>' +
+        '<div class="callout callout--accent">' +
+          '<div class="u-flex-1" style="min-width:200px">Se configuran con el <strong class="u-white">selector por días</strong> (mañana y tarde, hora a hora) — la agenda y la IA usan exactamente lo mismo, sin formatos que adivinar.</div>' +
+          '<button type="button" class="btn btn-accent btn-sm u-nowrap" onclick="navigate(\'asistente\')">Configurar horarios →</button>' +
         '</div></div>' +
       '<div class="form-section-title">Configuración de la IA</div>' +
       '<div class="form-group"><label class="form-label">Mensaje de bienvenida</label>' +
@@ -2151,46 +2151,46 @@ async function loadConfig() {
       '<div class="form-group"><label class="form-label">Dirección del negocio</label>' +
         '<input class="form-input" id="cfgAddress" placeholder="Calle Mayor 12, 20140 Andoain"' +
           ' value="' + esc(c.address || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Usada en fichas de Google, facturas y comunicaciones a clientes.</small></div>' +
+        '<small class="form-hint">Usada en fichas de Google, facturas y comunicaciones a clientes.</small></div>' +
 
       '<div class="form-section-title">Reseñas de Google</div>' +
       '<div class="form-group"><label class="form-label">URL de tu ficha de Google</label>' +
         '<input class="form-input" id="cfgReviewUrl" type="url" placeholder="https://g.page/r/…/review"' +
           ' value="' + esc(c.reviewUrl || '') + '">' +
-        '<small style="color:var(--dim);font-size:11px">Se incluye en los mensajes automáticos post-cita para pedir reseña. <strong>Cómo conseguirlo:</strong> entra en <a href="https://business.google.com" target="_blank" style="color:var(--accent-l)">business.google.com</a> con la cuenta de tu negocio → botón <em>«Pedir reseñas»</em> (o <em>«Comparte tu perfil»</em>) → copia el enlace corto (empieza por g.page/r/…) y pégalo aquí.</small></div>' +
+        '<small class="form-hint">Se incluye en los mensajes automáticos post-cita para pedir reseña. <strong>Cómo conseguirlo:</strong> entra en <a href="https://business.google.com" target="_blank" class="u-accent">business.google.com</a> con la cuenta de tu negocio → botón <em>«Pedir reseñas»</em> (o <em>«Comparte tu perfil»</em>) → copia el enlace corto (empieza por g.page/r/…) y pégalo aquí.</small></div>' +
 
       '<div class="form-section-title">Notificaciones al propietario</div>' +
       '<div class="form-row">' +
-        '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span style="color:var(--dim);font-weight:400">(confirmaciones y cancelaciones)</span></label>' +
+        '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span class="u-normal">(confirmaciones y cancelaciones)</span></label>' +
           '<input class="form-input" id="cfgAlertPhone" type="tel" placeholder="+34 612 345 678"' +
             ' value="' + esc(c.alertPhone || '') + '">' +
-          '<small style="color:var(--dim);font-size:11px">Recibirás un WhatsApp cuando un cliente confirme o cancele su cita. Debe ser diferente al número del negocio.</small></div>' +
-        '<div class="form-group"><label class="form-label">Email para notificaciones <span style="color:var(--dim);font-weight:400">(resumen diario y alertas)</span></label>' +
+          '<small class="form-hint">Recibirás un WhatsApp cuando un cliente confirme o cancele su cita. Debe ser diferente al número del negocio.</small></div>' +
+        '<div class="form-group"><label class="form-label">Email para notificaciones <span class="u-normal">(resumen diario y alertas)</span></label>' +
           '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
             ' value="' + esc(c.notifyEmail || '') + '"></div>' +
       '</div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
-      '<div class="form-group"><label class="form-label">Contraseña de acceso <span style="color:var(--dim);font-weight:400">(opcional — para entrar sin esperar el enlace)</span></label>' +
-        '<div style="display:flex;gap:10px;align-items:center">' +
-          '<input class="form-input" id="cfgPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="flex:1">' +
-          '<button type="button" class="btn btn-d" style="white-space:nowrap" onclick="setPortalPassword()">Guardar contraseña</button>' +
+      '<div class="form-group"><label class="form-label">Contraseña de acceso <span class="u-normal">(opcional — para entrar sin esperar el enlace)</span></label>' +
+        '<div class="u-flex u-gap-2 u-items-center">' +
+          '<input class="form-input u-flex-1" id="cfgPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">' +
+          '<button type="button" class="btn btn-d u-nowrap" onclick="setPortalPassword()">Guardar contraseña</button>' +
         '</div>' +
-        '<small style="color:var(--dim);font-size:11px">Entra con tu email y esta contraseña. El enlace por email seguirá funcionando igual.</small></div>' +
+        '<small class="form-hint">Entra con tu email y esta contraseña. El enlace por email seguirá funcionando igual.</small></div>' +
 
-      '<div style="display:flex;gap:12px;margin-top:24px">' +
+      '<div class="u-flex u-gap-3 u-mt-6">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
         '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20con%20mi%20portal" target="_blank"' +
-           ' class="btn btn-d" style="text-decoration:none">Contactar soporte</a>' +
+           ' class="btn btn-d u-no-underline">Contactar soporte</a>' +
       '</div>' +
     '</div>' +
     // BUG FIX: usar outboundNumber (número NodeFlow asignado), NO c.phone (teléfono del propietario)
     (c.outboundNumber
       ? renderDesvioGuide(c.outboundNumber)
-      : '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto;margin-top:24px;border-color:rgba(249,202,36,.3);background:rgba(249,202,36,.04)">' +
-          '<div class="card-title" style="color:#f9ca24">⏳ Número NodeFlow pendiente de asignación</div>' +
-          '<p style="font-size:13px;color:var(--dim);margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
-          '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" style="color:#d6ff5c">Escríbenos →</a></p>' +
+      : '<div class="card card--warn u-mx-auto u-maxw-form u-mt-6">' +
+          '<div class="card-title u-yellow">⏳ Número NodeFlow pendiente de asignación</div>' +
+          '<p class="u-text-md u-dim" style="margin:0">Tu número dedicado se está asignando automáticamente. En cuanto esté listo recibirás un email con las instrucciones de desvío y aquí aparecerán los códigos.<br><br>' +
+          '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" class="u-accent">Escríbenos →</a></p>' +
         '</div>');
 
   // Render de servicios+precios existentes (o una fila vacía para empezar)
@@ -2202,12 +2202,12 @@ async function loadConfig() {
     var el = document.getElementById('svcGaps');
     if (!el || !d || !Array.isArray(d.gaps) || !d.gaps.length) return;
     var items = d.gaps.slice(0, 4).map(function (g) {
-      return '<strong style="color:var(--text)">«' + esc(g.gap) + '»</strong>' + (g.count > 1 ? ' <span style="opacity:.7">(×' + g.count + ')</span>' : '');
+      return '<strong class="u-text">«' + esc(g.gap) + '»</strong>' + (g.count > 1 ? ' <span class="u-dim-2">(×' + g.count + ')</span>' : '');
     }).join(' · ');
     el.innerHTML =
-      '<div style="background:rgba(249,202,36,.07);border:1px solid rgba(249,202,36,.3);border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12px;color:var(--dim);line-height:1.6">' +
+      '<div class="callout callout--warn callout--block u-mb-2">' +
         '🧠 Estas semanas tus clientes preguntaron cosas que tu asistente no supo responder: ' + items +
-        '. Añádelo aquí abajo (o en <a onclick="navigate(\'conocimiento\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">tu Base de conocimiento</a>) y lo dirá con exactitud en la próxima llamada.' +
+        '. Añádelo aquí abajo (o en <a onclick="navigate(\'conocimiento\')" class="u-link">tu Base de conocimiento</a>) y lo dirá con exactitud en la próxima llamada.' +
       '</div>';
   }).catch(function () {});
 }
@@ -2308,15 +2308,11 @@ function renderDesvioGuide(phone) {
   ];
 
   function codeBlock(id, code, accent) {
-    var bg  = accent ? 'rgba(56,225,200,.07)' : 'rgba(255,255,255,.03)';
-    var bdr = accent ? 'rgba(56,225,200,.25)' : 'var(--border)';
-    var clr = accent ? 'var(--green2)' : 'var(--dim)';
-    var lblClr = accent ? 'var(--green)' : 'var(--dim)';
     var lbl = accent ? 'ACTIVAR' : 'DESACTIVAR';
-    return '<div style="display:flex;align-items:center;gap:6px;background:' + bg + ';border:1px solid ' + bdr + ';border-radius:8px;padding:7px 12px;min-width:0">' +
-      '<span style="font-size:9px;color:' + lblClr + ';font-weight:700;text-transform:uppercase;white-space:nowrap">' + lbl + '</span>' +
-      '<code id="' + id + '" style="font-size:13px;font-weight:700;color:' + clr + ';letter-spacing:.02em;white-space:nowrap">' + code + '</code>' +
-      '<button onclick="copyCode(\'' + id + '\')" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0 0 0 2px;color:' + lblClr + ';flex-shrink:0" title="Copiar al portapapeles">📋</button>' +
+    return '<div class="code-chip' + (accent ? ' code-chip--on' : '') + '">' +
+      '<span class="code-chip__lbl">' + lbl + '</span>' +
+      '<code id="' + id + '">' + code + '</code>' +
+      '<button class="code-chip__copy" onclick="copyCode(\'' + id + '\')" title="Copiar al portapapeles">📋</button>' +
     '</div>';
   }
 
@@ -2324,19 +2320,17 @@ function renderDesvioGuide(phone) {
     var actId   = 'dv-act-'   + i;
     var deactId = 'dv-deact-' + i;
     var recBadge = t.recommended
-      ? '<span style="display:inline-block;background:rgba(56,225,200,.15);color:var(--green);border:1px solid rgba(56,225,200,.3);border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;margin-left:8px;vertical-align:middle">Recomendado</span>'
+      ? '<span class="badge bc" style="margin-left:8px;vertical-align:middle">Recomendado</span>'
       : '';
-    var border = t.recommended ? '1px solid rgba(56,225,200,.25)' : '1px solid var(--border)';
-    var bg     = t.recommended ? 'rgba(56,225,200,.04)' : 'transparent';
-    return '<div style="border:' + border + ';border-radius:12px;padding:16px;margin-bottom:10px;background:' + bg + '">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
-        '<span style="font-size:18px">' + t.icon + '</span>' +
-        '<span style="font-weight:700;font-size:13px">' + t.label + '</span>' +
+    return '<div class="dv-type' + (t.recommended ? ' dv-type--rec' : '') + '">' +
+      '<div class="u-flex u-items-center u-gap-2 u-mb-1">' +
+        '<span class="u-text-xl">' + t.icon + '</span>' +
+        '<span class="u-bold u-text-md">' + t.label + '</span>' +
         recBadge +
       '</div>' +
-      '<div style="font-size:11px;color:var(--accent-l);font-weight:600;margin-bottom:4px">⚡ ' + t.when + '</div>' +
-      '<div style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.6">' + t.desc + '</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<div class="u-text-xs u-accent u-mb-1" style="font-weight:600">⚡ ' + t.when + '</div>' +
+      '<div class="u-text-sm u-dim u-mb-3" style="line-height:1.6">' + t.desc + '</div>' +
+      '<div class="u-flex u-gap-2 u-wrap">' +
         codeBlock(actId,   t.activate,   true) +
         codeBlock(deactId, t.deactivate, false) +
       '</div>' +
@@ -2344,40 +2338,40 @@ function renderDesvioGuide(phone) {
   }).join('');
 
   var steps =
-    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">' +
-      '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>' +
+    '<div class="u-flex u-col u-gap-2 u-mb-5">' +
+      '<div class="step-row">' +
+        '<div class="step-num">1</div>' +
         '<span>Elige el tipo de desvío que mejor se adapta a tu negocio (ver abajo)</span>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>' +
+      '<div class="step-row">' +
+        '<div class="step-num">2</div>' +
         '<span>Pulsa <strong>📋</strong> para copiar el código de activación</span>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0a0b0d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>' +
+      '<div class="step-row">' +
+        '<div class="step-num">3</div>' +
         '<span>Abre el marcador de tu móvil, pega el código y pulsa <strong>llamar ✅</strong></span>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:10px;font-size:13px">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:rgba(56,225,200,.2);color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>' +
-        '<span style="color:var(--dim)">Para desactivarlo en cualquier momento, copia y marca el código <strong>Desactivar</strong></span>' +
+      '<div class="step-row">' +
+        '<div class="step-num step-num--done">4</div>' +
+        '<span class="u-dim">Para desactivarlo en cualquier momento, copia y marca el código <strong>Desactivar</strong></span>' +
       '</div>' +
     '</div>';
 
-  return '<div class="card" style="max-width:860px;margin-left:auto;margin-right:auto;margin-top:24px">' +
-    '<div class="card-title" style="margin-bottom:4px">📲 Activar el desvío de llamadas</div>' +
-    '<div style="font-size:12px;color:var(--dim);margin-bottom:16px">' +
+  return '<div class="card u-mx-auto u-maxw-form u-mt-6">' +
+    '<div class="card-title u-mb-1">📲 Activar el desvío de llamadas</div>' +
+    '<div class="u-text-sm u-dim u-mb-4">' +
       'Tu número de NodeFlow (destino del desvío): ' +
-      '<strong style="color:var(--accent-l);font-family:monospace;font-size:13px">+' + digits + '</strong>' +
+      '<strong class="u-accent u-mono u-text-md">+' + digits + '</strong>' +
     '</div>' +
     steps +
-    '<div style="font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Elige tu tipo de desvío</div>' +
+    '<div class="u-text-sm u-bold u-dim u-mb-2" style="text-transform:uppercase;letter-spacing:.06em">Elige tu tipo de desvío</div>' +
     rows +
-    '<div style="margin-top:14px;padding:12px 14px;background:rgba(249,202,36,.06);border:1px solid rgba(249,202,36,.15);border-radius:10px;font-size:11px;color:#f9ca24;line-height:1.6">' +
+    '<div class="callout callout--warn callout--block u-yellow u-mt-4 u-text-xs">' +
       '<strong>¿Con qué operador tienes el teléfono del negocio?</strong><br>' +
       '• Movistar, Vodafone, Jazztel, Yoigo, MásMóvil, Euskaltel → los códigos de arriba funcionan tal cual<br>' +
-      '• Orange → cambia <code style="background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px">**21</code> por <code style="background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px">*21</code> (sin el asterisco doble inicial)<br>' +
+      '• Orange → cambia <code class="code-inline">**21</code> por <code class="code-inline">*21</code> (sin el asterisco doble inicial)<br>' +
       '• Centralita fija (Grandstream, Panasonic, Asterisk…) → la configuración es diferente, ' +
-      '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20para%20configurar%20el%20desv%C3%ADo%20en%20mi%20centralita" target="_blank" style="color:#f9ca24">escríbenos y lo hacemos juntos →</a>' +
+      '<a href="https://wa.me/34666351319?text=Necesito%20ayuda%20para%20configurar%20el%20desv%C3%ADo%20en%20mi%20centralita" target="_blank" class="u-yellow">escríbenos y lo hacemos juntos →</a>' +
     '</div>' +
   '</div>';
 }
