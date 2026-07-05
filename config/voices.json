@@ -269,6 +269,23 @@
       "tier": "estandar"
     },
     {
+      "id": "brais-gl",
+      "name": "Brais",
+      "gender": "male",
+      "language": "gl",
+      "accent": "galego-nativo",
+      "provider": "elevenlabs",
+      "providerVoiceId": "Syqs6p4s6hxhfAyhhlbS",
+      "tier": "premium",
+      "tags": [
+        "galego",
+        "nativo",
+        "profesional"
+      ],
+      "description": "Voz masculina en galego, natural e profesional — ElevenLabs ultra-realista",
+      "latency": "low"
+    },
+    {
       "id": "marta-ca",
       "name": "Marta",
       "gender": "female",
@@ -381,13 +398,17 @@
     "general": "sofia-es",
     "hosteleria-eu": "ane-eu",
     "dental-eu": "ane-eu",
-    "general-eu": "ane-eu"
+    "general-eu": "ane-eu",
+    "general-gl": "brais-gl",
+    "hosteleria-gl": "brais-gl",
+    "dental-gl": "brais-gl"
   },
   "recommended": {
     "best-quality": "carmen-es",
     "best-value": "sofia-es",
     "most-natural": "jorge-es",
     "euskera-femenina": "ane-eu",
-    "euskera-masculina": "mikel-eu"
+    "euskera-masculina": "mikel-eu",
+    "galego-masculina": "brais-gl"
   }
 }

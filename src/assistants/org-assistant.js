@@ -105,7 +105,11 @@ async function getOrgAssistant(orgId) {
         }
         if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };
         if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier incluido
-        return { voice: cfg.voice || 'nova' }; // elevenlabs por defecto (voice-map traduce)
+        // ElevenLabs EXPLÍCITO: sin esto, la afinidad de idioma del router mandaría
+        // en no-castellano — una llamada en GALEGO (brais-gl) se iría a local-gl o
+        // se quedaría sin proveedor. Con provider explícito, Brais suena en llamadas.
+        if (entry && entry.provider === 'elevenlabs') return { voice: entry.providerVoiceId, ttsProvider: 'elevenlabs' };
+        return { voice: cfg.voice || 'nova' }; // sin entry: elevenlabs por defecto (voice-map traduce el alias)
       })(),
       language,
       // Palanca admin-only para experimentos A/B de cerebro (2026-07-03):

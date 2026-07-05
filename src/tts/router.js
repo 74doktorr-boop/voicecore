@@ -52,7 +52,9 @@ class TTSRouter {
 
     // ElevenLabs — voz premium (Flash v2.5). Preferente para CASTELLANO cuando hay
     // key: es la mejor voz para cerrar clientes.
-    // NO se usa para euskera/galego (ElevenLabs flojea ahí → los sirve el modelo local).
+    // GALEGO: incluido en 'languages' — hay una voz ElevenLabs curada (brais-gl,
+    // multilingual auto-detecta gl). EUSKERA se queda FUERA: ElevenLabs no soporta
+    // vasco → lo sirven las voces nativas del modelo local (ane/mikel).
     if (config.elevenlabsApiKey) {
       const { ElevenLabsTTS } = require('./elevenlabs');
       this.providers.set('elevenlabs', {
@@ -61,8 +63,8 @@ class TTSRouter {
         avgLatency: 150,
         costPerMinute: 0.07,
         features: ['streaming', 'cloning', 'multilingual', 'emotions'],
-        languages: ['es', 'en', 'fr', 'de', 'pt', 'it', 'ja', 'ko', 'zh'],
-        languageAffinity: ['es'],  // preferente para castellano
+        languages: ['es', 'gl', 'en', 'fr', 'de', 'pt', 'it', 'ja', 'ko', 'zh'],
+        languageAffinity: ['es'],  // preferente para castellano (gl usa provider explícito)
       });
       log.info('Provider registered: ElevenLabs');
     }

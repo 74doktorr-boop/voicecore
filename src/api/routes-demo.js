@@ -219,9 +219,12 @@ function setupDemoRoutes(app, ttsRouter) {
         } catch (e) { log.warn(`Demo TTS: ${entry.provider} falló (${e.message}) — fallback`); }
       }
 
-      // 1. ElevenLabs (si está) → MP3 premium en castellano. Es la voz que cierra clientes.
+      // 1. ElevenLabs (si está) → MP3 premium. Es la voz que cierra clientes.
+      //    Se usa para castellano Y para cualquier voz ElevenLabs curada (p.ej.
+      //    brais-gl en galego — multilingual_v2 auto-detecta el idioma).
       //    Si falla (p.ej. 402 en plan Free, o cuota), cae al router — la demo nunca se rompe.
-      const eleven = (language === 'es') ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
+      const isElevenVoice = entry && entry.provider === 'elevenlabs';
+      const eleven = (language === 'es' || isElevenVoice) ? ttsRouter.providers?.get?.('elevenlabs')?.instance : null;
       if (eleven) {
         try {
           // El selector guarda nombres de OpenAI (nova/shimmer…) que NO son IDs
