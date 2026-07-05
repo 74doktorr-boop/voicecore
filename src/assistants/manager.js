@@ -90,9 +90,17 @@ class AssistantManager {
    * Get assistant by phone number
    */
   getByPhoneNumber(phoneNumber) {
-    // Comparación normalizada: '+34 843 98 76 54', '34843987654' y
-    // '+34843987654' son el mismo número (los proveedores varían el formato).
-    const norm = (n) => String(n || '').replace(/\D/g, '').replace(/^0+/, '');
+    // Comparación normalizada al número nacional de 9 dígitos: '+34 843 98 76 54',
+    // '34843987654', '843987654' y '0034843987654' son el MISMO número. Antes se
+    // mantenía el prefijo 34, así que un número guardado sin país no casaba con el
+    // E.164 de la telefonía → caía al asistente por defecto = contestaba el negocio
+    // equivocado (multi-tenant). Misma canónica que reply-handler.normalizePhone.
+    const norm = (n) => {
+      let p = String(n || '').replace(/\D/g, '');
+      if (p.startsWith('0034')) p = p.slice(4);
+      if (p.startsWith('34') && p.length === 11) p = p.slice(2);
+      return p.replace(/^0+/, '');
+    };
     const target = norm(phoneNumber);
     if (target) {
       for (const [id, config] of this.assistants) {
