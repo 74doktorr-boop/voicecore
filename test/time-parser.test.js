@@ -80,3 +80,27 @@ describe('parseSpanishTime — especiales y no interpretables', () => {
   test('"cuando pueda" → null', () => assert.strictEqual(parseSpanishTime('cuando pueda'), null));
   test('"25" → null (hora imposible)', () => assert.strictEqual(parseSpanishTime('25'), null));
 });
+
+// ── Robustez 2026-07-05: minutos hablados que antes se perdían (→ hora en punto,
+//    reserva a la hora equivocada). Compuestos comprobados antes que su prefijo. ──
+describe('parseSpanishTime — minutos hablados completos', () => {
+  const cases = [
+    ['las diez y treinta', '10:30'],          // "y treinta" = y media
+    ['a las once y quince', '11:15'],          // "y quince" = y cuarto
+    ['las diez y treinta y cinco', '10:35'],   // compuesto (no cortar en "treinta")
+    ['las diez y cuarenta', '10:40'],
+    ['las diez y cuarenta y cinco', '10:45'],  // compuesto (no cortar en "cuarenta")
+    ['las diez y cincuenta', '10:50'],
+    ['las diez y cincuenta y cinco', '10:55'], // compuesto
+    ['las dos menos veinticinco', '13:35'],    // 2 tarde − 25 = 13:35
+    // No se rompe lo que ya funcionaba:
+    ['las diez y media', '10:30'],
+    ['las diez y cuarto', '10:15'],
+    ['las dos menos cuarto', '13:45'],
+    ['las diez y veinticinco', '10:25'],
+    ['las diez y veinte', '10:20'],
+  ];
+  for (const [input, expected] of cases) {
+    test(`"${input}" → ${expected}`, () => assert.strictEqual(parseSpanishTime(input), expected));
+  }
+});

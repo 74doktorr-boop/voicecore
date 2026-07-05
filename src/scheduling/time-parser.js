@@ -58,19 +58,27 @@ function parseSpanishTime(input) {
   }
   if (hour == null || isNaN(hour) || hour > 23) return null;
 
-  // Minutos por palabras (solo si no vinieron por separador)
+  // Minutos por palabras (solo si no vinieron por separador). Los COMPUESTOS
+  // ("y treinta y cinco", "y cuarenta y cinco") se comprueban ANTES que su prefijo
+  // ("y treinta", "y cuarenta") para no cortarlos a la baja.
   let minusAdj = 0;
   if (!m || !/[:.h]\d{2}\b/.test(s)) {
-    if      (/menos cuarto/.test(s)) { minusAdj = 1; minute = 45; }
-    else if (/menos veinte/.test(s)) { minusAdj = 1; minute = 40; }
-    else if (/menos diez/.test(s))   { minusAdj = 1; minute = 50; }
-    else if (/menos cinco/.test(s))  { minusAdj = 1; minute = 55; }
-    else if (/y media/.test(s))       minute = 30;
-    else if (/y cuarto/.test(s))      minute = 15;
-    else if (/y veinticinco/.test(s)) minute = 25;
-    else if (/y veinte/.test(s))      minute = 20;
-    else if (/y diez/.test(s))        minute = 10;
-    else if (/y cinco/.test(s))       minute = 5;
+    if      (/menos cuarto/.test(s))       { minusAdj = 1; minute = 45; }
+    else if (/menos veinticinco/.test(s))  { minusAdj = 1; minute = 35; }
+    else if (/menos veinte/.test(s))       { minusAdj = 1; minute = 40; }
+    else if (/menos diez/.test(s))         { minusAdj = 1; minute = 50; }
+    else if (/menos cinco/.test(s))        { minusAdj = 1; minute = 55; }
+    else if (/y treinta y cinco\b/.test(s))   minute = 35;
+    else if (/y cuarenta y cinco\b/.test(s))  minute = 45;
+    else if (/y cincuenta y cinco\b/.test(s)) minute = 55;
+    else if (/y (media|treinta)\b/.test(s))   minute = 30;
+    else if (/y (cuarto|quince)\b/.test(s))   minute = 15;
+    else if (/y veinticinco\b/.test(s))       minute = 25;
+    else if (/y veinte\b/.test(s))            minute = 20;
+    else if (/y cuarenta\b/.test(s))          minute = 40;
+    else if (/y cincuenta\b/.test(s))         minute = 50;
+    else if (/y diez\b/.test(s))              minute = 10;
+    else if (/y cinco\b/.test(s))             minute = 5;
   }
 
   // ── Meridiano ──
