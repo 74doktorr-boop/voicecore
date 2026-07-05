@@ -228,14 +228,14 @@
       <div class="an-card" style="margin-bottom:20px"><h3>Embudo de conversión</h3><div id="an-funnel"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>Mapa de calor — cuándo llaman (día × hora)</h3><div id="an-heatmap"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>Salud por sector</h3><div id="an-sectores"></div></div>
-      <div class="an-card" id="an-pending-card" style="margin-bottom:20px;display:none"><h3>🆕 Sectores nuevos por revisar <span id="an-pending-count" style="font-size:12px;color:var(--dim)"></span></h3><div style="font-size:12px;color:var(--dim);margin-bottom:10px">Borradores generados en altas de verticales que aún no cubríamos. Revisa las normas y apruébalos para que se apliquen a todos los negocios de ese sector.</div><div id="an-pending"></div></div>
+      <div class="an-card" id="an-pending-card" style="margin-bottom:20px;display:none"><h3>🆕 Sectores nuevos por revisar <span id="an-pending-count" class="u-text-sm u-dim"></span></h3><div class="u-text-sm u-dim u-mb-2">Borradores generados en altas de verticales que aún no cubríamos. Revisa las normas y apruébalos para que se apliquen a todos los negocios de ese sector.</div><div id="an-pending"></div></div>
       <div class="an-card" style="margin-bottom:20px"><h3>➕ Crear un sector</h3>
-        <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Describe un tipo de negocio y la IA propone sus normas y métricas; revísalas y actívalo. Sin deploy.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="u-text-sm u-dim u-mb-2">Describe un tipo de negocio y la IA propone sus normas y métricas; revísalas y actívalo. Sin deploy.</div>
+        <div class="u-flex u-gap-2 u-wrap">
           <input id="sec-new-desc" placeholder="p.ej. Floristería: venta de flores, ramos y entregas a domicilio" class="form-ctrl u-flex-1" style="min-width:260px">
           <button class="btn btn-y" onclick="draftNewSector()">Generar borrador</button>
         </div>
-        <div id="sec-new-result" style="margin-top:12px"></div>
+        <div id="sec-new-result" class="u-mt-3"></div>
       </div>
       <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
       <div class="table-wrap">
@@ -364,13 +364,13 @@
           <h3>📨 Recordatorios de cita</h3>
           <p>Email automático 24h antes de la cita. Reduce no-shows hasta el 40%.</p>
           <div class="auto-stat"><span>Enviados (total sesión)</span><span id="aRemindersSent">—</span></div>
-          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aRemindersPending" style="color:var(--yellow)">—</span></div>
+          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aRemindersPending" class="u-yellow">—</span></div>
         </div>
         <div class="auto-card">
           <h3>⭐ Solicitudes de reseña</h3>
           <p>Email pidiendo reseña en Google 24h después del servicio.</p>
           <div class="auto-stat"><span>Enviados (total sesión)</span><span id="aReviewsSent">—</span></div>
-          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aReviewsPending" style="color:var(--yellow)">—</span></div>
+          <div class="auto-stat"><span>Pendientes de enviar</span><span id="aReviewsPending" class="u-yellow">—</span></div>
         </div>
       </div>
       <div class="section-hd"><h2>Estadísticas globales</h2></div>
@@ -428,16 +428,16 @@
         <div class="card-title" style="margin-bottom:16px">➕ Añadir número</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
           <div>
-            <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Número (formato +34…)</label>
+            <label class="form-label">Número (formato +34…)</label>
             <input id="pAddPhone" type="tel" placeholder="+34611222333" class="form-ctrl">
           </div>
           <div>
-            <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Proveedor</label>
+            <label class="form-label">Proveedor</label>
             <input id="pAddProvider" type="text" placeholder="telnyx / vonage / manual" class="form-ctrl" value="manual">
           </div>
         </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Notas (opcional)</label>
+        <div class="u-mb-3">
+          <label class="form-label">Notas (opcional)</label>
           <input id="pAddNotes" type="text" placeholder="Ej: comprado 2026-06-10 para Madrid" class="form-ctrl">
         </div>
         <button class="action-btn" onclick="addPoolNumber()" style="background:rgba(var(--green-rgb),.15);border-color:rgba(var(--green-rgb),.35);color:var(--green2)">Añadir al pool</button>
@@ -459,8 +459,8 @@
         <button class="refresh-btn" onclick="loadSistema()">↻ Actualizar</button>
       </div>
       <div id="diagBox" style="margin-bottom:28px"></div>
-      <div class="section-hd" style="margin-top:8px"><div><h2 style="font-size:16px">📈 Atribución — qué landing convierte</h2></div></div>
-      <div class="table-wrap"><table id="attrTable"><thead><tr><th>Origen</th><th>Leads</th><th>Pagaron</th><th>% conv.</th><th>MRR</th></tr></thead><tbody id="attrBody"><tr><td colspan="5" style="color:var(--dim)">Cargando…</td></tr></tbody></table></div>
+      <div class="section-hd" style="margin-top:8px"><div><h2 class="u-text-lg">📈 Atribución — qué landing convierte</h2></div></div>
+      <div class="table-wrap"><table id="attrTable"><thead><tr><th>Origen</th><th>Leads</th><th>Pagaron</th><th>% conv.</th><th>MRR</th></tr></thead><tbody id="attrBody"><tr><td colspan="5" class="u-dim">Cargando…</td></tr></tbody></table></div>
     </div>
 
   </main>
@@ -533,7 +533,7 @@ async function loadSistema() {
 
 async function loadDiagnostics() {
   const box = document.getElementById('diagBox');
-  box.innerHTML = '<div style="color:var(--dim)">Cargando diagnóstico…</div>';
+  box.innerHTML = '<div class="u-dim">Cargando diagnóstico…</div>';
   try {
     const d = await api('/api/admin/diagnostics');
     const dot = (ok) => '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(ok?'var(--green2)':'var(--red)')+';margin-right:7px;vertical-align:middle"></span>';
@@ -564,7 +564,7 @@ async function loadDiagnostics() {
         card('🗄️ Base de datos', [['Conectada',g.database.enabled],['URL',g.database.url],['Service Key',g.database.serviceKey]]) +
       '</div>';
   } catch (e) {
-    box.innerHTML = '<div style="color:var(--red)">Error: '+(e.message||e)+'</div>';
+    box.innerHTML = '<div class="u-red">Error: '+(e.message||e)+'</div>';
   }
 }
 
@@ -572,13 +572,13 @@ async function loadAttribution() {
   const body = document.getElementById('attrBody');
   try {
     const d = await api('/api/admin/attribution');
-    if (!d.sources || !d.sources.length) { body.innerHTML='<tr><td colspan="5" style="color:var(--dim)">Sin datos aún</td></tr>'; return; }
+    if (!d.sources || !d.sources.length) { body.innerHTML='<tr><td colspan="5" class="u-dim">Sin datos aún</td></tr>'; return; }
     body.innerHTML = d.sources.map(s =>
       '<tr><td><strong>'+s.source+'</strong></td><td>'+s.leads+'</td><td>'+s.paid+'</td><td>'+s.convRate+'%</td><td>'+(s.mrr||0)+'€</td></tr>'
     ).join('') +
     '<tr style="border-top:2px solid var(--border);font-weight:700"><td>TOTAL</td><td>'+d.totals.leads+'</td><td>'+d.totals.paid+'</td><td>—</td><td>'+d.totals.mrr+'€</td></tr>';
   } catch (e) {
-    body.innerHTML = '<tr><td colspan="5" style="color:var(--red)">Error: '+(e.message||e)+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="u-red">Error: '+(e.message||e)+'</td></tr>';
   }
 }
 
@@ -638,7 +638,7 @@ function render(rows,id,mini) {
     const canCreate = r.status!=='active' && r.email && r.id;
     const action = canCreate ? `<button class="btn btn-g" style="font-size:10px;padding:3px 8px;margin-left:6px" onclick="crearClienteDesdeRegistro('${r.id}',this)">➕ Crear cliente</button>` : '';
     if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
-    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td style="color:var(--dim)">${r.email||'—'}</td><td style="color:var(--dim)">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
+    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td class="u-dim">${r.email||'—'}</td><td class="u-dim">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
   }).join('');
 }
 
@@ -686,11 +686,11 @@ async function loadOrgs() {
       const titleAttr=o.phone?`title="${o.phone}"`:'';
       return `<tr>
         <td><strong ${titleAttr}>${o.name||'—'}</strong></td>
-        <td style="color:var(--dim);font-size:12px">${o.owner_email||'—'}</td>
+        <td class="u-dim u-text-sm">${o.owner_email||'—'}</td>
         <td>${plan}</td>
         <td>${minsCell}</td>
         <td>${active}</td>
-        <td style="white-space:nowrap"><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
+        <td class="u-nowrap"><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
       </tr>`;
     }).join('');
     // Cargar estado de onboarding en paralelo
@@ -708,16 +708,16 @@ async function loadOnboardingAlert() {
     alertEl.style.display = 'block';
     body.innerHTML = pending.map(c => `<tr>
       <td><strong>${c.negocio||'—'}</strong></td>
-      <td style="font-size:12px;color:var(--dim)">${c.email||'—'}</td>
+      <td class="u-text-sm u-dim">${c.email||'—'}</td>
       <td style="font-family:monospace;font-size:11px;color:var(--dim)">${c.orgId||'—'}</td>
       <td>
         ${c.orgId
-          ? `<div style="display:flex;gap:8px;align-items:center">
+          ? `<div class="u-flex u-gap-2 u-items-center">
               <input id="num_${c.orgId}" type="tel" placeholder="+34611222333" class="form-ctrl" style="width:150px">
               <button class="action-btn" style="padding:5px 12px;font-size:12px;background:rgba(var(--green-rgb),.12);border-color:rgba(var(--green-rgb),.3);color:var(--green2)"
                 onclick="activarCliente('${c.orgId}',this)">Activar</button>
             </div>`
-          : '<span style="font-size:11px;color:var(--red)">⚠️ Org no creada aún</span>'
+          : '<span class="u-text-xs u-red">⚠️ Org no creada aún</span>'
         }
       </td>
     </tr>`).join('');
@@ -790,9 +790,9 @@ async function loadCitas() {
       const rem=a.reminder_sent?'<span class="badge bg">✓ Enviado</span>':a.email?`<button class="btn btn-g" onclick="sendReminder('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
       const rev=a.review_requested?'<span class="badge by">✓ Enviado</span>':a.email?`<button class="btn btn-y" onclick="sendReview('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
       return `<tr>
-        <td><strong>${a.patientName}</strong><br><span style="color:var(--dim);font-size:11px">${a.phone||''}</span></td>
+        <td><strong>${a.patientName}</strong><br><span class="u-dim u-text-xs">${a.phone||''}</span></td>
         <td>${a.date}</td><td>${a.time}h</td>
-        <td style="font-size:12px">${a.service}</td>
+        <td class="u-text-sm">${a.service}</td>
         <td>${st}</td><td>${rem}</td><td>${rev}</td>
         <td><button class="btn btn-wa" onclick="openWA(event,'${biz}','${a.id}')">💬 WA</button></td>
       </tr>`;
@@ -859,17 +859,17 @@ async function loadAudit(){
     tb.innerHTML=ev.map(function(e){
       var when=e.created_at?new Date(e.created_at).toLocaleString('es-ES'):'—';
       var obj=(e.target_type||'')+(e.target_id?(' '+String(e.target_id).slice(0,8)):'');
-      var det=(e.details&&Object.keys(e.details).length)?('<code style="font-size:11px;color:var(--dim)">'+JSON.stringify(e.details).slice(0,90)+'</code>'):'—';
-      return '<tr><td style="white-space:nowrap">'+when+'</td><td>'+(ACT[e.action]||e.action)+'</td><td>'+(obj||'—')+'</td><td>'+det+'</td><td style="color:var(--dim)">'+(e.ip||'—')+'</td></tr>';
+      var det=(e.details&&Object.keys(e.details).length)?('<code class="u-text-xs u-dim">'+JSON.stringify(e.details).slice(0,90)+'</code>'):'—';
+      return '<tr><td class="u-nowrap">'+when+'</td><td>'+(ACT[e.action]||e.action)+'</td><td>'+(obj||'—')+'</td><td>'+det+'</td><td class="u-dim">'+(e.ip||'—')+'</td></tr>';
     }).join('');
   }catch(err){ tb.innerHTML='<tr class="empty-row"><td colspan="5">Error al cargar auditoría</td></tr>'; }
 }
 
 // ── Analíticas de negocio ──────────────────────────────────────
-function _anSvg(w,h,inner){ return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" style="display:block">'+inner+'</svg>'; }
+function _anSvg(w,h,inner){ return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none" class="u-block">'+inner+'</svg>'; }
 function _anSeries(el, s){
   if(!el) return;
-  if(!s || !s.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!s || !s.length){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   var W=560,H=150,pad=8, n=s.length;
   var max=Math.max(1, Math.max.apply(null, s.map(function(d){return d.calls;})));
   var x=function(i){ return pad + i*(W-2*pad)/Math.max(1,n-1); };
@@ -892,30 +892,30 @@ function _anHours(el, hours){
 }
 function _anFunnel(el, f){
   if(!el) return;
-  if(!f || !f.total){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin llamadas registradas desde el último arranque del servidor.</div>'; return; }
+  if(!f || !f.total){ el.innerHTML='<div class="u-dim u-text-sm">Sin llamadas registradas desde el último arranque del servidor.</div>'; return; }
   var rows=[['Llamadas',f.total,100],['Conectadas',f.connected.count,f.connected.rate],['Con conversación',f.engaged.count,f.engaged.rate],['Usaron herramientas',f.toolsUsed.count,f.toolsUsed.rate],['Reservaron',f.booked.count,f.booked.rate]];
   el.innerHTML=rows.map(function(r){ return '<div class="an-fbar"><div class="lbl">'+r[0]+'</div><div class="track"><div class="fill" style="width:'+r[2]+'%"></div></div><div class="val">'+r[1]+' · '+r[2]+'%</div></div>'; }).join('');
 }
 function _anDonut(el, segs){
   if(!el) return;
   var total=segs.reduce(function(s,x){return s+(x.value||0);},0);
-  if(!total){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!total){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   var r=52,c=2*Math.PI*r,cx=64,cy=64,off=0;
   var arcs=segs.map(function(s){
     var len=(s.value||0)/total*c;
     var a='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.color+'" stroke-width="16" stroke-dasharray="'+len+' '+(c-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+cx+' '+cy+')"/>';
     off+=len; return a;
   }).join('');
-  var legend=segs.map(function(s){ var pct=Math.round((s.value||0)/total*100); return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin:3px 0"><i style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block"></i>'+s.label+' · <b style="color:var(--text)">'+(s.value||0)+'</b> ('+pct+'%)</div>'; }).join('');
+  var legend=segs.map(function(s){ var pct=Math.round((s.value||0)/total*100); return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin:3px 0"><i style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block"></i>'+s.label+' · <b class="u-text">'+(s.value||0)+'</b> ('+pct+'%)</div>'; }).join('');
   el.innerHTML='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 128 128" width="120" height="120">'+arcs+'<text x="64" y="64" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-size="22" font-weight="800">'+total+'</text></svg><div>'+legend+'</div></div>';
 }
 function _anTopClients(el, clientes){
   if(!el) return;
   var top=(clientes||[]).slice(0,6);
-  if(!top.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!top.length){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   var max=Math.max(1, Math.max.apply(null, top.map(function(c){return c.calls;})));
   el.innerHTML=top.map(function(c){
-    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+    return '<div class="u-flex u-items-center u-gap-2 u-mb-2">'
       +'<div style="width:110px;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.name||'—')+'</div>'
       +'<div style="flex:1;height:16px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+(c.calls/max*100)+'%;background:linear-gradient(90deg,var(--cyan),var(--accent));border-radius:5px"></div></div>'
       +'<div style="width:82px;text-align:right;font-size:11px;font-weight:700">'+c.calls+' ll · '+c.bookings+' res</div></div>';
@@ -936,12 +936,12 @@ async function _loadPendingSectors(){
       var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
       var by=s._suggestedBy?' <span style="font-size:11px;color:var(--dim);font-weight:400">· sugerido por '+_secEsc(s._suggestedBy)+'</span>':'';
       return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<div class="u-flex u-justify-between u-items-center u-gap-2 u-wrap">'
         +'<b style="font-size:15px">'+_secEsc(s.label||s.slug)+by+'</b>'
-        +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveSector(\''+_secEsc(s.slug)+'\')">Aprobar</button>'
+        +'<div class="u-flex u-gap-2"><button class="btn btn-y" onclick="approveSector(\''+_secEsc(s.slug)+'\')">Aprobar</button>'
         +'<button class="btn" onclick="discardSector(\''+_secEsc(s.slug)+'\')">Descartar</button></div></div>'
         +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul>'
-        +'<div style="font-size:11px">'+mets+'</div></div>';
+        +'<div class="u-text-xs">'+mets+'</div></div>';
     }).join('');
   }catch(e){ card.style.display='none'; }
 }
@@ -961,21 +961,21 @@ async function draftNewSector(){
   var desc=(document.getElementById('sec-new-desc').value||'').trim();
   var res=document.getElementById('sec-new-result');
   if(desc.length<4){ toast('Describe el negocio con un poco más de detalle','err'); return; }
-  res.innerHTML='<span style="color:var(--dim);font-size:13px">Generando borrador…</span>';
+  res.innerHTML='<span class="u-dim u-text-md">Generando borrador…</span>';
   try{
     var r=await fetch('/api/admin/sectors/draft',{method:'POST',headers:h(),body:JSON.stringify({label:desc,description:desc})});
     var j=await r.json();
-    if(!j.ok||!j.draft){ res.innerHTML='<span style="color:var(--red);font-size:13px">'+_secEsc(j.error||'No se pudo generar un borrador. Da más contexto.')+'</span>'; return; }
+    if(!j.ok||!j.draft){ res.innerHTML='<span class="u-red u-text-md">'+_secEsc(j.error||'No se pudo generar un borrador. Da más contexto.')+'</span>'; return; }
     _lastNewDraft=j.draft;
     var s=j.draft;
     var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
     var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
     res.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
-      +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveNewDraft()">Aprobar y activar</button>'
+      +'<div class="u-flex u-justify-between u-items-center u-gap-2 u-wrap"><b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
+      +'<div class="u-flex u-gap-2"><button class="btn btn-y" onclick="approveNewDraft()">Aprobar y activar</button>'
       +'<button class="btn" onclick="document.getElementById(\'sec-new-result\').innerHTML=\'\'">Descartar</button></div></div>'
-      +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul><div style="font-size:11px">'+mets+'</div></div>';
-  }catch(e){ res.innerHTML='<span style="color:var(--red);font-size:13px">Error al generar el borrador.</span>'; }
+      +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul><div class="u-text-xs">'+mets+'</div></div>';
+  }catch(e){ res.innerHTML='<span class="u-red u-text-md">Error al generar el borrador.</span>'; }
 }
 async function approveNewDraft(){
   if(!_lastNewDraft) return;
@@ -989,7 +989,7 @@ async function approveNewDraft(){
 function _anSectores(el, sectores){
   if(!el) return;
   var rows=(sectores||[]);
-  if(!rows.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!rows.length){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   el.innerHTML='<div class="table-wrap"><table><thead><tr>'
     +'<th>Sector</th><th>Negocios</th><th>Llamadas</th><th>Reservas</th><th>Conv.</th><th>Min/llam.</th></tr></thead><tbody>'
     +rows.map(function(s){
@@ -999,7 +999,7 @@ function _anSectores(el, sectores){
 }
 function _anGrowth(el, trend){
   if(!el) return;
-  if(!trend || !trend.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!trend || !trend.length){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   var W=680,H=140,pad=10,n=trend.length;
   var maxM=Math.max(1, Math.max.apply(null, trend.map(function(t){return t.mrr;})));
   var x=function(i){ return pad+i*(W-2*pad)/Math.max(1,n-1); };
@@ -1008,7 +1008,7 @@ function _anGrowth(el, trend){
   var area='M '+x(0)+','+(H-pad)+' '+trend.map(function(t,i){ return 'L '+x(i)+','+y(t.mrr); }).join(' ')+' L '+x(n-1)+','+(H-pad)+' Z';
   var dots=trend.map(function(t,i){ return '<circle cx="'+x(i)+'" cy="'+y(t.mrr)+'" r="3" fill="var(--green)"/>'; }).join('');
   var last=trend[n-1]||{};
-  var head='<div style="font-size:12px;color:var(--dim);margin-bottom:4px">MRR actual: <b style="color:var(--green);font-size:15px">€'+(last.mrr||0)+'</b> · '+(last.activeOrgs||0)+' activos</div>';
+  var head='<div class="u-text-sm u-dim u-mb-1">MRR actual: <b style="color:var(--green);font-size:15px">€'+(last.mrr||0)+'</b> · '+(last.activeOrgs||0)+' activos</div>';
   var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><path d="'+area+'" fill="rgba(33,192,138,.12)"/><polyline points="'+line+'" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>'+dots+'</svg>';
   var maxA=Math.max(1, Math.max.apply(null, trend.map(function(t){return t.newOrgs;})));
   var bars=trend.map(function(t){ return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div title="'+t.newOrgs+' altas en '+t.month+'" style="width:56%;height:'+Math.max(2,t.newOrgs/maxA*34)+'px;background:var(--cyan);border-radius:2px 2px 0 0"></div><span style="font-size:8px;color:var(--dim)">'+t.month.slice(5)+'</span></div>'; }).join('');
@@ -1016,7 +1016,7 @@ function _anGrowth(el, trend){
 }
 function _anHeatmap(el, grid){
   if(!el) return;
-  if(!grid || !grid.length){ el.innerHTML='<div style="color:var(--dim);font-size:12px">Sin datos.</div>'; return; }
+  if(!grid || !grid.length){ el.innerHTML='<div class="u-dim u-text-sm">Sin datos.</div>'; return; }
   var days=['L','M','X','J','V','S','D'], max=1;
   grid.forEach(function(r){ r.forEach(function(v){ if(v>max) max=v; }); });
   var col=function(v){ if(!v) return 'rgba(255,255,255,.04)'; var t=v/max; return 'rgba(196,245,70,'+(0.15+t*0.85).toFixed(2)+')'; };
@@ -1025,7 +1025,7 @@ function _anHeatmap(el, grid){
     var cells=row.map(function(v,hh){ return '<div title="'+days[di]+' '+hh+'h: '+v+' llamadas" style="flex:1;aspect-ratio:1;background:'+col(v)+';border-radius:2px"></div>'; }).join('');
     return '<div style="display:flex;align-items:center;gap:2px;margin-bottom:2px"><div style="width:24px;font-size:10px;color:var(--dim);font-weight:600">'+days[di]+'</div><div style="flex:1;display:flex;gap:2px">'+cells+'</div></div>';
   }).join('');
-  el.innerHTML=hourLabels+rows+'<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--dim)">menos <span style="width:12px;height:12px;background:rgba(255,255,255,.06);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(196,245,70,.5);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(196,245,70,1);border-radius:2px;display:inline-block"></span> más</div>';
+  el.innerHTML=hourLabels+rows+'<div class="u-flex u-justify-end u-items-center u-gap-2 u-mt-2 u-text-2xs u-dim">menos <span style="width:12px;height:12px;background:rgba(255,255,255,.06);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(196,245,70,.5);border-radius:2px;display:inline-block"></span><span style="width:12px;height:12px;background:rgba(196,245,70,1);border-radius:2px;display:inline-block"></span> más</div>';
 }
 function _anDelta(id, v, unit){
   var e=document.getElementById(id); if(!e) return;
@@ -1118,10 +1118,10 @@ async function loadCalls(){
       return `<tr>
         <td>${hora}</td>
         <td>${fmtDur(c.duration||0)}</td>
-        <td style="font-size:13px">${sentEmoji(c.sentiment)}</td>
+        <td class="u-text-md">${sentEmoji(c.sentiment)}</td>
         <td><span class="badge ${c.outcome==='booked'?'bg':c.outcome==='completed'?'bd':'br'}">${c.outcome||'—'}</span></td>
         <td>${c.avgLatency?c.avgLatency+'ms':'—'}</td>
-        <td style="text-align:center">${c.toolsUsed||0}</td>
+        <td class="u-center">${c.toolsUsed||0}</td>
       </tr>`;
     }).join('');
   }catch(e){if(e.message!=='401')console.error(e);}
@@ -1152,15 +1152,15 @@ async function loadPool(){
     const fmtDate=d=>d?new Date(d).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     b.innerHTML=nums.map(n=>`<tr>
       <td><strong style="font-family:monospace;font-size:13px">${n.phone_number}</strong></td>
-      <td><span style="font-size:12px;color:var(--dim)">${n.provider||'—'}</span></td>
+      <td><span class="u-text-sm u-dim">${n.provider||'—'}</span></td>
       <td>${statusBadge(n.status)}</td>
-      <td style="font-size:12px">${n.assigned_to_org_id||'—'}</td>
-      <td style="font-size:12px">${fmtDate(n.assigned_at)}</td>
+      <td class="u-text-sm">${n.assigned_to_org_id||'—'}</td>
+      <td class="u-text-sm">${fmtDate(n.assigned_at)}</td>
       <td style="font-size:11px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${n.notes||''}">${n.notes||'—'}</td>
       <td>
         ${n.status==='available'?`<button class="btn btn-p" onclick="assignPoolNumber('${n.phone_number}')" style="padding:3px 10px;font-size:11px">Asignar →</button>`:''}
         ${n.status==='assigned'?`<button class="action-btn btn-sm" onclick="releasePoolNumber('${n.id}')" style="background:rgba(var(--red-rgb),.12);border-color:rgba(var(--red-rgb),.3);color:var(--red);padding:3px 10px;font-size:11px">Liberar</button>`:''}
-        ${n.status==='retired'?'<span style="font-size:11px;color:var(--dim)">retirado</span>':''}
+        ${n.status==='retired'?'<span class="u-text-xs u-dim">retirado</span>':''}
       </td>
     </tr>`).join('');
   }catch(e){if(e.message!=='401')console.error(e);}
@@ -1210,10 +1210,10 @@ async function loadFlows(){
       const langBadgeF=langBadge(f.language||'es');
       const waOn=f.automations?.waConfirm?.enabled!==false;
       const waBadge=waOn?'<span class="badge bg">✓ WA</span>':'<span class="badge br">Off</span>';
-      const remHours=f.automations?.reminders?.hoursBefore!=null?` <span style="color:var(--dim);font-size:11px">${f.automations.reminders.hoursBefore}h antes</span>`:'';
-      const revHours=f.automations?.reviews?.hoursAfter!=null?` <span style="color:var(--dim);font-size:11px">${f.automations.reviews.hoursAfter}h después</span>`:'';
+      const remHours=f.automations?.reminders?.hoursBefore!=null?` <span class="u-dim u-text-xs">${f.automations.reminders.hoursBefore}h antes</span>`:'';
+      const revHours=f.automations?.reviews?.hoursAfter!=null?` <span class="u-dim u-text-xs">${f.automations.reviews.hoursAfter}h después</span>`:'';
       return `<tr>
-        <td><strong>${f.name}</strong> ${langBadgeF}<br><span style="font-size:11px;color:var(--dim)">${f.ownerEmail||''}</span></td>
+        <td><strong>${f.name}</strong> ${langBadgeF}<br><span class="u-text-xs u-dim">${f.ownerEmail||''}</span></td>
         <td>${plan}</td>
         <td>
           ${remBadge}${remHours}
@@ -1237,7 +1237,7 @@ async function loadFlows(){
           <input type="text" id="pid-${f.businessId}" value="${f.googlePlaceId||''}" placeholder="ChIJ…" class="form-ctrl" style="width:140px">
           <button class="btn btn-d" style="padding:3px 8px;font-size:11px;margin-left:4px" onclick="savePlaceId('${f.businessId}')">Guardar</button>
         </td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <td class="u-flex u-gap-2 u-wrap">
           <button class="btn btn-g" style="padding:4px 8px;font-size:11px" onclick="testFlow('${f.businessId}','reminder')">Test reminder</button>
           <button class="btn btn-y" style="padding:4px 8px;font-size:11px" onclick="testFlow('${f.businessId}','review')">Test reseña</button>
         </td>
@@ -1303,8 +1303,8 @@ async function assignPoolNumber(phone){
     <div class="modal-title">Asignar ${esc(phone)}</div>
     <p style="font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:14px">
       El número quedará conectado al negocio de una vez:
-      las <strong style="color:var(--text)">entrantes</strong> las contesta su asistente (voz, precios y conocimiento propios)
-      y las <strong style="color:var(--text)">salientes</strong> salen con este número.
+      las <strong class="u-text">entrantes</strong> las contesta su asistente (voz, precios y conocimiento propios)
+      y las <strong class="u-text">salientes</strong> salen con este número.
     </p>
     <select id="assignOrgSel" class="form-ctrl u-mb-1">${opts}</select>
     <div class="modal-actions">
