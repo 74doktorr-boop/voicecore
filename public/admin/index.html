@@ -215,6 +215,8 @@
         <div class="kpi-card"><div class="kpi-label">Turnos/llamada</div><div class="kpi-value" id="anTurns">—</div><div class="kpi-sub">interacción media</div></div>
       </div>
       <div class="an-card" style="margin-bottom:20px"><h3>Crecimiento — MRR y altas por mes <span style="font-weight:400;color:var(--dim);font-size:11px">· reconstruido desde las fechas de alta</span></h3><div id="an-growth"></div></div>
+
+      <div class="an-card" id="an-ab-card" style="margin-bottom:20px"><h3>A/B de cerebro — modelos de IA <span class="u-text-xs u-dim">· Llama vs gpt-4o-mini · veredicto con ≥20 llamadas/brazo</span></h3><div id="an-ab" class="u-text-sm u-dim">Cargando…</div></div>
       <div class="an-charts">
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
           <div class="an-legend"><span><i style="background:var(--cyan)"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
@@ -1090,6 +1092,7 @@ async function loadAnalytics(){
     _anSectores(document.getElementById('an-sectores'), d.sectores);
     _loadPendingSectors();
     _anGrowth(document.getElementById('an-growth'), d.trend);
+    _loadAbModels();
     var tb=document.getElementById('an-clients'), cl=d.clientes||[];
     if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }
     else tb.innerHTML=cl.map(function(c){
@@ -1100,6 +1103,35 @@ async function loadAnalytics(){
         +'<td>'+(alerts||'—')+'</td></tr>';
     }).join('');
   }catch(e){ if(lbl) lbl.textContent='Error al cargar analíticas'; }
+}
+
+// A/B de cerebro (LLM): compara modelos por brazo. Veredicto honesto — no canta
+// nada hasta ≥20 llamadas/brazo. Datos de /api/admin/ab-models (agregación
+// determinista en src/analytics/ab-models.js).
+async function _loadAbModels(){
+  var el=document.getElementById('an-ab'); if(!el) return;
+  try{
+    var r=await fetch('/api/admin/ab-models?days=90&threshold=20',{headers:h()});
+    el.innerHTML=_renderAb(await r.json());
+  }catch(e){ el.textContent='No se pudo cargar el A/B de modelos.'; }
+}
+function _renderAb(d){
+  var arms=(d&&d.arms)||[], ok=d&&d.verdict==='ready';
+  var banner='<div class="callout '+(ok?'callout--accent':'callout--warn')+' callout--block u-mb-3">'
+    +'<strong class="'+(ok?'u-accent':'u-yellow')+'">'+(ok?'✅ Veredicto listo':'⏳ Datos insuficientes — sin veredicto')+'</strong>'
+    +(d&&d.reason?' — '+_secEsc(d.reason):'')
+    +' <span class="u-dim">('+(d.attributed||0)+' de '+(d.totalCalls||0)+' llamadas atribuidas · umbral '+(d.threshold||20)+'/brazo · '+(d.periodDays||90)+' días)</span></div>';
+  if(!arms.length) return banner+'<div class="u-dim u-text-sm">Aún no hay llamadas con modelo identificable. El brazo se deriva de metrics.turns[].llmProvider; asigna orgs a un modelo en <code class="code-inline">assistant_config.model</code> (p.ej. <code class="code-inline">groq/llama-3.3-70b-versatile</code>) para poblar los brazos.</div>';
+  var rows=arms.map(function(a){
+    return '<tr><td><strong>'+_secEsc(a.label)+'</strong></td>'
+      +'<td><span class="chip '+(a.ready?'chip-solid':'chip-yellow')+'">'+a.n+' / '+(d.threshold||20)+(a.ready?' ✓':'')+'</span></td>'
+      +'<td>'+a.bookingRate+'%</td>'
+      +'<td>'+(a.avgAudit!=null?a.avgAudit:'—')+'</td>'
+      +'<td>'+(a.avgQuality!=null?a.avgQuality:'—')+'</td>'
+      +'<td>'+(a.avgLatencyMs!=null?a.avgLatencyMs+' ms':'—')+'</td>'
+      +'<td>'+(a.avgTurns!=null?a.avgTurns:'—')+'</td></tr>';
+  }).join('');
+  return banner+'<div class="table-wrap"><table><thead><tr><th>Modelo</th><th>Llamadas</th><th>Reservas</th><th>Audit</th><th>Quality</th><th>Latencia</th><th>Turnos</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 async function loadCalls(){

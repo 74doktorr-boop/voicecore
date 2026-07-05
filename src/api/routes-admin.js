@@ -521,6 +521,32 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── A/B de cerebro (LLM): comparación por modelo/brazo ──────────────────────
+  // Deriva el brazo de cada llamada del proveedor de sus turnos (metrics.turns)
+  // y compara reservas/calidad/latencia. Veredicto honesto: 'insufficient' hasta
+  // que ambos brazos superan el umbral (default 20). La agregación es DETERMINISTA.
+  app.get('/api/admin/ab-models', adminAuth, async (req, res) => {
+    try {
+      const { compareModelArms } = require('../analytics/ab-models');
+      const db = getDatabase();
+      const days = Math.min(parseInt(req.query.days) || 90, 365);
+      const threshold = Math.min(Math.max(parseInt(req.query.threshold) || 20, 1), 500);
+      const sinceISO = new Date(Date.now() - days * 86400000).toISOString();
+      let calls = [];
+      if (db.enabled) {
+        const { data } = await db.client.from('nf_calls')
+          .select('outcome, metrics, started_at')
+          .gte('started_at', sinceISO)
+          .limit(20000);
+        calls = data || [];
+      }
+      res.json({ periodDays: days, ...compareModelArms(calls, { threshold }) });
+    } catch (e) {
+      log.error('Admin ab-models error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Registro de auditoría ───────────────────────────────────────────────────
   app.get('/api/admin/audit', adminAuth, async (req, res) => {
     try {
