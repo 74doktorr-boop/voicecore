@@ -25,15 +25,9 @@ const { appointmentsStore }   = require('../db/appointments-store');
 
 const log = new Logger('WA-REPLY');
 
-// ── Normaliza teléfono para comparar ─────────────────────────────────────────
-// Asegura que phone="34612345678" y apt.phone="612345678" o "+34 612 345 678"
-// todos matcheen entre sí.
-function normalizePhone(raw = '') {
-  let p = String(raw).replace(/[\s\-+()]/g, '');
-  if (p.startsWith('0034')) p = p.slice(4);
-  if (p.startsWith('34') && p.length === 11) p = p.slice(2);
-  return p; // 9 dígitos: "612345678"
-}
+// Normalización de teléfono: util canónica de la app (nacional 9 dígitos), para
+// que "34612345678", "612345678" y "+34 612 345 678" matcheen entre sí.
+const { normalizePhone, phoneVariants } = require('../utils/phone');
 
 // ── Encuentra la cita más próxima de un cliente por teléfono ─────────────────
 function findNextAppointment(rawPhone) {
@@ -221,8 +215,7 @@ async function handleOptOut({ from, businessId }) {
     const { getDatabase } = require('../db/database');
     const db = getDatabase();
     if (db.enabled && businessId) {
-      const n9 = normalizePhone(from);
-      const variants = Array.from(new Set([String(from), `+${from}`, n9, `+34${n9}`, `34${n9}`, `0034${n9}`]));
+      const variants = phoneVariants(from);
       const { data } = await db.client
         .from('contacts')
         .select('id, phone')
