@@ -35,6 +35,8 @@
   --accent-rgb: 196,245,70;
   --cyan-rgb:   56,225,200;                  /* tints de cian (guías, datos) */
   --yellow-rgb: 246,197,68;                  /* tints de aviso */
+  --green-rgb:  33,192,138;                  /* tints de éxito */
+  --red-rgb:    240,100,90;                  /* tints de error/destructivo */
   --on-accent: #0a0b0d;                      /* texto/iconos SOBRE lima: casi-negro, nunca blanco */
   --cyan:      #38e1c8;                      /* acento secundario, datos */
 

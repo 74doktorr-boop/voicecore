@@ -66,7 +66,7 @@
 
     /* Badges de idioma */
     .bl-eu{background:rgba(240,100,90,.12);color:var(--red);border:1px solid rgba(240,100,90,.3);font-size:10px;padding:1px 6px}
-    .bl-gl{background:rgba(30,138,94,.15);color:#2ecc8a;border:1px solid rgba(30,138,94,.35);font-size:10px;padding:1px 6px}
+    .bl-gl{background:rgba(var(--green-rgb),.15);color:var(--green);border:1px solid rgba(var(--green-rgb),.35);font-size:10px;padding:1px 6px}
     .bl-es{background:rgba(246,197,68,.08);color:var(--yellow);border:1px solid rgba(246,197,68,.2);font-size:10px;padding:1px 6px}
 
     /* Automatizaciones */
@@ -136,16 +136,16 @@
     <!-- Resumen -->
     <div class="tab-panel active" id="tab-resumen">
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card" style="--kpi-color:#d6ff5c"><div class="kpi-label">MRR</div><div class="kpi-value" id="kMrr">—</div><div class="kpi-sub">ingresos recurrentes</div></div>
-        <div class="kpi-card" style="--kpi-color:#c4f546"><div class="kpi-label">ARR</div><div class="kpi-value" id="kArr">—</div><div class="kpi-sub">anual estimado</div></div>
-        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Clientes activos</div><div class="kpi-value" id="kOrgs">—</div><div class="kpi-sub">organizaciones</div></div>
-        <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Conversión %</div><div class="kpi-value" id="kConv">—</div><div class="kpi-sub">leads → clientes</div></div>
+        <div class="kpi-card"><div class="kpi-label">MRR</div><div class="kpi-value" id="kMrr">—</div><div class="kpi-sub">ingresos recurrentes</div></div>
+        <div class="kpi-card"><div class="kpi-label">ARR</div><div class="kpi-value" id="kArr">—</div><div class="kpi-sub">anual estimado</div></div>
+        <div class="kpi-card"><div class="kpi-label">Clientes activos</div><div class="kpi-value" id="kOrgs">—</div><div class="kpi-sub">organizaciones</div></div>
+        <div class="kpi-card"><div class="kpi-label">Conversión %</div><div class="kpi-value" id="kConv">—</div><div class="kpi-sub">leads → clientes</div></div>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-top:-4px">
-        <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Leads este mes</div><div class="kpi-value" id="kLeadsMonth">—</div><div class="kpi-sub">nuevos registros</div></div>
-        <div class="kpi-card" style="--kpi-color:#e17055"><div class="kpi-label">Minutos usados</div><div class="kpi-value" id="kMins">—</div><div class="kpi-sub">orgs activas este mes</div></div>
-        <div class="kpi-card" style="--kpi-color:#fd79a8"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="kCallsToday">—</div><div class="kpi-sub">vía IA</div></div>
-        <div class="kpi-card" style="--kpi-color:#74b9ff"><div class="kpi-label">Citas próximas</div><div class="kpi-value" id="kCitas">—</div><div class="kpi-sub">confirmadas</div></div>
+        <div class="kpi-card"><div class="kpi-label">Leads este mes</div><div class="kpi-value" id="kLeadsMonth">—</div><div class="kpi-sub">nuevos registros</div></div>
+        <div class="kpi-card"><div class="kpi-label">Minutos usados</div><div class="kpi-value" id="kMins">—</div><div class="kpi-sub">orgs activas este mes</div></div>
+        <div class="kpi-card"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="kCallsToday">—</div><div class="kpi-sub">vía IA</div></div>
+        <div class="kpi-card"><div class="kpi-label">Citas próximas</div><div class="kpi-value" id="kCitas">—</div><div class="kpi-sub">confirmadas</div></div>
       </div>
       <div class="section-hd">
         <h2>Últimos leads</h2>
@@ -176,12 +176,12 @@
         .an-fbar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-l));border-radius:6px}
         .an-fbar .val{width:90px;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
         .hbadge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
-        .hbadge.activo{background:rgba(33,192,138,.14);color:#21c08a}
-        .hbadge.en_riesgo{background:rgba(246,197,68,.16);color:#f6c544}
+        .hbadge.activo{background:rgba(33,192,138,.14);color:var(--green)}
+        .hbadge.en_riesgo{background:rgba(246,197,68,.16);color:var(--yellow)}
         .hbadge.inactivo{background:rgba(255,255,255,.06);color:var(--dim)}
-        .an-alert{display:inline-block;font-size:10px;font-weight:600;color:#f0645a;background:rgba(240,100,90,.1);border-radius:5px;padding:1px 6px;margin:1px}
+        .an-alert{display:inline-block;font-size:10px;font-weight:600;color:var(--red);background:rgba(240,100,90,.1);border-radius:5px;padding:1px 6px;margin:1px}
         .an-delta{font-size:11px;font-weight:700;margin-left:7px;white-space:nowrap}
-        .an-delta.up{color:#21c08a} .an-delta.down{color:#f0645a} .an-delta.flat{color:var(--dim)}
+        .an-delta.up{color:var(--green)} .an-delta.down{color:var(--red)} .an-delta.flat{color:var(--dim)}
         .an-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
         .an-csv{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--dim);font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;transition:all .15s}
         .an-csv:hover{color:var(--text);border-color:var(--accent-l)}
@@ -217,7 +217,7 @@
       <div class="an-card" style="margin-bottom:20px"><h3>Crecimiento — MRR y altas por mes <span style="font-weight:400;color:var(--dim);font-size:11px">· reconstruido desde las fechas de alta</span></h3><div id="an-growth"></div></div>
       <div class="an-charts">
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
-          <div class="an-legend"><span><i style="background:#6c8cff"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
+          <div class="an-legend"><span><i style="background:var(--cyan)"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
         <div class="an-card"><h3>Horas pico</h3><div id="an-hours"></div></div>
       </div>
       <div class="an-charts3">
@@ -232,7 +232,7 @@
       <div class="an-card" style="margin-bottom:20px"><h3>➕ Crear un sector</h3>
         <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Describe un tipo de negocio y la IA propone sus normas y métricas; revísalas y actívalo. Sin deploy.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="sec-new-desc" placeholder="p.ej. Floristería: venta de flores, ramos y entregas a domicilio" style="flex:1;min-width:260px;padding:9px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--card2,#12151b);color:var(--text,#e9ecf3)">
+          <input id="sec-new-desc" placeholder="p.ej. Floristería: venta de flores, ramos y entregas a domicilio" style="flex:1;min-width:260px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text)">
           <button class="btn btn-y" onclick="draftNewSector()">Generar borrador</button>
         </div>
         <div id="sec-new-result" style="margin-top:12px"></div>
@@ -285,8 +285,8 @@
       </div>
 
       <!-- Onboarding pendiente — solo se muestra si hay clientes sin número asignado -->
-      <div id="onboardingAlert" style="display:none;background:rgba(225,112,85,.1);border:1px solid rgba(225,112,85,.3);border-radius:12px;padding:16px 20px;margin-bottom:20px">
-        <div style="font-size:12px;font-weight:700;color:#e17055;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⚠️ Onboarding pendiente — clientes sin número NodeFlow</div>
+      <div id="onboardingAlert" style="display:none;background:rgba(var(--red-rgb),.1);border:1px solid rgba(var(--red-rgb),.3);border-radius:12px;padding:16px 20px;margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⚠️ Onboarding pendiente — clientes sin número NodeFlow</div>
         <div class="table-wrap" style="margin:0">
           <table>
             <thead><tr><th>Negocio</th><th>Email</th><th>Org ID</th><th>Asignar número</th></tr></thead>
@@ -334,10 +334,10 @@
         <button class="refresh-btn" onclick="loadFlows()">↻ Actualizar</button>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="flowKpis">
-        <div class="kpi-card" style="--kpi-color:#d6ff5c"><div class="kpi-label">Negocios</div><div class="kpi-value" id="fTotal">—</div><div class="kpi-sub">flujos registrados</div></div>
-        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Reminders activos</div><div class="kpi-value" id="fRem">—</div><div class="kpi-sub">negocios con reminders</div></div>
-        <div class="kpi-card" style="--kpi-color:#f9ca24"><div class="kpi-label">Reseñas activas</div><div class="kpi-value" id="fRev">—</div><div class="kpi-sub">negocios con reviews</div></div>
-        <div class="kpi-card" style="--kpi-color:#00cec9"><div class="kpi-label">Google Place ID</div><div class="kpi-value" id="fPlace">—</div><div class="kpi-sub">configurados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Negocios</div><div class="kpi-value" id="fTotal">—</div><div class="kpi-sub">flujos registrados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Reminders activos</div><div class="kpi-value" id="fRem">—</div><div class="kpi-sub">negocios con reminders</div></div>
+        <div class="kpi-card"><div class="kpi-label">Reseñas activas</div><div class="kpi-value" id="fRev">—</div><div class="kpi-sub">negocios con reviews</div></div>
+        <div class="kpi-card"><div class="kpi-label">Google Place ID</div><div class="kpi-value" id="fPlace">—</div><div class="kpi-sub">configurados</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -396,9 +396,9 @@
         <button class="refresh-btn" onclick="loadCalls()">↻ Actualizar</button>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-        <div class="kpi-card" style="--kpi-color:#fd79a8"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="cCallsToday">—</div><div class="kpi-sub">en lo que va del día</div></div>
-        <div class="kpi-card" style="--kpi-color:#d6ff5c"><div class="kpi-label">Minutos hoy</div><div class="kpi-value" id="cMinsToday">—</div><div class="kpi-sub">tiempo de IA</div></div>
-        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Llamadas este mes</div><div class="kpi-value" id="cCallsMonth">—</div><div class="kpi-sub">acumulado mes</div></div>
+        <div class="kpi-card"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="cCallsToday">—</div><div class="kpi-sub">en lo que va del día</div></div>
+        <div class="kpi-card"><div class="kpi-label">Minutos hoy</div><div class="kpi-value" id="cMinsToday">—</div><div class="kpi-sub">tiempo de IA</div></div>
+        <div class="kpi-card"><div class="kpi-label">Llamadas este mes</div><div class="kpi-value" id="cCallsMonth">—</div><div class="kpi-sub">acumulado mes</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -417,10 +417,10 @@
 
       <!-- Stats -->
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px" id="poolStats">
-        <div class="kpi-card" style="--kpi-color:#00b894"><div class="kpi-label">Disponibles</div><div class="kpi-value" id="pAvailable">—</div><div class="kpi-sub">listos para asignar</div></div>
-        <div class="kpi-card" style="--kpi-color:#d6ff5c"><div class="kpi-label">Asignados</div><div class="kpi-value" id="pAssigned">—</div><div class="kpi-sub">en uso por clientes</div></div>
-        <div class="kpi-card" style="--kpi-color:#e17055"><div class="kpi-label">Retirados</div><div class="kpi-value" id="pRetired">—</div><div class="kpi-sub">baja/cancelados</div></div>
-        <div class="kpi-card" style="--kpi-color:#74b9ff"><div class="kpi-label">Total</div><div class="kpi-value" id="pTotal">—</div><div class="kpi-sub">en el pool</div></div>
+        <div class="kpi-card"><div class="kpi-label">Disponibles</div><div class="kpi-value" id="pAvailable">—</div><div class="kpi-sub">listos para asignar</div></div>
+        <div class="kpi-card"><div class="kpi-label">Asignados</div><div class="kpi-value" id="pAssigned">—</div><div class="kpi-sub">en uso por clientes</div></div>
+        <div class="kpi-card"><div class="kpi-label">Retirados</div><div class="kpi-value" id="pRetired">—</div><div class="kpi-sub">baja/cancelados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value" id="pTotal">—</div><div class="kpi-sub">en el pool</div></div>
       </div>
 
       <!-- Añadir número -->
@@ -429,18 +429,18 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
           <div>
             <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Número (formato +34…)</label>
-            <input id="pAddPhone" type="tel" placeholder="+34611222333" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px">
+            <input id="pAddPhone" type="tel" placeholder="+34611222333" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px">
           </div>
           <div>
             <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Proveedor</label>
-            <input id="pAddProvider" type="text" placeholder="telnyx / vonage / manual" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px" value="manual">
+            <input id="pAddProvider" type="text" placeholder="telnyx / vonage / manual" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px" value="manual">
           </div>
         </div>
         <div style="margin-bottom:12px">
           <label style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Notas (opcional)</label>
-          <input id="pAddNotes" type="text" placeholder="Ej: comprado 2026-06-10 para Madrid" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px">
+          <input id="pAddNotes" type="text" placeholder="Ej: comprado 2026-06-10 para Madrid" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px">
         </div>
-        <button class="action-btn" onclick="addPoolNumber()" style="background:rgba(0,184,148,.15);border-color:rgba(0,184,148,.35);color:#00b894">Añadir al pool</button>
+        <button class="action-btn" onclick="addPoolNumber()" style="background:rgba(var(--green-rgb),.15);border-color:rgba(var(--green-rgb),.35);color:var(--green2)">Añadir al pool</button>
       </div>
 
       <!-- Tabla números -->
@@ -536,8 +536,8 @@ async function loadDiagnostics() {
   box.innerHTML = '<div style="color:var(--dim)">Cargando diagnóstico…</div>';
   try {
     const d = await api('/api/admin/diagnostics');
-    const dot = (ok) => '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(ok?'#00b894':'#e17055')+';margin-right:7px;vertical-align:middle"></span>';
-    const row = (label, ok) => '<div style="display:flex;align-items:center;padding:5px 0;font-size:13px">'+dot(ok)+'<span style="color:'+(ok?'var(--text)':'#e17055')+'">'+label+'</span></div>';
+    const dot = (ok) => '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(ok?'var(--green2)':'var(--red)')+';margin-right:7px;vertical-align:middle"></span>';
+    const row = (label, ok) => '<div style="display:flex;align-items:center;padding:5px 0;font-size:13px">'+dot(ok)+'<span style="color:'+(ok?'var(--text)':'var(--red)')+'">'+label+'</span></div>';
 
     const g = d.groups;
     function card(title, items) {
@@ -547,11 +547,11 @@ async function loadDiagnostics() {
 
     let warn = '';
     if (d.warnings && d.warnings.length) {
-      warn = '<div class="card" style="padding:16px 18px;margin-bottom:18px;border-color:#e17055;background:rgba(225,112,85,.06)">'+
-        '<div class="card-title" style="color:#e17055;margin-bottom:8px">⚠️ Avisos</div>'+
+      warn = '<div class="card" style="padding:16px 18px;margin-bottom:18px;border-color:var(--red);background:rgba(var(--red-rgb),.06)">'+
+        '<div class="card-title" style="color:var(--red);margin-bottom:8px">⚠️ Avisos</div>'+
         d.warnings.map(w=>'<div style="font-size:13px;color:var(--text);padding:3px 0">• '+w+'</div>').join('')+'</div>';
     } else {
-      warn = '<div class="card" style="padding:14px 18px;margin-bottom:18px;border-color:#00b894;background:rgba(0,184,148,.06)"><div style="color:#00b894;font-weight:700;font-size:14px">✅ Todo configurado correctamente</div></div>';
+      warn = '<div class="card" style="padding:14px 18px;margin-bottom:18px;border-color:var(--green2);background:rgba(var(--green-rgb),.06)"><div style="color:var(--green2);font-weight:700;font-size:14px">✅ Todo configurado correctamente</div></div>';
     }
 
     box.innerHTML = warn +
@@ -564,7 +564,7 @@ async function loadDiagnostics() {
         card('🗄️ Base de datos', [['Conectada',g.database.enabled],['URL',g.database.url],['Service Key',g.database.serviceKey]]) +
       '</div>';
   } catch (e) {
-    box.innerHTML = '<div style="color:#e17055">Error: '+(e.message||e)+'</div>';
+    box.innerHTML = '<div style="color:var(--red)">Error: '+(e.message||e)+'</div>';
   }
 }
 
@@ -578,7 +578,7 @@ async function loadAttribution() {
     ).join('') +
     '<tr style="border-top:2px solid var(--border);font-weight:700"><td>TOTAL</td><td>'+d.totals.leads+'</td><td>'+d.totals.paid+'</td><td>—</td><td>'+d.totals.mrr+'€</td></tr>';
   } catch (e) {
-    body.innerHTML = '<tr><td colspan="5" style="color:#e17055">Error: '+(e.message||e)+'</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--red)">Error: '+(e.message||e)+'</td></tr>';
   }
 }
 
@@ -713,11 +713,11 @@ async function loadOnboardingAlert() {
       <td>
         ${c.orgId
           ? `<div style="display:flex;gap:8px;align-items:center">
-              <input id="num_${c.orgId}" type="tel" placeholder="+34611222333" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 10px;color:#fff;font-size:12px;width:150px">
-              <button class="action-btn" style="padding:5px 12px;font-size:12px;background:rgba(0,184,148,.12);border-color:rgba(0,184,148,.3);color:#00b894"
+              <input id="num_${c.orgId}" type="tel" placeholder="+34611222333" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 10px;color:var(--text);font-size:12px;width:150px">
+              <button class="action-btn" style="padding:5px 12px;font-size:12px;background:rgba(var(--green-rgb),.12);border-color:rgba(var(--green-rgb),.3);color:var(--green2)"
                 onclick="activarCliente('${c.orgId}',this)">Activar</button>
             </div>`
-          : '<span style="font-size:11px;color:#e17055">⚠️ Org no creada aún</span>'
+          : '<span style="font-size:11px;color:var(--red)">⚠️ Org no creada aún</span>'
         }
       </td>
     </tr>`).join('');
@@ -876,7 +876,7 @@ function _anSeries(el, s){
   var y=function(v){ return H-pad - (v/max)*(H-2*pad); };
   var poly=function(key,color){ return '<polyline points="'+s.map(function(d,i){return x(i)+','+y(d[key]);}).join(' ')+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round"/>'; };
   var area='M '+x(0)+','+(H-pad)+' '+s.map(function(d,i){return 'L '+x(i)+','+y(d.calls);}).join(' ')+' L '+x(n-1)+','+(H-pad)+' Z';
-  el.innerHTML=_anSvg(W,H,'<path d="'+area+'" fill="rgba(108,140,255,.12)"/>'+poly('calls','#6c8cff')+poly('bookings','#c4f546'));
+  el.innerHTML=_anSvg(W,H,'<path d="'+area+'" fill="rgba(var(--cyan-rgb),.12)"/>'+poly('calls','var(--cyan)')+poly('bookings','var(--accent)'));
 }
 function _anHours(el, hours){
   if(!el) return;
@@ -885,7 +885,7 @@ function _anHours(el, hours){
   var bars=hours.map(function(v,i){
     var peak=(v===max && v>0);
     return '<div title="'+i+'h: '+v+' llamadas" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px">'
-      +'<div style="width:72%;height:'+Math.max(2,(v/max)*104)+'px;background:'+(peak?'#c4f546':'#3a4a6a')+';border-radius:3px 3px 0 0"></div>'
+      +'<div style="width:72%;height:'+Math.max(2,(v/max)*104)+'px;background:'+(peak?'var(--accent)':'var(--dim)')+';border-radius:3px 3px 0 0"></div>'
       +(i%3===0?'<span style="font-size:8px;color:var(--dim)">'+i+'</span>':'<span style="height:8px"></span>')+'</div>';
   }).join('');
   el.innerHTML='<div style="display:flex;align-items:flex-end;gap:2px;height:130px">'+bars+'</div>';
@@ -907,7 +907,7 @@ function _anDonut(el, segs){
     off+=len; return a;
   }).join('');
   var legend=segs.map(function(s){ var pct=Math.round((s.value||0)/total*100); return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin:3px 0"><i style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block"></i>'+s.label+' · <b style="color:var(--text)">'+(s.value||0)+'</b> ('+pct+'%)</div>'; }).join('');
-  el.innerHTML='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 128 128" width="120" height="120">'+arcs+'<text x="64" y="64" text-anchor="middle" dominant-baseline="central" fill="#e9ecf3" font-size="22" font-weight="800">'+total+'</text></svg><div>'+legend+'</div></div>';
+  el.innerHTML='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 128 128" width="120" height="120">'+arcs+'<text x="64" y="64" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-size="22" font-weight="800">'+total+'</text></svg><div>'+legend+'</div></div>';
 }
 function _anTopClients(el, clientes){
   if(!el) return;
@@ -917,7 +917,7 @@ function _anTopClients(el, clientes){
   el.innerHTML=top.map(function(c){
     return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
       +'<div style="width:110px;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.name||'—')+'</div>'
-      +'<div style="flex:1;height:16px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+(c.calls/max*100)+'%;background:linear-gradient(90deg,#6c8cff,#a29bfe);border-radius:5px"></div></div>'
+      +'<div style="flex:1;height:16px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+(c.calls/max*100)+'%;background:linear-gradient(90deg,var(--cyan),var(--accent));border-radius:5px"></div></div>'
       +'<div style="width:82px;text-align:right;font-size:11px;font-weight:700">'+c.calls+' ll · '+c.bookings+' res</div></div>';
   }).join('');
 }
@@ -935,7 +935,7 @@ async function _loadPendingSectors(){
       var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
       var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
       var by=s._suggestedBy?' <span style="font-size:11px;color:var(--dim);font-weight:400">· sugerido por '+_secEsc(s._suggestedBy)+'</span>':'';
-      return '<div style="border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
+      return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
         +'<b style="font-size:15px">'+_secEsc(s.label||s.slug)+by+'</b>'
         +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveSector(\''+_secEsc(s.slug)+'\')">Aprobar</button>'
@@ -965,17 +965,17 @@ async function draftNewSector(){
   try{
     var r=await fetch('/api/admin/sectors/draft',{method:'POST',headers:h(),body:JSON.stringify({label:desc,description:desc})});
     var j=await r.json();
-    if(!j.ok||!j.draft){ res.innerHTML='<span style="color:#e17055;font-size:13px">'+_secEsc(j.error||'No se pudo generar un borrador. Da más contexto.')+'</span>'; return; }
+    if(!j.ok||!j.draft){ res.innerHTML='<span style="color:var(--red);font-size:13px">'+_secEsc(j.error||'No se pudo generar un borrador. Da más contexto.')+'</span>'; return; }
     _lastNewDraft=j.draft;
     var s=j.draft;
     var norms=(s.norms||[]).map(function(n){return '<li>'+_secEsc(n)+'</li>';}).join('');
     var mets=(s.metricChecks||[]).map(function(m){return '<span style="display:inline-block;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;margin:2px 2px 0 0">'+_secEsc(m.label)+'</span>';}).join(' ');
-    res.innerHTML='<div style="border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px">'
+    res.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:15px">'+_secEsc(s.label||s.slug)+'</b>'
       +'<div style="display:flex;gap:8px"><button class="btn btn-y" onclick="approveNewDraft()">Aprobar y activar</button>'
       +'<button class="btn" onclick="document.getElementById(\'sec-new-result\').innerHTML=\'\'">Descartar</button></div></div>'
       +'<ul style="margin:8px 0 6px;padding-left:18px;font-size:13px;color:var(--dim)">'+norms+'</ul><div style="font-size:11px">'+mets+'</div></div>';
-  }catch(e){ res.innerHTML='<span style="color:#e17055;font-size:13px">Error al generar el borrador.</span>'; }
+  }catch(e){ res.innerHTML='<span style="color:var(--red);font-size:13px">Error al generar el borrador.</span>'; }
 }
 async function approveNewDraft(){
   if(!_lastNewDraft) return;
@@ -1006,13 +1006,13 @@ function _anGrowth(el, trend){
   var y=function(v){ return H-pad-(v/maxM)*(H-2*pad); };
   var line=trend.map(function(t,i){ return x(i)+','+y(t.mrr); }).join(' ');
   var area='M '+x(0)+','+(H-pad)+' '+trend.map(function(t,i){ return 'L '+x(i)+','+y(t.mrr); }).join(' ')+' L '+x(n-1)+','+(H-pad)+' Z';
-  var dots=trend.map(function(t,i){ return '<circle cx="'+x(i)+'" cy="'+y(t.mrr)+'" r="3" fill="#21c08a"/>'; }).join('');
+  var dots=trend.map(function(t,i){ return '<circle cx="'+x(i)+'" cy="'+y(t.mrr)+'" r="3" fill="var(--green)"/>'; }).join('');
   var last=trend[n-1]||{};
-  var head='<div style="font-size:12px;color:var(--dim);margin-bottom:4px">MRR actual: <b style="color:#21c08a;font-size:15px">€'+(last.mrr||0)+'</b> · '+(last.activeOrgs||0)+' activos</div>';
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><path d="'+area+'" fill="rgba(33,192,138,.12)"/><polyline points="'+line+'" fill="none" stroke="#21c08a" stroke-width="2.5" stroke-linejoin="round"/>'+dots+'</svg>';
+  var head='<div style="font-size:12px;color:var(--dim);margin-bottom:4px">MRR actual: <b style="color:var(--green);font-size:15px">€'+(last.mrr||0)+'</b> · '+(last.activeOrgs||0)+' activos</div>';
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><path d="'+area+'" fill="rgba(33,192,138,.12)"/><polyline points="'+line+'" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>'+dots+'</svg>';
   var maxA=Math.max(1, Math.max.apply(null, trend.map(function(t){return t.newOrgs;})));
-  var bars=trend.map(function(t){ return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div title="'+t.newOrgs+' altas en '+t.month+'" style="width:56%;height:'+Math.max(2,t.newOrgs/maxA*34)+'px;background:#6c8cff;border-radius:2px 2px 0 0"></div><span style="font-size:8px;color:var(--dim)">'+t.month.slice(5)+'</span></div>'; }).join('');
-  el.innerHTML=head+svg+'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;margin-top:6px">'+bars+'</div><div class="an-legend"><span><i style="background:#21c08a"></i>MRR reconstruido (€)</span><span><i style="background:#6c8cff"></i>Altas/mes</span></div>';
+  var bars=trend.map(function(t){ return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div title="'+t.newOrgs+' altas en '+t.month+'" style="width:56%;height:'+Math.max(2,t.newOrgs/maxA*34)+'px;background:var(--cyan);border-radius:2px 2px 0 0"></div><span style="font-size:8px;color:var(--dim)">'+t.month.slice(5)+'</span></div>'; }).join('');
+  el.innerHTML=head+svg+'<div style="display:flex;align-items:flex-end;gap:3px;height:48px;margin-top:6px">'+bars+'</div><div class="an-legend"><span><i style="background:var(--green)"></i>MRR reconstruido (€)</span><span><i style="background:var(--cyan)"></i>Altas/mes</span></div>';
 }
 function _anHeatmap(el, grid){
   if(!el) return;
@@ -1077,13 +1077,13 @@ async function loadAnalytics(){
     _anHours(document.getElementById('an-hours'), d.hours);
     _anFunnel(document.getElementById('an-funnel'), d.funnel);
     _anDonut(document.getElementById('an-outcomes'), [
-      {label:'Reservas',value:k.bookings||0,color:'#c4f546'},
-      {label:'Info',value:k.infoCalls||0,color:'#6c8cff'},
-      {label:'Otras',value:Math.max(0,(k.totalCalls||0)-(k.bookings||0)-(k.infoCalls||0)),color:'#3a4a6a'}
+      {label:'Reservas',value:k.bookings||0,color:'var(--accent)'},
+      {label:'Info',value:k.infoCalls||0,color:'var(--cyan)'},
+      {label:'Otras',value:Math.max(0,(k.totalCalls||0)-(k.bookings||0)-(k.infoCalls||0)),color:'var(--dim)'}
     ]);
     _anDonut(document.getElementById('an-afterhours'), [
-      {label:'Fuera de horario',value:k.afterHoursCalls||0,color:'#f6c544'},
-      {label:'En horario',value:Math.max(0,(k.totalCalls||0)-(k.afterHoursCalls||0)),color:'#21c08a'}
+      {label:'Fuera de horario',value:k.afterHoursCalls||0,color:'var(--yellow)'},
+      {label:'En horario',value:Math.max(0,(k.totalCalls||0)-(k.afterHoursCalls||0)),color:'var(--green)'}
     ]);
     _anTopClients(document.getElementById('an-topclients'), d.clientes);
     _anHeatmap(document.getElementById('an-heatmap'), d.heatmap);
@@ -1141,7 +1141,7 @@ async function loadPool(){
     // Alerta visual si el pool está bajo
     const statsEl=document.getElementById('poolStats');
     if(stats.low){
-      statsEl.style.borderLeft='3px solid #e17055';
+      statsEl.style.borderLeft='3px solid var(--red)';
       statsEl.style.paddingLeft='8px';
       statsEl.title='⚠️ Pool bajo — menos de 2 números disponibles';
     }
@@ -1159,7 +1159,7 @@ async function loadPool(){
       <td style="font-size:11px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${n.notes||''}">${n.notes||'—'}</td>
       <td>
         ${n.status==='available'?`<button class="btn btn-p" onclick="assignPoolNumber('${n.phone_number}')" style="padding:3px 10px;font-size:11px">Asignar →</button>`:''}
-        ${n.status==='assigned'?`<button class="action-btn btn-sm" onclick="releasePoolNumber('${n.id}')" style="background:rgba(225,112,85,.12);border-color:rgba(225,112,85,.3);color:#e17055;padding:3px 10px;font-size:11px">Liberar</button>`:''}
+        ${n.status==='assigned'?`<button class="action-btn btn-sm" onclick="releasePoolNumber('${n.id}')" style="background:rgba(var(--red-rgb),.12);border-color:rgba(var(--red-rgb),.3);color:var(--red);padding:3px 10px;font-size:11px">Liberar</button>`:''}
         ${n.status==='retired'?'<span style="font-size:11px;color:var(--dim)">retirado</span>':''}
       </td>
     </tr>`).join('');
