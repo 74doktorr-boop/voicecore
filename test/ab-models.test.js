@@ -85,4 +85,29 @@ describe('compareModelArms — veredicto y métricas por brazo', () => {
     assert.equal(r.totalCalls, 0);
     assert.deepEqual(r.arms, []);
   });
+
+  test('con datos suficientes DECLARA GANADOR por reservas', () => {
+    const calls = [];
+    for (let i = 0; i < 20; i++) calls.push(call({ provider: 'groq',   outcome: i < 6 ? 'booked' : 'info', audit: 80 })); // 30%
+    for (let i = 0; i < 20; i++) calls.push(call({ provider: 'openai', outcome: i < 3 ? 'booked' : 'info', audit: 90 })); // 15%
+    const r = compareModelArms(calls, { threshold: 20 });
+    assert.equal(r.verdict, 'ready');
+    assert.equal(r.winner.provider, 'groq');
+    assert.equal(r.winner.metric, 'reservas');
+    assert.equal(r.winner.margin, 15);   // 30% - 15%
+    assert.equal(r.winner.tie, false);
+  });
+
+  test('empate en reservas → gana por calidad (audit)', () => {
+    const calls = [];
+    for (let i = 0; i < 20; i++) calls.push(call({ provider: 'groq',   outcome: i < 5 ? 'booked' : 'info', audit: 85 }));
+    for (let i = 0; i < 20; i++) calls.push(call({ provider: 'openai', outcome: i < 5 ? 'booked' : 'info', audit: 70 }));
+    const r = compareModelArms(calls, { threshold: 20 });
+    assert.equal(r.winner.provider, 'groq');
+    assert.match(r.winner.metric, /audit/);
+  });
+
+  test('sin datos suficientes → winner null', () => {
+    assert.equal(compareModelArms([], { threshold: 20 }).winner, null);
+  });
 });

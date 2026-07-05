@@ -153,7 +153,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       // Use the individual /api/admin/orgs/:id endpoint to view a specific org's key.
       const { data, error } = await db.client
         .from('organizations')
-        .select('id, name, slug, plan, owner_email, owner_name, phone, monthly_minutes_limit, monthly_minutes_used, stripe_customer_id, is_active, created_at')
+        .select('id, name, slug, plan, owner_email, owner_name, phone, monthly_minutes_limit, monthly_minutes_used, stripe_customer_id, is_active, created_at, assistant_config')
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -228,7 +228,7 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── PATCH org fields ──────────────────────────────────────────────────────────
   app.patch('/api/admin/orgs/:id', adminAuth, async (req, res) => {
-    const { name, plan, sector, phone, status, outboundNumber } = req.body;
+    const { name, plan, sector, phone, status, outboundNumber, model } = req.body;
     const db = getDatabase();
     const patch = {};
     if (name   !== undefined) patch.name   = name;
@@ -251,9 +251,22 @@ function setupAdminRoutes(app, config, assistantManager) {
         patch.automation_config = merged;
       } catch (_) { /* non-fatal — fall through */ }
     }
+    // Brazo del A/B de cerebro: assistant_config.model ('proveedor/modelo').
+    // '' / null → Auto (el router elige el más rápido). Merge JSONB + invalida
+    // la caché del asistente → el modelo nuevo aplica en la siguiente llamada.
+    if (model !== undefined) {
+      try {
+        const { data: existing } = await db.client
+          .from('organizations').select('assistant_config').eq('id', req.params.id).single();
+        const ac = { ...(existing?.assistant_config || {}) };
+        if (model) ac.model = model; else delete ac.model;
+        patch.assistant_config = ac;
+      } catch (_) { /* non-fatal */ }
+    }
     try {
       await db.client.from('organizations').update(patch).eq('id', req.params.id);
-      recordAudit({ action: plan !== undefined ? 'plan_change' : 'org_update', targetType: 'org', targetId: req.params.id, ip: ipOf(req), details: patch });
+      if (model !== undefined) { try { require('../assistants/org-assistant').invalidateOrgAssistant(req.params.id); } catch (_) {} }
+      recordAudit({ action: model !== undefined ? 'ab_model_assign' : plan !== undefined ? 'plan_change' : 'org_update', targetType: 'org', targetId: req.params.id, ip: ipOf(req), details: patch });
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: e.message });

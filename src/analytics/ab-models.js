@@ -82,7 +82,27 @@ function compareModelArms(calls = [], opts = {}) {
       ? `Solo hay ${list.length} brazo con datos: el A/B necesita ≥2 modelos activos (asigna orgs a otro modelo en assistant_config.model).`
       : `Algún brazo no llega a ${threshold} llamadas: sigue acumulando volumen antes del veredicto.`);
 
-  return { threshold, totalCalls: calls.length, attributed, arms: list, verdict: ready ? 'ready' : 'insufficient', reason };
+  // Veredicto: con datos suficientes, declara ganador. Criterio: RESERVAS
+  // (la métrica de negocio); empate → calidad (audit score). El margen dice
+  // cuánto gana. Empate total → sin ganador claro (tie).
+  let winner = null;
+  if (ready) {
+    const ranked = [...list].sort((a, b) => (b.bookingRate - a.bookingRate) || ((b.avgAudit || 0) - (a.avgAudit || 0)));
+    const top = ranked[0], second = ranked[1];
+    const byBooking = top.bookingRate !== second.bookingRate;
+    const fullTie = !byBooking && (top.avgAudit || 0) === (second.avgAudit || 0);
+    winner = fullTie ? { tie: true } : {
+      provider: top.provider,
+      label: top.label,
+      metric: byBooking ? 'reservas' : 'calidad (audit)',
+      margin: byBooking
+        ? Math.round((top.bookingRate - second.bookingRate) * 10) / 10
+        : Math.round(((top.avgAudit || 0) - (second.avgAudit || 0)) * 10) / 10,
+      tie: false,
+    };
+  }
+
+  return { threshold, totalCalls: calls.length, attributed, arms: list, verdict: ready ? 'ready' : 'insufficient', reason, winner };
 }
 
 module.exports = { compareModelArms, armKey, MODEL_LABEL };

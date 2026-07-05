@@ -299,8 +299,8 @@
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Negocio</th><th>Email</th><th>Plan</th><th>Minutos</th><th>Activo</th><th>Acciones</th></tr></thead>
-          <tbody id="orgsBody"><tr class="empty-row"><td colspan="6">Cargando…</td></tr></tbody>
+          <thead><tr><th>Negocio</th><th>Email</th><th>Plan</th><th>Minutos</th><th>Activo</th><th>🧠 Cerebro (A/B)</th><th>Acciones</th></tr></thead>
+          <tbody id="orgsBody"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -676,7 +676,7 @@ async function loadOrgs() {
     const rows=data.orgs||[];
     document.getElementById('orgsCount').textContent=rows.length+' organizaciones';
     const b=document.getElementById('orgsBody');
-    if(!rows.length){b.innerHTML='<tr class="empty-row"><td colspan="6">Sin clientes aún</td></tr>';return;}
+    if(!rows.length){b.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes aún</td></tr>';return;}
     b.innerHTML=rows.map(o=>{
       const plan=o.plan==='pro'?'<span class="badge bp">Pro 99€</span>':o.plan==='negocio'?'<span class="badge bg">Negocio 49€</span>':`<span class="badge bd">${o.plan||'—'}</span>`;
       const active=o.is_active?'<span class="badge bg">✓ Activo</span>':'<span class="badge br">Inactivo</span>';
@@ -686,18 +686,34 @@ async function loadOrgs() {
       const barClass=pct>=90?'danger':pct>=80?'warn':'';
       const minsCell=`<div>${used.toFixed(0)} / ${limit} min</div><div class="mins-bar"><div class="mins-bar-fill ${barClass}" style="width:${pct}%"></div></div>`;
       const titleAttr=o.phone?`title="${o.phone}"`:'';
+      const model=(o.assistant_config&&o.assistant_config.model)||'';
+      const modelSel=`<select class="form-ctrl" style="font-size:11px;padding:4px 8px;width:auto" onchange="setOrgModel('${o.id}',this.value,this)" title="Fuerza el modelo LLM de esta org para el A/B. Aplica en la siguiente llamada.">`
+        +`<option value=""${model===''?' selected':''}>⚙️ Auto</option>`
+        +`<option value="groq/llama-3.3-70b-versatile"${model.startsWith('groq')?' selected':''}>🦙 Llama</option>`
+        +`<option value="openai/gpt-4o-mini"${model.startsWith('openai')?' selected':''}>🤖 gpt-4o-mini</option>`
+        +`</select>`;
       return `<tr>
         <td><strong ${titleAttr}>${o.name||'—'}</strong></td>
         <td class="u-dim u-text-sm">${o.owner_email||'—'}</td>
         <td>${plan}</td>
         <td>${minsCell}</td>
         <td>${active}</td>
+        <td>${modelSel}</td>
         <td class="u-nowrap"><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
       </tr>`;
     }).join('');
     // Cargar estado de onboarding en paralelo
     loadOnboardingAlert().catch(()=>{});
   } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+// A/B de cerebro: fuerza el modelo LLM de una org (assistant_config.model).
+// '' = Auto. El backend invalida la caché → aplica en la siguiente llamada.
+async function setOrgModel(orgId, model, el){
+  el.disabled=true;
+  try{ await api('/api/admin/orgs/'+orgId,{method:'PATCH',body:JSON.stringify({model})}); }
+  catch(e){ alert('No se pudo cambiar el cerebro: '+(e.message||e)); }
+  el.disabled=false;
 }
 
 async function loadOnboardingAlert() {
@@ -1117,9 +1133,15 @@ async function _loadAbModels(){
 }
 function _renderAb(d){
   var arms=(d&&d.arms)||[], ok=d&&d.verdict==='ready';
+  var win='';
+  if(ok&&d.winner){
+    win = d.winner.tie
+      ? ' <strong class="u-accent">· Empate técnico</strong>'
+      : ' <strong class="u-accent">· 🏆 Gana '+_secEsc(d.winner.label)+'</strong> <span class="u-dim">(+'+d.winner.margin+(d.winner.metric==='reservas'?' pts de reservas':' de audit score')+')</span>';
+  }
   var banner='<div class="callout '+(ok?'callout--accent':'callout--warn')+' callout--block u-mb-3">'
-    +'<strong class="'+(ok?'u-accent':'u-yellow')+'">'+(ok?'✅ Veredicto listo':'⏳ Datos insuficientes — sin veredicto')+'</strong>'
-    +(d&&d.reason?' — '+_secEsc(d.reason):'')
+    +'<strong class="'+(ok?'u-accent':'u-yellow')+'">'+(ok?'✅ Veredicto listo':'⏳ Datos insuficientes — sin veredicto')+'</strong>'+win
+    +(d&&!ok&&d.reason?' — '+_secEsc(d.reason):'')
     +' <span class="u-dim">('+(d.attributed||0)+' de '+(d.totalCalls||0)+' llamadas atribuidas · umbral '+(d.threshold||20)+'/brazo · '+(d.periodDays||90)+' días)</span></div>';
   if(!arms.length) return banner+'<div class="u-dim u-text-sm">Aún no hay llamadas con modelo identificable. El brazo se deriva de metrics.turns[].llmProvider; asigna orgs a un modelo en <code class="code-inline">assistant_config.model</code> (p.ej. <code class="code-inline">groq/llama-3.3-70b-versatile</code>) para poblar los brazos.</div>';
   var rows=arms.map(function(a){
