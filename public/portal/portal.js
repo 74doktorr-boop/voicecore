@@ -3753,13 +3753,13 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
   var planName   = planNames[usage.plan]  || usage.plan;
   var planPrice  = planPrices[usage.plan] || '';
   var pct        = usage.percentUsed || 0;
-  var barColor   = pct >= 90 ? '#e74c3c' : pct >= 70 ? '#f39c12' : 'var(--accent)';
+  var barColor   = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--yellow)' : 'var(--accent)';
 
   // Overage warning
   var overageWarn = '';
   if (usage.overage > 0) {
     overageWarn =
-      '<div style="background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.25);border-radius:8px;padding:10px 12px;font-size:11px;color:#e74c3c;margin-top:10px">' +
+      '<div class="callout callout-error u-mt-2">' +
         '⚠️ Has superado tu límite de minutos en <strong>' + usage.overage.toFixed(1) + ' min</strong>. ' +
         'Cargo adicional estimado: <strong>€' + usage.overageCost.toFixed(2) + '</strong>.' +
       '</div>';
@@ -3771,10 +3771,7 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
   // Invoices table rows
   var invRows = '';
   if (invoices.length === 0) {
-    invRows =
-      '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--dim);font-size:12px">' +
-        'No hay facturas aún.' +
-      '</td></tr>';
+    invRows = '<tr class="empty-row"><td colspan="4">No hay facturas aún.</td></tr>';
   } else {
     invoices.forEach(function(inv) {
       var d       = new Date(inv.date * 1000);
@@ -3782,36 +3779,40 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
       var symbol  = inv.currency === 'eur' ? '€' : inv.currency.toUpperCase() + ' ';
       var amt     = symbol + Number(inv.amount).toFixed(2);
       var statusLabel = inv.status === 'paid'
-        ? '<span style="color:var(--green2)">Pagada</span>'
-        : '<span style="color:#f39c12">' + inv.status + '</span>';
+        ? '<span class="u-green">Pagada</span>'
+        : '<span class="u-yellow">' + inv.status + '</span>';
       var pdfLink = inv.pdf
-        ? '<a href="' + inv.pdf + '" target="_blank" style="color:var(--accent-l);font-size:11px;margin-left:8px">PDF ↓</a>'
+        ? ' <a href="' + inv.pdf + '" target="_blank" class="u-accent u-text-xs">PDF ↓</a>'
         : '';
       invRows +=
-        '<tr style="border-bottom:1px solid var(--border)">' +
-          '<td style="padding:10px 8px;font-size:12px;color:var(--dim)">' + dateStr + '</td>' +
-          '<td style="padding:10px 8px;font-size:12px;font-family:monospace">' + (inv.number || inv.id) + '</td>' +
-          '<td style="padding:10px 8px;font-size:12px;font-weight:600">' + amt + '</td>' +
-          '<td style="padding:10px 8px;font-size:12px">' + statusLabel + pdfLink + '</td>' +
+        '<tr>' +
+          '<td class="u-dim">' + dateStr + '</td>' +
+          '<td class="u-tabular">' + (inv.number || inv.id) + '</td>' +
+          '<td class="num u-bold">' + amt + '</td>' +
+          '<td>' + statusLabel + pdfLink + '</td>' +
         '</tr>';
     });
   }
 
   var manageBtn = usage.plan !== 'starter'
-    ? '<button class="btn btn-d" style="font-size:12px" onclick="openStripePortal()">Gestionar suscripción →</button>'
-    : '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent" style="font-size:12px;text-decoration:none">Activar plan →</a>';
+    ? '<button class="btn btn-d btn-sm" onclick="openStripePortal()">Gestionar suscripción →</button>'
+    : '<a href="https://nodeflow.es/#precios" target="_blank" class="btn btn-accent btn-sm" style="text-decoration:none">Activar plan →</a>';
 
   var vm = monthVal || {};
+  var valStat = function (n, label, colorCls) {
+    return '<div><div class="u-text-2xl u-black ' + (colorCls || 'u-white') + '">' + n + '</div>' +
+      '<div class="u-text-xs u-dim">' + label + '</div></div>';
+  };
   var valueStrip = ((vm.totalCalls || 0) > 0 || (vm.bookings || 0) > 0)
-    ? '<div class="card" style="padding:18px 20px;background:linear-gradient(135deg,rgba(196,245,70,.10),rgba(56,225,200,.05));border-color:rgba(196,245,70,.25)">' +
-        '<div style="font-size:11px;color:var(--accent-l);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:12px">Lo que NodeFlow te dio este mes</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px">' +
-          '<div><div style="font-size:22px;font-weight:900">' + (vm.totalCalls || 0) + '</div><div style="font-size:11px;color:var(--dim)">llamadas atendidas</div></div>' +
-          '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">' + (vm.bookings || 0) + '</div><div style="font-size:11px;color:var(--dim)">citas capturadas</div></div>' +
-          '<div><div style="font-size:22px;font-weight:900;color:var(--green2)">€' + (vm.revenueEst || 0) + '</div><div style="font-size:11px;color:var(--dim)">en reservas (est.)</div></div>' +
-          '<div><div style="font-size:22px;font-weight:900;color:#60a5fa">' + (vm.hoursSaved || 0) + 'h</div><div style="font-size:11px;color:var(--dim)">ahorradas</div></div>' +
+    ? '<div class="card u-border-accent" style="background:linear-gradient(135deg,rgba(196,245,70,.10),rgba(56,225,200,.05))">' +
+        '<div class="u-text-xs u-accent u-bold u-mb-3" style="text-transform:uppercase;letter-spacing:.08em">Lo que NodeFlow te dio este mes</div>' +
+        '<div class="u-grid u-gap-4" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">' +
+          valStat(vm.totalCalls || 0, 'llamadas atendidas') +
+          valStat(vm.bookings || 0, 'citas capturadas', 'u-green') +
+          valStat('€' + (vm.revenueEst || 0), 'en reservas (est.)', 'u-green') +
+          valStat((vm.hoursSaved || 0) + 'h', 'ahorradas', 'u-blue') +
         '</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-top:12px">Todo esto por <strong style="color:var(--text)">' + planPrice + '</strong>.</div>' +
+        '<div class="u-text-sm u-dim u-mt-3">Todo esto por <strong class="u-text">' + planPrice + '</strong>.</div>' +
       '</div>'
     : '';
 
@@ -3823,29 +3824,26 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
     valueStrip +
 
     // Plan card + usage bar
-    '<div class="card" style="padding:20px">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">' +
+    '<div class="card">' +
+      '<div class="u-flex u-items-center u-justify-between u-wrap u-gap-3 u-mb-4">' +
         '<div>' +
-          '<div style="font-size:11px;color:var(--dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em">Plan actual</div>' +
-          '<div style="font-size:20px;font-weight:700">' + planName +
-            '<span style="font-size:13px;font-weight:400;color:var(--dim);margin-left:8px">' + planPrice + '</span>' +
+          '<div class="u-text-xs u-dim u-mb-1" style="text-transform:uppercase;letter-spacing:.06em">Plan actual</div>' +
+          '<div class="u-text-xl u-bold u-white">' + planName +
+            '<span class="u-text-md u-dim" style="font-weight:400;margin-left:8px">' + planPrice + '</span>' +
           '</div>' +
         '</div>' +
         manageBtn +
       '</div>' +
-      '<div style="font-size:12px;color:var(--dim);margin-bottom:6px">' +
-        'Minutos este mes: <strong style="color:var(--text)">' +
+      '<div class="u-text-sm u-dim u-mb-1">' +
+        'Minutos este mes: <strong class="u-text">' +
         (usage.minutesUsed || 0).toFixed(1) + ' / ' + (usage.minutesLimit || 0) +
         '</strong>' +
       '</div>' +
-      '<div style="background:var(--card2);border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px">' +
-        '<div style="height:100%;width:' + Math.min(pct, 100) + '%;background:' + barColor +
-          ';border-radius:6px;transition:width .4s"></div>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--dim)">' +
+      '<div class="progress u-mb-1"><div class="progress-bar" style="width:' + Math.min(pct, 100) + '%;background:' + barColor + '"></div></div>' +
+      '<div class="u-text-xs u-dim">' +
         pct + '% utilizado · ' + Math.floor(usage.minutesRemaining || 0) + ' min restantes' +
       '</div>' +
-      '<div style="font-size:11px;color:var(--dim);margin-top:4px">Minutos extra: <strong style="color:var(--text)">€' +
+      '<div class="u-text-xs u-dim u-mt-1">Minutos extra: <strong class="u-text">€' +
         (usage.overageRate != null ? usage.overageRate.toFixed(2).replace('.', ',') : '0,15') + '/min</strong> · solo si superas tu plan</div>' +
       overageWarn +
     '</div>' +
@@ -3856,18 +3854,11 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
     proUpsell +
 
     // Invoice history
-    '<div class="card" style="padding:20px;margin-top:16px">' +
-      '<div style="font-size:13px;font-weight:700;margin-bottom:14px">🧾 Historial de facturas</div>' +
-      '<div style="overflow-x:auto">' +
-        '<table style="width:100%;border-collapse:collapse">' +
-          '<thead>' +
-            '<tr style="border-bottom:1px solid var(--border)">' +
-              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Fecha</th>' +
-              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Nº Factura</th>' +
-              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Importe</th>' +
-              '<th style="text-align:left;padding:8px;font-size:11px;color:var(--dim);font-weight:600">Estado</th>' +
-            '</tr>' +
-          '</thead>' +
+    '<div class="card u-mt-4">' +
+      '<div class="card-title">🧾 Historial de facturas</div>' +
+      '<div class="table-wrap" style="border:0">' +
+        '<table>' +
+          '<thead><tr><th>Fecha</th><th>Nº Factura</th><th class="num">Importe</th><th>Estado</th></tr></thead>' +
           '<tbody>' + invRows + '</tbody>' +
         '</table>' +
       '</div>' +

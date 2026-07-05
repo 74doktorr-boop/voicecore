@@ -1163,6 +1163,14 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .progress { background: var(--surface-2); border-radius: var(--r-pill); height: 8px; overflow: hidden; }
 .progress-bar { height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width var(--dur-3) var(--ease-out); }
 
+/* -- 29c · CALLOUT / ALERT --------------------------------------------- */
+.callout { display: flex; gap: var(--sp-2); align-items: flex-start; padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-3); font-size: var(--fs-sm); line-height: 1.5;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.callout-error  { color: var(--red);      background: rgba(240,100,90,.1);          border-color: rgba(240,100,90,.24); }
+.callout-warn   { color: var(--yellow);   background: rgba(246,197,68,.1);          border-color: rgba(246,197,68,.26); }
+.callout-accent { color: var(--accent-l); background: rgba(var(--accent-rgb),.08);  border-color: var(--border-accent); }
+
 /* -- 29c · CALLOUT + tarjeta semantica --------------------------------- */
 .callout { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
   padding: 12px 16px; border-radius: var(--r-2); border: 1px solid var(--border);
@@ -1202,7 +1210,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .u-mb-1{margin-bottom:var(--sp-1)}.u-mb-2{margin-bottom:var(--sp-2)}.u-mb-3{margin-bottom:var(--sp-3)}.u-mb-4{margin-bottom:var(--sp-4)}.u-mb-6{margin-bottom:var(--sp-6)}
 .u-p-2{padding:var(--sp-2)}.u-p-3{padding:var(--sp-3)}.u-p-4{padding:var(--sp-4)}.u-p-6{padding:var(--sp-6)}
 .u-text-2xs{font-size:var(--fs-2xs)}.u-text-xs{font-size:var(--fs-xs)}.u-text-sm{font-size:var(--fs-sm)}.u-text-md{font-size:var(--fs-md)}.u-text-base{font-size:var(--fs-base)}.u-text-lg{font-size:var(--fs-lg)}.u-text-xl{font-size:var(--fs-xl)}.u-text-2xl{font-size:var(--fs-2xl)}.u-text-3xl{font-size:var(--fs-3xl)}
-.u-green{color:var(--green)}.u-red{color:var(--red)}.u-yellow{color:var(--yellow)}
+.u-green{color:var(--green)}.u-red{color:var(--red)}.u-yellow{color:var(--yellow)}.u-blue{color:var(--blue)}
 .u-display{font-family:var(--font-display)}.u-bold{font-weight:700}.u-black{font-weight:900}
 .u-white{color:var(--white)}.u-text{color:var(--text)}.u-dim{color:var(--dim)}.u-muted{color:var(--muted)}.u-accent{color:var(--accent-l)}
 .u-tabular{font-variant-numeric:tabular-nums}.u-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.u-center{text-align:center}
