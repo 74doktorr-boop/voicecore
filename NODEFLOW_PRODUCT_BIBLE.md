@@ -11,13 +11,34 @@
 
 ---
 
-## 0 · Qué es NodeFlow (en una frase)
+## 0 · Qué es NodeFlow — posicionamiento canónico
 
-NodeFlow es el **recepcionista con IA de voz** de los negocios locales de España:
-atiende su teléfono 24/7 con voz natural, agenda citas, capta a quien llama y
-avisa al dueño — y por debajo es el **cerebro** del negocio (CRM, recuperación de
-oportunidades, lista de espera, resumen diario). Convierte llamadas perdidas en
-clientes, sin que el dueño cambie su forma de trabajar.
+**NodeFlow es el sistema operativo del negocio local: la plataforma que gestiona
+toda la relación con sus clientes, de principio a fin y sola.** Entra por la
+puerta más simple y evidente — contesta el teléfono 24/7 con voz natural, agenda
+citas, capta a quien llama y avisa al dueño — y por debajo hace TODO lo demás, que
+**ya hace hoy**: gestiona clientes (CRM con memoria del que llama), recupera
+clientes perdidos, envía campañas, pide reseñas, automatiza seguimientos y
+recordatorios, analiza el negocio y recomienda acciones.
+
+**Categoría / interno (nosotros e inversores):** *el OS del negocio local — la capa
+que gestiona la relación con el cliente.* Ahí está el **foso**: un "agente de IA"
+se reemplaza el día que salga otro más listo; la plataforma que tiene dentro los
+datos, el historial, las citas y las campañas de un negocio **no se cambia sin
+migrar el negocio entero.** Valor a largo plazo, no una feature.
+
+**Cara al cliente (su idioma, jamás jerga):** el eje es
+**«No solo contesta el teléfono: cuida a tus clientes de principio a fin.»** Se
+muestra el ARCO completo — *atiende → agenda → gestiona → recupera → fideliza →
+analiza* — y se **demuestra** (show, don't tell), no se afirma. La "recepcionista
+con IA" es el **caballo de Troya**: la entrada barata y evidente por la que el
+dueño descubre que tiene el negocio entero gestionado. Entrada simple, valor
+plataforma. **Nunca se le vende un "sistema operativo" a una peluquera** — se le
+vende el beneficio.
+
+**Regla de oro del posicionamiento:** si el mensaje reduce NodeFlow a "una IA que
+contesta llamadas", está **infravalorando** el producto (que ya hace las nueve
+cosas) — corregir. Si suena a "otro SaaS" o "un agente de IA" genérico, también.
 
 **Para quién:** dueños de negocios locales (clínicas, peluquerías, talleres,
 restaurantes, despachos…), muchos en Euskadi, Navarra y Galicia. Gente que
@@ -56,12 +77,15 @@ mando de su teléfono** — y no se arrepienten.
 
 ## 2 · Misión
 
-**Que ningún negocio local pierda un cliente por no poder coger el teléfono.**
+**Que ningún negocio local pierda un cliente — ni el que llama y no le cogen, ni
+el que se fue, ni el que se olvidó de volver.** Empezamos por la llamada porque es
+la fuga más evidente; terminamos gestionando toda la relación.
 
 Hacemos eso con tres compromisos:
 
-1. **Cero llamadas perdidas.** El teléfono se contesta siempre, a cualquier hora,
-   en festivos, mientras el dueño trabaja.
+1. **Cero clientes perdidos.** Se contesta siempre (a cualquier hora, festivos,
+   mientras el dueño trabaja) — y no acaba ahí: se agenda, se recuerda, se
+   recupera al que no volvió y se cuida al que ya es cliente.
 2. **Sin complicarle la vida.** Se instala sin cambiar de número, sin permanencia,
    sin manuales, sin ser técnico. Activo en minutos.
 3. **Ganándonos la confianza cada día.** Con honestidad radical: nunca prometemos
@@ -206,16 +230,21 @@ estar usando "otro software más", o de que le hablan por encima.
    afina por sector, con gate humano. No se queda quieto.
 4. **De aquí, en su idioma.** Castellano, euskera y galego con naturalidad nativa.
    Hecho en Euskal Herria, orgulloso de ello. Ningún competidor global habla así.
-5. **Cerebro, no solo voz.** No solo contesta: recupera oportunidades perdidas,
-   gestiona lista de espera, recuerda citas, resume el día. Vale por un equipo.
+5. **Plataforma, no un agente — el FOSO.** No solo contesta: gestiona clientes,
+   recupera a los perdidos, lanza campañas, pide reseñas, automatiza seguimientos,
+   analiza y recomienda. Un agente de IA se sustituye el día que salga otro más
+   listo; la plataforma que tiene dentro los datos, el historial, las citas y las
+   campañas del negocio **no se cambia sin migrar el negocio entero.** Vale por un
+   equipo — y es insustituible.
 6. **Determinismo donde importa.** El margen, los cupos y las promesas no dependen
    del humor del modelo: son candados. Fiable a escala.
 7. **Estética que no parece IA.** "Electric Night" — memorable, con personalidad,
    imposible de confundir con la plantilla SaaS morada de turno.
 
 Si algún día NodeFlow se pudiera confundir con "otro asistente de IA", habríamos
-perdido nuestra única ventaja que no se copia: **la confianza y la adaptación
-real.**
+perdido las ventajas que no se copian: **la confianza, la adaptación real por
+sector, y ser la plataforma que gestiona TODA la relación con el cliente** — no
+una feature suelta que cualquiera replica.
 
 ---
 
