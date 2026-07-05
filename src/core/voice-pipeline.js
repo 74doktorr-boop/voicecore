@@ -165,10 +165,12 @@ class VoicePipeline {
           try {
             const db = getDatabase();
             if (db.enabled) {
+              const { phoneVariants } = require('../utils/phone');
               const { data: contact } = await db.client.from('contacts')
                 .select('id')
                 .eq('org_id', orgId)
-                .eq('phone', callerNumber)
+                .in('phone', phoneVariants(callerNumber))
+                .limit(1)
                 .maybeSingle();
               if (contact?.id) {
                 session.contactId = contact.id;
