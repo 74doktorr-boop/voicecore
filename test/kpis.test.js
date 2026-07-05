@@ -174,3 +174,24 @@ describe('kpis.bySector — salud por vertical (Fase 4)', () => {
     assert.strictEqual(r[0].label, 'Sin sector');
   });
 });
+
+// ── Huso Madrid en KPIs horarios (2026-07-05): antes usaban la hora del SERVIDOR
+//    (Docker suele UTC) → horas punta / fuera de horario / heatmap desplazados. ──
+describe('kpis — KPIs horarios en huso de Madrid, no del servidor', () => {
+  // 2026-07-05 (domingo). 19:30 UTC en julio = 21:30 en Madrid (CEST, UTC+2).
+  const cAfter = [{ org_id: 'x', outcome: 'info', duration_ms: 60000, started_at: '2026-07-05T19:30:00Z' }];
+
+  test('21:30 Madrid cuenta como fuera de horario (aunque en UTC sea 19:30)', () => {
+    const k = computeKpis({ calls: cAfter, now: NOW });
+    assert.strictEqual(k.afterHoursCalls, 1);
+  });
+  test('hourlyVolume agrupa por hora de Madrid (21h, no 19h UTC)', () => {
+    const h = hourlyVolume(cAfter);
+    assert.strictEqual(h[21], 1);
+    assert.strictEqual(h[19], 0);
+  });
+  test('heatmap usa día y hora de Madrid (domingo, 21h)', () => {
+    const g = weekdayHourHeatmap(cAfter);
+    assert.strictEqual(g[6][21], 1); // fila 6 = domingo
+  });
+});

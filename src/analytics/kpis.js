@@ -13,6 +13,10 @@ const DAY = 86400000;
 
 function _minutes(call) { return (Number(call.duration_ms) || 0) / 60000; }
 function _ts(v) { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; }
+// Instante → reloj de pared de MADRID. Los KPIs horarios (horas punta, día×hora,
+// fuera de horario) los interpreta el negocio en SU huso, no en el del servidor
+// (Docker suele ir en UTC → desplazaba las distribuciones 1-2h).
+function _madrid(t) { return new Date(new Date(t).toLocaleString('en-US', { timeZone: 'Europe/Madrid' })); }
 
 /**
  * KPIs principales del periodo.
@@ -51,7 +55,7 @@ function computeKpis(p = {}) {
   // el valor diferencial de NodeFlow — llamadas que hoy se perderían.
   const afterHoursCalls = calls.filter(c => {
     const t = _ts(c.started_at || c.created_at); if (t == null) return false;
-    const d = new Date(t); const h = d.getHours(); const wd = d.getDay();
+    const d = _madrid(t); const h = d.getHours(); const wd = d.getDay();
     return h < 9 || h >= 20 || wd === 0 || wd === 6;
   }).length;
   const afterHoursRate = totalCalls ? Math.round((afterHoursCalls / totalCalls) * 100) : 0;
@@ -107,7 +111,7 @@ function hourlyVolume(calls = []) {
   for (const c of calls) {
     const t = _ts(c.started_at || c.created_at);
     if (t == null) continue;
-    hours[new Date(t).getHours()]++;
+    hours[_madrid(t).getHours()]++;
   }
   return hours;
 }
@@ -121,7 +125,7 @@ function weekdayHourHeatmap(calls = []) {
   for (const c of calls) {
     const t = _ts(c.started_at || c.created_at);
     if (t == null) continue;
-    const d = new Date(t);
+    const d = _madrid(t);
     const wd = (d.getDay() + 6) % 7; // 0 = lunes
     grid[wd][d.getHours()]++;
   }
