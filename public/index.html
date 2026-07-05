@@ -73,6 +73,9 @@ nav.stuck{border-bottom-color:var(--line)}
 .nav-links a{transition:color .2s}.nav-links a:hover{color:var(--ink)}
 .nav-cta{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0a0b0d;background:var(--lime);padding:11px 18px;transition:background .2s}
 .nav-cta:hover{background:#fff}
+.nav-right{display:flex;align-items:center;gap:clamp(16px,2vw,24px)}
+.nav-login{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;transition:color .2s}
+.nav-login:hover{color:var(--lime)}
 
 /* ── buttons (flat, sharp, no glow) ── */
 .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);font-weight:700;font-size:1rem;padding:16px 26px;transition:background .2s,color .2s,border-color .2s;cursor:pointer;border:1px solid transparent}
@@ -258,7 +261,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   <div class="nav-links">
     <a href="#como">Cómo funciona</a><a href="#capacidades">Qué hace</a><a href="#sectores">Sectores</a><a href="#precio">Precio</a>
   </div>
-  <a href="#precio" class="nav-cta">Empezar</a>
+  <div class="nav-right">
+    <a href="/portal/" class="nav-login">Entrar</a>
+    <a href="#precio" class="nav-cta">Empezar</a>
+  </div>
 </div></div></nav>
 
 <!-- HERO -->
