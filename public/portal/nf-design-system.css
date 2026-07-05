@@ -624,8 +624,8 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 /* Hero: el saludo + lo que NodeFlow ya hizo hoy por ti */
 .nf-hero { margin-bottom: var(--sp-8); }
 .nf-hero-greet {
-  font-family: var(--font-display); font-size: clamp(28px, 4vw, 40px);
-  font-weight: 560; letter-spacing: -.02em; color: var(--white); line-height: 1.12;
+  font-family: var(--font-display); font-size: clamp(32px, 4.6vw, 52px);
+  font-weight: 600; letter-spacing: -.03em; color: var(--white); line-height: 1.02;
 }
 .nf-hero-date { font-size: var(--fs-md); color: var(--dim); margin-top: 6px; }
 .nf-hero-lead { font-size: var(--fs-lg); color: var(--text); margin-top: var(--sp-6); font-weight: 500; }
@@ -649,16 +649,17 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   transition: border-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out);
 }
 .nf-continue:hover { border-color: var(--border-accent); transform: translateY(-1px); }
-.nf-continue-kicker { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.nf-continue-kicker { font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .14em; }
 .nf-continue-arrow { color: var(--accent-l); }
 
-/* Acciones rápidas */
-.nf-qa-title { font-size: var(--fs-md); font-weight: 700; color: var(--dim); margin-bottom: var(--sp-3); }
+/* Acciones rápidas — título como kicker editorial (mono + tick de acento) */
+.nf-qa-title { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: var(--sp-4); }
+.nf-qa-title::before { content: ""; width: 24px; height: 2px; background: var(--accent); border-radius: 2px; flex: none; }
 .nf-qa { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-8); }
 .nf-qa-btn {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--surface-1); border: 1px solid var(--border);
-  border-radius: var(--r-pill); padding: 9px 16px;
+  border-radius: var(--r-2); padding: 9px 16px;
   font-size: var(--fs-md); font-weight: 600; color: var(--text);
   cursor: pointer; font-family: inherit;
   transition: border-color var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out),
@@ -675,7 +676,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   border-radius: var(--r-3); padding: 18px 20px; margin-bottom: var(--sp-3);
 }
 .nf-reco-spark {
-  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--r-2);
   background: rgba(var(--accent-rgb),.14); color: var(--accent-l);
   display: flex; align-items: center; justify-content: center; font-size: 16px;
 }

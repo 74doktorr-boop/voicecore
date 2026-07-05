@@ -1046,7 +1046,7 @@ function dashRecos(act) {
       'Enseñarle', 'conocimiento');
   }
   if (!out) return '';
-  return '<div style="margin-bottom:24px">' + out + '</div>';
+  return '<div style="margin-bottom:24px"><div class="kicker">Copiloto · qué hacer ahora</div>' + out + '</div>';
 }
 
 function dashContinue() {
