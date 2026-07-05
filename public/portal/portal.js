@@ -3049,7 +3049,7 @@ async function testCallMe() {
     await api('/api/portal/calls/outbound', 'POST', { to: phone, purpose: 'test_call' });
     msg.style.display = 'block'; msg.style.color = 'var(--green2)';
     msg.innerHTML = '📱 <strong>Te estamos llamando.</strong> Descuelga y háblale como un cliente. ' +
-      'Después la verás en <a onclick="navigate(\'llamadas\')" style="cursor:pointer;text-decoration:underline;color:var(--accent-l)">Llamadas</a>, con su transcripción.';
+      'Después la verás en <a onclick="navigate(\'llamadas\')" class="u-link">Llamadas</a>, con su transcripción.';
     // Cooldown: una llamada de prueba cada 30s
     setTimeout(function () {
       _testCallCooldown = false;
@@ -3299,25 +3299,25 @@ function renderAsistenteForm() {
   var schedHtml = _DAYS.map(function(d) {
     var slot = sched[d];
     var hasAfternoon = slot && slot.afternoon_open;
-    return '<div style="margin-bottom:10px">' +
-      '<div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center">' +
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer">' +
+    return '<div class="u-mb-2">' +
+      '<div class="u-grid u-gap-2 u-items-center" style="grid-template-columns:80px 1fr">' +
+        '<label class="u-flex u-items-center u-gap-2 u-text-sm u-dim u-pointer">' +
           '<input type="checkbox" id="asis-day-' + d + '"' + (slot ? ' checked' : '') + ' onchange="toggleAsisDayClosed(\'' + d + '\')">' +
           ' ' + _DAY_LABELS[d] + '</label>' +
         '<div id="asis-slots-' + d + '" style="display:' + (slot?'block':'none') + '">' +
-          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<div class="u-flex u-gap-2 u-items-center u-wrap">' +
             '<input type="time" class="form-ctrl" id="asis-open-' + d + '" value="' + (slot?slot.open:'09:00') + '" style="width:90px">' +
-            '<span style="color:var(--dim);font-size:11px">–</span>' +
+            '<span class="u-dim u-text-xs">–</span>' +
             '<input type="time" class="form-ctrl" id="asis-close-' + d + '" value="' + (slot?slot.close:'14:00') + '" style="width:90px">' +
-            '<button type="button" id="asis-pm-btn-' + d + '" class="btn btn-sm" style="font-size:11px;padding:3px 8px" ' +
+            '<button type="button" id="asis-pm-btn-' + d + '" class="btn btn-sm u-text-xs" style="padding:3px 8px" ' +
               'onclick="toggleAsisAfternoon(\'' + d + '\')">' +
               (hasAfternoon ? '– Tarde' : '+ Tarde') +
             '</button>' +
           '</div>' +
-          '<div id="asis-pm-' + d + '" style="display:' + (hasAfternoon?'flex':'none') + ';gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">' +
-            '<span style="color:var(--dim);font-size:11px;width:80px">Tarde</span>' +
+          '<div id="asis-pm-' + d + '" class="u-gap-2 u-items-center u-wrap u-mt-1" style="display:' + (hasAfternoon?'flex':'none') + '">' +
+            '<span class="u-dim u-text-xs" style="width:80px">Tarde</span>' +
             '<input type="time" class="form-ctrl" id="asis-pm-open-' + d + '" value="' + (hasAfternoon?slot.afternoon_open:'16:00') + '" style="width:90px">' +
-            '<span style="color:var(--dim);font-size:11px">–</span>' +
+            '<span class="u-dim u-text-xs">–</span>' +
             '<input type="time" class="form-ctrl" id="asis-pm-close-' + d + '" value="' + (hasAfternoon?slot.afternoon_close:'20:00') + '" style="width:90px">' +
           '</div>' +
         '</div>' +
@@ -3330,8 +3330,8 @@ function renderAsistenteForm() {
   var horPanel = document.getElementById('asis-horario');
   if (horPanel && !document.getElementById('cop-panel-schedule')) {
     horPanel.insertAdjacentHTML('afterbegin',
-      '<div class="card" style="padding:16px 20px;margin-bottom:14px;margin-top:0">' +
-        '<div style="font-size:12px;color:var(--dim);margin-bottom:2px">¿Prefieres no ir día a día?</div>' +
+      '<div class="card u-mb-4" style="padding:16px 20px;margin-top:0">' +
+        '<div class="u-text-sm u-dim" style="margin-bottom:2px">¿Prefieres no ir día a día?</div>' +
         copilotBox('schedule', 'Ej: de lunes a viernes de 9 a 2 y de 4 a 8, sábados solo mañana') +
       '</div>');
   }
@@ -3369,17 +3369,17 @@ function _inp(id, label, value, ph) {
     '<input class="form-ctrl" id="' + id + '" value="' + esc(value||'') + '" placeholder="' + (ph||'') + '"></div>';
 }
 function _chk(id, label, checked) {
-  return '<div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:4px">' +
+  return '<div class="form-group u-flex u-items-center u-gap-2 u-mt-1">' +
     '<input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') +
     ' style="width:16px;height:16px;accent-color:var(--accent)">' +
-    '<label for="' + id + '" class="form-label" style="margin:0;cursor:pointer">' + label + '</label></div>';
+    '<label for="' + id + '" class="form-label u-pointer" style="margin:0">' + label + '</label></div>';
 }
 function _segurosBlock(arr) {
   return '<div class="form-group"><label class="form-label">Seguros aceptados</label>' +
-    '<div id="asis-seguros-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
+    '<div id="asis-seguros-chips" class="u-flex u-wrap u-gap-1 u-mb-1">' +
     (arr||[]).map(function(s) {
-      return '<span style="background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px">' +
-        esc(s) + ' <span style="cursor:pointer" onclick="this.parentElement.remove()">×</span></span>';
+      return '<span class="chip chip-accent">' +
+        esc(s) + ' <span class="u-pointer" onclick="this.parentElement.remove()">×</span></span>';
     }).join('') +
     '</div><input class="form-ctrl" id="asis-seguro-input" placeholder="+ Seguro (Enter para añadir)" ' +
     'style="width:200px" onkeydown="if(event.key===\'Enter\'){addAsisSeguro();event.preventDefault()}"></div>';
@@ -3396,10 +3396,10 @@ function renderAsisSectorFields(sector, sd) {
   // #8 Editor único: los servicios y precios viven SOLO en la tabla de
   // Configuración. Aquí ya no hay textareas de servicios — solo contexto
   // de sector que no duplica precios.
-  var html = '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
-    '<div style="flex:1;min-width:200px;font-size:12px;color:var(--dim);line-height:1.6">' +
-      '<strong style="color:var(--text)">Servicios y precios</strong> se gestionan en una única tabla (nombre · precio · duración) que la IA dice con exactitud y que decide los huecos de la agenda.</div>' +
-    '<button class="btn btn-accent btn-sm" onclick="navigate(\'configuracion\')" style="white-space:nowrap">Gestionar servicios y precios →</button>' +
+  var html = '<div class="callout callout--accent u-mb-4">' +
+    '<div class="u-flex-1" style="min-width:200px">' +
+      '<strong class="u-white">Servicios y precios</strong> se gestionan en una única tabla (nombre · precio · duración) que la IA dice con exactitud y que decide los huecos de la agenda.</div>' +
+    '<button class="btn btn-accent btn-sm u-nowrap" onclick="navigate(\'configuracion\')">Gestionar servicios y precios →</button>' +
   '</div>';
 
   if (sector === 'fisioterapia' || sector === 'clinica' || sector === 'dental') {
@@ -3407,7 +3407,7 @@ function renderAsisSectorFields(sector, sd) {
     html += _ta('asis-espec', 'Especialidades', sd.especialidades, 2, 'Ej: Rehabilitación, Osteopatía…');
 
   } else if (sector === 'restaurante') {
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    html += '<div class="form-row">' +
       _inp('asis-horComida', 'Horario comidas', sd.horarioComida, '13:00-15:30') +
       _inp('asis-horCena',   'Horario cenas',   sd.horarioCena,   '20:30-23:00') + '</div>';
     html += _ta('asis-carta', 'Carta (nombre – precio por línea)',
@@ -3466,7 +3466,7 @@ function renderAsisSectorFields(sector, sd) {
   } else if (sector === 'hotel') {
     html += _inp('sd-tipo', 'Tipo de alojamiento', sd.tipo, 'Ej: Hotel 4*, Hostal, Apartamento…');
     html += _ta('sd-servicios', 'Servicios incluidos', sd.servicios, 3, 'Ej: Desayuno, parking, spa…');
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    html += '<div class="form-row">' +
       _inp('sd-checkin',  'Check-in',  sd.checkIn,  'Ej: 14:00') +
       _inp('sd-checkout', 'Check-out', sd.checkOut, 'Ej: 12:00') + '</div>';
 
@@ -3500,11 +3500,11 @@ function addAsisSeguro() {
   var input = document.getElementById('asis-seguro-input');
   var val = input.value.trim(); if (!val) return;
   var span = document.createElement('span');
-  span.style.cssText = 'background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.2);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px';
+  span.className = 'chip chip-accent';
   // Use DOM API (not innerHTML) to avoid XSS from user-typed insurer name
   span.appendChild(document.createTextNode(val + ' '));
   var x = document.createElement('span');
-  x.style.cursor = 'pointer';
+  x.className = 'u-pointer';
   x.textContent = '×';
   x.onclick = function() { span.remove(); };
   span.appendChild(x);
