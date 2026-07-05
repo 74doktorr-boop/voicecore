@@ -3,43 +3,36 @@
   "title": "Restaurante · Vitoria-Gasteiz",
   "icon": "🍽️",
   "tag": "restaurante",
-  "totalMs": 32325,
   "segments": [
     {
       "speaker": "cliente",
       "text": "Hola, buenas noches. Queríamos hacer una reserva para cenar esta noche.",
-      "startMs": 300,
-      "durationMs": 4598
+      "file": "demo-restaurante/0.mp3"
     },
     {
       "speaker": "ia",
-      "text": "¡Buenas noches! Soy la asistente del Restaurante Txoko. ¿Cuántos seríais y a qué hora pensabais venir?",
-      "startMs": 5218,
-      "durationMs": 6362
+      "text": "¡Buenas noches! Soy el asistente del Restaurante Txoko. ¿Cuántos seríais y a qué hora pensabais venir?",
+      "file": "demo-restaurante/1.mp3"
     },
     {
       "speaker": "cliente",
       "text": "Somos cuatro personas, sobre las nueve y media.",
-      "startMs": 12080,
-      "durationMs": 3251
+      "file": "demo-restaurante/2.mp3"
     },
     {
       "speaker": "ia",
       "text": "Perfecto, tengo mesa disponible para cuatro a las nueve y media. ¿A qué nombre la pongo?",
-      "startMs": 15651,
-      "durationMs": 5294
+      "file": "demo-restaurante/3.mp3"
     },
     {
       "speaker": "cliente",
       "text": "A nombre de Gorka.",
-      "startMs": 21445,
-      "durationMs": 1440
+      "file": "demo-restaurante/4.mp3"
     },
     {
       "speaker": "ia",
       "text": "¡Listo, Gorka! Mesa para cuatro esta noche a las nueve y media. Cualquier cambio no dudéis en llamar. ¡Buenas noches y buen provecho!",
-      "startMs": 23205,
-      "durationMs": 8220
+      "file": "demo-restaurante/5.mp3"
     }
   ]
 }

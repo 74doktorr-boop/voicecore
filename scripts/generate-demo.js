@@ -16,18 +16,30 @@ if (!ELEVENLABS_KEY) { console.error('❌  ELEVENLABS_API_KEY no configurada'); 
 
 const AUDIO_DIR = path.join(__dirname, '..', 'public', 'audio');
 
-// ── Voces ElevenLabs ──────────────────────────────────────────────────────────
-// eleven_multilingual_v2 habla español con acento neutro perfecto
+// ── Voces ElevenLabs — PREMIUM CURADAS ────────────────────────────────────────
+// FUENTE DE VERDAD: config/voices.json (mismas voces que vende el selector).
+// Antes el demo usaba voces de STOCK (Bella/Rachel/stock) = "lo básico"; ahora
+// luce las 11 premium curadas. Se resuelven por id de catálogo para no volver a
+// desincronizar (mismo principio que src/tts/voice-map.js).
+const CATALOG = require('../config/voices.json').voices;
+const _byId = Object.fromEntries(CATALOG.map(v => [v.id, v]));
+function voice(catId, settings) {
+  const v = _byId[catId];
+  if (!v || !v.providerVoiceId || v.provider !== 'elevenlabs') {
+    throw new Error(`Voz premium no encontrada en config/voices.json: ${catId}`);
+  }
+  return { id: v.providerVoiceId, name: v.name, settings };
+}
 const VOICES = {
-  // IA receptionist — varias voces para que cada sector suene distinto (NodeFlow deja elegir la voz)
-  ia:          { id: 'hpp4J3VqNfWAUOO0d1Us', name: 'Bella',  settings: { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true } }, // F cálida (default)
-  iaBella:     { id: 'hpp4J3VqNfWAUOO0d1Us', name: 'Bella',  settings: { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true } }, // F cálida
-  iaRachel:    { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', settings: { stability: 0.52, similarity_boost: 0.80, style: 0.22, use_speaker_boost: true } }, // F profesional, más seria
-  iaCarlos:    { id: 'cjVigY5qzO86Huf0OWal', name: 'Carlos', settings: { stability: 0.50, similarity_boost: 0.80, style: 0.30, use_speaker_boost: true } }, // M cercano
-  // Clientes — más casuales, más variación natural
-  clienteF:    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah',  settings: { stability: 0.38, similarity_boost: 0.72, style: 0.50, use_speaker_boost: true } },
-  clienteM:    { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric',   settings: { stability: 0.35, similarity_boost: 0.70, style: 0.48, use_speaker_boost: true } },
-  clienteM2:   { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', settings: { stability: 0.37, similarity_boost: 0.73, style: 0.45, use_speaker_boost: true } },
+  // Asistente (IA) — 3 voces premium distintas para lucir el rango por sector
+  ia:          voice('cristina-es', { stability: 0.48, similarity_boost: 0.85, style: 0.28, use_speaker_boost: true }), // F recepción (default)
+  iaBella:     voice('gabriela-es', { stability: 0.45, similarity_boost: 0.85, style: 0.35, use_speaker_boost: true }), // F expresiva/vivaz (peluquería)
+  iaRachel:    voice('cristina-es', { stability: 0.50, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true }), // F recepción/confianza (clínica)
+  iaCarlos:    voice('carlos-es',   { stability: 0.50, similarity_boost: 0.82, style: 0.30, use_speaker_boost: true }), // M profesional (restaurante)
+  // Clientes — otras voces premium, distintas del asistente, más casuales
+  clienteF:    voice('cora-es',   { stability: 0.38, similarity_boost: 0.72, style: 0.50, use_speaker_boost: true }),
+  clienteM:    voice('alex-es',   { stability: 0.35, similarity_boost: 0.70, style: 0.48, use_speaker_boost: true }),
+  clienteM2:   voice('marcos-es', { stability: 0.37, similarity_boost: 0.73, style: 0.45, use_speaker_boost: true }),
 };
 
 // ── Demos ─────────────────────────────────────────────────────────────────────

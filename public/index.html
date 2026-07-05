@@ -463,8 +463,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   const nav=document.getElementById('nav');
   addEventListener('scroll',()=>nav.classList.toggle('stuck',scrollY>10),{passive:true});
 
-  // ── Demo de voz REAL — audio pregrabado + transcripción sincronizada ──
-  // Honesto: es un ejemplo grabado del asistente, no una llamada en directo.
+  // ── Demo de voz REAL — audios PREMIUM (ElevenLabs) por segmento, en SECUENCIA ──
+  // Honesto: ejemplos grabados con las voces premium reales que vende NodeFlow, no
+  // una llamada en vivo. Cada turno es su propio audio → se reproducen en orden y se
+  // resalta el que suena; sin timing que pueda desincronizarse.
   const audio=document.getElementById('demoAudio');
   const wave=document.getElementById('ccWave');
   const st=document.getElementById('ccStatus');
@@ -472,45 +474,51 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   const nameEl=document.getElementById('ccName');
   const trEl=document.getElementById('ccTranscript');
   const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  let segs=[];
-  function setPlaying(on){
+  let segs=[], idx=0, playing=false, started=false;
+  function setWave(on){
     wave.classList.toggle('idle',!on);
     playBtn.innerHTML=on?'⏸ Sonando':'▶ Escuchar';
     st.innerHTML='<span class="d"></span>'+(on?'Reproduciendo…':'Ejemplo real');
   }
+  function highlight(i){
+    const els=trEl.children;
+    for(let k=0;k<els.length;k++) els[k].classList.toggle('on',k===i);
+    if(els[i]) trEl.scrollTop=Math.max(0,els[i].offsetTop-trEl.clientHeight*0.42);
+  }
+  function playSeg(i){
+    if(i>=segs.length){ playing=false; started=false; idx=0; setWave(false); return; }
+    idx=i; playing=true; started=true; highlight(i); setWave(true);
+    audio.src='/audio/'+segs[i].file;
+    audio.play().catch(()=>{ playing=false; setWave(false); });
+  }
+  function pause(){ audio.pause(); playing=false; setWave(false); }
+  function resumeOrStart(){
+    if(started && !audio.ended && audio.src){ playing=true; setWave(true); audio.play().catch(()=>{playing=false;setWave(false);}); }
+    else playSeg(0);
+  }
   async function loadDemo(id){
-    audio.pause();
+    audio.pause(); playing=false; started=false; idx=0;
     let d; try{ d=await fetch('/audio/demo-'+id+'.json').then(r=>r.json()); }catch(e){ return; }
     segs=d.segments||[];
-    audio.src='/audio/demo-'+id+'.wav';
     nameEl.textContent='Asistente de '+d.title;
     trEl.innerHTML=segs.map(s=>{
       const ai=s.speaker==='ia';
       return '<div class="msg '+(ai?'ai':'cli')+' cc-seg"><div class="who">'+(ai?'NodeFlow':'Cliente')+'</div><div class="bub">'+esc(s.text)+'</div></div>';
     }).join('');
-    trEl.scrollTop=0; setPlaying(false);
+    trEl.scrollTop=0; setWave(false);
   }
-  function play(){ audio.play().then(()=>setPlaying(true)).catch(()=>{}); }
-  playBtn.addEventListener('click',()=>{ audio.paused?play():audio.pause(); });
+  playBtn.addEventListener('click',()=>{ playing?pause():resumeOrStart(); });
   document.getElementById('heroListen').addEventListener('click',e=>{
     e.preventDefault();
     document.getElementById('hero').scrollIntoView({behavior:'smooth'});
-    if(audio.paused) play();
+    if(!playing) resumeOrStart();
   });
   document.getElementById('ccTabs').addEventListener('click',e=>{
     const b=e.target.closest('.cc-tab'); if(!b) return;
     document.querySelectorAll('.cc-tab').forEach(x=>x.classList.toggle('active',x===b));
     loadDemo(b.dataset.id);
   });
-  audio.addEventListener('timeupdate',()=>{
-    const ms=audio.currentTime*1000; let a=-1;
-    segs.forEach((s,i)=>{ if(ms>=s.startMs) a=i; });
-    const els=trEl.children;
-    for(let i=0;i<els.length;i++) els[i].classList.toggle('on',i===a);
-    if(a>=0&&els[a]) trEl.scrollTop=Math.max(0,els[a].offsetTop-trEl.clientHeight*0.42);
-  });
-  audio.addEventListener('pause',()=>setPlaying(false));
-  audio.addEventListener('ended',()=>setPlaying(false));
+  audio.addEventListener('ended',()=>{ if(playing) playSeg(idx+1); });
   loadDemo('clinica');
 </script>
 </body>

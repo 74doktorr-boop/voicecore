@@ -3,43 +3,36 @@
   "title": "Clínica Dental · Donostia",
   "icon": "🦷",
   "tag": "clínica",
-  "totalMs": 35807,
   "segments": [
     {
       "speaker": "cliente",
       "text": "Hola, necesitaría pedir una revisión con el dentista, por favor.",
-      "startMs": 300,
-      "durationMs": 3065
+      "file": "demo-clinica/0.mp3"
     },
     {
       "speaker": "ia",
       "text": "¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente de la clínica o sería tu primera visita?",
-      "startMs": 3685,
-      "durationMs": 7848
+      "file": "demo-clinica/1.mp3"
     },
     {
       "speaker": "cliente",
       "text": "Soy paciente. Me llamo Mikel Urrutia.",
-      "startMs": 12033,
-      "durationMs": 1811
+      "file": "demo-clinica/2.mp3"
     },
     {
       "speaker": "ia",
       "text": "¡Hola, Mikel! Te encuentro en el sistema. Tengo disponible el martes a las nueve de la mañana, o el jueves a las cuatro de la tarde. ¿Cuál te viene mejor?",
-      "startMs": 14164,
-      "durationMs": 10635
+      "file": "demo-clinica/3.mp3"
     },
     {
       "speaker": "cliente",
       "text": "El martes a las nueve, perfecto.",
-      "startMs": 25299,
-      "durationMs": 1533
+      "file": "demo-clinica/4.mp3"
     },
     {
       "speaker": "ia",
       "text": "Anotado. Revisión el martes a las nueve con el doctor. Te llegará un recordatorio el lunes. ¡Hasta pronto, Mikel!",
-      "startMs": 27152,
-      "durationMs": 7755
+      "file": "demo-clinica/5.mp3"
     }
   ]
 }
