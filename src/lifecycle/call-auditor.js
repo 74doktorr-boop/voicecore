@@ -38,6 +38,7 @@ const AUDIT_PROMPT = `Eres un Auditor de Calidad de Conversaciones de un asisten
 
 Criterios:
 - hallucinated: afirmó servicios, precios, horarios o datos que NO aparecen respaldados en la conversación ni en el catálogo configurado, o se contradicen. TAMBIÉN cuenta prometer acciones que el sistema no puede hacer: «le envío la información por email/WhatsApp», «le llamo yo luego» — el asistente no puede enviar nada ni llamar por iniciativa propia (llamada real: prometió un email que jamás salió). EXCEPCIÓN: decir que «el equipo le llamará» después de registrar el interés del cliente es el guion diseñado — el dueño recibe ese aviso de verdad — y NO es alucinación.
+- problems/improvements: decir que «el equipo te contactará / se pondrá en contacto» tras registrar el lead es el guion CORRECTO y honesto (el dueño recibe el aviso de verdad) — NO lo listes como problema ni como mejora. SOLO es un fallo si promete un PLAZO concreto («muy pronto», «hoy mismo», «en unos minutos») o una acción que el asistente no puede hacer (enviar email/WhatsApp, llamar por su propia iniciativa).
 - info_gap: si el cliente pidió información (precio, servicio, horario) y el asistente NO se la dio, describe en pocas palabras qué dato faltó; si el catálogo configurado lo tenía, es un fallo grave (baja el score). null si no faltó nada.
 - confirmed_before_booking: dijo en voz alta día y hora exactos Y esperó el sí del cliente antes de dar la cita por hecha (null si no hubo intento de reserva).
 - unnecessary_questions: repetir una pregunta ya respondida cuenta.
