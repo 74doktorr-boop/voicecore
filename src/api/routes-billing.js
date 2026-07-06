@@ -271,7 +271,11 @@ function setupBillingRoutes(app, config) {
                   language:     lang,
                   firstMessage: registro.saludo || defaultGreeting,
                   systemPrompt: `Eres el asistente virtual de ${registro.negocio}. Atiendes llamadas de clientes de forma amable y profesional. Responde siempre en ${langName}. Sé conciso y útil.`,
-                  model:        'gpt-4o-mini',
+                  // SIN modelo horneado: el router elige el proveedor MÁS RÁPIDO
+                  // disponible (groq ~80ms TTFT > openai) con auto-fallback.
+                  // Hardcodear 'gpt-4o-mini' aquí clavaba a TODOS los asistentes
+                  // nuevos en OpenAI (p50 1.5s/turno medido en prod) e ignoraba Groq.
+                  model:        null,
                   tools:        [],
                 });
 

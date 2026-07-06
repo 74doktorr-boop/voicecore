@@ -20,6 +20,13 @@ const { sendAudioToVonage } = require('../telephony/vonage-handler');
 const { getKnowledgeBase } = require('../knowledge/base');
 const { getDatabase } = require('../db/database');
 
+// Caché LRU de audio para frases FIJAS (saludos, "¿Sí? Dígame.", despedidas).
+// mulaw 8kHz ≈ 8KB/s → 120 entradas de ~5s ≈ 5MB máximo. El saludo de cada
+// negocio es idéntico en cada llamada: sintetizarlo cada vez era latencia
+// y coste de TTS regalados justo en la primera impresión.
+const _fixedAudioCache = new Map();
+const FIXED_AUDIO_MAX = 120;
+
 const log = new Logger('PIPELINE');
 
 class VoicePipeline {
@@ -92,7 +99,7 @@ class VoicePipeline {
       const s = this.activeCalls.get(callId);
       if (!s || s.isProcessing || s.isSpeakingNow() || s.pendingUtterance) return;
       log.call(`[${callId}] Interrupción sin continuación — re-enganche`);
-      this._speakText(callId, '¿Sí? Dígame.').catch(() => {});
+      this._speakText(callId, '¿Sí? Dígame.', { cache: true }).catch(() => {});
     }, 2500);
   }
 
@@ -269,7 +276,7 @@ class VoicePipeline {
       const madridHour = parseInt(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
       const greeting = timeOfDayGreeting(assistant.language, madridHour);
       const firstMsg = assistant.firstMessage.replace(/\{\{GREETING\}\}/g, greeting);
-      await this._speakText(callId, firstMsg);
+      await this._speakText(callId, firstMsg, { cache: true });
       session.addAssistantMessage(firstMsg);
     }
 
@@ -288,7 +295,7 @@ class VoicePipeline {
         const porSilencio = idleMs > 75000;
         log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
         const bye = farewell(assistant && assistant.language, porSilencio ? 'silence' : 'maxlen');
-        this._speakText(callId, bye)
+        this._speakText(callId, bye, { cache: true })
           .then(() => session.addAssistantMessage(bye))
           .catch(() => {})
           .finally(() => setTimeout(() => {
@@ -354,6 +361,10 @@ class VoicePipeline {
     session._farewellTimer = null;
     const turnStart = Date.now();
     let turnMetrics = {};
+    // Reloj del turno para medir el tiempo hasta el PRIMER audio (lo que el
+    // cliente percibe como "tardó en contestar") — _speakText lo captura.
+    session._turnT0 = turnStart;
+    session._turnFirstAudioMs = null;
 
     // Add user message
     session.addUserMessage(userText);
@@ -374,8 +385,9 @@ class VoicePipeline {
         session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
         const ask = 'Perdone, no le he entendido bien. ¿Me lo puede repetir, por favor?';
         log.warn(`[${callId}] Confianza nivel 4 (${conf.toFixed(2)}) — turno sin acción, se pide repetición`);
-        await this._speakText(callId, ask);
+        await this._speakText(callId, ask, { cache: true });
         session.addAssistantMessage(ask);
+        if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
         session.recordTurn(turnMetrics);
         return;
       }
@@ -479,6 +491,7 @@ class VoicePipeline {
       }
 
       turnMetrics.totalTime = Date.now() - turnStart;
+      if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
       session.recordTurn(turnMetrics);
 
       // Colgado determinista por despedida: si el CLIENTE se despide y la
@@ -612,7 +625,7 @@ class VoicePipeline {
   /**
    * Convert text to speech via TTS Router and send to Twilio
    */
-  async _speakText(callId, text) {
+  async _speakText(callId, text, opts = {}) {
     const session = this.activeCalls.get(callId);
     if (!session || session.interrupted) return;
 
@@ -628,17 +641,39 @@ class VoicePipeline {
     const ttsStart = Date.now();
 
     try {
-      // Use TTS Router with assistant's preferred provider/voice
-      const mulaw = await this.ttsRouter.synthesize({
-        callId,
-        text,
-        provider: session.assistant.ttsProvider || null,
-        voice: session.assistant.voice || 'nova',
-        speed: session.assistant.speed || 1.0,
-        language: session.assistant.language || 'es',
-        strategy: session.assistant.ttsStrategy || 'latency',
-        fallback: session.assistant.ttsFallback || 'openai',
-      });
+      // Caché de frases FIJAS (saludo, "¿Sí? Dígame.", despedidas): el mismo
+      // texto con la misma voz se sintetiza UNA vez; el resto de llamadas
+      // arranca al instante — el saludo es la primera impresión y donde se
+      // concentran los cuelgues por latencia.
+      let mulaw = null, cacheKey = null;
+      if (opts.cache) {
+        cacheKey = [session.assistant.voice, session.assistant.ttsProvider, session.assistant.language, session.assistant.speed, text].join('|');
+        const hit = _fixedAudioCache.get(cacheKey);
+        if (hit) {
+          _fixedAudioCache.delete(cacheKey); _fixedAudioCache.set(cacheKey, hit); // LRU refresh
+          mulaw = hit;
+        }
+      }
+
+      if (!mulaw) {
+        // Use TTS Router with assistant's preferred provider/voice
+        mulaw = await this.ttsRouter.synthesize({
+          callId,
+          text,
+          provider: session.assistant.ttsProvider || null,
+          voice: session.assistant.voice || 'nova',
+          speed: session.assistant.speed || 1.0,
+          language: session.assistant.language || 'es',
+          strategy: session.assistant.ttsStrategy || 'latency',
+          fallback: session.assistant.ttsFallback || 'openai',
+        });
+        if (cacheKey && mulaw && mulaw.length > 0) {
+          _fixedAudioCache.set(cacheKey, mulaw);
+          while (_fixedAudioCache.size > FIXED_AUDIO_MAX) {
+            _fixedAudioCache.delete(_fixedAudioCache.keys().next().value);
+          }
+        }
+      }
 
       if (mulaw.length > 0 && !session.interrupted) {
         if (session.provider === 'vonage' && session.vonageWs) {
@@ -659,7 +694,15 @@ class VoicePipeline {
       }
 
       const ttsTime = Date.now() - ttsStart;
-      log.metric(`[${callId}] TTS completed in ${ttsTime}ms`);
+      // Instrumentación real del TTS: antes SOLO se logueaba (n=0 en métricas)
+      // y el desglose de latencia atribuía todo al LLM.
+      session.metrics.totalTtsTime = (session.metrics.totalTtsTime || 0) + ttsTime;
+      // Tiempo hasta el PRIMER audio del turno = la latencia que percibe el
+      // cliente al teléfono (la métrica que importa, no el total del turno).
+      if (session._turnT0 && session._turnFirstAudioMs == null) {
+        session._turnFirstAudioMs = Date.now() - session._turnT0;
+      }
+      log.metric(`[${callId}] TTS completed in ${ttsTime}ms${cacheKey && ttsTime < 50 ? ' (caché)' : ''}`);
 
     } catch (error) {
       log.error(`[${callId}] TTS error`, { error: error.message });

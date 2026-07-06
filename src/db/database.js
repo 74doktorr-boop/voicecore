@@ -101,7 +101,10 @@ class Database {
       first_message: config.firstMessage || config.first_message,
       voice: config.voice || 'nova',
       language: config.language || 'es',
-      model: config.model || 'gpt-4o-mini',
+      // null explícito = el router LLM elige el más rápido (groq > openai).
+      // OJO: la columna tiene DEFAULT 'gpt-4o-mini'; si se OMITE el campo,
+      // Postgres clava el default y el asistente queda atado a OpenAI.
+      model: config.model || null,
       fallback_model: config.fallbackModel,
       stt_provider: config.sttProvider || 'deepgram',
       tts_provider: config.ttsProvider || 'openai',
