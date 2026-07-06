@@ -56,14 +56,21 @@ async function getCandidates(orgId, opts = {}) {
 
   let calls = [];
   try {
+    // OJO SQL: .neq('outcome','booked') excluiría también los NULL (llamadas aún
+    // sin clasificar) — el .or los mantiene como candidatos.
     const { data } = await db.client.from('nf_calls')
-      .select('id, caller_number, outcome, started_at, followup_sent, metrics')
+      .select('id, caller_number, outcome, started_at, metrics')
       .eq('org_id', orgId)
       .gte('started_at', since)
-      .neq('outcome', 'booked')
+      .or('outcome.is.null,outcome.neq.booked')
       .order('started_at', { ascending: false })
       .limit(limit);
-    calls = (data || []).filter(c => c.caller_number && !c.followup_sent && c.caller_number !== 'unknown');
+    // La bandera de "ya seguido" es NUESTRA (metrics.followup.done). followup_sent
+    // pertenece al email automático post-llamada (post-call-handler/cron) y no
+    // debe ocultar candidatos: un email automático no es el WhatsApp del dueño.
+    calls = (data || []).filter(c =>
+      c.caller_number && c.caller_number !== 'unknown' &&
+      !(c.metrics && c.metrics.followup && c.metrics.followup.done));
   } catch (e) { log.warn(`getCandidates(${orgId}): ${e.message}`); return []; }
   if (!calls.length) return [];
 
@@ -94,13 +101,25 @@ async function getCandidates(orgId, opts = {}) {
   });
 }
 
-/** Marca una llamada como ya seguida (enviado o descartado) → no reaparece. */
+/**
+ * Marca una llamada como ya seguida (enviado o descartado) → no reaparece.
+ * Escribe en metrics.followup (bandera propia); NO toca followup_sent, que es
+ * del email automático post-llamada. Merge lectura+escritura: el riesgo de
+ * pisar metrics es mínimo (el audit escribe justo tras la llamada; esto, días
+ * después).
+ */
 async function markDone(callId, orgId, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
   if (!db.enabled || !callId) return { ok: false };
   try {
+    const { data: row } = await db.client.from('nf_calls')
+      .select('metrics').eq('id', callId).eq('org_id', orgId).maybeSingle();
+    if (!row) return { ok: false, error: 'not_found' };
+    const metrics = Object.assign({}, row.metrics || {}, {
+      followup: { done: true, at: new Date().toISOString(), channel: opts.channel || null },
+    });
     const { error } = await db.client.from('nf_calls')
-      .update({ followup_sent: true, followup_at: new Date().toISOString() })
+      .update({ metrics })
       .eq('id', callId).eq('org_id', orgId);
     return { ok: !error, error: error && error.message };
   } catch (e) { return { ok: false, error: e.message }; }

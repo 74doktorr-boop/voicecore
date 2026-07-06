@@ -2183,7 +2183,8 @@ function setupPortalRoutes(app, pipeline, config) {
   app.post('/api/portal/followups/:callId/done', portalAuth, async (req, res) => {
     try {
       const { markDone } = require('../lifecycle/followups');
-      const r = await markDone(req.params.callId, req.businessId);
+      const channel = ['wa_link', 'dismissed'].includes(req.body && req.body.channel) ? req.body.channel : null;
+      const r = await markDone(req.params.callId, req.businessId, { channel });
       if (!r.ok) return res.status(500).json({ error: r.error || 'No se pudo marcar' });
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -2201,7 +2202,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const db = getDatabase();
       // Recupera la llamada (para el teléfono) y valida propiedad.
       const { data: call } = await db.client.from('nf_calls')
-        .select('id, caller_number, followup_sent').eq('id', req.params.callId)
+        .select('id, caller_number').eq('id', req.params.callId)
         .eq('org_id', req.businessId).maybeSingle();
       if (!call) return res.status(404).json({ error: 'Llamada no encontrada' });
       if (!call.caller_number || call.caller_number === 'unknown') {
@@ -2225,7 +2226,7 @@ function setupPortalRoutes(app, pipeline, config) {
       }
 
       const { markDone } = require('../lifecycle/followups');
-      await markDone(req.params.callId, req.businessId);
+      await markDone(req.params.callId, req.businessId, { channel: 'api' });
       res.json({ ok: true, messageId: out.messageId });
     } catch (e) { log.warn(`followup send: ${e.message}`); res.status(500).json({ error: e.message }); }
   });

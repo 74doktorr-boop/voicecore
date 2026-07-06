@@ -4825,6 +4825,7 @@ function _fuRemove(id) {
 async function fuSendLink(id, phone) {
   var msg = _fuMsg(id);
   var num = String(phone || '').replace(/[^0-9]/g, '');
+  if (num.length === 9) num = '34' + num;   // fijo/móvil español sin prefijo → wa.me lo necesita
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
   try { await api('/api/portal/followups/' + id + '/done', 'POST', { channel: 'wa_link' }); } catch (e) {}
   toast('Seguimiento marcado como enviado');

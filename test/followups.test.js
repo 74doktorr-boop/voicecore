@@ -10,7 +10,7 @@ const assert = require('node:assert');
 const { draftMessage, getCandidates, markDone } = require('../src/lifecycle/followups');
 
 // ── Stub mínimo del cliente Supabase (encadenable) ──────────
-function stubDb({ calls = [], contacts = [], onUpdate } = {}) {
+function stubDb({ calls = [], contacts = [], callRow = null, onUpdate, onOr } = {}) {
   return {
     enabled: true,
     client: {
@@ -22,9 +22,11 @@ function stubDb({ calls = [], contacts = [], onUpdate } = {}) {
           eq() { return q; },
           gte() { return q; },
           neq() { return q; },
+          or(expr) { if (onOr) onOr(expr); return q; },
           in() { return q; },
           order() { return q; },
           limit() { return Promise.resolve({ data: q._rows }); },
+          maybeSingle() { return Promise.resolve({ data: callRow, error: null }); },
           update(patch) {
             if (onUpdate) onUpdate(table, patch);
             return { eq() { return { eq() { return Promise.resolve({ error: null }); } }; } };
@@ -69,12 +71,12 @@ describe('getCandidates', () => {
     assert.deepStrictEqual(out, []);
   });
 
-  test('excluye las ya seguidas (followup_sent) y las de número desconocido', async () => {
+  test('excluye las ya seguidas (metrics.followup.done) y las de número desconocido', async () => {
     const db = stubDb({
       calls: [
-        { id: 'c1', caller_number: '+34600111222', outcome: 'info', started_at: 'x', followup_sent: null, metrics: {} },
-        { id: 'c2', caller_number: '+34600333444', outcome: 'info', started_at: 'x', followup_sent: true, metrics: {} },
-        { id: 'c3', caller_number: 'unknown',      outcome: 'info', started_at: 'x', followup_sent: null, metrics: {} },
+        { id: 'c1', caller_number: '+34600111222', outcome: 'info', started_at: 'x', metrics: {} },
+        { id: 'c2', caller_number: '+34600333444', outcome: 'info', started_at: 'x', metrics: { followup: { done: true } } },
+        { id: 'c3', caller_number: 'unknown',      outcome: 'info', started_at: 'x', metrics: {} },
       ],
     });
     const out = await getCandidates('org1', { db, bizName: 'Nego' });
@@ -83,9 +85,29 @@ describe('getCandidates', () => {
     assert.match(out[0].draft, /Nego/);
   });
 
+  test('NO le afecta el followup_sent del email automático (bandera ajena)', async () => {
+    const db = stubDb({
+      calls: [{ id: 'c1', caller_number: '+34600111222', outcome: 'info', started_at: 'x', followup_sent: true, metrics: {} }],
+    });
+    const out = await getCandidates('org1', { db });
+    assert.strictEqual(out.length, 1);   // el email automático no es el WhatsApp del dueño
+  });
+
+  test('consulta con .or para incluir llamadas con outcome NULL', async () => {
+    let orExpr = null;
+    const db = stubDb({
+      calls: [{ id: 'c1', caller_number: '+34600111222', outcome: null, started_at: 'x', metrics: {} }],
+      onOr: (e) => { orExpr = e; },
+    });
+    const out = await getCandidates('org1', { db });
+    assert.match(orExpr, /outcome\.is\.null/);
+    assert.strictEqual(out.length, 1);
+    assert.strictEqual(out[0].reason, 'info');   // sin outcome → mensaje de consulta
+  });
+
   test('resuelve el nombre del contacto por teléfono', async () => {
     const db = stubDb({
-      calls:    [{ id: 'c1', caller_number: '+34600111222', outcome: 'callback_requested', started_at: 'x', followup_sent: null, metrics: { audit: { score: 42 } } }],
+      calls:    [{ id: 'c1', caller_number: '+34600111222', outcome: 'callback_requested', started_at: 'x', metrics: { audit: { score: 42 } } }],
       contacts: [{ name: 'Aitor', phone: '+34600111222' }],
     });
     const out = await getCandidates('org1', { db });
@@ -96,13 +118,22 @@ describe('getCandidates', () => {
 });
 
 describe('markDone', () => {
-  test('marca followup_sent=true en la llamada correcta', async () => {
+  test('escribe metrics.followup.done sin tocar followup_sent (bandera propia)', async () => {
     let captured = null;
-    const db = stubDb({ onUpdate: (t, patch) => { captured = { t, patch }; } });
-    const r = await markDone('c1', 'org1', { db });
+    const db = stubDb({ callRow: { metrics: { audit: { score: 80 } } }, onUpdate: (t, patch) => { captured = { t, patch }; } });
+    const r = await markDone('c1', 'org1', { db, channel: 'wa_link' });
     assert.strictEqual(r.ok, true);
     assert.strictEqual(captured.t, 'nf_calls');
-    assert.strictEqual(captured.patch.followup_sent, true);
+    assert.strictEqual(captured.patch.followup_sent, undefined);          // no pisa la del email
+    assert.strictEqual(captured.patch.metrics.followup.done, true);
+    assert.strictEqual(captured.patch.metrics.followup.channel, 'wa_link');
+    assert.strictEqual(captured.patch.metrics.audit.score, 80);           // conserva el audit
+  });
+
+  test('llamada inexistente → ok:false', async () => {
+    const db = stubDb({ callRow: null });
+    const r = await markDone('c1', 'org1', { db });
+    assert.strictEqual(r.ok, false);
   });
 
   test('sin BD → ok:false', async () => {

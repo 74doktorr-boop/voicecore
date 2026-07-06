@@ -47,6 +47,7 @@ const SERVICE_LABELS = {
   cumpleanos:         'tu cumpleaños',
   recuperacion:       'una nueva visita',
   renovacion_matricula: 'la renovación de matrícula',
+  renovacion_psicotecnico: 'renovar tu psicotécnico',
 };
 
 /**
@@ -250,9 +251,28 @@ async function processReminders() {
     if (error) { log.error('claim_pending_reminders failed', { err: error.message }); return; }
     if (!reminders?.length) break;
 
-    log.info(`Processing ${reminders.length} reminders (batch ${batch + 1}, concurrency ${CONCURRENCY})`);
-    await mapWithConcurrency(reminders, CONCURRENCY, (r) => processOneReminder(r, db));
-    totalProcessed += reminders.length;
+    // Anti-carrera del tope de frecuencia: dos recordatorios del MISMO contacto
+    // en el mismo lote pasarían ambos el check (ninguno está 'sent' aún). Solo
+    // procesamos el primero; el resto vuelve a 'pending' y el próximo tick los
+    // pospone correctamente al ver el primero ya enviado.
+    const seenContacts = new Set();
+    const toProcess = [], toRequeue = [];
+    for (const r of reminders) {
+      const key = `${r.org_id}:${r.contact_id}`;
+      if (r.contact_id && seenContacts.has(key)) toRequeue.push(r);
+      else { seenContacts.add(key); toProcess.push(r); }
+    }
+    if (toRequeue.length) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .in('id', toRequeue.map(r => r.id))
+        .then(undefined, e => log.warn('requeue duplicados falló', { err: e.message }));
+      log.info(`${toRequeue.length} recordatorios del mismo contacto reencolados (tope de frecuencia)`);
+    }
+
+    log.info(`Processing ${toProcess.length} reminders (batch ${batch + 1}, concurrency ${CONCURRENCY})`);
+    await mapWithConcurrency(toProcess, CONCURRENCY, (r) => processOneReminder(r, db));
+    totalProcessed += toProcess.length;
 
     if (reminders.length < CLAIM_LIMIT) break; // No queda backlog
   }

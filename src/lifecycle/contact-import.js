@@ -196,7 +196,11 @@ async function importContacts(orgId, rows, opts = {}) {
       try {
         const plan = plannedReminder(r.sectorData && r.sectorData[DATE_FIELD]);
         if (plan) {
-          await schedule({ orgId, contactId, serviceKey: 'renovacion_psicotecnico', scheduledFor: plan.when, channel: 'whatsapp' });
+          const tipo = r.sectorData[TYPE_FIELD];
+          await schedule({
+            orgId, contactId, serviceKey: 'renovacion_psicotecnico', scheduledFor: plan.when, channel: 'whatsapp',
+            messagePreview: `renovar tu psicotécnico${tipo ? ` (${tipo})` : ''}`,
+          });
           out.scheduled++;
           if (plan.urgent) out.urgent++;
         }
