@@ -2271,6 +2271,8 @@ function setupPortalRoutes(app, pipeline, config) {
       const sector = await _resolveOrgSector(req.businessId);
       const r = await saveRules(req.businessId, sector, req.body || {}, { db: getDatabase() });
       if (r.error) return res.status(400).json({ error: r.error });
+      // Aplica los cambios a la cartera ACTUAL (background, no bloquea la respuesta).
+      require('../lifecycle/reminder-engine').recalculateOrg(req.businessId).catch(() => {});
       res.json({ ok: true });
     } catch (e) { log.warn(`followup-rules put: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
@@ -2303,6 +2305,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const sector = await _resolveOrgSector(req.businessId);
       const r = await applySuggestion(req.businessId, sector, id, { db: getDatabase() });
       if (r.error) return res.status(400).json({ error: r.error });
+      require('../lifecycle/reminder-engine').recalculateOrg(req.businessId).catch(() => {});
       res.json({ ok: true });
     } catch (e) { log.warn(`suggestions apply: ${e.message}`); res.status(500).json({ error: e.message }); }
   });

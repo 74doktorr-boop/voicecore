@@ -35,8 +35,8 @@ const SECTOR_DEFAULTS = toEngineDefaults();
  * Cada entrada lleva serviceLabel para construir el mensaje.
  * @returns {object} { serviceKey: { days, trigger, channel, enabled, serviceLabel, custom? } }
  */
-async function getOrgReminderConfig(orgId, sectorSlug) {
-  const db = getDatabase();
+async function getOrgReminderConfig(orgId, sectorSlug, opts = {}) {
+  const db = opts.db || getDatabase();
   const sectorDefaults = SECTOR_DEFAULTS[sectorSlug] || {};
 
   const result = {};
@@ -198,20 +198,26 @@ async function cancelRemindersForService(contactId, serviceKey) {
 /**
  * Recalculate reminders for a contact after sector_data changes.
  */
-async function recalculate(contactId, orgId) {
-  const db = getDatabase();
+async function recalculate(contactId, orgId, ctx = {}) {
+  const db = ctx.db || getDatabase();
   if (!db.enabled) return;
 
-  // Get contact sector_data + phone (phone is the join key to nf_appointments)
-  const { data: contact } = await db.client.from('contacts')
-    .select('sector_data, phone')
-    .eq('id', contactId).maybeSingle();
+  // Contexto precargado (recalculateOrg) para no releer por cada contacto.
+  let contact = ctx.contact;
+  if (!contact) {
+    const { data } = await db.client.from('contacts')
+      .select('sector_data, phone').eq('id', contactId).maybeSingle();
+    contact = data;
+  }
   if (!contact) return;
 
-  // Get org sector (vive en assistant_config; no hay columna 'sector' en organizations)
-  const { data: org } = await db.client.from('organizations')
-    .select('assistant_config').eq('id', orgId).maybeSingle();
-  const sectorSlug = org && org.assistant_config && org.assistant_config.sector;
+  // Sector (vive en assistant_config; no hay columna 'sector' en organizations)
+  let sectorSlug = ctx.sectorSlug;
+  if (!sectorSlug) {
+    const { data: org } = await db.client.from('organizations')
+      .select('assistant_config').eq('id', orgId).maybeSingle();
+    sectorSlug = org && org.assistant_config && org.assistant_config.sector;
+  }
   if (!sectorSlug) return;
 
   // Get all appointments for this contact via phone (nf_appointments has no contact_id)
@@ -226,7 +232,7 @@ async function recalculate(contactId, orgId) {
     allApts = aptsData || [];
   }
 
-  const config = await getOrgReminderConfig(orgId, sectorSlug);
+  const config = ctx.config || await getOrgReminderConfig(orgId, sectorSlug, { db });
 
   for (const [serviceKey, def] of Object.entries(config)) {
     if (!def.enabled) continue;
@@ -268,6 +274,53 @@ async function recalculate(contactId, orgId) {
   }
 }
 
+// Evita recálculos solapados de la misma cartera (guardas de re-entrada).
+const _orgRecalcInFlight = new Set();
+
+/**
+ * Recalcula TODA la cartera de un negocio. Se dispara al cambiar reglas /
+ * aplicar una sugerencia, para que el ajuste tenga efecto en los clientes
+ * ACTUALES (no solo en los que vuelvan a tener actividad).
+ * Carga sector + config UNA vez; itera contactos con concurrencia y tope.
+ * @returns {Promise<{ processed, total, capped, skipped? }>}
+ */
+async function recalculateOrg(orgId, opts = {}) {
+  const db = opts.db || getDatabase();
+  if (!db.enabled || !orgId) return { processed: 0, total: 0, capped: false };
+  if (_orgRecalcInFlight.has(orgId)) return { processed: 0, total: 0, capped: false, skipped: true };
+  _orgRecalcInFlight.add(orgId);
+  try {
+    const { data: org } = await db.client.from('organizations')
+      .select('assistant_config').eq('id', orgId).maybeSingle();
+    const sectorSlug = org && org.assistant_config && org.assistant_config.sector;
+    if (!sectorSlug) return { processed: 0, total: 0, capped: false };
+
+    const config = await getOrgReminderConfig(orgId, sectorSlug, { db });
+    const LIMIT = opts.limit || 3000;
+    const { data: contacts } = await db.client.from('contacts')
+      .select('id, phone, sector_data').eq('org_id', orgId).is('deleted_at', null).limit(LIMIT + 1);
+    const list = contacts || [];
+    const capped = list.length > LIMIT;
+    const work = capped ? list.slice(0, LIMIT) : list;
+
+    const CONC = Math.min(opts.concurrency || 5, Math.max(1, work.length));
+    let idx = 0, processed = 0;
+    async function worker() {
+      while (idx < work.length) {
+        const c = work[idx++];
+        try { await recalculate(c.id, orgId, { contact: c, sectorSlug, config, db }); processed++; }
+        catch (e) { log.warn(`recalculateOrg: contacto ${c.id} falló: ${e.message}`); }
+      }
+    }
+    await Promise.all(Array.from({ length: CONC }, worker));
+    if (capped) log.warn(`recalculateOrg(${orgId}): cartera > ${LIMIT}; recalculados ${LIMIT} (resto se irá al tener actividad)`);
+    log.info(`recalculateOrg(${orgId}): ${processed}/${work.length} contactos recalculados`);
+    return { processed, total: work.length, capped };
+  } finally {
+    _orgRecalcInFlight.delete(orgId);
+  }
+}
+
 module.exports = {
   SECTOR_DEFAULTS,
   getOrgReminderConfig,
@@ -275,4 +328,5 @@ module.exports = {
   scheduleReminder,
   cancelRemindersForService,
   recalculate,
+  recalculateOrg,
 };
