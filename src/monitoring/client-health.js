@@ -197,6 +197,7 @@ let _interval = null, _lastRun = null;
 function startClientHealthCron() {
   if (_interval) return;
   _interval = setInterval(() => {
+    if (!require('../utils/leader').isLeader()) return; // multi-réplica: solo el líder
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false })
         .formatToParts(new Date()).map(p => [p.type, p.value]));

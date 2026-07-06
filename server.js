@@ -525,6 +525,11 @@ setupWhatsAppWebhook(app);
 const { setupWidgetRoutes } = require('./src/api/routes-widget');
 setupWidgetRoutes(app);
 
+// Elección de líder (multi-réplica): solo el líder ejecuta los crons. Debe
+// arrancar ANTES que los crons. Sin REDIS_URL → esta instancia es líder.
+const { startLeaderElection } = require('./src/utils/leader');
+startLeaderElection();
+
 // Load per-business flows from DB, then start cron
 flowManager.loadFromDB()
   .then(n => { if (n > 0) log.info(`${n} flows cargados desde DB`); })

@@ -241,6 +241,7 @@ let _lastRunDate = null;
 function startWeeklyReportCron() {
   if (_interval) return;
   _interval = setInterval(() => {
+    if (!require('../utils/leader').isLeader()) return; // multi-réplica: solo el líder
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat('sv-SE', {
         timeZone: 'Europe/Madrid', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false,

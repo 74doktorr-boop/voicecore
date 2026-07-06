@@ -479,6 +479,9 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // 'memory' si no (una sola instancia). Sirve para verificar el alta de Redis.
     let redis = 'memory';
     try { if (require('../utils/rate-store').isRedisEnabled()) redis = 'connected'; } catch (_) {}
+    // leader: ¿esta réplica ejecuta los crons? (con multi-réplica, solo una).
+    let leader = true;
+    try { leader = require('../utils/leader').isLeader(); } catch (_) {}
     res.json({
       status,
       version: '2.0.0',
@@ -488,6 +491,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       assistants: assistantManager.list().length,
       database,
       redis,
+      leader,
     });
   });
 

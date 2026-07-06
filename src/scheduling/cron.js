@@ -269,6 +269,9 @@ async function recoverMissedFollowups() {
 
 async function runAutomations() {
   if (_running) return;
+  // Multi-réplica: solo el LÍDER corre las tareas programadas. Sin Redis o en
+  // single-réplica, isLeader()=true → comportamiento de siempre.
+  if (!require('../utils/leader').isLeader()) return;
   _running = true;
   const start = Date.now();
 

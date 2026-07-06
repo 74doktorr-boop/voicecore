@@ -75,6 +75,8 @@ async function enqueueCampaignCall({ orgId, campaignType, phone, contactId = nul
 // ── El tick ───────────────────────────────────────────────────────────
 
 async function tick() {
+  // Multi-réplica: solo el LÍDER despacha (duplicar = llamar 2 veces al cliente).
+  if (!require('../utils/leader').isLeader()) return { skipped: 'no líder' };
   if (!isWithinCallingWindow()) return { skipped: 'fuera de ventana' };
   const db = getDatabase();
   if (!db.enabled) return { skipped: 'sin BD' };
