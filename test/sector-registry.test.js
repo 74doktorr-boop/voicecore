@@ -176,3 +176,39 @@ describe('upsertSector / hydrate / allSectors — sin deploy', () => {
     hydrate([]); // limpieza
   });
 });
+
+// Robustez de slug: plurales y sinónimos NO deben caer a genérico (2026-07-06).
+// Venían de landings ?sector=, los defaults de voz (plurales) o el LLM, y
+// silenciosamente auditaban como 'genérico' → el aprendizaje por vertical no
+// agrupaba. resolveSector singulariza el plural español, pero solo a sectores
+// que YA existen (nunca inventa).
+describe('resolveSector — plurales y sinónimos', () => {
+  const casos = [
+    ['peluquerias', 'peluqueria'],
+    ['veterinarias', 'veterinaria'],
+    ['talleres', 'taller'],
+    ['clinicas', 'clinica'],
+    ['dentistas', 'dental'],
+    ['opticas', 'optica'],
+    ['farmacias', 'farmacia'],
+    ['gimnasios', 'gimnasio'],
+    ['fisios', 'fisioterapia'],
+    ['hosteleria', 'restaurante'],
+  ];
+  for (const [input, expected] of casos) {
+    test(`"${input}" → ${expected} (con rúbrica)`, () => {
+      const s = resolveSector(input);
+      assert.strictEqual(s.slug, expected);
+      assert.ok(s.metricChecks.length >= 1, 'hereda la rúbrica del vertical');
+    });
+  }
+  test('singulares siguen resolviendo igual', () => {
+    assert.strictEqual(resolveSector('peluqueria').slug, 'peluqueria');
+    assert.strictEqual(resolveSector('taller').slug, 'taller');
+  });
+  test('no inventa: basura y vacío → genérico', () => {
+    for (const g of ['holamundos', 'xyz', 'otro', '', null, undefined]) {
+      assert.strictEqual(resolveSector(g).slug, 'generico');
+    }
+  });
+});

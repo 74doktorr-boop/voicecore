@@ -37,7 +37,7 @@ const SECTORS = {
   // ── Restauración / hostelería ────────────────────────────────
   restaurante: {
     slug: 'restaurante', label: 'Restaurante',
-    aliases: ['bar', 'cafeteria', 'gastrobar', 'asador', 'marisqueria', 'pizzeria'],
+    aliases: ['bar', 'cafeteria', 'gastrobar', 'asador', 'marisqueria', 'pizzeria', 'hosteleria', 'restauracion'],
     norms: [
       'Para CUALQUIER reserva pregunta SIEMPRE el número de comensales y la hora — sin eso no hay reserva.',
       'Pregunta si hay niños (trona) o alergias/intolerancias cuando encaje, y si prefieren terraza o interior.',
@@ -530,7 +530,17 @@ function normalizeSectorDef(raw) {
  */
 function resolveSector(slug) {
   const all = _all();
-  const key = _getIndex()[_norm(slug)];
+  const idx = _getIndex();
+  const n = _norm(slug);
+  // Coincidencia exacta; si falla, SINGULARIZA el plural español
+  // (peluquerias→peluqueria, talleres→taller) para no caer a genérico por un
+  // simple plural venido de un form, un landing ?sector=, los defaults de voz o
+  // el LLM. Solo mapea a sectores que YA existen — nunca inventa.
+  let key = idx[n];
+  if (!key && n.length > 3) {
+    if (n.endsWith('es') && idx[n.slice(0, -2)]) key = idx[n.slice(0, -2)];
+    else if (n.endsWith('s') && idx[n.slice(0, -1)]) key = idx[n.slice(0, -1)];
+  }
   const base = (key && all[key]) || GENERICO;
   const req = (base.requiredFields && base.requiredFields.length)
     ? base.requiredFields
