@@ -16,7 +16,9 @@ const WA_TEMPLATES = [
     components: [
       {
         type: 'BODY',
-        text: 'Hola {{1}}, tu cita en {{2}} ha sido confirmada para el {{3}} a las {{4}}. Servicio: {{5}}.',
+        // OJO Meta: una plantilla no puede EMPEZAR ni TERMINAR en variable —
+        // el cierre "¡Te esperamos!" no es adorno, es requisito del alta.
+        text: 'Hola {{1}}, tu cita en {{2}} ha sido confirmada para el {{3}} a las {{4}}. Servicio: {{5}}. ¡Te esperamos!',
         example: { body_text: [['María', 'Clínica Osakin', '5 de julio', '10:00', 'Fisioterapia']] },
       },
       { type: 'FOOTER', text: 'NodeFlow — Sistema de citas inteligente' },
@@ -29,7 +31,8 @@ const WA_TEMPLATES = [
     components: [
       {
         type: 'BODY',
-        text: 'Hola {{1}}, te recordamos tu cita en {{2}} mañana {{3}} a las {{4}}. Servicio: {{5}}.',
+        // OJO Meta: no puede terminar en variable (ver nota en cita_confirmada).
+        text: 'Hola {{1}}, te recordamos tu cita en {{2}} mañana {{3}} a las {{4}}. Servicio: {{5}}. ¿Podrás venir?',
         example: { body_text: [['María', 'Clínica Osakin', '5 de julio', '10:00', 'Fisioterapia']] },
       },
       {
