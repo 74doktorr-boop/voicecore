@@ -51,6 +51,7 @@ function buildRulesView(sectorSlug, orgConfig = {}) {
       trigger: fu.trigger,
       triggerLabel: TRIGGERS[fu.trigger] || fu.trigger,
       days: ov.days != null ? ov.days : (fu.days != null ? fu.days : null),
+      serviceFilter: Array.isArray(fu.serviceFilter) ? fu.serviceFilter : [],
       channel: ov.channel || 'whatsapp',
       enabled: ov.enabled !== false,
       custom: false,

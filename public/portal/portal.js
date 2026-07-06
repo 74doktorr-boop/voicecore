@@ -4863,7 +4863,8 @@ async function loadFollowupRules() {
       '</div>' +
       '<button class="btn btn-accent btn-sm" onclick="saveFollowupRules(this)">Guardar cambios</button>' +
     '</div>' +
-    '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>';
+    '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>' +
+    '<div id="rules-suggestions"></div>';
 
   var defaultsHtml = defaults.length
     ? '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:6px 0 8px">Incluidos en tu sector</div>' +
@@ -4878,6 +4879,64 @@ async function loadFollowupRules() {
   el.innerHTML = head + defaultsHtml + customHtml;
 
   loadRulesReach();
+  loadRuleSuggestions();
+}
+
+// El sistema aprende de las citas reales y propone ajustes; el dueño aprueba.
+async function loadRuleSuggestions() {
+  var box = document.getElementById('rules-suggestions');
+  if (!box) return;
+  var res;
+  try { res = await api('/api/portal/followup-rules/suggestions'); }
+  catch (e) { return; }
+  var items = (res && res.suggestions) || [];
+  if (!items.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML =
+    '<div style="border:1px solid rgba(196,245,70,.3);background:rgba(196,245,70,.06);border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+        '<span style="font-size:16px">💡</span>' +
+        '<span style="font-weight:700;color:var(--accent-l);font-size:14px">Sugerencias de tus datos</span>' +
+        '<span style="color:var(--dim);font-size:12px">— NodeFlow ha mirado tus citas</span>' +
+      '</div>' +
+      items.map(suggestionCard).join('') +
+    '</div>';
+}
+
+function suggestionCard(s) {
+  var id = esc(s.id);
+  return '<div class="sug-card" data-sug="' + id + '" style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid rgba(196,245,70,.15)">' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(s.title) + '</div>' +
+      '<div style="color:var(--dim);font-size:13px;margin-top:2px;line-height:1.5">' + esc(s.detail) + '</div>' +
+      '<div style="color:var(--dim);font-size:11px;margin-top:3px">Basado en ' + (s.sampleSize || 0) + ' ' + (s.type === 'timing' ? 'retornos' : 'citas') + '</div>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:6px;white-space:nowrap">' +
+      '<button onclick="applySuggestion(\'' + id + '\')" style="background:var(--accent);color:#0a0b0d;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer">Aplicar</button>' +
+      '<button onclick="dismissSuggestion(\'' + id + '\')" style="background:transparent;color:var(--dim);border:none;font-size:12px;cursor:pointer">Descartar</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function _sugRemove(id) {
+  var c = document.querySelector('.sug-card[data-sug="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (c) c.remove();
+  if (!document.querySelectorAll('#rules-suggestions .sug-card').length) {
+    var box = document.getElementById('rules-suggestions'); if (box) box.innerHTML = '';
+  }
+}
+
+async function applySuggestion(id) {
+  try {
+    await api('/api/portal/followup-rules/suggestions/apply', 'POST', { id: id });
+    toast('Regla ajustada ✓');
+    loadFollowupRules();   // recarga reglas + sugerencias
+  } catch (e) { toast(e.message || 'No se pudo aplicar', 'err'); }
+}
+
+async function dismissSuggestion(id) {
+  try { await api('/api/portal/followup-rules/suggestions/dismiss', 'POST', { id: id }); } catch (e) {}
+  _sugRemove(id);
 }
 
 function _chanSelect(sel) {

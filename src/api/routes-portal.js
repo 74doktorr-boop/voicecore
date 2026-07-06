@@ -2283,6 +2283,39 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
   });
 
+  // ── Sugerencias de seguimiento (el sistema aprende y propone) ──
+  app.get('/api/portal/followup-rules/suggestions', portalAuth, async (req, res) => {
+    try {
+      const { getSuggestions } = require('../lifecycle/followup-suggestions');
+      const sector = await _resolveOrgSector(req.businessId);
+      const suggestions = await getSuggestions(req.businessId, sector, { db: getDatabase() });
+      res.json({ ok: true, suggestions });
+    } catch (e) { log.warn(`suggestions get: ${e.message}`); res.json({ ok: true, suggestions: [] }); }
+  });
+
+  app.post('/api/portal/followup-rules/suggestions/apply', portalAuth, async (req, res) => {
+    try {
+      const id = String((req.body && req.body.id) || '');
+      if (!id) return res.status(400).json({ error: 'Falta la sugerencia' });
+      const { applySuggestion } = require('../lifecycle/followup-suggestions');
+      const sector = await _resolveOrgSector(req.businessId);
+      const r = await applySuggestion(req.businessId, sector, id, { db: getDatabase() });
+      if (r.error) return res.status(400).json({ error: r.error });
+      res.json({ ok: true });
+    } catch (e) { log.warn(`suggestions apply: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/portal/followup-rules/suggestions/dismiss', portalAuth, async (req, res) => {
+    try {
+      const id = String((req.body && req.body.id) || '');
+      if (!id) return res.status(400).json({ error: 'Falta la sugerencia' });
+      const { dismissSuggestion } = require('../lifecycle/followup-suggestions');
+      const r = await dismissSuggestion(req.businessId, id, { db: getDatabase() });
+      if (r.error) return res.status(400).json({ error: r.error });
+      res.json({ ok: true });
+    } catch (e) { log.warn(`suggestions dismiss: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ============================================================
   // Opt-out (PUBLIC — no auth required)
   // ============================================================
