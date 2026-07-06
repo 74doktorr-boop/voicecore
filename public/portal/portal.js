@@ -4730,9 +4730,11 @@ async function loadSeguimientos() {
       var tab = btn.dataset.tab;
       document.getElementById('tab-sugeridos').style.display = tab === 'sugeridos' ? '' : 'none';
       document.getElementById('tab-proximos').style.display  = tab === 'proximos'  ? '' : 'none';
+      document.getElementById('tab-reglas').style.display    = tab === 'reglas'    ? '' : 'none';
       document.getElementById('tab-historial').style.display = tab === 'historial' ? '' : 'none';
       if (tab === 'sugeridos') loadFollowups();
       if (tab === 'proximos')  loadUpcomingReminders();
+      if (tab === 'reglas')    loadFollowupRules();
       if (tab === 'historial') loadReminderHistory();
     };
   });
@@ -4833,6 +4835,147 @@ async function fuSendApi(id) {
 async function fuDismiss(id) {
   try { await api('/api/portal/followups/' + id + '/done', 'POST', { channel: 'dismissed' }); } catch (e) {}
   _fuRemove(id);
+}
+
+// ── Reglas de seguimiento por sector ──────────────────────────
+var _rulesState = { sector: '', channels: ['whatsapp','sms','email'], triggers: [] };
+var _CH_LABEL = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'Email' };
+
+async function loadFollowupRules() {
+  var el = document.getElementById('rules-body');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-msg">Cargando reglas...</div>';
+  var res;
+  try { res = await api('/api/portal/followup-rules'); }
+  catch (e) { el.innerHTML = '<div class="empty-state-text">No se pudieron cargar las reglas.</div>'; return; }
+
+  _rulesState.sector = res.sector;
+  _rulesState.channels = res.channels || _rulesState.channels;
+  _rulesState.triggers = res.customTriggers || [];
+  var defaults = (res.rules || []).filter(function(r){ return !r.custom; });
+  var custom   = (res.rules || []).filter(function(r){ return r.custom; });
+
+  var head =
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px">' +
+      '<div>' +
+        '<div style="font-size:15px;font-weight:700;color:var(--text)">Motor de seguimientos' + (res.sectorLabel ? ' · ' + esc(res.sectorLabel) : '') + '</div>' +
+        '<div style="color:var(--dim);font-size:13px;margin-top:2px">Estos son los avisos que tu asistente enviará solo. Ajusta el cuándo, el canal, o añade los tuyos.</div>' +
+      '</div>' +
+      '<button class="btn btn-accent btn-sm" onclick="saveFollowupRules(this)">Guardar cambios</button>' +
+    '</div>' +
+    '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>';
+
+  var defaultsHtml = defaults.length
+    ? '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:6px 0 8px">Incluidos en tu sector</div>' +
+      defaults.map(ruleRow).join('')
+    : '<div style="color:var(--dim);font-size:13px;margin-bottom:12px">Tu sector no trae seguimientos de fábrica — añade los tuyos abajo.</div>';
+
+  var customHtml =
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:20px 0 8px">Tuyos personalizados</div>' +
+    '<div id="rules-custom">' + (custom.length ? custom.map(ruleRow).join('') : '') + '</div>' +
+    '<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="addCustomRuleRow()">+ Añadir seguimiento</button>';
+
+  el.innerHTML = head + defaultsHtml + customHtml;
+
+  loadRulesReach();
+}
+
+function _chanSelect(sel) {
+  return '<select class="rule-ch" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px">' +
+    _rulesState.channels.map(function(c){ return '<option value="' + c + '"' + (c === sel ? ' selected' : '') + '>' + _CH_LABEL[c] + '</option>'; }).join('') +
+  '</select>';
+}
+
+function ruleRow(r) {
+  var isCustom = !!r.custom;
+  var daysCell = r.editableDays
+    ? '<input type="number" class="rule-days" min="1" max="3650" value="' + (r.days != null ? r.days : '') + '" style="width:64px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:13px"> <span style="color:var(--dim);font-size:12px">días</span>'
+    : '<span style="color:var(--dim);font-size:12px">' + esc(r.triggerLabel || '') + '</span>';
+
+  var nameCell = isCustom
+    ? '<input type="text" class="rule-label" value="' + esc(r.label || '') + '" placeholder="Nombre del seguimiento" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600">' +
+      '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">'
+    : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) + '</div>' +
+      '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + '</div>';
+
+  var trigCell = isCustom
+    ? '<select class="rule-trigger" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;max-width:220px">' +
+        _rulesState.triggers.map(function(t){ return '<option value="' + t.value + '"' + (t.value === r.trigger ? ' selected' : '') + '>' + esc(t.label) + '</option>'; }).join('') +
+      '</select>'
+    : '';
+
+  return '<div class="rule-row" data-key="' + esc(r.key) + '" data-custom="' + (isCustom ? '1' : '0') + '" data-trigger="' + esc(r.trigger) + '" data-editabledays="' + (r.editableDays ? '1' : '0') +
+    '" style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--card)">' +
+    '<label style="display:flex;align-items:center;padding-top:2px;cursor:pointer"><input type="checkbox" class="rule-enabled"' + (r.enabled ? ' checked' : '') + ' style="width:16px;height:16px;cursor:pointer"></label>' +
+    '<div style="flex:1;min-width:0">' + nameCell + (isCustom ? '<div style="margin-top:6px">' + trigCell + '</div>' : '') + '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;white-space:nowrap">' +
+      '<div>' + daysCell + '</div>' +
+      _chanSelect(r.channel) +
+      (isCustom ? '<button onclick="this.closest(\'.rule-row\').remove()" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px">Eliminar</button>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function addCustomRuleRow() {
+  var box = document.getElementById('rules-custom');
+  if (!box) return;
+  var t0 = (_rulesState.triggers[0] || { value: 'from_last_appointment' }).value;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = ruleRow({ key: 'custom_nuevo', custom: true, editableDays: true, enabled: true, trigger: t0, days: 30, channel: 'whatsapp', label: '', serviceFilter: [] });
+  box.appendChild(tmp.firstChild);
+  var input = box.lastChild.querySelector('.rule-label');
+  if (input) input.focus();
+}
+
+async function saveFollowupRules(btn) {
+  var overrides = {}, custom = [];
+  var rows = document.querySelectorAll('#tab-reglas .rule-row');
+  var invalid = false;
+  rows.forEach(function(row){
+    var enabled = row.querySelector('.rule-enabled').checked;
+    var chEl = row.querySelector('.rule-ch');
+    var channel = chEl ? chEl.value : 'whatsapp';
+    var daysEl = row.querySelector('.rule-days');
+    var days = daysEl ? parseInt(daysEl.value, 10) : null;
+    if (row.dataset.custom === '1') {
+      var label = (row.querySelector('.rule-label').value || '').trim();
+      if (!label) return; // fila vacía → se ignora
+      if (!days) { invalid = true; }
+      var trigEl = row.querySelector('.rule-trigger');
+      var filter = (row.querySelector('.rule-filter').value || '').trim();
+      custom.push({
+        key: /^custom_/.test(row.dataset.key) && row.dataset.key !== 'custom_nuevo' ? row.dataset.key : undefined,
+        label: label, trigger: trigEl ? trigEl.value : row.dataset.trigger,
+        days: days, serviceFilter: filter || undefined, channel: channel, enabled: enabled,
+      });
+    } else {
+      var ov = { enabled: enabled, channel: channel };
+      if (row.dataset.editabledays === '1' && days) ov.days = days;
+      overrides[row.dataset.key] = ov;
+    }
+  });
+  if (invalid) { toast('Pon los días de cada seguimiento personalizado', 'err'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    await api('/api/portal/followup-rules', 'PUT', { overrides: overrides, custom: custom });
+    toast('Reglas guardadas');
+    loadFollowupRules();
+  } catch (e) {
+    toast(e.message || 'No se pudo guardar', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+  }
+}
+
+async function loadRulesReach() {
+  var el = document.getElementById('rules-reach');
+  if (!el) return;
+  try {
+    var r = await api('/api/portal/followup-rules/reach');
+    if (r && r.total > 0) {
+      el.innerHTML = '<i>≈ ' + r.total + ' cliente' + (r.total !== 1 ? 's' : '') + ' recibirán un seguimiento en los próximos ' + r.horizon + ' días con estas reglas.</i>';
+    } else { el.textContent = ''; }
+  } catch (e) { el.textContent = ''; }
 }
 
 // ── Sector Onboarding Wizard ──────────────────────────────────

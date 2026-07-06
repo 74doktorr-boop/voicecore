@@ -2231,6 +2231,59 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ============================================================
+  // Reglas de seguimiento por sector (2026-07-06)
+  // El dueño ve los seguimientos "de fábrica" de su sector, los activa/
+  // desactiva, ajusta el cuándo/canal y AÑADE los suyos propios.
+  // ============================================================
+  async function _resolveOrgSector(orgId) {
+    const db = getDatabase();
+    if (!db.enabled) return 'generico';
+    const { data } = await db.client.from('organizations')
+      .select('assistant_config').eq('id', orgId).maybeSingle();
+    const raw = (data && data.assistant_config && data.assistant_config.sector) || '';
+    try { return require('../sectors/sector-registry').resolveSector(raw).slug; }
+    catch (_) { return raw || 'generico'; }
+  }
+
+  app.get('/api/portal/followup-rules', portalAuth, async (req, res) => {
+    try {
+      const { buildRulesView, loadOrgConfig, CHANNELS } = require('../lifecycle/followup-rules');
+      const { SECTOR_CATALOG, CUSTOM_TRIGGERS, TRIGGERS } = require('../lifecycle/sector-catalog');
+      const db = getDatabase();
+      const sector = await _resolveOrgSector(req.businessId);
+      const orgConfig = await loadOrgConfig(db, req.businessId);
+      res.json({
+        ok: true,
+        sector,
+        sectorLabel: (SECTOR_CATALOG[sector] && SECTOR_CATALOG[sector].label) || null,
+        rules: buildRulesView(sector, orgConfig),
+        channels: CHANNELS,
+        customTriggers: CUSTOM_TRIGGERS.map(t => ({ value: t, label: TRIGGERS[t] })),
+      });
+    } catch (e) { log.warn(`followup-rules get: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/portal/followup-rules', portalAuth, async (req, res) => {
+    try {
+      const { saveRules } = require('../lifecycle/followup-rules');
+      const sector = await _resolveOrgSector(req.businessId);
+      const r = await saveRules(req.businessId, sector, req.body || {}, { db: getDatabase() });
+      if (r.error) return res.status(400).json({ error: r.error });
+      res.json({ ok: true });
+    } catch (e) { log.warn(`followup-rules put: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // Estimación: a cuántos clientes actuales llegaría en los próximos 90 días.
+  app.get('/api/portal/followup-rules/reach', portalAuth, async (req, res) => {
+    try {
+      const { estimateReach } = require('../lifecycle/followup-rules');
+      const sector = await _resolveOrgSector(req.businessId);
+      const reach = await estimateReach(req.businessId, sector, { db: getDatabase() });
+      res.json({ ok: true, ...reach });
+    } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
+  });
+
+  // ============================================================
   // Opt-out (PUBLIC — no auth required)
   // ============================================================
 

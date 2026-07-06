@@ -11,6 +11,10 @@ const { Logger }          = require('../utils/logger');
 const log = new Logger('REMINDER-ENGINE');
 
 // ── Sector defaults ──────────────────────────────────────────────────────────
+// Los seguimientos "de fábrica" de cada sector viven en el CATÁLOGO
+// (sector-catalog.js), fuente única con etiquetas + campos del motor.
+// Aquí solo derivamos la forma que necesita el motor.
+//
 // Trigger types:
 //   from_last_appointment  → date of last appointment + N days
 //   before_sector_field    → sector_data[field] - N days
@@ -19,101 +23,60 @@ const log = new Logger('REMINDER-ENGINE');
 //   custom_frequency       → sector_data[frequency_field] days after last appointment
 //   only_if_completed      → flag: only schedule if appointment.status === 'completed'
 //   seasonal               → goes to org_campaigns, not individual reminders
-const SECTOR_DEFAULTS = {
-  peluqueria: {
-    corte_pelo:    { days: 24,  trigger: 'from_last_appointment', serviceFilter: ['corte','pelo','cabello'] },
-    color_tinte:   { days: 35,  trigger: 'from_last_appointment', serviceFilter: ['color','tinte'] },
-    tratamiento:   { days: 28,  trigger: 'from_last_appointment', serviceFilter: ['tratamiento'] },
-    permanente:    { days: 70,  trigger: 'from_last_appointment', serviceFilter: ['permanente'] },
-  },
-  taller: {
-    cambio_aceite: { days: 335, trigger: 'from_sector_field',  field: 'fecha_ultimo_aceite' },
-    itv:           { days: 60,  trigger: 'before_sector_field', field: 'fecha_vencimiento_itv' },
-    revision:      { days: 335, trigger: 'from_last_appointment' },
-  },
-  dental: {
-    revision_anual:   { days: 330, trigger: 'from_last_appointment', serviceFilter: ['revisión','revision','check'] },
-    limpieza:         { days: 165, trigger: 'from_last_appointment', serviceFilter: ['limpieza'] },
-    ortodoncia:       { days: 25,  trigger: 'from_last_appointment', serviceFilter: ['ortodoncia'], onlyIfCompleted: true },
-    post_tratamiento: { days: 12,  trigger: 'from_last_appointment', serviceFilter: ['extracción','implante','endodoncia'], onlyIfCompleted: true },
-  },
-  estetica: {
-    facial:               { days: 28, trigger: 'from_last_appointment', serviceFilter: ['facial'] },
-    depilacion_laser:     { days: 35, trigger: 'from_last_appointment', serviceFilter: ['láser','laser'] },
-    depilacion_cera:      { days: 28, trigger: 'from_last_appointment', serviceFilter: ['cera'] },
-    tratamiento_corporal: { days: 21, trigger: 'from_last_appointment', serviceFilter: ['corporal'] },
-  },
-  veterinaria: {
-    vacuna_anual:    { days: 14,  trigger: 'before_sector_field',  field: 'fecha_proxima_vacuna' },
-    desparasitacion: { days: 70,  trigger: 'from_last_appointment', serviceFilter: ['desparasitación','desparasitacion'] },
-    revision_anual:  { days: 330, trigger: 'from_last_appointment', serviceFilter: ['revisión','revision','chequeo'] },
-    post_cirugia:    { days: 10,  trigger: 'from_last_appointment', serviceFilter: ['cirugía','cirugia','operación'], onlyIfCompleted: true },
-  },
-  gimnasio: {
-    renovacion_cuota: { days: 5, trigger: 'before_sector_field', field: 'fecha_vencimiento_cuota' },
-  },
-  fisioterapia: {
-    seguimiento_post: { days: 14,  trigger: 'from_last_appointment', onlyIfCompleted: true },
-    mantenimiento:    { days: 90,  trigger: 'from_sector_field',  field: 'fecha_alta' },
-  },
-  psicologia: {
-    sesion_habitual: { trigger: 'custom_frequency', frequencyField: 'frecuencia_sesiones', onlyIfCompleted: true },
-  },
-  nutricion: {
-    revision_mensual: { days: 28, trigger: 'from_last_appointment' },
-    reactivacion:     { days: 42, trigger: 'from_last_if_no_new' },
-  },
-  optica: {
-    revision_vista:       { days: 330, trigger: 'from_last_appointment', serviceFilter: ['revisión','graduación'] },
-    reposicion_lentillas: { trigger: 'from_sector_field', field: 'suministro_lentillas_dias', daysOffset: -5 },
-  },
-  hotel: {
-    aniversario:  { days: 21,  trigger: 'before_sector_field', field: 'fecha_aniversario' },
-    cumpleanos:   { days: 21,  trigger: 'before_sector_field', field: 'fecha_cumpleanos' },
-    recuperacion: { days: 270, trigger: 'from_last_if_no_new' },
-  },
-  academia: {
-    renovacion_matricula: { days: 21, trigger: 'before_sector_field', field: 'fecha_fin_curso' },
-  },
-  // Centro médico multi-servicio. El "oro" de Osakin: la renovación del
-  // psicotécnico es una fecha de caducidad legal → avisar ~1 mes antes.
-  clinica: {
-    renovacion_psicotecnico: { days: 30, trigger: 'before_sector_field', field: 'fecha_caducidad_psicotecnico' },
-    revision_anual:          { days: 330, trigger: 'from_last_appointment', serviceFilter: ['revisión','revision','chequeo'] },
-  },
-};
+const { toEngineDefaults, serviceLabelFor, CUSTOM_TRIGGERS } = require('./sector-catalog');
+const SECTOR_DEFAULTS = toEngineDefaults();
 
 /**
  * Get the effective reminder config for an org.
- * Merges org overrides on top of sector defaults.
- * @returns {object} { serviceKey: { days, channel, enabled } }
+ * Merges, en este orden:
+ *   1) defaults del sector (catálogo)
+ *   2) overrides del dueño por serviceKey (días/canal/activado)
+ *   3) seguimientos PERSONALIZADOS del dueño (orgConfig._custom)
+ * Cada entrada lleva serviceLabel para construir el mensaje.
+ * @returns {object} { serviceKey: { days, trigger, channel, enabled, serviceLabel, custom? } }
  */
 async function getOrgReminderConfig(orgId, sectorSlug) {
   const db = getDatabase();
   const sectorDefaults = SECTOR_DEFAULTS[sectorSlug] || {};
 
-  if (!db.enabled) return sectorDefaults;
-
-  const { data, error: configErr } = await db.client
-    .from('org_reminder_config')
-    .select('config')
-    .eq('org_id', orgId)
-    .maybeSingle();
-  if (configErr) log.warn('getOrgReminderConfig: failed to load org config', { err: configErr.message, orgId });
-
-  const orgConfig = data?.config || {};
-
-  // Merge: org config overrides sector defaults per service key
   const result = {};
+  const orgConfig = await _loadOrgConfig(db, orgId);
+
+  // 1+2) defaults del sector con overrides del dueño
   for (const [key, def] of Object.entries(sectorDefaults)) {
     result[key] = {
       ...def,
-      channel: 'whatsapp', // default channel
+      channel: 'whatsapp',
       enabled: true,
+      serviceLabel: serviceLabelFor(sectorSlug, key),
       ...(orgConfig[key] || {}),
     };
   }
+
+  // 3) seguimientos personalizados (no pisan defaults; trigger acotado)
+  const custom = Array.isArray(orgConfig._custom) ? orgConfig._custom : [];
+  for (const c of custom) {
+    if (!c || !c.key || result[c.key] || !CUSTOM_TRIGGERS.includes(c.trigger)) continue;
+    result[c.key] = {
+      trigger:      c.trigger,
+      days:         c.days,
+      serviceFilter: Array.isArray(c.serviceFilter) && c.serviceFilter.length ? c.serviceFilter : undefined,
+      channel:      c.channel || 'whatsapp',
+      enabled:      c.enabled !== false,
+      serviceLabel: c.serviceLabel || c.label || 'tu próxima cita',
+      label:        c.label,
+      custom:       true,
+    };
+  }
   return result;
+}
+
+async function _loadOrgConfig(db, orgId) {
+  if (!db.enabled) return {};
+  const { data, error } = await db.client
+    .from('org_reminder_config').select('config').eq('org_id', orgId).maybeSingle();
+  if (error) log.warn('getOrgReminderConfig: failed to load org config', { err: error.message, orgId });
+  return (data && data.config) || {};
 }
 
 /**
@@ -300,6 +263,7 @@ async function recalculate(contactId, orgId) {
       orgId, contactId, serviceKey,
       scheduledFor,
       channel: def.channel || 'whatsapp',
+      messagePreview: def.serviceLabel || null,   // el texto del servicio para el mensaje
     });
   }
 }

@@ -324,8 +324,36 @@ Guard emergieron tres activos que trascienden el vertical.
   futuro. En demo de 30s es magia visible: hablas, aparece configurado, y la
   IA de la llamada lo dice bien. Compounding: 9.
 
+# Oportunidades del motor de seguimientos por sector (capturadas 2026-07-06)
+
+- **(#seguimientos) El sistema propone reglas nuevas por sector.** El bucle de
+  mejora (auditor) ya ve los outcomes; puede decirle al dueño «tus clientes de
+  tinte no vuelven a los 35 días sino a los 48 — ¿lo ajusto?» o «muchos piden
+  un servicio sin seguimiento, ¿creo uno?». Une learned-rules con el motor de
+  seguimientos: el negocio no configura, aprueba. Es el salto de «tú lo montas»
+  a «te lo sugiero ya afinado». Compounding: 9.
+- **(#seguimientos) Mensaje propio por seguimiento.** Hoy el texto usa una
+  plantilla fija de Meta (nombre/negocio/servicio); el dueño ajusta el CUÁNDO,
+  no el QUÉ dice. Poder editar el mensaje por regla (con {nombre}/{servicio})
+  hace que cada aviso suene al negocio, no a NodeFlow. Requiere plantillas Meta
+  aprobadas extra o la ventana de 24h; encaja con el número propio (add-on).
+  Compounding: 8.
+- **(#seguimientos) Tope anti-spam entre reglas.** Con varias reglas activas un
+  cliente podría recibir dos avisos la misma semana. Un «máximo N mensajes por
+  cliente cada X días» transversal protege la relación — y es justo lo que un
+  dueño teme al activar automatismos. Quita el miedo a encender el motor.
+  Compounding: 7.
+- **(#seguimientos) Reglas por sede/servicio, no solo por org.** Osakin (3
+  sedes) puede querer tiempos distintos por sede. La config ya es JSON por org;
+  añadir un eje `scope` (sede/servicio) es una columna más, no un rediseño.
+  Compounding: 6.
+- **(#seguimientos) Calendario de avisos como magia de demo.** Ya calculamos a
+  cuántos clientes llega cada regla; pintarlo en un mini-calendario de «lo que
+  saldrá solo las próximas semanas» convierte una pantalla de config en una
+  demostración de dinero futuro. El dato ya está; falta el lienzo. Compounding: 7.
+
 ---
 
-*Última revisión: 2026-07-04 · Ritual: cada feature terminada pasa por las 10
+*Última revisión: 2026-07-06 · Ritual: cada feature terminada pasa por las 10
 preguntas + test de demo 30s + Compounding Score, y lo que emerja se escribe
 AQUÍ en lenguaje de cliente. Añadir aquí, no en la cabeza.*

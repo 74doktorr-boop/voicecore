@@ -58,7 +58,9 @@ function buildMessage(reminder, contact, memory) {
   const orgName   = contact?._orgName || 'el negocio';
   const lang      = memory?.preferences?.idioma || 'es';
 
-  const serviceLabel = SERVICE_LABELS[reminder.service_key] || 'tu próxima cita';
+  // Prioridad: etiqueta guardada al programar (soporta seguimientos personalizados)
+  // → mapa estático por serviceKey → genérico.
+  const serviceLabel = reminder.message_preview || SERVICE_LABELS[reminder.service_key] || 'tu próxima cita';
 
   const text = `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${serviceLabel}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`;
 
