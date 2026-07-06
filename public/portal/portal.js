@@ -3169,13 +3169,20 @@ function _voiceEsc(s) {
 
 var _voiceTiers = {};
 var _hasPremiumVoice = false; // ¿el negocio tiene el add-on de voz Premium?
-var _voiceUsage = null;       // consumo del mes (minutos incluidos/usados/extra) para la barra de plan
+var _voiceUsage = null;       // minutos del PLAN (incluidas/Cartesia) para la barra + tier estándar
+var _voiceQuota = null;       // cupo de minutos PREMIUM (ElevenLabs) para el tier premium
 function loadVoiceCatalog() {
   var grid = document.getElementById('voice-grid');
   // Minutos del plan: para que el dueño VALORE (cuántos incluye, cuánto el extra)
   // antes de elegir voz. Sale del plan REAL — no se hardcodea (enterprise=ilimitado).
   api('/api/billing/usage').then(function(u) {
     _voiceUsage = u;
+    if (document.getElementById('voice-grid')) renderVoiceGrid();
+  }).catch(function() {});
+  // Cupo de minutos PREMIUM (distinto del plan): las voces ElevenLabs gastan un
+  // cupo aparte (200/mes con add-on, 40 sin él). Para mostrar minutos por tier.
+  api('/api/portal/voice-quota').then(function(q) {
+    _voiceQuota = q;
     if (document.getElementById('voice-grid')) renderVoiceGrid();
   }).catch(function() {});
   // El estado del add-on decide si las Premium salen con candado (se ven y se
@@ -3229,6 +3236,26 @@ function _voicePlanBar() {
     + '</div>';
 }
 
+// Minutos por TIER para el encabezado: estándar = minutos del PLAN (Cartesia,
+// compartidos); premium = cupo PREMIUM aparte (ElevenLabs). Devuelve HTML (con
+// <strong>) o '' si no hay dato. Los números salen del backend, no se hardcodean.
+function _tierMinutes(t) {
+  if (t === 'estandar' || t === 'ultra') {
+    var u = _voiceUsage;
+    if (!u || u.minutesLimit == null) return '';
+    if (u.minutesLimit >= 99999) return ' · <strong>minutos ilimitados</strong> de tu plan';
+    var rem = Math.max(0, Math.floor(u.minutesRemaining != null ? u.minutesRemaining : (u.minutesLimit - (u.minutesUsed || 0))));
+    return ' · <strong>' + u.minutesLimit + ' min/mes</strong> de tu plan · te quedan <strong>' + rem + '</strong>';
+  }
+  if (t === 'premium') {
+    var q = _voiceQuota;
+    if (!q || q.ok === false || q.quota == null) return '';
+    var r = Math.max(0, Math.round(q.remaining || 0));
+    return ' · <strong>' + q.quota + ' min/mes</strong> premium · te quedan <strong>' + r + '</strong>';
+  }
+  return '';
+}
+
 function renderVoiceGrid() {
   var grid = document.getElementById('voice-grid');
   if (!grid) return;
@@ -3271,11 +3298,17 @@ function renderVoiceGrid() {
       + '</div>'
       + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 88)) + '</div>'
       + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
-      + '<button type="button" class="vc-listen" onclick="event.stopPropagation();previewVoice(\'' + id + '\',this)" aria-label="Escuchar a ' + _voiceEsc(v.name) + '">'
-        + '<span class="vc-ico">▶</span><span class="vc-spin"></span>'
-        + '<span class="vc-eq"><i></i><i></i><i></i><i></i></span>'
-        + '<span class="vc-listen-label">Escuchar</span>'
-      + '</button>'
+      + (v.isClone
+          // Voz clonada: no hay muestra que escuchar (aún no existe tu voz) →
+          // el botón LLEVA al proceso de grabar/clonar, no a una voz default.
+          ? '<button type="button" class="vc-listen" onclick="event.stopPropagation();openVoiceCloneModal()" aria-label="Grabar mi voz">'
+              + '<span class="vc-ico">🎙️</span><span class="vc-listen-label">Grabar mi voz</span>'
+            + '</button>'
+          : '<button type="button" class="vc-listen" onclick="event.stopPropagation();previewVoice(\'' + id + '\',this)" aria-label="Escuchar a ' + _voiceEsc(v.name) + '">'
+              + '<span class="vc-ico">▶</span><span class="vc-spin"></span>'
+              + '<span class="vc-eq"><i></i><i></i><i></i><i></i></span>'
+              + '<span class="vc-listen-label">Escuchar</span>'
+            + '</button>')
     + '</div>';
   };
 
@@ -3294,7 +3327,7 @@ function renderVoiceGrid() {
     var header = '<div class="voice-tier' + (i > 0 ? ' mt' : '') + '">'
       + '<span class="voice-tier-title">' + _voiceEsc(c.title) + '</span>'
       + '<span class="voice-tier-badge ' + c.cls + '">' + _voiceEsc(c.badge) + '</span>'
-      + '<span class="voice-tier-note">' + _voiceEsc(c.note) + '</span>'
+      + '<span class="voice-tier-note">' + _voiceEsc(c.note) + _tierMinutes(t) + '</span>'
       + (t === 'premium' ? '<span class="voice-tier-cta" onclick="navigate(\'facturacion\')">Activar Premium →</span>' : '')
       + '</div>';
     return header + byTier[t].map(card).join('');
@@ -3303,12 +3336,9 @@ function renderVoiceGrid() {
 
 function selectVoice(id) {
   var v = _voiceCatalog.filter(function(x) { return x.id === id; })[0];
-  // Voz personalizada (clonada): abre el flujo de clonar TU voz.
-  if (v && (v.isClone || id === 'custom-clone')) {
-    if (!_hasPremiumVoice) { previewVoice(id); toast('🔒 La voz personalizada es Premium (+10€/mes). Actívala en Facturación → Complementos.', 'info'); return; }
-    openVoiceCloneModal();
-    return;
-  }
+  // Voz personalizada (clonada): abre el flujo de clonar TU voz (el propio modal
+  // maneja el candado Premium — no dejamos al usuario en una voz default).
+  if (v && (v.isClone || id === 'custom-clone')) { openVoiceCloneModal(); return; }
   // Premium sin add-on: se escucha (gancho) pero no se puede fijar como voz —
   // en vez de dejar que falle al guardar (402), empujamos a activarla.
   if (v && v.tier === 'premium' && !_hasPremiumVoice) {
@@ -3331,6 +3361,21 @@ var _cloneRec = null, _cloneChunks = [], _cloneBlob = null, _cloneTimer = null, 
 function _fmtSecs(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 function openVoiceCloneModal() {
   _cloneBlob = null; _cloneChunks = []; _cloneSecs = 0;
+  // Candado Premium: la voz clonada va con el add-on Voz Premium (+10€/mes).
+  // En vez de dejar al dueño en una voz default, le explicamos y le llevamos.
+  if (!_hasPremiumVoice) {
+    openModal(
+      '<div style="max-width:440px">' +
+        '<h3 style="margin:0 0 6px;font-size:18px">🎙️ Tu voz personalizada</h3>' +
+        '<p style="font-size:13px;line-height:1.6;margin:0 0 14px;color:var(--dim)">Tu negocio contesta con <strong style="color:var(--text)">TU voz</strong>: la clonamos con un minuto de audio. Va incluida en <strong style="color:var(--accent-l)">Voz Premium</strong> (+10€/mes), junto a todas las voces ultrarrealistas.</p>' +
+        '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">' +
+          '<button class="btn btn-d btn-sm" onclick="closeModal()">Ahora no</button>' +
+          '<button class="btn btn-accent btn-sm" onclick="closeModal();navigate(\'facturacion\')">Activar Voz Premium →</button>' +
+        '</div>' +
+      '</div>'
+    );
+    return;
+  }
   openModal(
     '<div style="max-width:460px">' +
       '<h3 style="margin:0 0 6px;font-size:18px">🎙️ Tu voz personalizada</h3>' +
