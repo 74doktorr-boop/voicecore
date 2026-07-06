@@ -199,14 +199,11 @@ nav.stuck{border-bottom-color:var(--line)}
 .price-feats .m{flex:none;width:16px}
 .price-feats .m{font-family:var(--mono);color:var(--lime)}
 .price-feats b{color:var(--ink);font-weight:600}
-.addons-head{display:block;margin-top:40px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-decoration:none}
-.addons-head span{color:var(--ink-3)}
-.addons-head:hover span{color:var(--lime)}
+.addons-head{display:block;margin:40px 0 0;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.addons-head span{text-transform:none;letter-spacing:normal;color:var(--ink-3)}
 .addons{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line)}
-.addon{display:block;text-decoration:none;color:inherit;padding:22px 20px 22px 0;border-left:1px solid var(--line);padding-left:20px;transition:background .2s}
+.addon{display:block;color:inherit;padding:22px 20px 22px 0;border-left:1px solid var(--line);padding-left:20px}
 .addon:first-child{border-left:none;padding-left:0}
-.addon:hover{background:rgba(240,244,240,.02)}
-.addon:hover h4{color:var(--lime)}
 .addon h4{font-size:1rem;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
 .addon .ap{font-family:var(--mono);color:var(--lime);font-weight:500}
 .addon p{font-size:.9rem;color:var(--ink-3);line-height:1.45}
@@ -420,13 +417,13 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <li><span class="m">✓</span><span><b>500 min/mes</b> · sin permanencia</span></li>
     </ul>
   </div>
-  <a class="addons-head" href="/onboarding.html?plan=negocio">Extras opcionales <span>— los activas cuando quieras desde tu panel →</span></a>
+  <p class="addons-head">Extras opcionales <span>— los activas tú con un clic desde tu panel, cuando los necesites. No hace falta al empezar.</span></p>
   <div class="addons">
-    <a class="addon" href="/onboarding.html?plan=negocio"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></a>
-    <a class="addon" href="/onboarding.html?plan=negocio"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></a>
-    <a class="addon" href="/onboarding.html?plan=negocio"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></a>
+    <div class="addon"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
+    <div class="addon"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
+    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></div>
   </div>
-  <div class="price-foot">Todo lo de arriba por <b>49€ al mes</b> · IVA incluido · Sin permanencia · Cancela cuando quieras</div>
+  <div class="price-foot">Empiezas por <b>49€ al mes</b> · IVA incluido · sin permanencia · cancela cuando quieras. Los extras, cuando los quieras.</div>
 </div></section>
 
 <!-- FAQ -->
