@@ -63,6 +63,25 @@ describe('draftMessage (pura)', () => {
   test('reason desconocido cae al mensaje de consulta', () => {
     assert.match(draftMessage({ reason: 'zzz' }), /consultaste/i);
   });
+
+  test('gallego: saludo e identidad en galego (también es+gl)', () => {
+    const m = draftMessage({ name: 'Brais Castro', reason: 'info', bizName: 'Clínica Mareas', lang: 'gl' });
+    assert.match(m, /^Ola Brais/);
+    assert.match(m, /Son Clínica Mareas\./);
+    const bi = draftMessage({ reason: 'abandoned', lang: 'es+gl' });
+    assert.match(bi, /^Ola/);
+    assert.match(bi, /chamada/);
+  });
+
+  test('euskera: saludo e identidad en euskara', () => {
+    const m = draftMessage({ name: 'Aitor', reason: 'callback_requested', bizName: 'Osakin', lang: 'eu' });
+    assert.match(m, /^Kaixo Aitor/);
+    assert.match(m, /Osakin naiz\./);
+  });
+
+  test('idioma desconocido cae a castellano', () => {
+    assert.match(draftMessage({ reason: 'info', lang: 'fr' }), /^Hola/);
+  });
 });
 
 describe('getCandidates', () => {

@@ -747,15 +747,18 @@ function showApp() {
     return;
   }
 
-  // Deep-link desde el informe semanal: /portal/?go=reglas → Seguimientos ▸ Reglas
+  // Deep-links desde emails: ?go=reglas → Seguimientos ▸ Reglas (informe semanal);
+  // ?go=seguimientos → Personalizados (briefing diario).
   var _go = new URLSearchParams(location.search).get('go');
-  if (_go === 'reglas') {
+  if (_go === 'reglas' || _go === 'seguimientos') {
     history.replaceState(null, '', location.pathname);
     navigate('seguimientos');
-    setTimeout(function() {
-      var btn = document.querySelector('#sec-seguimientos .tab-btn[data-tab="reglas"]');
-      if (btn) btn.click();
-    }, 300);
+    if (_go === 'reglas') {
+      setTimeout(function() {
+        var btn = document.querySelector('#sec-seguimientos .tab-btn[data-tab="reglas"]');
+        if (btn) btn.click();
+      }, 300);
+    }
     return;
   }
 
@@ -2747,7 +2750,8 @@ async function runImport() {
   try {
     var r = await api('/api/portal/contacts/import', 'POST', { csv: _importCsv });
     closeModal();
-    toast('✅ ' + r.imported + ' clientes importados · ' + r.scheduled + ' renovaciones programadas');
+    toast('✅ ' + r.imported + ' clientes importados · ' + r.scheduled + ' renovaciones programadas' +
+      (r.urgent > 0 ? ' · ⚡ ' + r.urgent + ' caducan ya: se avisan mañana' : ''));
     if (_currentSection === 'clientes') loadClientes();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Importar'; }

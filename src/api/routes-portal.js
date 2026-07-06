@@ -2173,7 +2173,7 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/followups', portalAuth, async (req, res) => {
     try {
       const { getCandidates } = require('../lifecycle/followups');
-      const items = await getCandidates(req.businessId, { bizName: req.flowConfig.name });
+      const items = await getCandidates(req.businessId, { bizName: req.flowConfig.name, lang: req.flowConfig.language });
       res.json({ ok: true, followups: items });
     } catch (e) { log.warn(`followups list: ${e.message}`); res.json({ ok: true, followups: [] }); }
   });

@@ -61,9 +61,20 @@ async function collectBriefing(db, businessId, today, yesterday) {
       .eq('org_id', businessId)
       .gte('started_at', madridMidnightUtc(yesterday).toISOString())
       .lt('started_at',  madridMidnightUtc(today).toISOString())
-      .neq('outcome', 'booked')
+      // .neq excluiría también los NULL (sin clasificar) — el .or los mantiene
+      .or('outcome.is.null,outcome.neq.booked')
       .limit(50);
     missedCalls = (data || []).filter(c => c.caller_number);
+  }
+
+  // 3b. Seguimientos pendientes (Personalizados): mensajes ya redactados
+  // esperando a que el dueño los revise y envíe desde su WhatsApp.
+  let followupsPending = 0;
+  if (db.enabled) {
+    try {
+      const { getCandidates } = require('../lifecycle/followups');
+      followupsPending = (await getCandidates(businessId, { db })).length;
+    } catch (_) { /* fail-open: sin sección */ }
   }
 
   // 4. Clientes a recuperar (sin llamar desde hace > WINBACK_DAYS)
@@ -83,11 +94,11 @@ async function collectBriefing(db, businessId, today, yesterday) {
     winback = data || [];
   }
 
-  return { apts, freeSlots, missedCalls, winback };
+  return { apts, freeSlots, missedCalls, winback, followupsPending };
 }
 
 function buildEmail({ bizName, today, data }) {
-  const { apts, freeSlots, missedCalls, winback } = data;
+  const { apts, freeSlots, missedCalls, winback, followupsPending = 0 } = data;
 
   const card = (inner) => `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px;margin-bottom:12px">${inner}</div>`;
 
@@ -136,6 +147,10 @@ function buildEmail({ bizName, today, data }) {
       ${card(slotsHtml)}
 
       ${missedHtml ? `<div style="font-size:13px;font-weight:700;color:#fdcb6e;margin-bottom:8px">💡 OPORTUNIDADES DE AYER</div>${card(missedHtml)}` : ''}
+      ${followupsPending > 0 ? `<div style="font-size:13px;font-weight:700;color:#c4f546;margin-bottom:8px">✉️ SEGUIMIENTOS LISTOS PARA ENVIAR (${followupsPending})</div>${card(
+        `<div style="font-size:13px;color:#e8e8f0">${followupsPending} cliente${followupsPending !== 1 ? 's' : ''} que llamaron y no reservaron tienen ya un mensaje redactado. Revisa, ajusta y envía desde tu WhatsApp — 2 minutos.</div>` +
+        `<div style="margin-top:10px"><a href="https://nodeflow.es/portal/?go=seguimientos" style="display:inline-block;background:#c4f546;color:#0a0b0d;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:800;font-size:13px">Verlos y enviar →</a></div>`
+      )}` : ''}
       ${winbackHtml ? `<div style="font-size:13px;font-weight:700;color:#e17055;margin-bottom:8px">🔄 CLIENTES A RECUPERAR</div>${card(winbackHtml)}` : ''}
 
       <div style="text-align:center;margin:24px 0 6px">
@@ -144,7 +159,7 @@ function buildEmail({ bizName, today, data }) {
       <p style="color:#55556a;font-size:11px;text-align:center;margin-top:18px">Tu asistente sigue atendiendo el teléfono 24/7. Que tengas un gran día.</p>
     </div>`;
 
-  const text = `Buenos días, ${bizName}. Hoy: ${apts.length} citas. Huecos libres: ${freeSlots.length}. Oportunidades de ayer: ${missedCalls.length}. Clientes a recuperar: ${winback.length}. Portal: https://nodeflow.es/portal/`;
+  const text = `Buenos días, ${bizName}. Hoy: ${apts.length} citas. Huecos libres: ${freeSlots.length}. Oportunidades de ayer: ${missedCalls.length}.${followupsPending > 0 ? ` Seguimientos listos para enviar: ${followupsPending} (https://nodeflow.es/portal/?go=seguimientos).` : ''} Clientes a recuperar: ${winback.length}. Portal: https://nodeflow.es/portal/`;
 
   return { subject: `☀️ Tu día en ${bizName}: ${apts.length} citas${missedCalls.length ? ` · ${missedCalls.length} oportunidades` : ''}`, html, text };
 }
@@ -213,4 +228,4 @@ function startDailyBriefingCron() {
 }
 function stopDailyBriefingCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
-module.exports = { sendDailyBriefings, startDailyBriefingCron, stopDailyBriefingCron };
+module.exports = { sendDailyBriefings, startDailyBriefingCron, stopDailyBriefingCron, buildEmail };

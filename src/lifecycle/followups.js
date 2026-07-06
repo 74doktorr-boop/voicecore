@@ -26,20 +26,43 @@ function _firstName(name) {
 
 /**
  * Redacta un mensaje de seguimiento PERSONALIZADO (editable por el dueño).
- * PURA. reason viene del outcome de la llamada. bizName = nombre del negocio.
+ * PURA. reason viene del outcome de la llamada; lang del idioma del negocio
+ * (es/gl/eu; los bilingües es+gl / es+eu usan la lengua propia — el dueño
+ * siempre puede editarlo antes de enviar).
  */
-function draftMessage({ name, reason, bizName } = {}) {
-  const hola = _firstName(name) ? `Hola ${_firstName(name)}` : 'Hola';
-  const soy = bizName ? ` Soy ${bizName}.` : '';
-  switch (reason) {
-    case 'callback_requested':
-      return `${hola}, ¿qué tal?${soy} Nos dejaste tus datos para que te llamáramos. ¿Te viene bien que agendemos? Dime qué día te encaja y lo miramos. 🙂`;
-    case 'abandoned':
-      return `${hola}, ¿qué tal?${soy} Se nos cortó la llamada del otro día. Si quieres seguimos por aquí, dime en qué te puedo ayudar. 🙂`;
-    case 'info':
-    default:
-      return `${hola}, ¿qué tal?${soy} Vi que nos consultaste hace poco. Si te encaja, te busco un hueco cuando quieras — ¿te ayudo? 🙂`;
-  }
+function draftMessage({ name, reason, bizName, lang } = {}) {
+  const fn = _firstName(name);
+  const base = String(lang || 'es').includes('gl') ? 'gl' : String(lang || 'es').includes('eu') ? 'eu' : 'es';
+  const soy = {
+    es: bizName ? ` Soy ${bizName}.` : '',
+    gl: bizName ? ` Son ${bizName}.` : '',
+    eu: bizName ? ` ${bizName} naiz.` : '',
+  }[base];
+  const hola = {
+    es: fn ? `Hola ${fn}` : 'Hola',
+    gl: fn ? `Ola ${fn}` : 'Ola',
+    eu: fn ? `Kaixo ${fn}` : 'Kaixo',
+  }[base];
+
+  const T = {
+    es: {
+      callback_requested: `${hola}, ¿qué tal?${soy} Nos dejaste tus datos para que te llamáramos. ¿Te viene bien que agendemos? Dime qué día te encaja y lo miramos. 🙂`,
+      abandoned:          `${hola}, ¿qué tal?${soy} Se nos cortó la llamada del otro día. Si quieres seguimos por aquí, dime en qué te puedo ayudar. 🙂`,
+      info:               `${hola}, ¿qué tal?${soy} Vi que nos consultaste hace poco. Si te encaja, te busco un hueco cuando quieras — ¿te ayudo? 🙂`,
+    },
+    gl: {
+      callback_requested: `${hola}, que tal?${soy} Deixáchesnos os teus datos para que te chamaramos. Vénche ben que o axendemos? Dime que día che encaixa e mirámolo. 🙂`,
+      abandoned:          `${hola}, que tal?${soy} Cortóusenos a chamada do outro día. Se queres seguimos por aquí, dime en que che podo axudar. 🙂`,
+      info:               `${hola}, que tal?${soy} Vin que nos consultaches hai pouco. Se che encaixa, búscoche un oco cando queiras — axúdoche? 🙂`,
+    },
+    eu: {
+      callback_requested: `${hola}, zer moduz?${soy} Zure datuak utzi zenizkigun deitzeko. Ondo al datorkizu hitzordua jartzea? Esadazu zein egun datorkizun ondo eta begiratuko dugu. 🙂`,
+      abandoned:          `${hola}, zer moduz?${soy} Lehengo egunean deia moztu zitzaigun. Nahi baduzu hemendik jarraituko dugu — esadazu zertan lagun zaitzakedan. 🙂`,
+      info:               `${hola}, zer moduz?${soy} Duela gutxi kontsulta egin zenigula ikusi dut. Nahi duzunean tarte bat bilatuko dizut — lagunduko dizut? 🙂`,
+    },
+  }[base];
+
+  return T[reason] || T.info;
 }
 
 /**
@@ -52,6 +75,7 @@ async function getCandidates(orgId, opts = {}) {
   if (!db.enabled || !orgId) return [];
   const limit = opts.limit || 40;
   const bizName = opts.bizName || null;
+  const lang = opts.lang || 'es';
   const since = new Date(Date.now() - 21 * 864e5).toISOString();
 
   let calls = [];
@@ -96,7 +120,7 @@ async function getCandidates(orgId, opts = {}) {
       reason,
       when: c.started_at,
       score: (c.metrics && c.metrics.audit && typeof c.metrics.audit.score === 'number') ? c.metrics.audit.score : null,
-      draft: draftMessage({ name, reason, bizName }),
+      draft: draftMessage({ name, reason, bizName, lang }),
     };
   });
 }
