@@ -1,16 +1,18 @@
 // Browser Voice Test — Low-latency streaming version
-// Stream: Mic → Deepgram STT → OpenAI LLM (streaming) → TTS (per-sentence) → Audio
+// Stream: Mic → Deepgram STT → LLM Router (streaming, groq>openai) → TTS (per-sentence) → Audio
 const { createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const { Logger } = require('../utils/logger');
 const { ToolExecutor } = require('../tools/executor');
+const { LLMRouter } = require('../llm/router');
 const logger = new Logger('BROWSER');
 
 class BrowserCallHandler {
-  constructor(assistantManager) {
+  constructor(assistantManager, deps = {}) {
     this.assistantManager = assistantManager;
     this._openai = null; // lazy-init to avoid crash if OPENAI_API_KEY missing at startup
-    this.toolExecutor = new ToolExecutor();
+    this._llmRouter = deps.llmRouter || null; // inyectable en tests
+    this.toolExecutor = deps.toolExecutor || new ToolExecutor();
   }
 
   get openai() {
@@ -19,6 +21,20 @@ class BrowserCallHandler {
       this._openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     }
     return this._openai;
+  }
+
+  // Mismo router multi-proveedor que las llamadas de teléfono: sin modelo
+  // explícito elige el MÁS RÁPIDO (groq ~80ms TTFT > openai) con fallback.
+  // Antes esto iba con el SDK de OpenAI directo + gpt-4o-mini horneado.
+  get llmRouter() {
+    if (!this._llmRouter) {
+      this._llmRouter = new LLMRouter({
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        groqApiKey: process.env.GROQ_API_KEY,
+        anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      });
+    }
+    return this._llmRouter;
   }
 
   handleConnection(ws, req) {
@@ -162,38 +178,9 @@ class BrowserCallHandler {
         .filter(t => t.type === 'function')
         .map(t => ({ type: 'function', function: t.function }));
 
-      if (tools.length === 0) {
-        // No tools → stream directly, TTS starts on first sentence (~300ms faster)
-        await this.streamResponse(ws, session, []);
-      } else {
-        // Has tools → probe first to detect tool calls vs content
-        const probe = await this.openai.chat.completions.create({
-          model: session.assistant.model || 'gpt-4o-mini',
-          messages: session.conversation,
-          temperature: session.assistant.temperature || 0.7,
-          max_tokens: session.assistant.maxTokens || 500,
-          tools,
-        });
-        const probeMsg = probe.choices[0].message;
-
-        if (probeMsg.tool_calls && probeMsg.tool_calls.length > 0) {
-          session.conversation.push(probeMsg);
-          for (const tc of probeMsg.tool_calls) {
-            let args = {};
-            try { args = JSON.parse(tc.function.arguments || '{}'); } catch (e) {}
-            logger.info(`Tool: ${tc.function.name}`, args);
-            const result = await this.toolExecutor.execute(tc.function.name, args, session.assistantId);
-            session.conversation.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
-          }
-          await this.streamResponse(ws, session, []);
-        } else if (probeMsg.content) {
-          session.conversation.push({ role: 'assistant', content: probeMsg.content });
-          ws.send(JSON.stringify({ type: 'transcript', role: 'assistant', content: probeMsg.content, final: true }));
-          ws.send(JSON.stringify({ type: 'speaking' }));
-          await this.synthesizeAndSend(ws, probeMsg.content, session.assistant);
-          ws.send(JSON.stringify({ type: 'listening' }));
-        }
-      }
+      // Un solo camino: streaming con tools por el router (el "probe" previo
+      // duplicaba la llamada al LLM — latencia y coste x2 cuando había tools).
+      await this.streamResponse(ws, session, tools);
     } catch (err) {
       logger.error(`LLM error: ${err.message}`);
       ws.send(JSON.stringify({ type: 'error', message: 'Error processing' }));
@@ -203,18 +190,9 @@ class BrowserCallHandler {
   }
 
   async streamResponse(ws, session, tools) {
-    const params = {
-      model: session.assistant.model || 'gpt-4o-mini',
-      messages: session.conversation,
-      temperature: session.assistant.temperature || 0.7,
-      max_tokens: session.assistant.maxTokens || 500,  // was 200 — prevents mid-sentence cutoffs
-      stream: true
-    };
-    if (tools.length > 0) params.tools = tools;
-
-    const stream = await this.openai.chat.completions.create(params);
     let fullResponse = '';
     let sentenceBuffer = '';
+    let pendingToolCalls = [];
     // Serial TTS chain: each sentence waits for the previous to finish → guaranteed audio order
     let ttsChain = Promise.resolve();
     let firstSent = false;
@@ -228,21 +206,38 @@ class BrowserCallHandler {
       ttsChain = ttsChain.then(() => this.synthesizeAndSend(ws, text, session.assistant));
     };
 
-    for await (const chunk of stream) {
-      const content = chunk.choices?.[0]?.delta?.content;
-      if (!content) continue;
+    for await (const chunk of this.llmRouter.streamCompletion({
+      callId: `browser-${session.assistantId}`,
+      messages: session.conversation,
+      model: session.assistant.model || null,   // null → el router elige el más rápido
+      tools: tools.length > 0 ? tools : undefined,
+      temperature: session.assistant.temperature || 0.7,
+      maxTokens: session.assistant.maxTokens || 500,
+      fallbackModel: session.assistant.fallbackModel || null,
+    })) {
+      if (chunk.type === 'text' && chunk.content) {
+        fullResponse += chunk.content;
+        sentenceBuffer += chunk.content;
 
-      fullResponse += content;
-      sentenceBuffer += content;
-
-      // Extract complete sentences from buffer.
-      // Only [.!?] are sentence-enders — ¿¡ are Spanish openers, not enders.
-      // Require 4+ char word before punctuation to avoid splitting on abbreviations (Dr., Sr.)
-      let match;
-      while ((match = sentenceBuffer.match(/^(.*?\b\w{4,}[.!?])\s+/s)) !== null) {
-        const sentence = match[1].trim();
-        sentenceBuffer = sentenceBuffer.slice(match[0].length);
-        if (sentence.length > 3) enqueueTTS(sentence);
+        // Extract complete sentences from buffer.
+        // Only [.!?] are sentence-enders — ¿¡ are Spanish openers, not enders.
+        // Require 4+ LETTER word before punctuation to avoid splitting on abbreviations (Dr., Sr.).
+        // OJO: \w no incluye acentos ni ñ — con \w el streaming por frases se
+        // rompía justo en español ("días.", "mañana.") y el audio salía de golpe.
+        let match;
+        while ((match = sentenceBuffer.match(/^(.*?\b[\p{L}\p{N}]{4,}[.!?])\s+/su)) !== null) {
+          const sentence = match[1].trim();
+          sentenceBuffer = sentenceBuffer.slice(match[0].length);
+          if (sentence.length > 3) enqueueTTS(sentence);
+        }
+      } else if (chunk.type === 'tool_call') {
+        pendingToolCalls.push(chunk.toolCall);
+      } else if (chunk.type === 'error') {
+        logger.error(`LLM error chunk: ${chunk.message || chunk.content}`);
+        break;
+      } else if (chunk.type === 'done') {
+        if (chunk.content) fullResponse = chunk.content;
+        if (chunk.toolCalls?.length > 0) pendingToolCalls = chunk.toolCalls;
       }
     }
 
@@ -250,8 +245,31 @@ class BrowserCallHandler {
     const remaining = sentenceBuffer.trim();
     if (remaining.length > 1) enqueueTTS(remaining);
 
-    // Wait for all audio packets to be sent before signaling ready-to-listen
+    // Wait for all audio packets to be sent before continuing — evita que el
+    // audio del turno post-herramientas se solape con el de este.
     await ttsChain;
+
+    if (pendingToolCalls.length > 0) {
+      // Registrar la petición de tools + resultados, y una segunda pasada
+      // en streaming (sin tools) para narrar el resultado.
+      session.conversation.push({
+        role: 'assistant',
+        ...(fullResponse ? { content: fullResponse } : { content: null }),
+        tool_calls: pendingToolCalls.map(tc => ({
+          id: tc.id, type: 'function',
+          function: { name: tc.function.name, arguments: tc.function.arguments },
+        })),
+      });
+      for (const tc of pendingToolCalls) {
+        let args = {};
+        try { args = JSON.parse(tc.function.arguments || '{}'); } catch (e) {}
+        logger.info(`Tool: ${tc.function.name}`, args);
+        const result = await this.toolExecutor.execute(tc.function.name, args, session.assistantId);
+        session.conversation.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+      }
+      await this.streamResponse(ws, session, []);
+      return; // la pasada recursiva emite transcript final + 'listening'
+    }
 
     if (fullResponse) {
       session.conversation.push({ role: 'assistant', content: fullResponse });
