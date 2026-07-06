@@ -421,6 +421,18 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Salud por cliente: qué negocios necesitan atención AHORA (roto/silencio).
+  // GET = ver el estado (dashboard); ?send=1 fuerza el email de aviso.
+  app.get('/api/admin/client-health', adminAuth, async (req, res) => {
+    try {
+      const { runClientHealthCheck } = require('../monitoring/client-health');
+      const summary = await runClientHealthCheck({ dryRun: req.query.send !== '1' });
+      res.json({ ok: true, ...summary });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Sectores: auto-borrador + aprobación (escalar sin deploy) ──────────────
   // 1) Pide al LLM un borrador de sector desde una descripción (NO guarda).
   app.post('/api/admin/sectors/draft', adminAuth, async (req, res) => {

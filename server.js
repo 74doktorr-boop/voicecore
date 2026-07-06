@@ -588,6 +588,11 @@ startWeeklyReportCron();
 const { startDailyBriefingCron } = require('./src/reports/daily-briefing');
 startDailyBriefingCron();
 
+// Salud por cliente: avisa si el asistente de un negocio se rompe o se queda
+// en silencio, antes de que el cliente se queje (cada día 09:30 Madrid).
+const { startClientHealthCron } = require('./src/monitoring/client-health');
+startClientHealthCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {
