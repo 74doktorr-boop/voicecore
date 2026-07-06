@@ -183,9 +183,8 @@ async function applySuggestion(orgId, sectorSlug, id, opts = {}) {
   } else { // coverage
     body.custom.push({ label: sug.label, serviceLabel: sug.serviceLabel, trigger: 'from_last_appointment', days: sug.suggestedDays, serviceFilter: sug.serviceFilter, channel: 'whatsapp', enabled: true });
   }
-  const res = normalizeRules(sectorSlug, body);
+  const res = normalizeRules(sectorSlug, body, orgConfig);
   if (res.error) return res;
-  if (Array.isArray(orgConfig._dismissedSuggestions)) res.config._dismissedSuggestions = orgConfig._dismissedSuggestions;
 
   const { error } = await db.client.from('org_reminder_config')
     .upsert({ org_id: orgId, config: res.config, updated_at: new Date().toISOString() }, { onConflict: 'org_id' });

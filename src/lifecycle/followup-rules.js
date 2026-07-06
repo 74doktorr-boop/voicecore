@@ -82,9 +82,11 @@ function buildRulesView(sectorSlug, orgConfig = {}) {
 
 /**
  * Valida y normaliza el body del PUT a la forma de config persistible.
+ * `existing` = config actual: se preservan sus claves reservadas
+ * (_dismissedSuggestions) para que guardar reglas no las borre.
  * @returns {{ config: object } | { error: string }}
  */
-function normalizeRules(sectorSlug, body = {}) {
+function normalizeRules(sectorSlug, body = {}, existing = {}) {
   const defaults = getSectorFollowups(sectorSlug);
   const defaultKeys = new Set(defaults.map(f => f.key));
   const config = {};
@@ -135,6 +137,17 @@ function normalizeRules(sectorSlug, body = {}) {
     });
   }
   if (custom.length) config._custom = custom;
+
+  // Claves reservadas: preservar descartes y fijar el tope de frecuencia.
+  if (Array.isArray(existing._dismissedSuggestions)) config._dismissedSuggestions = existing._dismissedSuggestions;
+  let cap = existing._frequencyCapDays;
+  if (body.frequencyCapDays !== undefined && body.frequencyCapDays !== null && body.frequencyCapDays !== '') {
+    const n = Math.round(Number(body.frequencyCapDays));
+    if (!Number.isFinite(n) || n < 0 || n > 90) return { error: 'Tope de frecuencia no válido (0–90 días)' };
+    cap = n;
+  }
+  if (cap !== undefined) config._frequencyCapDays = cap;
+
   return { config };
 }
 
@@ -151,7 +164,8 @@ async function loadOrgConfig(db, orgId) {
 async function saveRules(orgId, sectorSlug, body, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
   if (!db.enabled) return { error: 'BD no disponible' };
-  const res = normalizeRules(sectorSlug, body);
+  const existing = await loadOrgConfig(db, orgId);
+  const res = normalizeRules(sectorSlug, body, existing);
   if (res.error) return res;
   const { error } = await db.client.from('org_reminder_config')
     .upsert({ org_id: orgId, config: res.config, updated_at: new Date().toISOString() }, { onConflict: 'org_id' });

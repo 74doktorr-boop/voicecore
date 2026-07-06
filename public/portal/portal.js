@@ -4864,6 +4864,7 @@ async function loadFollowupRules() {
   _rulesState.sector = res.sector;
   _rulesState.channels = res.channels || _rulesState.channels;
   _rulesState.triggers = res.customTriggers || [];
+  _rulesState.cap = (res.frequencyCapDays != null ? res.frequencyCapDays : 7);
   var defaults = (res.rules || []).filter(function(r){ return !r.custom; });
   var custom   = (res.rules || []).filter(function(r){ return r.custom; });
 
@@ -4876,7 +4877,13 @@ async function loadFollowupRules() {
       '<button class="btn btn-accent btn-sm" onclick="saveFollowupRules(this)">Guardar cambios</button>' +
     '</div>' +
     '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>' +
-    '<div id="rules-suggestions"></div>';
+    '<div id="rules-suggestions"></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);margin-bottom:18px">' +
+      '<span style="font-size:16px">🛡️</span>' +
+      '<span style="font-size:13px;color:var(--text)">No enviar más de un seguimiento al mismo cliente cada</span>' +
+      '<input type="number" id="rules-cap" min="0" max="90" value="' + _rulesState.cap + '" style="width:58px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:13px;text-align:center">' +
+      '<span style="font-size:13px;color:var(--dim)">días (0 = sin límite). Si coinciden, el aviso se pospone, no se pierde.</span>' +
+    '</div>';
 
   var defaultsHtml = defaults.length
     ? '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:6px 0 8px">Incluidos en tu sector</div>' +
@@ -5027,9 +5034,12 @@ async function saveFollowupRules(btn) {
   });
   if (invalid) { toast('Pon los días de cada seguimiento personalizado', 'err'); return; }
 
+  var capEl = document.getElementById('rules-cap');
+  var cap = capEl ? parseInt(capEl.value, 10) : undefined;
+
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
   try {
-    await api('/api/portal/followup-rules', 'PUT', { overrides: overrides, custom: custom });
+    await api('/api/portal/followup-rules', 'PUT', { overrides: overrides, custom: custom, frequencyCapDays: (isNaN(cap) ? undefined : cap) });
     toast('Reglas guardadas');
     loadFollowupRules();
   } catch (e) {

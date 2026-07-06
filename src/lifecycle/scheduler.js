@@ -6,6 +6,7 @@
 
 const { getDatabase }           = require('../db/database');
 const { getContactMemory, incrementFailedAttempts } = require('./call-memory');
+const { getCapDays, holdUntil } = require('./frequency-cap');
 const { sendTemplate, isConfigured: waConfigured } = require('../notifications/client-whatsapp');
 const { sendSMS, isConfigured: smsConfigured } = require('../notifications/sms');
 const { sendEmail }             = require('../notifications/email');
@@ -187,6 +188,17 @@ async function processOneReminder(reminder, db) {
       await db.client.from('scheduled_reminders')
         .update({ status: 'cancelled', failed_reason: 'appointment_booked', updated_at: new Date().toISOString() })
         .eq('id', reminder.id);
+      return;
+    }
+
+    // Tope de frecuencia: si ya recibió un aviso hace poco, POSPONER (no spamear).
+    const capDays = await getCapDays(reminder.org_id, { db });
+    const holdDate = await holdUntil(db, reminder, capDays, new Date());
+    if (holdDate) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'pending', scheduled_for: holdDate.toISOString(), failed_reason: 'frequency_cap', updated_at: new Date().toISOString() })
+        .eq('id', reminder.id);
+      log.info(`Reminder ${reminder.id} pospuesto por tope de frecuencia → ${holdDate.toISOString().slice(0, 10)}`);
       return;
     }
 

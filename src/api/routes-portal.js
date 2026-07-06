@@ -2252,6 +2252,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const db = getDatabase();
       const sector = await _resolveOrgSector(req.businessId);
       const orgConfig = await loadOrgConfig(db, req.businessId);
+      const { resolveCap } = require('../lifecycle/frequency-cap');
       res.json({
         ok: true,
         sector,
@@ -2259,6 +2260,7 @@ function setupPortalRoutes(app, pipeline, config) {
         rules: buildRulesView(sector, orgConfig),
         channels: CHANNELS,
         customTriggers: CUSTOM_TRIGGERS.map(t => ({ value: t, label: TRIGGERS[t] })),
+        frequencyCapDays: resolveCap(orgConfig),
       });
     } catch (e) { log.warn(`followup-rules get: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
