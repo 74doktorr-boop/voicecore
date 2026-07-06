@@ -7,7 +7,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { parseImportCsv, countScheduled, importContacts, plannedReminder, DATE_FIELD } = require('../src/lifecycle/contact-import');
+const { parseImportCsv, countScheduled, importContacts, plannedReminder, DATE_FIELD, TYPE_FIELD } = require('../src/lifecycle/contact-import');
 
 describe('parseImportCsv', () => {
   test('cabeceras con acento + separador coma', () => {
@@ -98,33 +98,49 @@ describe('countScheduled', () => {
   });
 });
 
-// ── Stub Supabase encadenable para importContacts ───────────
-function stubDb({ existingByPhone = {} } = {}) {
-  const inserted = [], updated = [];
+// ── Stub Supabase para el import EN BLOQUE ──────────────────
+// Simula las 4 tablas que toca: contacts (lookup por variantes, insert
+// masivo, upsert), contact_memory (opt-outs) y scheduled_reminders.
+function stubDb({ existingContacts = [], memory = [] } = {}) {
+  const inserted = [], upserted = [], reminders = [], cancelled = [];
+  let nextId = 1;
   const db = {
     enabled: true,
-    _inserted: inserted, _updated: updated,
+    _inserted: inserted, _upserted: upserted, _reminders: reminders, _cancelled: cancelled,
     client: {
-      from() {
-        let mode = null, phone = null, payload = null;
+      from(table) {
+        let mode = null, payload = null;
         const q = {
-          select() { return q; },
-          insert(row) { mode = 'insert'; payload = row; return q; },
+          select(cols) { if (mode === 'insert') return q; mode = mode || 'select'; return q; },
+          insert(rows) { mode = 'insert'; payload = rows; return q; },
+          upsert(rows) { mode = 'upsert'; payload = rows; upserted.push(...rows); return Promise.resolve({ error: null }); },
           update(patch) { mode = 'update'; payload = patch; return q; },
-          eq(col, val) { if (col === 'phone') phone = val; return q; },
-          maybeSingle() {
-            if (mode === 'insert') {
-              const id = 'new-' + (inserted.length + 1);
-              inserted.push({ id, ...payload });
-              return Promise.resolve({ data: { id }, error: null });
+          eq() { return q; },
+          in(col, vals) {
+            if (mode === 'select') {
+              if (table === 'contacts') return Promise.resolve({ data: existingContacts.filter(c => vals.includes(c.phone)) });
+              if (table === 'contact_memory') return Promise.resolve({ data: memory.filter(m => vals.includes(m.contact_id)) });
+              return Promise.resolve({ data: [] });
             }
-            // select existing por teléfono
-            const ex = existingByPhone[phone];
-            return Promise.resolve({ data: ex || null, error: null });
+            if (mode === 'update' && table === 'scheduled_reminders') {
+              // segunda .in() de la cadena de cancelación → thenable
+              return { in() { cancelled.push(vals); return Promise.resolve({ error: null }); }, then(res) { cancelled.push(vals); return Promise.resolve({ error: null }).then(res); } };
+            }
+            return q;
           },
           then(resolve) {
-            if (mode === 'update') updated.push(payload);
-            return Promise.resolve({ data: {}, error: null }).then(resolve);
+            if (mode === 'insert') {
+              if (table === 'contacts') {
+                const withIds = payload.map(r => ({ ...r, id: 'new-' + (nextId++) }));
+                inserted.push(...withIds);
+                return Promise.resolve({ data: withIds.map(r => ({ id: r.id, phone: r.phone })), error: null }).then(resolve);
+              }
+              if (table === 'scheduled_reminders') {
+                reminders.push(...payload);
+                return Promise.resolve({ error: null }).then(resolve);
+              }
+            }
+            return Promise.resolve({ data: [], error: null }).then(resolve);
           },
         };
         return q;
@@ -134,32 +150,67 @@ function stubDb({ existingByPhone = {} } = {}) {
   return db;
 }
 
-describe('importContacts', () => {
-  test('crea nuevos, programa recordatorio y cuenta scheduled', async () => {
+describe('importContacts (bulk)', () => {
+  test('crea nuevos en bloque y programa recordatorios con message_preview', async () => {
     const db = stubDb();
-    const sched = [];
     const rows = [
-      { name: 'Aitor', phone: '+34600111222', sectorData: { [DATE_FIELD]: '2099-01-01', tipo_psicotecnico: 'B' } },
+      { name: 'Aitor', phone: '+34600111222', sectorData: { [DATE_FIELD]: '2099-01-01', [TYPE_FIELD]: 'B' } },
       { name: 'Sin fecha', phone: '+34600333444', sectorData: {} },
     ];
-    const out = await importContacts('org1', rows, { db, scheduleReminder: async (a) => { sched.push(a); } });
-    assert.strictEqual(out.imported, 2);
+    const out = await importContacts('org1', rows, { db });
     assert.strictEqual(out.created, 2);
-    assert.strictEqual(out.scheduled, 1);           // solo el que tiene caducidad
-    assert.strictEqual(sched.length, 1);            // no programa al de sin fecha
-    assert.strictEqual(sched[0].serviceKey, 'renovacion_psicotecnico');
+    assert.strictEqual(out.imported, 2);
+    assert.strictEqual(out.scheduled, 1);                       // solo el que tiene caducidad
+    assert.strictEqual(db._reminders.length, 1);
+    assert.strictEqual(db._reminders[0].service_key, 'renovacion_psicotecnico');
+    assert.match(db._reminders[0].message_preview, /renovar tu psicotécnico \(B\)/);
   });
 
-  test('contacto existente: mergea sector_data sin pisar y no duplica', async () => {
-    const db = stubDb({ existingByPhone: { '+34600111222': { id: 'c-old', name: 'Aitor Zubeldia', sector_data: { otro_dato: 'x' } } } });
+  test('existente guardado en OTRO formato de teléfono → actualiza, no duplica', async () => {
+    // El contacto está como nacional '600111222'; el CSV trae '+34600111222'.
+    const db = stubDb({ existingContacts: [{ id: 'c-old', phone: '600111222', name: 'Aitor Zubeldia', sector_data: { otro_dato: 'x' } }] });
     const rows = [{ name: 'Aitor', phone: '+34600111222', sectorData: { [DATE_FIELD]: '2099-01-01' } }];
-    const out = await importContacts('org1', rows, { db, scheduleReminder: async () => {} });
+    const out = await importContacts('org1', rows, { db });
     assert.strictEqual(out.created, 0);
     assert.strictEqual(out.updated, 1);
-    const patch = db._updated[0];
-    assert.strictEqual(patch.sector_data.otro_dato, 'x');                  // conserva lo previo
-    assert.strictEqual(patch.sector_data[DATE_FIELD], '2099-01-01');       // añade la caducidad
-    assert.strictEqual(patch.name, undefined);                            // no pisa el nombre bueno
+    const up = db._upserted[0];
+    assert.strictEqual(up.id, 'c-old');
+    assert.strictEqual(up.sector_data.otro_dato, 'x');                  // conserva lo previo
+    assert.strictEqual(up.sector_data[DATE_FIELD], '2099-01-01');       // añade la caducidad
+    assert.strictEqual(up.name, 'Aitor Zubeldia');                      // no pisa el nombre bueno
+  });
+
+  test('dedupe del CSV: el mismo teléfono dos veces → un solo contacto (datos mergeados)', async () => {
+    const db = stubDb();
+    const rows = [
+      { name: '', phone: '600111222', sectorData: { [TYPE_FIELD]: 'B' } },
+      { name: 'Aitor', phone: '+34 600 11 12 22', sectorData: { [DATE_FIELD]: '2099-01-01' } },
+    ];
+    const out = await importContacts('org1', rows, { db });
+    assert.strictEqual(out.created, 1);
+    assert.strictEqual(db._inserted[0].name, 'Aitor');
+    assert.strictEqual(db._inserted[0].sector_data[TYPE_FIELD], 'B');   // merge de ambas filas
+  });
+
+  test('respeta no_whatsapp: el bloqueado no recibe recordatorio', async () => {
+    const db = stubDb({
+      existingContacts: [{ id: 'c-blk', phone: '+34600111222', name: 'X', sector_data: {} }],
+      memory: [{ contact_id: 'c-blk', no_whatsapp: true }],
+    });
+    const rows = [{ name: 'X', phone: '+34600111222', sectorData: { [DATE_FIELD]: '2099-01-01' } }];
+    const out = await importContacts('org1', rows, { db });
+    assert.strictEqual(out.updated, 1);
+    assert.strictEqual(out.scheduled, 0);
+    assert.strictEqual(db._reminders.length, 0);
+  });
+
+  test('re-import: cancela los pendientes previos antes de insertar (idempotente)', async () => {
+    const db = stubDb({ existingContacts: [{ id: 'c1', phone: '+34600111222', name: 'X', sector_data: {} }] });
+    const rows = [{ name: 'X', phone: '+34600111222', sectorData: { [DATE_FIELD]: '2099-01-01' } }];
+    await importContacts('org1', rows, { db });
+    assert.strictEqual(db._cancelled.length, 1);
+    assert.deepStrictEqual(db._cancelled[0], ['c1']);
+    assert.strictEqual(db._reminders.length, 1);
   });
 
   test('sin BD → todo a cero, no lanza', async () => {

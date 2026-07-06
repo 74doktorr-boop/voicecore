@@ -322,6 +322,7 @@ function setupPortalRoutes(app, pipeline, config) {
           .select('metrics, started_at')
           .eq('org_id', businessId)
           .gte('started_at', since)
+          .order('started_at', { ascending: false })
           .limit(300),
       ]);
       if (sumRes.error) throw new Error(sumRes.error.message);

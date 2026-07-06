@@ -158,57 +158,137 @@ function countScheduled(rows) {
   return n;
 }
 
+const CHUNK = 500;        // filas por operación en bloque
+const PHONE_CHUNK = 40;   // teléfonos por lookup (×5 variantes ≈ 200 valores por .in)
+const SERVICE_KEY = 'renovacion_psicotecnico';
+
 /**
- * Upsert de contactos + recálculo de recordatorios. Idempotente por (org_id, phone).
- * @returns {Promise<{ imported, created, updated, scheduled, skipped, errors }>}
+ * Importación EN BLOQUE: contactos + recordatorios de renovación.
+ * Un export de 3.000 filas son ~100 consultas (no ~10.000): lookup de
+ * existentes por variantes de teléfono → altas y actualizaciones en chunks →
+ * recordatorios en bloque (cancelando pendientes previos: re-import idempotente,
+ * y respetando no_whatsapp). Idempotente por teléfono normalizado.
+ * @returns {Promise<{ imported, created, updated, scheduled, urgent, skipped, errors }>}
  */
 async function importContacts(orgId, rows, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
-  const schedule = opts.scheduleReminder || require('./reminder-engine').scheduleReminder;
   const out = { imported: 0, created: 0, updated: 0, scheduled: 0, urgent: 0, skipped: 0, errors: [] };
-  if (!db.enabled || !orgId || !Array.isArray(rows)) return out;
+  if (!db.enabled || !orgId || !Array.isArray(rows) || !rows.length) return out;
+  const { phoneVariants, normalizePhone } = require('../utils/phone');
+  const nowISO = new Date().toISOString();
 
+  // 1) Dedupe por teléfono normalizado (si el CSV repite, merge de datos).
+  const byKey = new Map();
   for (const r of rows) {
+    const key = normalizePhone(r.phone);
+    if (!key) { out.skipped++; continue; }
+    const prev = byKey.get(key);
+    byKey.set(key, prev
+      ? { ...prev, name: r.name || prev.name, phone: r.phone, sectorData: { ...prev.sectorData, ...r.sectorData } }
+      : { ...r });
+  }
+  const items = [...byKey.entries()];
+
+  // 2) Existentes por VARIANTES (+34/nacional/espacios): el mismo cliente puede
+  //    estar guardado en cualquier formato — sin esto se crearían duplicados.
+  const existingByKey = new Map();
+  for (let i = 0; i < items.length; i += PHONE_CHUNK) {
+    const chunk = items.slice(i, i + PHONE_CHUNK);
+    const variants = [...new Set(chunk.flatMap(([, r]) => phoneVariants(r.phone)))];
     try {
-      // ¿existe ya? (para no pisar su sector_data ni su nombre bueno)
-      const { data: existing } = await db.client.from('contacts')
-        .select('id, name, sector_data').eq('org_id', orgId).eq('phone', r.phone).maybeSingle();
-
-      let contactId;
-      if (existing) {
-        contactId = existing.id;
-        const mergedSector = Object.assign({}, existing.sector_data || {}, r.sectorData);
-        const patch = { sector_data: mergedSector, updated_at: new Date().toISOString() };
-        if (!existing.name && r.name) patch.name = r.name;   // solo rellena si estaba vacío
-        await db.client.from('contacts').update(patch).eq('id', contactId).eq('org_id', orgId);
-        out.updated++;
-      } else {
-        const { data: ins, error } = await db.client.from('contacts')
-          .insert({ org_id: orgId, phone: r.phone, name: r.name || null, sector_data: r.sectorData, call_count: 0 })
-          .select('id').maybeSingle();
-        if (error || !ins) { out.skipped++; out.errors.push({ phone: r.phone, reason: (error && error.message) || 'insert' }); continue; }
-        contactId = ins.id;
-        out.created++;
+      const { data } = await db.client.from('contacts')
+        .select('id, phone, name, sector_data')
+        .eq('org_id', orgId).in('phone', variants);
+      for (const c of (data || [])) {
+        const k = normalizePhone(c.phone);
+        if (k && !existingByKey.has(k)) existingByKey.set(k, c);
       }
-      out.imported++;
+    } catch (e) { log.warn(`import: lookup de existentes falló: ${e.message}`); }
+  }
 
-      // Programa la renovación según su caducidad (normal ~30d antes, o ya si es inminente).
-      try {
-        const plan = plannedReminder(r.sectorData && r.sectorData[DATE_FIELD]);
-        if (plan) {
-          const tipo = r.sectorData[TYPE_FIELD];
-          await schedule({
-            orgId, contactId, serviceKey: 'renovacion_psicotecnico', scheduledFor: plan.when, channel: 'whatsapp',
-            messagePreview: `renovar tu psicotécnico${tipo ? ` (${tipo})` : ''}`,
-          });
-          out.scheduled++;
-          if (plan.urgent) out.urgent++;
-        }
-      } catch (e) { log.warn(`schedule(${contactId}): ${e.message}`); }
-    } catch (e) {
-      out.skipped++; out.errors.push({ phone: r.phone, reason: e.message });
+  // 3) Partir: altas nuevas vs actualizaciones (merge sin pisar lo previo).
+  const toInsert = [], toUpdate = [];
+  for (const [key, r] of items) {
+    const ex = existingByKey.get(key);
+    if (ex) {
+      toUpdate.push({
+        id: ex.id, org_id: orgId, phone: ex.phone,
+        name: ex.name || r.name || null,                                   // solo rellena si estaba vacío
+        sector_data: Object.assign({}, ex.sector_data || {}, r.sectorData), // añade sin borrar
+        updated_at: nowISO,
+      });
+    } else {
+      toInsert.push({ org_id: orgId, phone: r.phone, name: r.name || null, sector_data: r.sectorData, call_count: 0 });
     }
   }
+
+  // 4) Altas en bloque.
+  const idByKey = new Map([...existingByKey].map(([k, c]) => [k, c.id]));
+  for (let i = 0; i < toInsert.length; i += CHUNK) {
+    const chunk = toInsert.slice(i, i + CHUNK);
+    try {
+      const { data, error } = await db.client.from('contacts').insert(chunk).select('id, phone');
+      if (error) throw new Error(error.message);
+      for (const c of (data || [])) { const k = normalizePhone(c.phone); if (k) idByKey.set(k, c.id); }
+      out.created += (data || []).length;
+    } catch (e) { out.skipped += chunk.length; out.errors.push({ phone: chunk[0].phone, reason: e.message }); }
+  }
+
+  // 5) Actualizaciones en bloque (upsert por id; valores ya mergeados).
+  for (let i = 0; i < toUpdate.length; i += CHUNK) {
+    const chunk = toUpdate.slice(i, i + CHUNK);
+    try {
+      const { error } = await db.client.from('contacts').upsert(chunk, { onConflict: 'id' });
+      if (error) throw new Error(error.message);
+      out.updated += chunk.length;
+    } catch (e) { out.skipped += chunk.length; out.errors.push({ phone: chunk[0].phone, reason: e.message }); }
+  }
+  out.imported = out.created + out.updated;
+
+  // 6) Recordatorios de renovación en bloque.
+  const plans = [];
+  for (const [key, r] of items) {
+    const contactId = idByKey.get(key);
+    if (!contactId || !r.sectorData) continue;
+    const plan = plannedReminder(r.sectorData[DATE_FIELD]);
+    if (!plan) continue;
+    plans.push({ contactId, when: plan.when, urgent: plan.urgent, tipo: r.sectorData[TYPE_FIELD] });
+  }
+  if (plans.length) {
+    // Respetar opt-outs (no_whatsapp) sin una consulta por contacto.
+    const blocked = new Set();
+    const ids = plans.map(p => p.contactId);
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      try {
+        const { data } = await db.client.from('contact_memory')
+          .select('contact_id, no_whatsapp').eq('org_id', orgId).in('contact_id', ids.slice(i, i + CHUNK));
+        for (const m of (data || [])) if (m.no_whatsapp) blocked.add(m.contact_id);
+      } catch (_) { /* sin memoria → nadie bloqueado */ }
+    }
+    const sendable = plans.filter(p => !blocked.has(p.contactId));
+
+    for (let i = 0; i < sendable.length; i += CHUNK) {
+      const slice = sendable.slice(i, i + CHUNK);
+      // Cancela pendientes previos del mismo servicio (re-import idempotente)…
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', updated_at: nowISO })
+        .eq('org_id', orgId).eq('service_key', SERVICE_KEY)
+        .in('contact_id', slice.map(p => p.contactId)).in('status', ['pending', 'postponed'])
+        .then(undefined, e => log.warn(`import: cancelar previos falló: ${e.message}`));
+      // …e inserta los nuevos.
+      try {
+        const { error } = await db.client.from('scheduled_reminders').insert(slice.map(p => ({
+          org_id: orgId, contact_id: p.contactId, service_key: SERVICE_KEY,
+          channel: 'whatsapp', scheduled_for: p.when.toISOString(), status: 'pending',
+          message_preview: `renovar tu psicotécnico${p.tipo ? ` (${p.tipo})` : ''}`,
+        })));
+        if (error) throw new Error(error.message);
+        out.scheduled += slice.length;
+        out.urgent += slice.filter(p => p.urgent).length;
+      } catch (e) { out.errors.push({ phone: 'recordatorios', reason: e.message }); }
+    }
+  }
+
   return out;
 }
 
