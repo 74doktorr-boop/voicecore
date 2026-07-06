@@ -4733,6 +4733,7 @@ async function _doCallOutbound(phone, btn) {
 
 async function loadSeguimientos() {
   checkSectorBanner();  // Non-blocking: check if wizard banner should show
+  loadFollowupRoi();    // Non-blocking: ROI del motor (citas atribuidas)
 
   // Wire up tab switching
   document.querySelectorAll('#sec-seguimientos .tab-btn').forEach(function(btn) {
@@ -4751,6 +4752,37 @@ async function loadSeguimientos() {
     };
   });
   await loadFollowups();
+}
+
+// ── ROI del motor: lo que los seguimientos han traído de verdad ──
+async function loadFollowupRoi() {
+  var box = document.getElementById('followup-roi');
+  if (!box) return;
+  var r;
+  try { r = await api('/api/portal/followup-roi'); }
+  catch (e) { box.innerHTML = ''; return; }
+
+  var t = (r && r.totals) || { count: 0, value: 0 };
+  if (t.count > 0) {
+    var partes = [];
+    if (t.auto > 0)     partes.push(t.auto + ' de avisos automáticos');
+    if (t.personal > 0) partes.push(t.personal + ' de tus mensajes personales');
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:rgba(33,192,138,.08);border:1px solid rgba(33,192,138,.3);border-radius:12px;padding:14px 18px">' +
+        '<div style="font-size:24px">💶</div>' +
+        '<div style="flex:1;min-width:200px">' +
+          '<div style="font-weight:800;color:var(--green2,#21c08a);font-size:15px">Tus seguimientos han traído ' + t.count + ' cita' + (t.count !== 1 ? 's' : '') +
+            (t.value > 0 ? ' (~' + t.value + '€)' : '') + ' en 30 días</div>' +
+          '<div style="color:var(--dim);font-size:12px;margin-top:2px">' + esc(partes.join(' · ')) + ' — cita creada en los 14 días tras el aviso, mismo teléfono</div>' +
+        '</div>' +
+      '</div>';
+  } else if ((r.sentCount || 0) > 0) {
+    box.innerHTML =
+      '<div style="color:var(--dim);font-size:12px;padding:2px 4px">📤 ' + r.sentCount + ' seguimiento' + (r.sentCount !== 1 ? 's' : '') +
+      ' enviado' + (r.sentCount !== 1 ? 's' : '') + ' en 30 días — cuando alguno acabe en cita lo verás aquí, con su valor.</div>';
+  } else {
+    box.innerHTML = '';
+  }
 }
 
 // ── Seguimientos personalizados (sistema sugiere → tú revisas y envías) ──

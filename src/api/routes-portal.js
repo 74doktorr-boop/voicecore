@@ -2288,6 +2288,23 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
   });
 
+  // ── ROI del motor: citas atribuidas a seguimientos ──
+  // "El motor te trajo N citas (~X€)" — la métrica que renueva suscripciones.
+  app.get('/api/portal/followup-roi', portalAuth, async (req, res) => {
+    try {
+      const { getAttribution } = require('../lifecycle/followup-attribution');
+      const r = await getAttribution(req.businessId, {
+        db: getDatabase(),
+        sinceDays: Math.min(90, Math.max(7, parseInt(req.query.days, 10) || 30)),
+        avgTicket: req.flowConfig?.automations?.config?.avgTicket || 0,
+      });
+      res.json({ ok: true, ...r });
+    } catch (e) {
+      log.warn(`followup-roi: ${e.message}`);
+      res.json({ ok: true, totals: { count: 0, value: 0, auto: 0, personal: 0 }, bookings: [], sentCount: 0 });
+    }
+  });
+
   // ── Sugerencias de seguimiento (el sistema aprende y propone) ──
   app.get('/api/portal/followup-rules/suggestions', portalAuth, async (req, res) => {
     try {

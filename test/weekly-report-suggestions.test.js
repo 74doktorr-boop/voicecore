@@ -45,3 +45,17 @@ describe('buildEmailHtml — bloque de aprendizaje', () => {
     assert.match(html, /O que aprendín/);
   });
 });
+
+describe('buildEmailHtml — ROI del motor', () => {
+  test('con citas atribuidas → línea de seguimientos con valor', () => {
+    const { html, text } = buildEmailHtml({ bizName: 'X', range, stats: baseStats, lang: 'es', roi: { count: 3, value: 95 } });
+    assert.match(html, /seguimientos trajeron/);
+    assert.match(html, /3 citas \(~95€\)/);
+    assert.match(text, /Seguimientos → citas: 3/);
+  });
+
+  test('sin ROI → no aparece la línea', () => {
+    const { html } = buildEmailHtml({ bizName: 'X', range, stats: baseStats, lang: 'es', roi: null });
+    assert.doesNotMatch(html, /seguimientos trajeron/);
+  });
+});

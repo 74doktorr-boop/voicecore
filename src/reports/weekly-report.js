@@ -104,7 +104,7 @@ async function collectOrgStats(db, org, range) {
 
 // ── Email HTML ───────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
+function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = null }) {
   const t = {
     es: {
       subject: `📊 Tu semana con NodeFlow — ${stats.totalApts} citas, ${stats.totalCalls} llamadas atendidas`,
@@ -113,6 +113,7 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
       calls: 'Llamadas atendidas', minutes: 'Minutos al teléfono que te has ahorrado',
       apts: 'Citas agendadas', value: 'Valor estimado generado',
       topSvc: 'Servicio más solicitado',
+      roiLine: (n, v) => `🔄 Tus seguimientos trajeron <strong style="color:#21c08a;">${n} cita${n !== 1 ? 's' : ''}${v > 0 ? ` (~${v}€)` : ''}</strong> esta semana`,
       learnedTitle: '🧠 Lo que aprendí de tus citas esta semana',
       learnedCta: 'Revisar y ajustar',
       footer: 'Tu asistente sigue atendiendo 24/7. Nos vemos el lunes que viene.',
@@ -125,6 +126,7 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
       calls: 'Chamadas atendidas', minutes: 'Minutos ao teléfono que aforraches',
       apts: 'Citas axendadas', value: 'Valor estimado xerado',
       topSvc: 'Servizo máis solicitado',
+      roiLine: (n, v) => `🔄 Os teus seguimentos trouxeron <strong style="color:#21c08a;">${n} cita${n !== 1 ? 's' : ''}${v > 0 ? ` (~${v}€)` : ''}</strong> esta semana`,
       learnedTitle: '🧠 O que aprendín das túas citas esta semana',
       learnedCta: 'Revisar e axustar',
       footer: 'O teu asistente segue atendendo 24/7. Vémonos o vindeiro luns.',
@@ -137,6 +139,7 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
       calls: 'Dei erantzundak', minutes: 'Telefonoan aurreztutako minutuak',
       apts: 'Hitzordu antolatuak', value: 'Sortutako balio estimatua',
       topSvc: 'Eskatuena izan den zerbitzua',
+      roiLine: (n, v) => `🔄 Zure jarraipenek <strong style="color:#21c08a;">${n} hitzordu${v > 0 ? ` (~${v}€)` : ''}</strong> ekarri dituzte aste honetan`,
       learnedTitle: '🧠 Aste honetan zure hitzorduetatik ikasi dudana',
       learnedCta: 'Berrikusi eta doitu',
       footer: 'Zure laguntzaileak 24/7 jarraitzen du. Datorren astelehenera arte.',
@@ -184,6 +187,7 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
       </tr></table>
 
       ${stats.topService ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:16px 0 0;">⭐ ${x.topSvc}: <strong style="color:#e8e8f0;">${stats.topService}</strong></p>` : ''}
+      ${roi && x.roiLine ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:10px 0 0;">${x.roiLine(roi.count, roi.value)}</p>` : ''}
 
       ${learnedBlock}
 
@@ -194,6 +198,7 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
       <p style="font-size:12px;color:#55556a;text-align:center;margin-top:28px;line-height:1.6;">${x.footer}</p>
     </div>`,
     text: `${x.title} — ${bizName}\n${x.calls}: ${stats.totalCalls}\n${x.apts}: ${stats.totalApts}\n${x.minutes}: ${stats.totalMinutes}\n${x.value}: ${stats.estValue}€`
+      + (roi ? `\nSeguimientos → citas: ${roi.count}${roi.value > 0 ? ` (~${roi.value}€)` : ''}` : '')
       + ((suggestions && suggestions.length) ? `\n\n${x.learnedTitle}\n${suggestions.map(s => '- ' + s.title + ': ' + s.detail).join('\n')}\n${x.learnedCta}: https://nodeflow.es/portal/?go=reglas` : '')
       + `\n\nhttps://nodeflow.es/portal/`,
   };
@@ -230,10 +235,11 @@ async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
         continue;
       }
 
-      const cfg     = org.automation_config?.config || {};
-      const bizName = cfg.name || org.name || 'tu negocio';
-      const lang    = cfg.language || 'es';
-      const to      = cfg.notifyEmail || org.owner_email;
+      const cfg       = org.automation_config?.config || {};
+      const bizName   = cfg.name || org.name || 'tu negocio';
+      const lang      = cfg.language || 'es';
+      const avgTicket = parseFloat(cfg.avgTicket) || 0;
+      const to        = cfg.notifyEmail || org.owner_email;
       if (!to) { results.push({ org: org.id, sent: false, reason: 'sin email' }); continue; }
 
       // Lo que NodeFlow aprendió de sus citas: hasta 2 sugerencias de seguimiento.
@@ -245,7 +251,15 @@ async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
         suggestions = (await getSuggestions(org.id, sector, { db })).slice(0, 2);
       } catch (e) { log.warn(`Sugerencias informe (${org.id}): ${e.message}`); }
 
-      const email = buildEmailHtml({ bizName, range, stats, lang, suggestions });
+      // ROI del motor esta semana: citas atribuidas a seguimientos.
+      let roi = null;
+      try {
+        const { getAttribution } = require('../lifecycle/followup-attribution');
+        const r = await getAttribution(org.id, { db, sinceDays: 7, avgTicket });
+        if (r.totals.count > 0) roi = r.totals;
+      } catch (e) { log.warn(`ROI informe (${org.id}): ${e.message}`); }
+
+      const email = buildEmailHtml({ bizName, range, stats, lang, suggestions, roi });
 
       if (dryRun) {
         results.push({ org: org.id, sent: false, dryRun: true, to, subject: email.subject, stats });
