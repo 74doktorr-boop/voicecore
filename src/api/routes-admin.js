@@ -433,6 +433,52 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Reglas aprendidas: APROBAR → APLICAR (cierra el bucle de mejora) ────────
+  // El bucle detecta patrones y los persiste como candidatas; el fundador las
+  // revisa aquí, puede PROBARLAS (replay de llamadas reales) y aprobar/rechazar.
+  // Solo las 'active' se inyectan en el prompt del sector. Nunca auto-mutación.
+  app.get('/api/admin/learned-rules', adminAuth, async (req, res) => {
+    try {
+      const { listRules } = require('../lifecycle/learned-rules');
+      const rules = await listRules({ status: req.query.status || null, sector: req.query.sector || null });
+      res.json({ ok: true, rules });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // action: approve (→ se aplica) | reject | replay (prueba, no cambia estado).
+  app.post('/api/admin/learned-rules/:id/:action', adminAuth, async (req, res) => {
+    const { id, action } = req.params;
+    try {
+      const LR = require('../lifecycle/learned-rules');
+      if (action === 'approve') {
+        const r = await LR.setStatus(id, 'active');
+        return res.status(r.ok ? 200 : 400).json(r.ok ? { ok: true, applied: true } : r);
+      }
+      if (action === 'reject') {
+        const r = await LR.setStatus(id, 'rejected');
+        return res.status(r.ok ? 200 : 400).json(r);
+      }
+      if (action === 'replay') {
+        const rule = await LR.getRule(id);
+        if (!rule) return res.status(404).json({ error: 'Regla no encontrada' });
+        if (!process.env.OPENAI_API_KEY) return res.json({ ok: false, error: 'Replay no disponible: falta OPENAI_API_KEY' });
+        const db = getDatabase();
+        if (!db.enabled) return res.json({ ok: false, error: 'Sin BD' });
+        const secArg = rule.sector === 'global' ? null : rule.sector;
+        const since = new Date(Date.now() - 30 * 864e5).toISOString();
+        const { data: calls } = await db.client.from('nf_calls')
+          .select('id, transcript, metrics, started_at').gte('started_at', since).not('metrics', 'is', null).limit(60);
+        const { generatePrompt } = require('../assistants/prompt-generator');
+        const base = generatePrompt({ sector: secArg, language: 'es' }, 'tu negocio');
+        const candidatePrompt = base + '\n\nMEJORA A PROBAR:\n- ' + rule.text;
+        const { runReplayGate } = require('../lifecycle/replay-gate');
+        const verdict = await runReplayGate({ candidatePrompt, calls: calls || [], sector: secArg });
+        return res.json({ ok: true, ...verdict });
+      }
+      return res.status(400).json({ error: 'Acción inválida (approve|reject|replay)' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ─── Sectores: auto-borrador + aprobación (escalar sin deploy) ──────────────
   // 1) Pide al LLM un borrador de sector desde una descripción (NO guarda).
   app.post('/api/admin/sectors/draft', adminAuth, async (req, res) => {

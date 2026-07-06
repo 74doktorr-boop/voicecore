@@ -223,6 +223,17 @@ async function runImprovementCycle(deps = {}) {
     }
   }
 
+  // ── APROBAR → APLICAR: persistir las reglas candidatas para que el fundador
+  // las apruebe en el admin (antes solo iban al email y morían ahí). Dedup +
+  // no resucita las ya decididas (lo gestiona learned-rules). Best-effort.
+  try {
+    const LR = require('./learned-rules');
+    await LR.upsertCandidates('global', agg.candidateRules, { db });
+    for (const [sec, s] of Object.entries(agg.bySector)) {
+      await LR.upsertCandidates(sec, s.candidateRules, { db });
+    }
+  } catch (e) { log.warn(`persistir reglas candidatas: ${e.message}`); }
+
   // ── Carril de reglas: informe POR SECTOR → aprobación (opción A) ──
   const { resolveSector } = require('../sectors/sector-registry');
   const sectorLabel = (slug) => slug === 'generico' ? 'Sin sector asignado' : resolveSector(slug).label;

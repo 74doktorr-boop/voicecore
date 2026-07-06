@@ -190,6 +190,17 @@ class VoicePipeline {
       log.warn(`[${callId}] business-context inject fail-open: ${e.message}`);
     }
 
+    // Reglas APRENDIDAS activas del sector (aprobadas por el fundador en el
+    // admin) — el eslabón "aplicar" del bucle. Se aplican por SECTOR y no
+    // dependen de resolver la org. Fail-open. [[learned-rules]]
+    try {
+      const rulesBlock = await require('../lifecycle/learned-rules').activeRulesBlock(assistant && assistant.sector);
+      if (rulesBlock) {
+        const sysMsg = session.messages.find(m => m.role === 'system');
+        if (sysMsg) { sysMsg.content += rulesBlock; log.info(`[${callId}] Reglas aprendidas inyectadas (sector ${assistant?.sector || 'generico'})`); }
+      }
+    } catch (e) { log.warn(`[${callId}] learned-rules inject fail-open: ${e.message}`); }
+
     // Códec de entrada por proveedor. CRÍTICO: el STT debe recibir el códec
     // REAL — decodificar PCMA (Europa) como PCMU destroza la transcripción
     // sin enmudecerla (causa raíz del 2026-07-03, confidence 0.78 → 0.995).
