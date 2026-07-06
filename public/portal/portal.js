@@ -2247,17 +2247,61 @@ async function loadConfig() {
 }
 
 // Editor de servicios+precios (filas dinámicas)
+// Ejemplos de servicio POR SECTOR: un peluquero ve ejemplos de peluquería, un
+// dentista de dental… ayuda a rellenar bien y rápido. [nombre, precio, duración, detalle].
+function _svcExamples(sector) {
+  var EX = {
+    peluqueria:   ['Corte de pelo', '15€', '30 min', 'incluye lavado y peinado'],
+    estetica_avanzada: ['Limpieza facial', '45€', '60 min', 'incluye hidratación'],
+    dental:       ['Limpieza dental', '50€', '30 min', 'incluye revisión'],
+    clinica:      ['Consulta general', 'a presupuesto', '20 min', 'primera visita incluye historia'],
+    fisioterapia: ['Sesión de fisioterapia', '40€', '45 min', 'incluye valoración inicial'],
+    podologia:    ['Quiropodia', '25€', '30 min', 'callos y uñas'],
+    optica:       ['Revisión de la vista', 'gratis', '20 min', 'graduación incluida'],
+    farmacia:     ['Toma de tensión', 'gratis', '10 min', 'sin cita'],
+    nutricion:    ['Primera consulta', '50€', '60 min', 'incluye plan personalizado'],
+    psicologia:   ['Sesión individual', '60€', '50 min', 'la primera es de valoración'],
+    veterinaria:  ['Consulta general', '30€', '20 min', 'incluye revisión'],
+    taller:       ['Cambio de aceite', '60€', '45 min', 'aceite y filtro incluidos'],
+    gimnasio:     ['Cuota mensual', '35€/mes', 'opcional', 'acceso ilimitado a sala'],
+    yoga:         ['Clase suelta', '12€', '60 min', 'primera clase de prueba gratis'],
+    spa:          ['Circuito spa', '25€', '90 min', 'piscinas y sauna'],
+    restaurante:  ['Menú del día', '14€', 'opcional', 'entrante, principal y postre'],
+    hotel:        ['Habitación doble', '80€/noche', 'opcional', 'desayuno incluido'],
+    agencia_viajes: ['Escapada fin de semana', 'a presupuesto', 'opcional', 'vuelo + hotel'],
+    asesoria:     ['Cuota autónomos', '50€/mes', 'opcional', 'fiscal y laboral'],
+    abogados:     ['Consulta inicial', 'a presupuesto', '45 min', 'primera orientación'],
+    inmobiliaria: ['Valoración de inmueble', 'gratis', 'opcional', 'informe de mercado'],
+    academia:     ['Clase de refuerzo', '15€', '60 min', 'grupos reducidos'],
+    coaching:     ['Sesión de coaching', '60€', '60 min', 'individual o programa'],
+    autoescuela:  ['Clase práctica', '30€', '45 min', 'vehículo incluido'],
+    reformas:     ['Reforma de baño', 'a presupuesto', 'opcional', 'requiere visita'],
+    guarderia_canina: ['Día de guardería', '18€', 'opcional', 'requiere cartilla de vacunas'],
+    reconocimientos: ['Renovación carnet de conducir', '45€', '20 min', 'trae DNI y gafas si usas'],
+    generico:     ['Servicio principal', '15€ · a presupuesto', '30 min', 'lo que quieras aclarar'],
+  };
+  var ALIAS = { barberia:'peluqueria', estetica:'estetica_avanzada', laser:'estetica_avanzada',
+    pilates:'yoga', notaria:'abogados', residencia_mascotas:'guarderia_canina', arquitectura:'reformas',
+    bar:'restaurante', cafeteria:'restaurante', hostal:'hotel', clinica_dental:'dental', dentista:'dental',
+    fisio:'fisioterapia', vet:'veterinaria', mecanico:'taller' };
+  var k = String(sector || '').toLowerCase().trim();
+  k = ALIAS[k] || k;
+  var e = EX[k] || EX[k.replace(/es$/, '')] || EX[k.replace(/s$/, '')] || EX.generico;
+  return { name: e[0], price: e[1], dur: e[2], notes: e[3] };
+}
+
 function addServiceRow(s) {
   s = s || {};
   var box = document.getElementById('svcList');
   if (!box) return;
+  var ex = _svcExamples((_orgInfo && _orgInfo.sector) || '');
   var row = document.createElement('div');
   row.className = 'svc-row';
   row.innerHTML =
-    '<input class="form-input svc-name" placeholder="Ej. Corte de pelo" value="' + esc(s.name || '') + '">' +
-    '<input class="form-input svc-price" list="svcPriceOpts" placeholder="Ej. 15€ · a presupuesto" value="' + esc(s.price || '') + '">' +
-    '<input class="form-input svc-dur" placeholder="Ej. 30 min" value="' + esc(s.duration || '') + '">' +
-    '<input class="form-input svc-notes" placeholder="Ej. incluye lavado y peinado" value="' + esc(s.notes || '') + '">' +
+    '<input class="form-input svc-name" placeholder="Ej. ' + esc(ex.name) + '" value="' + esc(s.name || '') + '">' +
+    '<input class="form-input svc-price" list="svcPriceOpts" placeholder="Ej. ' + esc(ex.price) + '" value="' + esc(s.price || '') + '">' +
+    '<input class="form-input svc-dur" placeholder="Ej. ' + esc(ex.dur) + '" value="' + esc(s.duration || '') + '">' +
+    '<input class="form-input svc-notes" placeholder="Ej. ' + esc(ex.notes) + '" value="' + esc(s.notes || '') + '">' +
     '<button type="button" class="btn btn-r btn-sm svc-del" title="Quitar">✕</button>';
   row.querySelector('.svc-del').onclick = function () { row.remove(); };
   box.appendChild(row);
