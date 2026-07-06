@@ -574,7 +574,8 @@ async function loadLearnedRules(){
 async function ruleAction(id,action,btn){
   if(btn) btn.disabled=true;
   try{
-    await api('/api/admin/learned-rules/'+id+'/'+action,'POST',{});
+    var resp = await api('/api/admin/learned-rules/'+id+'/'+action,{method:'POST'});
+    if(resp && resp.error) throw new Error(resp.error);
     var card=document.getElementById('lr-card-'+id); if(card) card.style.opacity='.4';
     toast(action==='approve'?'✅ Regla aprobada — se aplica en las próximas llamadas':(action==='reject'?'Regla descartada':'Actualizada'));
     setTimeout(loadLearnedRules,700);
@@ -585,7 +586,7 @@ async function ruleReplay(id,btn){
   if(btn){ btn.disabled=true; btn.textContent='Probando…'; }
   if(msg) msg.textContent='Re-jugando llamadas reales contra el prompt + la regla…';
   try{
-    var v=await api('/api/admin/learned-rules/'+id+'/replay','POST',{});
+    var v=await api('/api/admin/learned-rules/'+id+'/replay',{method:'POST'});
     if(btn){ btn.disabled=false; btn.textContent='🧪 Probar'; }
     if(!v.ok){ if(msg) msg.innerHTML='<span class="u-dim">'+_lrEsc(v.error||'No evaluable')+'</span>'; return; }
     if(!v.replayed){ if(msg) msg.innerHTML='<span class="u-dim">Sin llamadas de este sector para evaluar todavía.</span>'; return; }
