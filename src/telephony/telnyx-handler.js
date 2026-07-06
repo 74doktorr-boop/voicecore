@@ -71,10 +71,28 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
             log.call(`[${callId}] Stream started`, { streamSid, callSid, callerNumber, calledNumber, assistantId, mediaFormat: rawEncoding || '—', sttEncoding: mediaEncoding || 'alaw' });
 
-            // Resolve assistant: archivo → org (assistant_config del portal) → por número → default
+            // Contexto de SALIENTE (test/recuperación/campaña): la llamada la
+            // iniciamos NOSOTROS, así que el asistente correcto es el de ESA org.
+            // NO se puede resolver por el número llamado (es el del CLIENTE, no el
+            // de la org) → antes caía al asistente demo por defecto ("bufete de
+            // abogados"). Se consume aquí, UNA vez, y su businessId manda.
+            let outCtx = null;
+            try {
+              const { consumeOutboundContext } = require('./outbound');
+              outCtx = consumeOutboundContext(callerNumber, calledNumber);
+            } catch (e) { log.warn(`[${callId}] outbound context: ${e.message}`); }
+
+            // Resolve assistant: SALIENTE (org del contexto) → archivo → org por
+            // param → por número (pool) → por número → default.
             let assistant;
             let source = 'default';
-            if (assistantId) {
+            if (outCtx && outCtx.businessId) {
+              try {
+                assistant = await require('../assistants/org-assistant').getOrgAssistant(outCtx.businessId);
+                if (assistant) source = 'saliente:' + outCtx.businessId;
+              } catch (e) { log.warn(`[${callId}] outbound org-assistant fallo: ${e.message}`); }
+            }
+            if (!assistant && assistantId) {
               assistant = assistantManager.get(assistantId);
               if (assistant) source = 'archivo:' + assistantId;
               if (!assistant) {
@@ -123,24 +141,19 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               };
             }
 
-            // ── Saliente con propósito: si esta llamada la iniciamos NOSOTROS
-            // (test, recuperación, campaña…), el registro de outbound lo sabe.
-            // Se clona el asistente (los de org están cacheados — no mutar)
-            // añadiendo el bloque de propósito al prompt.
+            // ── Saliente con propósito: outCtx ya se consumió arriba (donde
+            // resolvió la org). Se clona el asistente (los de org están cacheados
+            // — no mutar) añadiendo el bloque de propósito al prompt.
             let direction = 'inbound';
             let campaignRef = null;
-            try {
-              const { consumeOutboundContext } = require('./outbound');
-              const outCtx = consumeOutboundContext(callerNumber, calledNumber);
-              if (outCtx) {
-                direction = 'outbound';
-                campaignRef = outCtx.ref || null;
-                if (outCtx.promptBlock) {
-                  assistant = { ...assistant, systemPrompt: (assistant.systemPrompt || '') + outCtx.promptBlock };
-                }
-                log.call(`[${callId}] Saliente con propósito: ${outCtx.purpose}${outCtx.ref ? ' (ref ' + outCtx.ref + ')' : ''}`);
+            if (outCtx) {
+              direction = 'outbound';
+              campaignRef = outCtx.ref || null;
+              if (outCtx.promptBlock) {
+                assistant = { ...assistant, systemPrompt: (assistant.systemPrompt || '') + outCtx.promptBlock };
               }
-            } catch (e) { log.warn(`[${callId}] outbound context: ${e.message}`); }
+              log.call(`[${callId}] Saliente con propósito: ${outCtx.purpose}${outCtx.ref ? ' (ref ' + outCtx.ref + ')' : ''}`);
+            }
 
             // Start pipeline session (same interface as Twilio)
             const started = await pipeline.startCall({
