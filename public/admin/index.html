@@ -128,6 +128,7 @@
     <button class="nav-tab" onclick="switchTab('analiticas',this)">📈 Analíticas</button>
     <button class="nav-tab" onclick="switchTab('auditoria',this)">🔒 Auditoría</button>
     <button class="nav-tab" onclick="switchTab('pool',this)">🔢 Pool números</button>
+    <button class="nav-tab" onclick="switchTab('mejora',this)">🧠 Mejora</button>
     <button class="nav-tab" onclick="switchTab('sistema',this)">🩺 Sistema</button>
   </nav>
 
@@ -454,6 +455,17 @@
       </div>
     </div>
 
+    <!-- Mejora: reglas aprendidas (aprobar → aplicar) -->
+    <div class="tab-panel" id="tab-mejora">
+      <div class="section-hd">
+        <div><h2>🧠 Mejora continua — reglas candidatas</h2><p>El bucle detecta patrones; tú apruebas qué se aplica al prompt. Nunca automático.</p></div>
+        <button class="refresh-btn" onclick="loadLearnedRules()">↻ Actualizar</button>
+      </div>
+      <div id="lr-candidates" class="u-mt-2"><div class="u-dim">Cargando…</div></div>
+      <div class="section-hd" style="margin-top:22px"><div><h2 class="u-text-lg">✅ Reglas activas (aplicándose)</h2></div></div>
+      <div id="lr-active" class="u-mt-2"><div class="u-dim">—</div></div>
+    </div>
+
     <!-- Sistema: diagnóstico + atribución -->
     <div class="tab-panel" id="tab-sistema">
       <div class="section-hd">
@@ -525,6 +537,60 @@ function switchTab(name,btn) {
   if(name==='flujos') loadFlows();
   if(name==='pool') loadPool();
   if(name==='sistema') loadSistema();
+  if(name==='mejora') loadLearnedRules();
+}
+
+// ── Mejora: reglas aprendidas (aprobar → aplicar) ──
+function _lrEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function lrCard(r, isCandidate){
+  var rec = r.recurrent ? '<span style="color:#e67e22;font-weight:700"> · ⟲ reincidente</span>' : '';
+  var meta = '<span class="u-dim" style="font-size:12px">'+_lrEsc(r.sector)+' · '+(r.count||1)+' llamadas</span>'+rec;
+  var actions = isCandidate
+    ? '<div id="lr-'+r.id+'-msg" class="u-dim" style="font-size:12px;margin-top:6px"></div>'+
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'+
+        '<button class="btn btn-d btn-sm" onclick="ruleReplay(\''+r.id+'\',this)">🧪 Probar</button>'+
+        '<button class="btn btn-accent btn-sm" onclick="ruleAction(\''+r.id+'\',\'approve\',this)">✓ Aprobar y aplicar</button>'+
+        '<button class="btn btn-r btn-sm" onclick="ruleAction(\''+r.id+'\',\'reject\',this)">✕ Rechazar</button>'+
+      '</div>'
+    : '<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="ruleAction(\''+r.id+'\',\'reject\',this)">Desactivar</button>';
+  return '<div class="card" style="padding:14px 16px;margin-bottom:10px" id="lr-card-'+r.id+'">'+
+    '<div style="font-size:14px;color:var(--text);font-weight:600">'+_lrEsc(r.text)+'</div>'+
+    '<div style="margin-top:4px">'+meta+'</div>'+actions+'</div>';
+}
+async function loadLearnedRules(){
+  var cbox=document.getElementById('lr-candidates'), abox=document.getElementById('lr-active');
+  cbox.innerHTML='<div class="u-dim">Cargando…</div>';
+  try{
+    var d=await api('/api/admin/learned-rules?status=candidate');
+    var rules=(d&&d.rules)||[];
+    cbox.innerHTML = rules.length ? rules.map(function(r){return lrCard(r,true);}).join('')
+      : '<div class="u-dim">No hay reglas candidatas ahora mismo. El bucle las genera los lunes, con volumen de llamadas.</div>';
+    var da=await api('/api/admin/learned-rules?status=active');
+    var act=(da&&da.rules)||[];
+    abox.innerHTML = act.length ? act.map(function(r){return lrCard(r,false);}).join('') : '<div class="u-dim">Ninguna aplicándose todavía.</div>';
+  }catch(e){ cbox.innerHTML='<div class="u-red">Error: '+_lrEsc(e.message||e)+'</div>'; }
+}
+async function ruleAction(id,action,btn){
+  if(btn) btn.disabled=true;
+  try{
+    await api('/api/admin/learned-rules/'+id+'/'+action,'POST',{});
+    var card=document.getElementById('lr-card-'+id); if(card) card.style.opacity='.4';
+    toast(action==='approve'?'✅ Regla aprobada — se aplica en las próximas llamadas':(action==='reject'?'Regla descartada':'Actualizada'));
+    setTimeout(loadLearnedRules,700);
+  }catch(e){ if(btn) btn.disabled=false; toast('Error: '+(e.message||e),'err'); }
+}
+async function ruleReplay(id,btn){
+  var msg=document.getElementById('lr-'+id+'-msg');
+  if(btn){ btn.disabled=true; btn.textContent='Probando…'; }
+  if(msg) msg.textContent='Re-jugando llamadas reales contra el prompt + la regla…';
+  try{
+    var v=await api('/api/admin/learned-rules/'+id+'/replay','POST',{});
+    if(btn){ btn.disabled=false; btn.textContent='🧪 Probar'; }
+    if(!v.ok){ if(msg) msg.innerHTML='<span class="u-dim">'+_lrEsc(v.error||'No evaluable')+'</span>'; return; }
+    if(!v.replayed){ if(msg) msg.innerHTML='<span class="u-dim">Sin llamadas de este sector para evaluar todavía.</span>'; return; }
+    var col=v.pass?'var(--green2)':'var(--red)';
+    if(msg) msg.innerHTML='<span style="color:'+col+'">'+(v.pass?'✓ No empeora':'⚠ Empeora')+'</span> · original '+v.originalAvg+' → con la regla '+v.replayAvg+' ('+v.replayed+' llamadas)';
+  }catch(e){ if(btn){btn.disabled=false;btn.textContent='🧪 Probar';} if(msg) msg.innerHTML='<span class="u-red">Error: '+_lrEsc(e.message||e)+'</span>'; }
 }
 
 // ── Sistema: diagnóstico + atribución ──
