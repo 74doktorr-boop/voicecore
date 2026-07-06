@@ -245,10 +245,15 @@ function setupBillingRoutes(app, config) {
 
                 apiKey = org.api_key;
 
-                // Actualizar org con datos de Stripe
+                // Actualizar org con datos de Stripe + SECTOR del registro.
+                // El sector va a assistant_config.sector (lo que leen el asistente
+                // y el AUDITOR). Sin esto el negocio arrancaba en 'genérico' y el
+                // aprendizaje por vertical no podía agrupar (registro.sector solo
+                // iba al flow en memoria, que muere al reiniciar).
                 await db.updateOrg(org.id, {
                   stripe_customer_id: stripeCustomerId,
                   stripe_subscription_id: subscriptionId,
+                  ...(registro.sector ? { assistant_config: { sector: registro.sector } } : {}),
                 });
 
                 // Crear asistente por defecto

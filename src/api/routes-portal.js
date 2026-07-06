@@ -1044,14 +1044,19 @@ function setupPortalRoutes(app, pipeline, config) {
         // Read-merge-write AUTORITATIVO sobre el automation_config de BD: no depender
         // del flow en memoria (puede estar parcial/obsoleto tras un reinicio).
         const { data: cur, error: readErr } = await db.client
-          .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
+          .from('organizations').select('automation_config, assistant_config').eq('id', businessId).maybeSingle();
         if (readErr) throw new Error('lectura: ' + readErr.message);
         const baseAuto   = (cur && cur.automation_config) || {};
         const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), ...(flow.automations.config || {}) } };
         const dbUpdate = { automation_config: mergedAuto };
         if (name)     dbUpdate.name     = name;
         if (language) dbUpdate.language = language;
-        // NOTA: 'sector' NO es columna de organizations (vive en automation_config.config).
+        // 'sector' NO es columna de organizations. Vive en assistant_config.sector,
+        // que es de donde lo leen el ASISTENTE, el AUDITOR y los recordatorios (7
+        // lectores). Este form lo escribía SOLO en automation_config.config.sector
+        // → nunca llegaba al auditor: todo salía 'genérico' y el aprendizaje por
+        // vertical no podía agrupar. Se escribe en la ubicación canónica.
+        if (sector) dbUpdate.assistant_config = { ...((cur && cur.assistant_config) || {}), sector };
         const { error: upErr } = await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
         if (upErr) throw new Error('escritura: ' + upErr.message);
         flow.automations = mergedAuto; // mantener la memoria en sync con BD
