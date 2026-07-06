@@ -422,6 +422,7 @@ class VoicePipeline {
       let fullResponse = '';
       let pendingToolCalls = [];
       let accumulatedText = '';
+      let spokeFirstFragment = false; // arranque temprano: la 1ª cláusula no espera al punto
 
       for await (const chunk of this.llmRouter.streamCompletion({
         callId,
@@ -439,11 +440,23 @@ class VoicePipeline {
           // Stream TTS in sentences for low latency
           const sentences = this._extractCompleteSentences(accumulatedText);
           if (sentences.complete.length > 0) {
+            spokeFirstFragment = true;
             for (const sentence of sentences.complete) {
               if (session.interrupted) break;
               await this._speakText(callId, sentence);
             }
             accumulatedText = sentences.remaining;
+          } else if (!spokeFirstFragment) {
+            // ARRANQUE TEMPRANO: para el PRIMER audio del turno no esperamos
+            // al punto — una cláusula con coma (≥24 chars) ya se puede decir.
+            // Recorta ~300-600ms de la latencia percibida ("Hola de nuevo
+            // Raúl," suena mientras el resto de la frase aún se genera).
+            const frag = accumulatedText.match(/^(.{24,}?[,;:])\s+/s);
+            if (frag) {
+              spokeFirstFragment = true;
+              await this._speakText(callId, frag[1]);
+              accumulatedText = accumulatedText.slice(frag[0].length);
+            }
           }
         }
 

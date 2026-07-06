@@ -8,6 +8,24 @@ const { Logger } = require('../utils/logger');
 
 const log = new Logger('SESSION');
 
+// ── Pacer por reloj ─────────────────────────────────────────
+// Frames de 20ms de mulaw 8kHz. LEAD_MS = colchón que mantenemos en el
+// buffer del proveedor: suficiente para absorber jitter del event loop,
+// corto para que el barge-in (que además envía 'clear') siga inmediato.
+const PACE_FRAME_MS = 20;
+const PACE_LEAD_MS = 600;
+const PACE_MAX_BURST = 100; // tope por bombeo (2s) — nunca megaráfagas
+
+/**
+ * Cuántos frames tocan enviar AHORA para ir tiempo-real + colchón por
+ * delante. PURA → testeable: un bombeo tardío devuelve más frames (se
+ * autocompensa), nunca acumula retraso.
+ */
+function pacerFramesDue(elapsedMs, framesSent, queueLen, leadMs = PACE_LEAD_MS, frameMs = PACE_FRAME_MS) {
+  const target = Math.ceil((elapsedMs + leadMs) / frameMs);
+  return Math.max(0, Math.min(target - framesSent, queueLen, PACE_MAX_BURST));
+}
+
 const COST_RATES = {
   twilio: 0.018,
   deepgram: 0.0077,
@@ -149,16 +167,23 @@ class CallSession {
 
   _startPacer() {
     if (this._pacer) return;
-    // Pre-buffer de 8 frames (160ms) para arrancar sin hueco; después,
-    // un frame cada 20ms — el ritmo real de reproducción del teléfono.
-    let burst = 8;
-    const tick = () => {
+    // Pacer por RELOJ con colchón (no por tick): el diseño anterior enviaba
+    // 1 frame de 20ms por tick de setInterval(20ms) — el jitter del event
+    // loop (5-15ms por tick en un contenedor con carga) producía huecos
+    // audibles ("se entrecorta"). Ahora cada bombeo calcula cuántos frames
+    // DEBERÍAN estar ya enviados (tiempo real + colchón) y envía los que
+    // falten de golpe: un tick tardío se autocompensa, jamás acumula hueco.
+    // El proveedor bufferiza sin problema y el barge-in sigue limpio porque
+    // clearTwilioBuffer() envía 'clear' (vacía su buffer al interrumpir).
+    this._paceT0 = Date.now();
+    this._framesSent = 0;
+    const pump = () => {
       try {
-        let n = burst > 0 ? burst : 1;
-        burst = 0;
-        while (n-- > 0 && this.outQueue.length) {
+        let due = pacerFramesDue(Date.now() - this._paceT0, this._framesSent, this.outQueue.length);
+        while (due-- > 0) {
           const chunk = this.outQueue.shift();
           this.twilioWs.send(JSON.stringify({ event: 'media', streamSid: this.streamSid, media: { payload: chunk.toString('base64') } }));
+          this._framesSent++;
         }
         if (!this.outQueue.length) {
           clearInterval(this._pacer); this._pacer = null;
@@ -174,8 +199,8 @@ class CallSession {
         log.error(`[${this.id}] Error sending audio`, { error: error.message });
       }
     };
-    this._pacer = setInterval(tick, 20);
-    tick();
+    this._pacer = setInterval(pump, 50);
+    pump();
   }
 
   clearTwilioBuffer() {
@@ -261,4 +286,4 @@ class CallSession {
   }
 }
 
-module.exports = { CallSession };
+module.exports = { CallSession, pacerFramesDue };
