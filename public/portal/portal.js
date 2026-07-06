@@ -5379,9 +5379,15 @@ function closeWizardModal() {
   checkSectorBanner();
 }
 
+var _upcomingReminders = [];
+var _calSelectedDay = null;   // 'YYYY-MM-DD' o null = todos
+
 async function loadUpcomingReminders() {
   var container = document.getElementById('reminders-upcoming-list');
   container.innerHTML = '<div class="loading-msg">Cargando...</div>';
+  var calBox = document.getElementById('reminders-calendar');
+  if (calBox) calBox.innerHTML = '';
+  _calSelectedDay = null;
 
   var res;
   try {
@@ -5402,9 +5408,91 @@ async function loadUpcomingReminders() {
     return;
   }
 
+  _upcomingReminders = res.reminders;
+  renderRemindersCalendar();
+  renderUpcomingList();
+}
+
+// ── Mini-calendario: qué saldrá solo las próximas 4 semanas ──
+function _dayKey(iso) { return new Date(iso).toLocaleDateString('sv-SE'); }
+
+function renderRemindersCalendar() {
+  var box = document.getElementById('reminders-calendar');
+  if (!box) return;
+
+  var countByDay = {};
+  _upcomingReminders.forEach(function(r) {
+    var k = _dayKey(r.scheduled_for);
+    countByDay[k] = (countByDay[k] || 0) + 1;
+  });
+
+  // 4 semanas empezando el lunes de esta semana.
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var start = new Date(today);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));   // lunes
+  var todayKey = today.toLocaleDateString('sv-SE');
+
+  var thisWeek = 0, nextWeek = 0;
+  var cells = '';
+  for (var i = 0; i < 28; i++) {
+    var d = new Date(start); d.setDate(start.getDate() + i);
+    var k = d.toLocaleDateString('sv-SE');
+    var n = countByDay[k] || 0;
+    if (n && i < 7)               thisWeek += n;
+    else if (n && i < 14)         nextWeek += n;
+    var isToday = k === todayKey;
+    var isPast  = d < today;
+    var sel     = _calSelectedDay === k;
+    var newMonth = d.getDate() === 1 || i === 0;
+    cells += '<div onclick="' + (n ? 'calSelectDay(\'' + k + '\')' : '') + '" title="' + (n ? n + ' aviso' + (n !== 1 ? 's' : '') : '') + '"' +
+      ' style="position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;' +
+      (sel ? 'background:var(--accent);color:#0a0b0d;font-weight:700;' :
+       isToday ? 'border:1px solid var(--accent);color:var(--text);' :
+       'border:1px solid ' + (n ? 'rgba(196,245,70,.35)' : 'var(--border)') + ';color:' + (isPast ? 'var(--muted)' : 'var(--text)') + ';') +
+      (n ? 'cursor:pointer;' + (sel ? '' : 'background:rgba(196,245,70,.07);') : 'opacity:' + (isPast ? '.35' : '.7') + ';') + '">' +
+      '<span>' + d.getDate() + (newMonth ? '<span style="font-size:9px;opacity:.7"> ' + d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '') + '</span>' : '') + '</span>' +
+      (n ? '<span style="font-size:10px;font-weight:800;' + (sel ? 'color:#0a0b0d' : 'color:var(--accent-l)') + '">' + n + '</span>' : '') +
+      '</div>';
+  }
+
+  var resumen = [];
+  if (thisWeek) resumen.push('<strong style="color:var(--accent-l)">' + thisWeek + '</strong> esta semana');
+  if (nextWeek) resumen.push('<strong style="color:var(--accent-l)">' + nextWeek + '</strong> la que viene');
+
+  box.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text)">📅 Lo que saldrá solo — próximas 4 semanas</div>' +
+        '<div style="font-size:12px;color:var(--dim)">' + (resumen.length ? resumen.join(' · ') : 'Sin avisos en las próximas 2 semanas') +
+          (_calSelectedDay ? ' · <span onclick="calSelectDay(null)" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">ver todos</span>' : '') + '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:10px;color:var(--muted);text-align:center;margin-bottom:4px">' +
+        ['L','M','X','J','V','S','D'].map(function(d){ return '<div>' + d + '</div>'; }).join('') + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">' + cells + '</div>' +
+    '</div>';
+}
+
+function calSelectDay(key) {
+  _calSelectedDay = (_calSelectedDay === key) ? null : key;
+  renderRemindersCalendar();
+  renderUpcomingList();
+}
+
+function renderUpcomingList() {
+  var container = document.getElementById('reminders-upcoming-list');
+  if (!container) return;
+  var shown = _calSelectedDay
+    ? _upcomingReminders.filter(function(r) { return _dayKey(r.scheduled_for) === _calSelectedDay; })
+    : _upcomingReminders;
+
+  if (!shown.length) {
+    container.innerHTML = '<div style="color:var(--dim);font-size:13px;text-align:center;padding:16px">Nada ese día.</div>';
+    return;
+  }
+
   // Group reminders by date
   var byDate = {};
-  res.reminders.forEach(function(r) {
+  shown.forEach(function(r) {
     var d = new Date(r.scheduled_for).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
     if (!byDate[d]) byDate[d] = [];
     byDate[d].push(r);
