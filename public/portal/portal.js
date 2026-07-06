@@ -3303,6 +3303,12 @@ function renderVoiceGrid() {
 
 function selectVoice(id) {
   var v = _voiceCatalog.filter(function(x) { return x.id === id; })[0];
+  // Voz personalizada (clonada): abre el flujo de clonar TU voz.
+  if (v && (v.isClone || id === 'custom-clone')) {
+    if (!_hasPremiumVoice) { previewVoice(id); toast('🔒 La voz personalizada es Premium (+10€/mes). Actívala en Facturación → Complementos.', 'info'); return; }
+    openVoiceCloneModal();
+    return;
+  }
   // Premium sin add-on: se escucha (gancho) pero no se puede fijar como voz —
   // en vez de dejar que falle al guardar (402), empujamos a activarla.
   if (v && v.tier === 'premium' && !_hasPremiumVoice) {
@@ -3318,6 +3324,83 @@ function selectVoice(id) {
     cards[i].classList.toggle('selected', cards[i].getAttribute('data-vid') === id);
   }
   previewVoice(id);
+}
+
+// ── Voz personalizada: clonar TU voz (ElevenLabs IVC) ──────────────────────
+var _cloneRec = null, _cloneChunks = [], _cloneBlob = null, _cloneTimer = null, _cloneSecs = 0;
+function _fmtSecs(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+function openVoiceCloneModal() {
+  _cloneBlob = null; _cloneChunks = []; _cloneSecs = 0;
+  openModal(
+    '<div style="max-width:460px">' +
+      '<h3 style="margin:0 0 6px;font-size:18px">🎙️ Tu voz personalizada</h3>' +
+      '<p style="font-size:13px;line-height:1.6;margin:0 0 16px;color:var(--dim)">Graba <strong style="color:var(--text)">un minuto</strong> leyendo cualquier texto con tu tono habitual, sin ruido de fondo. Tu asistente contestará con TU voz.</p>' +
+      '<div style="display:flex;align-items:center;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px 16px">' +
+        '<button id="cloneRecBtn" class="btn btn-accent btn-sm" onclick="toggleCloneRec()">● Grabar</button>' +
+        '<span id="cloneTimer" style="font-variant-numeric:tabular-nums;color:var(--dim)">0:00</span>' +
+      '</div>' +
+      '<audio id="clonePreview" controls style="display:none;width:100%;margin-top:10px"></audio>' +
+      '<div style="font-size:12px;color:var(--dim);margin:12px 0 6px;text-align:center">— o sube un archivo de audio —</div>' +
+      '<input type="file" id="cloneFile" accept="audio/*" onchange="onCloneFile(this)" style="font-size:12px;width:100%">' +
+      '<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--dim);margin-top:16px;line-height:1.5;cursor:pointer">' +
+        '<input type="checkbox" id="cloneConsent" style="margin-top:2px;flex-shrink:0"><span>Confirmo que es mi voz (o tengo permiso para usarla) y autorizo a NodeFlow a clonarla para mi asistente.</span></label>' +
+      '<div id="cloneMsg" style="font-size:12px;color:var(--dim);margin-top:10px;min-height:16px"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">' +
+        '<button class="btn btn-d btn-sm" onclick="closeModal()">Cancelar</button>' +
+        '<button id="cloneSubmit" class="btn btn-accent btn-sm" onclick="submitClone()">Clonar mi voz</button>' +
+      '</div>' +
+    '</div>'
+  );
+}
+async function toggleCloneRec() {
+  var btn = document.getElementById('cloneRecBtn'), msg = document.getElementById('cloneMsg');
+  if (_cloneRec && _cloneRec.state === 'recording') { _cloneRec.stop(); return; }
+  if (!navigator.mediaDevices || !window.MediaRecorder) { msg.textContent = 'Tu navegador no permite grabar; sube un archivo de audio.'; return; }
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _cloneChunks = []; _cloneSecs = 0;
+    _cloneRec = new MediaRecorder(stream);
+    _cloneRec.ondataavailable = function (e) { if (e.data && e.data.size) _cloneChunks.push(e.data); };
+    _cloneRec.onstop = function () {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      clearInterval(_cloneTimer);
+      _cloneBlob = new Blob(_cloneChunks, { type: (_cloneRec.mimeType || 'audio/webm').split(';')[0] });
+      var a = document.getElementById('clonePreview'); if (a) { a.src = URL.createObjectURL(_cloneBlob); a.style.display = 'block'; }
+      btn.textContent = '● Volver a grabar';
+      msg.textContent = 'Grabado ' + _fmtSecs(_cloneSecs) + '. ' + (_cloneSecs < 30 ? '⚠ Graba al menos 30 segundos.' : '¡Listo para clonar!');
+    };
+    _cloneRec.start();
+    btn.textContent = '■ Parar';
+    _cloneTimer = setInterval(function () {
+      _cloneSecs++; var t = document.getElementById('cloneTimer'); if (t) t.textContent = _fmtSecs(_cloneSecs);
+      if (_cloneSecs >= 120) { _cloneRec.stop(); } // cap 2 min
+    }, 1000);
+  } catch (e) { msg.textContent = 'No se pudo acceder al micrófono: ' + (e.message || e); }
+}
+function onCloneFile(inp) {
+  if (inp.files && inp.files[0]) {
+    _cloneBlob = inp.files[0];
+    var a = document.getElementById('clonePreview'); if (a) { a.src = URL.createObjectURL(_cloneBlob); a.style.display = 'block'; }
+    document.getElementById('cloneMsg').textContent = 'Archivo listo: ' + inp.files[0].name;
+  }
+}
+async function submitClone() {
+  var msg = document.getElementById('cloneMsg'), btn = document.getElementById('cloneSubmit');
+  if (!_cloneBlob) { msg.textContent = 'Primero graba o sube tu voz.'; return; }
+  if (!document.getElementById('cloneConsent').checked) { msg.innerHTML = '<span style="color:var(--accent-l)">Marca la casilla de consentimiento.</span>'; return; }
+  btn.disabled = true; btn.textContent = 'Clonando… (~30s)';
+  try {
+    var res = await fetch('/api/portal/voice/clone?consent=1', {
+      method: 'POST',
+      headers: { 'Content-Type': _cloneBlob.type || 'audio/webm', 'Authorization': 'Bearer ' + _token },
+      body: _cloneBlob,
+    });
+    var d = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(d.error || ('HTTP ' + res.status));
+    closeModal();
+    toast('✅ Voz clonada — tu asistente ya habla con tu voz');
+    if (typeof loadVoiceCatalog === 'function') loadVoiceCatalog();
+  } catch (e) { btn.disabled = false; btn.textContent = 'Clonar mi voz'; msg.innerHTML = '<span style="color:#e74c3c">' + (e.message || e) + '</span>'; }
 }
 
 // Muestras pregeneradas (coste cero): public/audio/voices/manifest.json.

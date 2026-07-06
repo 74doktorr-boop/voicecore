@@ -1616,6 +1616,61 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── POST /api/portal/voice/clone ──────────────────────────────
+  // Clona la voz del dueño (Instant Voice Cloning de ElevenLabs) desde una
+  // muestra de audio (cuerpo CRUDO, via express.raw). Gate: add-on voice_premium
+  // + consentimiento explícito (?consent=1). Guarda el voice_id y lo fija como
+  // voz del asistente. Una voz clonada por negocio (borra la anterior).
+  app.post('/api/portal/voice/clone', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const audio = req.body; // Buffer (express.raw registrado en server.js)
+    if (!Buffer.isBuffer(audio) || audio.length < 20000) {
+      return res.status(400).json({ error: 'Graba al menos ~30 segundos de tu voz, claros y sin ruido.' });
+    }
+    if (req.query.consent !== '1') {
+      return res.status(400).json({ error: 'Debes confirmar que es tu voz y que autorizas clonarla.' });
+    }
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'Base de datos no disponible.' });
+    try {
+      const { data: org } = await db.client.from('organizations')
+        .select('name, automation_config, assistant_config').eq('id', businessId).maybeSingle();
+      const { hasAddon } = require('../billing/addons');
+      if (!hasAddon(org, 'voice_premium')) {
+        return res.status(402).json({ error: 'La voz personalizada es Premium (+10€/mes). Actívala en Facturación → Complementos.', addonRequired: 'voice_premium' });
+      }
+      const apiKey = process.env.ELEVENLABS_API_KEY;
+      if (!apiKey) return res.status(503).json({ error: 'Clonado de voz no disponible ahora mismo.' });
+
+      const { ElevenLabsTTS } = require('../tts/elevenlabs');
+      const eleven = new ElevenLabsTTS(apiKey);
+      const prev = org?.assistant_config?.clonedVoiceId || null;
+
+      const result = await eleven.cloneVoice({
+        name: `NF · ${(org?.name || 'Negocio').slice(0, 40)}`,
+        audioBuffer: audio,
+        mimeType: req.headers['content-type'] || 'audio/webm',
+      });
+      if (!result.ok) return res.status(502).json({ error: 'No se pudo clonar la voz: ' + result.error });
+
+      // Persistir: clonedVoiceId + fijarla como voz del asistente (voice_id real
+      // de ElevenLabs → resolveElevenVoice lo respeta tal cual).
+      const mergedAC = { ...(org?.assistant_config || {}), clonedVoiceId: result.voiceId, voice: result.voiceId };
+      const { error: upErr } = await db.client.from('organizations')
+        .update({ assistant_config: mergedAC }).eq('id', businessId);
+      if (upErr) return res.status(500).json({ error: 'Voz clonada pero no se pudo guardar: ' + upErr.message });
+
+      if (prev && prev !== result.voiceId) eleven.deleteVoice(prev).catch(() => {}); // limpia el slot anterior
+      try { require('../assistants/org-assistant').invalidateOrgAssistant(businessId); } catch (_) {}
+
+      log.info(`Voz clonada para ${businessId}: ${result.voiceId}`);
+      res.json({ ok: true, voiceId: result.voiceId });
+    } catch (e) {
+      log.warn(`/api/portal/voice/clone error: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── PUT /api/portal/assistant ─────────────────────────────────
   // Portal users can edit their config but CANNOT set customPromptOverride or model.
   app.put('/api/portal/assistant', portalAuth, async (req, res) => {

@@ -173,6 +173,60 @@ class ElevenLabsTTS {
       throw error;
     }
   }
+
+  /**
+   * Clona una voz (Instant Voice Cloning) desde una muestra de audio del dueño.
+   * POST /v1/voices/add (multipart) → devuelve el voice_id nuevo. Best-effort:
+   * nunca lanza; devuelve { ok, voiceId } o { ok:false, error }.
+   * @param {object} p
+   * @param {string} p.name        Nombre de la voz (p.ej. el del negocio)
+   * @param {Buffer} p.audioBuffer Muestra de audio (unos minutos)
+   * @param {string} [p.mimeType]  'audio/webm', 'audio/mpeg', 'audio/wav'…
+   * @param {object} [deps]        { fetchImpl } para tests
+   */
+  async cloneVoice({ name, audioBuffer, mimeType = 'audio/webm', description = '' }, deps = {}) {
+    const f = deps.fetchImpl || fetch;
+    if (!audioBuffer || !audioBuffer.length) return { ok: false, error: 'Audio vacío' };
+    try {
+      const form = new FormData();
+      form.append('name', String(name || 'Voz personalizada').slice(0, 80));
+      if (description) form.append('description', String(description).slice(0, 300));
+      form.append('remove_background_noise', 'true');
+      const ext = /mpeg|mp3/.test(mimeType) ? 'mp3' : /wav/.test(mimeType) ? 'wav' : /ogg/.test(mimeType) ? 'ogg' : 'webm';
+      form.append('files', new Blob([audioBuffer], { type: mimeType }), `muestra.${ext}`);
+
+      const res = await f(`${this.baseUrl}/voices/add`, {
+        method: 'POST',
+        headers: { 'xi-api-key': this.apiKey }, // NO Content-Type: lo pone FormData con su boundary
+        body: form,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = (body && (body.detail?.message || body.detail || body.message)) || `HTTP ${res.status}`;
+        log.error(`Clonado de voz falló: ${JSON.stringify(detail).slice(0, 200)}`);
+        return { ok: false, error: typeof detail === 'string' ? detail : `HTTP ${res.status}` };
+      }
+      const voiceId = body.voice_id || body.voiceId;
+      if (!voiceId) return { ok: false, error: 'ElevenLabs no devolvió voice_id' };
+      log.info(`Voz clonada: ${voiceId} (${name})`);
+      return { ok: true, voiceId };
+    } catch (e) {
+      log.error(`Clonado de voz error: ${e.message}`);
+      return { ok: false, error: e.message };
+    }
+  }
+
+  /** Borra una voz clonada de la cuenta (DELETE /v1/voices/{id}). Best-effort. */
+  async deleteVoice(voiceId, deps = {}) {
+    const f = deps.fetchImpl || fetch;
+    if (!voiceId) return { ok: false };
+    try {
+      const res = await f(`${this.baseUrl}/voices/${encodeURIComponent(voiceId)}`, {
+        method: 'DELETE', headers: { 'xi-api-key': this.apiKey },
+      });
+      return { ok: res.ok };
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
 }
 
 module.exports = { ElevenLabsTTS };

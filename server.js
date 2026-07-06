@@ -147,6 +147,10 @@ app.use((req, res, next) => {
 // already-consumed stream for this path when the route handler runs.
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
+// Clonado de voz: la muestra de audio llega como cuerpo CRUDO (un blob grabado
+// en el navegador). Hasta 20 MB. Antes de express.json para que no lo consuma.
+app.use('/api/portal/voice/clone', express.raw({ type: ['audio/*', 'application/octet-stream'], limit: '20mb' }));
+
 // Limit JSON and URL-encoded body size to 512 KB — prevents DoS via massive POST bodies.
 // verify: guarda el body crudo en req.rawBody para verificar firmas HMAC (webhook de Meta/WA).
 app.use(express.json({
