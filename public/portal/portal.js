@@ -747,6 +747,18 @@ function showApp() {
     return;
   }
 
+  // Deep-link desde el informe semanal: /portal/?go=reglas → Seguimientos ▸ Reglas
+  var _go = new URLSearchParams(location.search).get('go');
+  if (_go === 'reglas') {
+    history.replaceState(null, '', location.pathname);
+    navigate('seguimientos');
+    setTimeout(function() {
+      var btn = document.querySelector('#sec-seguimientos .tab-btn[data-tab="reglas"]');
+      if (btn) btn.click();
+    }, 300);
+    return;
+  }
+
   navigate('dashboard');
 }
 

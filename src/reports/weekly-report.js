@@ -104,7 +104,7 @@ async function collectOrgStats(db, org, range) {
 
 // ── Email HTML ───────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ bizName, range, stats, lang }) {
+function buildEmailHtml({ bizName, range, stats, lang, suggestions = [] }) {
   const t = {
     es: {
       subject: `📊 Tu semana con NodeFlow — ${stats.totalApts} citas, ${stats.totalCalls} llamadas atendidas`,
@@ -113,6 +113,8 @@ function buildEmailHtml({ bizName, range, stats, lang }) {
       calls: 'Llamadas atendidas', minutes: 'Minutos al teléfono que te has ahorrado',
       apts: 'Citas agendadas', value: 'Valor estimado generado',
       topSvc: 'Servicio más solicitado',
+      learnedTitle: '🧠 Lo que aprendí de tus citas esta semana',
+      learnedCta: 'Revisar y ajustar',
       footer: 'Tu asistente sigue atendiendo 24/7. Nos vemos el lunes que viene.',
       cta: 'Ver mi portal',
     },
@@ -123,6 +125,8 @@ function buildEmailHtml({ bizName, range, stats, lang }) {
       calls: 'Chamadas atendidas', minutes: 'Minutos ao teléfono que aforraches',
       apts: 'Citas axendadas', value: 'Valor estimado xerado',
       topSvc: 'Servizo máis solicitado',
+      learnedTitle: '🧠 O que aprendín das túas citas esta semana',
+      learnedCta: 'Revisar e axustar',
       footer: 'O teu asistente segue atendendo 24/7. Vémonos o vindeiro luns.',
       cta: 'Ver o meu portal',
     },
@@ -133,11 +137,27 @@ function buildEmailHtml({ bizName, range, stats, lang }) {
       calls: 'Dei erantzundak', minutes: 'Telefonoan aurreztutako minutuak',
       apts: 'Hitzordu antolatuak', value: 'Sortutako balio estimatua',
       topSvc: 'Eskatuena izan den zerbitzua',
+      learnedTitle: '🧠 Aste honetan zure hitzorduetatik ikasi dudana',
+      learnedCta: 'Berrikusi eta doitu',
       footer: 'Zure laguntzaileak 24/7 jarraitzen du. Datorren astelehenera arte.',
       cta: 'Nire ataria ikusi',
     },
   }[lang] || null;
   const x = t || {};
+
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const learnedBlock = (suggestions && suggestions.length) ? `
+      <div style="background:rgba(196,245,70,0.06);border:1px solid rgba(196,245,70,0.28);border-radius:12px;padding:18px 20px;margin:28px 0 8px;">
+        <div style="font-size:14px;font-weight:800;color:#c4f546;margin-bottom:12px;">${x.learnedTitle}</div>
+        ${suggestions.map(s => `
+          <div style="padding:10px 0;border-top:1px solid rgba(196,245,70,0.15);">
+            <div style="font-size:14px;font-weight:700;color:#fff;">${esc(s.title)}</div>
+            <div style="font-size:13px;color:#a0a0b8;line-height:1.6;margin-top:3px;">${esc(s.detail)}</div>
+          </div>`).join('')}
+        <div style="text-align:center;margin-top:14px;">
+          <a href="https://nodeflow.es/portal/?go=reglas" style="display:inline-block;background:#c4f546;color:#0a0b0d;padding:10px 24px;border-radius:9px;text-decoration:none;font-weight:800;font-size:13px;">${x.learnedCta} →</a>
+        </div>
+      </div>` : '';
 
   const metric = (value, label, accent = '#a29bfe') => `
     <td style="padding:8px;text-align:center;">
@@ -165,13 +185,17 @@ function buildEmailHtml({ bizName, range, stats, lang }) {
 
       ${stats.topService ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:16px 0 0;">⭐ ${x.topSvc}: <strong style="color:#e8e8f0;">${stats.topService}</strong></p>` : ''}
 
+      ${learnedBlock}
+
       <div style="text-align:center;margin:32px 0 8px;">
         <a href="https://nodeflow.es/portal/" style="display:inline-block;background:#6c5ce7;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">${x.cta} →</a>
       </div>
 
       <p style="font-size:12px;color:#55556a;text-align:center;margin-top:28px;line-height:1.6;">${x.footer}</p>
     </div>`,
-    text: `${x.title} — ${bizName}\n${x.calls}: ${stats.totalCalls}\n${x.apts}: ${stats.totalApts}\n${x.minutes}: ${stats.totalMinutes}\n${x.value}: ${stats.estValue}€\n\nhttps://nodeflow.es/portal/`,
+    text: `${x.title} — ${bizName}\n${x.calls}: ${stats.totalCalls}\n${x.apts}: ${stats.totalApts}\n${x.minutes}: ${stats.totalMinutes}\n${x.value}: ${stats.estValue}€`
+      + ((suggestions && suggestions.length) ? `\n\n${x.learnedTitle}\n${suggestions.map(s => '- ' + s.title + ': ' + s.detail).join('\n')}\n${x.learnedCta}: https://nodeflow.es/portal/?go=reglas` : '')
+      + `\n\nhttps://nodeflow.es/portal/`,
   };
 }
 
@@ -189,7 +213,7 @@ async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
 
   let q = db.client
     .from('organizations')
-    .select('id, name, owner_email, automation_config, is_active')
+    .select('id, name, owner_email, automation_config, assistant_config, is_active')
     .eq('is_active', true);
   if (orgId) q = q.eq('id', orgId);
   const { data: orgs, error } = await q;
@@ -212,7 +236,16 @@ async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
       const to      = cfg.notifyEmail || org.owner_email;
       if (!to) { results.push({ org: org.id, sent: false, reason: 'sin email' }); continue; }
 
-      const email = buildEmailHtml({ bizName, range, stats, lang });
+      // Lo que NodeFlow aprendió de sus citas: hasta 2 sugerencias de seguimiento.
+      let suggestions = [];
+      try {
+        const rawSector = (org.assistant_config && org.assistant_config.sector) || '';
+        const sector = require('../sectors/sector-registry').resolveSector(rawSector).slug;
+        const { getSuggestions } = require('../lifecycle/followup-suggestions');
+        suggestions = (await getSuggestions(org.id, sector, { db })).slice(0, 2);
+      } catch (e) { log.warn(`Sugerencias informe (${org.id}): ${e.message}`); }
+
+      const email = buildEmailHtml({ bizName, range, stats, lang, suggestions });
 
       if (dryRun) {
         results.push({ org: org.id, sent: false, dryRun: true, to, subject: email.subject, stats });
@@ -261,4 +294,4 @@ function stopWeeklyReportCron() {
   if (_interval) { clearInterval(_interval); _interval = null; }
 }
 
-module.exports = { sendWeeklyReports, startWeeklyReportCron, stopWeeklyReportCron, lastWeekRange };
+module.exports = { sendWeeklyReports, startWeeklyReportCron, stopWeeklyReportCron, lastWeekRange, buildEmailHtml };
