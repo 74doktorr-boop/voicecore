@@ -835,6 +835,23 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // POST /api/admin/phone-pool/topup — AUTO-COMPRA por Telnyx hasta `target`
+  // números disponibles (tope de seguridad interno). Body: { target?: number }.
+  app.post('/api/admin/phone-pool/topup', adminAuth, async (req, res) => {
+    try {
+      const { isConfigured, topUpPool } = require('../telephony/telnyx-provision');
+      if (!isConfigured()) {
+        return res.status(400).json({ error: 'Auto-provisión no configurada: faltan TELNYX_API_KEY y/o TELNYX_APP_ID en el servidor.' });
+      }
+      const target = Math.max(1, Math.min(20, Number(req.body?.target) || 3));
+      const added = await topUpPool(target);
+      const stats = await getPoolStats();
+      res.json({ ok: true, added, target, stats });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // PATCH /api/admin/phone-pool/:id — cambiar status (available/retired) o notas
   app.patch('/api/admin/phone-pool/:id', adminAuth, async (req, res) => {
     const allowed = ['status', 'notes', 'prefix', 'provider'];

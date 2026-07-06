@@ -22,6 +22,34 @@ async function claimNumber(orgId) {
   const db = getDatabase();
   if (!db.enabled) return null;
 
+  let num = await _tryClaim(db, orgId);
+  if (num) return num;
+
+  // Pool vacío → AUTO-PROVISIÓN (si Telnyx está configurado). Así un alta nunca
+  // se queda bloqueada esperando a que compres números a mano. Best-effort: si
+  // no hay clave o Telnyx falla, cae al aviso al fundador de siempre.
+  try {
+    const { isConfigured, provisionNumber } = require('./telnyx-provision');
+    if (isConfigured()) {
+      const provisioned = await provisionNumber();
+      if (provisioned) {
+        await addNumber({ phoneNumber: provisioned, provider: 'telnyx', prefix: provisioned.slice(0, 6) });
+        num = await _tryClaim(db, orgId);
+        if (num) return num;
+      }
+    }
+  } catch (e) { log.warn(`auto-provisión de número falló: ${e.message}`); }
+
+  log.warn(`claimNumber: sin número libre para ${orgId} (pool vacío${isTelnyxOn() ? ' y auto-provisión sin stock/permiso' : '; auto-provisión no configurada'})`);
+  return null;
+}
+
+function isTelnyxOn() {
+  try { return require('./telnyx-provision').isConfigured(); } catch { return false; }
+}
+
+// Bucle de reclamo atómico (optimistic locking), hasta 3 reintentos por colisión.
+async function _tryClaim(db, orgId) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: rows } = await db.client
       .from('nf_phone_pool')
@@ -32,7 +60,7 @@ async function claimNumber(orgId) {
 
     if (!rows?.length) return null; // pool vacío
 
-    const { id, phone_number } = rows[0];
+    const { id } = rows[0];
 
     const { data: claimed, error } = await db.client
       .from('nf_phone_pool')
@@ -52,8 +80,6 @@ async function claimNumber(orgId) {
     }
     // Otro proceso lo reclamó — reintentamos con el siguiente
   }
-
-  log.warn(`claimNumber: pool concurrido, sin número libre para ${orgId}`);
   return null;
 }
 
