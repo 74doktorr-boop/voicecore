@@ -302,38 +302,52 @@ function setupPortalRoutes(app, pipeline, config) {
 
   // ── GET /api/portal/knowledge/unanswered ─────────────────────
   // Preguntas que el asistente no supo responder (últimos 30 días),
-  // agregadas por frecuencia. Fuente: transcript-analyzer →
-  // call_summaries.extracted_data._unanswered. Cero migraciones.
+  // agregadas por frecuencia. DOS fuentes que se refuerzan (cero migraciones):
+  //   · transcript-analyzer → call_summaries.extracted_data._unanswered
+  //   · auditor            → nf_calls.metrics.audit.info_gap
   app.get('/api/portal/knowledge/unanswered', portalAuth, async (req, res) => {
     const { businessId } = req;
     const db = getDatabase();
     if (!db.enabled) return res.json({ ok: true, questions: [] });
     try {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data, error } = await db.client
-        .from('call_summaries')
-        .select('extracted_data, created_at')
-        .eq('org_id', businessId)
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw new Error(error.message);
+      const [sumRes, callRes] = await Promise.all([
+        db.client.from('call_summaries')
+          .select('extracted_data, created_at')
+          .eq('org_id', businessId)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(300),
+        db.client.from('nf_calls')
+          .select('metrics, started_at')
+          .eq('org_id', businessId)
+          .gte('started_at', since)
+          .limit(300),
+      ]);
+      if (sumRes.error) throw new Error(sumRes.error.message);
 
       const agg = new Map();
-      for (const row of (data || [])) {
+      const addQ = (q, at) => {
+        if (typeof q !== 'string' || !q.trim()) return;
+        const key = q.trim().toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[¿?¡!.,]/g, '').replace(/\s+/g, ' ').trim();
+        if (key.length < 6) return;
+        const cur = agg.get(key) || { question: q.trim(), count: 0, lastAt: at };
+        cur.count += 1;
+        if (at > cur.lastAt) { cur.lastAt = at; cur.question = q.trim(); }
+        agg.set(key, cur);
+      };
+      for (const row of (sumRes.data || [])) {
         const qs = row.extracted_data && Array.isArray(row.extracted_data._unanswered)
           ? row.extracted_data._unanswered : [];
-        for (const q of qs) {
-          if (typeof q !== 'string' || !q.trim()) continue;
-          const key = q.trim().toLowerCase()
-            .normalize('NFD').replace(/[̀-ͯ]/g, '')
-            .replace(/[¿?¡!.,]/g, '').replace(/\s+/g, ' ').trim();
-          if (key.length < 6) continue;
-          const cur = agg.get(key) || { question: q.trim(), count: 0, lastAt: row.created_at };
-          cur.count += 1;
-          if (row.created_at > cur.lastAt) { cur.lastAt = row.created_at; cur.question = q.trim(); }
-          agg.set(key, cur);
-        }
+        for (const q of qs) addQ(q, row.created_at);
+      }
+      // El auditor apunta el dato que faltó (info_gap) aunque el analizador no
+      // lo listara como pregunta — segunda red para el mismo hueco.
+      for (const row of ((callRes && callRes.data) || [])) {
+        const gap = row.metrics && row.metrics.audit && row.metrics.audit.info_gap;
+        if (gap) addQ(String(gap), row.started_at);
       }
       const questions = [...agg.values()]
         .sort((a, b) => b.count - a.count || String(b.lastAt || '').localeCompare(String(a.lastAt || '')))

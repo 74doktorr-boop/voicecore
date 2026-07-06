@@ -138,7 +138,11 @@ function normalizeRules(sectorSlug, body = {}, existing = {}) {
   }
   if (custom.length) config._custom = custom;
 
-  // Claves reservadas: preservar descartes y fijar el tope de frecuencia.
+  // Claves reservadas: TODA clave _interna de la config existente sobrevive al
+  // guardado de reglas (marcadores de alertas, descartes…). _custom se rebuild.
+  for (const k of Object.keys(existing || {})) {
+    if (k.startsWith('_') && k !== '_custom' && config[k] === undefined) config[k] = existing[k];
+  }
   if (Array.isArray(existing._dismissedSuggestions)) config._dismissedSuggestions = existing._dismissedSuggestions;
   let cap = existing._frequencyCapDays;
   if (body.frequencyCapDays !== undefined && body.frequencyCapDays !== null && body.frequencyCapDays !== '') {

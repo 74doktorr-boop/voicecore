@@ -287,7 +287,87 @@ async function runClientHealthCheck(deps = {}) {
     } catch (e) { log.warn(`aviso de salud de clientes falló: ${e.message}`); }
   }
 
+  // Silencio = urgencia que no puede esperar al fundador: avisar al DUEÑO
+  // directamente con las instrucciones de reactivación (rate-limit 72h).
+  summary.ownerAlerts = 0;
+  if (!deps.dryRun) {
+    for (const i of issues.filter(x => x.silent)) {
+      const r = await notifySilentOwner(i.orgId, deps);
+      if (r.sent) summary.ownerAlerts++;
+    }
+  }
+
   return summary;
+}
+
+// ── Aviso DIRECTO al dueño cuando su desvío cae ──────────────────────────────
+// A 100 clientes no se puede llamar a cada uno: si un negocio queda en
+// silencio (recibía llamadas y de golpe 0), el sistema avisa al DUEÑO con
+// las instrucciones exactas para reactivar el desvío. Máx 1 aviso / 72h
+// (marcador en org_reminder_config.config._lastSilenceAlert, sin migración).
+const SILENCE_ALERT_COOLDOWN_MS = 72 * 3600 * 1000;
+
+async function notifySilentOwner(orgId, deps = {}) {
+  const db = deps.db || require('../db/database').getDatabase();
+  const sendEmail = deps.sendEmail || require('../notifications/email').sendEmail;
+  const now = deps.now || Date.now();
+  if (!db.enabled) return { sent: false, reason: 'no_db' };
+  try {
+    // Rate limit: no insistir cada día si ya se le avisó.
+    const { data: cfgRow } = await db.client.from('org_reminder_config')
+      .select('config').eq('org_id', orgId).maybeSingle();
+    const cfg = (cfgRow && cfgRow.config) || {};
+    const last = cfg._lastSilenceAlert ? new Date(cfg._lastSilenceAlert).getTime() : 0;
+    if (last && now - last < SILENCE_ALERT_COOLDOWN_MS) return { sent: false, reason: 'cooldown' };
+
+    // Dueño + número NodeFlow asignado (para el código de desvío exacto).
+    const { data: org } = await db.client.from('organizations')
+      .select('name, owner_email, automation_config').eq('id', orgId).maybeSingle();
+    if (!org) return { sent: false, reason: 'no_org' };
+    const c = (org.automation_config && org.automation_config.config) || {};
+    const to = c.notifyEmail || org.owner_email;
+    if (!to) return { sent: false, reason: 'no_email' };
+    const bizName = c.name || org.name || 'tu negocio';
+
+    let nfNumber = null;
+    try {
+      const { data: pool } = await db.client.from('nf_phone_pool')
+        .select('phone_number').eq('org_id', orgId).eq('status', 'assigned').maybeSingle();
+      nfNumber = pool && pool.phone_number;
+    } catch (_) {}
+
+    const codes = nfNumber
+      ? `<div style="background:#f6f8f6;border:1px solid #e3e8e3;border-radius:10px;padding:14px 16px;margin:14px 0">
+           <div style="font-weight:700;font-size:13px;margin-bottom:6px">Reactivar el desvío desde tu móvil del negocio:</div>
+           <div style="font-family:monospace;font-size:15px">**21*${_esc(nfNumber)}#</div>
+           <div style="color:#888;font-size:12px;margin-top:6px">(desvía todas las llamadas; para desviar solo cuando no contestas: <span style="font-family:monospace">**61*${_esc(nfNumber)}#</span>)</div>
+         </div>`
+      : '';
+
+    await sendEmail({
+      to,
+      subject: `⚠️ ${bizName}: tu asistente no recibe llamadas desde hace 2 días`,
+      text: `Tu asistente de NodeFlow no recibe llamadas desde hace 2 días. Lo más probable es que el desvío de tu teléfono se haya desactivado.${nfNumber ? ` Para reactivarlo marca **21*${nfNumber}# desde el móvil del negocio.` : ''} Si lo desactivaste a propósito, ignora este aviso. ¿Dudas? Responde a este email.`,
+      html: `
+        <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a2e">
+          <h2 style="margin:0 0 8px">⚠️ Tu asistente no recibe llamadas</h2>
+          <p style="font-size:14px;line-height:1.6;color:#444">Hola — somos NodeFlow. El asistente de <strong>${_esc(bizName)}</strong> venía atendiendo llamadas y lleva <strong>2 días sin recibir ninguna</strong>. Lo más habitual: el desvío del teléfono se desactivó sin querer (pasa al reiniciar el móvil o cambiar de operador).</p>
+          ${codes}
+          <p style="font-size:13px;color:#666;line-height:1.6">Haz una llamada de prueba a tu número después de marcar el código: debería contestar tu asistente. Si lo desactivaste a propósito, ignora este aviso. Y si algo no cuadra, responde a este email y lo miramos.</p>
+          <p style="color:#999;font-size:12px;margin-top:18px">NodeFlow — tu recepcionista 24/7</p>
+        </div>`,
+    });
+
+    // Marca el aviso (merge para no pisar reglas/otras reservadas).
+    cfg._lastSilenceAlert = new Date(now).toISOString();
+    await db.client.from('org_reminder_config')
+      .upsert({ org_id: orgId, config: cfg, updated_at: new Date(now).toISOString() }, { onConflict: 'org_id' });
+    log.info(`Aviso de silencio enviado al dueño de ${orgId} (${to})`);
+    return { sent: true };
+  } catch (e) {
+    log.warn(`notifySilentOwner(${orgId}): ${e.message}`);
+    return { sent: false, reason: e.message };
+  }
 }
 
 // ── Cron: cada día 09:30 Madrid (tras el ciclo de mejora) ────────────────────
@@ -310,4 +390,4 @@ function startClientHealthCron() {
 }
 function stopClientHealthCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
-module.exports = { computeClientHealth, prescribe, runClientHealthCheck, startClientHealthCron, stopClientHealthCron };
+module.exports = { computeClientHealth, prescribe, notifySilentOwner, runClientHealthCheck, startClientHealthCron, stopClientHealthCron };
