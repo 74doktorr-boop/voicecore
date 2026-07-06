@@ -13,8 +13,12 @@ const log = new Logger('SESSION');
 // buffer del proveedor: suficiente para absorber jitter del event loop,
 // corto para que el barge-in (que además envía 'clear') siga inmediato.
 const PACE_FRAME_MS = 20;
-const PACE_LEAD_MS = 600;
+// 900ms: una pausa de GC/CPU compartida mayor que el colchón deja hueco
+// audible aunque el catch-up reponga frames (corte reportado 2026-07-07
+// con colchón 600). El barge-in no sufre: 'clear' vacía el buffer remoto.
+const PACE_LEAD_MS = Number(process.env.PACE_LEAD_MS) || 900;
 const PACE_MAX_BURST = 100; // tope por bombeo (2s) — nunca megaráfagas
+const PACE_LATE_MS = 150;   // bombeo que llega >150ms tarde = stall que se registra
 
 /**
  * Cuántos frames tocan enviar AHORA para ir tiempo-real + colchón por
@@ -177,8 +181,20 @@ class CallSession {
     // clearTwilioBuffer() envía 'clear' (vacía su buffer al interrumpir).
     this._paceT0 = Date.now();
     this._framesSent = 0;
+    this._lastPumpAt = Date.now();
     const pump = () => {
       try {
+        // Detector de stalls: si este bombeo llega mucho más tarde de lo que
+        // toca (GC, CPU compartida), el hueco YA sonó en el teléfono aunque
+        // el catch-up reponga los frames. Se registra para tener EVIDENCIA
+        // ("se entrecorta") en metrics, no sensaciones.
+        const sincePump = Date.now() - this._lastPumpAt;
+        if (sincePump > 50 + PACE_LATE_MS) {
+          this.metrics.pacerStalls = (this.metrics.pacerStalls || 0) + 1;
+          this.metrics.pacerWorstStallMs = Math.max(this.metrics.pacerWorstStallMs || 0, sincePump - 50);
+          log.warn(`[${this.id}] Pacer stall: bombeo ${sincePump}ms tarde (colchón ${PACE_LEAD_MS}ms)`);
+        }
+        this._lastPumpAt = Date.now();
         let due = pacerFramesDue(Date.now() - this._paceT0, this._framesSent, this.outQueue.length);
         while (due-- > 0) {
           const chunk = this.outQueue.shift();
