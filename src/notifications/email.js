@@ -603,46 +603,52 @@ async function sendActivacion(registro, numeroNodeflow) {
       </td></tr>
     </table>
 
-    <!-- Cómo activar el desvío -->
-    <p style="font-size:15px;font-weight:700;color:#0f0f23;margin:0 0 12px;">📲 Cómo activar el desvío en 30 segundos</p>
+    <!-- Cómo activar el desvío — TAP TO DIAL -->
+    <p style="font-size:15px;font-weight:700;color:#0f0f23;margin:0 0 6px;">📲 Actívalo con un toque</p>
     <p style="font-size:14px;color:#475569;margin:0 0 16px;line-height:1.6;">
-      Desde tu teléfono de empresa, marca el código de tu operador y todas las llamadas irán directamente a tu asistente IA:
+      Abre este email <strong>desde el móvil de tu negocio</strong> y pulsa un botón. Se abrirá tu marcador con el código ya puesto: solo dale a llamar y oirás un tono de confirmación.
     </p>
 
-    <!-- Tabla operadores -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;margin:0 0 20px;border:1px solid #e8e8f0;">
-      <tr style="background:#f8f8fb;">
-        <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Operador</td>
-        <td style="padding:10px 14px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Código a marcar</td>
-      </tr>
-      ${[
-        ['Movistar / O2',    `**21*${numLimpio}#`],
-        ['Vodafone',         `**21*${numLimpio}#`],
-        ['Orange',           `*21*${numLimpio}#`],
-        ['Jazztel',          `**21*${numLimpio}#`],
-        ['Yoigo',            `**21*${numLimpio}#`],
-        ['MásMóvil / Pepephone', `**21*${numLimpio}#`],
-        ['Euskaltel',        `**21*${numLimpio}#`],
-        ['R (Galicia)',      `**21*${numLimpio}#`],
-      ].map(([op, code], i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f8fb'};">
-        <td style="padding:10px 14px;font-size:14px;color:#334155;">${op}</td>
-        <td style="padding:10px 14px;font-family:monospace;font-size:14px;font-weight:700;color:#7c3aed;">${code}</td>
-      </tr>`).join('')}
+    <!-- Opción RECOMENDADA: condicional (**004*) -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;">
+      <tr><td style="background:#faf5ff;border:1.5px solid #7c3aed;border-radius:12px;padding:16px 18px;">
+        <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Recomendado</div>
+        <div style="font-size:15px;font-weight:700;color:#0f0f23;margin-bottom:2px;">Cuando no llegues a cogerlo</div>
+        <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:12px;">Tu teléfono suena primero; el asistente coge solo las que no puedas atender (comunicando, sin contestar o sin cobertura). No pierdes ninguna llamada.</div>
+        <a href="tel:**004*${numLimpio}%23" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;text-align:center;font-size:15px;font-weight:700;padding:13px;border-radius:10px;">Activar el desvío →</a>
+      </td></tr>
     </table>
 
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border-left:4px solid #059669;border-radius:0 10px 10px 0;margin:0 0 24px;">
+    <!-- Opción: todas (**21*) -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+      <tr><td style="background:#ffffff;border:1.5px solid #e8e8f0;border-radius:12px;padding:16px 18px;">
+        <div style="font-size:15px;font-weight:700;color:#0f0f23;margin-bottom:2px;">Todas las llamadas al asistente</div>
+        <div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:12px;">El asistente atiende TODO desde el primer tono. Ideal si no quieres que suene tu teléfono.</div>
+        <a href="tel:**21*${numLimpio}%23" style="display:block;background:#ffffff;color:#7c3aed;border:1.5px solid #7c3aed;text-decoration:none;text-align:center;font-size:15px;font-weight:700;padding:12px;border-radius:10px;">Activar el desvío de todas →</a>
+      </td></tr>
+    </table>
+
+    <!-- Fallback manual -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;margin:0 0 8px;border:1px solid #e8e8f0;">
+      <tr style="background:#f8f8fb;"><td colspan="2" style="padding:9px 14px;font-size:12px;font-weight:700;color:#64748b;">¿El botón no abre el marcador? Márcalo a mano desde tu teléfono de empresa:</td></tr>
+      <tr><td style="padding:9px 14px;font-size:13px;color:#334155;">Cuando no llegues</td><td style="padding:9px 14px;font-family:monospace;font-size:14px;font-weight:700;color:#7c3aed;">**004*${numLimpio}#</td></tr>
+      <tr style="background:#f8f8fb;"><td style="padding:9px 14px;font-size:13px;color:#334155;">Todas las llamadas</td><td style="padding:9px 14px;font-family:monospace;font-size:14px;font-weight:700;color:#7c3aed;">**21*${numLimpio}#</td></tr>
+    </table>
+    <p style="font-size:12px;color:#94a3b8;margin:0 0 22px;">Funciona en Movistar, Vodafone, Orange, Yoigo, MásMóvil, Euskaltel, R y demás operadores.</p>
+
+    <!-- Desactivar -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border-left:4px solid #059669;border-radius:0 10px 10px 0;margin:0 0 20px;">
       <tr><td style="padding:14px 18px;">
-        <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#14532d;">Para desactivar el desvío</p>
-        <p style="margin:0;font-size:13px;color:#166534;font-family:monospace;">##21#</p>
-        <p style="margin:4px 0 0;font-size:12px;color:#15803d;">Marca este código desde tu teléfono cuando quieras recibir las llamadas tú directamente.</p>
+        <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#14532d;">Para desactivarlo cuando quieras</p>
+        <p style="margin:0 0 10px;font-size:12px;color:#15803d;">Vuelves a recibir tú las llamadas al instante. Pulsa el botón o marca <span style="font-family:monospace;font-weight:700;">##002#</span> (borra cualquier desvío).</p>
+        <a href="tel:%23%23002%23" style="display:inline-block;background:#ffffff;color:#059669;border:1px solid #059669;text-decoration:none;font-size:13px;font-weight:700;padding:7px 14px;border-radius:8px;">Desactivar el desvío</a>
       </td></tr>
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:0 10px 10px 0;margin:0 0 28px;">
       <tr><td style="padding:14px 18px;">
         <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#78350f;">⚠️ Si tienes fijo de empresa (DECT / centralita)</p>
-        <p style="margin:0;font-size:13px;color:#92400e;line-height:1.6;">El desvío se configura desde el menú de la centralita, no desde el teléfono. Escríbenos y te ayudamos en 5 minutos.</p>
+        <p style="margin:0;font-size:13px;color:#92400e;line-height:1.6;">El desvío se configura desde el menú de la centralita, no desde el teléfono. Escríbenos por WhatsApp y lo dejamos listo en 5 minutos.</p>
       </td></tr>
     </table>
 
@@ -695,10 +701,12 @@ async function sendActivacion(registro, numeroNodeflow) {
     ``,
     `Tu número NodeFlow: ${numMostrar}`,
     ``,
-    `CÓMO ACTIVAR EL DESVÍO:`,
-    `Desde tu teléfono, marca:`,
-    `  **21*${numLimpio}#`,
-    `(funciona en Movistar, Vodafone, Orange, Jazztel, Yoigo, MásMóvil, Euskaltel)`,
+    `CÓMO ACTIVAR EL DESVÍO (desde el móvil de tu negocio):`,
+    `  · Recomendado — cuando no llegues a cogerlo:  **004*${numLimpio}#`,
+    `    (tu teléfono suena primero; el asistente coge lo que no atiendas)`,
+    `  · Todas las llamadas al asistente:            **21*${numLimpio}#`,
+    `Funciona en Movistar, Vodafone, Orange, Yoigo, MásMóvil, Euskaltel, R…`,
+    `Para desactivarlo: ##002#`,
     ``,
     `Para desactivar: ##21#`,
     ``,
