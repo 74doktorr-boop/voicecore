@@ -80,6 +80,39 @@ class CartesiaTTS {
   }
 
   /**
+   * Síntesis HI-FI para la DEMO (no para llamadas): PCM 44.1 kHz.
+   * Las llamadas van a 8 kHz porque la línea telefónica no da más — pero
+   * el preview del selector de voces se escucha en el navegador, y servir
+   * ahí audio telefónico hacía sonar "a microondas" las voces incluidas.
+   * @returns {{ pcm: Buffer, sampleRate: number }}
+   */
+  async synthesizeHiFi({ callId, text, voice = 'a0e99841-438c-4a64-b679-ae501e7d6091', language = 'es' }) {
+    if (!text || !text.trim()) return { pcm: Buffer.alloc(0), sampleRate: 44100 };
+    const response = await fetch(`${this.baseUrl}/tts/bytes`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': this.apiKey,
+        'Cartesia-Version': '2024-06-10',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model_id: this.defaultModelId,
+        transcript: text,
+        voice: { mode: 'id', id: voice },
+        language,
+        output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 44100 },
+      }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cartesia API error: ${response.status} — ${errorText}`);
+    }
+    const pcm = Buffer.from(await response.arrayBuffer());
+    log.tts(`[${callId}] Cartesia hi-fi preview: ${Math.round(pcm.length / (44100 * 2) * 1000)}ms de audio`);
+    return { pcm, sampleRate: 44100 };
+  }
+
+  /**
    * Stream TTS with Cartesia SSE streaming endpoint
    * Ultra-low latency: first audio chunk in 40-90ms
    */

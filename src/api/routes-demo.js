@@ -207,7 +207,21 @@ function setupDemoRoutes(app, ttsRouter) {
       //    el atajo de abajo.
       const { resolveVoiceEntry } = require('../tts/voice-catalog');
       const entry = resolveVoiceEntry(voice);
-      if (entry && (entry.provider === 'cartesia' || entry.provider === 'local')) {
+      if (entry && entry.provider === 'cartesia') {
+        // HI-FI (44.1 kHz): el preview se escucha en el navegador; el audio
+        // telefónico de 8 kHz hacía sonar "a microondas" las voces incluidas.
+        try {
+          const cartesia = ttsRouter.providers?.get?.('cartesia')?.instance;
+          if (!cartesia) throw new Error('cartesia no disponible');
+          const { pcm, sampleRate } = await cartesia.synthesizeHiFi({ callId, text, voice: entry.providerVoiceId, language });
+          const wav = wavFromPcm16(pcm, sampleRate);
+          ttsCachePut(cacheKey, wav, 'audio/wav', 'cartesia');
+          res.set('Content-Type', 'audio/wav');
+          res.set('X-TTS-Provider', 'cartesia');
+          return res.send(wav);
+        } catch (e) { log.warn(`Demo TTS: cartesia hi-fi falló (${e.message}) — fallback`); }
+      }
+      if (entry && entry.provider === 'local') {
         try {
           const mulaw = await ttsRouter.synthesize({ callId, text, voice: entry.providerVoiceId, provider: entry.provider, strategy: 'specific', language });
           const { mulawToPcm } = require('../utils/audio');
