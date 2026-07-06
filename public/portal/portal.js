@@ -1124,6 +1124,29 @@ function dashFeed(list) {
 }
 
 // Checklist de primeros pasos (solo cuentas sin llamadas aún)
+// Aviso ACTIVO de Google Calendar: si el asistente agenda citas (modo 'citas')
+// pero el calendario NO está conectado, las citas no llegan a la agenda real del
+// dueño — viven solo en el portal = fallo silencioso. Antes era un opt-in
+// enterrado en "Apps"; ahora se pide en el dashboard hasta conectar u ocultar.
+function dashCalendarNudge(cal, mode) {
+  if (!cal || !cal.enabled || cal.connected) return '';   // no aplica o ya conectado
+  if (mode === 'contacto') return '';                      // no agenda citas → no molestar
+  if (localStorage.getItem('nf_cal_nudge_dismissed') === '1') return '';
+  return '<div class="card" style="margin-bottom:20px;border-color:rgba(66,133,244,.4);background:rgba(66,133,244,.06)">' +
+    '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+      '<div style="font-size:26px;line-height:1">📅</div>' +
+      '<div style="flex:1;min-width:220px">' +
+        '<div style="font-weight:800;font-size:14px;margin-bottom:2px">Conecta tu Google Calendar</div>' +
+        '<div style="font-size:12.5px;color:var(--dim);line-height:1.6">Tu asistente agenda citas, pero sin conectar el calendario <strong style="color:var(--text)">no aparecerán en tu agenda</strong> — solo aquí. Conéctalo y cada cita se crea sola en tu Google Calendar.</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<button class="btn btn-accent btn-sm" onclick="connectGoogleCalendar(this)">Conectar ahora</button>' +
+        '<button class="btn btn-d btn-sm" onclick="this.closest(\'.card\').style.display=\'none\';localStorage.setItem(\'nf_cal_nudge_dismissed\',\'1\')">Ahora no</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function dashSetup(d) {
   if (localStorage.getItem('nf_banner_dismissed') === '1') return '';
   if ((d.totalCalls || 0) !== 0) return '';
@@ -1275,7 +1298,7 @@ async function loadDashboard() {
 
   // Contadores accionables + consumo de minutos (en paralelo, tolerante a fallos)
   var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
-  var usage = null;
+  var usage = null, cal = null, asisMode = 'citas';
   try {
     var r = await Promise.all([
       api('/api/portal/missed-opportunities').catch(function () { return {}; }),
@@ -1283,6 +1306,8 @@ async function loadDashboard() {
       api('/api/portal/waitlist').catch(function () { return {}; }),
       api('/api/portal/knowledge/unanswered').catch(function () { return {}; }),
       api('/api/billing/usage').catch(function () { return null; }),
+      api('/api/calendar/status').catch(function () { return null; }),
+      api('/api/portal/assistant').catch(function () { return null; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
@@ -1290,12 +1315,15 @@ async function loadDashboard() {
     var dismissed = _kbDismissedSet();
     act.unanswered = (r[3].questions || []).filter(function (x) { return !dismissed.has(_kbQKey(x.question)); }).length;
     usage = r[4];
+    cal = r[5];
+    asisMode = (r[6] && r[6].config && r[6].config.mode) || 'citas';
   } catch (e) {}
 
   sec.innerHTML =
     dashHero(d) +
     dashMinutes(usage) +
     dashSetup(d) +
+    dashCalendarNudge(cal, asisMode) +
     dashRecos(act) +
     dashContinue() +
     dashQuick(act) +
