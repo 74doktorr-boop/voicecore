@@ -43,9 +43,25 @@
     "asistente-ia-fisioterapia-donostia",
     "recepcionista-ia-fisioterapia-vitoria",
     "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
-    "recepcionista-ia-veterinaria-bilbao"
+    "recepcionista-ia-veterinaria-bilbao",
+    "asistente-ia-gimnasio-donostia"
   ],
   "posts": [
+    {
+      "slug": "asistente-ia-gimnasio-donostia",
+      "title": "Asistente IA para Gimnasios en Donostia: Automatiza y Crece",
+      "metaTitle": "Asistente IA Gimnasio Donostia: Automatiza y Aumenta",
+      "description": "Descubre cómo un asistente IA en tu gimnasio de Donostia puede automatizar inscripciones y más. Mejora tu ROI hoy. ¡Conoce NodeFlow!",
+      "date": "2026-07-06",
+      "keywords": [
+        "asistente IA gimnasio Donostia",
+        "recepcionista virtual centro deportivo San Sebastián",
+        "automatizar inscripciones gimnasio Gipuzkoa"
+      ],
+      "sector": "gimnasios",
+      "city": "donostia",
+      "readingMinutes": 6
+    },
     {
       "slug": "recepcionista-ia-veterinaria-bilbao",
       "title": "Recepcionista IA para Clínicas Veterinarias en Bilbao",
