@@ -1664,6 +1664,17 @@ function setupPortalRoutes(app, pipeline, config) {
       try { require('../assistants/org-assistant').invalidateOrgAssistant(businessId); } catch (_) {}
 
       log.info(`Voz clonada para ${businessId}: ${result.voiceId}`);
+
+      // Aviso al FUNDADOR (opción A: automático pero en el loop). Best-effort,
+      // no bloquea la respuesta al cliente.
+      try {
+        const bizName = org?.name || 'Un negocio';
+        require('../notifications/founder').notifyFounder({
+          subject: `🎙️ ${bizName} ha clonado su voz`,
+          text: `🎙️ *Voz clonada — NodeFlow*\n━━━━━━━━━━━━\n${bizName} acaba de clonar su voz.\nvoice_id: ${result.voiceId}\n\nRevisa la calidad: llama a su asistente de prueba o escúchala desde su portal. Si no convence, puede volver a grabar.`,
+        }).catch(() => {});
+      } catch (_) {}
+
       res.json({ ok: true, voiceId: result.voiceId });
     } catch (e) {
       log.warn(`/api/portal/voice/clone error: ${e.message}`);
