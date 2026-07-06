@@ -475,6 +475,10 @@ function setupRoutes(app, pipeline, assistantManager, config) {
         status = 'degraded'; // el monitor alerta por status!=='ok'; mantenemos HTTP 200
       }                       // para NO provocar reinicios en bucle si la BD está caída
     }
+    // Redis: 'connected' si REDIS_URL está y responde (rate-limit multi-réplica);
+    // 'memory' si no (una sola instancia). Sirve para verificar el alta de Redis.
+    let redis = 'memory';
+    try { if (require('../utils/rate-store').isRedisEnabled()) redis = 'connected'; } catch (_) {}
     res.json({
       status,
       version: '2.0.0',
@@ -483,6 +487,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       activeCalls: pipeline.getActiveCalls().length,
       assistants: assistantManager.list().length,
       database,
+      redis,
     });
   });
 
