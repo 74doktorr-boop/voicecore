@@ -2268,12 +2268,20 @@ function setupPortalRoutes(app, pipeline, config) {
       const sector = await _resolveOrgSector(req.businessId);
       const orgConfig = await loadOrgConfig(db, req.businessId);
       const { resolveCap } = require('../lifecycle/frequency-cap');
+      // Qué canales pueden ENVIAR hoy de verdad (WhatsApp aún en activación,
+      // SMS opcional…) — el dueño debe saber por dónde saldrían sus avisos.
+      const channelsLive = {
+        whatsapp: require('../notifications/client-whatsapp').isConfigured(),
+        sms: require('../notifications/sms').isConfigured(),
+        email: !!process.env.RESEND_API_KEY,
+      };
       res.json({
         ok: true,
         sector,
         sectorLabel: (SECTOR_CATALOG[sector] && SECTOR_CATALOG[sector].label) || null,
         rules: buildRulesView(sector, orgConfig),
         channels: CHANNELS,
+        channelsLive,
         customTriggers: CUSTOM_TRIGGERS.map(t => ({ value: t, label: TRIGGERS[t] })),
         frequencyCapDays: resolveCap(orgConfig),
       });

@@ -4905,6 +4905,19 @@ async function loadFollowupRules() {
   var defaults = (res.rules || []).filter(function(r){ return !r.custom; });
   var custom   = (res.rules || []).filter(function(r){ return r.custom; });
 
+  // Aviso honesto de canales: qué puede enviar HOY de verdad.
+  var chLive = res.channelsLive || {};
+  var chNotice = '';
+  if (chLive.whatsapp === false) {
+    var fallbacks = [chLive.sms && 'SMS', chLive.email && 'email'].filter(Boolean);
+    chNotice = '<div style="display:flex;gap:8px;align-items:flex-start;background:rgba(253,203,110,.08);border:1px solid rgba(253,203,110,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px">' +
+      '<span>📡</span><div style="font-size:12px;color:var(--dim);line-height:1.5">' +
+      (fallbacks.length
+        ? '<strong style="color:var(--text)">WhatsApp está en activación</strong> — mientras tanto, tus seguimientos saldrán por ' + fallbacks.join(' y ') + '. En cuanto WhatsApp esté activo, pasarán solos a WhatsApp.'
+        : '<strong style="color:var(--text)">Ningún canal de envío está activo todavía</strong> — los avisos que venzan ahora no podrán entregarse. Contacta con NodeFlow para activar WhatsApp antes de que venza el primero.') +
+      '</div></div>';
+  }
+
   var head =
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px">' +
       '<div>' +
@@ -4914,6 +4927,7 @@ async function loadFollowupRules() {
       '<button class="btn btn-accent btn-sm" onclick="saveFollowupRules(this)">Guardar cambios</button>' +
     '</div>' +
     '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>' +
+    chNotice +
     '<div id="rules-suggestions"></div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);margin-bottom:18px">' +
       '<span style="font-size:16px">🛡️</span>' +

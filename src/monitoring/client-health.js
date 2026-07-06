@@ -27,6 +27,8 @@ const BROKEN_WARN = 0.25;
 const SCORE_CRIT  = 45;
 const SCORE_WARN  = 60;
 const HALLUC_WARN = 40;        // % de alucinación
+const LAT_WARN_MS = 1500;      // latencia media por turno (charter apunta a <700)
+const LAT_MIN_TURNS = 5;       // no juzgues latencia con menos turnos
 const SILENCE_MIN_PRIOR = 3;   // tenía ≥3 llamadas en la ventana previa…
 const RECENT_MS = 2 * 24 * 3600 * 1000; // …y 0 en las últimas 48h → silencio
 
@@ -66,9 +68,20 @@ function computeClientHealth(rows, nowMs) {
       scored: 0, scoreSum: 0, hallucinated: 0, minutes: 0,
       causes: { instant: 0, no_conversation: 0, cut_mid: 0 },
       infoGaps: {}, problems: {},
+      latSum: 0, latTurns: 0, llmSum: 0, ttsSum: 0, sttSum: 0, toolSum: 0,
     });
     o.calls++;
     if (_isBroken(r)) { o.broken++; o.causes[_brokenCause(r)]++; }
+
+    // Latencia por turno (metrics.turns[].totalTime) + desglose por componente.
+    const m = r.metrics || {};
+    for (const t of (Array.isArray(m.turns) ? m.turns : [])) {
+      if (Number.isFinite(t.totalTime)) { o.latSum += t.totalTime; o.latTurns++; }
+    }
+    o.llmSum  += Number(m.totalLlmTime)  || 0;
+    o.ttsSum  += Number(m.totalTtsTime)  || 0;
+    o.sttSum  += Number(m.totalSttTime)  || 0;
+    o.toolSum += Number(m.totalToolTime) || 0;
     const t = new Date(r.started_at).getTime();
     if (now && t >= now - RECENT_MS) o.recent++; else if (now) o.prior++;
     o.minutes += (Number(r.duration_ms) || 0) / 60000;
@@ -100,6 +113,7 @@ function computeClientHealth(rows, nowMs) {
     o.brokenRate = o.calls ? o.broken / o.calls : 0;
     o.avgScore = o.scored ? Math.round(o.scoreSum / o.scored) : null;
     o.hallucinationRate = o.scored ? Math.round((o.hallucinated / o.scored) * 100) : null;
+    o.avgTurnMs = o.latTurns ? Math.round(o.latSum / o.latTurns) : null;
 
     // Silencio: recibía llamadas y de golpe 0 en las últimas 48h.
     const silent = now && o.prior >= SILENCE_MIN_PRIOR && o.recent === 0;
@@ -111,6 +125,7 @@ function computeClientHealth(rows, nowMs) {
     else if (o.brokenRate >= BROKEN_WARN && o.calls >= 2) { verdict = 'warning'; reasons.push(`${Math.round(o.brokenRate * 100)}% de llamadas rotas`); }
     else if (o.scored >= MIN_CALLS_QUALITY && o.avgScore < SCORE_WARN) { verdict = 'warning'; reasons.push(`calidad floja (score ${o.avgScore})`); }
     else if (o.scored >= MIN_CALLS_QUALITY && o.hallucinationRate >= HALLUC_WARN) { verdict = 'warning'; reasons.push(`alucina el ${o.hallucinationRate}% de las veces`); }
+    else if (o.latTurns >= LAT_MIN_TURNS && o.avgTurnMs >= LAT_WARN_MS) { verdict = 'warning'; reasons.push(`va lento (${(o.avgTurnMs / 1000).toFixed(1)}s por turno)`); }
 
     if (silent) { // el silencio es lo más urgente: el negocio no recibe NADA
       verdict = 'critical';
@@ -161,6 +176,22 @@ function prescribe(o, ctx = {}) {
   if (c.cut_mid > 0) {
     out.push({ icon: '✂️', action: `${c.cut_mid} llamada(s) cortadas a mitad — mira esas llamadas en el Admin`,
       detail: 'Conversación iniciada que murió de forma anormal: timeout, error del proveedor o cliente desesperado. El transcript dice cuál de los tres.' });
+  }
+
+  if ((o.latTurns || 0) >= 5 && (o.avgTurnMs || 0) >= 1500) {
+    // ¿Quién es el lento? El desglose por componente lo dice.
+    const parts = { LLM: o.llmSum || 0, TTS: o.ttsSum || 0, STT: o.sttSum || 0, herramientas: o.toolSum || 0 };
+    const total = Object.values(parts).reduce((a, b) => a + b, 0) || 1;
+    const [worst, worstMs] = Object.entries(parts).sort((a, b) => b[1] - a[1])[0];
+    const pct = Math.round((worstMs / total) * 100);
+    const fix = {
+      LLM: 'recorta el prompt (base de conocimiento al grano) o valora un modelo más rápido para este negocio',
+      TTS: 'revisa la voz elegida: las premium tienen más latencia; comprueba también la salud de ElevenLabs/Cartesia en diagnostics',
+      STT: 'revisa Deepgram en diagnostics — la transcripción está tardando de más',
+      herramientas: 'una integración va lenta (agenda/calendario): mira qué tool tarda en los transcripts',
+    }[worst];
+    out.push({ icon: '🐢', action: `Va lento: ${(o.avgTurnMs / 1000).toFixed(1)}s de media por turno — el ${pct}% se va en ${worst}`,
+      detail: `Cada segundo de silencio cuesta colgados (el objetivo interno es <0,7s). Dominante: ${worst}. Acción: ${fix}.` });
   }
 
   const gaps = _top(o.infoGaps, 3);
@@ -245,6 +276,7 @@ async function runClientHealthCheck(deps = {}) {
     calls: i.calls, booked: i.booked, leads: i.leads, avgScore: i.avgScore,
     brokenRate: Math.round(i.brokenRate * 100),
     causes: i.causes,
+    avgTurnMs: i.avgTurnMs,
     actions: prescribe(i, { pendingRules }),
   }));
 
