@@ -60,6 +60,23 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // Seguimiento del MOTOR por sector ("ha llegado el momento de X"): es la
+    // plantilla que envía el lifecycle-scheduler para recordatorios de servicio
+    // (renovación de psicotécnico, corte a los 24 días, ITV…). Sin ella dada
+    // de alta, TODO el canal WhatsApp del motor de seguimientos falla.
+    name: 'nodeflow_recordatorio_servicio',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}} 👋 Te escribimos desde {{2}}. Ha llegado el momento de {{3}}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.',
+        example: { body_text: [['María', 'Clínica Osakin', 'la renovación de tu psicotécnico']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
+    ],
+  },
+  {
     // Reactivación de clientes antiguos (add-on Crecimiento, canal 'whatsapp').
     // OJO: categoría MARKETING (win-back), NO utility — Meta la revisa distinto
     // y exige opt-out. Requiere aprobación de Meta antes de poder enviarse.
@@ -77,4 +94,16 @@ const WA_TEMPLATES = [
   },
 ];
 
-module.exports = { WA_TEMPLATES };
+/**
+ * Idioma SEGURO para enviar una plantilla: el preferido del cliente solo si
+ * esa plantilla está dada de alta en ese idioma; si no, el idioma aprobado.
+ * (Meta rechaza el envío si pides una combinación plantilla+idioma que no
+ * existe — un cliente con preferencia 'eu' rompería el envío entero.)
+ */
+function templateLanguage(name, preferred) {
+  const approved = WA_TEMPLATES.filter(t => t.name === name).map(t => t.language);
+  if (!approved.length) return 'es';
+  return approved.includes(preferred) ? preferred : approved[0];
+}
+
+module.exports = { WA_TEMPLATES, templateLanguage };

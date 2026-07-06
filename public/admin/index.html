@@ -241,6 +241,7 @@
         <div id="sec-new-result" class="u-mt-3"></div>
       </div>
       <div class="section-hd"><h2>Clientes — salud y alertas</h2></div>
+      <div id="an-health" style="margin-bottom:14px"></div>
       <div class="table-wrap">
         <table><thead><tr><th>Cliente</th><th>Plan</th><th>Salud</th><th>Llamadas</th><th>Conv.</th><th>Minutos</th><th>Alertas</th></tr></thead>
         <tbody id="an-clients"><tr class="empty-row"><td colspan="7">Cargando…</td></tr></tbody></table>
@@ -1177,6 +1178,7 @@ async function loadAnalytics(){
     _loadPendingSectors();
     _anGrowth(document.getElementById('an-growth'), d.trend);
     _loadAbModels();
+    _loadClientHealth();
     var tb=document.getElementById('an-clients'), cl=d.clientes||[];
     if(!cl.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">Sin clientes.</td></tr>'; }
     else tb.innerHTML=cl.map(function(c){
@@ -1187,6 +1189,37 @@ async function loadAnalytics(){
         +'<td>'+(alerts||'—')+'</td></tr>';
     }).join('');
   }catch(e){ if(lbl) lbl.textContent='Error al cargar analíticas'; }
+}
+
+// Salud por cliente con PLAN DE ACCIÓN: mismo diagnóstico que el email 🚑
+// (causas de llamadas rotas, latencia, huecos de info) pero a la vista.
+async function _loadClientHealth(){
+  var el=document.getElementById('an-health'); if(!el) return;
+  try{
+    var r=await fetch('/api/admin/client-health',{headers:h()});
+    var d=await r.json();
+    var det=d.details||[];
+    if(!det.length){
+      el.innerHTML='<div style="font-size:13px;color:var(--green)">✅ '+(d.checked||0)+' negocio(s) con actividad esta semana — todos sanos.</div>';
+      return;
+    }
+    el.innerHTML=det.map(function(i){
+      var color=i.verdict==='critical'?'var(--red)':'var(--yellow)';
+      var dot=i.verdict==='critical'?'🔴':'🟠';
+      var acts=(i.actions||[]).map(function(a){
+        return '<div style="display:flex;gap:8px;margin-top:8px"><div>'+a.icon+'</div>'
+          +'<div><div style="font-weight:600;font-size:13px">'+_lrEsc(a.action)+'</div>'
+          +'<div style="font-size:12px;color:var(--dim);line-height:1.5">'+_lrEsc(a.detail)+'</div></div></div>';
+      }).join('');
+      return '<div style="border:1px solid var(--border);border-left:3px solid '+color+';border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--card)">'
+        +'<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+        +'<div style="font-weight:700">'+dot+' '+_lrEsc(i.name)+'</div>'
+        +'<div style="color:var(--dim);font-size:12px">'+i.calls+' llam · '+i.booked+' citas · score '+(i.avgScore!=null?i.avgScore:'—')
+        +(i.avgTurnMs?' · '+(i.avgTurnMs/1000).toFixed(1)+'s/turno':'')+'</div></div>'
+        +'<div style="color:'+color+';font-size:13px;margin-top:3px">'+_lrEsc((i.reasons||[]).join(' · '))+'</div>'
+        +acts+'</div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<div style="font-size:12px;color:var(--dim)">No se pudo cargar la salud de clientes.</div>'; }
 }
 
 // A/B de cerebro (LLM): compara modelos por brazo. Veredicto honesto — no canta

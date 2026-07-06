@@ -66,9 +66,13 @@ function buildMessage(reminder, contact, memory) {
 
   const text = `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${serviceLabel}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`;
 
+  // Idioma de PLANTILLA acotado a los aprobados en Meta: pedir una combinación
+  // plantilla+idioma inexistente (cliente con preferencia 'eu'/'gl') rompe el envío.
+  const { templateLanguage } = require('../whatsapp/templates');
+
   return {
     text,
-    language: lang,
+    language: templateLanguage('nodeflow_recordatorio_servicio', lang),
     // WA template: must be pre-approved in Meta Business Manager as 'nodeflow_recordatorio_servicio'
     // Body params: {{1}} = nombre, {{2}} = negocio, {{3}} = servicio
     waTemplateName: 'nodeflow_recordatorio_servicio',
