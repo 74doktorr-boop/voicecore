@@ -35,6 +35,19 @@ function _isBroken(r) {
   return r.status === 'lost' || Number(r.turn_count) === 0;
 }
 
+// Causa de una llamada rota (determinista, a partir de señales de la llamada):
+//   instant        → 0 turnos y <8s: colgó nada más descolgar (latencia del
+//                    saludo, enrutado erróneo, o rechazo al oír "asistente").
+//   no_conversation→ 0 turnos pero duró: hubo línea y NADIE se entendió
+//                    (audio/STT caído, silencio).
+//   cut_mid        → hubo conversación y terminó de forma anormal (lost).
+function _brokenCause(r) {
+  if (Number(r.turn_count) === 0) {
+    return (Number(r.duration_ms) || 0) < 8000 ? 'instant' : 'no_conversation';
+  }
+  return 'cut_mid';
+}
+
 /**
  * Salud por org a partir de filas de nf_calls. PURA.
  * @param {Array} rows  filas { org_id, status, outcome, turn_count, metrics, started_at, duration_ms }
@@ -51,9 +64,11 @@ function computeClientHealth(rows, nowMs) {
       orgId: id, calls: 0, broken: 0, recent: 0, prior: 0,
       booked: 0, leads: 0, abandoned: 0,
       scored: 0, scoreSum: 0, hallucinated: 0, minutes: 0,
+      causes: { instant: 0, no_conversation: 0, cut_mid: 0 },
+      infoGaps: {}, problems: {},
     });
     o.calls++;
-    if (_isBroken(r)) o.broken++;
+    if (_isBroken(r)) { o.broken++; o.causes[_brokenCause(r)]++; }
     const t = new Date(r.started_at).getTime();
     if (now && t >= now - RECENT_MS) o.recent++; else if (now) o.prior++;
     o.minutes += (Number(r.duration_ms) || 0) / 60000;
@@ -67,6 +82,15 @@ function computeClientHealth(rows, nowMs) {
     if (a && typeof a.score === 'number') {
       o.scored++; o.scoreSum += a.score;
       if (a.hallucinated === true) o.hallucinated++;
+      // Qué información faltó y qué problemas vio el auditor (agregados).
+      if (a.info_gap && typeof a.info_gap === 'string') {
+        const g = a.info_gap.trim().toLowerCase().slice(0, 80);
+        if (g) o.infoGaps[g] = (o.infoGaps[g] || 0) + 1;
+      }
+      for (const p of (Array.isArray(a.problems) ? a.problems : [])) {
+        const k = String(p || '').trim().toLowerCase().slice(0, 90);
+        if (k) o.problems[k] = (o.problems[k] || 0) + 1;
+      }
     }
   }
 
@@ -106,6 +130,60 @@ function computeClientHealth(rows, nowMs) {
 
 function _esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function _top(counter, n) {
+  return Object.entries(counter || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
+}
+
+/**
+ * PRESCRIPCIÓN: de "tu bot lo hace mal" a "haz esto". PURA.
+ * Traduce las señales de un issue a acciones concretas, ordenadas por
+ * impacto. ctx.pendingRules = nº de reglas candidatas sin revisar (admin).
+ * @returns {Array<{icon, action, detail}>}
+ */
+function prescribe(o, ctx = {}) {
+  const out = [];
+  const c = o.causes || {};
+
+  if (o.silent) {
+    out.push({ icon: '📞', action: 'Llama al negocio HOY y verifica el desvío',
+      detail: 'Un negocio en silencio casi siempre es el desvío desactivado (lo quitan "un momento" y se olvidan). Llama a su número real: si no salta el asistente, guíale para reactivarlo (Admin → Telefonía para comprobar el número).' });
+  }
+  if (c.instant > 0) {
+    out.push({ icon: '⚡', action: `${c.instant} cuelgue(s) nada más descolgar — haz una llamada de prueba`,
+      detail: 'O el saludo tarda en salir (latencia) o el número está mal enrutado. Llama tú al número del negocio: si tarda >2s en oírse el saludo, es latencia; si suena raro, enrutado (Admin → Telefonía → Diagnóstico).' });
+  }
+  if (c.no_conversation > 0) {
+    out.push({ icon: '🎙️', action: `${c.no_conversation} llamada(s) con línea pero sin conversación — revisa audio/STT`,
+      detail: 'Hubo llamada pero nadie se entendió: suele ser Deepgram/TTS caído o silencio del llamante. Comprueba Admin → Sistema (diagnostics) y escucha la grabación de una de esas llamadas.' });
+  }
+  if (c.cut_mid > 0) {
+    out.push({ icon: '✂️', action: `${c.cut_mid} llamada(s) cortadas a mitad — mira esas llamadas en el Admin`,
+      detail: 'Conversación iniciada que murió de forma anormal: timeout, error del proveedor o cliente desesperado. El transcript dice cuál de los tres.' });
+  }
+
+  const gaps = _top(o.infoGaps, 3);
+  if (gaps.length) {
+    out.push({ icon: '📚', action: 'El asistente no supo responder: ' + gaps.map(([g, n]) => `"${g}"${n > 1 ? ` (×${n})` : ''}`).join(', '),
+      detail: 'Añade justo esos datos a su Base de conocimiento (portal → Conocimiento) o a su lista de servicios con precios. Es la mejora con más impacto inmediato en el score.' });
+  }
+  if ((o.hallucinationRate || 0) >= 40) {
+    out.push({ icon: '🧯', action: `Alucina en el ${o.hallucinationRate}% de llamadas auditadas — recorta su margen de inventar`,
+      detail: 'Cuanto más completa su Base de conocimiento y su serviceList, menos inventa. Revisa también qué promete: si ofrece cosas que no puede hacer, falta una regla que lo prohíba.' });
+  }
+  if ((o.avgScore != null && o.avgScore < 60) && (ctx.pendingRules || 0) > 0) {
+    out.push({ icon: '🧠', action: `Tienes ${ctx.pendingRules} regla(s) candidatas del auditor SIN revisar — apruébalas`,
+      detail: 'El bucle de mejora ya diagnosticó estas llamadas y propuso reglas concretas. Están esperándote en Admin → 🧠 Mejora: revisar, probar (replay) y aprobar.' });
+  }
+
+  const probs = _top(o.problems, 2);
+  if (probs.length && out.length < 4) {
+    out.push({ icon: '🔍', action: 'Lo que más repite el auditor: ' + probs.map(([p, n]) => `"${p}"${n > 1 ? ` (×${n})` : ''}`).join(' · '),
+      detail: 'Son patrones, no casos sueltos: si uno de estos se arregla con una regla del sector, propónla desde Admin → 🧠 Mejora.' });
+  }
+
+  return out.slice(0, 5);
 }
 
 /**
@@ -151,38 +229,58 @@ async function runClientHealthCheck(deps = {}) {
   const names = await nameOf(issues.map(i => i.orgId));
   log.warn(`Salud de clientes: ${summary.critical} crítico(s), ${summary.issues - summary.critical} aviso(s) de ${summary.checked}`);
 
-  // Detalle para el dashboard admin (GET) — quién y por qué.
+  // Reglas candidatas pendientes de revisar (para la prescripción). Fail-open:
+  // si la tabla aún no existe, simplemente no se menciona.
+  let pendingRules = 0;
+  try {
+    const { count } = await db.client.from('nf_learned_rules')
+      .select('id', { count: 'exact', head: true }).eq('status', 'candidate');
+    pendingRules = count || 0;
+  } catch (_) { /* tabla no aplicada aún */ }
+
+  // Detalle para el dashboard admin (GET) — quién, por qué y QUÉ HACER.
   summary.details = issues.map(i => ({
     orgId: i.orgId, name: names[i.orgId] || i.orgId, verdict: i.verdict,
     reasons: i.reasons, silent: i.silent,
     calls: i.calls, booked: i.booked, leads: i.leads, avgScore: i.avgScore,
     brokenRate: Math.round(i.brokenRate * 100),
+    causes: i.causes,
+    actions: prescribe(i, { pendingRules }),
   }));
 
   if (founderEmail && !deps.dryRun) {
-    const rowsHtml = issues.map(i => {
-      const color = i.verdict === 'critical' ? '#e74c3c' : '#e67e22';
-      const dot = i.verdict === 'critical' ? '🔴' : '🟠';
-      return `<tr>
-        <td style="padding:8px 10px;border-bottom:1px solid #eee">${dot} <b>${_esc(names[i.orgId] || i.orgId)}</b></td>
-        <td style="padding:8px 10px;border-bottom:1px solid #eee;color:${color}">${_esc(i.reasons.join(' · '))}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #eee;color:#888;font-size:13px">${i.calls} llam · ${i.booked} citas · score ${i.avgScore ?? '—'}</td>
-      </tr>`;
+    const blocksHtml = summary.details.map(d => {
+      const color = d.verdict === 'critical' ? '#e74c3c' : '#e67e22';
+      const dot = d.verdict === 'critical' ? '🔴' : '🟠';
+      const actionsHtml = d.actions.length
+        ? `<div style="margin-top:10px">${d.actions.map(a => `
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <div style="font-size:15px">${a.icon}</div>
+              <div>
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e">${_esc(a.action)}</div>
+                <div style="font-size:12px;color:#666;line-height:1.5;margin-top:1px">${_esc(a.detail)}</div>
+              </div>
+            </div>`).join('')}</div>`
+        : '';
+      return `
+        <div style="border:1px solid #eee;border-left:3px solid ${color};border-radius:10px;padding:14px 16px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div style="font-weight:800;font-size:15px">${dot} ${_esc(d.name)}</div>
+            <div style="color:#888;font-size:12px">${d.calls} llam · ${d.booked} citas · score ${d.avgScore ?? '—'}</div>
+          </div>
+          <div style="color:${color};font-size:13px;margin-top:3px">${_esc(d.reasons.join(' · '))}</div>
+          ${actionsHtml}
+        </div>`;
     }).join('');
     const html = `
       <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:640px;margin:0 auto;color:#1a1a2e">
         <h2 style="margin:0 0 4px">🚑 Salud de clientes — ${summary.issues} negocio(s) necesitan atención</h2>
-        <p style="color:#888;margin:0 0 16px">${summary.critical} crítico(s) · revisado(s) ${summary.checked} negocio(s) con actividad esta semana.</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr style="text-align:left;color:#888;font-size:12px;text-transform:uppercase">
-            <th style="padding:6px 10px">Negocio</th><th style="padding:6px 10px">Problema</th><th style="padding:6px 10px">Semana</th>
-          </tr>
-          ${rowsHtml}
-        </table>
-        <p style="color:#888;font-size:12px;margin-top:16px">Un negocio "en silencio" casi siempre es el desvío caído: llámale antes de que se vaya. NodeFlow.</p>
+        <p style="color:#888;margin:0 0 16px">${summary.critical} crítico(s) · revisado(s) ${summary.checked} negocio(s) con actividad esta semana. Cada uno lleva su plan de acción.</p>
+        ${blocksHtml}
+        <p style="color:#888;font-size:12px;margin-top:16px">Diagnóstico automático de NodeFlow: causas de las llamadas rotas + qué información faltó, con la acción concreta para cada una.</p>
       </div>`;
     const text = `Salud de clientes: ${summary.issues} necesitan atención (${summary.critical} críticos). ` +
-      issues.map(i => `${names[i.orgId] || i.orgId}: ${i.reasons.join('; ')}`).join(' | ');
+      summary.details.map(d => `${d.name}: ${d.reasons.join('; ')} → ${d.actions.map(a => a.action).join(' | ')}`).join(' || ');
     try {
       await sendEmail({ to: founderEmail, subject: `🚑 ${summary.issues} cliente(s) necesitan atención${summary.critical ? ` (${summary.critical} críticos)` : ''}`, html, text });
       summary.emailSent = true;
@@ -212,4 +310,4 @@ function startClientHealthCron() {
 }
 function stopClientHealthCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
-module.exports = { computeClientHealth, runClientHealthCheck, startClientHealthCron, stopClientHealthCron };
+module.exports = { computeClientHealth, prescribe, runClientHealthCheck, startClientHealthCron, stopClientHealthCron };

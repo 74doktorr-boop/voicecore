@@ -2305,6 +2305,18 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── Recetario: ideas curadas de seguimiento con "+ Añadir" ──
+  app.get('/api/portal/followup-rules/recipes', portalAuth, async (req, res) => {
+    try {
+      const { getRecipes } = require('../lifecycle/followup-recipes');
+      const { buildRulesView, loadOrgConfig } = require('../lifecycle/followup-rules');
+      const sector = await _resolveOrgSector(req.businessId);
+      const orgConfig = await loadOrgConfig(getDatabase(), req.businessId);
+      const existing = buildRulesView(sector, orgConfig).map(r => r.label);
+      res.json({ ok: true, recipes: getRecipes(sector, existing) });
+    } catch (e) { log.warn(`recipes: ${e.message}`); res.json({ ok: true, recipes: [] }); }
+  });
+
   // ── Sugerencias de seguimiento (el sistema aprende y propone) ──
   app.get('/api/portal/followup-rules/suggestions', portalAuth, async (req, res) => {
     try {

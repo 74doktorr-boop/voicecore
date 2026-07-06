@@ -60,7 +60,7 @@ const SECTOR_CATALOG = {
       { key: 'post_tratamiento', label: 'Revisión post-tratamiento', serviceLabel: 'tu revisión post-tratamiento', desc: 'A los 12 días de implante/extracción',      trigger: 'from_last_appointment', days: 12,  serviceFilter: ['extracción', 'implante', 'endodoncia'], onlyIfCompleted: true },
     ],
   },
-  estetica: {
+  estetica_avanzada: {
     label: 'Estética',
     followups: [
       { key: 'facial',               label: 'Tratamiento facial',   serviceLabel: 'tu tratamiento facial',   desc: 'A los 28 días', trigger: 'from_last_appointment', days: 28, serviceFilter: ['facial'] },
@@ -130,6 +130,131 @@ const SECTOR_CATALOG = {
     followups: [
       { key: 'renovacion_psicotecnico', label: 'Renovación de psicotécnico', serviceLabel: 'la renovación de tu psicotécnico', desc: '30 días antes de la caducidad', trigger: 'before_sector_field', days: 30, field: 'fecha_caducidad_psicotecnico' },
       { key: 'revision_anual',          label: 'Revisión anual',             serviceLabel: 'tu revisión anual',               desc: 'Al año de la última revisión',  trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'revision', 'chequeo'] },
+    ],
+  },
+  reconocimientos: {
+    label: 'Centro de reconocimientos (CRC)',
+    followups: [
+      { key: 'renovacion_psicotecnico', label: 'Renovación de psicotécnico', serviceLabel: 'la renovación de tu psicotécnico', desc: '30 días antes de la caducidad', trigger: 'before_sector_field', days: 30, field: 'fecha_caducidad_psicotecnico' },
+    ],
+  },
+  podologia: {
+    label: 'Podología',
+    followups: [
+      { key: 'quiropodia',   label: 'Quiropodia periódica', serviceLabel: 'tu quiropodia',     desc: 'Cada ~6 semanas',                  trigger: 'from_last_appointment', days: 40, serviceFilter: ['quiropodia', 'pies'] },
+      { key: 'reactivacion', label: 'Reactivación',         serviceLabel: 'tu próxima visita', desc: 'A los 60 días si no ha vuelto',    trigger: 'from_last_if_no_new',   days: 60 },
+    ],
+  },
+  farmacia: {
+    label: 'Farmacia',
+    followups: [
+      { key: 'fin_tratamiento', label: 'Fin de tratamiento', serviceLabel: 'la renovación de tu tratamiento', desc: '5 días antes de acabar el tratamiento', trigger: 'before_sector_field', days: 5, field: 'fecha_fin_tratamiento' },
+    ],
+  },
+  laser: {
+    label: 'Depilación láser',
+    followups: [
+      { key: 'proxima_sesion', label: 'Próxima sesión de láser', serviceLabel: 'tu próxima sesión de láser', desc: 'A las ~6 semanas (si completó la sesión)', trigger: 'from_last_appointment', days: 42, onlyIfCompleted: true },
+    ],
+  },
+  spa: {
+    label: 'Spa / bienestar',
+    followups: [
+      { key: 'sesion_mensual', label: 'Sesión de relax mensual', serviceLabel: 'tu próxima sesión de relax', desc: 'A los 35 días de la última visita', trigger: 'from_last_appointment', days: 35 },
+    ],
+  },
+  yoga: {
+    label: 'Yoga',
+    followups: [
+      { key: 'fin_bono',     label: 'Fin de bono',   serviceLabel: 'la renovación de tu bono',  desc: '5 días antes de agotarse el bono',  trigger: 'before_sector_field', days: 5, field: 'fecha_fin_bono' },
+      { key: 'reactivacion', label: 'Reactivación',  serviceLabel: 'tu próxima clase',          desc: 'A los 21 días si no ha vuelto',     trigger: 'from_last_if_no_new', days: 21 },
+    ],
+  },
+  pilates: {
+    label: 'Pilates',
+    followups: [
+      { key: 'fin_bono',     label: 'Fin de bono',   serviceLabel: 'la renovación de tu bono',  desc: '5 días antes de agotarse el bono',  trigger: 'before_sector_field', days: 5, field: 'fecha_fin_bono' },
+      { key: 'reactivacion', label: 'Reactivación',  serviceLabel: 'tu próxima clase',          desc: 'A los 21 días si no ha vuelto',     trigger: 'from_last_if_no_new', days: 21 },
+    ],
+  },
+  restaurante: {
+    label: 'Restaurante',
+    followups: [
+      { key: 'recuperacion', label: 'Invitar a volver', serviceLabel: 'tu próxima visita', desc: 'A los 45 días si no ha vuelto', trigger: 'from_last_if_no_new', days: 45 },
+    ],
+  },
+  abogados: {
+    label: 'Despacho de abogados',
+    followups: [
+      { key: 'seguimiento_consulta', label: 'Seguimiento de consulta', serviceLabel: 'el seguimiento de tu consulta', desc: 'A los 7 días si no ha vuelto', trigger: 'from_last_if_no_new', days: 7 },
+    ],
+  },
+  asesoria: {
+    label: 'Asesoría / gestoría',
+    followups: [
+      { key: 'seguimiento_tramite', label: 'Seguimiento de trámite',  serviceLabel: 'el seguimiento de tu trámite', desc: 'A los 10 días si no ha vuelto',       trigger: 'from_last_if_no_new', days: 10 },
+      { key: 'revision_trimestral', label: 'Recordatorio trimestral', serviceLabel: 'tu cita del trimestre',        desc: 'A los ~80 días de la última visita',  trigger: 'from_last_appointment', days: 80 },
+    ],
+  },
+  notaria: {
+    label: 'Notaría',
+    followups: [
+      { key: 'seguimiento_expediente', label: 'Seguimiento de expediente', serviceLabel: 'el seguimiento de tu expediente', desc: 'A los 10 días si no ha vuelto', trigger: 'from_last_if_no_new', days: 10 },
+    ],
+  },
+  inmobiliaria: {
+    label: 'Inmobiliaria',
+    followups: [
+      { key: 'seguimiento_visita', label: 'Seguimiento tras visita', serviceLabel: 'el seguimiento de tu visita', desc: 'A los 5 días de visitar el inmueble',  trigger: 'from_last_appointment', days: 5 },
+      { key: 'fin_contrato',       label: 'Fin de contrato',         serviceLabel: 'la renovación de tu contrato', desc: '45 días antes de vencer el contrato', trigger: 'before_sector_field', days: 45, field: 'fecha_fin_contrato' },
+    ],
+  },
+  reformas: {
+    label: 'Reformas / construcción',
+    followups: [
+      { key: 'seguimiento_presupuesto', label: 'Seguimiento de presupuesto', serviceLabel: 'el presupuesto que te preparamos', desc: 'A los 5 días si no ha respondido', trigger: 'from_last_if_no_new', days: 5 },
+    ],
+  },
+  arquitectura: {
+    label: 'Arquitectura',
+    followups: [
+      { key: 'seguimiento_propuesta', label: 'Seguimiento de propuesta', serviceLabel: 'la propuesta que te preparamos', desc: 'A los 10 días si no ha respondido', trigger: 'from_last_if_no_new', days: 10 },
+    ],
+  },
+  autoescuela: {
+    label: 'Autoescuela',
+    followups: [
+      { key: 'alumno_parado', label: 'Alumno parado', serviceLabel: 'tu próxima clase', desc: 'A los 14 días sin venir a clase', trigger: 'from_last_if_no_new', days: 14 },
+    ],
+  },
+  coaching: {
+    label: 'Coaching',
+    followups: [
+      { key: 'proxima_sesion', label: 'Próxima sesión', serviceLabel: 'tu próxima sesión', desc: 'A los 21 días (si completó la sesión)', trigger: 'from_last_appointment', days: 21, onlyIfCompleted: true },
+    ],
+  },
+  agencia_viajes: {
+    label: 'Agencia de viajes',
+    followups: [
+      { key: 'aniversario_viaje', label: 'Aniversario del viaje', serviceLabel: 'tu próxima escapada', desc: 'Al año del último viaje ("¿repetimos?")', trigger: 'from_last_appointment', days: 335 },
+    ],
+  },
+  guarderia_canina: {
+    label: 'Guardería canina',
+    followups: [
+      { key: 'reserva_recurrente', label: 'Reserva recurrente', serviceLabel: 'la próxima estancia de tu peludo', desc: 'A los 30 días si no ha vuelto', trigger: 'from_last_if_no_new', days: 30 },
+    ],
+  },
+  residencia_mascotas: {
+    label: 'Residencia de mascotas',
+    followups: [
+      { key: 'temporada_vacaciones', label: 'Próximas vacaciones', serviceLabel: 'la próxima estancia de tu mascota', desc: 'Al año de la última estancia', trigger: 'from_last_appointment', days: 330 },
+    ],
+  },
+  generico: {
+    label: 'Negocio',
+    followups: [
+      { key: 'reactivacion', label: 'Reactivación de clientes', serviceLabel: 'tu próxima visita', desc: 'A los 60 días si no ha vuelto', trigger: 'from_last_if_no_new', days: 60 },
     ],
   },
 };

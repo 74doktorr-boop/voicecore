@@ -4930,12 +4930,57 @@ async function loadFollowupRules() {
   var customHtml =
     '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:20px 0 8px">Tuyos personalizados</div>' +
     '<div id="rules-custom">' + (custom.length ? custom.map(ruleRow).join('') : '') + '</div>' +
-    '<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="addCustomRuleRow()">+ Añadir seguimiento</button>';
+    '<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="addCustomRuleRow()">+ Añadir seguimiento</button>' +
+    '<div id="rules-recipes"></div>';
 
   el.innerHTML = head + defaultsHtml + customHtml;
 
   loadRulesReach();
   loadRuleSuggestions();
+  loadRuleRecipes();
+}
+
+// ── Recetario: ideas curadas del sector, se añaden con un clic ──
+async function loadRuleRecipes() {
+  var box = document.getElementById('rules-recipes');
+  if (!box) return;
+  var res;
+  try { res = await api('/api/portal/followup-rules/recipes'); }
+  catch (e) { return; }
+  var recipes = (res && res.recipes) || [];
+  _rulesState.recipes = recipes;
+  if (!recipes.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML =
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:24px 0 8px">💡 Ideas para tu sector</div>' +
+    '<div style="color:var(--dim);font-size:12px;margin-bottom:10px">Mejores prácticas de negocios como el tuyo. Añádelas con un clic, ajusta los días si quieres, y guarda.</div>' +
+    recipes.map(function(r, i) {
+      return '<div class="recipe-card" data-recipe="' + i + '" style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px dashed var(--border);border-radius:10px;margin-bottom:8px;background:transparent">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
+            ' <span style="color:var(--dim);font-weight:400;font-size:12px">· ' + r.days + ' días</span></div>' +
+          '<div style="color:var(--dim);font-size:12px;line-height:1.55;margin-top:3px">' + esc(r.tip) + '</div>' +
+        '</div>' +
+        '<button onclick="addRecipeRow(' + i + ')" style="background:transparent;color:var(--accent-l);border:1px solid rgba(196,245,70,.4);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Añadir</button>' +
+      '</div>';
+    }).join('');
+}
+
+function addRecipeRow(i) {
+  var r = (_rulesState.recipes || [])[i];
+  var box = document.getElementById('rules-custom');
+  if (!r || !box) return;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = ruleRow({
+    key: 'custom_nuevo', custom: true, editableDays: true, enabled: true,
+    trigger: r.trigger, days: r.days, channel: 'whatsapp',
+    label: r.label, serviceFilter: r.serviceFilter || [],
+  });
+  box.appendChild(tmp.firstChild);
+  var card = document.querySelector('.recipe-card[data-recipe="' + i + '"]');
+  if (card) card.remove();
+  toast('Añadido — revisa los días y pulsa "Guardar cambios"');
+  box.lastChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // El sistema aprende de las citas reales y propone ajustes; el dueño aprueba.
@@ -5019,7 +5064,7 @@ function ruleRow(r) {
       '</select>'
     : '';
 
-  return '<div class="rule-row" data-key="' + esc(r.key) + '" data-custom="' + (isCustom ? '1' : '0') + '" data-trigger="' + esc(r.trigger) + '" data-editabledays="' + (r.editableDays ? '1' : '0') +
+  return '<div class="rule-row" data-key="' + esc(r.key) + '" data-custom="' + (isCustom ? '1' : '0') + '" data-trigger="' + esc(r.trigger) + '" data-servicelabel="' + esc(r.serviceLabel || '') + '" data-editabledays="' + (r.editableDays ? '1' : '0') +
     '" style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--card)">' +
     '<label style="display:flex;align-items:center;padding-top:2px;cursor:pointer"><input type="checkbox" class="rule-enabled"' + (r.enabled ? ' checked' : '') + ' style="width:16px;height:16px;cursor:pointer"></label>' +
     '<div style="flex:1;min-width:0">' + nameCell + (isCustom ? '<div style="margin-top:6px">' + trigCell + '</div>' : '') + '</div>' +
@@ -5062,6 +5107,7 @@ async function saveFollowupRules(btn) {
         key: /^custom_/.test(row.dataset.key) && row.dataset.key !== 'custom_nuevo' ? row.dataset.key : undefined,
         label: label, trigger: trigEl ? trigEl.value : row.dataset.trigger,
         days: days, serviceFilter: filter || undefined, channel: channel, enabled: enabled,
+        serviceLabel: row.dataset.servicelabel || undefined,
       });
     } else {
       var ov = { enabled: enabled, channel: channel };

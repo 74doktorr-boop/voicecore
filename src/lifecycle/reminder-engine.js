@@ -211,12 +211,16 @@ async function recalculate(contactId, orgId, ctx = {}) {
   }
   if (!contact) return;
 
-  // Sector (vive en assistant_config; no hay columna 'sector' en organizations)
+  // Sector (vive en assistant_config; no hay columna 'sector' en organizations).
+  // SIEMPRE por resolveSector: el valor guardado puede ser un alias o plural
+  // ("peluquerias", "estetica") que no casa con las claves del catálogo.
   let sectorSlug = ctx.sectorSlug;
   if (!sectorSlug) {
     const { data: org } = await db.client.from('organizations')
       .select('assistant_config').eq('id', orgId).maybeSingle();
-    sectorSlug = org && org.assistant_config && org.assistant_config.sector;
+    const raw = org && org.assistant_config && org.assistant_config.sector;
+    if (!raw) return;
+    sectorSlug = require('../sectors/sector-registry').resolveSector(raw).slug;
   }
   if (!sectorSlug) return;
 
@@ -292,8 +296,9 @@ async function recalculateOrg(orgId, opts = {}) {
   try {
     const { data: org } = await db.client.from('organizations')
       .select('assistant_config').eq('id', orgId).maybeSingle();
-    const sectorSlug = org && org.assistant_config && org.assistant_config.sector;
-    if (!sectorSlug) return { processed: 0, total: 0, capped: false };
+    const rawSector = org && org.assistant_config && org.assistant_config.sector;
+    if (!rawSector) return { processed: 0, total: 0, capped: false };
+    const sectorSlug = require('../sectors/sector-registry').resolveSector(rawSector).slug;
 
     const config = await getOrgReminderConfig(orgId, sectorSlug, { db });
     const LIMIT = opts.limit || 3000;

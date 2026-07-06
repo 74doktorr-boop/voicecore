@@ -37,6 +37,22 @@ const SECTOR_REQUIRED_FIELDS = {
     { key: 'fecha_caducidad_psicotecnico', label: 'Caducidad del psicotécnico', type: 'date', placeholder: 'dd/mm/aaaa' },
     { key: 'tipo_psicotecnico',            label: 'Tipo (permiso B/C/D, armas…)', type: 'text', placeholder: 'ej. B', optional: true },
   ],
+  reconocimientos: [
+    { key: 'fecha_caducidad_psicotecnico', label: 'Caducidad del psicotécnico', type: 'date', placeholder: 'dd/mm/aaaa' },
+    { key: 'tipo_psicotecnico',            label: 'Tipo (permiso B/C/D, armas…)', type: 'text', placeholder: 'ej. B', optional: true },
+  ],
+  farmacia: [
+    { key: 'fecha_fin_tratamiento',        label: 'Fin del tratamiento',        type: 'date', placeholder: 'dd/mm/aaaa' },
+  ],
+  yoga: [
+    { key: 'fecha_fin_bono',               label: 'Fin del bono',               type: 'date', placeholder: 'dd/mm/aaaa' },
+  ],
+  pilates: [
+    { key: 'fecha_fin_bono',               label: 'Fin del bono',               type: 'date', placeholder: 'dd/mm/aaaa' },
+  ],
+  inmobiliaria: [
+    { key: 'fecha_fin_contrato',           label: 'Fin del contrato',           type: 'date', placeholder: 'dd/mm/aaaa',  optional: true },
+  ],
 };
 
 /**
