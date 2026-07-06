@@ -20,10 +20,18 @@
 // ============================================================
 'use strict';
 
-const WEEKDAYS = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
+// Días/meses en español Y gallego (claves sin acentos — el input se normaliza).
+// Sin colisiones: el gallego solo AÑADE formas nuevas (luns, mercores, xoves…).
+const WEEKDAYS = {
+  domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6,
+  // galego
+  luns: 1, mercores: 3, xoves: 4, venres: 5,
+};
 const MONTHS = {
   enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5, julio: 6,
   agosto: 7, septiembre: 8, setiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+  // galego
+  xaneiro: 0, febreiro: 1, maio: 4, xuno: 5, xullo: 6, setembro: 8, outubro: 9, novembro: 10, decembro: 11,
 };
 
 function _iso(y, m, d) {
@@ -57,10 +65,11 @@ function parseSpanishDate(input, todayISO) {
     return _iso(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
   };
 
-  // ── Relativos (pasado mañana ANTES que mañana) ──
-  if (/\bpasado\s+manana\b/.test(s)) return addDays(2);
-  if (/\bmanana\b/.test(s))          return addDays(1);
-  if (/\bhoy\b/.test(s))             return addDays(0);
+  // ── Relativos (pasado mañana ANTES que mañana). es "mañana"→"manana",
+  //    gl "mañá"→"mana"; gl hoxe = hoy ──
+  if (/\bpasado\s+man(ana|a)\b/.test(s)) return addDays(2);
+  if (/\bman(ana|a)\b/.test(s))          return addDays(1);
+  if (/\b(hoy|hoxe)\b/.test(s))          return addDays(0);
 
   // ── Día de la semana ──
   for (const [w, dow] of Object.entries(WEEKDAYS)) {

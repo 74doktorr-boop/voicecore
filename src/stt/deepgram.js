@@ -8,6 +8,18 @@ const { Logger } = require('../utils/logger');
 
 const log = new Logger('STT');
 
+// Idioma de RECONOCIMIENTO para Deepgram. Deepgram NO reconoce gallego ('gl'),
+// pero el gallego lo capta perfectamente el modelo español (lenguas muy
+// próximas y toda Galicia es bilingüe). El euskera ('eu') SÍ lo soporta.
+// Bilingüe (es+gl / es+eu) → base español (el LLM entiende ambas del texto).
+function _recognitionLang(language) {
+  if (!language) return 'es';
+  const l = String(language).toLowerCase();
+  if (l === 'eu') return 'eu';
+  if (l.indexOf('gl') !== -1 || l.indexOf('+') !== -1) return 'es';
+  return l;
+}
+
 // Media de confidence de los frames finales del turno (o null si no hay).
 // Deepgram la emite en cada Final; hasta 2026-07-03 se TIRABA — y la
 // llamada real transcrita como basura llevaba 0.63-0.78 de confidence:
@@ -35,7 +47,7 @@ class DeepgramSTT {
   createSession(callId, options = {}) {
     const config = {
       model: options.model || 'nova-3',
-      language: options.language || 'es',
+      language: _recognitionLang(options.language),
       smart_format: true,
       punctuate: true,
       interim_results: true,

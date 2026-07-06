@@ -993,8 +993,8 @@ function setupPortalRoutes(app, pipeline, config) {
     const { businessId, flowConfig } = req;
     const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList } = req.body;
 
-    if (language && !['es', 'eu', 'gl'].includes(language)) {
-      return res.status(400).json({ error: "language debe ser 'es', 'eu' o 'gl'" });
+    if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl'].includes(language)) {
+      return res.status(400).json({ error: "language debe ser 'es', 'eu', 'gl', 'es+eu' o 'es+gl'" });
     }
 
     // Update top-level fields via patch

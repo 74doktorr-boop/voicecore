@@ -12,6 +12,7 @@
 
 const { getDatabase }    = require('../db/database');
 const { generatePrompt } = require('./prompt-generator');
+const { defaultFirstMessage } = require('./i18n');
 const { Logger }         = require('../utils/logger');
 
 const log = new Logger('ORG-ASSISTANT');
@@ -84,8 +85,7 @@ async function getOrgAssistant(orgId) {
       id:           org.id,
       name:         cfg.assistantName || org.name,
       systemPrompt: generatePrompt(cfgConLista, org.name),
-      firstMessage: cfg.firstMessage ||
-        `{{GREETING}}, ha llamado a ${org.name}. ¿En qué puedo ayudarle?`,
+      firstMessage: cfg.firstMessage || defaultFirstMessage(language, org.name),
       // La voz elegida decide también el PROVEEDOR: Estándar = Cartesia
       // (incluida), Premium = ElevenLabs (voice-map resuelve id/alias),
       // euskera = servidor local.

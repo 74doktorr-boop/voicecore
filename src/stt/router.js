@@ -20,7 +20,7 @@ class STTRouter {
         priority: 1,
         avgLatency: 100,
         costPerMinute: 0.0043,
-        languages: ['es', 'en', 'fr', 'de', 'pt', 'it', 'ja', 'ko', 'nl', 'eu'],
+        languages: ['es', 'gl', 'en', 'fr', 'de', 'pt', 'it', 'ja', 'ko', 'nl', 'eu'], // gl → se reconoce con el modelo 'es'
         models: ['nova-3', 'nova-2'],
         features: ['streaming', 'vad', 'utterance-end', 'interim'],
       });

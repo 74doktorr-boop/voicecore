@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Logger } = require('../utils/logger');
+const { timeOfDayGreeting } = require('./i18n');
 
 const log = new Logger('ASSISTANT');
 
@@ -183,12 +184,9 @@ class AssistantManager {
     // Without this, the LLM sees the literal string "FECHA DE HOY: {{DATE}}" in its prompt.
     systemPrompt = systemPrompt.replace('{{DATE}}', dateStr);
 
-    // Time-of-day greeting token
+    // Time-of-day greeting token — en el idioma del asistente (es/gl/eu)
     const madridHour = parseInt(now.toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
-    const greeting =
-      madridHour >= 6  && madridHour < 14 ? 'Buenos días'   :
-      madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' :
-                                            'Buenas noches';
+    const greeting = timeOfDayGreeting(assistant.language, madridHour);
     systemPrompt = systemPrompt.replace(/\{\{GREETING\}\}/g, greeting);
 
     systemPrompt += `\n\n[Contexto actual: ${dateStr}, ${timeStr}. Saludo apropiado: "${greeting}".]`;

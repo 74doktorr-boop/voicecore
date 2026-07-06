@@ -13,9 +13,13 @@
 // ============================================================
 'use strict';
 
+// Números-hora en español Y gallego (el gallego solo añade formas nuevas:
+// unha, dous/dúas, catro, sete, oito, nove, dez — sin colisión con el español).
 const WORD_NUM = {
   una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6,
   siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12,
+  // galego
+  unha: 1, dous: 2, duas: 2, catro: 4, sete: 7, oito: 8, nove: 9, dez: 10,
 };
 
 function parseSpanishTime(input) {
@@ -24,16 +28,17 @@ function parseSpanishTime(input) {
     .normalize('NFD').replace(/[̀-ͯ]/g, ''); // fuera acentos
   if (!s) return null;
 
-  // ── Expresiones especiales ──
-  if (/\bmediodia\b/.test(s))          return '12:00';
-  if (/\bmedianoche\b/.test(s))        return '00:00';
-  if (/despues de comer/.test(s))      return '15:00';
-  // Rangos vagos ("por la mañana", "a primera hora") → que la IA concrete
+  // ── Expresiones especiales (es + gl) ──
+  if (/\bmediodia\b/.test(s))                 return '12:00';
+  if (/\b(medianoche|medianoite)\b/.test(s))  return '00:00';
+  if (/desp(ues|ois) de comer/.test(s))       return '15:00'; // es "después" / gl "despois"
+  // Rangos vagos ("por la mañana", "pola tarde", "a primera hora") → que la IA concrete
   if (/^(por|a) (la manana|la tarde|primera hora|ultima hora)/.test(s)) return null;
+  if (/^(pola|na) (mana|manana|tarde|noite)\b/.test(s)) return null; // galego
 
-  // ── Pistas de meridiano ──
-  const pm = /(de la tarde|de la noche|\bpm\b|p\.m\.)/.test(s);
-  const am = /(de la manana|de la madrugada|\bam\b|a\.m\.)/.test(s);
+  // ── Pistas de meridiano (es + gl) ──
+  const pm = /(de la tarde|da tarde|de la noche|da noite|\bpm\b|p\.m\.)/.test(s);
+  const am = /(de la manana|da manana|da mana|pola mana|de la madrugada|da madrugada|\bam\b|a\.m\.)/.test(s);
 
   // ── Hora + minutos ──
   let hour = null, minute = 0;
@@ -63,22 +68,24 @@ function parseSpanishTime(input) {
   // ("y treinta", "y cuarenta") para no cortarlos a la baja.
   let minusAdj = 0;
   if (!m || !/[:.h]\d{2}\b/.test(s)) {
-    if      (/menos cuarto/.test(s))       { minusAdj = 1; minute = 45; }
-    else if (/menos veinticinco/.test(s))  { minusAdj = 1; minute = 35; }
-    else if (/menos veinte/.test(s))       { minusAdj = 1; minute = 40; }
-    else if (/menos diez/.test(s))         { minusAdj = 1; minute = 50; }
-    else if (/menos cinco/.test(s))        { minusAdj = 1; minute = 55; }
-    else if (/y treinta y cinco\b/.test(s))   minute = 35;
-    else if (/y cuarenta y cinco\b/.test(s))  minute = 45;
-    else if (/y cincuenta y cinco\b/.test(s)) minute = 55;
-    else if (/y (media|treinta)\b/.test(s))   minute = 30;
-    else if (/y (cuarto|quince)\b/.test(s))   minute = 15;
-    else if (/y veinticinco\b/.test(s))       minute = 25;
-    else if (/y veinte\b/.test(s))            minute = 20;
-    else if (/y cuarenta\b/.test(s))          minute = 40;
-    else if (/y cincuenta\b/.test(s))         minute = 50;
-    else if (/y diez\b/.test(s))              minute = 10;
-    else if (/y cinco\b/.test(s))             minute = 5;
+    // Conectivo "y" (es) o "e" (gl); números en ambas lenguas
+    // (veinte/vinte, treinta/trinta, cuarenta/corenta, diez/dez).
+    if      (/menos cuarto/.test(s))                          { minusAdj = 1; minute = 45; }
+    else if (/menos (veinticinco|vinte e cinco)/.test(s))     { minusAdj = 1; minute = 35; }
+    else if (/menos (veinte|vinte)/.test(s))                 { minusAdj = 1; minute = 40; }
+    else if (/menos (diez|dez)/.test(s))                     { minusAdj = 1; minute = 50; }
+    else if (/menos cinco/.test(s))                          { minusAdj = 1; minute = 55; }
+    else if (/[ye] (treinta|trinta) [ye] cinco\b/.test(s))   minute = 35;
+    else if (/[ye] (cuarenta|corenta) [ye] cinco\b/.test(s)) minute = 45;
+    else if (/[ye] cincuenta [ye] cinco\b/.test(s))          minute = 55;
+    else if (/[ye] (media|treinta|trinta)\b/.test(s))        minute = 30;
+    else if (/[ye] (cuarto|quince)\b/.test(s))               minute = 15;
+    else if (/[ye] (veinticinco|vinte e cinco)\b/.test(s))   minute = 25;
+    else if (/[ye] (veinte|vinte)\b/.test(s))                minute = 20;
+    else if (/[ye] (cuarenta|corenta)\b/.test(s))            minute = 40;
+    else if (/[ye] cincuenta\b/.test(s))                     minute = 50;
+    else if (/[ye] (diez|dez)\b/.test(s))                    minute = 10;
+    else if (/[ye] cinco\b/.test(s))                         minute = 5;
   }
 
   // ── Meridiano ──

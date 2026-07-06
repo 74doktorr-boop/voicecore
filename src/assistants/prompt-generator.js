@@ -37,7 +37,9 @@ function formatServiceList(list) {
 
 function formatLanguage(lang) {
   if (lang === 'es+eu') return 'Responde en el idioma en que te hablen: español o euskera. Si no estás segura del idioma, usa español.';
+  if (lang === 'es+gl') return 'Responde en el idioma en que te hablen: español o gallego (galego). Si el cliente habla gallego, respóndele SIEMPRE en gallego; si habla castellano, en castellano. Si no estás seguro, usa gallego.';
   if (lang === 'eu')    return 'Responde exclusivamente en euskera.';
+  if (lang === 'gl')    return 'Responde exclusivamente en gallego (galego), nunca en castellano. Usa un gallego natural y correcto.';
   return 'Responde exclusivamente en español de España.';
 }
 
@@ -311,4 +313,4 @@ async function buildMemoryBlock(contactId, orgId) {
   return lines.join('\n');
 }
 
-module.exports = { generatePrompt, buildMemoryBlock, formatServiceList };
+module.exports = { generatePrompt, buildMemoryBlock, formatServiceList, formatLanguage };

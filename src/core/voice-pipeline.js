@@ -9,6 +9,7 @@ const { STTRouter } = require('../stt/router');
 const { LLMRouter } = require('../llm/router');
 const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
 const { toSpeakable } = require('../tts/speakable');
+const { timeOfDayGreeting, farewell } = require('../assistants/i18n');
 const sttDebug = require('../utils/stt-debug');
 const defaultCallStore = require('../db/call-store');
 const { TTSRouter } = require('../tts/router');
@@ -255,10 +256,7 @@ class VoicePipeline {
     // Send first message if configured
     if (assistant.firstMessage) {
       const madridHour = parseInt(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
-      const greeting =
-        madridHour >= 6  && madridHour < 14 ? 'Buenos días'   :
-        madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' :
-                                              'Buenas noches';
+      const greeting = timeOfDayGreeting(assistant.language, madridHour);
       const firstMsg = assistant.firstMessage.replace(/\{\{GREETING\}\}/g, greeting);
       await this._speakText(callId, firstMsg);
       session.addAssistantMessage(firstMsg);
@@ -278,9 +276,7 @@ class VoicePipeline {
         session._closing = true;
         const porSilencio = idleMs > 75000;
         log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
-        const bye = porSilencio
-          ? 'Parece que se ha cortado la línea. Gracias por llamar, ¡hasta pronto!'
-          : 'Vamos a tener que dejarlo aquí. Gracias por llamar, ¡hasta pronto!';
+        const bye = farewell(assistant && assistant.language, porSilencio ? 'silence' : 'maxlen');
         this._speakText(callId, bye)
           .then(() => session.addAssistantMessage(bye))
           .catch(() => {})

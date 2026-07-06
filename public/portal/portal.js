@@ -2127,7 +2127,7 @@ async function loadConfig() {
           '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
           '<small class="form-hint">Número provisionado — no editable</small></div>' +
         '<div class="form-group"><label class="form-label">Idioma de la IA</label>' +
-          '<div class="u-text-sm u-dim u-py-2" style="line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a> para no tenerlo en dos sitios. Actual: <strong class="u-text">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
+          '<div class="u-text-sm u-dim u-py-2" style="line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a> para no tenerlo en dos sitios. Actual: <strong class="u-text">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego', 'es+eu': 'Castellano + Euskera', 'es+gl': 'Castellano + Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
       '</div>' +
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
