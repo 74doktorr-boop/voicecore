@@ -36,3 +36,20 @@ describe('getByPhoneNumber — tolerante al formato del número', () => {
     assert.strictEqual(m.getByPhoneNumber('999888777').id, 'default');
   });
 });
+
+// Reglas globales anti-repetición y anti-sobre-promesa (hallazgos del auditor
+// 2026-07-06, aplicadas con evidencia de 6 llamadas reales).
+describe('buildSystemMessage — reglas globales de calidad', () => {
+  const mgr = new AssistantManager('/tmp/nf-test-assistants-nonexistent2');
+  const sys = mgr.buildSystemMessage({ systemPrompt: 'Eres el asistente de un negocio.', language: 'es' }).content;
+
+  test('incluye la regla anti-repetición (no re-preguntar lo ya dicho)', () => {
+    assert.match(sys, /No repitas lo que el cliente acaba de decir/);
+    assert.match(sys, /sin volver a preguntar/);
+  });
+  test('incluye la regla anti-sobre-promesa (no plazos ni email/WhatsApp)', () => {
+    assert.match(sys, /Comprométete SOLO a lo que puedes hacer/);
+    assert.match(sys, /NO ofrezcas enviar información por email, WhatsApp o SMS/);
+    assert.match(sys, /sin garantizar cuándo ni cómo/);
+  });
+});

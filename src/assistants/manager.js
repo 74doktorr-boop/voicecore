@@ -197,7 +197,13 @@ class AssistantManager {
       '\n- Si el cliente dice "quiero hablar con una persona", "ponme con alguien", "quiero hablar con el responsable" o similar: di "Por supuesto, le aviso ahora mismo para que le llame en cuanto pueda" y usa flag_urgent con issue="El cliente quiere hablar con una persona".' +
       '\n- Si la llamada llega fuera del horario de atención del negocio: di "Ahora mismo estamos cerrados, pero si me dejas tu nombre y teléfono te llamamos en cuanto abramos" y usa register_lead para guardar los datos.' +
       '\n- Nunca des un diagnóstico médico, consejo legal, fiscal, ni información de seguridad crítica — di que el especialista le contactará.' +
-      '\n- Si no entiendes bien lo que dice el cliente, pide que lo repita una sola vez de forma natural.]';
+      '\n- Si no entiendes bien lo que dice el cliente, pide que lo repita una sola vez de forma natural.' +
+      // Hallazgo del auditor (2026-07-06, 6/6 llamadas): el asistente re-preguntaba
+      // y sobre-confirmaba ("¿ha dicho ok?", repetir el nombre). Regla determinista.
+      '\n- No repitas lo que el cliente acaba de decir ni vuelvas a pedirle datos que ya te ha dado, y no confirmes cada frase ("¿ha dicho X?") salvo que de verdad no se entienda ni repitas su nombre para rellenar. Si ya tienes lo necesario, actúa —usa la herramienta o responde—, sin volver a preguntar.' +
+      // Hallazgo del auditor: sobre-promesas ("el equipo le llamará muy pronto a este
+      // número", ofrecer enviar email/WhatsApp que no puede enviar en la llamada).
+      '\n- Comprométete SOLO a lo que puedes hacer con tus herramientas: agendar una cita, registrar el recado o avisar al responsable. NO ofrezcas enviar información por email, WhatsApp o SMS, ni prometas plazos concretos ("muy pronto", "en cinco minutos"), ni que "llamarás tú": al registrar un aviso, di simplemente que un compañero se pondrá en contacto, sin garantizar cuándo ni cómo.]';
 
     return { role: 'system', content: systemPrompt };
   }
