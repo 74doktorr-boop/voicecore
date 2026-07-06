@@ -289,6 +289,48 @@ function setupRegistroRoutes(app) {
     }
   });
 
+  // GET /api/registro/:id/checkout — RESCATE del pago abandonado.
+  // El funnel normal (onboarding.html) ya redirige a Stripe; pero quien
+  // abandona ahí se quedaba en tierra de nadie hasta que alguien le llamara.
+  // Este enlace (va como botón en el email de acuse) crea una Checkout
+  // Session fresca con su registroId → al pagar, la provisión automática
+  // completa de siempre. GET con redirect para poder ser un enlace de email.
+  app.get('/api/registro/:id/checkout', registroRateLimit, async (req, res) => {
+    const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+    try {
+      const registro = await getRegistro(req.params.id);
+      if (!registro) return res.redirect(302, `${base}/onboarding.html`);
+      if (registro.status === 'active' || registro.status === 'provisioning') {
+        // Ya pagó (quizá clicó el email dos veces) → a su página de progreso.
+        return res.redirect(302, `${base}/gracias/?id=${encodeURIComponent(registro.id)}`);
+      }
+
+      // Si el registro trajo cupón válido, se aplica solo en el checkout.
+      let stripeCode = null;
+      if (registro.coupon_code) {
+        const c = validateCoupon(registro.coupon_code);
+        if (c?.stripeCode) stripeCode = c.stripeCode;
+        else {
+          try {
+            const ref = await require('../referrals/referrals').lookupReferral(registro.coupon_code);
+            if (ref?.stripeCode) stripeCode = ref.stripeCode;
+          } catch (_) {}
+        }
+      }
+
+      const { getBilling } = require('../billing/stripe');
+      const out = await getBilling().createRegistroCheckout({
+        registroId: registro.id,
+        email: registro.email,
+        couponStripeCode: stripeCode,
+      });
+      res.redirect(302, out.url);
+    } catch (e) {
+      log.error(`checkout de registro falló: ${e.message}`);
+      res.redirect(302, `${base}/onboarding.html`);
+    }
+  });
+
   // GET /api/registro/:id — datos públicos para la página /gracias
   app.get('/api/registro/:id', async (req, res) => {
     try {

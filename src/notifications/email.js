@@ -409,9 +409,16 @@ async function sendAcknowledgement(registro) {
           </div>`).join('')}
         </div>
 
+        <!-- Activación autoservicio: rescate del pago si abandonó el checkout -->
+        ${registro.id ? `
+        <div style="margin:28px 0 0;padding:20px;background:linear-gradient(135deg,rgba(108,92,231,.15),rgba(162,155,254,.08));border:1px solid rgba(108,92,231,0.35);border-radius:12px;text-align:center;">
+          <p style="margin:0 0 12px;font-size:14px;color:#c8c8d8;"><strong style="color:#fff;">¿No quieres esperar?</strong> Actívalo tú mismo ahora — pago seguro y tu asistente se configura solo en minutos</p>
+          <a href="${process.env.PUBLIC_URL || 'https://nodeflow.es'}/api/registro/${registro.id}/checkout" style="display:inline-block;background:#6c5ce7;color:#fff;padding:13px 30px;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">⚡ Activar mi asistente ahora →</a>
+        </div>` : ''}
+
         <!-- WhatsApp CTA -->
-        <div style="margin:28px 0 0;padding:20px;background:#14141e;border:1px solid rgba(37,211,102,0.2);border-radius:12px;text-align:center;">
-          <p style="margin:0 0 12px;font-size:14px;color:#888;">¿No quieres esperar? Escríbenos ahora mismo</p>
+        <div style="margin:16px 0 0;padding:20px;background:#14141e;border:1px solid rgba(37,211,102,0.2);border-radius:12px;text-align:center;">
+          <p style="margin:0 0 12px;font-size:14px;color:#888;">¿Prefieres hablar antes? Escríbenos ahora mismo</p>
           <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20acabo%20de%20registrar%20${encodeURIComponent(registro.negocio)}%20en%20NodeFlow" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp directo →</a>
         </div>
       </div>
@@ -430,6 +437,7 @@ async function sendAcknowledgement(registro) {
     `¡Solicitud recibida, ${nombre}!`,
     ``,
     `Hemos recibido los datos de ${registro.negocio}. Te contactamos en menos de 24 horas.`,
+    ...(registro.id ? [``, `¿No quieres esperar? Actívalo ahora: ${process.env.PUBLIC_URL || 'https://nodeflow.es'}/api/registro/${registro.id}/checkout`] : []),
     ``,
     `Plan: ${plan}`,
     `Ciudad: ${registro.ciudad}`,

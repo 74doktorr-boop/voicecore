@@ -127,6 +127,35 @@ class StripeBilling {
   }
 
   /**
+   * Checkout de AUTOSERVICIO desde /gracias: el lead recién registrado paga
+   * sin esperar a que nadie le contacte. client_reference_id = registroId →
+   * el webhook (payment_link_completed) dispara la provisión automática
+   * completa (org + asistente + número + email de activación).
+   */
+  async createRegistroCheckout({ registroId, email, couponStripeCode }) {
+    if (!this.enabled) throw new Error('Stripe no configurado');
+    const priceId = this.plans.negocio.priceId;
+    if (!priceId) throw new Error('Falta el precio del plan Negocio (STRIPE_PRO_PRICE_ID)');
+    const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      client_reference_id: registroId,
+      customer_email: email || undefined,
+      // Si trajo cupón validado, se aplica solo; si no, puede teclear uno.
+      ...(couponStripeCode
+        ? { discounts: [{ coupon: couponStripeCode }] }
+        : { allow_promotion_codes: true }),
+      success_url: `${base}/gracias/?id=${encodeURIComponent(registroId)}&paid=1`,
+      cancel_url: `${base}/onboarding.html`,
+      metadata: { registroId },
+      subscription_data: { metadata: { registroId } },
+    });
+    log.info(`Checkout de registro creado: ${registroId}`);
+    return { url: session.url };
+  }
+
+  /**
    * Create a billing portal session for managing subscription
    */
   async createPortalSession({ customerId, returnUrl }) {

@@ -331,7 +331,7 @@ function nfT(key){ return (NF_T[window.NF_LANG] || NF_T.es)[key]; }
 
 // ── Recuperar datos del registro guardados antes del redirect a Stripe ──
 (function () {
-  const regId = localStorage.getItem('nf_reg_id');
+  const regId = new URLSearchParams(location.search).get('id') || localStorage.getItem('nf_reg_id');
   const regNegocio = localStorage.getItem('nf_reg_negocio');
   const regPlan = localStorage.getItem('nf_reg_plan');
 
@@ -414,7 +414,7 @@ function nfT(key){ return (NF_T[window.NF_LANG] || NF_T.es)[key]; }
 
 // ── Polling onboarding-status en tiempo real ──
 (function () {
-  const regId = sessionStorage.getItem('nf_reg_id_bak');
+  const regId = new URLSearchParams(location.search).get('id') || sessionStorage.getItem('nf_reg_id_bak');
   if (!regId) return;
 
   let pollInterval = null;

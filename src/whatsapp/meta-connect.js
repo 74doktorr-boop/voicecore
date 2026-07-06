@@ -8,7 +8,7 @@
 //   1. exchangeCodeForToken  → token de negocio (no expira)
 //   2. registerNumber        → activa el número en la Cloud API
 //   3. subscribeAppToWaba    → sus mensajes entrantes llegan a nuestro webhook
-//   4. submitTemplates       → alta de las 3 plantillas en su WABA
+//   4. submitTemplates       → alta de TODAS las plantillas de WA_TEMPLATES en su WABA
 //   5. saveWaCredentials     → guardado cifrado (apiBase=null = Meta directo)
 //
 // La Graph API es inyectable (`deps.graph`) → testeable con mocks sin la
