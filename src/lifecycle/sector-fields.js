@@ -33,6 +33,10 @@ const SECTOR_REQUIRED_FIELDS = {
   academia: [
     { key: 'fecha_fin_curso',         label: 'Fin de curso',               type: 'date',   placeholder: 'dd/mm/aaaa' },
   ],
+  clinica: [
+    { key: 'fecha_caducidad_psicotecnico', label: 'Caducidad del psicotécnico', type: 'date', placeholder: 'dd/mm/aaaa' },
+    { key: 'tipo_psicotecnico',            label: 'Tipo (permiso B/C/D, armas…)', type: 'text', placeholder: 'ej. B', optional: true },
+  ],
 };
 
 /**

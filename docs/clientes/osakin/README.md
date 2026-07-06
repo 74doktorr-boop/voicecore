@@ -81,11 +81,12 @@ Además de las normas del sector `clinica` (pregunta especialidad, ante urgencia
 
 ## 4. Seguimientos — el "oro" (motor de caducidad) 🪙
 
-**Esto es lo que cierra el trato.** La renovación de psicotécnicos = un **seguimiento** del motor de recall (`reminder-engine`): cada cliente con `sector_data.caducidad` (fecha de fin de su carnet) → el asistente le **llama ~1 mes antes** a renovar con Osakin.
+**Esto es lo que cierra el trato.** La renovación de psicotécnicos = un **recordatorio** del motor (`reminder-engine`, sector `clinica`, servicio `renovacion_psicotecnico`): cada cliente con `sector_data.fecha_caducidad_psicotecnico` → NodeFlow le avisa por WhatsApp **~30 días antes** para que renueve con Osakin.
 
-- **Cómo se alimenta:** subiendo su base de clientes con las fechas → **importación masiva** (pieza que se está montando; ver `docs/estado` / seguimientos). El **export** que pide el onboarding = ese fichero.
-- **Formato del export** (lo que pedirles): `Nombre, Teléfono, Caduca_el (YYYY-MM-DD), Tipo (permiso B / armas / …)`.
-- Sin ese export, el motor arranca vacío y se llena a cuentagotas (cada renovación registra la siguiente caducidad). Con el export, arranca dando los **3.000–5.000 €/año** del pitch desde el día 1.
+- **Cómo se alimenta:** **importación masiva YA CONSTRUIDA** (2026-07-06). Portal → Clientes → **⬆ Importar**: sube/pega el CSV, previsualiza y confirma. `src/lifecycle/contact-import.js` + `POST /api/portal/contacts/import`.
+- **Formato del export** (lo que pedirles): `Nombre, Teléfono, Caduca_el, Tipo`. Fecha en `aaaa-mm-dd` **o** `dd/mm/aaaa`; separador `,` o `;`; acepta acentos en cabeceras. El teléfono se normaliza a `+34`.
+- **Inminentes cubiertos:** si al importar alguien caduca dentro de <30 días (su ventana de 30-días-antes ya pasó), en vez de perderlo el sistema le programa el aviso **para mañana** (marcado como ⚡ urgente). Así Osakin no pierde ni las renovaciones inmediatas.
+- Sin export el motor arranca vacío y se llena a cuentagotas (cada renovación registra la siguiente caducidad). Con el export, arranca dando los **3.000–5.000 €/año** del pitch desde el día 1.
 
 ---
 
@@ -109,7 +110,7 @@ El asistente **captura la intención** (servicio, sede, cliente); la cita se cre
 1. Crear org **Osakin** en el Admin (plan Negocio; 3 sedes = assistants ilimitados).
 2. Aplicar el `assistant_config` + `serviceList` + `schedule` de arriba.
 3. Dar de alta el enrutado de número por sede (opción A/B).
-4. Importar el export de caducidades → el motor programa las renovaciones.
+4. Importar el export de caducidades (Portal → Clientes → ⬆ Importar) → el motor programa las renovaciones (y avisa ya de las que caducan en <30 días).
 5. Activar WhatsApp (688 76 07 60) para confirmaciones/recordatorios.
 6. Magic link del portal al responsable + **llamada de prueba a cada sede**.
 7. Mes de prueba gratis + revisión a 30 días con números reales.

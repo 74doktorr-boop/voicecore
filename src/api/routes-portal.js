@@ -1192,6 +1192,40 @@ function setupPortalRoutes(app, pipeline, config) {
     res.send(csv);
   });
 
+  // ── POST /api/portal/contacts/import ──────────────────────────
+  // Importación masiva del export de la clínica (Nombre, Teléfono, Caduca_el, Tipo).
+  // { csv, preview? }. Con preview:true solo analiza (no escribe) para revisar antes.
+  app.post('/api/portal/contacts/import', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+      const csv = String((req.body && req.body.csv) || '');
+      if (csv.length > 2_000_000) return res.status(413).json({ error: 'Fichero demasiado grande (máx ~2MB)' });
+
+      const { parseImportCsv, countScheduled, importContacts } = require('../lifecycle/contact-import');
+      const parsed = parseImportCsv(csv);
+      if (!parsed.total && parsed.errors.length && parsed.errors[0].line === 1) {
+        return res.status(400).json({ error: parsed.errors[0].reason });
+      }
+      const willSchedule = countScheduled(parsed.rows);
+
+      // Preview: no toca la BD. Devuelve conteos + primeras filas + errores.
+      if (req.body && req.body.preview) {
+        return res.json({
+          ok: true, preview: true,
+          total: parsed.total, willSchedule,
+          errors: parsed.errors.slice(0, 20), errorCount: parsed.errors.length,
+          sample: parsed.rows.slice(0, 5),
+        });
+      }
+
+      if (parsed.total > 5000) return res.status(413).json({ error: 'Máximo 5000 filas por importación' });
+      const result = await importContacts(req.businessId, parsed.rows, { db });
+      log.info(`Import (${req.flowConfig.name}): ${result.imported} contactos, ${result.scheduled} renovaciones programadas, ${result.skipped} saltados`);
+      res.json({ ok: true, ...result, parseErrors: parsed.errors.slice(0, 20), parseErrorCount: parsed.errors.length });
+    } catch (e) { log.warn(`contacts import: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ════════ Tareas del dueño (mini-agenda CRM) ════════════════════════════════
 
   // GET /api/portal/tasks — pendientes primero (por fecha), luego completadas
@@ -2126,6 +2160,74 @@ function setupPortalRoutes(app, pipeline, config) {
       if (error) return res.status(500).json({ error: error.message });
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ============================================================
+  // Seguimientos personalizados (2026-07-06)
+  // El sistema SUGIERE quién llamó y no reservó + redacta un mensaje
+  // personalizado; el dueño revisa/edita y lo envía por SU WhatsApp.
+  // Dos vías operativas: enlace wa.me (lo manda él → sin límite de
+  // plantilla, 100% personalizado) y API de su propio número.
+  // Nada se envía solo: humano en el bucle.
+  // ============================================================
+  app.get('/api/portal/followups', portalAuth, async (req, res) => {
+    try {
+      const { getCandidates } = require('../lifecycle/followups');
+      const items = await getCandidates(req.businessId, { bizName: req.flowConfig.name });
+      res.json({ ok: true, followups: items });
+    } catch (e) { log.warn(`followups list: ${e.message}`); res.json({ ok: true, followups: [] }); }
+  });
+
+  // Marca un seguimiento como HECHO (tras abrir el enlace wa.me, o al descartar).
+  // Body opcional: { channel: 'wa_link' | 'dismissed' }
+  app.post('/api/portal/followups/:callId/done', portalAuth, async (req, res) => {
+    try {
+      const { markDone } = require('../lifecycle/followups');
+      const r = await markDone(req.params.callId, req.businessId);
+      if (!r.ok) return res.status(500).json({ error: r.error || 'No se pudo marcar' });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Envía el seguimiento por el WhatsApp PROPIO del negocio (API de Meta).
+  // Requiere número propio conectado (add-on wa_own_number). Body: { message }.
+  // Ojo Meta: el texto libre solo sale dentro de la ventana de 24h; si el
+  // cliente no ha escrito, Meta lo rechaza → el dueño usa el enlace wa.me.
+  app.post('/api/portal/followups/:callId/send', portalAuth, async (req, res) => {
+    try {
+      const message = String(req.body && req.body.message || '').trim().slice(0, 1000);
+      if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
+
+      const db = getDatabase();
+      // Recupera la llamada (para el teléfono) y valida propiedad.
+      const { data: call } = await db.client.from('nf_calls')
+        .select('id, caller_number, followup_sent').eq('id', req.params.callId)
+        .eq('org_id', req.businessId).maybeSingle();
+      if (!call) return res.status(404).json({ error: 'Llamada no encontrada' });
+      if (!call.caller_number || call.caller_number === 'unknown') {
+        return res.status(400).json({ error: 'Sin número de teléfono para este contacto' });
+      }
+
+      const { getWaCredentials } = require('../whatsapp/accounts');
+      const creds = await getWaCredentials(req.businessId);
+      if (!creds) {
+        return res.status(402).json({
+          error: 'Para enviar desde tu propio número necesitas conectarlo (complemento "WhatsApp con tu número"). Mientras tanto, usa el botón de WhatsApp para enviarlo tú.',
+          addonRequired: 'wa_own_number',
+        });
+      }
+
+      const { sendText } = require('../notifications/client-whatsapp');
+      const out = await sendText(call.caller_number, message, creds);
+      if (!out.ok) {
+        // Fuera de la ventana de 24h Meta rechaza el texto libre → guiar al enlace.
+        return res.status(422).json({ error: out.error || 'WhatsApp no pudo enviarlo', useLink: true });
+      }
+
+      const { markDone } = require('../lifecycle/followups');
+      await markDone(req.params.callId, req.businessId);
+      res.json({ ok: true, messageId: out.messageId });
+    } catch (e) { log.warn(`followup send: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ============================================================

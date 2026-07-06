@@ -440,8 +440,8 @@
 
     <section id="sec-seguimientos" class="section">
       <div class="section-header">
-        <h2>Seguimientos automáticos</h2>
-        <p class="section-desc">Recordatorios programados para tus clientes</p>
+        <h2>Seguimientos</h2>
+        <p class="section-desc">Clientes a los que merece la pena escribir — tú revisas y envías</p>
       </div>
 
       <!-- Lifecycle wizard banner (populated by checkSectorBanner()) -->
@@ -449,12 +449,20 @@
 
       <!-- Tabs -->
       <div class="tabs" style="margin-bottom:20px">
-        <button class="tab-btn active" data-tab="proximos">Próximos 30 días</button>
+        <button class="tab-btn active" data-tab="sugeridos">Personalizados</button>
+        <button class="tab-btn" data-tab="proximos">Recordatorios automáticos</button>
         <button class="tab-btn" data-tab="historial">Historial</button>
       </div>
 
+      <!-- Personalized follow-ups tab -->
+      <div id="tab-sugeridos">
+        <div id="followups-list">
+          <div class="loading-msg">Cargando seguimientos...</div>
+        </div>
+      </div>
+
       <!-- Upcoming tab -->
-      <div id="tab-proximos">
+      <div id="tab-proximos" style="display:none">
         <div id="reminders-upcoming-list">
           <div class="loading-msg">Cargando recordatorios...</div>
         </div>

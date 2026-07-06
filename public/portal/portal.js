@@ -2620,6 +2620,7 @@ async function loadClientes(q) {
       '<div class="kicker">Actividad</div><div class="section-title">Clientes</div>' +
       '<div class="u-flex u-items-center u-gap-2">' +
         '<span class="u-text-md u-dim">' + (data.count || 0) + ' contactos</span>' +
+        '<button class="btn btn-d btn-sm" onclick="openImportModal()">⬆ Importar</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
       '</div>' +
     '</div>' +
@@ -2660,6 +2661,85 @@ async function exportClientes(btn) {
     toast('Error al exportar: ' + e.message, 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar CSV'; }
+  }
+}
+
+// ── Importación masiva de clientes (export de la clínica → caducidades) ──
+var _importCsv = '';
+
+function openImportModal() {
+  _importCsv = '';
+  openModal(
+    '<div class="modal-title">⬆ Importar clientes</div>' +
+    '<p style="color:var(--dim);font-size:13px;line-height:1.5;margin-bottom:14px">' +
+      'Sube el export de tu base de clientes. Con la <strong>fecha de caducidad</strong> (p. ej. del psicotécnico), el sistema avisará a cada cliente <strong>~1 mes antes</strong> para que renueve contigo — sin llamadas a destiempo.' +
+    '</p>' +
+    '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--dim)">' +
+      'Columnas: <code>Nombre</code>, <code>Teléfono</code>, <code>Caduca_el</code> (aaaa-mm-dd o dd/mm/aaaa), <code>Tipo</code>. Acepta CSV con , o ;' +
+    '</div>' +
+    '<input type="file" id="importFile" accept=".csv,text/csv,text/plain" onchange="onImportFile(event)" ' +
+      'style="display:block;width:100%;margin-bottom:10px;color:var(--dim);font-size:13px">' +
+    '<div style="text-align:center;color:var(--dim);font-size:12px;margin:4px 0">— o pega el CSV —</div>' +
+    '<textarea id="importText" oninput="onImportText()" placeholder="Nombre,Teléfono,Caduca_el,Tipo&#10;Aitor Zubeldia,688760760,2026-08-10,B" ' +
+      'style="width:100%;min-height:96px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:monospace;line-height:1.5"></textarea>' +
+    '<div id="importPreview" style="margin-top:12px"></div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" id="importBtn" onclick="runImport()" disabled>Importar</button>' +
+    '</div>'
+  );
+}
+
+function onImportFile(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    _importCsv = String(reader.result || '');
+    var ta = document.getElementById('importText'); if (ta) ta.value = _importCsv.slice(0, 4000);
+    previewImport();
+  };
+  reader.readAsText(f, 'utf-8');
+}
+
+var _importDebounce;
+function onImportText() {
+  _importCsv = (document.getElementById('importText') || {}).value || '';
+  clearTimeout(_importDebounce);
+  _importDebounce = setTimeout(previewImport, 350);
+}
+
+async function previewImport() {
+  var box = document.getElementById('importPreview');
+  var btn = document.getElementById('importBtn');
+  if (!box) return;
+  if (!_importCsv.trim()) { box.innerHTML = ''; if (btn) btn.disabled = true; return; }
+  box.innerHTML = '<div style="color:var(--dim);font-size:12px">Analizando…</div>';
+  var r;
+  try { r = await api('/api/portal/contacts/import', 'POST', { csv: _importCsv, preview: true }); }
+  catch (e) { box.innerHTML = '<div style="color:var(--danger,#e5484d);font-size:13px">' + esc(e.message) + '</div>'; if (btn) btn.disabled = true; return; }
+
+  if (!r.total) { box.innerHTML = '<div style="color:var(--danger,#e5484d);font-size:13px">No hay filas válidas para importar.</div>'; if (btn) btn.disabled = true; return; }
+  box.innerHTML =
+    '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:8px;padding:12px 14px">' +
+      '<div style="font-weight:700;color:var(--accent-l);font-size:14px">' + r.total + ' cliente' + (r.total !== 1 ? 's' : '') + ' listos para importar</div>' +
+      '<div style="color:var(--dim);font-size:13px;margin-top:3px">📅 ' + r.willSchedule + ' renovación' + (r.willSchedule !== 1 ? 'es' : '') + ' se programará' + (r.willSchedule !== 1 ? 'n' : '') + ' automáticamente</div>' +
+      (r.errorCount ? '<div style="color:#e0a030;font-size:12px;margin-top:6px">⚠ ' + r.errorCount + ' fila' + (r.errorCount !== 1 ? 's' : '') + ' con errores se omitirán (líneas: ' + r.errors.map(function(e){return e.line;}).slice(0, 8).join(', ') + (r.errorCount > 8 ? '…' : '') + ')</div>' : '') +
+    '</div>';
+  if (btn) btn.disabled = false;
+}
+
+async function runImport() {
+  var btn = document.getElementById('importBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando…'; }
+  try {
+    var r = await api('/api/portal/contacts/import', 'POST', { csv: _importCsv });
+    closeModal();
+    toast('✅ ' + r.imported + ' clientes importados · ' + r.scheduled + ' renovaciones programadas');
+    if (_currentSection === 'clientes') loadClientes();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Importar'; }
+    toast('Error al importar: ' + e.message, 'err');
   }
 }
 
@@ -4648,12 +4728,111 @@ async function loadSeguimientos() {
       document.querySelectorAll('#sec-seguimientos .tab-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       var tab = btn.dataset.tab;
+      document.getElementById('tab-sugeridos').style.display = tab === 'sugeridos' ? '' : 'none';
       document.getElementById('tab-proximos').style.display  = tab === 'proximos'  ? '' : 'none';
       document.getElementById('tab-historial').style.display = tab === 'historial' ? '' : 'none';
+      if (tab === 'sugeridos') loadFollowups();
+      if (tab === 'proximos')  loadUpcomingReminders();
       if (tab === 'historial') loadReminderHistory();
     };
   });
-  await loadUpcomingReminders();
+  await loadFollowups();
+}
+
+// ── Seguimientos personalizados (sistema sugiere → tú revisas y envías) ──
+async function loadFollowups() {
+  var el = document.getElementById('followups-list');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-msg">Cargando seguimientos...</div>';
+  var res;
+  try { res = await api('/api/portal/followups'); }
+  catch (e) { el.innerHTML = '<div class="empty-state-text">No se pudieron cargar los seguimientos.</div>'; return; }
+
+  var items = (res && res.followups) || [];
+  if (!items.length) {
+    el.innerHTML =
+      '<div class="empty-state" style="text-align:center;padding:48px 24px">' +
+        '<div style="font-size:32px;margin-bottom:12px">✅</div>' +
+        '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">No hay seguimientos pendientes</div>' +
+        '<div class="empty-state-text" style="max-width:480px;margin:0 auto">Cuando alguien llame y no reserve, aparecerá aquí con un mensaje ya redactado para que le escribas tú desde tu WhatsApp. Sin recordatorios a destiempo: solo los que valen la pena.</div>' +
+      '</div>';
+    return;
+  }
+
+  el.innerHTML =
+    '<div style="color:var(--dim);font-size:13px;margin-bottom:14px">' + items.length +
+    ' cliente' + (items.length !== 1 ? 's' : '') + ' llamaron y no reservaron. Revisa el mensaje, edítalo si quieres y envíalo desde tu WhatsApp.</div>' +
+    items.map(followupCard).join('');
+}
+
+function _fuReason(r) {
+  if (r === 'callback_requested') return 'Dejó sus datos';
+  if (r === 'abandoned') return 'Se cortó la llamada';
+  return 'Consultó, no reservó';
+}
+function _fuAgo(iso) {
+  if (!iso) return '';
+  var d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (d <= 0) return 'hoy';
+  if (d === 1) return 'ayer';
+  return 'hace ' + d + ' días';
+}
+
+function followupCard(f) {
+  var who = esc(f.name || f.phone || 'Cliente');
+  var id  = esc(f.callId);
+  return '' +
+    '<div class="fu-card" data-fu="' + id + '" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px">' +
+        '<div style="font-weight:700;color:var(--text);font-size:15px">' + who + '</div>' +
+        '<div style="color:var(--dim);font-size:12px;white-space:nowrap">' + esc(_fuReason(f.reason)) + ' · ' + esc(_fuAgo(f.when)) + '</div>' +
+      '</div>' +
+      '<textarea class="fu-msg" style="width:100%;min-height:76px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;line-height:1.5">' + esc(f.draft) + '</textarea>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+        '<button onclick="fuSendLink(\'' + id + '\',\'' + esc(f.phone || '') + '\')" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">📱 Enviar por WhatsApp</button>' +
+        '<button onclick="fuSendApi(\'' + id + '\')" style="background:transparent;color:var(--dim);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer">Enviar desde mi número</button>' +
+        '<button onclick="fuDismiss(\'' + id + '\')" style="background:transparent;color:var(--dim);border:none;padding:9px 8px;font-size:13px;cursor:pointer;margin-left:auto">Descartar</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function _fuMsg(id) {
+  var card = document.querySelector('.fu-card[data-fu="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  return card ? card.querySelector('.fu-msg').value.trim() : '';
+}
+function _fuRemove(id) {
+  var card = document.querySelector('.fu-card[data-fu="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (card) card.remove();
+  var left = document.querySelectorAll('#followups-list .fu-card').length;
+  if (!left) loadFollowups();
+}
+
+// Vía wa.me: abre WhatsApp con el mensaje puesto, lo envía él → sin límite de plantilla.
+async function fuSendLink(id, phone) {
+  var msg = _fuMsg(id);
+  var num = String(phone || '').replace(/[^0-9]/g, '');
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+  try { await api('/api/portal/followups/' + id + '/done', 'POST', { channel: 'wa_link' }); } catch (e) {}
+  toast('Seguimiento marcado como enviado');
+  _fuRemove(id);
+}
+
+// Vía API del número propio (add-on). Fuera de la ventana 24h Meta lo rechaza → guía al enlace.
+async function fuSendApi(id) {
+  var msg = _fuMsg(id);
+  if (!msg) return;
+  try {
+    await api('/api/portal/followups/' + id + '/send', 'POST', { message: msg });
+    toast('Enviado desde tu número ✓');
+    _fuRemove(id);
+  } catch (e) {
+    toast((e && e.message) || 'No se pudo enviar', 'err');
+  }
+}
+
+async function fuDismiss(id) {
+  try { await api('/api/portal/followups/' + id + '/done', 'POST', { channel: 'dismissed' }); } catch (e) {}
+  _fuRemove(id);
 }
 
 // ── Sector Onboarding Wizard ──────────────────────────────────

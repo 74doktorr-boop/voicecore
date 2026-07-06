@@ -75,6 +75,12 @@ const SECTOR_DEFAULTS = {
   academia: {
     renovacion_matricula: { days: 21, trigger: 'before_sector_field', field: 'fecha_fin_curso' },
   },
+  // Centro médico multi-servicio. El "oro" de Osakin: la renovación del
+  // psicotécnico es una fecha de caducidad legal → avisar ~1 mes antes.
+  clinica: {
+    renovacion_psicotecnico: { days: 30, trigger: 'before_sector_field', field: 'fecha_caducidad_psicotecnico' },
+    revision_anual:          { days: 330, trigger: 'from_last_appointment', serviceFilter: ['revisión','revision','chequeo'] },
+  },
 };
 
 /**

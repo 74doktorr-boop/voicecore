@@ -10,9 +10,13 @@
 - [x] **Migración referidos** (`nf_referrals` + `nf_referral_conversions`) — ejecutada
 - [x] **API_KEY de producción** — verificado vía `/api/admin/diagnostics`: NO es la default ✅
 - [ ] **Migración callbacks** (`db/migration-callbacks.sql`) — para el widget "¿Te llamamos?"
-- [ ] **WABA de NodeFlow en Meta** — pendiente (checklist en `Desktop\NodeFlow-WhatsApp-Setup.html`, recordatorio activo).
-      Al configurar, meter 4 vars: `WA_PHONE_NUMBER_ID`, `WA_ACCESS_TOKEN`, `WA_WEBHOOK_VERIFY_TOKEN`, `WA_APP_SECRET`.
-      Verificar en panel admin → pestaña 🩺 Sistema (todo verde) o `GET /api/admin/diagnostics`.
+- [~] **WABA de NodeFlow en Meta** — EN ACTIVACIÓN (2026-07-02, credenciales ya obtenidas).
+      Guía real: `docs/owner/whatsapp-setup.md` → sección "Activación rápida".
+      Pasos: (1) 4 vars en EasyPanel — `WA_PHONE_NUMBER_ID`, `WA_ACCESS_TOKEN`, `WA_APP_SECRET`,
+      `WA_WEBHOOK_VERIFY_TOKEN` (+ `WA_BUSINESS_ACCOUNT_ID` para el script). (2) Webhook Meta →
+      `https://nodeflow.es/whatsapp/webhook`, subscribe `messages`. (3) `node scripts/wa-submit-templates.js`
+      (3 plantillas UTILITY). (4) Verificar `GET /api/admin/diagnostics` (ready+secure) y
+      `POST /api/admin/test-whatsapp {phone}`.
 
 ## 🚀 Próximos pasos (cuando se retome)
 
