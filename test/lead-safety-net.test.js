@@ -11,7 +11,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { applyLeadSafetyNet, isUsableName } = require('../src/lifecycle/lead-safety-net');
+const { applyLeadSafetyNet, isUsableName, saidNotInterested } = require('../src/lifecycle/lead-safety-net');
 
 function fakeDeps() {
   const calls = { leadInsert: null, nameUpdate: null, notified: null };
@@ -62,6 +62,47 @@ describe('applyLeadSafetyNet — la promesa del asistente se cumple aunque el LL
     assert.strictEqual(calls.notified.bizId, 'org-1');
   });
 
+  test('RECHAZO EXPLÍCITO: "no me interesa" → ni lead ni notificación (caso real 2026-07-07)', async () => {
+    const { db, notify, calls } = fakeDeps();
+    const out = await applyLeadSafetyNet({
+      ...BASE,
+      transcript: [
+        { role: 'assistant', content: 'Bienvenido a nodeflow, ¿qué necesitas?' },
+        { role: 'user', content: 'Quiero información sobre vuestros productos.' },
+        { role: 'assistant', content: 'Ofrecemos sistemas con IA. El equipo te llamará para contártelo.' },
+        { role: 'user', content: 'La verdad es que no me interesa, gracias.' },
+      ],
+    }, { db, notify });
+    assert.strictEqual(out.rejected, true);
+    assert.strictEqual(out.leadRecovered, false);
+    assert.strictEqual(calls.leadInsert, null, 'no crea el lead');
+    assert.strictEqual(calls.notified, null, 'no molesta al dueño');
+  });
+
+  test('sin rechazo en el transcript, la red funciona como siempre', async () => {
+    const { db, notify, calls } = fakeDeps();
+    const out = await applyLeadSafetyNet({
+      ...BASE,
+      transcript: [
+        { role: 'user', content: 'Me interesa mucho, llamadme cuando podáis.' },
+      ],
+    }, { db, notify });
+    assert.strictEqual(out.leadRecovered, true);
+    assert.ok(calls.leadInsert);
+  });
+
+  test('saidNotInterested detecta variantes y NO se dispara con frases del asistente', () => {
+    assert.strictEqual(saidNotInterested([{ role: 'user', content: 'no estoy interesado, gracias' }]), true);
+    assert.strictEqual(saidNotInterested([{ role: 'user', content: 'era solo curiosidad' }]), true);
+    assert.strictEqual(saidNotInterested([{ role: 'user', content: 'solo estaba preguntando' }]), true);
+    assert.strictEqual(saidNotInterested([{ role: 'user', content: 'no hace falta que me llaméis' }]), true);
+    // la frase del ASISTENTE no cuenta como rechazo del cliente
+    assert.strictEqual(saidNotInterested([{ role: 'assistant', content: 'si no le interesa, no le llamaremos' }]), false);
+    // interés normal no es rechazo
+    assert.strictEqual(saidNotInterested([{ role: 'user', content: 'me interesa el plan de 49 euros' }]), false);
+    assert.strictEqual(saidNotInterested(null), false);
+  });
+
   test('si register_lead SÍ se llamó, la red no duplica nada', async () => {
     const { db, notify, calls } = fakeDeps();
     const out = await applyLeadSafetyNet({ ...BASE, leadRegistered: true }, { db, notify });
@@ -96,9 +137,9 @@ describe('applyLeadSafetyNet — la promesa del asistente se cumple aunque el LL
 
   test('análisis vacío o db apagada → no lanza y no hace nada', async () => {
     const out1 = await applyLeadSafetyNet({ ...BASE, analysis: null }, { db: { enabled: true }, notify: () => {} });
-    assert.deepStrictEqual(out1, { leadRecovered: false, nameUpdated: false });
+    assert.deepStrictEqual(out1, { leadRecovered: false, nameUpdated: false, rejected: false });
     const out2 = await applyLeadSafetyNet(BASE, { db: { enabled: false }, notify: () => {} });
-    assert.deepStrictEqual(out2, { leadRecovered: false, nameUpdated: false });
+    assert.deepStrictEqual(out2, { leadRecovered: false, nameUpdated: false, rejected: false });
   });
 });
 

@@ -152,7 +152,7 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript, c
     // recupera el lead si el asistente lo prometió pero no llamó al tool.
     try {
       const { applyLeadSafetyNet } = require('./lead-safety-net');
-      await applyLeadSafetyNet({ analysis, contactId, orgId, callerNumber, leadRegistered, callSessionId });
+      await applyLeadSafetyNet({ analysis, contactId, orgId, callerNumber, leadRegistered, callSessionId, transcript });
     } catch (e) { log.warn(`lead safety net: ${e.message}`); }
 
     // 1. Insert immutable call summary

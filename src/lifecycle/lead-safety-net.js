@@ -26,6 +26,24 @@ function isUsableName(raw) {
   return name.length > 1 && !GENERIC_NAME.test(name);
 }
 
+// Rechazo EXPLÍCITO del cliente. Caso real (2026-07-07): el cliente dijo
+// "no me interesa", el analizador clasificó callback_requested igualmente
+// (el asistente había prometido aviso) y el dueño recibió un "lead
+// recuperado" falso. Un lead de alguien que dijo NO quema la confianza en
+// las notificaciones. Determinista por charter: no confiamos en que el
+// LLM clasifique mejor — se comprueba lo que el cliente DIJO.
+// OJO: clases Unicode (\p{L}) y flag u — \w no incluye acentos/ñ y
+// "llaméis" no casaría (mismo demonio que el troceador del navegador).
+const REJECTION = /\b(no\s+(me|nos)\s+interesa\p{L}*|no\s+estoy\s+interesad[oa]|no\s+quiero\s+(nada|que\s+me\s+llam\p{L}+|contratar)|no\s+hace\s+falta\s+que\s+me\s+llam\p{L}+|no\s+me\s+llam[eé]is|solo\s+(estaba\s+)?(preguntando|curioseando|mirando)|era\s+solo\s+curiosidad|d[eé]jalo,?\s+gracias)/iu;
+
+/** ¿El cliente rechazó explícitamente en algún turno? PURA. */
+function saidNotInterested(transcript) {
+  for (const t of (Array.isArray(transcript) ? transcript : [])) {
+    if (t && t.role === 'user' && REJECTION.test(String(t.content || ''))) return true;
+  }
+  return false;
+}
+
 /**
  * Aplica la red tras el análisis del transcript:
  *  a) ficha el nombre que el llamante dio para sí mismo (si el contacto
@@ -37,10 +55,10 @@ function isUsableName(raw) {
  * Nunca lanza. Devuelve { leadRecovered, nameUpdated } para log/tests.
  */
 async function applyLeadSafetyNet(
-  { analysis, contactId, orgId, callerNumber, leadRegistered, callSessionId },
+  { analysis, contactId, orgId, callerNumber, leadRegistered, callSessionId, transcript },
   deps = {}
 ) {
-  const result = { leadRecovered: false, nameUpdated: false };
+  const result = { leadRecovered: false, nameUpdated: false, rejected: false };
   const db = deps.db || require('../db/database').getDatabase();
   const notify = deps.notify || ((msg, bizId) => {
     try { require('../tools/executor')._notifyOwner(msg, bizId); } catch (_) {}
@@ -65,9 +83,14 @@ async function applyLeadSafetyNet(
     log.warn(`[${callSessionId}] fichaje de nombre falló: ${e.message}`);
   }
 
-  // b) Lead prometido y no registrado → se crea igual
+  // b) Lead prometido y no registrado → se crea igual…
+  //    …SALVO que el cliente dijera explícitamente que NO le interesa:
+  //    entonces ni lead ni notificación (falso "lead recuperado" real 2026-07-07).
   try {
-    if (!leadRegistered && analysis.outcome === 'callback_requested') {
+    if (!leadRegistered && analysis.outcome === 'callback_requested' && saidNotInterested(transcript)) {
+      result.rejected = true;
+      log.info(`[${callSessionId}] Lead NO recuperado: el cliente rechazó explícitamente ("no me interesa")`);
+    } else if (!leadRegistered && analysis.outcome === 'callback_requested') {
       const name = isUsableName(xd.nombre_llamante) ? String(xd.nombre_llamante).trim() : '';
       await db.client.from('leads').insert({
         org_id:     orgId,
@@ -97,4 +120,4 @@ async function applyLeadSafetyNet(
   return result;
 }
 
-module.exports = { applyLeadSafetyNet, isUsableName };
+module.exports = { applyLeadSafetyNet, isUsableName, saidNotInterested };
