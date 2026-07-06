@@ -563,6 +563,8 @@ async function loadDiagnostics() {
         card('📧 Email', [['Resend Key',g.email.resendKey],['Notify Email',g.email.notifyEmail]]) +
         card('🔐 Auth', [['JWT Secret',g.auth.jwtSecret],['Dashboard pass',g.auth.dashboardPassword],['API_KEY segura',!g.auth.apiKeyIsDefault]]) +
         card('🎙️ Voz', [['Deepgram',g.voice.deepgram],['OpenAI',g.voice.openai],['Telnyx',g.voice.telnyx],['Twilio',g.voice.twilio]]) +
+        card('📞 Telefonía', [['Telnyx API Key',(g.telephony||{}).telnyxApiKey],['Telnyx App ID',(g.telephony||{}).telnyxAppId],['Auto-provisión de números',(g.telephony||{}).numberAutoProvision],['Bundle regulatorio ES',(g.telephony||{}).regulatoryGroup]]) +
+        card('🧩 Redis', [['REDIS_URL (multi-réplica)',(g.redis||{}).url]]) +
         card('🗄️ Base de datos', [['Conectada',g.database.enabled],['URL',g.database.url],['Service Key',g.database.serviceKey]]) +
       '</div>';
   } catch (e) {
