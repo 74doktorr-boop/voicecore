@@ -85,6 +85,16 @@ async function registerNumber(token, phoneNumberId, deps = {}) {
   return { ok: false, error: _err(res, 'No se pudo registrar el número.') };
 }
 
+/** Número visible y nombre verificado de un phone_number_id (el popup v3 no los da). */
+async function fetchPhoneInfo(token, phoneNumberId, deps = {}) {
+  const graph = deps.graph || defaultGraph;
+  const res = await graph('GET', `/${GRAPH_VER}/${phoneNumberId}?fields=display_phone_number,verified_name`, { token });
+  if (res.status === 200 && res.body && res.body.display_phone_number) {
+    return { ok: true, phoneNumber: res.body.display_phone_number, displayName: res.body.verified_name || null };
+  }
+  return { ok: false, error: _err(res, 'No se pudo leer el número.') };
+}
+
 /** Suscribe NUESTRA app al WABA del cliente → sus entrantes a nuestro webhook. */
 async function subscribeAppToWaba(token, wabaId, deps = {}) {
   const graph = deps.graph || defaultGraph;
@@ -116,15 +126,26 @@ async function submitTemplates(token, wabaId, deps = {}) {
  * @returns {Promise<{ok, phoneNumber?, templatesSubmitted?, error?}>}
  */
 async function connectMetaNumber(businessId, params = {}, deps = {}) {
-  const { code, phoneNumberId, wabaId, phoneNumber, displayName } = params;
-  if (!businessId || !code || !phoneNumberId || !wabaId || !phoneNumber) {
-    return { ok: false, error: 'Faltan datos de la conexión (code, phoneNumberId, wabaId, phoneNumber).' };
+  const { code, phoneNumberId, wabaId, displayName } = params;
+  let { phoneNumber } = params;
+  if (!businessId || !code || !phoneNumberId || !wabaId) {
+    return { ok: false, error: 'Faltan datos de la conexión (code, phoneNumberId, wabaId).' };
   }
   const saveWaCredentials = deps.saveWaCredentials || require('./accounts').saveWaCredentials;
 
   const exch = await exchangeCodeForToken(code, deps);
   if (!exch.ok) return { ok: false, error: exch.error };
   const token = exch.token;
+
+  // El popup de Embedded Signup (sessionInfo v3) no incluye el número visible:
+  // se lee de la Graph API. Si viene en params (flujo admin) no se consulta.
+  let fetchedName = null;
+  if (!phoneNumber) {
+    const info = await fetchPhoneInfo(token, phoneNumberId, deps);
+    if (!info.ok) return { ok: false, error: info.error };
+    phoneNumber = info.phoneNumber;
+    fetchedName = info.displayName;
+  }
 
   // register y subscribe: fallos se loguean pero no abortan el guardado —
   // el número puede quedar utilizable y reintentarse; sin credenciales
@@ -141,7 +162,7 @@ async function connectMetaNumber(businessId, params = {}, deps = {}) {
     accessToken: token,
     phoneNumber,
     wabaId,
-    displayName: displayName || null,
+    displayName: displayName || fetchedName || null,
     apiBase: null, // Meta Cloud API directo
   });
   log.info(`[${businessId}] Número propio conectado: ${phoneNumber} (${tpl.submitted}/3 plantillas)`);
@@ -150,5 +171,5 @@ async function connectMetaNumber(businessId, params = {}, deps = {}) {
 }
 
 module.exports = {
-  exchangeCodeForToken, registerNumber, subscribeAppToWaba, submitTemplates, connectMetaNumber,
+  exchangeCodeForToken, registerNumber, subscribeAppToWaba, submitTemplates, connectMetaNumber, fetchPhoneInfo,
 };

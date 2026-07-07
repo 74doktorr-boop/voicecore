@@ -925,6 +925,15 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // GET es-config: datos públicos para lanzar el Embedded Signup desde el portal.
+  // appId es público por diseño de Meta; configId sale de "Facebook Login for
+  // Business → Configuraciones". Sin WA_ES_CONFIG_ID el portal cae al flujo manual.
+  app.get('/api/portal/whatsapp/es-config', portalAuth, (req, res) => {
+    const appId = process.env.WA_APP_ID || '1004065339078581';
+    const configId = process.env.WA_ES_CONFIG_ID || null;
+    res.json({ appId, configId, available: !!(configId && process.env.WA_APP_SECRET) });
+  });
+
   // POST connect-meta: self-service Embedded Signup. Requiere el add-on de pago.
   // Body: { code, phoneNumberId, wabaId, phoneNumber, displayName? } del popup de Meta.
   app.post('/api/portal/whatsapp/connect-meta', portalAuth, async (req, res) => {

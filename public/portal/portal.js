@@ -4478,7 +4478,91 @@ async function loadWaStatus() {
   }
 }
 
-// (flujo 360dialog eliminado — la conexión de número propio la gestiona NodeFlow vía admin connect-meta)
+// ── Embedded Signup oficial de Meta (self-service) ─────────────
+// El popup de Meta devuelve por postMessage el phone_number_id y el
+// waba_id (sessionInfo v3) y por FB.login el `code`; con las tres
+// piezas el backend cierra la conexión (token, register, plantillas).
+var _waEs = { phoneNumberId: null, wabaId: null, listening: false, cfg: null };
+
+function _waEsListen() {
+  if (_waEs.listening) return;
+  _waEs.listening = true;
+  window.addEventListener('message', function (ev) {
+    if (ev.origin !== 'https://www.facebook.com' && ev.origin !== 'https://web.facebook.com') return;
+    try {
+      var d = JSON.parse(ev.data);
+      if (d.type !== 'WA_EMBEDDED_SIGNUP') return;
+      if (d.event === 'FINISH' && d.data) {
+        _waEs.phoneNumberId = d.data.phone_number_id || null;
+        _waEs.wabaId = d.data.waba_id || null;
+      }
+    } catch (e) { /* mensajes ajenos */ }
+  });
+}
+
+function _waEsLoadSdk(appId) {
+  return new Promise(function (resolve, reject) {
+    if (window.FB) return resolve();
+    window.fbAsyncInit = function () {
+      FB.init({ appId: appId, autoLogAppEvents: true, xfbml: false, version: 'v21.0' });
+      resolve();
+    };
+    var s = document.createElement('script');
+    s.src = 'https://connect.facebook.net/es_ES/sdk.js';
+    s.async = true; s.defer = true; s.crossOrigin = 'anonymous';
+    s.onerror = function () { reject(new Error('No se pudo cargar el SDK de Meta')); };
+    document.head.appendChild(s);
+  });
+}
+
+async function startWaEmbeddedSignup() {
+  try {
+    if (!_waEs.cfg) _waEs.cfg = await api('/api/portal/whatsapp/es-config');
+  } catch (e) { _waEs.cfg = { available: false }; }
+  if (!_waEs.cfg || !_waEs.cfg.available) { openWaUpgrade(); return; }
+
+  toast('Abriendo la conexión con WhatsApp…');
+  try { await _waEsLoadSdk(_waEs.cfg.appId); } catch (e) { toast('❌ ' + e.message, 'err'); return; }
+  _waEsListen();
+  _waEs.phoneNumberId = null; _waEs.wabaId = null;
+
+  FB.login(function (response) {
+    if (response && response.authResponse && response.authResponse.code) {
+      _waEsFinish(response.authResponse.code);
+    } else {
+      toast('Conexión cancelada — puedes intentarlo cuando quieras');
+    }
+  }, {
+    config_id: _waEs.cfg.configId,
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+  });
+}
+
+async function _waEsFinish(code) {
+  // el postMessage FINISH puede llegar unos ms después del callback de FB.login
+  for (var i = 0; i < 20 && !_waEs.phoneNumberId; i++) { await new Promise(function (r) { setTimeout(r, 250); }); }
+  if (!_waEs.phoneNumberId || !_waEs.wabaId) {
+    toast('❌ Meta no devolvió el número. Cierra el popup e inténtalo de nuevo.', 'err');
+    return;
+  }
+  toast('Conectando tu número… (unos segundos)');
+  try {
+    var out = await api('/api/portal/whatsapp/connect-meta', 'POST', {
+      code: code, phoneNumberId: _waEs.phoneNumberId, wabaId: _waEs.wabaId,
+    });
+    if (out && out.ok) {
+      toast('✅ ¡WhatsApp conectado! Tus avisos saldrán desde ' + (out.phoneNumber || 'tu número'));
+      loadIntegraciones();
+    } else {
+      toast('❌ ' + ((out && out.error) || 'No se pudo completar la conexión'), 'err');
+    }
+  } catch (e) {
+    if (e.status === 402 || /complemento/i.test(e.message || '')) { openWaUpgrade(); return; }
+    toast('❌ ' + e.message, 'err');
+  }
+}
 
 function disconnectWa() {
   openModal(
@@ -4546,9 +4630,13 @@ function renderWaCard(waStatus) {
     '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
       '<div style="font-size:12px;color:var(--dim);line-height:1.6;flex:1;min-width:220px">' +
         '<strong style="color:var(--text)">¿Quieres que salgan desde TU número?</strong><br>' +
-        'Número de WhatsApp de empresa propio, con tu nombre y tu logo. Nos encargamos de todo: alta con Meta, verificación y plantillas.' +
+        (waStatus && waStatus.hasAddon
+          ? 'Tu complemento está activo: conecta tu WhatsApp de empresa en 2 minutos con el asistente oficial de Meta. Las plantillas se dan de alta solas.'
+          : 'Número de WhatsApp de empresa propio, con tu nombre y tu logo. Nos encargamos de todo: alta con Meta, verificación y plantillas.') +
       '</div>' +
-      '<button class="btn btn-accent btn-sm" onclick="openWaUpgrade()" style="white-space:nowrap">Quiero mi número →</button>' +
+      (waStatus && waStatus.hasAddon
+        ? '<button class="btn btn-accent btn-sm" onclick="startWaEmbeddedSignup()" style="white-space:nowrap">Conectar mi WhatsApp →</button>'
+        : '<button class="btn btn-accent btn-sm" onclick="openWaUpgrade()" style="white-space:nowrap">Quiero mi número →</button>') +
     '</div>' +
   '</div>';
 }

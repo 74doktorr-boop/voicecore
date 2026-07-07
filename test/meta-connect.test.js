@@ -140,4 +140,25 @@ describe('connectMetaNumber — orquestación completa', () => {
     assert.strictEqual(out.ok, false);
     assert.strictEqual(d.graph.calls.length, 0);
   });
+
+  // El popup del Embedded Signup (sessionInfo v3) NO trae el número visible:
+  // el backend debe leerlo de la Graph API y guardar también el nombre verificado.
+  test('sin phoneNumber (flujo self-service) → lo lee de la Graph API', async () => {
+    const d = deps([
+      { match: 'fields=display_phone_number', res: { status: 200, body: { display_phone_number: '+34 600 11 22 33', verified_name: 'Clínica Sol' } } },
+      ...OK_SCRIPT,
+    ]);
+    const out = await connectMetaNumber('org-1', { code: 'CODE', phoneNumberId: 'PNID', wabaId: 'WABA1' }, d);
+    assert.strictEqual(out.ok, true);
+    assert.strictEqual(out.phoneNumber, '+34 600 11 22 33');
+    assert.strictEqual(d._saved.creds.phoneNumber, '+34 600 11 22 33');
+    assert.strictEqual(d._saved.creds.displayName, 'Clínica Sol');
+  });
+
+  test('sin phoneNumber y la Graph API no lo da → aborta sin guardar', async () => {
+    const d = deps(OK_SCRIPT); // sin entrada para fields=display_phone_number → body vacío
+    const out = await connectMetaNumber('org-1', { code: 'CODE', phoneNumberId: 'PNID', wabaId: 'WABA1' }, d);
+    assert.strictEqual(out.ok, false);
+    assert.strictEqual(d._saved.businessId, undefined, 'no debe guardar credenciales sin número');
+  });
 });
