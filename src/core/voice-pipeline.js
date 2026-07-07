@@ -64,6 +64,17 @@ class VoicePipeline {
     // `concurrentCalls` en el JSON; si no, este default (env configurable).
     this.maxConcurrentPerAssistant =
       Number(config.maxConcurrentPerAssistant ?? process.env.MAX_CONCURRENT_CALLS_PER_ASSISTANT) || 10;
+
+    // Cap GLOBAL del nodo: backstop de saturación sumando TODOS los asistentes.
+    // El cap por-asistente evita el abuso de un negocio, pero no protege al
+    // nodo de un pico agregado (p.ej. 100 clientes → decenas de llamadas
+    // simultáneas): sin este techo, un nodo aceptaría hasta morir (STT/LLM/TTS
+    // agotan CPU/hilos) y CAER-SE tira TODAS las llamadas, no solo la de más.
+    // 0 = sin límite (default: no cambia el comportamiento actual). A escala,
+    // poner MAX_CONCURRENT_CALLS_NODE (~40-50, según tamaño de la instancia)
+    // en EasyPanel: rechazar limpio la llamada nº51 es mucho mejor que caer.
+    this.maxConcurrentNode =
+      Number(config.maxConcurrentNode ?? process.env.MAX_CONCURRENT_CALLS_NODE) || 0;
   }
 
   /** Llamadas activas para un asistente concreto. */
@@ -119,6 +130,13 @@ class VoicePipeline {
    * Start a new call session
    */
   async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio', mediaEncoding = null }) {
+    // Cap GLOBAL del nodo: backstop de saturación (todos los asistentes juntos).
+    // Rechaza ANTES de abrir STT (coste 0) → el handler cierra el WS limpio.
+    if (this.maxConcurrentNode > 0 && this.activeCalls.size >= this.maxConcurrentNode) {
+      log.warn(`[${callId}] Rechazada: nodo en cap global de concurrentes (${this.activeCalls.size}/${this.maxConcurrentNode})`);
+      return null;
+    }
+
     // Cap de concurrentes por asistente: rechaza ANTES de abrir STT (coste 0).
     // Devuelve null → el handler de telefonía cierra el WS limpiamente.
     const limit = this._concurrentLimitFor(assistant);
@@ -378,7 +396,59 @@ class VoicePipeline {
     const conf = typeof meta?.confidence === 'number' ? meta.confidence : null;
     if (conf !== null) turnMetrics.sttConfidence = +conf.toFixed(3);
 
+    // Malentendidos CONSECUTIVOS (se resetea al entender bien). Sin confianza de
+    // STT no hay evidencia de fallo → se resetea, para no escalar en falso.
+    const misunderstoodTurn = (conf !== null && conf < 0.75);
+    session._consecMisunderstand = misunderstoodTurn ? (session._consecMisunderstand || 0) + 1 : 0;
+    const ESCALATE_AFTER = Math.max(2, Number(process.env.MISUNDERSTAND_ESCALATE_AFTER) || 3);
+
     try {
+      // ── Salida de gracia: tras N malentendidos SEGUIDOS, la IA deja de pedir
+      // "¿me lo puede repetir?" en bucle (el peor primer fallo para un cliente
+      // nuevo): toma el recado y avisa al dueño con el número del llamante.
+      // Determinista, una sola vez por llamada, mismo espíritu que la red de
+      // seguridad post-llamada. No bloquea el audio: el aviso va por setImmediate
+      // y el lead es fire-and-forget.
+      if (misunderstoodTurn && session._consecMisunderstand >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
+        session._escalatedTakeMessage = true;
+        session.metrics.escalatedTakeMessage = true;
+        turnMetrics.escalatedTakeMessage  = true;
+        const msg = 'Disculpe, hoy me cuesta oírle bien y no quiero hacerle perder el tiempo. Tomo nota de su llamada y le devolverán la llamada enseguida. Gracias por su paciencia.';
+        log.warn(`[${callId}] ${session._consecMisunderstand} malentendidos seguidos — escala a recado + aviso al dueño`);
+        await this._speakText(callId, msg, { cache: true });
+        session.addAssistantMessage(msg);
+        // Aviso inmediato al dueño (setImmediate dentro de _notifyOwner → no bloquea)
+        try {
+          require('../tools/executor')._notifyOwner(
+            `📞 *Llamada difícil de atender — NodeFlow*\n` +
+            `━━━━━━━━━━━━\n` +
+            `No se entendió bien al cliente por la línea. Le dijimos que le devolveríais la llamada.\n` +
+            `📞 ${session.callerNumber || 'número oculto'}\n` +
+            `━━━━━━━━━━━━\nMejor llamarle pronto. NodeFlow IA`,
+            session.businessId
+          );
+        } catch (_) {}
+        // Lead determinista (fire-and-forget: nunca bloquea ni tumba la llamada)
+        try {
+          const db = require('../db/database').getDatabase();
+          if (db.enabled && session.businessId) {
+            db.client.from('leads').insert({
+              org_id:     session.businessId,
+              name:       '',
+              phone:      session.callerNumber || '',
+              need:       'Llamada con mala calidad de audio: no se pudo atender bien. Devolver la llamada.',
+              notes:      'Escalado en llamada: la IA no entendió al cliente varias veces seguidas y le prometió que le devolverían la llamada.',
+              urgency:    'media',
+              source:     'voice_call_take_message',
+              created_at: new Date().toISOString(),
+            }).then(() => {}, () => {});
+          }
+        } catch (_) {}
+        if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
+        session.recordTurn(turnMetrics);
+        return;
+      }
+
       if (conf !== null && conf < 0.55) {
         // Nivel 4 — determinista, sin LLM: con esta fiabilidad cualquier
         // "entendimiento" es una moneda al aire. Se pide repetición y punto.
