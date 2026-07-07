@@ -2712,12 +2712,22 @@ function promoPreview() {
     var tag = (document.getElementById('promoTag') || {}).value || '';
     var text = ((document.getElementById('promoText') || {}).value || '').trim();
     try {
-      var r = await api('/api/portal/promo', 'POST', { preview: true, tag: tag });
-      var n = r.recipients || 0;
-      var cost = (n * 0.06).toFixed(2);
+      var results = await Promise.all([
+        api('/api/portal/promo', 'POST', { preview: true, tag: tag }),
+        api('/api/portal/message-usage').catch(function(){ return null; }),
+      ]);
+      var n = (results[0] && results[0].recipients) || 0;
+      var u = results[1];
+      var packLine = '';
+      if (u && n > 0) {
+        var left = Math.max(0, u.included - u.used);
+        var extra = Math.max(0, n - left);
+        packLine = extra > 0
+          ? ' · <span style="color:#e0a030">usa tus ' + left + ' incluidos + ' + extra + ' extra ≈ ' + (extra * u.ratePerMessage).toFixed(2) + '€</span>'
+          : ' · <span style="color:var(--green2,#21c08a)">dentro de tus ' + left + ' mensajes incluidos este mes ✓</span>';
+      }
       box.innerHTML = n
-        ? '📱 <strong style="color:var(--text)">' + n + ' destinatario' + (n !== 1 ? 's' : '') + '</strong>' +
-          ' · coste estimado de mensajería ~' + cost + '€ <span style="color:var(--muted)">(cuenta para tu paquete de mensajes del mes)</span>'
+        ? '📱 <strong style="color:var(--text)">' + n + ' destinatario' + (n !== 1 ? 's' : '') + '</strong>' + packLine
         : 'Sin destinatarios elegibles' + (tag ? ' con esa etiqueta' : '') + '.';
       if (btn) btn.disabled = !(n > 0 && text.length >= 10);
     } catch (e) { box.textContent = 'No se pudo calcular: ' + e.message; }
@@ -5102,6 +5112,7 @@ async function loadFollowupRules() {
       '<button class="btn btn-accent btn-sm" onclick="saveFollowupRules(this)">Guardar cambios</button>' +
     '</div>' +
     '<div id="rules-reach" style="font-size:13px;color:var(--accent-l);min-height:18px;margin-bottom:14px"></div>' +
+    '<div id="rules-msgusage" style="font-size:12px;color:var(--dim);margin:-8px 0 12px"></div>' +
     chNotice +
     '<div id="rules-suggestions"></div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);margin-bottom:18px">' +
@@ -5127,6 +5138,22 @@ async function loadFollowupRules() {
   loadRulesReach();
   loadRuleSuggestions();
   loadRuleRecipes();
+  loadMsgUsage();
+}
+
+// ✉️ Contador del paquete de mensajes — transparencia total: nadie descubre
+// un cargo en la factura, lo ve aquí antes.
+async function loadMsgUsage() {
+  var el = document.getElementById('rules-msgusage');
+  if (!el) return;
+  try {
+    var u = await api('/api/portal/message-usage');
+    var pct = Math.min(100, Math.round((u.used / Math.max(1, u.included)) * 100));
+    el.innerHTML = '✉️ Mensajes de automatización este mes: <strong style="color:var(--text)">' + u.used + '</strong> / ' + u.included + ' incluidos' +
+      (u.overage > 0
+        ? ' · <span style="color:#e0a030">' + u.overage + ' extra ≈ ' + u.overageEur.toFixed(2) + '€ (' + u.ratePerMessage.toFixed(2) + '€/mensaje)</span>'
+        : ' <span style="color:var(--muted)">(' + pct + '%)</span>');
+  } catch (e) { el.textContent = ''; }
 }
 
 // ── Recetario: ideas curadas del sector, se añaden con un clic ──

@@ -2351,6 +2351,14 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
   });
 
+  // ── ✉️ Paquete de mensajes del mes (contador + excedente) ──
+  app.get('/api/portal/message-usage', portalAuth, async (req, res) => {
+    try {
+      const { usageSummary } = require('../billing/message-usage');
+      res.json({ ok: true, ...(await usageSummary(req.businessId, { db: getDatabase() })) });
+    } catch (e) { res.json({ ok: true, used: 0, included: 200, overage: 0, overageEur: 0, ratePerMessage: 0.10 }); }
+  });
+
   // ── 📣 PROMOCIÓN por WhatsApp a los clientes del negocio ──
   // preview:true → destinatarios y coste estimado, sin enviar. Sin preview →
   // envía (rate-limit: 1 difusión por org cada 10 min; opt-outs excluidos).

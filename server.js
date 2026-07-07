@@ -606,6 +606,11 @@ startDailyBriefingCron();
 const { startClientHealthCron } = require('./src/monitoring/client-health');
 startClientHealthCron();
 
+// Paquete de mensajes: reporta a Stripe el excedente (>200/mes) cada día
+// 02:40 Madrid. Gateado por STRIPE_MSG_METER_EVENT — sin meter, solo cuenta.
+const { startMessageOverageCron } = require('./src/billing/message-usage');
+startMessageOverageCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {
