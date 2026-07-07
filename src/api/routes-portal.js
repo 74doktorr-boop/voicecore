@@ -1523,6 +1523,34 @@ function setupPortalRoutes(app, pipeline, config) {
       .filter(a => normalizePhone(a.phone) === cPhone9 && cPhone9)
       .sort((a, b) => new Date(b.date + 'T' + (b.time || '00:00')) - new Date(a.date + 'T' + (a.time || '00:00')));
 
+    // 4. FICHA 360: los seguimientos DE ESTE cliente (próximos + últimos
+    //    enviados), sus fechas clave del sector y si está en pausa.
+    let reminders = [];
+    try {
+      const { data: rem } = await db.client.from('scheduled_reminders')
+        .select('id, service_key, message_preview, channel, scheduled_for, status, sent_at')
+        .eq('org_id', businessId).eq('contact_id', id)
+        .in('status', ['pending', 'postponed', 'sent'])
+        .order('scheduled_for', { ascending: false })
+        .limit(30);
+      reminders = rem || [];
+    } catch (_) {}
+
+    let sectorFields = [], sectorSlug = null;
+    try {
+      sectorSlug = await _resolveOrgSector(businessId);
+      const { SECTOR_REQUIRED_FIELDS } = require('../lifecycle/sector-fields');
+      sectorFields = SECTOR_REQUIRED_FIELDS[sectorSlug] || [];
+    } catch (_) {}
+
+    let paused = false;
+    try {
+      const { data: mem } = await db.client.from('contact_memory')
+        .select('no_whatsapp, no_sms, no_email')
+        .eq('org_id', businessId).eq('contact_id', id).maybeSingle();
+      paused = !!(mem && mem.no_whatsapp && mem.no_sms && mem.no_email);
+    } catch (_) {}
+
     res.json({
       ok: true,
       contact: {
@@ -1535,7 +1563,11 @@ function setupPortalRoutes(app, pipeline, config) {
         lastCallAt:  contact.last_call_at || null,
         createdAt:   contact.created_at,
         displayName: contact.name || contact.phone,
+        sectorData:  contact.sector_data || {},
       },
+      reminders,
+      sectorFields,
+      paused,
       calls: (calls || []).map(c => ({
         callSid:    c.id,
         outcome:    c.outcome    || 'abandoned',
@@ -2309,6 +2341,56 @@ function setupPortalRoutes(app, pipeline, config) {
       const reach = await estimateReach(req.businessId, sector, { db: getDatabase() });
       res.json({ ok: true, ...reach });
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
+  });
+
+  // ── FICHA 360: seguimiento PERSONAL para un cliente concreto ──
+  // "Avísale el 15 de marzo: preguntar por el presupuesto de la moto".
+  // Crea un recordatorio one-off ligado a SU ficha; el mensaje usa la
+  // etiqueta como servicio ("Ha llegado el momento de {label}").
+  app.post('/api/portal/contacts/:id/personal-reminder', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const label = String((req.body && req.body.label) || '').trim().slice(0, 120);
+      const dateStr = String((req.body && req.body.date) || '').trim();
+      if (!label) return res.status(400).json({ error: 'Escribe de qué quieres avisarle' });
+      const when = new Date(dateStr + 'T09:30:00');
+      if (isNaN(when.getTime())) return res.status(400).json({ error: 'Fecha no válida' });
+      if (when.getTime() < Date.now()) return res.status(400).json({ error: 'La fecha debe ser futura' });
+
+      // Verificar propiedad del contacto
+      const { data: c } = await db.client.from('contacts')
+        .select('id').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
+      if (!c) return res.status(404).json({ error: 'Contacto no encontrado' });
+
+      // serviceKey único: los personales no se pisan entre sí (scheduleReminder
+      // cancela pendientes del MISMO serviceKey — cada personal lleva el suyo).
+      const { scheduleReminder } = require('../lifecycle/reminder-engine');
+      const serviceKey = 'personal_' + require('crypto').randomBytes(4).toString('hex');
+      await scheduleReminder({
+        orgId: req.businessId, contactId: req.params.id, serviceKey,
+        scheduledFor: when, channel: 'whatsapp', messagePreview: label,
+      });
+      res.json({ ok: true });
+    } catch (e) { log.warn(`personal-reminder: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // ── FICHA 360: pausar/reanudar TODOS los avisos a un cliente ──
+  // Silencio total para ese contacto (whatsapp+sms+email) sin tocar reglas.
+  app.put('/api/portal/contacts/:id/pause', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const paused = req.body && req.body.paused === true;
+      const { data: c } = await db.client.from('contacts')
+        .select('id').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
+      if (!c) return res.status(404).json({ error: 'Contacto no encontrado' });
+      const { error } = await db.client.from('contact_memory').upsert({
+        org_id: req.businessId, contact_id: req.params.id,
+        no_whatsapp: paused, no_sms: paused, no_email: paused,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'org_id,contact_id' });
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true, paused });
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   // ── ROI del motor: citas atribuidas a seguimientos ──

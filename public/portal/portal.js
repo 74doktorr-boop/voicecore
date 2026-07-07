@@ -2834,6 +2834,13 @@ async function openContactProfile(id) {
       title: (cancelled?'Cita cancelada':'Cita') + (a.service ? ' — ' + esc(a.service) : ''),
       meta: (a.time||'') , action:'' });
   });
+  // Seguimientos ENVIADOS a este cliente → también son su historia
+  (data.reminders || []).forEach(function(r){
+    if (r.status !== 'sent' || !r.sent_at) return;
+    events.push({ t: new Date(r.sent_at), icon:'📨', color:'#a29bfe',
+      title:'Seguimiento enviado — ' + esc(r.message_preview || String(r.service_key||'').replace(/_/g,' ')),
+      meta: r.channel || '', action:'' });
+  });
   events.sort(function(x,y){ return (y.t?y.t.getTime():0) - (x.t?x.t.getTime():0); });
 
   var timelineHtml;
@@ -2896,6 +2903,21 @@ async function openContactProfile(id) {
       '<button class="btn btn-d btn-sm" onclick="addContactTag()">+ Añadir</button>' +
     '</div>' +
 
+    // ── FICHA 360: los seguimientos DE ESTE cliente ──────────────────
+    '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span>🔔 Seguimientos de este cliente</span>' +
+      '<button class="btn btn-d btn-sm" onclick="cpTogglePause(\'' + esc(id) + '\',' + (data.paused ? 'false' : 'true') + ')" ' +
+        (data.paused ? 'style="color:var(--red)"' : '') + '>' + (data.paused ? '⏸ En pausa — reanudar' : '⏸ Pausar avisos') + '</button>' +
+    '</div>' +
+    (data.paused ? '<div style="font-size:12px;color:var(--red);margin-bottom:8px">Este cliente no recibe ningún aviso (whatsapp, sms ni email) hasta que lo reanudes.</div>' : '') +
+    cpRemindersHtml(data.reminders, id) +
+    '<div style="display:flex;gap:6px;align-items:center;margin:10px 0 4px;flex-wrap:wrap">' +
+      '<input type="date" id="cpPrDate" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px">' +
+      '<input type="text" id="cpPrLabel" placeholder="ej. preguntar por el presupuesto de la moto" maxlength="120" style="flex:1;min-width:160px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">' +
+      '<button class="btn btn-accent btn-sm" onclick="cpAddPersonal(\'' + esc(id) + '\')">+ Avisar</button>' +
+    '</div>' +
+    cpKeyDatesHtml(data.sectorFields, (c.sectorData || {}), id) +
+
     '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
       '<span>📋 Actividad</span>' +
       '<button class="btn btn-d btn-sm" onclick="newTaskForContact(\'' + esc(id) + '\',\'' + esc((c.displayName||'').replace(/'/g,'')) + '\')">+ Tarea</button>' +
@@ -2908,6 +2930,92 @@ async function openContactProfile(id) {
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
+}
+
+// ── FICHA 360: seguimientos del cliente ─────────────────────────────────────
+function cpRemindersHtml(reminders, contactId) {
+  var upcoming = (reminders || []).filter(function(r){ return r.status === 'pending' || r.status === 'postponed'; })
+    .sort(function(a,b){ return new Date(a.scheduled_for) - new Date(b.scheduled_for); });
+  if (!upcoming.length) {
+    return '<div style="color:var(--dim);font-size:12px;padding:4px 0 2px">Sin avisos programados. Añade uno personal abajo, o rellena sus fechas clave y el motor los programará solo.</div>';
+  }
+  return upcoming.map(function(r){
+    var label = r.message_preview || String(r.service_key || '').replace(/_/g, ' ');
+    var d = new Date(r.scheduled_for);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:5px">' +
+      '<span style="font-size:14px">🔔</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">' + esc(label) + '</div>' +
+        '<div style="font-size:11px;color:var(--dim)">' + d.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}) + ' · ' + esc(r.channel || 'whatsapp') + (r.status==='postponed' ? ' · pospuesto' : '') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-d btn-sm" data-tip="Enviar ahora" onclick="cpReminderAction(\'' + esc(r.id) + '\',\'send-now\',\'' + esc(contactId) + '\')">📤</button>' +
+      '<button class="btn btn-d btn-sm" data-tip="Posponer 7 días" onclick="cpReminderAction(\'' + esc(r.id) + '\',\'postpone\',\'' + esc(contactId) + '\')">+7d</button>' +
+      '<button class="btn btn-d btn-sm" data-tip="Cancelar aviso" onclick="cpReminderAction(\'' + esc(r.id) + '\',\'cancel\',\'' + esc(contactId) + '\')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function cpKeyDatesHtml(fields, sectorData, contactId) {
+  if (!fields || !fields.length) return '';
+  var inputs = fields.map(function(f){
+    var val = sectorData[f.key] || '';
+    return '<div style="display:flex;flex-direction:column;gap:2px">' +
+      '<label style="font-size:11px;color:var(--dim)">' + esc(f.label) + '</label>' +
+      '<input id="cpKd-' + esc(f.key) + '" type="' + (f.type === 'date' ? 'date' : f.type) + '" value="' + esc(val) + '" ' +
+        'style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:150px">' +
+    '</div>';
+  }).join('');
+  return '<div style="margin-top:10px;padding:10px 12px;background:rgba(196,245,70,.05);border:1px solid rgba(196,245,70,.2);border-radius:8px">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent-l);margin-bottom:6px">📅 Fechas clave (el motor programa los avisos solo)</div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' + inputs +
+      '<button class="btn btn-accent btn-sm" onclick="cpSaveKeyDates(\'' + esc(contactId) + '\')">Guardar</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function cpReminderAction(reminderId, action, contactId) {
+  try {
+    var body = action === 'postpone' ? { days: 7 } : {};
+    await api('/api/portal/reminders/' + reminderId + '/' + action, 'POST', body);
+    toast(action === 'send-now' ? 'Enviándose en unos segundos' : action === 'postpone' ? 'Pospuesto 7 días' : 'Aviso cancelado');
+    openContactProfile(contactId);
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function cpAddPersonal(contactId) {
+  var date = (document.getElementById('cpPrDate') || {}).value;
+  var label = ((document.getElementById('cpPrLabel') || {}).value || '').trim();
+  if (!date) { toast('Elige la fecha del aviso', 'err'); return; }
+  if (!label) { toast('Escribe de qué avisarle', 'err'); return; }
+  try {
+    await api('/api/portal/contacts/' + contactId + '/personal-reminder', 'POST', { date: date, label: label });
+    toast('Seguimiento personal programado ✓');
+    openContactProfile(contactId);
+  } catch (e) { toast(e.message || 'No se pudo programar', 'err'); }
+}
+
+async function cpTogglePause(contactId, paused) {
+  try {
+    await api('/api/portal/contacts/' + contactId + '/pause', 'PUT', { paused: paused });
+    toast(paused ? 'Avisos en pausa para este cliente' : 'Avisos reanudados');
+    openContactProfile(contactId);
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function cpSaveKeyDates(contactId) {
+  var sectorData = {};
+  document.querySelectorAll('[id^="cpKd-"]').forEach(function(inp){
+    var key = inp.id.slice(5);
+    if (inp.value) sectorData[key] = inp.value;
+  });
+  try {
+    // El PUT de sector-data ya recalcula los avisos del cliente en background.
+    var current = await api('/api/portal/contacts/' + contactId + '/sector-data');
+    var merged = Object.assign({}, current.sectorData || {}, sectorData);
+    await api('/api/portal/contacts/' + contactId + '/sector-data', 'PUT', { sectorData: merged });
+    toast('Fechas guardadas — avisos reprogramados ✓');
+    setTimeout(function(){ openContactProfile(contactId); }, 600);
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 // ── Etiquetas en el perfil de contacto ──────────────────────────────────────
