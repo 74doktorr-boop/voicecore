@@ -49,10 +49,14 @@ class CartesiaTTS {
             id: voice,
           },
           language,
+          // MULAW 8kHz NATIVO (2026-07-07): Cartesia genera directamente el
+          // formato de telefonía, con SU filtrado profesional. Antes pedíamos
+          // PCM 24kHz y decimábamos nosotros sin anti-aliasing → el "zumbido
+          // de microondas" que reportó Unai en las voces incluidas.
           output_format: {
             container: 'raw',
-            encoding: 'pcm_s16le',
-            sample_rate: 24000,
+            encoding: 'pcm_mulaw',
+            sample_rate: 8000,
           },
         }),
       });
@@ -63,10 +67,7 @@ class CartesiaTTS {
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const pcm24k = Buffer.from(arrayBuffer);
-
-      // Convert to mulaw 8kHz for Twilio
-      const mulaw = resampleToMulaw8k(pcm24k, 24000);
+      const mulaw = Buffer.from(arrayBuffer); // ya viene en mulaw 8k — cero conversión
 
       const totalTime = Date.now() - startTime;
       const durationMs = (mulaw.length / 8000) * 1000;

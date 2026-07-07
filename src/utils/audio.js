@@ -105,23 +105,20 @@ function resampleToMulaw8k(pcmBuffer, sourceSampleRate) {
   const srcSamples = pcmBuffer.length / 2;
   const dstSamples = Math.floor(srcSamples / ratio);
   const mulaw = Buffer.alloc(dstSamples);
-  
+
+  // ANTI-ALIASING (2026-07-07, reporte de Unai: "microondas de fondo"):
+  // antes se decimaba con interpolación lineal A PELO — todo el contenido
+  // entre 4kHz y sr/2 se PLEGABA dentro de la banda audible como zumbido
+  // metálico. Media móvil de ancho ~ratio como low-pass barato antes de
+  // decimar: atenúa fuerte la banda que aliasea sin apagar la voz. O(n·ratio).
+  const half = Math.max(1, Math.floor(ratio / 2));
   for (let i = 0; i < dstSamples; i++) {
-    const srcPos = i * ratio;
-    const srcIdx = Math.floor(srcPos);
-    const frac = srcPos - srcIdx;
-    
-    // Linear interpolation
-    let sample;
-    if (srcIdx + 1 < srcSamples) {
-      const s1 = pcmBuffer.readInt16LE(srcIdx * 2);
-      const s2 = pcmBuffer.readInt16LE((srcIdx + 1) * 2);
-      sample = Math.round(s1 + frac * (s2 - s1));
-    } else {
-      sample = pcmBuffer.readInt16LE(srcIdx * 2);
+    const center = Math.floor(i * ratio);
+    let acc = 0, n = 0;
+    for (let j = center - half; j <= center + half; j++) {
+      if (j >= 0 && j < srcSamples) { acc += pcmBuffer.readInt16LE(j * 2); n++; }
     }
-    
-    mulaw[i] = linearToMulaw(sample);
+    mulaw[i] = linearToMulaw(Math.round(acc / n));
   }
   return mulaw;
 }
