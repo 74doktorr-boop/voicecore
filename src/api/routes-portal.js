@@ -2361,6 +2361,64 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
   });
 
+  // ── 🗓️ Campañas del año (estacionales de un clic) ──────────
+  // GET: sugeridas del sector con su estado. PUT {key, enabled}: activa/
+  // desactiva (fila en org_campaigns; el cron diario ya las dispara).
+  app.get('/api/portal/campaigns', portalAuth, async (req, res) => {
+    try {
+      const { getSeasonalForSector } = require('../lifecycle/seasonal-catalog');
+      const sector = await _resolveOrgSector(req.businessId);
+      const suggested = getSeasonalForSector(sector);
+      const db = getDatabase();
+      let rows = [];
+      if (db.enabled) {
+        const { data } = await db.client.from('org_campaigns')
+          .select('service_key, enabled, last_fired_year').eq('org_id', req.businessId);
+        rows = data || [];
+      }
+      const byKey = Object.fromEntries(rows.map(r => [r.service_key, r]));
+      // Nº de destinatarios ≈ contactos con teléfono (mismo criterio que promo)
+      let audience = 0;
+      try {
+        const { getRecipients } = require('../notifications/promo-broadcast');
+        audience = (await getRecipients(req.businessId, { db })).length;
+      } catch (_) {}
+      res.json({
+        ok: true, audience,
+        campaigns: suggested.map(c => ({
+          ...c,
+          enabled: !!(byKey[c.key] && byKey[c.key].enabled),
+          lastFiredYear: (byKey[c.key] && byKey[c.key].last_fired_year) || null,
+        })),
+      });
+    } catch (e) { log.warn(`campaigns get: ${e.message}`); res.json({ ok: true, campaigns: [], audience: 0 }); }
+  });
+
+  app.put('/api/portal/campaigns', portalAuth, async (req, res) => {
+    try {
+      const key = String((req.body && req.body.key) || '');
+      const enabled = req.body && req.body.enabled === true;
+      const { findSeasonal } = require('../lifecycle/seasonal-catalog');
+      const c = findSeasonal(key);
+      if (!c) return res.status(400).json({ error: 'Campaña desconocida' });
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+
+      // Update si existe; si no, insert (unique org+service_key+fecha).
+      const { data: upd } = await db.client.from('org_campaigns')
+        .update({ enabled }).eq('org_id', req.businessId).eq('service_key', key).select('id');
+      if (!upd || !upd.length) {
+        const { error } = await db.client.from('org_campaigns').insert({
+          org_id: req.businessId, service_key: key, campaign_name: c.name,
+          fire_month: c.month, fire_day: c.day, channel: 'whatsapp', enabled,
+        });
+        if (error) return res.status(500).json({ error: error.message });
+      }
+      log.info(`Campaña ${key} ${enabled ? 'ON' : 'OFF'} (${req.flowConfig.name})`);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ── ✉️ Paquete de mensajes del mes (contador + excedente) ──
   app.get('/api/portal/message-usage', portalAuth, async (req, res) => {
     try {

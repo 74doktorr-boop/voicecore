@@ -358,6 +358,13 @@ async function processCampaigns() {
 
     if (!contacts?.length) continue;
 
+    // El TEXTO de la campaña sale del catálogo estacional y viaja como
+    // mensaje 100% (plantilla-portadora nodeflow_aviso). Sin catálogo,
+    // fallback al comportamiento anterior (etiqueta de servicio).
+    const { findSeasonal } = require('./seasonal-catalog');
+    const seasonal = findSeasonal(campaign.service_key);
+    const messagePreview = seasonal ? 'TXT:' + seasonal.text : undefined;
+
     // Concurrencia acotada: una org con miles de contactos no debe generar
     // una tormenta de inserts secuenciales.
     await mapWithConcurrency(contacts, CONCURRENCY, (contact) =>
@@ -367,6 +374,7 @@ async function processCampaigns() {
         serviceKey:   campaign.service_key,
         scheduledFor: new Date(Date.now() + 5 * 60 * 1000), // 5 min from now
         channel:      campaign.channel,
+        messagePreview,
       }).catch(() => {})
     );
 

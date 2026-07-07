@@ -5133,12 +5133,13 @@ async function loadFollowupRules() {
     '<button class="btn btn-d btn-sm" style="margin-top:8px" onclick="addCustomRuleRow()">+ Añadir seguimiento</button>' +
     '<div id="rules-recipes"></div>';
 
-  el.innerHTML = head + defaultsHtml + customHtml;
+  el.innerHTML = head + defaultsHtml + customHtml + '<div id="rules-campaigns"></div>';
 
   loadRulesReach();
   loadRuleSuggestions();
   loadRuleRecipes();
   loadMsgUsage();
+  loadCampaigns();
 }
 
 // ✉️ Contador del paquete de mensajes — transparencia total: nadie descubre
@@ -5154,6 +5155,44 @@ async function loadMsgUsage() {
         ? ' · <span style="color:#e0a030">' + u.overage + ' extra ≈ ' + u.overageEur.toFixed(2) + '€ (' + u.ratePerMessage.toFixed(2) + '€/mensaje)</span>'
         : ' <span style="color:var(--muted)">(' + pct + '%)</span>');
   } catch (e) { el.textContent = ''; }
+}
+
+// ── 🗓️ Campañas del año: estacionales de un clic ────────────────────────────
+async function loadCampaigns() {
+  var box = document.getElementById('rules-campaigns');
+  if (!box) return;
+  var r;
+  try { r = await api('/api/portal/campaigns'); } catch (e) { return; }
+  var list = (r && r.campaigns) || [];
+  if (!list.length) { box.innerHTML = ''; return; }
+  var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  box.innerHTML =
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:22px 0 8px">🗓️ Campañas del año de tu sector</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:10px">Actívalas una vez y cada año salen solas en su fecha, a tus ' + (r.audience || 0) + ' clientes elegibles (cuentan para tu paquete de mensajes).</div>' +
+    list.map(function(c) {
+      return '<div style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid ' + (c.enabled ? 'rgba(196,245,70,.35)' : 'var(--border)') + ';border-radius:10px;margin-bottom:8px;background:var(--card)">' +
+        '<label style="display:flex;align-items:center;padding-top:2px;cursor:pointer">' +
+          '<input type="checkbox"' + (c.enabled ? ' checked' : '') + ' onchange="toggleCampaign(\'' + esc(c.key) + '\', this.checked, this)" style="width:16px;height:16px;cursor:pointer">' +
+        '</label>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(c.name) +
+            ' <span style="font-size:11px;color:var(--accent-l);font-weight:600">· cada ' + c.day + ' de ' + MESES[c.month - 1] + '</span>' +
+            (c.lastFiredYear ? ' <span style="font-size:10px;color:var(--muted)">· última: ' + c.lastFiredYear + '</span>' : '') + '</div>' +
+          '<div style="color:var(--dim);font-size:12px;margin-top:2px;font-style:italic">"…' + esc(c.text) + '"</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+}
+
+async function toggleCampaign(key, enabled, el) {
+  try {
+    await api('/api/portal/campaigns', 'PUT', { key: key, enabled: enabled });
+    toast(enabled ? '🗓️ Campaña activada — saldrá sola en su fecha' : 'Campaña desactivada');
+    loadCampaigns();
+  } catch (e) {
+    if (el) el.checked = !enabled;
+    toast('Error: ' + e.message, 'err');
+  }
 }
 
 // ── Recetario: ideas curadas del sector, se añaden con un clic ──
