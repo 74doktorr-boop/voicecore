@@ -8,7 +8,7 @@
 
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
-const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback } = require('../whatsapp/reply-handler');
+const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback, handleCheckinButton } = require('../whatsapp/reply-handler');
 const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
@@ -97,13 +97,19 @@ function setupWhatsAppWebhook(app) {
               continue;
             }
 
-            // ── Respuesta de botón (CONFIRMAR / CANCELAR) ───────────────────
+            // ── Respuesta de botón (CONFIRMAR / CANCELAR / check-in 👍👎) ────
             if (msg.type === 'button') {
               const payload = msg.button?.payload || msg.button?.text || '';
               log.info(`Button reply from ${from}: "${payload}"`);
-              await handleReply({ from, type: 'button', payload }).catch(e =>
-                log.error(`reply-handler error: ${e.message}`)
-              );
+              // Botones del check-in v2: 👍 → máquina de reseñas · 👎 → alerta
+              // urgente al dueño. Si no es de check-in, sigue el flujo clásico.
+              const handled = await handleCheckinButton({ from, businessId, payload })
+                .catch(e => { log.error(`checkin button error: ${e.message}`); return false; });
+              if (!handled) {
+                await handleReply({ from, type: 'button', payload }).catch(e =>
+                  log.error(`reply-handler error: ${e.message}`)
+                );
+              }
               continue;
             }
 
@@ -113,9 +119,13 @@ function setupWhatsAppWebhook(app) {
               if (btnReply) {
                 const payload = btnReply.id || btnReply.title || '';
                 log.info(`Interactive button from ${from}: "${payload}"`);
-                await handleReply({ from, type: 'button', payload }).catch(e =>
-                  log.error(`reply-handler error: ${e.message}`)
-                );
+                const handled = await handleCheckinButton({ from, businessId, payload })
+                  .catch(() => false);
+                if (!handled) {
+                  await handleReply({ from, type: 'button', payload }).catch(e =>
+                    log.error(`reply-handler error: ${e.message}`)
+                  );
+                }
               }
               continue;
             }

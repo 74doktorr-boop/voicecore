@@ -366,4 +366,67 @@ async function handleCheckinFeedback({ from, businessId, text }, deps = {}) {
   return true;
 }
 
-module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback };
+// ── Botones del check-in v2 (👍 Todo genial / 👎 Se puede mejorar) ───────────
+// El payload del quick_reply llega como el TEXTO del botón.
+function checkinButtonKind(payload = '') {
+  const p = String(payload || '');
+  if (/👍|todo genial/iu.test(p)) return 'positive';
+  if (/👎|se puede mejorar/iu.test(p)) return 'negative';
+  return null;
+}
+
+/**
+ * 👍 → agradecer + pedir reseña de Google (la respuesta abre la ventana de
+ * 24h: el enlace viaja como texto libre, sin plantilla). El momento exacto:
+ * satisfacción confirmada = la reseña sale sola.
+ * 👎 → alerta URGENTE al dueño (mismo circuito que el texto negativo) +
+ * acuse empático. @returns true si el payload era de check-in.
+ */
+async function handleCheckinButton({ from, businessId, payload }, deps = {}) {
+  const kind = checkinButtonKind(payload);
+  if (!kind) return false;
+
+  const send = deps.sendText || sendText;
+  const sendOwnerFallback = deps.sendWhatsApp || sendWhatsApp;
+  const credentials = businessId ? await getWaCredentials(businessId).catch(() => null) : null;
+  const bizName = getBusinessName(businessId);
+  const cfg = businessId ? scheduler.getBusinessConfig(businessId) : null;
+
+  if (kind === 'positive') {
+    // reviewUrl: misma prioridad que los emails de reseña (reminders.js) —
+    // URL directa del portal > placeId de Google > nada (solo agradecer).
+    const auto = cfg?.automations?.config || {};
+    const reviewUrl = auto.reviewUrl
+      || (cfg?.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${cfg.googlePlaceId}` : null);
+    const msg = reviewUrl
+      ? `¡Nos alegra un montón! 🙌 Si tienes 30 segundos, una reseña en Google nos ayuda muchísimo a seguir creciendo:\n${reviewUrl}\n¡Gracias por confiar en ${bizName}!`
+      : `¡Nos alegra un montón! 🙌 Gracias por confiar en ${bizName} — aquí nos tienes para lo que necesites.`;
+    await send(from, msg, credentials).catch(() => {});
+    log.info(`Check-in 👍 de ${from} (org ${businessId || '?'}) — reseña ${reviewUrl ? 'pedida' : 'sin enlace configurado'}`);
+    return true;
+  }
+
+  // negative: alerta urgente al dueño (sin regex ni lookup — el botón ES la señal)
+  const ownerPhone = deps.ownerPhone !== undefined ? deps.ownerPhone
+    : (cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE);
+  const ownerMsg =
+    `🚨 *Un cliente ha pulsado "Se puede mejorar"*\n━━━━━━━━━━━━━━\n` +
+    `👤 ${from}\n\n` +
+    `Respondió al seguimiento post-servicio con el botón 👎.\n` +
+    `━━━━━━━━━━━━━━\n*Llámale hoy*: un cliente atendido a tiempo no se convierte en mala reseña. 🤖 ${bizName}`;
+  let notified = false;
+  if (ownerPhone) {
+    try { const r = await send(ownerPhone, ownerMsg, credentials); if (r?.ok) notified = true; } catch (_) {}
+  }
+  if (!notified) {
+    try { await sendOwnerFallback(ownerMsg); notified = true; } catch (e) { log.warn(`checkin 👎 fallback: ${e.message}`); }
+  }
+  const ack = notified
+    ? `Vaya, sentimos que no haya ido como esperabas 😔 Se lo hemos pasado a ${bizName} para que te contacten hoy mismo y lo solucionen. Si quieres contarnos más, escríbenos por aquí.`
+    : `Vaya, sentimos que no haya ido como esperabas 😔 Por favor, llámanos y lo solucionamos cuanto antes. Si quieres contarnos más, escríbenos por aquí.`;
+  await send(from, ack, credentials).catch(() => {});
+  log.info(`Check-in 👎 de ${from} (org ${businessId || '?'}) → dueño avisado=${notified}`);
+  return true;
+}
+
+module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton };

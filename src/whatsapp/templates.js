@@ -113,6 +113,29 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // POST-SERVICIO v2 con BOTONES (2026-07-07): responder cuesta un tap →
+    // dispara la tasa de respuesta del check-in. 👍 abre la máquina de
+    // reseñas (ventana 24h); 👎 alerta urgente al dueño (circuito Fase B).
+    // Se activa con WA_COMO_FUE_BUTTONS=1 cuando Meta la apruebe.
+    name: 'nodeflow_como_fue_v2',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, somos {{2}}. ¿Qué tal fue {{3}}? Nos encantaría saberlo — y si necesitas cualquier ajuste, respóndenos por aquí.',
+        example: { body_text: [['María', 'Taller Garaia', 'la reparación de tu coche']] },
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          { type: 'QUICK_REPLY', text: 'Todo genial' },
+          { type: 'QUICK_REPLY', text: 'Se puede mejorar' },
+        ],
+      },
+    ],
+  },
+  {
     // PROMOCIONES del negocio (botón 📣 del portal): el dueño escribe el texto
     // ({{3}}) y llega a sus clientes elegibles. MARKETING → opt-out obligatorio.
     name: 'nodeflow_promo',

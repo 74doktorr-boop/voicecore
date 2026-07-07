@@ -223,12 +223,12 @@ class DeepgramSTT {
       if (session.keepAliveInterval) {
         clearInterval(session.keepAliveInterval);
       }
-      if (session.isOpen) {
-        try {
-          session.connection.requestClose();
-        } catch (e) {
-          // Ignore close errors
-        }
+      if (session.connection) {
+        try { session.connection.requestClose(); } catch (e) { /* ignore */ }
+        // Soltar los listeners al instante (auditoría 2026-07-07): sin esto
+        // el cierre del socket los libera "cuando toque"; con miles de llamadas
+        // al día conviene romper el ciclo ya, no esperar al GC.
+        try { session.connection.removeAllListeners(); } catch (e) { /* ignore */ }
       }
       this.connections.delete(callId);
       log.stt(`[${callId}] Session destroyed`);

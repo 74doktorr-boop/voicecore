@@ -1154,6 +1154,21 @@ function setupAdminRoutes(app, config, assistantManager) {
     };
     whatsapp.ready = whatsapp.phoneNumberId && whatsapp.accessToken;
     whatsapp.secure = whatsapp.ready && whatsapp.appSecret;
+    // Salud de ENTREGABILIDAD (auditoría/oportunidades 2026-07-07): Meta
+    // puntúa la calidad del número y limita el volumen por tramos — hay que
+    // ver la señal ANTES de que un ban nos la enseñe. Check real, no de envs.
+    if (whatsapp.ready) {
+      try {
+        const r = await fetch(`https://graph.facebook.com/v21.0/${process.env.WA_PHONE_NUMBER_ID}?fields=quality_rating,messaging_limit_tier,name_status,code_verification_status`, {
+          headers: { Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}` },
+          signal: AbortSignal.timeout(4000),
+        });
+        const d = await r.json();
+        whatsapp.quality = d.quality_rating || null;           // GREEN / YELLOW / RED
+        whatsapp.messagingTier = d.messaging_limit_tier || null; // TIER_250, TIER_1K…
+        whatsapp.nameStatus = d.name_status || null;
+      } catch (_) { whatsapp.quality = 'unreachable'; }
+    }
 
     const groups = {
       database: { enabled: db.enabled, url: has('SUPABASE_URL'), serviceKey: has('SUPABASE_SERVICE_KEY') },
@@ -1194,6 +1209,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (whatsapp.ready && !whatsapp.appSecret) warnings.push('WhatsApp activo pero sin WA_APP_SECRET — el webhook no verifica la firma de Meta.');
     if (!groups.stripe.webhookSecret && groups.stripe.secretKey) warnings.push('Stripe sin STRIPE_WEBHOOK_SECRET — los webhooks de pago no se validan.');
     if (!groups.email.resendKey) warnings.push('Sin RESEND_API_KEY — no se envían emails (bienvenida, recordatorios, alertas).');
+    if (whatsapp.quality === 'YELLOW' || whatsapp.quality === 'RED') warnings.push(`⚠️ Calidad del número de WhatsApp: ${whatsapp.quality} — Meta puede limitar o bloquear los envíos. Revisa quejas/bajas antes de enviar más volumen.`);
     if (!groups.database.enabled) warnings.push('Base de datos no conectada — funcionando en modo memoria.');
     if (groups.telephony.telnyxApiKey !== groups.telephony.telnyxAppId) warnings.push('Telnyx incompleto: falta TELNYX_API_KEY o TELNYX_APP_ID — sin las DOS no hay salientes ni auto-provisión de números.');
     if (groups.telephony.telnyxApiKey && !groups.telephony.apiLive) warnings.push('La clave de Telnyx NO responde (¿caducada/rotada?) — la auto-provisión de números fallará cuando entre un cliente.');

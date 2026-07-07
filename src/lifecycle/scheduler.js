@@ -95,10 +95,14 @@ function buildMessage(reminder, contact, memory) {
   // no venta. Caza al insatisfecho antes de la mala reseña.
   if (reminder.service_key === 'como_fue') {
     const careLabel = waParam(reminder.message_preview) || 'tu última visita';
+    // v2 con botones 👍/👎 (responder cuesta un tap → dispara la tasa de
+    // respuesta; 👍 pide reseña, 👎 alerta al dueño). GATEADO por env hasta
+    // que Meta apruebe la plantilla nodeflow_como_fue_v2.
+    const tplName = process.env.WA_COMO_FUE_BUTTONS === '1' ? 'nodeflow_como_fue_v2' : 'nodeflow_como_fue';
     return {
       text: `Hola ${firstName}, somos ${orgName}. ¿Qué tal fue ${careLabel}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.`,
-      language: templateLanguage('nodeflow_como_fue', lang),
-      waTemplateName: 'nodeflow_como_fue',
+      language: templateLanguage(tplName, lang),
+      waTemplateName: tplName,
       waComponents: [{
         type: 'body',
         parameters: [

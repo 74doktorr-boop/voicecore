@@ -312,7 +312,9 @@ class StripeBilling {
             subscriptionId: session.subscription,
             email: session.customer_details?.email || session.customer_email,
             planKey,
-            amountTotal: amount,
+            // auditoría 2026-07-07: aquí decía `amount` (no definida) —
+            // ReferenceError que mataba el webhook de CADA pago de la landing.
+            amountTotal: session.amount_total != null ? session.amount_total : null,
           };
         }
 

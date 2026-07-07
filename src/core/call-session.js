@@ -198,6 +198,7 @@ class CallSession {
         let due = pacerFramesDue(Date.now() - this._paceT0, this._framesSent, this.outQueue.length);
         while (due-- > 0) {
           const chunk = this.outQueue.shift();
+          if (!chunk) break; // cola vaciada (stopSpeaking) — nada que enviar
           this.twilioWs.send(JSON.stringify({ event: 'media', streamSid: this.streamSid, media: { payload: chunk.toString('base64') } }));
           this._framesSent++;
         }
@@ -211,7 +212,13 @@ class CallSession {
           setTimeout(() => { if (!this.isSpeakingNow()) this.isSpeaking = false; }, remaining + 40);
         }
       } catch (error) {
+        // Auditoría 2026-07-07: si el send falla con frames aún en cola,
+        // limpiar SOLO el pacer dejaba isSpeaking en true PARA SIEMPRE → el
+        // asistente creía hablar y no volvía a escuchar. Se libera el estado.
         clearInterval(this._pacer); this._pacer = null;
+        this.outQueue.length = 0;
+        this.isSpeaking = false;
+        this.playbackEndsAt = 0;
         log.error(`[${this.id}] Error sending audio`, { error: error.message });
       }
     };

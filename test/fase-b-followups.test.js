@@ -10,7 +10,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { calculateScheduledFor } = require('../src/lifecycle/reminder-engine');
 const { toEngineDefaults, getSectorFollowups, serviceLabelFor } = require('../src/lifecycle/sector-catalog');
-const { isNegativeFeedback, handleCheckinFeedback } = require('../src/whatsapp/reply-handler');
+const { isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton } = require('../src/whatsapp/reply-handler');
 
 describe('cumpleaños universal — catálogo', () => {
   test('todos los sectores tienen la regla cumpleanos', () => {
@@ -156,6 +156,50 @@ describe('handleCheckinFeedback — escalado', () => {
     const out = await handleCheckinFeedback(
       { from: '34600111222', businessId: 'org-1', text: 'todo genial, gracias' },
       { db: { enabled: true, client: { from: () => { throw new Error('no debería tocarse'); } } } }
+    );
+    assert.strictEqual(out, false);
+  });
+});
+
+describe('botones del check-in v2 (👍/👎)', () => {
+  test('clasificador de botón', () => {
+    assert.strictEqual(checkinButtonKind('Todo genial'), 'positive');
+    assert.strictEqual(checkinButtonKind('👍 Todo genial'), 'positive');
+    assert.strictEqual(checkinButtonKind('Se puede mejorar'), 'negative');
+    assert.strictEqual(checkinButtonKind('CONFIRMAR'), null);
+  });
+
+  test('👍 con reviewUrl configurada → pide reseña de Google', async () => {
+    const sent = [];
+    // getBusinessConfig lee del scheduler real; inyectamos ownerPhone y capturamos send
+    const { scheduler } = require('../src/scheduling/scheduler');
+    scheduler.businessConfigs = scheduler.businessConfigs || new Map();
+    const out = await handleCheckinButton(
+      { from: '34600111222', businessId: 'org-rev', payload: 'Todo genial' },
+      { sendText: async (to, msg) => { sent.push(msg); return { ok: true }; } }
+    );
+    assert.strictEqual(out, true);
+    assert.strictEqual(sent.length, 1);
+    // sin config de negocio no hay reviewUrl → agradece sin enlace, pero no rompe
+    assert.match(sent[0], /alegra/i);
+  });
+
+  test('👎 → alerta al dueño + acuse al cliente', async () => {
+    const sent = [];
+    const out = await handleCheckinButton(
+      { from: '34600111222', businessId: 'org-1', payload: 'Se puede mejorar' },
+      { sendText: async (to, msg) => { sent.push({ to, msg }); return { ok: true }; }, ownerPhone: '34666000111' }
+    );
+    assert.strictEqual(out, true);
+    assert.strictEqual(sent.length, 2);
+    assert.match(sent[0].msg, /Se puede mejorar|mejorar/);
+    assert.match(sent[1].msg, /sentimos/i);
+  });
+
+  test('payload que no es de check-in → no lo gestiona', async () => {
+    const out = await handleCheckinButton(
+      { from: '34600111222', businessId: 'org-1', payload: 'CANCELAR' },
+      { sendText: async () => ({ ok: true }) }
     );
     assert.strictEqual(out, false);
   });

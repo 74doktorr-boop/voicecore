@@ -417,7 +417,20 @@ function togglePlay() {
 }
 
 // ─── Registro + pago ─────────────────────────────────────────────────────
+var _registroSubmitting = false;
 async function submitRegistro() {
+  // Guard reentrante (auditoría 2026-07-07): dos clics rápidos (o un click()
+  // por DevTools) creaban DOS registros y dos checkouts. El disabled visual no
+  // bastaba porque las dos llamadas salían en paralelo antes de deshabilitar.
+  if (_registroSubmitting) return;
+  _registroSubmitting = true;
+  try {
+    await _submitRegistroInner();
+  } finally {
+    _registroSubmitting = false;
+  }
+}
+async function _submitRegistroInner() {
   const contacto = document.getElementById('contacto').value.trim();
   const negocio  = document.getElementById('negocio').value.trim();
   const sector   = document.getElementById('sector').value;
