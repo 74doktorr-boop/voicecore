@@ -113,3 +113,35 @@ normalización de teléfonos WA, error-tracker (Express 500), informe semanal
 1. EasyPanel → https://xmehd4.easypanel.host → ver logs del servicio
 2. Causas típicas: env var borrada, deploy roto (revisar GitHub Actions), OOM
 3. Rollback: EasyPanel permite redeploy de la imagen anterior de GHCR
+
+## 🎛️ Flags y crons añadidos el 2026-07-07
+
+**Flags (EasyPanel) — features dormidas hasta encenderlas:**
+| Variable | Enciende | Requiere |
+|---|---|---|
+| `WA_COMO_FUE_BUTTONS=1` | Check-in con botones 👍/👎 + máquina de reseñas | Plantilla `nodeflow_como_fue_v2` APPROVED |
+| `WA_WAITLIST_AUTOOFFER=1` | Hueco por cancelación → oferta automática a lista de espera | Plantilla `nodeflow_hueco_libre` APPROVED |
+| `STRIPE_MSG_METER_EVENT=mensajes_extra` | Cobro real del excedente de mensajes (hasta entonces solo cuenta) | Decisión de negocio |
+| `WA_ES_CONFIG_ID` + `WA_APP_ID` | Botón "Conectar mi WhatsApp" (Embedded Signup) en el portal | Config creada en Meta (hecho) |
+
+**Crons nuevos (leader-gated, hora Madrid):**
+- 02:40 — reporte de excedente de mensajes a Stripe (reclamo atómico anti doble-cobro)
+- 03:10 — renovación de tokens WA de 60 días (renueva a los 45; 15 días de reintentos)
+
+**Avisos automáticos:** el webhook maneja `message_template_status_update` —
+cuando Meta aprueba/rechaza una plantilla, llega WhatsApp+email al founder con
+el flag exacto a encender. Ya no hay que preguntar "¿aprobaron?".
+
+**Pool de números:** `POST /api/admin/phone-pool/topup {target}` auto-compra
+en Telnyx hasta `target` disponibles (necesita TELNYX_API_KEY+APP_ID en el
+servidor; puede exigir bundle regulatorio ES). ⚠️ Si el pool está a 0, el
+cliente que pague recibe bienvenida pero NO número (alerta urgente al founder).
+
+**Gotcha de audio:** jamás decimar PCM sin filtro anti-aliasing (el "zumbido
+de microondas" de 2026-07-07). Cartesia se pide en `pcm_mulaw@8000` nativo;
+el resampler de utils/audio ya filtra. Las previews del navegador pasan por
+`masterForSpeakers` (limitador de picos) — el TTS crudo revienta altavoces.
+
+**Gotcha Meta idiomas:** las plantillas de WhatsApp NO admiten euskera (eu) ni
+gallego (gl) — verificado por API. La localización eu/gl va por SMS/email
+(fallbackText) y por el texto libre del dueño en nodeflow_aviso.

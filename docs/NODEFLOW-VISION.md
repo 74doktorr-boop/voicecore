@@ -365,18 +365,18 @@ Ficha 360, promo 📣, paquete de mensajes 200+0,10€, campañas del año, mens
 100% del dueño con {detalle}, fechas inventadas por el negocio). Oportunidades
 que emergieron construyéndolo — solo oportunidades, en orden de compounding:
 
-- **(#cuidado) Respuesta negativa al "¿qué tal fue?" → alerta urgente al dueño.**
+- ✅ SHIPPED 2026-07-07 — **(#cuidado) Respuesta negativa al "¿qué tal fue?" → alerta urgente al dueño.**
   El check-in ya sale; cuando el cliente responda "mal", el webhook la ve pasar.
   Clasificación determinista (regex de queja) → flag_urgent. Es la mitad que
   falta del valor del como_fue: no solo preguntar — rescatar. Compounding: 9.
-- **(#fidelización) Cumpleaños universal (cliente y MASCOTA en vete).** Campo
+- ✅ SHIPPED 2026-07-07 (cliente; mascota en vete pendiente) — **(#fidelización) Cumpleaños universal (cliente y MASCOTA en vete).** Campo
   fecha en la ficha + plantilla felicitación con detalle opcional. Nadie del
   mercado local lo hace con cero esfuerzo del dueño. Compounding: 8.
 - **(#whatsapp) Embedded Signup del número propio — YA desbloqueado.** La App
   de Meta está publicada; falta la revisión "proveedor de tecnología" (días).
   Cuando pase, el add-on wa_own_number (+15€) se activa solo desde el portal:
   ingreso recurrente sin fricción. Empezar la revisión cuanto antes. Compounding: 8.
-- **(#datos) Predicción de no-shows.** El historial por contacto ya existe
+- ✅ SHIPPED 2026-07-07 — **(#datos) Predicción de no-shows.** El historial por contacto ya existe
   (citas + estados); "María tiene 3 plantones → pide confirmación extra" es
   una regla determinista sobre datos que ya guardamos. Compounding: 7.
 - **(#campañas) Campañas propias del dueño (fecha+texto libres).** El catálogo
@@ -385,3 +385,41 @@ que emergieron construyéndolo — solo oportunidades, en orden de compounding:
 - **(#i18n) Plantillas WhatsApp en gl/eu.** El clamp de idioma ya existe; al
   aprobar plantillas en galego, los negocios gallegos envían en su lengua sin
   tocar código. Diferencial emocional en el mercado objetivo. Compounding: 6.
+
+## Oportunidades capturadas — validación 2026-07-07/08 (voz + Meta + recetario)
+
+Contexto: día de validación con llamadas reales de Unai. Shipped hoy: máquina de
+reseñas 👍/👎, hueco→lista de espera, no-show + panel, promos segmentadas,
+recetario 104 ideas por negocio, avisos 📨 a seleccionados, anti-aliasing +
+máster de audio, frase-puente en turnos con herramienta, avisos automáticos de
+plantillas Meta. Lo que emergió construyéndolo:
+
+- **(#voz) TTS en streaming para la cola de la frase.** El primer fragmento ya
+  arranca en <900ms; el hueco restante (si la próxima medición de fragmentGaps
+  lo confirma) se recorta sintetizando el resto en streaming — la
+  infraestructura (streamSynthesize) ya existe, solo falta conectarla al
+  hot-path con cuidado. Compounding: 7.
+- **(#growth) Difusiones programadas.** El aviso 📨 a seleccionados pide su
+  hermano natural: "escríbelo hoy, que salga mañana a las 9:00". Mismo motor
+  (scheduled_reminders con TXT:), solo un selector de fecha en el modal.
+  Compounding: 6.
+- **(#datos) A/B de cerebros auto-conclusivo.** Cuando haya n≥20 turnos por
+  brazo, que el sistema declare ganador solo (mediana firstAudio + score) y
+  avise al founder con la evidencia — hoy la comparación es manual. Compounding: 6.
+- **(#confianza) Salud de entregabilidad EN EL PORTAL del negocio.** El
+  quality_rating de Meta ya se lee (admin); cuando cada negocio tenga su número
+  propio (Embedded Signup), enseñarle SU semáforo con lenguaje humano ("tu
+  número goza de buena reputación") es transparencia que nadie más da.
+  Compounding: 6.
+- **(#producto) Modo selección reutilizable en Clientes.** Los checkboxes del
+  aviso 📨 sirven igual para etiquetar en masa, exportar una selección o
+  pausar varios de golpe. La UI ya existe; son acciones extra en la barra.
+  Compounding: 5.
+- **(#onboarding) Emails en el design system lima.** El email de activación
+  (morado legacy) convierte bien pero no es la marca; unificar TODOS los
+  transaccionales al lima #c4f546 con una plantilla base común es identidad
+  compuesta. Pendiente decisión de Unai morado vs lima. Compounding: 5.
+- **(#voz) Warm-up del saludo tras cada deploy.** La primera llamada tras un
+  redeploy sintetiza el saludo en frío (~700ms extra). Pre-cachear los saludos
+  de las orgs activas al arrancar el proceso elimina el único "se traba" que
+  queda sistemáticamente. Compounding: 5.
