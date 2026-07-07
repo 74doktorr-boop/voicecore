@@ -76,7 +76,11 @@ function computeSuggestions(sectorSlug, orgConfig, appointments, opts = {}) {
   const out = [];
 
   // ── 1) Timing: comparar días configurados vs mediana real de retorno ──
-  const activeFromLast = rules.filter(r => r.enabled && FROM_LAST.has(r.trigger) && r.editableDays && r.days != null);
+  // Los check-ins de CUIDADO (como_fue, ≤9 días) no son cadencia de retorno:
+  // ni se recalibran contra la mediana (proponer 3→34 sería un disparate) ni
+  // cuentan como catch-all para la cobertura.
+  const activeFromLast = rules.filter(r => r.enabled && FROM_LAST.has(r.trigger) && r.editableDays && r.days != null
+    && r.key !== 'como_fue' && r.days >= 10);
   for (const r of activeFromLast) {
     const sample = gaps.filter(g => _matches(r.serviceFilter, g.service)).map(g => g.gap);
     if (sample.length < MIN_TIMING_SAMPLES) continue;

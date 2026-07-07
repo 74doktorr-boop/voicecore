@@ -80,6 +80,22 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // POST-SERVICIO ("¿qué tal fue?"): a los ~3 días de una cita completada.
+    // Doble valor: caza al insatisfecho ANTES de la reseña negativa y abre
+    // conversación (la respuesta llega al webhook → aviso al dueño).
+    name: 'nodeflow_como_fue',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, somos {{2}}. ¿Qué tal fue {{3}}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.',
+        example: { body_text: [['María', 'Taller Garaia', 'la reparación de tu coche']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
+    ],
+  },
+  {
     // PROMOCIONES del negocio (botón 📣 del portal): el dueño escribe el texto
     // ({{3}}) y llega a sus clientes elegibles. MARKETING → opt-out obligatorio.
     name: 'nodeflow_promo',

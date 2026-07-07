@@ -44,6 +44,7 @@ const SECTOR_CATALOG = {
       { key: 'color_tinte', label: 'Recordar tinte',           serviceLabel: 'el tinte',               desc: 'A los 35 días del último tinte',           trigger: 'from_last_appointment', days: 35, serviceFilter: ['color', 'tinte'] },
       { key: 'tratamiento', label: 'Recordar tratamiento',     serviceLabel: 'tu tratamiento capilar', desc: 'A los 28 días del último tratamiento',     trigger: 'from_last_appointment', days: 28, serviceFilter: ['tratamiento'] },
       { key: 'permanente',  label: 'Recordar permanente',      serviceLabel: 'la permanente',          desc: 'A los 70 días de la última permanente',    trigger: 'from_last_appointment', days: 70, serviceFilter: ['permanente'] },
+      { key: 'como_fue', label: '¿Contenta con el resultado?', serviceLabel: 'tu último servicio', desc: 'A los 3 días — el arreglo gratis a tiempo evita la queja', trigger: 'from_last_appointment', days: 3, onlyIfCompleted: true },
     ],
   },
   taller: {
@@ -52,6 +53,7 @@ const SECTOR_CATALOG = {
       { key: 'cambio_aceite', label: 'Cambio de aceite',  serviceLabel: 'el cambio de aceite de tu vehículo', desc: 'Al año del último cambio',        trigger: 'from_sector_field',  days: 335, field: 'fecha_ultimo_aceite' },
       { key: 'itv',           label: 'Aviso de ITV',       serviceLabel: 'la ITV de tu vehículo',              desc: '60 días antes de vencer la ITV',  trigger: 'before_sector_field', days: 60,  field: 'fecha_vencimiento_itv' },
       { key: 'revision',      label: 'Revisión anual',     serviceLabel: 'la revisión del vehículo',           desc: 'Al año de la última revisión',    trigger: 'from_last_appointment', days: 335 },
+      { key: 'como_fue', label: '¿Qué tal el coche?', serviceLabel: 'la reparación de tu coche', desc: 'A los 3 días de recogerlo (caza problemas antes de la mala reseña)', trigger: 'from_last_appointment', days: 3, onlyIfCompleted: true },
     ],
   },
   dental: {
@@ -70,6 +72,7 @@ const SECTOR_CATALOG = {
       { key: 'depilacion_laser',     label: 'Depilación láser',     serviceLabel: 'tu sesión de depilación láser', desc: 'A los 35 días', trigger: 'from_last_appointment', days: 35, serviceFilter: ['láser', 'laser'] },
       { key: 'depilacion_cera',      label: 'Depilación con cera',  serviceLabel: 'tu depilación',           desc: 'A los 28 días', trigger: 'from_last_appointment', days: 28, serviceFilter: ['cera'] },
       { key: 'tratamiento_corporal', label: 'Tratamiento corporal', serviceLabel: 'tu tratamiento corporal', desc: 'A los 21 días', trigger: 'from_last_appointment', days: 21, serviceFilter: ['corporal'] },
+      { key: 'como_fue', label: '¿Qué tal el resultado?', serviceLabel: 'tu tratamiento', desc: 'A los 3 días de la sesión', trigger: 'from_last_appointment', days: 3, onlyIfCompleted: true },
     ],
   },
   veterinaria: {
@@ -79,6 +82,7 @@ const SECTOR_CATALOG = {
       { key: 'desparasitacion', label: 'Desparasitación',     serviceLabel: 'la desparasitación',         desc: 'Cada ~70 días',                       trigger: 'from_last_appointment', days: 70, serviceFilter: ['desparasitación', 'desparasitacion'] },
       { key: 'revision_anual',  label: 'Revisión anual',      serviceLabel: 'tu revisión anual',          desc: 'Al año de la última revisión',        trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'revision', 'chequeo'] },
       { key: 'post_cirugia',    label: 'Revisión post-cirugía', serviceLabel: 'la revisión post-cirugía', desc: 'A los 10 días (si completó la cita)', trigger: 'from_last_appointment', days: 10, serviceFilter: ['cirugía', 'cirugia', 'operación'], onlyIfCompleted: true },
+      { key: 'como_fue', label: '¿Cómo está la mascota?', serviceLabel: 'la visita de tu peludo', desc: 'A los 3 días de la consulta', trigger: 'from_last_appointment', days: 3, onlyIfCompleted: true },
     ],
   },
   gimnasio: {
@@ -112,6 +116,7 @@ const SECTOR_CATALOG = {
     followups: [
       { key: 'revision_vista',       label: 'Revisión de vista',      serviceLabel: 'tu revisión de vista',        desc: 'Al año de la última graduación',    trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'graduación'] },
       { key: 'reposicion_lentillas', label: 'Reposición de lentillas', serviceLabel: 'la reposición de tus lentillas', desc: '5 días antes de agotar el suministro', trigger: 'from_sector_field', field: 'suministro_lentillas_dias', daysOffset: -5, serviceMatch: ['lentilla', 'lentillas', 'contacto'] },
+      { key: 'como_fue', label: '¿Qué tal las gafas nuevas?', serviceLabel: 'tus gafas nuevas', desc: 'A la semana de recogerlas', trigger: 'from_last_appointment', days: 7, onlyIfCompleted: true },
     ],
   },
   hotel: {
@@ -135,6 +140,7 @@ const SECTOR_CATALOG = {
       // aplica por defecto si el negocio lista un servicio que case.
       { key: 'renovacion_psicotecnico', label: 'Renovación de psicotécnico', serviceLabel: 'la renovación de tu psicotécnico', desc: '30 días antes de la caducidad', trigger: 'before_sector_field', days: 30, field: 'fecha_caducidad_psicotecnico', serviceMatch: ['psicotecnico', 'psicotécnico', 'reconocimiento', 'carnet', 'carné', 'certificado'] },
       { key: 'revision_anual',          label: 'Revisión anual',             serviceLabel: 'tu revisión anual',               desc: 'Al año de la última revisión',  trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'revision', 'chequeo'] },
+      { key: 'como_fue', label: '¿Qué tal tras la consulta?', serviceLabel: 'tu consulta', desc: 'A los 3 días de la cita', trigger: 'from_last_appointment', days: 3, onlyIfCompleted: true },
     ],
   },
   reconocimientos: {

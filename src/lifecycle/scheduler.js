@@ -64,11 +64,30 @@ function buildMessage(reminder, contact, memory) {
   // → mapa estático por serviceKey → genérico.
   const serviceLabel = reminder.message_preview || SERVICE_LABELS[reminder.service_key] || 'tu próxima cita';
 
-  const text = `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${serviceLabel}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`;
-
   // Idioma de PLANTILLA acotado a los aprobados en Meta: pedir una combinación
   // plantilla+idioma inexistente (cliente con preferencia 'eu'/'gl') rompe el envío.
   const { templateLanguage } = require('../whatsapp/templates');
+
+  // POST-SERVICIO ("¿qué tal fue?"): plantilla y tono propios — es cuidado,
+  // no venta. Caza al insatisfecho antes de la mala reseña.
+  if (reminder.service_key === 'como_fue') {
+    const careLabel = reminder.message_preview || 'tu última visita';
+    return {
+      text: `Hola ${firstName}, somos ${orgName}. ¿Qué tal fue ${careLabel}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.`,
+      language: templateLanguage('nodeflow_como_fue', lang),
+      waTemplateName: 'nodeflow_como_fue',
+      waComponents: [{
+        type: 'body',
+        parameters: [
+          { type: 'text', text: firstName },
+          { type: 'text', text: orgName },
+          { type: 'text', text: careLabel },
+        ],
+      }],
+    };
+  }
+
+  const text = `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${serviceLabel}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`;
 
   return {
     text,
