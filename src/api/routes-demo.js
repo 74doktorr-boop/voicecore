@@ -214,7 +214,10 @@ function setupDemoRoutes(app, ttsRouter) {
           const cartesia = ttsRouter.providers?.get?.('cartesia')?.instance;
           if (!cartesia) throw new Error('cartesia no disponible');
           const { pcm, sampleRate } = await cartesia.synthesizeHiFi({ callId, text, voice: entry.providerVoiceId, language });
-          const wav = wavFromPcm16(pcm, sampleRate);
+          // Masterizar como ElevenLabs (limitador de picos): el TTS crudo
+          // trae transitorios a 0dBFS que saturan altavoces de portátil.
+          const { masterForSpeakers } = require('../utils/audio');
+          const wav = wavFromPcm16(masterForSpeakers(pcm), sampleRate);
           ttsCachePut(cacheKey, wav, 'audio/wav', 'cartesia');
           res.set('Content-Type', 'audio/wav');
           res.set('X-TTS-Provider', 'cartesia');
@@ -224,8 +227,8 @@ function setupDemoRoutes(app, ttsRouter) {
       if (entry && entry.provider === 'local') {
         try {
           const mulaw = await ttsRouter.synthesize({ callId, text, voice: entry.providerVoiceId, provider: entry.provider, strategy: 'specific', language });
-          const { mulawToPcm } = require('../utils/audio');
-          const wav = wavFromPcm16(mulawToPcm(mulaw), 8000);
+          const { mulawToPcm, masterForSpeakers } = require('../utils/audio');
+          const wav = wavFromPcm16(masterForSpeakers(mulawToPcm(mulaw)), 8000);
           ttsCachePut(cacheKey, wav, 'audio/wav', entry.provider);
           res.set('Content-Type', 'audio/wav');
           res.set('X-TTS-Provider', entry.provider);

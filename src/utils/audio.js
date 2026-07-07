@@ -124,6 +124,34 @@ function resampleToMulaw8k(pcmBuffer, sourceSampleRate) {
 }
 
 /**
+ * Masteriza PCM16 para escucha en altavoces (2026-07-07, reporte Unai:
+ * "las Cartesia suenan saturadas, las ElevenLabs increíbles"). El TTS crudo
+ * trae picos transitorios a 0dBFS (cresta ~17dB) que hacen escupir a los
+ * altavoces pequeños; el MP3 de ElevenLabs viene limitado de fábrica.
+ * Compresión suave de picos (knee 55%FS, pendiente 4:1) + techo a -1dB.
+ * In-place sobre una copia. PURA.
+ * @param {Buffer} pcmBuffer PCM16LE
+ * @returns {Buffer} PCM16LE masterizado
+ */
+function masterForSpeakers(pcmBuffer) {
+  const KNEE = Math.round(32767 * 0.55);
+  const SLOPE = 0.25;                      // 4:1 por encima del knee
+  const CEIL = Math.round(32767 * 0.89);   // ~-1dBFS
+  const out = Buffer.from(pcmBuffer);
+  const n = out.length / 2;
+  for (let i = 0; i < n; i++) {
+    let s = out.readInt16LE(i * 2);
+    const a = Math.abs(s);
+    if (a > KNEE) {
+      const compressed = KNEE + (a - KNEE) * SLOPE;
+      s = Math.sign(s) * Math.min(CEIL, Math.round(compressed));
+      out.writeInt16LE(s, i * 2);
+    }
+  }
+  return out;
+}
+
+/**
  * Create WAV header for PCM audio
  * @param {number} dataSize - Size of PCM data in bytes
  * @param {number} sampleRate - Sample rate
@@ -177,5 +205,6 @@ module.exports = {
   resampleToMulaw8k,
   pcm8kToPcm16k,
   createWavHeader,
-  linearToMulaw
+  linearToMulaw,
+  masterForSpeakers
 };

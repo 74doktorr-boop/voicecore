@@ -58,3 +58,33 @@ describe('resampleToMulaw8k — anti-aliasing', () => {
     assert.ok(rms(out) / rms(in8k) > 0.8, 'no debe perder más que el códec');
   });
 });
+
+// ── Máster para altavoces (2026-07-07): picos a 0dBFS saturaban portátiles ──
+describe('masterForSpeakers', () => {
+  const { masterForSpeakers } = require('../src/utils/audio');
+
+  test('doma los picos (techo ~-1dB) sin tocar el cuerpo de la voz', () => {
+    // señal: voz suave (30%FS) con un transitorio a fondo de escala
+    const n = 1000;
+    const buf = Buffer.alloc(n * 2);
+    for (let i = 0; i < n; i++) buf.writeInt16LE(Math.round(9800 * Math.sin(2 * Math.PI * i / 40)), i * 2);
+    buf.writeInt16LE(32767, 500 * 2); // pico transitorio
+    const out = masterForSpeakers(buf);
+    let peak = 0;
+    for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(out.readInt16LE(i * 2)));
+    assert.ok(peak <= Math.round(32767 * 0.9), `pico ${peak} debe quedar bajo el techo`);
+    // el cuerpo (bajo el knee) no se toca
+    assert.strictEqual(out.readInt16LE(10 * 2), buf.readInt16LE(10 * 2));
+  });
+
+  test('no muta el buffer original', () => {
+    const buf = Buffer.alloc(8); buf.writeInt16LE(32767, 0);
+    masterForSpeakers(buf);
+    assert.strictEqual(buf.readInt16LE(0), 32767);
+  });
+
+  test('silencio → silencio', () => {
+    const out = masterForSpeakers(Buffer.alloc(200));
+    for (let i = 0; i < 100; i++) assert.strictEqual(out.readInt16LE(i * 2), 0);
+  });
+});
