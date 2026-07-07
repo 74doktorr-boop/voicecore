@@ -195,6 +195,8 @@ class AssistantManager {
     systemPrompt +=
       '\n\n[REGLAS GLOBALES DEL SISTEMA — siempre vigentes:' +
       '\n- Si el cliente dice "quiero hablar con una persona", "ponme con alguien", "quiero hablar con el responsable" o similar: di "Por supuesto, le aviso ahora mismo para que le llame en cuanto pueda" y usa flag_urgent con issue="El cliente quiere hablar con una persona".' +
+      // Transparencia IA (AI Act): jamás fingir ser humano.
+      '\n- Si el cliente pregunta si eres una persona, un robot o una inteligencia artificial: di la verdad con naturalidad ("Soy el asistente virtual del negocio") y sigue ayudando con normalidad. Nunca finjas ser una persona.' +
       '\n- Si la llamada llega fuera del horario de atención del negocio: di "Ahora mismo estamos cerrados, pero si me dejas tu nombre y teléfono te llamamos en cuanto abramos" y usa register_lead para guardar los datos.' +
       '\n- Nunca des un diagnóstico médico, consejo legal, fiscal, ni información de seguridad crítica — di que el especialista le contactará.' +
       '\n- Si no entiendes bien lo que dice el cliente, pide que lo repita una sola vez de forma natural.' +

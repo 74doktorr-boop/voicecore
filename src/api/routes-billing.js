@@ -256,14 +256,15 @@ function setupBillingRoutes(app, config) {
                   ...(registro.sector ? { assistant_config: { sector: registro.sector } } : {}),
                 });
 
-                // Crear asistente por defecto
+                // Crear asistente por defecto. El saludo sale de la fuente única
+                // (i18n.defaultFirstMessage): incluye la presentación como
+                // asistente virtual (transparencia IA) y el token {{GREETING}}
+                // que el pipeline resuelve por hora del día. Antes había una
+                // copia local sin transparencia — split-brain.
                 const lang      = registro.idioma || 'es';
                 const langName  = lang === 'gl' ? 'galego' : lang === 'eu' ? 'euskera' : 'español';
-                const defaultGreeting = lang === 'gl'
-                  ? `Grazas por chamar a ${registro.negocio}, en que podo axudarche?`
-                  : lang === 'eu'
-                  ? `Eskerrik asko ${registro.negocio}-ra deitu izanagatik, nola lagundu dezaket?`
-                  : `Gracias por llamar a ${registro.negocio}, ¿en qué puedo ayudarte?`;
+                const { defaultFirstMessage } = require('../assistants/i18n');
+                const defaultGreeting = defaultFirstMessage(lang, registro.negocio);
 
                 await db.createAssistant(org.id, {
                   name:         `Asistente de ${registro.negocio}`,

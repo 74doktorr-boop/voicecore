@@ -63,10 +63,13 @@ function farewell(language, reason) {
  */
 function defaultFirstMessage(language, businessName) {
   const name = businessName || 'el negocio';
+  // TRANSPARENCIA IA (AI Act): quien llama debe saber que habla con una
+  // máquina. Los saludos POR DEFECTO se presentan como asistente; si el
+  // dueño escribe el suyo es su decisión, pero el default cumple siempre.
   switch (baseLang(language)) {
-    case 'gl': return `{{GREETING}}, chamou a ${name}. En que podo axudarlle?`;
+    case 'gl': return `{{GREETING}}, chamou a ${name}. Son o seu asistente virtual, en que podo axudarlle?`;
     case 'eu': return `{{GREETING}}, ${name}. Zure laguntzaile birtuala naiz, zertan lagundu zaitzaket?`;
-    default:   return `{{GREETING}}, ha llamado a ${name}. ¿En qué puedo ayudarle?`;
+    default:   return `{{GREETING}}, ha llamado a ${name}. Soy su asistente virtual, ¿en qué puedo ayudarle?`;
   }
 }
 

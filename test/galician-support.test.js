@@ -34,6 +34,12 @@ describe('i18n — cortesía por idioma', () => {
     assert.match(defaultFirstMessage('gl', 'Clínica Nós'), /chamou a Clínica Nós.*axudarlle/);
     assert.match(defaultFirstMessage('es', 'X'), /ha llamado a X/);
   });
+  test('transparencia IA: los saludos por defecto se presentan como asistente (AI Act)', () => {
+    assert.match(defaultFirstMessage('es', 'X'), /asistente virtual/i);
+    assert.match(defaultFirstMessage('gl', 'X'), /asistente virtual/i);
+    assert.match(defaultFirstMessage('eu', 'X'), /laguntzaile birtuala/i);
+    assert.match(defaultFirstMessage('es+gl', 'X'), /asistente virtual/i);
+  });
   test('despedida del cierre automático en galego', () => {
     assert.match(farewell('gl', 'silence'), /cortou a liña/);
     assert.match(farewell('gl', 'maxlen'), /deixalo aquí/);
