@@ -9,6 +9,7 @@
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
 const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback, handleCheckinButton, handleWaitlistResponse } = require('../whatsapp/reply-handler');
+const { handleTemplateStatusUpdate } = require('../whatsapp/template-alerts');
 const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
@@ -74,6 +75,13 @@ function setupWhatsAppWebhook(app) {
       for (const entry of entries) {
         const changes = entry.changes || [];
         for (const change of changes) {
+          // ── Aprobación/rechazo de PLANTILLAS (2026-07-07): Meta lo empuja
+          // por webhook — avisar a Unai al instante en vez de que pregunte.
+          if (change.field === 'message_template_status_update') {
+            handleTemplateStatusUpdate(change.value || {}).catch(e =>
+              log.warn(`template status update: ${e.message}`));
+            continue;
+          }
           if (change.field !== 'messages') continue;
           const value = change.value || {};
           const messages = value.messages || [];

@@ -84,3 +84,27 @@ describe('prescribe', () => {
     assert.ok(actions.length <= 5);
   });
 });
+
+// ── Audio entrecortado en la salud (2026-07-07): fragmentGaps visible ──
+describe('entrecortado (fragmentGaps) en salud de clientes', () => {
+  test('llamadas con huecos → contador choppy + acción prescrita', () => {
+    const rows = [
+      call({ metrics: { quality: { fragmentGaps: 3, worstFragmentGapMs: 620 } } }),
+      call({ metrics: { quality: { fragmentGaps: 0 } } }),
+    ];
+    const { byOrg } = computeClientHealth(rows, NOW);
+    const o = byOrg.org1;
+    assert.strictEqual(o.choppy, 1);
+    assert.strictEqual(o.choppyWorstMs, 620);
+    const actions = prescribe(o);
+    const a = actions.find(x => /ENTRECORTADO/.test(x.action));
+    assert.ok(a, 'debe prescribir la acción de audio entrecortado');
+    assert.match(a.detail, /NUESTRO/);
+  });
+
+  test('un solo hueco corto (<2 gaps y <400ms) no alarma', () => {
+    const rows = [call({ metrics: { quality: { fragmentGaps: 1, worstFragmentGapMs: 150 } } })];
+    const { byOrg } = computeClientHealth(rows, NOW);
+    assert.strictEqual(byOrg.org1.choppy || 0, 0);
+  });
+});

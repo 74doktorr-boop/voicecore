@@ -82,6 +82,13 @@ function computeClientHealth(rows, nowMs) {
     o.ttsSum  += Number(m.totalTtsTime)  || 0;
     o.sttSum  += Number(m.totalSttTime)  || 0;
     o.toolSum += Number(m.totalToolTime) || 0;
+    // Audio ENTRECORTADO (2026-07-07): huecos entre fragmentos medidos por
+    // fragmentGaps — "se traba a media frase". Antes era invisible aquí.
+    const q = m.quality || {};
+    if ((Number(q.fragmentGaps) || 0) >= 2 || (Number(q.worstFragmentGapMs) || 0) > 400) {
+      o.choppy = (o.choppy || 0) + 1;
+      o.choppyWorstMs = Math.max(o.choppyWorstMs || 0, Number(q.worstFragmentGapMs) || 0);
+    }
     const t = new Date(r.started_at).getTime();
     if (now && t >= now - RECENT_MS) o.recent++; else if (now) o.prior++;
     o.minutes += (Number(r.duration_ms) || 0) / 60000;
@@ -176,6 +183,10 @@ function prescribe(o, ctx = {}) {
   if (c.cut_mid > 0) {
     out.push({ icon: '✂️', action: `${c.cut_mid} llamada(s) cortadas a mitad — mira esas llamadas en el Admin`,
       detail: 'Conversación iniciada que murió de forma anormal: timeout, error del proveedor o cliente desesperado. El transcript dice cuál de los tres.' });
+  }
+  if ((o.choppy || 0) > 0) {
+    out.push({ icon: '🎧', action: `${o.choppy} llamada(s) con audio ENTRECORTADO (peor hueco ${o.choppyWorstMs || '?'}ms)`,
+      detail: 'La voz se para a media frase: el siguiente fragmento de audio llega tarde (generación lenta). Es problema NUESTRO, no del negocio — si persiste tras la frase-puente, toca acelerar el TTS en streaming para ese volumen.' });
   }
 
   if ((o.latTurns || 0) >= 5 && (o.avgTurnMs || 0) >= 1500) {
