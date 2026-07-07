@@ -1171,7 +1171,17 @@ function setupAdminRoutes(app, config, assistantManager) {
                   // bundle regulatorio ES; areaCode es opcional (prefiere ese prefijo).
                   numberAutoProvision: has('TELNYX_API_KEY') && has('TELNYX_APP_ID'),
                   regulatoryGroup: has('TELNYX_REQUIREMENT_GROUP_ID'),
-                  areaCode: process.env.TELNYX_NUMBER_AREACODE || null },
+                  areaCode: process.env.TELNYX_NUMBER_AREACODE || null,
+                  // Check de VERDAD, no de presencia: búsqueda real (solo lectura)
+                  // contra Telnyx — una clave caducada daba "todo verde" hasta el
+                  // día que un cliente pagaba y la compra fallaba en silencio.
+                  apiLive: await (async () => {
+                    if (!has('TELNYX_API_KEY')) return false;
+                    try {
+                      const { findAvailableNumber } = require('../telephony/telnyx-provision');
+                      return !!(await findAvailableNumber({}));
+                    } catch (_) { return false; }
+                  })() },
       redis:    { url: has('REDIS_URL') },
       calendar: { clientId: has('GOOGLE_CLIENT_ID'), clientSecret: has('GOOGLE_CLIENT_SECRET') },
       crypto:   { encryptionKey: has('ENCRYPTION_KEY') },
@@ -1186,6 +1196,8 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!groups.email.resendKey) warnings.push('Sin RESEND_API_KEY — no se envían emails (bienvenida, recordatorios, alertas).');
     if (!groups.database.enabled) warnings.push('Base de datos no conectada — funcionando en modo memoria.');
     if (groups.telephony.telnyxApiKey !== groups.telephony.telnyxAppId) warnings.push('Telnyx incompleto: falta TELNYX_API_KEY o TELNYX_APP_ID — sin las DOS no hay salientes ni auto-provisión de números.');
+    if (groups.telephony.telnyxApiKey && !groups.telephony.apiLive) warnings.push('La clave de Telnyx NO responde (¿caducada/rotada?) — la auto-provisión de números fallará cuando entre un cliente.');
+    if (groups.telephony.apiLive && !groups.telephony.regulatoryGroup) warnings.push('Telnyx sin TELNYX_REQUIREMENT_GROUP_ID: España exige bundle regulatorio (dirección + CIF) — crea el bundle en el portal de Telnyx y pon su ID, o las COMPRAS de números fallarán.');
 
     res.json({
       env: process.env.NODE_ENV || 'development',
