@@ -33,6 +33,8 @@ const COLS = {
   phone:     ['telefono', 'phone', 'movil', 'tel', 'tlf', 'celular', 'numero'],
   caducidad: ['caducael', 'caducidad', 'caduca', 'fecha', 'vencimiento', 'fechacaducidad', 'expira', 'fechacaduca'],
   tipo:      ['tipo', 'type', 'permiso', 'categoria', 'carnet'],
+  email:     ['email', 'correo', 'mail', 'correoelectronico', 'emailcliente'],
+  cumple:    ['cumpleanos', 'cumple', 'nacimiento', 'fechanacimiento', 'birthday', 'fechacumpleanos', 'fnac'],
 };
 
 function _matchCol(header) {
@@ -120,9 +122,16 @@ function parseImportCsv(text) {
       if (iso) sectorData[DATE_FIELD] = iso;
     }
     if (colIdx.tipo !== undefined && cells[colIdx.tipo]) sectorData[TYPE_FIELD] = cells[colIdx.tipo].slice(0, 60);
+    // Cumpleaños → sector_data.fecha_cumpleanos: alimenta la felicitación
+    // universal (Fase B). Fecha inválida = se ignora (no bloquea la fila).
+    if (colIdx.cumple !== undefined && cells[colIdx.cumple]) {
+      const iso = _toISO(cells[colIdx.cumple]);
+      if (iso) sectorData.fecha_cumpleanos = iso;
+    }
 
     rows.push({
       name: colIdx.name !== undefined ? (cells[colIdx.name] || '').slice(0, 120) : '',
+      email: colIdx.email !== undefined ? (cells[colIdx.email] || '').trim().slice(0, 160) : '',
       phone,
       sectorData,
     });
@@ -197,7 +206,7 @@ async function importContacts(orgId, rows, opts = {}) {
     const variants = [...new Set(chunk.flatMap(([, r]) => phoneVariants(r.phone)))];
     try {
       const { data } = await db.client.from('contacts')
-        .select('id, phone, name, sector_data')
+        .select('id, phone, name, email, sector_data')
         .eq('org_id', orgId).in('phone', variants);
       for (const c of (data || [])) {
         const k = normalizePhone(c.phone);
@@ -214,11 +223,12 @@ async function importContacts(orgId, rows, opts = {}) {
       toUpdate.push({
         id: ex.id, org_id: orgId, phone: ex.phone,
         name: ex.name || r.name || null,                                   // solo rellena si estaba vacío
+        email: ex.email || r.email || null,                                // idem: no pisa el existente
         sector_data: Object.assign({}, ex.sector_data || {}, r.sectorData), // añade sin borrar
         updated_at: nowISO,
       });
     } else {
-      toInsert.push({ org_id: orgId, phone: r.phone, name: r.name || null, sector_data: r.sectorData, call_count: 0 });
+      toInsert.push({ org_id: orgId, phone: r.phone, name: r.name || null, email: r.email || null, sector_data: r.sectorData, call_count: 0 });
     }
   }
 

@@ -2811,7 +2811,7 @@ function openImportModal() {
       'Sube el export de tu base de clientes. Con la <strong>fecha de caducidad</strong> (p. ej. del psicotécnico), el sistema avisará a cada cliente <strong>~1 mes antes</strong> para que renueve contigo — sin llamadas a destiempo.' +
     '</p>' +
     '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--dim)">' +
-      'Columnas: <code>Nombre</code>, <code>Teléfono</code>, <code>Caduca_el</code> (aaaa-mm-dd o dd/mm/aaaa), <code>Tipo</code>. Acepta CSV con , o ;' +
+      'Columnas: <code>Nombre</code>, <code>Teléfono</code>, <code>Caduca_el</code> (aaaa-mm-dd o dd/mm/aaaa), <code>Tipo</code>, <code>Email</code>, <code>Cumpleaños</code>. Solo <code>Teléfono</code> es obligatorio; el resto, los que tengas. Acepta CSV con , o ;' +
     '</div>' +
     '<input type="file" id="importFile" accept=".csv,text/csv,text/plain" onchange="onImportFile(event)" ' +
       'style="display:block;width:100%;margin-bottom:10px;color:var(--dim);font-size:13px">' +

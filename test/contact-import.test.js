@@ -31,6 +31,19 @@ describe('parseImportCsv', () => {
     assert.strictEqual(r.rows[0].sectorData[DATE_FIELD], '2026-12-01');
   });
 
+  test('mapea cumpleaños y email → Fase B a escala (2026-07-07)', () => {
+    const r = parseImportCsv('Nombre,Telefono,Cumpleaños,Email\nAna,600111222,14/03/1990,ana@mail.com');
+    assert.strictEqual(r.total, 1);
+    assert.strictEqual(r.rows[0].sectorData.fecha_cumpleanos, '1990-03-14');
+    assert.strictEqual(r.rows[0].email, 'ana@mail.com');
+  });
+
+  test('cumpleaños con fecha basura → se ignora, no bloquea la fila', () => {
+    const r = parseImportCsv('Nombre,Telefono,Nacimiento\nBeñat,600111222,no-fecha');
+    assert.strictEqual(r.total, 1);
+    assert.strictEqual(r.rows[0].sectorData.fecha_cumpleanos, undefined);
+  });
+
   test('teléfono inválido → error por línea, no fila', () => {
     const r = parseImportCsv('Nombre,Telefono,Caduca_el\nMalo,notaphone,2026-08-10');
     assert.strictEqual(r.total, 0);
