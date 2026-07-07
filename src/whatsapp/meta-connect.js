@@ -85,6 +85,27 @@ async function registerNumber(token, phoneNumberId, deps = {}) {
   return { ok: false, error: _err(res, 'No se pudo registrar el número.') };
 }
 
+/**
+ * Renueva un token de integración empresarial. Los de la configuración
+ * del Embedded Signup caducan a los 60 días; el fb_exchange_token
+ * devuelve uno nuevo de 60 días sin intervención del negocio.
+ */
+async function refreshBusinessToken(currentToken, deps = {}) {
+  const graph = deps.graph || defaultGraph;
+  const appId = deps.appId !== undefined ? deps.appId : process.env.WA_APP_ID;
+  const appSecret = deps.appSecret !== undefined ? deps.appSecret : process.env.WA_APP_SECRET;
+  if (!appId || !appSecret) return { ok: false, error: 'App de Meta no configurada (WA_APP_ID / WA_APP_SECRET).' };
+  if (!currentToken) return { ok: false, error: 'Sin token que renovar.' };
+  const path = `/${GRAPH_VER}/oauth/access_token?grant_type=fb_exchange_token` +
+    `&client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}` +
+    `&fb_exchange_token=${encodeURIComponent(currentToken)}`;
+  const res = await graph('GET', path, {});
+  if (res.status === 200 && res.body && res.body.access_token) {
+    return { ok: true, token: res.body.access_token };
+  }
+  return { ok: false, error: _err(res, 'No se pudo renovar el token.') };
+}
+
 /** Número visible y nombre verificado de un phone_number_id (el popup v3 no los da). */
 async function fetchPhoneInfo(token, phoneNumberId, deps = {}) {
   const graph = deps.graph || defaultGraph;
@@ -171,5 +192,5 @@ async function connectMetaNumber(businessId, params = {}, deps = {}) {
 }
 
 module.exports = {
-  exchangeCodeForToken, registerNumber, subscribeAppToWaba, submitTemplates, connectMetaNumber, fetchPhoneInfo,
+  exchangeCodeForToken, registerNumber, subscribeAppToWaba, submitTemplates, connectMetaNumber, fetchPhoneInfo, refreshBusinessToken,
 };

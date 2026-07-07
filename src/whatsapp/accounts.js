@@ -184,6 +184,29 @@ async function saveWaCredentials(businessId, creds) {
 }
 
 /**
+ * Actualiza SOLO el access_token de un negocio (renovación de tokens de
+ * 60 días del Embedded Signup). No toca display_name ni connected_at;
+ * updated_at hace de reloj de caducidad para el cron de renovación.
+ *
+ * @param {string} businessId
+ * @param {string} accessToken — token nuevo en claro (se cifra aquí)
+ */
+async function updateWaAccessToken(businessId, accessToken) {
+  cacheDelete(businessId);
+  const sb = getSupabase();
+  const { error } = await sb
+    .from('whatsapp_accounts')
+    .update({ access_token: encrypt(accessToken), updated_at: new Date().toISOString() })
+    .eq('organization_id', businessId)
+    .eq('status', 'active');
+  if (error) {
+    log.error(`updateWaAccessToken(${businessId}): ${error.message}`);
+    throw error;
+  }
+  log.info(`WA access token renovado para ${businessId}`);
+}
+
+/**
  * Revoca credenciales WA de un negocio (marca como revoked en Supabase).
  *
  * @param {string} businessId
@@ -242,4 +265,4 @@ async function getBusinessIdByPhoneNumberId(phoneNumberId) {
   }
 }
 
-module.exports = { getWaCredentials, saveWaCredentials, revokeWaCredentials, invalidateCache, getBusinessIdByPhoneNumberId };
+module.exports = { getWaCredentials, saveWaCredentials, updateWaAccessToken, revokeWaCredentials, invalidateCache, getBusinessIdByPhoneNumberId };

@@ -611,6 +611,10 @@ startClientHealthCron();
 const { startMessageOverageCron } = require('./src/billing/message-usage');
 startMessageOverageCron();
 
+// Renovación de tokens WA de número propio (Embedded Signup — caducan a 60 días)
+const { startWaTokenRefreshCron } = require('./src/whatsapp/token-refresh');
+startWaTokenRefreshCron();
+
 // ─── Voice Catalog API ───
 app.get('/api/voices', (req, res) => {
   try {
