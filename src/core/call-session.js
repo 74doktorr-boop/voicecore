@@ -165,8 +165,13 @@ class CallSession {
     // la reproducción anterior ya terminó (cola vacía y playbackEndsAt pasado),
     // hubo silencio audible a media frase — el "se traba diciendo…". Esto NO lo
     // capta pacerStalls (que solo mide retraso del pump). Aquí SÍ.
+    // SOLO dentro del MISMO turno (_turnFirstAudioMs ya fijado): el primer
+    // fragmento de cada turno llega, lógicamente, tras el silencio del cliente
+    // hablando — contarlo inflaba worstGap a 12s (bug cazado en la llamada
+    // real de validación 2026-07-07: los 5 "gaps" eran fronteras de turno).
     const now = Date.now();
-    if (this.outQueue.length === 0 && this.playbackEndsAt > 0 && now > this.playbackEndsAt) {
+    if (this._turnFirstAudioMs != null
+        && this.outQueue.length === 0 && this.playbackEndsAt > 0 && now > this.playbackEndsAt) {
       const gap = now - this.playbackEndsAt;
       if (gap > 80) { // <80ms es imperceptible; por encima se nota como corte
         this.metrics.fragmentGaps = (this.metrics.fragmentGaps || 0) + 1;

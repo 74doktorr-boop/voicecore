@@ -23,8 +23,12 @@ function mkSession() {
 }
 
 describe('detección de huecos entre fragmentos', () => {
+  // Los huecos solo cuentan DENTRO de un turno: _turnFirstAudioMs fijado
+  // simula que el primer fragmento del turno ya sonó.
+  function midTurn(s) { s._turnFirstAudioMs = 500; return s; }
+
   test('audio nuevo mientras aún suena el anterior → SIN hueco', () => {
-    const s = mkSession();
+    const s = midTurn(mkSession());
     s.sendAudioToTwilio(Buffer.alloc(1600)); // 10 frames = 200ms de audio
     // llega el siguiente fragmento enseguida (la cola aún no se vació)
     s.outQueue.length = 5; // simulamos que quedan frames por sonar
@@ -33,7 +37,7 @@ describe('detección de huecos entre fragmentos', () => {
   });
 
   test('audio nuevo DESPUÉS de que la reproducción terminó → cuenta un hueco', () => {
-    const s = mkSession();
+    const s = midTurn(mkSession());
     s.sendAudioToTwilio(Buffer.alloc(1600)); // playbackEndsAt = ahora + 200ms
     // Forzamos: cola vacía y playbackEndsAt ya pasado (silencio de 300ms)
     s.outQueue.length = 0;
@@ -44,7 +48,7 @@ describe('detección de huecos entre fragmentos', () => {
   });
 
   test('hueco imperceptible (<80ms) NO cuenta', () => {
-    const s = mkSession();
+    const s = midTurn(mkSession());
     s.sendAudioToTwilio(Buffer.alloc(1600));
     s.outQueue.length = 0;
     s.playbackEndsAt = Date.now() - 40; // 40ms, imperceptible
@@ -53,7 +57,7 @@ describe('detección de huecos entre fragmentos', () => {
   });
 
   test('varios huecos → se acumulan y se guarda el peor', () => {
-    const s = mkSession();
+    const s = midTurn(mkSession());
     s.sendAudioToTwilio(Buffer.alloc(800));
     s.outQueue.length = 0; s.playbackEndsAt = Date.now() - 150;
     s.sendAudioToTwilio(Buffer.alloc(800));
@@ -61,5 +65,18 @@ describe('detección de huecos entre fragmentos', () => {
     s.sendAudioToTwilio(Buffer.alloc(800));
     assert.strictEqual(s.metrics.fragmentGaps, 2);
     assert.ok(s.metrics.worstFragmentGapMs >= 500);
+  });
+
+  // Bug cazado en la llamada real de validación (2026-07-07): el PRIMER
+  // fragmento de cada turno llega tras el silencio del cliente hablando —
+  // eso NO es un hueco (worstGap salía 12s y el score se hundía injustamente).
+  test('frontera de turno (primer audio del turno) NO cuenta como hueco', () => {
+    const s = mkSession(); // _turnFirstAudioMs == null → primer audio del turno
+    s._turnFirstAudioMs = null;
+    s.sendAudioToTwilio(Buffer.alloc(800));       // saludo
+    s.outQueue.length = 0;
+    s.playbackEndsAt = Date.now() - 12000;         // el cliente habló 12s
+    s.sendAudioToTwilio(Buffer.alloc(800));        // primer audio del turno nuevo
+    assert.strictEqual(s.metrics.fragmentGaps || 0, 0, 'la frontera de turno no es un hueco');
   });
 });

@@ -710,6 +710,20 @@ class ToolExecutor {
   // ─────────────────────────────────────────────────────────────────────────
 
   async registerLead(args, assistantId, context = {}) {
+    // DEDUPE por llamada (2026-07-07, llamada real de Unai): el LLM invocó
+    // register_lead DOS veces en la misma conversación → lead duplicado y un
+    // "he anotado tu solicitud" repetido que suena a robot. Regla determinista
+    // fuera del LLM (charter): un lead por llamada; la segunda vez se le dice
+    // al modelo que YA está y que responda contenido, no otro acuse.
+    if (context.session) {
+      if (context.session._leadRegistered) {
+        return {
+          success: true, already_registered: true,
+          message: 'La solicitud YA estaba registrada en esta llamada. NO repitas que la has anotado: responde a lo que el cliente acaba de preguntar.',
+        };
+      }
+      context.session._leadRegistered = true;
+    }
     const name  = args.name || args.client_name || '';
     // El teléfono del llamante entra SOLO (caller ID) — jamás pedir email
     // por voz teniendo el mejor canal ya en la mano (llamada real d7adbdb7:
