@@ -119,7 +119,8 @@ function calculateScheduledFor(def, sectorData, lastAppointmentDate) {
 
   if (def.trigger === 'from_sector_field') {
     const fieldValue = sectorData?.[def.field];
-    if (!fieldValue) return null;
+    // ojo: 0 es válido en campos numéricos ("me quedan 0 días de lentillas")
+    if (fieldValue === null || fieldValue === undefined || fieldValue === '') return null;
     // For numeric fields like suministro_lentillas_dias, calculate from today
     if (typeof fieldValue === 'number') {
       const d = new Date();
@@ -131,6 +132,24 @@ function calculateScheduledFor(def, sectorData, lastAppointmentDate) {
     if (isNaN(base.getTime())) return null;
     base.setDate(base.getDate() + (def.days || 335) + (def.daysOffset || 0));
     return base > now ? base : null;
+  }
+
+  if (def.trigger === 'yearly_field') {
+    // Cada año en la fecha del cliente (cumpleaños, aniversario…). La fecha
+    // guardada puede ser de cualquier año: solo cuentan mes y día. Se envía
+    // a las 09:00 (hora servidor) del día; 29-feb en año no bisiesto cae en
+    // 1-mar por el desbordamiento natural de Date.
+    const fieldValue = sectorData?.[def.field];
+    if (!fieldValue) return null;
+    const base = new Date(fieldValue);
+    if (isNaN(base.getTime())) return null;
+    let next = new Date(now.getFullYear(), base.getMonth(), base.getDate(), 9, 0, 0);
+    next.setDate(next.getDate() - (def.days || 0));
+    if (next <= now) {
+      next = new Date(now.getFullYear() + 1, base.getMonth(), base.getDate(), 9, 0, 0);
+      next.setDate(next.getDate() - (def.days || 0));
+    }
+    return next;
   }
 
   if (def.trigger === 'custom_frequency') {

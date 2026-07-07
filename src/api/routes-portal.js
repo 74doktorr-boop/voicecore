@@ -1560,6 +1560,12 @@ function setupPortalRoutes(app, pipeline, config) {
           sectorFields.push({ key: c.field, label: c.label || c.field, type: 'date', custom: true });
         }
       }
+
+      // Cumpleaños UNIVERSAL (Fase B): con fecha en la ficha, el motor
+      // felicita cada año. Algunos sectores ya traen el campo — no duplicar.
+      if (!sectorFields.some(f => f.key === 'fecha_cumpleanos')) {
+        sectorFields.push({ key: 'fecha_cumpleanos', label: 'Cumpleaños', type: 'date' });
+      }
     } catch (_) {}
 
     let paused = false;

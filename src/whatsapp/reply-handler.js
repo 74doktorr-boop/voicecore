@@ -291,4 +291,79 @@ async function notifyOwnerFreeText({ from, businessId, text }) {
   return notified;
 }
 
-module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText };
+// ── Fase B: respuesta NEGATIVA al check-in "¿qué tal fue?" ────────────────────
+// El como_fue existe para cazar al insatisfecho ANTES de la mala reseña.
+// Si el cliente contesta mal pocos días después del check-in, el dueño
+// recibe una alerta urgente (no el aviso genérico de "un cliente escribió").
+// \p{L} con flag u: los acentos/ñ cuentan como letra (bug cazado 2 veces).
+const NEGATIVE_RE = /(fatal|horrible|p[eé]simo|desastre|peor|muy mal|bastante mal|regular tirando|sigo (?:igual|mal|fastidiad)|no (?:me\s+)?(?:ha\s+|han\s+)?(?:gustado|mejorado|funcionado|ayudado|servido|convencido)|me (?:duele|molesta|sigue doliendo|ha sentado mal)|dolor|molestias|empeorad|quej|reclamaci[oó]n|decepcionad|insatisfech|mal servicio|no (?:pienso\s+)?volver[ée]?|no os recomiendo)/iu;
+// Frases con palabras "negativas" que en realidad son positivas.
+const NEGATIVE_GUARD_RE = /(no est[aá] (?:nada\s+)?mal|nada mal|menos mal|sin dolor|ya no me duele|no me duele|\bmejor\b|muy bien|genial|perfecto|encantad|content[oa])/iu;
+
+function isNegativeFeedback(text = '') {
+  const s = String(text || '');
+  return NEGATIVE_RE.test(s) && !NEGATIVE_GUARD_RE.test(s);
+}
+
+/**
+ * Si el texto suena negativo Y este contacto recibió un check-in como_fue
+ * en los últimos 7 días → alerta urgente al dueño + acuse empático al cliente.
+ * @returns {Promise<boolean>} true si se gestionó aquí (no seguir con el flujo genérico).
+ */
+async function handleCheckinFeedback({ from, businessId, text }, deps = {}) {
+  if (!businessId || !isNegativeFeedback(text)) return false;
+
+  // ¿Hubo un como_fue enviado hace poco a este contacto?
+  let contact = null;
+  try {
+    const db = deps.db || require('../db/database').getDatabase();
+    if (!db.enabled) return false;
+    const variants = phoneVariants(from);
+    const { data } = await db.client.from('contacts')
+      .select('id, name').eq('org_id', businessId).in('phone', variants).limit(1);
+    contact = data && data[0];
+    if (!contact) return false;
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: checkin } = await db.client.from('scheduled_reminders')
+      .select('id').eq('org_id', businessId).eq('contact_id', contact.id)
+      .eq('service_key', 'como_fue').eq('status', 'sent')
+      .gte('sent_at', cutoff).limit(1);
+    if (!checkin || !checkin.length) return false;
+  } catch (e) {
+    log.warn(`checkin feedback lookup (${from}): ${e.message}`);
+    return false;
+  }
+
+  const send = deps.sendText || sendText;
+  const sendOwnerFallback = deps.sendWhatsApp || sendWhatsApp;
+  const credentials = businessId ? await getWaCredentials(businessId).catch(() => null) : null;
+  const bizName = getBusinessName(businessId);
+  const cfg = scheduler.getBusinessConfig(businessId);
+  const ownerPhone = deps.ownerPhone !== undefined ? deps.ownerPhone
+    : (cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE);
+  const who = contact.name ? `${contact.name} (${from})` : from;
+
+  const ownerMsg =
+    `🚨 *Respuesta NEGATIVA a tu seguimiento*\n━━━━━━━━━━━━━━\n` +
+    `👤 ${who}\n\n«${String(text).slice(0, 500)}»\n\n━━━━━━━━━━━━━━\n` +
+    `Le preguntamos qué tal fue y no ha ido bien. *Llámale hoy*: ` +
+    `un cliente atendido a tiempo no se convierte en mala reseña. 🤖 ${bizName}`;
+
+  let notified = false;
+  if (ownerPhone) {
+    try { const r = await send(ownerPhone, ownerMsg, credentials); if (r?.ok) notified = true; } catch (_) {}
+  }
+  if (!notified) {
+    try { await sendOwnerFallback(ownerMsg); notified = true; } catch (e) { log.warn(`checkin alert fallback: ${e.message}`); }
+  }
+
+  const ack = notified
+    ? `Vaya, sentimos mucho que no haya ido como esperabas 😔 Se lo hemos pasado a ${bizName} para que te contacten hoy mismo y lo solucionen. Gracias por decírnoslo.`
+    : `Vaya, sentimos mucho que no haya ido como esperabas 😔 Por favor, llámanos directamente y lo solucionamos cuanto antes. Gracias por decírnoslo.`;
+  await send(from, ack, credentials).catch(() => {});
+
+  log.info(`Check-in negativo de ${from} (org ${businessId}) → dueño avisado=${notified}`);
+  return true;
+}
+
+module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback };

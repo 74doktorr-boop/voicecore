@@ -8,7 +8,7 @@
 
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
-const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText } = require('../whatsapp/reply-handler');
+const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback } = require('../whatsapp/reply-handler');
 const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
@@ -135,12 +135,16 @@ function setupWhatsAppWebhook(app) {
                   log.error(`reply-handler error: ${e.message}`)
                 );
               } else if (text && !isCourtesy(text)) {
-                // Texto libre que NodeFlow aún no gestiona solo: NO lo tiramos en
-                // silencio — avisamos al dueño con el mensaje del cliente y le
-                // acusamos recibo. (Las cortesías "gracias/vale" no molestan al dueño.)
-                await notifyOwnerFreeText({ from, businessId, text }).catch(e =>
-                  log.error(`freeText handler error: ${e.message}`)
-                );
+                // Fase B: si suena NEGATIVO tras un check-in "¿qué tal fue?"
+                // reciente → alerta URGENTE al dueño (cazar al insatisfecho
+                // antes de la mala reseña). Si no, el aviso genérico de siempre.
+                const escalated = await handleCheckinFeedback({ from, businessId, text })
+                  .catch(e => { log.error(`checkin feedback error: ${e.message}`); return false; });
+                if (!escalated) {
+                  await notifyOwnerFreeText({ from, businessId, text }).catch(e =>
+                    log.error(`freeText handler error: ${e.message}`)
+                  );
+                }
               }
             }
           }

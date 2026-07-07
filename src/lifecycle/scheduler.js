@@ -214,8 +214,12 @@ async function processOneReminder(reminder, db) {
 
     // Skip if a future appointment exists (client already has something booked)
     // Join via phone since nf_appointments has no contact_id
+    // EXCEPTO cumpleaños: es felicitación (cuidado), no captación — se envía
+    // igual aunque tenga cita, y tampoco se pospone por tope de frecuencia
+    // (felicitar tarde es peor que no felicitar).
+    const isGreeting = reminder.service_key === 'cumpleanos';
     let newerApt = null;
-    if (contact?.phone) {
+    if (!isGreeting && contact?.phone) {
       const { data: newerAptData } = await db.client.from('nf_appointments')
         .select('id')
         .eq('organization_id', reminder.org_id)
@@ -235,8 +239,8 @@ async function processOneReminder(reminder, db) {
     }
 
     // Tope de frecuencia: si ya recibió un aviso hace poco, POSPONER (no spamear).
-    const capDays = await getCapDays(reminder.org_id, { db });
-    const holdDate = await holdUntil(db, reminder, capDays, new Date());
+    const capDays = isGreeting ? 0 : await getCapDays(reminder.org_id, { db });
+    const holdDate = capDays ? await holdUntil(db, reminder, capDays, new Date()) : null;
     if (holdDate) {
       await db.client.from('scheduled_reminders')
         .update({ status: 'pending', scheduled_for: holdDate.toISOString(), failed_reason: 'frequency_cap', updated_at: new Date().toISOString() })
@@ -252,6 +256,20 @@ async function processOneReminder(reminder, db) {
       await db.client.from('scheduled_reminders')
         .update({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', reminder.id);
+      // Cumpleaños es recurrente: al enviarse queda programado el del año
+      // que viene (los contactos sin actividad no pasan por recalculate).
+      if (isGreeting) {
+        try {
+          const next = new Date(reminder.scheduled_for);
+          next.setFullYear(next.getFullYear() + 1);
+          const { scheduleReminder } = require('./reminder-engine');
+          await scheduleReminder({
+            orgId: reminder.org_id, contactId: reminder.contact_id,
+            serviceKey: reminder.service_key, scheduledFor: next,
+            channel: reminder.channel || 'whatsapp', messagePreview: reminder.message_preview,
+          });
+        } catch (e) { log.warn(`cumpleaños: no se pudo programar el del año que viene: ${e.message}`); }
+      }
     } else {
       await db.client.from('scheduled_reminders')
         .update({ status: 'failed', failed_reason: 'all_channels_failed', updated_at: new Date().toISOString() })
@@ -354,7 +372,8 @@ async function processCampaigns() {
     const { data: contacts } = await db.client
       .from('contacts')
       .select('id')
-      .eq('org_id', campaign.org_id);
+      .eq('org_id', campaign.org_id)
+      .is('deleted_at', null); // nunca a fichas borradas (hallazgo auditoría 2026-07-07)
 
     if (!contacts?.length) continue;
 

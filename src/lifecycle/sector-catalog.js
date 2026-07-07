@@ -18,7 +18,7 @@
 // serviceMatch: palabras que ligan la regla a un SERVICIO del negocio — si el
 // negocio no ofrece nada que case, la regla no aplica por defecto (una clínica
 // sin psicotécnicos no debe ver ni activar esa regla).
-const ENGINE_KEYS = ['trigger', 'days', 'serviceFilter', 'field', 'onlyIfCompleted', 'frequencyField', 'daysOffset', 'serviceMatch'];
+const ENGINE_KEYS = ['trigger', 'days', 'serviceFilter', 'field', 'onlyIfCompleted', 'frequencyField', 'daysOffset', 'serviceMatch', 'customText'];
 
 // Disparadores admitidos, con una explicación en cristiano para la UI.
 const TRIGGERS = {
@@ -27,6 +27,7 @@ const TRIGGERS = {
   before_sector_field:   'N días antes de una fecha del cliente (caducidad, cuota…)',
   from_sector_field:     'N días después de una fecha del cliente',
   custom_frequency:      'Según la frecuencia guardada del cliente',
+  yearly_field:          'Cada año, en una fecha del cliente',
 };
 
 // Disparadores que un dueño puede elegir para un seguimiento PERSONALIZADO.
@@ -273,6 +274,25 @@ const SECTOR_CATALOG = {
   },
 };
 
+// ── Universales (Fase B, 2026-07-07) ────────────────────────
+// Seguimientos que aplican a TODOS los sectores. Se inyectan en cada
+// sector salvo que este ya defina la misma key (p.ej. peluquería tiene
+// su propio 'cumpleanos' promocional 21 días antes — se respeta).
+// El texto viaja como mensaje del dueño (TXT: → plantilla nodeflow_aviso)
+// y solo se programa si la ficha del cliente tiene la fecha.
+const UNIVERSAL_FOLLOWUPS = [
+  {
+    key: 'cumpleanos',
+    label: 'Felicitación de cumpleaños',
+    serviceLabel: 'tu cumpleaños',
+    desc: 'El día de su cumpleaños, a los clientes con la fecha en su ficha',
+    trigger: 'yearly_field',
+    days: 0,
+    field: 'fecha_cumpleanos',
+    customText: '¡muchas felicidades por tu cumpleaños! 🎂 De parte de todo el equipo, que tengas un día estupendo. Un abrazo.',
+  },
+];
+
 // ── Derivados ───────────────────────────────────────────────
 
 /** Extrae solo los campos que entiende el motor de una entrada del catálogo. */
@@ -288,6 +308,9 @@ function toEngineDefaults() {
   for (const [sector, def] of Object.entries(SECTOR_CATALOG)) {
     out[sector] = {};
     for (const fu of def.followups) out[sector][fu.key] = _engineFields(fu);
+    for (const fu of UNIVERSAL_FOLLOWUPS) {
+      if (!out[sector][fu.key]) out[sector][fu.key] = _engineFields(fu);
+    }
   }
   return out;
 }
@@ -295,7 +318,12 @@ function toEngineDefaults() {
 /** Seguimientos de un sector con toda su presentación (para el portal). */
 function getSectorFollowups(sector) {
   const def = SECTOR_CATALOG[sector];
-  return def ? def.followups.map(f => ({ ...f })) : [];
+  if (!def) return [];
+  const list = def.followups.map(f => ({ ...f }));
+  for (const fu of UNIVERSAL_FOLLOWUPS) {
+    if (!list.some(f => f.key === fu.key)) list.push({ ...fu });
+  }
+  return list;
 }
 
 // ── Reglas ligadas a los SERVICIOS del negocio ──────────────
@@ -325,7 +353,8 @@ function appliesToServices(def, serviceList) {
 /** Texto del servicio para el mensaje, dado sector + serviceKey (con fallback). */
 function serviceLabelFor(sector, key) {
   const def = SECTOR_CATALOG[sector];
-  const fu = def && def.followups.find(f => f.key === key);
+  const fu = (def && def.followups.find(f => f.key === key))
+    || UNIVERSAL_FOLLOWUPS.find(f => f.key === key);
   if (fu) return fu.serviceLabel;
   return String(key || '').replace(/_/g, ' ') || 'tu próxima cita';
 }
