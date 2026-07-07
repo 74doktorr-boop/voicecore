@@ -21,13 +21,13 @@
 ## 🚀 Próximos pasos (cuando se retome)
 
 - [ ] **Meter de mensajes en Stripe** (paquete 200/mes + 0,10€ extra ya en código, gateado):
-      Stripe → Billing → Meters → crear meter (event name p.ej. , agregación SUM)
+      Stripe → Billing → Meters → crear meter (event name p.ej. `mensajes_extra`, agregación SUM)
       → crear Price medido 0,10€ asociado al meter → añadirlo a las suscripciones (como el de minutos)
-      → env  en EasyPanel. Sin esto: se cuenta y se enseña, no se cobra.
+      → env `STRIPE_MSG_METER_EVENT=mensajes_extra` en EasyPanel. Sin esto: se cuenta y se enseña, no se cobra.
 - [ ] **Bundle regulatorio Telnyx ES** (la compra automática de números lo exige):
       portal.telnyx.com → Numbers → Regulatory bundles → crear bundle España (dirección + CIF)
-      → env  en EasyPanel. El diagnóstico avisa mientras falte.
-- [ ] **WhatsApp**: 8 plantillas PENDING en Meta (~1-24h). Al aprobar: .
+      → env `TELNYX_REQUIREMENT_GROUP_ID=<id del bundle>` en EasyPanel. El diagnóstico avisa mientras falte.
+- [ ] **WhatsApp**: 8 plantillas PENDING en Meta (~1-24h). Al aprobar: `POST /api/admin/test-whatsapp {phone}`.
       App publicada ✓ · número +34 604 CONNECTED ✓ · webhook verde ✓.
 - [ ] **Proveedor de tecnología (Meta)**: iniciar revisión para Embedded Signup del número propio
       (panel de la app → Hazte proveedor de tecnología → Continuar incorporación).
