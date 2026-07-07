@@ -115,6 +115,25 @@ async function alertOwner(apt, action, credentials = null) {
   }
   // Fallback: Callmebot (no necesita credenciales WA)
   await sendWhatsApp(msg).catch(e => log.warn(`Owner alert fallback error: ${e.message}`));
+
+  // Hueco liberado → ofrecerlo automáticamente al primer candidato de la lista
+  // de espera (gateado por WA_WAITLIST_AUTOOFFER + plantilla aprobada). No
+  // bloquea el aviso al dueño: corre después y a prueba de fallos.
+  if (action === 'cancelled' && apt.businessId) {
+    try {
+      const { offerFreedSlot } = require('../lifecycle/waitlist-offer');
+      await offerFreedSlot({
+        businessId: apt.businessId, date: apt.date, time: apt.time,
+        service: apt.service, humanDate: humanDate(apt.date), bizName,
+      }, {
+        credentials,
+        notifyOwner: async (m) => {
+          if (ownerPhone) { try { const r = await sendText(ownerPhone, m, credentials); if (r?.ok) return; } catch (_) {} }
+          await sendWhatsApp(m).catch(() => {});
+        },
+      });
+    } catch (e) { log.warn(`waitlist auto-offer: ${e.message}`); }
+  }
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -429,4 +448,67 @@ async function handleCheckinButton({ from, businessId, payload }, deps = {}) {
   return true;
 }
 
-module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton };
+// ── Respuesta a una oferta de HUECO LIBRE (lista de espera) ──────────────────
+// El candidato tenía una entrada 'contacted' (se le ofreció un hueco). Si
+// acepta → alerta al dueño para que lo reserve (humano en el lazo = sin riesgo
+// de doble reserva); si rechaza → vuelve a 'waiting' para el siguiente.
+function waitlistReplyKind(payload = '') {
+  const p = String(payload || '');
+  if (/lo quiero|s[ií]\b|me interesa|vale|quiero/iu.test(p)) return 'accept';
+  if (/ahora no|no puedo|no me viene|paso|d[eé]jalo/iu.test(p)) return 'decline';
+  return null;
+}
+
+async function handleWaitlistResponse({ from, businessId, payload }, deps = {}) {
+  if (!businessId) return false;
+  const db = deps.db || require('../db/database').getDatabase();
+  if (!db.enabled) return false;
+
+  // ¿Tiene este teléfono una oferta de hueco pendiente ('contacted')?
+  let entry = null;
+  try {
+    const variants = phoneVariants(from);
+    const { data } = await db.client.from('nf_waitlist')
+      .select('id, name, phone, service, status')
+      .eq('organization_id', businessId).eq('status', 'contacted')
+      .in('phone', variants).order('created_at', { ascending: false }).limit(1);
+    entry = data && data[0];
+  } catch (e) { log.warn(`waitlist response lookup (${from}): ${e.message}`); }
+  if (!entry) return false;
+
+  const kind = waitlistReplyKind(payload);
+  if (!kind) return false; // tiene oferta pero la respuesta no es clara → deja que el flujo genérico avise al dueño
+
+  const send = deps.sendText || sendText;
+  const sendOwnerFallback = deps.sendWhatsApp || sendWhatsApp;
+  const credentials = businessId ? await getWaCredentials(businessId).catch(() => null) : null;
+  const bizName = getBusinessName(businessId);
+  const cfg = businessId ? scheduler.getBusinessConfig(businessId) : null;
+  const ownerPhone = deps.ownerPhone !== undefined ? deps.ownerPhone
+    : (cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE);
+  const firstName = String(entry.name || 'cliente').split(' ')[0] || 'cliente';
+
+  if (kind === 'accept') {
+    // Marca 'booked' (pendiente de que el dueño confirme la cita) — solo si sigue 'contacted'.
+    await db.client.from('nf_waitlist').update({ status: 'booked' })
+      .eq('id', entry.id).eq('status', 'contacted').then(undefined, () => {});
+    const ownerMsg =
+      `✅ *¡Quieren el hueco libre!*\n━━━━━━━━━━━━━━\n👤 ${entry.name || 'Cliente'} (${from})\n` +
+      `${entry.service ? `🗓️ ${entry.service}\n` : ''}━━━━━━━━━━━━━━\n*Resérvale la cita y confírmasela.* 🤖 ${bizName}`;
+    let notified = false;
+    if (ownerPhone) { try { const r = await send(ownerPhone, ownerMsg, credentials); if (r?.ok) notified = true; } catch (_) {} }
+    if (!notified) { try { await sendOwnerFallback(ownerMsg); } catch (_) {} }
+    await send(from, `¡Genial, ${firstName}! 🙌 Se lo hemos pasado a ${bizName} para que te confirme la cita enseguida. ¡Gracias!`, credentials).catch(() => {});
+    log.info(`Hueco ACEPTADO por ${from} (org ${businessId})`);
+    return true;
+  }
+
+  // decline → vuelve a la cola para el siguiente
+  await db.client.from('nf_waitlist').update({ status: 'waiting' })
+    .eq('id', entry.id).eq('status', 'contacted').then(undefined, () => {});
+  await send(from, `Sin problema, ${firstName} 😊 Te mantenemos en la lista para el próximo hueco. ¡Hasta pronto!`, credentials).catch(() => {});
+  log.info(`Hueco RECHAZADO por ${from} (org ${businessId}) → vuelve a lista`);
+  return true;
+}
+
+module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton, waitlistReplyKind, handleWaitlistResponse };

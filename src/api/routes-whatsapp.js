@@ -8,7 +8,7 @@
 
 const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
-const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback, handleCheckinButton } = require('../whatsapp/reply-handler');
+const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback, handleCheckinButton, handleWaitlistResponse } = require('../whatsapp/reply-handler');
 const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
@@ -101,10 +101,13 @@ function setupWhatsAppWebhook(app) {
             if (msg.type === 'button') {
               const payload = msg.button?.payload || msg.button?.text || '';
               log.info(`Button reply from ${from}: "${payload}"`);
-              // Botones del check-in v2: 👍 → máquina de reseñas · 👎 → alerta
-              // urgente al dueño. Si no es de check-in, sigue el flujo clásico.
-              const handled = await handleCheckinButton({ from, businessId, payload })
-                .catch(e => { log.error(`checkin button error: ${e.message}`); return false; });
+              // Prioridad: oferta de hueco libre → check-in 👍👎 → confirmar/cancelar.
+              let handled = await handleWaitlistResponse({ from, businessId, payload })
+                .catch(e => { log.error(`waitlist response error: ${e.message}`); return false; });
+              if (!handled) {
+                handled = await handleCheckinButton({ from, businessId, payload })
+                  .catch(e => { log.error(`checkin button error: ${e.message}`); return false; });
+              }
               if (!handled) {
                 await handleReply({ from, type: 'button', payload }).catch(e =>
                   log.error(`reply-handler error: ${e.message}`)
@@ -119,8 +122,8 @@ function setupWhatsAppWebhook(app) {
               if (btnReply) {
                 const payload = btnReply.id || btnReply.title || '';
                 log.info(`Interactive button from ${from}: "${payload}"`);
-                const handled = await handleCheckinButton({ from, businessId, payload })
-                  .catch(() => false);
+                let handled = await handleWaitlistResponse({ from, businessId, payload }).catch(() => false);
+                if (!handled) handled = await handleCheckinButton({ from, businessId, payload }).catch(() => false);
                 if (!handled) {
                   await handleReply({ from, type: 'button', payload }).catch(e =>
                     log.error(`reply-handler error: ${e.message}`)
@@ -145,12 +148,17 @@ function setupWhatsAppWebhook(app) {
                   log.error(`reply-handler error: ${e.message}`)
                 );
               } else if (text && !isCourtesy(text)) {
+                // ¿Responde por texto a una oferta de hueco libre? ("sí, lo quiero")
+                let handledText = await handleWaitlistResponse({ from, businessId, payload: text })
+                  .catch(e => { log.error(`waitlist text error: ${e.message}`); return false; });
                 // Fase B: si suena NEGATIVO tras un check-in "¿qué tal fue?"
                 // reciente → alerta URGENTE al dueño (cazar al insatisfecho
                 // antes de la mala reseña). Si no, el aviso genérico de siempre.
-                const escalated = await handleCheckinFeedback({ from, businessId, text })
-                  .catch(e => { log.error(`checkin feedback error: ${e.message}`); return false; });
-                if (!escalated) {
+                if (!handledText) {
+                  handledText = await handleCheckinFeedback({ from, businessId, text })
+                    .catch(e => { log.error(`checkin feedback error: ${e.message}`); return false; });
+                }
+                if (!handledText) {
                   await notifyOwnerFreeText({ from, businessId, text }).catch(e =>
                     log.error(`freeText handler error: ${e.message}`)
                   );

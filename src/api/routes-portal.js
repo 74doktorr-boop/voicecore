@@ -667,6 +667,30 @@ function setupPortalRoutes(app, pipeline, config) {
       });
     } catch (_) {}
 
+    // Hueco liberado desde el portal → oferta automática a la lista de espera
+    // (mismo motor que la cancelación por WhatsApp; gateado por env + plantilla).
+    try {
+      const { offerFreedSlot } = require('../lifecycle/waitlist-offer');
+      const { getWaCredentials } = require('../whatsapp/accounts');
+      const { sendText } = require('../notifications/client-whatsapp');
+      const { sendWhatsApp } = require('../notifications/whatsapp');
+      const creds = await getWaCredentials(businessId).catch(() => null);
+      const auto = req.flowConfig?.automations?.config || {};
+      const ownerPhone = auto.alertPhone || req.flowConfig?.ownerPhone || process.env.OWNER_PHONE;
+      const [y, m, d] = String(apt.date).split('-').map(Number);
+      const humanDate = (y && m && d) ? new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : apt.date;
+      offerFreedSlot({
+        businessId, date: apt.date, time: apt.time, service: apt.service,
+        humanDate, bizName: req.flowConfig?.name || 'el negocio',
+      }, {
+        credentials: creds,
+        notifyOwner: async (msg) => {
+          if (ownerPhone) { try { const r = await sendText(ownerPhone, msg, creds); if (r?.ok) return; } catch (_) {} }
+          await sendWhatsApp(msg).catch(() => {});
+        },
+      }).catch(() => {});
+    } catch (_) {}
+
     res.json({ ok: true });
   });
 

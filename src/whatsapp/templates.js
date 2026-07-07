@@ -136,6 +136,29 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // HUECO LIBRE (2026-07-07): al cancelarse una cita, se ofrece el hueco al
+    // primer candidato de la lista de espera. {{3}}=fecha {{4}}=hora {{5}}=servicio.
+    // Botones: acepta / rechaza. UTILITY (es transaccional: responde a su
+    // solicitud de estar en lista). Gateado por WA_WAITLIST_AUTOOFFER=1.
+    name: 'nodeflow_hueco_libre',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: '¡Hola {{1}}! Se ha liberado un hueco en {{2}}: {{3}} a las {{4}} para {{5}}. Estabas en lista de espera — ¿lo quieres? Responde y te lo reservamos.',
+        example: { body_text: [['María', 'Clínica Osakin', 'el jueves 10 de julio', '17:00', 'Fisioterapia']] },
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          { type: 'QUICK_REPLY', text: 'Lo quiero' },
+          { type: 'QUICK_REPLY', text: 'Ahora no' },
+        ],
+      },
+    ],
+  },
+  {
     // PROMOCIONES del negocio (botón 📣 del portal): el dueño escribe el texto
     // ({{3}}) y llega a sus clientes elegibles. MARKETING → opt-out obligatorio.
     name: 'nodeflow_promo',
