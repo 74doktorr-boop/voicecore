@@ -5270,7 +5270,9 @@ function ruleRow(r) {
 
   var nameCell = isCustom
     ? '<input type="text" class="rule-label" value="' + esc(r.label || '') + '" placeholder="Nombre del seguimiento" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600">' +
-      '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">'
+      '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">' +
+      '<input type="text" class="rule-text" maxlength="250" value="' + esc(r.customText || '') + '" placeholder="✍️ Mensaje 100% tuyo (opcional) — usa {detalle} para el dato de cada ficha" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid rgba(196,245,70,.25);border-radius:6px;padding:5px 8px;font-size:12px">' +
+      (r.trigger === 'before_sector_field' ? '<div style="font-size:11px;color:var(--accent-l);margin-top:4px">📅 La fecha "' + esc(r.label || 'de esta regla') + '" aparecerá en la ficha de cada cliente para rellenar.</div>' : '')
     : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
         (r.applies === false ? ' <span style="font-size:10px;font-weight:600;color:#e0a030;background:rgba(224,160,48,.12);border:1px solid rgba(224,160,48,.3);border-radius:5px;padding:1px 7px;vertical-align:middle" data-tip="Ninguno de tus servicios casa con este seguimiento. Actívalo solo si lo ofreces.">no ofreces este servicio</span>' : '') +
       '</div>' +
@@ -5321,11 +5323,14 @@ async function saveFollowupRules(btn) {
       if (!days) { invalid = true; }
       var trigEl = row.querySelector('.rule-trigger');
       var filter = (row.querySelector('.rule-filter').value || '').trim();
+      var textEl = row.querySelector('.rule-text');
+      var customText = textEl ? (textEl.value || '').trim() : '';
       custom.push({
         key: /^custom_/.test(row.dataset.key) && row.dataset.key !== 'custom_nuevo' ? row.dataset.key : undefined,
         label: label, trigger: trigEl ? trigEl.value : row.dataset.trigger,
         days: days, serviceFilter: filter || undefined, channel: channel, enabled: enabled,
         serviceLabel: row.dataset.servicelabel || undefined,
+        customText: customText || undefined,
       });
     } else {
       var ov = { enabled: enabled, channel: channel };

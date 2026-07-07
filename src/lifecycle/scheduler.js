@@ -68,6 +68,25 @@ function buildMessage(reminder, contact, memory) {
   // plantilla+idioma inexistente (cliente con preferencia 'eu'/'gl') rompe el envío.
   const { templateLanguage } = require('../whatsapp/templates');
 
+  // MENSAJE 100% DEL DUEÑO (marcador TXT: puesto por el motor): su frase
+  // íntegra viaja en la plantilla-portadora nodeflow_aviso.
+  if (typeof reminder.message_preview === 'string' && reminder.message_preview.startsWith('TXT:')) {
+    const ownText = reminder.message_preview.slice(4);
+    return {
+      text: `Hola ${firstName}, un mensaje de ${orgName}: ${ownText}`,
+      language: templateLanguage('nodeflow_aviso', lang),
+      waTemplateName: 'nodeflow_aviso',
+      waComponents: [{
+        type: 'body',
+        parameters: [
+          { type: 'text', text: firstName },
+          { type: 'text', text: orgName },
+          { type: 'text', text: ownText },
+        ],
+      }],
+    };
+  }
+
   // POST-SERVICIO ("¿qué tal fue?"): plantilla y tono propios — es cuidado,
   // no venta. Caza al insatisfecho antes de la mala reseña.
   if (reminder.service_key === 'como_fue') {

@@ -80,6 +80,23 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // AVISO 100% PERSONALIZADO: la plantilla-portadora de los seguimientos
+    // con texto libre del dueño ({{3}} = su frase entera, con {detalle} de
+    // la ficha ya sustituido). Personalización total dentro de las reglas
+    // de Meta. MARKETING → opt-out obligatorio.
+    name: 'nodeflow_aviso',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, un mensaje de {{2}}: {{3}} Puedes respondernos por aquí o llamarnos cuando quieras.',
+        example: { body_text: [['María', 'Fisioterapia Lasarte', '¿cómo va la lumbalgia? Si vuelve a molestar, te reservamos hueco esta semana.']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
+    ],
+  },
+  {
     // POST-SERVICIO ("¿qué tal fue?"): a los ~3 días de una cita completada.
     // Doble valor: caza al insatisfecho ANTES de la reseña negativa y abre
     // conversación (la respuesta llega al webhook → aviso al dueño).

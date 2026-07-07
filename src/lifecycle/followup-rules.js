@@ -76,6 +76,7 @@ function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
       trigger: c.trigger,
       triggerLabel: TRIGGERS[c.trigger] || c.trigger,
       days: c.days,
+      customText: c.customText || '',
       serviceFilter: c.serviceFilter || [],
       channel: c.channel || 'whatsapp',
       enabled: c.enabled !== false,
@@ -136,11 +137,27 @@ function normalizeRules(sectorSlug, body = {}, existing = {}) {
     }
     const channel = CHANNELS.includes(c.channel) ? c.channel : 'whatsapp';
 
-    custom.push({
+    // 100% PERSONALIZADO (opcional): el texto ÍNTEGRO del mensaje, escrito por
+    // el dueño (viaja en la plantilla-portadora nodeflow_aviso). Admite
+    // {detalle} → se sustituye por el dato de la ficha de cada cliente.
+    let customText;
+    if (c.customText) {
+      customText = String(c.customText).trim().slice(0, 250);
+      if (customText && customText.length < 10) return { error: `El mensaje de "${label}" es demasiado corto (mín. 10)` };
+      if (!customText) customText = undefined;
+    }
+
+    // Fecha DEFINIDA POR EL NEGOCIO: el seguimiento vive N días antes de una
+    // fecha que el dueño inventa; el campo se crea solo en la ficha de cada
+    // cliente (sector_data.custom_<key>) con el nombre de la regla.
+    const entry = {
       key: uniq, label, serviceLabel: String(c.serviceLabel || label).slice(0, 80),
       trigger: c.trigger, days, ...(serviceFilter ? { serviceFilter } : {}),
+      ...(customText ? { customText } : {}),
       channel, enabled: c.enabled !== false,
-    });
+    };
+    if (c.trigger === 'before_sector_field') entry.field = 'custom_' + uniq.replace(/^custom_/, '');
+    custom.push(entry);
   }
   if (custom.length) config._custom = custom;
 

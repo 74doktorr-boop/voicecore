@@ -1540,7 +1540,17 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       sectorSlug = await _resolveOrgSector(businessId);
       const { SECTOR_REQUIRED_FIELDS } = require('../lifecycle/sector-fields');
-      sectorFields = SECTOR_REQUIRED_FIELDS[sectorSlug] || [];
+      sectorFields = [...(SECTOR_REQUIRED_FIELDS[sectorSlug] || [])];
+
+      // Fechas INVENTADAS por el negocio (personalizados before_sector_field):
+      // aparecen en la ficha de cada cliente con el nombre de su regla.
+      const { loadOrgConfig } = require('../lifecycle/followup-rules');
+      const orgCfg = await loadOrgConfig(db, businessId);
+      for (const c of (Array.isArray(orgCfg._custom) ? orgCfg._custom : [])) {
+        if (c && c.trigger === 'before_sector_field' && c.field && c.enabled !== false) {
+          sectorFields.push({ key: c.field, label: c.label || c.field, type: 'date', custom: true });
+        }
+      }
     } catch (_) {}
 
     let paused = false;

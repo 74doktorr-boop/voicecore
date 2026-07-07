@@ -63,7 +63,10 @@ describe('normalizeRules — validación', () => {
   });
 
   test('custom: disparador no permitido → error', () => {
-    assert.ok(normalizeRules('peluqueria', { custom: [{ label: 'Prueba', trigger: 'before_sector_field', days: 10 }] }).error);
+    // before_sector_field YA se permite (personalización 0→100%, 2026-07-07);
+    // custom_frequency sigue restringido (requiere datos que no todos tienen).
+    assert.ok(normalizeRules('peluqueria', { custom: [{ label: 'Prueba', trigger: 'custom_frequency', days: 10 }] }).error);
+    assert.ok(normalizeRules('peluqueria', { custom: [{ label: 'Prueba', trigger: 'inventado', days: 10 }] }).error);
   });
 
   test('custom: sin días → error', () => {

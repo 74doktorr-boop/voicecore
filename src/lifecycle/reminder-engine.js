@@ -74,6 +74,8 @@ async function getOrgReminderConfig(orgId, sectorSlug, opts = {}) {
       trigger:      c.trigger,
       days:         c.days,
       serviceFilter: Array.isArray(c.serviceFilter) && c.serviceFilter.length ? c.serviceFilter : undefined,
+      field:        c.field || undefined,        // fecha definida por el negocio
+      customText:   c.customText || undefined,   // mensaje 100% del dueño
       channel:      c.channel || 'whatsapp',
       enabled:      c.enabled !== false,
       serviceLabel: c.serviceLabel || c.label || 'tu próxima cita',
@@ -287,9 +289,16 @@ async function recalculate(contactId, orgId, ctx = {}) {
     // mensaje lo nombra — "tu seguimiento (la lumbalgia)" en vez del genérico.
     // Atención real, no plantilla: es lo que hace volver al cliente.
     const detalle = contact.sector_data && String(contact.sector_data._detalle || '').trim();
-    const messagePreview = (def.serviceLabel || null) && (detalle
-      ? `${def.serviceLabel} (${detalle.slice(0, 60)})`
-      : def.serviceLabel);
+    let messagePreview;
+    if (def.customText) {
+      // Mensaje 100% del dueño (plantilla-portadora nodeflow_aviso). El
+      // marcador TXT: le dice al scheduler que esto es la frase ÍNTEGRA.
+      messagePreview = 'TXT:' + def.customText.replace(/\{detalle\}/gi, detalle || 'tu última visita').slice(0, 240);
+    } else {
+      messagePreview = (def.serviceLabel || null) && (detalle
+        ? `${def.serviceLabel} (${detalle.slice(0, 60)})`
+        : def.serviceLabel);
+    }
 
     await scheduleReminder({
       orgId, contactId, serviceKey,

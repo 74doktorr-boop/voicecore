@@ -31,7 +31,10 @@ const TRIGGERS = {
 
 // Disparadores que un dueño puede elegir para un seguimiento PERSONALIZADO.
 // (los basados en fechas de sector requieren datos que no todos tienen)
-const CUSTOM_TRIGGERS = ['from_last_appointment', 'from_last_if_no_new'];
+// before_sector_field = 'N días antes de una FECHA que tú defines' — el negocio
+// inventa la fecha ('caducidad del extintor', 'fin de garantía') y esa fecha
+// aparece sola en la ficha de cada cliente para rellenar. Personalización 0→100%.
+const CUSTOM_TRIGGERS = ['from_last_appointment', 'from_last_if_no_new', 'before_sector_field'];
 
 // ── Catálogo ────────────────────────────────────────────────
 // days = número de días del disparador. serviceLabel = cómo se nombra el
