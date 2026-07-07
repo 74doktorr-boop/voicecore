@@ -694,6 +694,30 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true });
   });
 
+  // ── POST /api/portal/appointments/:id/no-show ──────────────
+  // Marca (o desmarca) una cita como plantón. Alimenta el riesgo de
+  // no-show del cliente (regla determinista). Solo citas pasadas.
+  app.post('/api/portal/appointments/:id/no-show', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const apt = scheduler.appointments.get(req.params.id);
+    if (!apt) return res.status(404).json({ error: 'Cita no encontrada' });
+    if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
+    const mark = req.body?.noShow !== false; // por defecto marca; {noShow:false} desmarca
+    // Solo tiene sentido en citas ya pasadas (o de hoy); una futura no puede faltar.
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    if (mark && apt.date > todayStr) return res.status(409).json({ error: 'La cita aún no ha pasado' });
+
+    const newStatus = mark ? 'no_show' : 'completed';
+    apt.status = newStatus;
+    apt.updatedAt = new Date().toISOString();
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      appointmentsStore.patch(apt.id, { status: newStatus, no_show_notified: mark, updatedAt: apt.updatedAt });
+    } catch (_) {}
+    log.info(`Portal: cita ${apt.id} marcada ${newStatus}`);
+    res.json({ ok: true, status: newStatus });
+  });
+
   // ── GET /api/portal/reports ───────────────────────────────
   app.get('/api/portal/reports', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
@@ -1567,6 +1591,13 @@ function setupPortalRoutes(app, pipeline, config) {
       .filter(a => normalizePhone(a.phone) === cPhone9 && cPhone9)
       .sort((a, b) => new Date(b.date + 'T' + (b.time || '00:00')) - new Date(a.date + 'T' + (a.time || '00:00')));
 
+    // 3b. Riesgo de plantón (determinista, del historial de faltas de ESTE cliente).
+    let noShowRisk = null;
+    try {
+      const { computeNoShowRisk } = require('../lifecycle/no-show-risk');
+      noShowRisk = computeNoShowRisk(apts);
+    } catch (_) {}
+
     // 4. FICHA 360: los seguimientos DE ESTE cliente (próximos + últimos
     //    enviados), sus fechas clave del sector y si está en pausa.
     let reminders = [];
@@ -1628,6 +1659,7 @@ function setupPortalRoutes(app, pipeline, config) {
       reminders,
       sectorFields,
       paused,
+      noShowRisk,
       calls: (calls || []).map(c => ({
         callSid:    c.id,
         outcome:    c.outcome    || 'abandoned',

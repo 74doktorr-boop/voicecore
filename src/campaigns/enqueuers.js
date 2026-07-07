@@ -142,10 +142,21 @@ async function enqueueNoShowConfirmations({ scheduler, flowManager }) {
     const orgId = flow.businessId;
     let appointments = [];
     try { appointments = scheduler.getAppointments(orgId) || []; } catch (_) { continue; }
-    const pending = appointments.filter(a =>
-      a.date === tomorrowStr && a.status === 'pending' && a.phone);
+    // Confirmamos las citas de mañana SIN confirmar (pending) — y, además, las
+    // ya confirmadas de clientes con RIESGO DE PLANTÓN alto (2026-07-07): son
+    // justo los que más faltan, así que merecen el recordatorio igualmente.
+    const { computeNoShowRisk } = require('../lifecycle/no-show-risk');
+    const { normalizePhone } = require('../utils/phone');
+    const tomorrowApts = appointments.filter(a => a.date === tomorrowStr && a.phone && a.status !== 'cancelled');
+    const targets = tomorrowApts.filter(a => {
+      if (a.status === 'pending') return true;
+      if (a.status !== 'confirmed') return false;
+      const p9 = normalizePhone(a.phone);
+      const history = appointments.filter(h => normalizePhone(h.phone) === p9 && h !== a);
+      return computeNoShowRisk(history).level === 'high';
+    });
 
-    for (const apt of pending) {
+    for (const apt of targets) {
       try {
         // Dedupe: una llamada de confirmación por cita, para siempre.
         const { data: existing } = await db.client.from('nf_campaign_calls')

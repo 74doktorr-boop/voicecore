@@ -2897,12 +2897,22 @@ async function openContactProfile(id) {
       title:'Llamada — ' + label, meta: dur,
       action: cl.callSid ? '<button class="btn btn-d btn-sm" onclick="openTranscriptModal(\'' + esc(cl.callSid) + '\')">💬 Ver</button>' : '' });
   });
+  var _todayStr = new Date().toLocaleDateString('sv-SE');
   (data.appointments || []).forEach(function(a){
     var when = a.date ? new Date(a.date + 'T' + (a.time||'00:00')) : null;
     var cancelled = a.status === 'cancelled';
-    events.push({ t: when, icon: cancelled?'❌':'📅', color: cancelled?'#e17055':'#00b894',
-      title: (cancelled?'Cita cancelada':'Cita') + (a.service ? ' — ' + esc(a.service) : ''),
-      meta: (a.time||'') , action:'' });
+    var noShow = a.status === 'no_show';
+    var past = a.date && a.date <= _todayStr && !cancelled;
+    // Botón para marcar/desmarcar falta en citas pasadas (alimenta el riesgo).
+    var act = '';
+    if (noShow) {
+      act = '<button class="btn btn-d btn-sm" onclick="markNoShow(\'' + esc(a.id) + '\',false)">↩︎ No faltó</button>';
+    } else if (past) {
+      act = '<button class="btn btn-d btn-sm" onclick="markNoShow(\'' + esc(a.id) + '\',true)">🚫 Marcó falta</button>';
+    }
+    events.push({ t: when, icon: cancelled?'❌':(noShow?'🚫':'📅'), color: cancelled?'#e17055':(noShow?'#e0a030':'#00b894'),
+      title: (cancelled?'Cita cancelada':(noShow?'Cita — NO se presentó':'Cita')) + (a.service ? ' — ' + esc(a.service) : ''),
+      meta: (a.time||'') , action: act });
   });
   // Seguimientos ENVIADOS a este cliente → también son su historia
   (data.reminders || []).forEach(function(r){
@@ -2944,6 +2954,7 @@ async function openContactProfile(id) {
         '<div style="font-size:12px;color:var(--dim);margin-top:4px">' +
           (c.callCount || 0) + ' llamadas · Cliente desde ' + fmtDate((c.createdAt || '').slice(0,10)) +
         '</div>' +
+        cpRiskBadge(data.noShowRisk) +
       '</div>' +
     '</div>' +
 
@@ -3000,6 +3011,27 @@ async function openContactProfile(id) {
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
+}
+
+// ── FICHA 360: badge de riesgo de plantón (no-show) ─────────────────────────
+function cpRiskBadge(risk) {
+  if (!risk || risk.level === 'none' || !risk.noShows) return '';
+  var high = risk.level === 'high';
+  var bg = high ? 'rgba(224,160,48,.14)' : 'rgba(157,157,180,.14)';
+  var col = high ? '#e0a030' : 'var(--dim)';
+  var icon = high ? '⚠️' : '•';
+  return '<div style="margin-top:6px"><span title="' + esc(risk.note || '') + '" ' +
+    'style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:' + bg + ';color:' + col + ';border:1px solid ' + col + '44">' +
+    icon + ' Riesgo de plantón ' + (high ? 'ALTO' : 'bajo') + ' · ' + risk.noShows + ' falta' + (risk.noShows === 1 ? '' : 's') +
+    '</span></div>';
+}
+
+async function markNoShow(aptId, mark) {
+  try {
+    await api('/api/portal/appointments/' + aptId + '/no-show', 'POST', { noShow: mark });
+    toast(mark ? '🚫 Marcada como falta' : '↩︎ Falta deshecha');
+    openContactProfile(_cpId); // recarga la ficha → recalcula el riesgo
+  } catch (e) { toast(e.message || 'No se pudo actualizar', 'err'); }
 }
 
 // ── FICHA 360: seguimientos del cliente ─────────────────────────────────────
