@@ -80,6 +80,20 @@ describe('trigger yearly_field — calculateScheduledFor', () => {
       { fecha_cumpleanos: 'no-es-fecha' }, null
     ), null);
   });
+
+  test('nacido el 29-feb → nunca se desborda a marzo (revisión 2026-07-07)', () => {
+    // El cumpleaños de un 29-feb debe caer en feb (28 o 29), jamás en marzo.
+    for (let probe = 0; probe < 5; probe++) {
+      const d = calculateScheduledFor(
+        { trigger: 'yearly_field', field: 'fecha_cumpleanos', days: 0 },
+        { fecha_cumpleanos: '1988-02-29' }, null
+      );
+      assert.ok(d, 'debe programarse');
+      assert.strictEqual(d.getMonth(), 1, `debe ser febrero, no ${d.getMonth() + 1}`);
+      assert.ok(d.getDate() === 28 || d.getDate() === 29, `día ${d.getDate()} inválido`);
+      assert.ok(d > new Date(), 'siempre futuro');
+    }
+  });
 });
 
 describe('respuesta negativa al check-in — clasificador', () => {

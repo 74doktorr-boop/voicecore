@@ -117,6 +117,20 @@ describe('waitlistReplyKind', () => {
   test('ambiguo → null', () => {
     assert.strictEqual(waitlistReplyKind('¿a qué hora?'), null);
   });
+
+  // Revisión 2026-07-07: "no me interesa" contiene "me interesa" — antes se
+  // clasificaba como ACEPTAR. El rechazo debe ganar.
+  test('negaciones NO se cuelan como aceptación', () => {
+    assert.strictEqual(waitlistReplyKind('no me interesa'), 'decline');
+    assert.strictEqual(waitlistReplyKind('no lo quiero'), 'decline');
+    assert.strictEqual(waitlistReplyKind('uf, ahora no puedo'), 'decline');
+    assert.strictEqual(waitlistReplyKind('no me viene bien'), 'decline');
+  });
+  test('afirmaciones siguen funcionando', () => {
+    assert.strictEqual(waitlistReplyKind('sí, me interesa'), 'accept');
+    assert.strictEqual(waitlistReplyKind('lo quiero!'), 'accept');
+    assert.strictEqual(waitlistReplyKind('perfecto, adelante'), 'accept');
+  });
 });
 
 describe('handleWaitlistResponse', () => {

@@ -137,18 +137,22 @@ function calculateScheduledFor(def, sectorData, lastAppointmentDate) {
   if (def.trigger === 'yearly_field') {
     // Cada año en la fecha del cliente (cumpleaños, aniversario…). La fecha
     // guardada puede ser de cualquier año: solo cuentan mes y día. Se envía
-    // a las 09:00 (hora servidor) del día; 29-feb en año no bisiesto cae en
-    // 1-mar por el desbordamiento natural de Date.
+    // a las 09:00. Los nacidos el 29-feb se felicitan el 28-feb los años no
+    // bisiestos (sin _dayInYear, new Date(2027,1,29) rebosaba a 1-mar).
     const fieldValue = sectorData?.[def.field];
     if (!fieldValue) return null;
     const base = new Date(fieldValue);
     if (isNaN(base.getTime())) return null;
-    let next = new Date(now.getFullYear(), base.getMonth(), base.getDate(), 9, 0, 0);
-    next.setDate(next.getDate() - (def.days || 0));
-    if (next <= now) {
-      next = new Date(now.getFullYear() + 1, base.getMonth(), base.getDate(), 9, 0, 0);
-      next.setDate(next.getDate() - (def.days || 0));
-    }
+    const bMonth = base.getMonth(), bDay = base.getDate();
+    // Día válido del mes bMonth en el año `y` (clamp del 29-feb → 28).
+    const clampDay = (y) => Math.min(bDay, new Date(y, bMonth + 1, 0).getDate());
+    const build = (y) => {
+      const d = new Date(y, bMonth, clampDay(y), 9, 0, 0);
+      d.setDate(d.getDate() - (def.days || 0));
+      return d;
+    };
+    let next = build(now.getFullYear());
+    if (next <= now) next = build(now.getFullYear() + 1);
     return next;
   }
 

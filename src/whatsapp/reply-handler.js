@@ -454,8 +454,11 @@ async function handleCheckinButton({ from, businessId, payload }, deps = {}) {
 // de doble reserva); si rechaza → vuelve a 'waiting' para el siguiente.
 function waitlistReplyKind(payload = '') {
   const p = String(payload || '');
-  if (/lo quiero|s[ií]\b|me interesa|vale|quiero/iu.test(p)) return 'accept';
-  if (/ahora no|no puedo|no me viene|paso|d[eé]jalo/iu.test(p)) return 'decline';
+  // Rechazo PRIMERO y con negación explícita: "no me interesa" / "no lo
+  // quiero" contienen "me interesa"/"quiero" — si mirásemos aceptar antes,
+  // un rechazo se colaría como aceptación (bug cazado 2026-07-07).
+  if (/\bno\b[^.!?]*\b(quiero|interesa|puedo|viene|va)\b|ahora no|otro d[ií]a|paso\b|d[eé]jalo|no gracias/iu.test(p)) return 'decline';
+  if (/lo quiero|me interesa|me viene bien|\bs[ií]\b|\bvale\b|perfecto|genial|adelante|quiero/iu.test(p)) return 'accept';
   return null;
 }
 
