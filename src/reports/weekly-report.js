@@ -92,6 +92,27 @@ async function collectOrgStats(db, org, range) {
   for (const a of aptList) svcCount[a.service] = (svcCount[a.service] || 0) + 1;
   const topService = Object.entries(svcCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
+  // ── Motor de SEGUIMIENTOS (2026-07-07): el valor que el cliente no ve ──
+  // Mensajes enviados por el motor esta semana + cuántos "pendientes de
+  // atender" tiene (respuestas de clientes que esperan al dueño) + fichas
+  // sin teléfono (avisos que se pierden). Todo tolerante a fallos: si una
+  // consulta peta, ese dato va a null y el resto del informe sale igual.
+  let remindersSent = null, missingPhone = null;
+  try {
+    const { count: rem } = await db.client.from('scheduled_reminders')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', org.id).eq('status', 'sent')
+      .gte('sent_at', fromTs).lt('sent_at', toTs);
+    remindersSent = rem || 0;
+  } catch (_) {}
+  try {
+    const { count: noPhone } = await db.client.from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', org.id).is('deleted_at', null)
+      .or('phone.is.null,phone.eq.unknown');
+    missingPhone = noPhone || 0;
+  } catch (_) {}
+
   return {
     totalCalls,
     totalMinutes,
@@ -99,6 +120,8 @@ async function collectOrgStats(db, org, range) {
     totalApts: aptList.length,
     estValue: Math.round(estValue),
     topService,
+    remindersSent,
+    missingPhone,
   };
 }
 
@@ -114,6 +137,8 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
       apts: 'Citas agendadas', value: 'Valor estimado generado',
       topSvc: 'Servicio más solicitado',
       roiLine: (n, v) => `🔄 Tus seguimientos trajeron <strong style="color:#21c08a;">${n} cita${n !== 1 ? 's' : ''}${v > 0 ? ` (~${v}€)` : ''}</strong> esta semana`,
+      engineLine: (n) => `📩 Tu motor envió <strong style="color:#e8e8f0;">${n} aviso${n !== 1 ? 's' : ''}</strong> a tus clientes esta semana`,
+      missingLine: (n) => `📵 <strong style="color:#e0a030;">${n} cliente${n !== 1 ? 's' : ''} sin teléfono</strong> en su ficha — no reciben avisos. Complétalos para no perderlos.`,
       learnedTitle: '🧠 Lo que aprendí de tus citas esta semana',
       learnedCta: 'Revisar y ajustar',
       footer: 'Tu asistente sigue atendiendo 24/7. Nos vemos el lunes que viene.',
@@ -127,6 +152,8 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
       apts: 'Citas axendadas', value: 'Valor estimado xerado',
       topSvc: 'Servizo máis solicitado',
       roiLine: (n, v) => `🔄 Os teus seguimentos trouxeron <strong style="color:#21c08a;">${n} cita${n !== 1 ? 's' : ''}${v > 0 ? ` (~${v}€)` : ''}</strong> esta semana`,
+      engineLine: (n) => `📩 O teu motor enviou <strong style="color:#e8e8f0;">${n} aviso${n !== 1 ? 's' : ''}</strong> aos teus clientes esta semana`,
+      missingLine: (n) => `📵 <strong style="color:#e0a030;">${n} cliente${n !== 1 ? 's' : ''} sen teléfono</strong> na súa ficha — non reciben avisos. Complétaos para non perdelos.`,
       learnedTitle: '🧠 O que aprendín das túas citas esta semana',
       learnedCta: 'Revisar e axustar',
       footer: 'O teu asistente segue atendendo 24/7. Vémonos o vindeiro luns.',
@@ -140,6 +167,8 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
       apts: 'Hitzordu antolatuak', value: 'Sortutako balio estimatua',
       topSvc: 'Eskatuena izan den zerbitzua',
       roiLine: (n, v) => `🔄 Zure jarraipenek <strong style="color:#21c08a;">${n} hitzordu${v > 0 ? ` (~${v}€)` : ''}</strong> ekarri dituzte aste honetan`,
+      engineLine: (n) => `📩 Zure motorrak <strong style="color:#e8e8f0;">${n} abisu</strong> bidali dizkie zure bezeroei aste honetan`,
+      missingLine: (n) => `📵 <strong style="color:#e0a030;">${n} bezero telefonorik gabe</strong> beren fitxan — ez dute abisurik jasotzen. Osatu itzazu ez galtzeko.`,
       learnedTitle: '🧠 Aste honetan zure hitzorduetatik ikasi dudana',
       learnedCta: 'Berrikusi eta doitu',
       footer: 'Zure laguntzaileak 24/7 jarraitzen du. Datorren astelehenera arte.',
@@ -188,6 +217,8 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
 
       ${stats.topService ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:16px 0 0;">⭐ ${x.topSvc}: <strong style="color:#e8e8f0;">${stats.topService}</strong></p>` : ''}
       ${roi && x.roiLine ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:10px 0 0;">${x.roiLine(roi.count, roi.value)}</p>` : ''}
+      ${stats.remindersSent > 0 && x.engineLine ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:10px 0 0;">${x.engineLine(stats.remindersSent)}</p>` : ''}
+      ${stats.missingPhone > 0 && x.missingLine ? `<p style="font-size:13px;color:#8888a8;text-align:center;margin:10px 0 0;">${x.missingLine(stats.missingPhone)}</p>` : ''}
 
       ${learnedBlock}
 
@@ -199,6 +230,8 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
     </div>`,
     text: `${x.title} — ${bizName}\n${x.calls}: ${stats.totalCalls}\n${x.apts}: ${stats.totalApts}\n${x.minutes}: ${stats.totalMinutes}\n${x.value}: ${stats.estValue}€`
       + (roi ? `\nSeguimientos → citas: ${roi.count}${roi.value > 0 ? ` (~${roi.value}€)` : ''}` : '')
+      + (stats.remindersSent > 0 ? `\nAvisos enviados por el motor: ${stats.remindersSent}` : '')
+      + (stats.missingPhone > 0 ? `\nClientes sin teléfono (sin avisos): ${stats.missingPhone}` : '')
       + ((suggestions && suggestions.length) ? `\n\n${x.learnedTitle}\n${suggestions.map(s => '- ' + s.title + ': ' + s.detail).join('\n')}\n${x.learnedCta}: https://nodeflow.es/portal/?go=reglas` : '')
       + `\n\nhttps://nodeflow.es/portal/`,
   };

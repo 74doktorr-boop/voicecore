@@ -59,3 +59,31 @@ describe('buildEmailHtml — ROI del motor', () => {
     assert.doesNotMatch(html, /seguimientos trajeron/);
   });
 });
+
+// ── Motor de seguimientos en el informe (2026-07-07) ──────────
+describe('buildEmailHtml — valor del motor de seguimientos', () => {
+  test('con avisos enviados → aparece la línea del motor', () => {
+    const { html, text } = buildEmailHtml({ bizName: 'X', range, lang: 'es',
+      stats: { ...baseStats, remindersSent: 34, missingPhone: 0 } });
+    assert.match(html, /34 aviso/);
+    assert.match(text, /Avisos enviados por el motor: 34/);
+  });
+
+  test('con fichas sin teléfono → aviso accionable', () => {
+    const { html } = buildEmailHtml({ bizName: 'X', range, lang: 'es',
+      stats: { ...baseStats, remindersSent: 0, missingPhone: 12 } });
+    assert.match(html, /12 cliente.*sin teléfono/);
+  });
+
+  test('sin datos del motor (null) → no rompe ni muestra líneas', () => {
+    const { html } = buildEmailHtml({ bizName: 'X', range, lang: 'es',
+      stats: { ...baseStats, remindersSent: null, missingPhone: null } });
+    assert.doesNotMatch(html, /envió|sin teléfono/);
+  });
+
+  test('cero avisos → no muestra la línea (evita "envió 0")', () => {
+    const { html } = buildEmailHtml({ bizName: 'X', range, lang: 'es',
+      stats: { ...baseStats, remindersSent: 0, missingPhone: 0 } });
+    assert.doesNotMatch(html, /aviso/);
+  });
+});
