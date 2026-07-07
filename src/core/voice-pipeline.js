@@ -741,6 +741,12 @@ class VoicePipeline {
     const clarifications = session.metrics.clarifications || 0;
     const recoveries = session.metrics.recoveries || 0;
     const interruptions = session.metrics.interruptions || 0;
+    // Audio entrecortado: huecos entre fragmentos (silencio a media frase) y
+    // atascos del pacer. Antes NINGUNO contaba en la calidad → un cliente decía
+    // "se entrecorta" y el score decía 99 (hallazgo auditoría voz 2026-07-07).
+    const fragmentGaps = session.metrics.fragmentGaps || 0;
+    const worstFragmentGapMs = session.metrics.worstFragmentGapMs || 0;
+    const pacerStalls = session.metrics.pacerStalls || 0;
     // Completa = hubo conversación real (≥1 turno procesado y >10s de llamada)
     const completed = session.turnCount >= 1 && callSeconds > 10;
 
@@ -749,6 +755,9 @@ class VoicePipeline {
     if (avgConfidence !== null) score -= Math.round(Math.max(0, (0.95 - avgConfidence) / 0.95) * 30);
     if (avgLatency !== null && avgLatency > 1500) score -= Math.min(15, Math.round((avgLatency - 1500) / 200));
     score -= Math.min(15, clarifications * 5 + recoveries * 5 + interruptions * 2);
+    // El entrecortado es lo que MÁS molesta al oído: cada hueco resta, y un
+    // hueco largo (>400ms) es una pausa clarísima a media frase.
+    score -= Math.min(25, fragmentGaps * 6 + pacerStalls * 4 + (worstFragmentGapMs > 400 ? 8 : 0));
     score = Math.max(0, Math.min(100, score));
 
     return {
@@ -760,6 +769,9 @@ class VoicePipeline {
       clarifications,
       recoveries,
       interruptions,
+      fragmentGaps,
+      worstFragmentGapMs,
+      pacerStalls,
     };
   }
 

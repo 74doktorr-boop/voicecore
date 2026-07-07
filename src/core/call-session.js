@@ -161,11 +161,23 @@ class CallSession {
   sendAudioToTwilio(mulawBuffer) {
     if (!this.twilioWs || !this.streamSid) return;
     const FRAME = 160; // 20ms de mulaw 8kHz
+    // HUECO ENTRE FRAGMENTOS (2026-07-07): si llega audio nuevo DESPUÉS de que
+    // la reproducción anterior ya terminó (cola vacía y playbackEndsAt pasado),
+    // hubo silencio audible a media frase — el "se traba diciendo…". Esto NO lo
+    // capta pacerStalls (que solo mide retraso del pump). Aquí SÍ.
+    const now = Date.now();
+    if (this.outQueue.length === 0 && this.playbackEndsAt > 0 && now > this.playbackEndsAt) {
+      const gap = now - this.playbackEndsAt;
+      if (gap > 80) { // <80ms es imperceptible; por encima se nota como corte
+        this.metrics.fragmentGaps = (this.metrics.fragmentGaps || 0) + 1;
+        this.metrics.worstFragmentGapMs = Math.max(this.metrics.worstFragmentGapMs || 0, gap);
+      }
+    }
     for (let i = 0; i < mulawBuffer.length; i += FRAME) {
       this.outQueue.push(mulawBuffer.slice(i, Math.min(i + FRAME, mulawBuffer.length)));
     }
     const frames = Math.ceil(mulawBuffer.length / FRAME);
-    this.playbackEndsAt = Math.max(this.playbackEndsAt, Date.now()) + frames * 20;
+    this.playbackEndsAt = Math.max(this.playbackEndsAt, now) + frames * 20;
     this._startPacer();
   }
 
