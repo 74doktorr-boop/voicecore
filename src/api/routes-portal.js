@@ -2753,7 +2753,15 @@ function setupPortalRoutes(app, pipeline, config) {
       const sector = await _resolveOrgSector(req.businessId);
       const orgConfig = await loadOrgConfig(getDatabase(), req.businessId);
       const existing = buildRulesView(sector, orgConfig).map(r => r.label);
-      res.json({ ok: true, recipes: getRecipes(sector, existing) });
+      // Servicios del negocio → cada negocio ve SU recetario (una peluquería
+      // sin tintes no ve la idea de raíces). Sin lista, no se restringe.
+      let svcList = null;
+      try {
+        const { data: orgRow } = await getDatabase().client.from('organizations')
+          .select('automation_config').eq('id', req.businessId).maybeSingle();
+        svcList = orgRow?.automation_config?.config?.serviceList || null;
+      } catch (_) {}
+      res.json({ ok: true, recipes: getRecipes(sector, existing, svcList) });
     } catch (e) { log.warn(`recipes: ${e.message}`); res.json({ ok: true, recipes: [] }); }
   });
 

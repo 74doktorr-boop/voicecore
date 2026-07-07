@@ -44,8 +44,8 @@ describe('getRecipes', () => {
     assert.ok(out.some(r => r.id === 'u_rescate_60'));
   });
 
-  test('sector sin recetas propias → al menos las universales', () => {
-    const out = getRecipes('notaria');
+  test('sector desconocido → al menos las universales', () => {
+    const out = getRecipes('sector_inventado');
     assert.ok(out.length >= 3);
     assert.ok(out.every(r => r.id.startsWith('u_')));
   });
@@ -55,5 +55,46 @@ describe('getRecipes', () => {
     assert.ok(!out.some(r => r.id === 'p_pack_color'));
     assert.ok(!out.some(r => r.id === 'u_rescate_60'));
     assert.ok(out.some(r => r.id === 'u_segunda_visita'));
+  });
+});
+
+// ── Recetario AMPLIADO (2026-07-07): los 33 sectores cubiertos y filtrado
+// por los servicios reales del negocio ("cada negocio ve SU recetario").
+describe('recetario ampliado — cobertura y filtrado por negocio', () => {
+  const { SECTOR_CATALOG, getSectorFollowups } = require('../src/lifecycle/sector-catalog');
+
+  test('TODOS los sectores del catálogo tienen recetas propias (≥2)', () => {
+    for (const slug of Object.keys(SECTOR_CATALOG)) {
+      const own = BY_SECTOR[slug] || [];
+      assert.ok(own.length >= 2, `${slug}: solo ${own.length} recetas propias`);
+    }
+  });
+
+  test('BY_SECTOR sin sectores fantasma (toda clave existe en el catálogo)', () => {
+    for (const slug of Object.keys(BY_SECTOR)) {
+      assert.ok(SECTOR_CATALOG[slug], `${slug} no existe en SECTOR_CATALOG`);
+    }
+  });
+
+  test('ninguna receta pisa la etiqueta de un default del sector', () => {
+    for (const [slug, recipes] of Object.entries(BY_SECTOR)) {
+      const defaults = new Set(getSectorFollowups(slug).map(f => f.label.toLowerCase()));
+      for (const r of recipes) {
+        assert.ok(!defaults.has(r.label.toLowerCase()), `${slug}/${r.id}: pisa el default "${r.label}"`);
+      }
+    }
+  });
+
+  test('filtrado por servicios: peluquería sin tintes NO ve la idea de raíces', () => {
+    const soloCortes = [{ name: 'Corte caballero' }, { name: 'Corte señora' }];
+    const out = getRecipes('peluqueria', [], soloCortes);
+    assert.ok(!out.some(r => r.id === 'p_pack_color'), 'raíces requiere ofrecer color/tinte');
+    assert.ok(out.some(r => r.id === 'p_evento'), 'las ideas sin serviceFilter siempre aplican');
+  });
+
+  test('con tintes SÍ la ve; sin serviceList no se restringe', () => {
+    const conTinte = [{ name: 'Tinte y mechas' }];
+    assert.ok(getRecipes('peluqueria', [], conTinte).some(r => r.id === 'p_pack_color'));
+    assert.ok(getRecipes('peluqueria', [], null).some(r => r.id === 'p_pack_color'));
   });
 });
