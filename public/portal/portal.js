@@ -2635,6 +2635,7 @@ async function loadClientes(q) {
       '<div class="kicker">Actividad</div><div class="section-title">Clientes</div>' +
       '<div class="u-flex u-items-center u-gap-2">' +
         '<span class="u-text-md u-dim">' + (data.count || 0) + ' contactos</span>' +
+        '<button class="btn btn-accent btn-sm" onclick="openPromoModal()">📣 Promoción</button>' +
         '<button class="btn btn-d btn-sm" onclick="openImportModal()">⬆ Importar</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
       '</div>' +
@@ -2676,6 +2677,65 @@ async function exportClientes(btn) {
     toast('Error al exportar: ' + e.message, 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar CSV'; }
+  }
+}
+
+// ── 📣 Promoción por WhatsApp a los clientes ────────────────────────────────
+function openPromoModal() {
+  openModal(
+    '<div class="modal-title">📣 Enviar promoción por WhatsApp</div>' +
+    '<p style="color:var(--dim);font-size:13px;line-height:1.5;margin-bottom:12px">' +
+      'Escribe tu promo y llegará por WhatsApp a tus clientes (los que pidieron no recibir mensajes quedan excluidos automáticamente). El mensaje sale con tu nombre de negocio y el cliente puede responder directamente.' +
+    '</p>' +
+    '<textarea id="promoText" maxlength="300" oninput="promoPreview()" placeholder="ej. este mes el tinte + corte tiene un 15% de descuento. Pide tu cita antes del día 31." ' +
+      'style="width:100%;min-height:90px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5"></textarea>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">' +
+      '<label style="font-size:12px;color:var(--dim)">Solo etiqueta:</label>' +
+      '<input id="promoTag" type="text" placeholder="(todas)" oninput="promoPreview()" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">' +
+    '</div>' +
+    '<div id="promoEstimate" style="margin-top:12px;font-size:12px;color:var(--dim)">Calculando destinatarios…</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" id="promoSendBtn" onclick="sendPromoNow()" disabled>Enviar</button>' +
+    '</div>'
+  );
+  promoPreview();
+}
+
+var _promoPrevTimer;
+function promoPreview() {
+  clearTimeout(_promoPrevTimer);
+  _promoPrevTimer = setTimeout(async function() {
+    var box = document.getElementById('promoEstimate');
+    var btn = document.getElementById('promoSendBtn');
+    if (!box) return;
+    var tag = (document.getElementById('promoTag') || {}).value || '';
+    var text = ((document.getElementById('promoText') || {}).value || '').trim();
+    try {
+      var r = await api('/api/portal/promo', 'POST', { preview: true, tag: tag });
+      var n = r.recipients || 0;
+      var cost = (n * 0.06).toFixed(2);
+      box.innerHTML = n
+        ? '📱 <strong style="color:var(--text)">' + n + ' destinatario' + (n !== 1 ? 's' : '') + '</strong>' +
+          ' · coste estimado de mensajería ~' + cost + '€ <span style="color:var(--muted)">(cuenta para tu paquete de mensajes del mes)</span>'
+        : 'Sin destinatarios elegibles' + (tag ? ' con esa etiqueta' : '') + '.';
+      if (btn) btn.disabled = !(n > 0 && text.length >= 10);
+    } catch (e) { box.textContent = 'No se pudo calcular: ' + e.message; }
+  }, 350);
+}
+
+async function sendPromoNow() {
+  var btn = document.getElementById('promoSendBtn');
+  var text = ((document.getElementById('promoText') || {}).value || '').trim();
+  var tag = (document.getElementById('promoTag') || {}).value || '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
+  try {
+    var r = await api('/api/portal/promo', 'POST', { text: text, tag: tag });
+    closeModal();
+    toast('📣 Promoción enviada a ' + r.sent + ' cliente' + (r.sent !== 1 ? 's' : '') + (r.failed ? ' (' + r.failed + ' fallidos)' : ''));
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+    toast(e.message || 'No se pudo enviar', 'err');
   }
 }
 

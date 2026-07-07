@@ -2351,6 +2351,35 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`followup-rules reach: ${e.message}`); res.json({ ok: true, total: 0, byRule: {}, horizon: 90 }); }
   });
 
+  // ── 📣 PROMOCIÓN por WhatsApp a los clientes del negocio ──
+  // preview:true → destinatarios y coste estimado, sin enviar. Sin preview →
+  // envía (rate-limit: 1 difusión por org cada 10 min; opt-outs excluidos).
+  const _promoLast = new Map();
+  app.post('/api/portal/promo', portalAuth, async (req, res) => {
+    try {
+      const { getRecipients, sendPromo } = require('../notifications/promo-broadcast');
+      const text = String((req.body && req.body.text) || '').trim().slice(0, 300);
+      const tag = String((req.body && req.body.tag) || '').trim() || null;
+
+      if (req.body && req.body.preview) {
+        const recipients = await getRecipients(req.businessId, { tag, db: getDatabase() });
+        return res.json({ ok: true, preview: true, recipients: recipients.length });
+      }
+
+      if (text.length < 10) return res.status(400).json({ error: 'Escribe la promoción (mínimo 10 caracteres)' });
+      const last = _promoLast.get(req.businessId) || 0;
+      if (Date.now() - last < 10 * 60 * 1000) {
+        return res.status(429).json({ error: 'Ya enviaste una promoción hace poco — espera 10 minutos entre difusiones.' });
+      }
+      _promoLast.set(req.businessId, Date.now());
+
+      const out = await sendPromo(req.businessId, { text, tag, bizName: req.flowConfig.name }, { db: getDatabase() });
+      if (out.aborted && out.sent === 0) { _promoLast.delete(req.businessId); return res.status(422).json({ error: out.aborted }); }
+      log.info(`Promo (${req.flowConfig.name}): ${out.sent}/${out.recipients} enviadas`);
+      res.json({ ok: true, ...out });
+    } catch (e) { log.warn(`promo: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ── FICHA 360: seguimiento PERSONAL para un cliente concreto ──
   // "Avísale el 15 de marzo: preguntar por el presupuesto de la moto".
   // Crea un recordatorio one-off ligado a SU ficha; el mensaje usa la

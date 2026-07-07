@@ -80,6 +80,21 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // PROMOCIONES del negocio (botón 📣 del portal): el dueño escribe el texto
+    // ({{3}}) y llega a sus clientes elegibles. MARKETING → opt-out obligatorio.
+    name: 'nodeflow_promo',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, desde {{2}} queremos contarte algo: {{3}} Si te interesa, responde a este mensaje y te atendemos al momento.',
+        example: { body_text: [['María', 'Peluquería Ainhoa', 'este mes el tinte + corte tiene un 15% de descuento.']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más mensajes' },
+    ],
+  },
+  {
     // Reactivación de clientes antiguos (add-on Crecimiento, canal 'whatsapp').
     // OJO: categoría MARKETING (win-back), NO utility — Meta la revisa distinto
     // y exige opt-out. Requiere aprobación de Meta antes de poder enviarse.
