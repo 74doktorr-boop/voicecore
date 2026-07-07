@@ -61,7 +61,9 @@ async function sendPromo(orgId, { text, tag, bizName } = {}, deps = {}) {
   const throttle = deps.throttleMs != null ? deps.throttleMs : THROTTLE_MS;
   const out = { recipients: 0, sent: 0, failed: 0, aborted: null };
 
-  const promoText = String(text || '').trim();
+  // Meta no admite saltos de línea/tabs en parámetros de plantilla
+  // (auditoría 2026-07-07): colapsar whitespace o el envío muere en Meta.
+  const promoText = String(text || '').replace(/\s+/g, ' ').trim();
   if (promoText.length < 10) return { ...out, aborted: 'El texto de la promo es demasiado corto' };
 
   const recipients = await getRecipients(orgId, { tag, db });
@@ -74,19 +76,23 @@ async function sendPromo(orgId, { text, tag, bizName } = {}, deps = {}) {
       const r = await sendTemplate(c.phone, 'nodeflow_promo', 'es', [{
         type: 'body',
         parameters: [
-          { type: 'text', text: (c.name || 'cliente').split(/\s+/)[0] },
-          { type: 'text', text: bizName || 'el negocio' },
+          { type: 'text', text: String(c.name || 'cliente').replace(/\s+/g, ' ').trim().split(' ')[0] || 'cliente' },
+          { type: 'text', text: String(bizName || 'el negocio').replace(/\s+/g, ' ').trim() },
           { type: 'text', text: promoText },
         ],
       }]);
       if (r && r.ok) {
         out.sent++;
         // Ledger unificado: cuenta para el paquete, sale en la ficha y en el ROI.
+        // Si el insert falla, el contador y el ledger se descuadran: se loguea
+        // y se cuenta (auditoría 2026-07-07) — nunca más en silencio.
         await db.client.from('scheduled_reminders').insert({
           org_id: orgId, contact_id: c.id, service_key: 'promo',
           channel: 'whatsapp', scheduled_for: nowISO, status: 'sent',
           sent_at: new Date().toISOString(), message_preview: promoText.slice(0, 120),
-        }).then(undefined, () => {});
+        }).then(({ error }) => {
+          if (error) { out.ledgerMisses = (out.ledgerMisses || 0) + 1; log.error(`promo ledger (${c.id}): ${error.message}`); }
+        }, (e) => { out.ledgerMisses = (out.ledgerMisses || 0) + 1; log.error(`promo ledger (${c.id}): ${e.message}`); });
       } else {
         out.failed++;
         const err = String((r && r.error) || '');

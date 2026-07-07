@@ -593,9 +593,20 @@ function setupPortalRoutes(app, pipeline, config) {
     if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
     if (apt.status === 'cancelled') return res.status(409).json({ error: 'La cita ya está cancelada' });
 
+    // Validación de tipos y formatos (auditoría 2026-07-07): antes un objeto
+    // en 'date' o una hora basura se guardaban tal cual y rompían aguas abajo.
     const allowed = ['patientName', 'phone', 'email', 'service', 'date', 'time', 'notes'];
+    const MAXLEN = { patientName: 120, phone: 24, email: 160, service: 120, date: 10, time: 5, notes: 500 };
     for (const field of allowed) {
-      if (req.body[field] !== undefined) apt[field] = req.body[field];
+      if (req.body[field] === undefined) continue;
+      let v = req.body[field];
+      if (typeof v !== 'string' && typeof v !== 'number') {
+        return res.status(400).json({ error: `Campo ${field} no válido` });
+      }
+      v = field === 'notes' ? String(v).trim() : String(v).replace(/\s+/g, ' ').trim();
+      if (field === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return res.status(400).json({ error: 'Fecha no válida (AAAA-MM-DD)' });
+      if (field === 'time' && !/^\d{1,2}:\d{2}$/.test(v)) return res.status(400).json({ error: 'Hora no válida (HH:MM)' });
+      apt[field] = v.slice(0, MAXLEN[field] || 200);
     }
     apt.updatedAt = new Date().toISOString();
     log.info(`Portal: appointment updated ${apt.id}`);
@@ -2114,10 +2125,25 @@ function setupPortalRoutes(app, pipeline, config) {
       const orgId     = req.businessId;
       const contactId = req.params.id;
       const { sectorData } = req.body;
-      if (!sectorData || typeof sectorData !== 'object') return res.status(400).json({ error: 'sectorData object required' });
+      if (!sectorData || typeof sectorData !== 'object' || Array.isArray(sectorData)) {
+        return res.status(400).json({ error: 'sectorData object required' });
+      }
+      // Topes server-side (auditoría 2026-07-07): sin esto, un script con
+      // sesión podría inflar la BD ficha a ficha. Solo valores planos.
+      const keys = Object.keys(sectorData);
+      if (keys.length > 60) return res.status(400).json({ error: 'Demasiados campos (máx. 60)' });
+      const clean = {};
+      for (const k of keys) {
+        const v = sectorData[k];
+        const key = String(k).slice(0, 64);
+        if (v === null || v === undefined || v === '') { clean[key] = v === '' ? '' : null; continue; }
+        if (typeof v === 'number' || typeof v === 'boolean') { clean[key] = v; continue; }
+        clean[key] = String(v).slice(0, 300);
+      }
+      if (JSON.stringify(clean).length > 8192) return res.status(400).json({ error: 'Ficha demasiado grande (máx. 8KB)' });
 
       const { error } = await db.client.from('contacts')
-        .update({ sector_data: sectorData })
+        .update({ sector_data: clean })
         .eq('id', contactId).eq('org_id', orgId);
       if (error) return res.status(500).json({ error: error.message });
 
@@ -2180,14 +2206,24 @@ function setupPortalRoutes(app, pipeline, config) {
         .update({ status: 'cancelled', failed_reason: 'manual_send_now', updated_at: new Date().toISOString() })
         .eq('id', req.params.id).eq('org_id', req.businessId);
 
-      await scheduleReminder({
+      const out = await scheduleReminder({
         orgId:        req.businessId,
         contactId:    existing.contact_id,
         serviceKey:   existing.service_key,
         scheduledFor: new Date(Date.now() + 5000), // 5 seconds from now
         channel:      existing.channel,
+        messagePreview: existing.message_preview, // sin esto, un TXT: del dueño perdería su texto
       });
 
+      // Acuse HONESTO (auditoría 2026-07-07): si el cliente está de baja o en
+      // enfriamiento, decirlo — no un ok que no es verdad.
+      if (out && out.ok === false) {
+        const msgs = {
+          do_not_contact: 'No enviado: este cliente pidió no recibir mensajes.',
+          cooling_off: 'No enviado: este cliente está en periodo de enfriamiento tras varios avisos.',
+        };
+        return res.status(409).json({ error: msgs[out.skipped] || out.error || 'No se pudo programar el envío' });
+      }
       res.json({ ok: true, message: 'Reminder queued for immediate dispatch' });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -2341,11 +2377,29 @@ function setupPortalRoutes(app, pipeline, config) {
           .select('automation_config').eq('id', req.businessId).maybeSingle();
         svcList = orgRow?.automation_config?.config?.serviceList || null;
       } catch (_) {}
+      const rules = buildRulesView(sector, orgConfig, svcList);
+
+      // Cobertura de FECHAS por regla (auditoría 2026-07-07): una regla de
+      // fecha con 0 fichas rellenadas no envía nada y el dueño no sabía por
+      // qué. Ahora la UI puede avisar "ningún cliente tiene esta fecha aún".
+      const fieldCoverage = {};
+      const dateRules = rules.filter(r => (r.trigger === 'before_sector_field' || r.trigger === 'from_sector_field' || r.trigger === 'yearly_field') && r.field);
+      for (const r of dateRules.slice(0, 25)) {
+        try {
+          const { count } = await db.client.from('contacts')
+            .select('id', { count: 'exact', head: true })
+            .eq('org_id', req.businessId).is('deleted_at', null)
+            .not(`sector_data->>${r.field}`, 'is', null);
+          fieldCoverage[r.key] = count || 0;
+        } catch (_) {}
+      }
+
       res.json({
         ok: true,
         sector,
         sectorLabel: (SECTOR_CATALOG[sector] && SECTOR_CATALOG[sector].label) || null,
-        rules: buildRulesView(sector, orgConfig, svcList),
+        rules,
+        fieldCoverage,
         channels: CHANNELS,
         channelsLive,
         customTriggers: CUSTOM_TRIGGERS.map(t => ({ value: t, label: TRIGGERS[t] })),
@@ -2465,7 +2519,12 @@ function setupPortalRoutes(app, pipeline, config) {
       _promoLast.set(req.businessId, Date.now());
 
       const out = await sendPromo(req.businessId, { text, tag, bizName: req.flowConfig.name }, { db: getDatabase() });
-      if (out.aborted && out.sent === 0) { _promoLast.delete(req.businessId); return res.status(422).json({ error: out.aborted }); }
+      // Fallo sin ningún envío: cooldown corto (1 min) en vez de reset total —
+      // permite reintentar pronto pero no martillear (auditoría 2026-07-07).
+      if (out.aborted && out.sent === 0) {
+        _promoLast.set(req.businessId, Date.now() - 9 * 60 * 1000);
+        return res.status(422).json({ error: out.aborted });
+      }
       log.info(`Promo (${req.flowConfig.name}): ${out.sent}/${out.recipients} enviadas`);
       res.json({ ok: true, ...out });
     } catch (e) { log.warn(`promo: ${e.message}`); res.status(500).json({ error: e.message }); }
@@ -2478,9 +2537,11 @@ function setupPortalRoutes(app, pipeline, config) {
   app.post('/api/portal/contacts/:id/personal-reminder', portalAuth, async (req, res) => {
     try {
       const db = getDatabase();
-      const label = String((req.body && req.body.label) || '').trim().slice(0, 120);
+      // La etiqueta acaba en un parámetro de plantilla de Meta: sin saltos de línea.
+      const label = String((req.body && req.body.label) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
       const dateStr = String((req.body && req.body.date) || '').trim();
       if (!label) return res.status(400).json({ error: 'Escribe de qué quieres avisarle' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return res.status(400).json({ error: 'Fecha no válida' });
       const when = new Date(dateStr + 'T09:30:00');
       if (isNaN(when.getTime())) return res.status(400).json({ error: 'Fecha no válida' });
       if (when.getTime() < Date.now()) return res.status(400).json({ error: 'La fecha debe ser futura' });
@@ -2490,14 +2551,31 @@ function setupPortalRoutes(app, pipeline, config) {
         .select('id').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
       if (!c) return res.status(404).json({ error: 'Contacto no encontrado' });
 
+      // Tope por ficha (auditoría 2026-07-07): sin él, un script podría
+      // encolar recordatorios personales sin límite.
+      const { count: pendingPersonal } = await db.client.from('scheduled_reminders')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', req.businessId).eq('contact_id', req.params.id)
+        .like('service_key', 'personal_%').in('status', ['pending', 'postponed']);
+      if ((pendingPersonal || 0) >= 15) {
+        return res.status(429).json({ error: 'Este cliente ya tiene 15 avisos personales pendientes — borra alguno primero.' });
+      }
+
       // serviceKey único: los personales no se pisan entre sí (scheduleReminder
       // cancela pendientes del MISMO serviceKey — cada personal lleva el suyo).
       const { scheduleReminder } = require('../lifecycle/reminder-engine');
       const serviceKey = 'personal_' + require('crypto').randomBytes(4).toString('hex');
-      await scheduleReminder({
+      const out = await scheduleReminder({
         orgId: req.businessId, contactId: req.params.id, serviceKey,
         scheduledFor: when, channel: 'whatsapp', messagePreview: label,
       });
+      if (out && out.ok === false) {
+        const msgs = {
+          do_not_contact: 'No programado: este cliente pidió no recibir mensajes (está pausado o se dio de baja).',
+          cooling_off: 'No programado: este cliente está en periodo de enfriamiento.',
+        };
+        return res.status(409).json({ error: msgs[out.skipped] || out.error || 'No se pudo programar' });
+      }
       res.json({ ok: true });
     } catch (e) { log.warn(`personal-reminder: ${e.message}`); res.status(500).json({ error: e.message }); }
   });

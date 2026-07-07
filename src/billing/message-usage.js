@@ -21,15 +21,20 @@ const INCLUDED = Math.max(0, Number(process.env.MESSAGES_INCLUDED_PER_MONTH) || 
 const OVERAGE_EUR = Number(process.env.MESSAGE_OVERAGE_EUR) || 0.10;
 
 /**
- * Inicio del MES CIVIL de Madrid en UTC. Aproximación DST por mes
- * (abr-oct = +02:00): el borde puede desviarse ~1h dos noches al año,
- * irrelevante para un contador mensual de mensajes.
+ * Inicio del MES CIVIL de Madrid en UTC, exacto también en los cambios
+ * de hora (el DST cambia el último domingo de mar/oct, no el día 1):
+ * se prueba cada offset y vale el que Madrid formatea como 01 a las 00h.
  */
 function monthStartISO(now = new Date()) {
   const ym = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(now).slice(0, 7);
-  const month = Number(ym.slice(5, 7));
-  const off = month >= 4 && month <= 10 ? '+02:00' : '+01:00';
-  return new Date(`${ym}-01T00:00:00${off}`).toISOString();
+  for (const off of ['+02:00', '+01:00']) {
+    const d = new Date(`${ym}-01T00:00:00${off}`);
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', day: '2-digit', hour: '2-digit', hour12: false })
+        .formatToParts(d).map(p => [p.type, p.value]));
+    if (parts.day === '01' && parts.hour === '00') return d.toISOString();
+  }
+  return new Date(`${ym}-01T00:00:00+01:00`).toISOString(); // inalcanzable en la práctica
 }
 
 /** Uso del mes en curso para una org. { used, included, overage, overageEur } */
@@ -69,15 +74,51 @@ async function reportOverageForOrg(org, opts = {}) {
     const { data: cfgRow } = await db.client.from('org_reminder_config')
       .select('config').eq('org_id', org.id).maybeSingle();
     const cfg = (cfgRow && cfgRow.config) || {};
-    const marker = (cfg._msgOverage && cfg._msgOverage.month === month) ? cfg._msgOverage : { month, reported: 0 };
+    const hadMarker = !!(cfg._msgOverage && cfg._msgOverage.month === month);
+    const marker = hadMarker ? cfg._msgOverage : { month, reported: 0 };
     const delta = usage.overage - (marker.reported || 0);
     if (delta <= 0) return { reported: 0 };
 
-    await billing.reportUsage({ stripeCustomerId: org.stripe_customer_id, minutes: delta, eventName });
-    cfg._msgOverage = { month, reported: (marker.reported || 0) + delta };
-    await db.client.from('org_reminder_config')
-      .upsert({ org_id: org.id, config: cfg, updated_at: new Date().toISOString() }, { onConflict: 'org_id' });
-    log.info(`Excedente de mensajes reportado (${org.id}): +${delta} (total mes ${cfg._msgOverage.reported})`);
+    // RECLAMO ATÓMICO antes de tocar Stripe (auditoría 2026-07-07): el
+    // update solo casa si el marcador sigue valiendo lo que leímos. Dos
+    // instancias simultáneas → una reclama, la otra no casa filas y NO
+    // reporta. Mejor no cobrar hoy (se reintenta mañana) que cobrar doble.
+    const claimedCfg = { ...cfg, _msgOverage: { month, reported: (marker.reported || 0) + delta } };
+    let claimed = false;
+    if (cfgRow) {
+      let q = db.client.from('org_reminder_config')
+        .update({ config: claimedCfg, updated_at: new Date().toISOString() })
+        .eq('org_id', org.id);
+      q = hadMarker
+        ? q.filter('config->_msgOverage->>reported', 'eq', String(marker.reported || 0))
+        : q.or(`config->_msgOverage.is.null,config->_msgOverage->>month.neq.${month}`);
+      const { data: rows, error } = await q.select('org_id');
+      claimed = !error && Array.isArray(rows) && rows.length > 0;
+    } else {
+      // Sin fila: insert — el conflicto de PK significa que otra instancia llegó antes.
+      const { error } = await db.client.from('org_reminder_config')
+        .insert({ org_id: org.id, config: claimedCfg, updated_at: new Date().toISOString() });
+      claimed = !error;
+    }
+    if (!claimed) {
+      log.info(`Excedente de mensajes (${org.id}): reclamado por otra instancia — skip`);
+      return { reported: 0 };
+    }
+
+    try {
+      await billing.reportUsage({ stripeCustomerId: org.stripe_customer_id, minutes: delta, eventName });
+    } catch (e) {
+      // Stripe falló DESPUÉS de reclamar: devolver el marcador (condicionado
+      // a nuestro propio valor) para que el delta se reintente mañana.
+      await db.client.from('org_reminder_config')
+        .update({ config: { ...claimedCfg, _msgOverage: marker }, updated_at: new Date().toISOString() })
+        .eq('org_id', org.id)
+        .filter('config->_msgOverage->>reported', 'eq', String((marker.reported || 0) + delta))
+        .select('org_id')
+        .then(undefined, () => {});
+      throw e;
+    }
+    log.info(`Excedente de mensajes reportado (${org.id}): +${delta} (total mes ${claimedCfg._msgOverage.reported})`);
     return { reported: delta };
   } catch (e) {
     log.warn(`reportOverageForOrg(${org && org.id}): ${e.message}`);

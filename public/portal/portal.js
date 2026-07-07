@@ -5175,6 +5175,7 @@ async function loadFollowupRules() {
   _rulesState.channels = res.channels || _rulesState.channels;
   _rulesState.triggers = res.customTriggers || [];
   _rulesState.cap = (res.frequencyCapDays != null ? res.frequencyCapDays : 7);
+  _rulesState.fieldCoverage = res.fieldCoverage || {};
   var defaults = (res.rules || []).filter(function(r){ return !r.custom; });
   var custom   = (res.rules || []).filter(function(r){ return r.custom; });
 
@@ -5389,6 +5390,18 @@ function _chanSelect(sel) {
   '</select>';
 }
 
+// Cobertura de la fecha de una regla: cuántas fichas la tienen rellenada.
+// Con 0, la regla no envía nada — mejor decirlo aquí que dejar al dueño
+// pensando que está rota (auditoría 2026-07-07).
+function _coverageNote(r) {
+  var cov = _rulesState.fieldCoverage || {};
+  if (!(r.key in cov)) return '';
+  var n = cov[r.key];
+  return n === 0
+    ? ' <span style="color:#e0a030">⚠️ Ningún cliente tiene esta fecha rellenada aún — hasta entonces no se envía nada.</span>'
+    : ' <span style="color:var(--dim)">✓ ' + n + ' cliente' + (n === 1 ? '' : 's') + ' con la fecha rellenada.</span>';
+}
+
 function ruleRow(r) {
   var isCustom = !!r.custom;
   var daysCell = r.editableDays
@@ -5399,11 +5412,11 @@ function ruleRow(r) {
     ? '<input type="text" class="rule-label" value="' + esc(r.label || '') + '" placeholder="Nombre del seguimiento" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600">' +
       '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">' +
       '<input type="text" class="rule-text" maxlength="250" value="' + esc(r.customText || '') + '" placeholder="✍️ Mensaje 100% tuyo (opcional) — usa {detalle} para el dato de cada ficha" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid rgba(196,245,70,.25);border-radius:6px;padding:5px 8px;font-size:12px">' +
-      (r.trigger === 'before_sector_field' ? '<div style="font-size:11px;color:var(--accent-l);margin-top:4px">📅 La fecha "' + esc(r.label || 'de esta regla') + '" aparecerá en la ficha de cada cliente para rellenar.</div>' : '')
+      (r.trigger === 'before_sector_field' ? '<div style="font-size:11px;color:var(--accent-l);margin-top:4px">📅 La fecha "' + esc(r.label || 'de esta regla') + '" aparecerá en la ficha de cada cliente para rellenar.' + _coverageNote(r) + '</div>' : '')
     : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
         (r.applies === false ? ' <span style="font-size:10px;font-weight:600;color:#e0a030;background:rgba(224,160,48,.12);border:1px solid rgba(224,160,48,.3);border-radius:5px;padding:1px 7px;vertical-align:middle" data-tip="Ninguno de tus servicios casa con este seguimiento. Actívalo solo si lo ofreces.">no ofreces este servicio</span>' : '') +
       '</div>' +
-      '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + '</div>';
+      '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + _coverageNote(r) + '</div>';
 
   var trigCell = isCustom
     ? '<select class="rule-trigger" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;max-width:220px">' +

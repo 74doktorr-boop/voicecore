@@ -54,15 +54,19 @@ const SERVICE_LABELS = {
  * Build a personalized reminder message.
  * Returns { text, waTemplateName, waComponents, language }
  */
+// Meta rechaza parámetros de plantilla con saltos de línea o tabs: TODO lo
+// que viaje como {{n}} pasa por aquí (nombres importados de CSV incluidos).
+function waParam(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+
 function buildMessage(reminder, contact, memory) {
-  const name      = contact?.name || 'cliente';
+  const name      = waParam(contact?.name) || 'cliente';
   const firstName = name.split(' ')[0];
-  const orgName   = contact?._orgName || 'el negocio';
+  const orgName   = waParam(contact?._orgName) || 'el negocio';
   const lang      = memory?.preferences?.idioma || 'es';
 
   // Prioridad: etiqueta guardada al programar (soporta seguimientos personalizados)
   // → mapa estático por serviceKey → genérico.
-  const serviceLabel = reminder.message_preview || SERVICE_LABELS[reminder.service_key] || 'tu próxima cita';
+  const serviceLabel = waParam(reminder.message_preview) || SERVICE_LABELS[reminder.service_key] || 'tu próxima cita';
 
   // Idioma de PLANTILLA acotado a los aprobados en Meta: pedir una combinación
   // plantilla+idioma inexistente (cliente con preferencia 'eu'/'gl') rompe el envío.
@@ -71,7 +75,7 @@ function buildMessage(reminder, contact, memory) {
   // MENSAJE 100% DEL DUEÑO (marcador TXT: puesto por el motor): su frase
   // íntegra viaja en la plantilla-portadora nodeflow_aviso.
   if (typeof reminder.message_preview === 'string' && reminder.message_preview.startsWith('TXT:')) {
-    const ownText = reminder.message_preview.slice(4);
+    const ownText = waParam(reminder.message_preview.slice(4));
     return {
       text: `Hola ${firstName}, un mensaje de ${orgName}: ${ownText}`,
       language: templateLanguage('nodeflow_aviso', lang),
@@ -90,7 +94,7 @@ function buildMessage(reminder, contact, memory) {
   // POST-SERVICIO ("¿qué tal fue?"): plantilla y tono propios — es cuidado,
   // no venta. Caza al insatisfecho antes de la mala reseña.
   if (reminder.service_key === 'como_fue') {
-    const careLabel = reminder.message_preview || 'tu última visita';
+    const careLabel = waParam(reminder.message_preview) || 'tu última visita';
     return {
       text: `Hola ${firstName}, somos ${orgName}. ¿Qué tal fue ${careLabel}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.`,
       language: templateLanguage('nodeflow_como_fue', lang),

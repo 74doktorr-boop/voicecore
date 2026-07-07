@@ -170,7 +170,7 @@ function calculateScheduledFor(def, sectorData, lastAppointmentDate) {
  */
 async function scheduleReminder({ orgId, contactId, serviceKey, scheduledFor, channel = 'whatsapp', messagePreview = null }) {
   const db = getDatabase();
-  if (!db.enabled) return;
+  if (!db.enabled) return { ok: false, skipped: 'db_disabled' };
 
   // Check do_not_contact and cooling-off
   const memory = await getContactMemory(contactId, orgId);
@@ -180,11 +180,11 @@ async function scheduleReminder({ orgId, contactId, serviceKey, scheduledFor, ch
                  || (channel === 'email'    && memory.no_email);
     if (blocked) {
       log.info(`scheduleReminder: contact ${contactId} blocked on ${channel} — skipping`);
-      return;
+      return { ok: false, skipped: 'do_not_contact' };
     }
     if (isCoolingOff(memory)) {
       log.info(`scheduleReminder: contact ${contactId} in cooling-off period — skipping`);
-      return;
+      return { ok: false, skipped: 'cooling_off' };
     }
   }
 
@@ -209,9 +209,10 @@ async function scheduleReminder({ orgId, contactId, serviceKey, scheduledFor, ch
 
   if (error) {
     log.error('scheduleReminder: insert failed', { err: error.message, orgId, contactId, serviceKey });
-  } else {
-    log.info(`Reminder scheduled: ${serviceKey} for contact ${contactId} on ${scheduledFor.toLocaleDateString('es-ES')} via ${channel}`);
+    return { ok: false, error: error.message };
   }
+  log.info(`Reminder scheduled: ${serviceKey} for contact ${contactId} on ${scheduledFor.toLocaleDateString('es-ES')} via ${channel}`);
+  return { ok: true };
 }
 
 /**
@@ -328,8 +329,11 @@ async function recalculate(contactId, orgId, ctx = {}) {
   }
 }
 
-// Evita recálculos solapados de la misma cartera (guardas de re-entrada).
-const _orgRecalcInFlight = new Set();
+// Evita recálculos solapados de la misma cartera (guarda de re-entrada CON
+// caducidad — auditoría 2026-07-07: un recálculo colgado no debe bloquear
+// los cambios de reglas del dueño hasta el siguiente reinicio).
+const _orgRecalcInFlight = new Map(); // orgId → startedAt (ms)
+const RECALC_GUARD_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Recalcula TODA la cartera de un negocio. Se dispara al cambiar reglas /
@@ -341,8 +345,12 @@ const _orgRecalcInFlight = new Set();
 async function recalculateOrg(orgId, opts = {}) {
   const db = opts.db || getDatabase();
   if (!db.enabled || !orgId) return { processed: 0, total: 0, capped: false };
-  if (_orgRecalcInFlight.has(orgId)) return { processed: 0, total: 0, capped: false, skipped: true };
-  _orgRecalcInFlight.add(orgId);
+  const inFlightSince = _orgRecalcInFlight.get(orgId);
+  if (inFlightSince && Date.now() - inFlightSince < RECALC_GUARD_TTL_MS) {
+    return { processed: 0, total: 0, capped: false, skipped: true };
+  }
+  if (inFlightSince) log.error(`recalculateOrg(${orgId}): guard caducado tras ${Math.round((Date.now() - inFlightSince) / 60000)} min — el recálculo anterior se colgó; se relanza`);
+  _orgRecalcInFlight.set(orgId, Date.now());
   try {
     const { data: org } = await db.client.from('organizations')
       .select('assistant_config').eq('id', orgId).maybeSingle();

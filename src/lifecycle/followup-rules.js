@@ -56,6 +56,7 @@ function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
       trigger: fu.trigger,
       triggerLabel: TRIGGERS[fu.trigger] || fu.trigger,
       days: ov.days != null ? ov.days : (fu.days != null ? fu.days : null),
+      field: fu.field || null, // para la cobertura de fechas en la UI
       serviceFilter: Array.isArray(fu.serviceFilter) ? fu.serviceFilter : [],
       channel: ov.channel || 'whatsapp',
       enabled: ov.enabled === true ? true : ov.enabled === false ? false : applies,
@@ -76,6 +77,7 @@ function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
       trigger: c.trigger,
       triggerLabel: TRIGGERS[c.trigger] || c.trigger,
       days: c.days,
+      field: c.field || null,
       customText: c.customText || '',
       serviceFilter: c.serviceFilter || [],
       channel: c.channel || 'whatsapp',
@@ -142,7 +144,10 @@ function normalizeRules(sectorSlug, body = {}, existing = {}) {
     // {detalle} → se sustituye por el dato de la ficha de cada cliente.
     let customText;
     if (c.customText) {
-      customText = String(c.customText).trim().slice(0, 250);
+      // Los parámetros de plantilla de Meta NO admiten saltos de línea ni
+      // tabs (auditoría 2026-07-07): colapsar todo whitespace a espacio —
+      // si no, el mensaje del dueño moriría en el último eslabón del envío.
+      customText = String(c.customText).replace(/\s+/g, ' ').trim().slice(0, 250);
       if (customText && customText.length < 10) return { error: `El mensaje de "${label}" es demasiado corto (mín. 10)` };
       if (!customText) customText = undefined;
     }
