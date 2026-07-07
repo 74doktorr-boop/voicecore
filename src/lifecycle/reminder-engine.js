@@ -42,12 +42,25 @@ async function getOrgReminderConfig(orgId, sectorSlug, opts = {}) {
   const result = {};
   const orgConfig = await _loadOrgConfig(db, orgId);
 
-  // 1+2) defaults del sector con overrides del dueño
+  // Servicios que OFRECE el negocio: las reglas ligadas a servicio (serviceMatch/
+  // serviceFilter) solo se activan por defecto si el negocio ofrece algo que case
+  // (una clínica sin psicotécnicos no debe enviar avisos de renovación).
+  let serviceList = opts.serviceList;
+  if (serviceList === undefined && db.enabled) {
+    try {
+      const { data } = await db.client.from('organizations')
+        .select('automation_config').eq('id', orgId).maybeSingle();
+      serviceList = data?.automation_config?.config?.serviceList || null;
+    } catch (_) { serviceList = null; }
+  }
+  const { appliesToServices } = require('./sector-catalog');
+
+  // 1+2) defaults del sector con overrides del dueño (su enabled explícito gana)
   for (const [key, def] of Object.entries(sectorDefaults)) {
     result[key] = {
       ...def,
       channel: 'whatsapp',
-      enabled: true,
+      enabled: appliesToServices(def, serviceList),
       serviceLabel: serviceLabelFor(sectorSlug, key),
       ...(orgConfig[key] || {}),
     };
@@ -269,11 +282,20 @@ async function recalculate(contactId, orgId, ctx = {}) {
     const scheduledFor = calculateScheduledFor(def, contact.sector_data, relevantApt?.date);
     if (!scheduledFor) continue;
 
+    // PERSONALIZACIÓN por ficha: si el cliente tiene un detalle guardado
+    // (_detalle: "la lumbalgia", "el tinte rubio ceniza", "permiso C"…), el
+    // mensaje lo nombra — "tu seguimiento (la lumbalgia)" en vez del genérico.
+    // Atención real, no plantilla: es lo que hace volver al cliente.
+    const detalle = contact.sector_data && String(contact.sector_data._detalle || '').trim();
+    const messagePreview = (def.serviceLabel || null) && (detalle
+      ? `${def.serviceLabel} (${detalle.slice(0, 60)})`
+      : def.serviceLabel);
+
     await scheduleReminder({
       orgId, contactId, serviceKey,
       scheduledFor,
       channel: def.channel || 'whatsapp',
-      messagePreview: def.serviceLabel || null,   // el texto del servicio para el mensaje
+      messagePreview,
     });
   }
 }

@@ -39,10 +39,15 @@ function _clampDays(v, def) {
  * Vista de reglas para el portal: defaults del sector (con overrides aplicados)
  * + personalizados. PURA. Cada regla trae su presentación y qué se puede editar.
  */
-function buildRulesView(sectorSlug, orgConfig = {}) {
+function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
+  const { appliesToServices } = require('./sector-catalog');
   const defaults = getSectorFollowups(sectorSlug);
   const rules = defaults.map(fu => {
     const ov = orgConfig[fu.key] || {};
+    // Ligado a SERVICIOS: si el negocio no ofrece nada que case con la regla
+    // (p.ej. clínica sin psicotécnicos), NO aplica → apagada por defecto.
+    // El dueño manda: un enabled explícito (true o false) siempre gana.
+    const applies = appliesToServices(fu, serviceList);
     return {
       key: fu.key,
       label: fu.label,
@@ -53,7 +58,8 @@ function buildRulesView(sectorSlug, orgConfig = {}) {
       days: ov.days != null ? ov.days : (fu.days != null ? fu.days : null),
       serviceFilter: Array.isArray(fu.serviceFilter) ? fu.serviceFilter : [],
       channel: ov.channel || 'whatsapp',
-      enabled: ov.enabled !== false,
+      enabled: ov.enabled === true ? true : ov.enabled === false ? false : applies,
+      applies,
       custom: false,
       // los defaults con disparador de fecha/frecuencia no editan "días" a mano
       editableDays: fu.days != null && (fu.trigger === 'from_last_appointment' || fu.trigger === 'from_last_if_no_new' || fu.trigger === 'before_sector_field'),

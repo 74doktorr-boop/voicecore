@@ -15,7 +15,10 @@
 'use strict';
 
 // Campos que entiende el motor (calculateScheduledFor). El resto es copy.
-const ENGINE_KEYS = ['trigger', 'days', 'serviceFilter', 'field', 'onlyIfCompleted', 'frequencyField', 'daysOffset'];
+// serviceMatch: palabras que ligan la regla a un SERVICIO del negocio — si el
+// negocio no ofrece nada que case, la regla no aplica por defecto (una clínica
+// sin psicotécnicos no debe ver ni activar esa regla).
+const ENGINE_KEYS = ['trigger', 'days', 'serviceFilter', 'field', 'onlyIfCompleted', 'frequencyField', 'daysOffset', 'serviceMatch'];
 
 // Disparadores admitidos, con una explicación en cristiano para la UI.
 const TRIGGERS = {
@@ -108,7 +111,7 @@ const SECTOR_CATALOG = {
     label: 'Óptica',
     followups: [
       { key: 'revision_vista',       label: 'Revisión de vista',      serviceLabel: 'tu revisión de vista',        desc: 'Al año de la última graduación',    trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'graduación'] },
-      { key: 'reposicion_lentillas', label: 'Reposición de lentillas', serviceLabel: 'la reposición de tus lentillas', desc: '5 días antes de agotar el suministro', trigger: 'from_sector_field', field: 'suministro_lentillas_dias', daysOffset: -5 },
+      { key: 'reposicion_lentillas', label: 'Reposición de lentillas', serviceLabel: 'la reposición de tus lentillas', desc: '5 días antes de agotar el suministro', trigger: 'from_sector_field', field: 'suministro_lentillas_dias', daysOffset: -5, serviceMatch: ['lentilla', 'lentillas', 'contacto'] },
     ],
   },
   hotel: {
@@ -128,7 +131,9 @@ const SECTOR_CATALOG = {
   clinica: {
     label: 'Centro médico / clínica',
     followups: [
-      { key: 'renovacion_psicotecnico', label: 'Renovación de psicotécnico', serviceLabel: 'la renovación de tu psicotécnico', desc: '30 días antes de la caducidad', trigger: 'before_sector_field', days: 30, field: 'fecha_caducidad_psicotecnico' },
+      // serviceMatch: NO todas las clínicas hacen psicotécnicos — la regla solo
+      // aplica por defecto si el negocio lista un servicio que case.
+      { key: 'renovacion_psicotecnico', label: 'Renovación de psicotécnico', serviceLabel: 'la renovación de tu psicotécnico', desc: '30 días antes de la caducidad', trigger: 'before_sector_field', days: 30, field: 'fecha_caducidad_psicotecnico', serviceMatch: ['psicotecnico', 'psicotécnico', 'reconocimiento', 'carnet', 'carné', 'certificado'] },
       { key: 'revision_anual',          label: 'Revisión anual',             serviceLabel: 'tu revisión anual',               desc: 'Al año de la última revisión',  trigger: 'from_last_appointment', days: 330, serviceFilter: ['revisión', 'revision', 'chequeo'] },
     ],
   },
@@ -284,6 +289,30 @@ function getSectorFollowups(sector) {
   return def ? def.followups.map(f => ({ ...f })) : [];
 }
 
+// ── Reglas ligadas a los SERVICIOS del negocio ──────────────
+function _normSvc(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/**
+ * ¿Aplica esta regla al negocio según los servicios que OFRECE? PURA.
+ * - Sin palabras clave (regla genérica: reactivación, cuota…) → aplica siempre.
+ * - Sin serviceList configurada → aplica (no castigamos la falta de datos).
+ * - Con ambas → aplica solo si algún servicio del negocio casa con alguna
+ *   palabra clave (contención en cualquier dirección, sin acentos).
+ * Es lo que evita que una clínica SIN psicotécnicos vea (o dispare) la regla
+ * de renovación: personalización real, no catálogo genérico.
+ */
+function appliesToServices(def, serviceList) {
+  const keywords = (def && (def.serviceMatch || def.serviceFilter)) || [];
+  if (!keywords.length) return true;
+  const services = (Array.isArray(serviceList) ? serviceList : [])
+    .map(s => _normSvc(s && (s.name || s))).filter(Boolean);
+  if (!services.length) return true;
+  const keys = keywords.map(_normSvc);
+  return services.some(sv => keys.some(k => sv.includes(k) || k.includes(sv)));
+}
+
 /** Texto del servicio para el mensaje, dado sector + serviceKey (con fallback). */
 function serviceLabelFor(sector, key) {
   const def = SECTOR_CATALOG[sector];
@@ -294,6 +323,7 @@ function serviceLabelFor(sector, key) {
 
 module.exports = {
   SECTOR_CATALOG,
+  appliesToServices,
   TRIGGERS,
   CUSTOM_TRIGGERS,
   toEngineDefaults,

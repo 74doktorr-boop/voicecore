@@ -2308,11 +2308,19 @@ function setupPortalRoutes(app, pipeline, config) {
         sms: require('../notifications/sms').isConfigured(),
         email: !!process.env.RESEND_API_KEY,
       };
+      // Servicios del negocio → las reglas ligadas a servicio se auto-apagan
+      // si no ofrece nada que case (con aviso visible en la UI).
+      let svcList = null;
+      try {
+        const { data: orgRow } = await getDatabase().client.from('organizations')
+          .select('automation_config').eq('id', req.businessId).maybeSingle();
+        svcList = orgRow?.automation_config?.config?.serviceList || null;
+      } catch (_) {}
       res.json({
         ok: true,
         sector,
         sectorLabel: (SECTOR_CATALOG[sector] && SECTOR_CATALOG[sector].label) || null,
-        rules: buildRulesView(sector, orgConfig),
+        rules: buildRulesView(sector, orgConfig, svcList),
         channels: CHANNELS,
         channelsLive,
         customTriggers: CUSTOM_TRIGGERS.map(t => ({ value: t, label: TRIGGERS[t] })),

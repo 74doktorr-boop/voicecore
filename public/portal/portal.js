@@ -2956,8 +2956,7 @@ function cpRemindersHtml(reminders, contactId) {
 }
 
 function cpKeyDatesHtml(fields, sectorData, contactId) {
-  if (!fields || !fields.length) return '';
-  var inputs = fields.map(function(f){
+  var inputs = (fields || []).map(function(f){
     var val = sectorData[f.key] || '';
     return '<div style="display:flex;flex-direction:column;gap:2px">' +
       '<label style="font-size:11px;color:var(--dim)">' + esc(f.label) + '</label>' +
@@ -2965,8 +2964,16 @@ function cpKeyDatesHtml(fields, sectorData, contactId) {
         'style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:150px">' +
     '</div>';
   }).join('');
+  // DETALLE universal (todos los sectores): lo que hace el mensaje PERSONAL.
+  // "tu seguimiento (la lumbalgia)" · "el tinte (rubio ceniza)" · "(permiso C)".
+  inputs += '<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:200px">' +
+    '<label style="font-size:11px;color:var(--dim)">✨ Detalle para sus avisos <span style="color:var(--muted)">(entra en el mensaje)</span></label>' +
+    '<input id="cpKd-_detalle" type="text" maxlength="60" value="' + esc(sectorData._detalle || '') + '" ' +
+      'placeholder="ej. la lumbalgia · el tinte rubio ceniza · permiso C" ' +
+      'style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">' +
+  '</div>';
   return '<div style="margin-top:10px;padding:10px 12px;background:rgba(196,245,70,.05);border:1px solid rgba(196,245,70,.2);border-radius:8px">' +
-    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent-l);margin-bottom:6px">📅 Fechas clave (el motor programa los avisos solo)</div>' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent-l);margin-bottom:6px">📅 Datos que personalizan sus avisos</div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' + inputs +
       '<button class="btn btn-accent btn-sm" onclick="cpSaveKeyDates(\'' + esc(contactId) + '\')">Guardar</button>' +
     '</div>' +
@@ -5177,7 +5184,9 @@ function ruleRow(r) {
   var nameCell = isCustom
     ? '<input type="text" class="rule-label" value="' + esc(r.label || '') + '" placeholder="Nombre del seguimiento" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600">' +
       '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">'
-    : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) + '</div>' +
+    : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
+        (r.applies === false ? ' <span style="font-size:10px;font-weight:600;color:#e0a030;background:rgba(224,160,48,.12);border:1px solid rgba(224,160,48,.3);border-radius:5px;padding:1px 7px;vertical-align:middle" data-tip="Ninguno de tus servicios casa con este seguimiento. Actívalo solo si lo ofreces.">no ofreces este servicio</span>' : '') +
+      '</div>' +
       '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + '</div>';
 
   var trigCell = isCustom
