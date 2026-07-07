@@ -2689,9 +2689,19 @@ function openPromoModal() {
     '</p>' +
     '<textarea id="promoText" maxlength="300" oninput="promoPreview()" placeholder="ej. este mes el tinte + corte tiene un 15% de descuento. Pide tu cita antes del día 31." ' +
       'style="width:100%;min-height:90px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5"></textarea>' +
-    '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">' +
-      '<label style="font-size:12px;color:var(--dim)">Solo etiqueta:</label>' +
-      '<input id="promoTag" type="text" placeholder="(todas)" oninput="promoPreview()" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">' +
+    '<div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:10px 12px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">🎯 ¿A quién? <span style="font-weight:400;color:var(--dim)">(combina los filtros que quieras)</span></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        '<div><label style="font-size:11px;color:var(--dim)">Etiqueta</label>' +
+          '<input id="promoTag" type="text" placeholder="(todas)" oninput="promoPreview()" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px"></div>' +
+        '<div><label style="font-size:11px;color:var(--dim)">Que hayan usado el servicio</label>' +
+          '<input id="promoService" type="text" placeholder="ej. tinte, ITV, fisio" oninput="promoPreview()" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px"></div>' +
+        '<div><label style="font-size:11px;color:var(--dim)">Dormidos: sin venir hace…</label>' +
+          '<select id="promoInactive" onchange="promoPreview()" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">' +
+            '<option value="">(cualquiera)</option><option value="90">+3 meses</option><option value="180">+6 meses</option><option value="365">+1 año</option></select></div>' +
+        '<div style="display:flex;align-items:flex-end"><label style="font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;cursor:pointer">' +
+          '<input id="promoBday" type="checkbox" onchange="promoPreview()" style="width:15px;height:15px"> 🎂 Cumplen este mes</label></div>' +
+      '</div>' +
     '</div>' +
     '<div id="promoEstimate" style="margin-top:12px;font-size:12px;color:var(--dim)">Calculando destinatarios…</div>' +
     '<div class="modal-actions">' +
@@ -2702,6 +2712,18 @@ function openPromoModal() {
   promoPreview();
 }
 
+// Lee los filtros de segmento del modal → objeto para la API.
+function _promoSegments() {
+  var seg = {
+    tag: (document.getElementById('promoTag') || {}).value || '',
+    service: ((document.getElementById('promoService') || {}).value || '').trim() || undefined,
+    birthdayMonth: !!(document.getElementById('promoBday') || {}).checked || undefined,
+  };
+  var inact = (document.getElementById('promoInactive') || {}).value;
+  if (inact) seg.inactiveDays = parseInt(inact, 10);
+  return seg;
+}
+
 var _promoPrevTimer;
 function promoPreview() {
   clearTimeout(_promoPrevTimer);
@@ -2709,11 +2731,12 @@ function promoPreview() {
     var box = document.getElementById('promoEstimate');
     var btn = document.getElementById('promoSendBtn');
     if (!box) return;
-    var tag = (document.getElementById('promoTag') || {}).value || '';
+    var seg = _promoSegments();
+    var tag = seg.tag;
     var text = ((document.getElementById('promoText') || {}).value || '').trim();
     try {
       var results = await Promise.all([
-        api('/api/portal/promo', 'POST', { preview: true, tag: tag }),
+        api('/api/portal/promo', 'POST', Object.assign({ preview: true }, seg)),
         api('/api/portal/message-usage').catch(function(){ return null; }),
       ]);
       var n = (results[0] && results[0].recipients) || 0;
@@ -2726,9 +2749,10 @@ function promoPreview() {
           ? ' · <span style="color:#e0a030">usa tus ' + left + ' incluidos + ' + extra + ' extra ≈ ' + (extra * u.ratePerMessage).toFixed(2) + '€</span>'
           : ' · <span style="color:var(--green2,#21c08a)">dentro de tus ' + left + ' mensajes incluidos este mes ✓</span>';
       }
+      var anySeg = tag || seg.service || seg.inactiveDays || seg.birthdayMonth;
       box.innerHTML = n
         ? '📱 <strong style="color:var(--text)">' + n + ' destinatario' + (n !== 1 ? 's' : '') + '</strong>' + packLine
-        : 'Sin destinatarios elegibles' + (tag ? ' con esa etiqueta' : '') + '.';
+        : 'Sin destinatarios elegibles' + (anySeg ? ' con esos filtros' : '') + '.';
       if (btn) btn.disabled = !(n > 0 && text.length >= 10);
     } catch (e) { box.textContent = 'No se pudo calcular: ' + e.message; }
   }, 350);
@@ -2737,10 +2761,9 @@ function promoPreview() {
 async function sendPromoNow() {
   var btn = document.getElementById('promoSendBtn');
   var text = ((document.getElementById('promoText') || {}).value || '').trim();
-  var tag = (document.getElementById('promoTag') || {}).value || '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
   try {
-    var r = await api('/api/portal/promo', 'POST', { text: text, tag: tag });
+    var r = await api('/api/portal/promo', 'POST', Object.assign({ text: text }, _promoSegments()));
     closeModal();
     toast('📣 Promoción enviada a ' + r.sent + ' cliente' + (r.sent !== 1 ? 's' : '') + (r.failed ? ' (' + r.failed + ' fallidos)' : ''));
   } catch (e) {

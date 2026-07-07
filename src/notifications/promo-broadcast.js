@@ -18,12 +18,27 @@ const log = new Logger('PROMO');
 const THROTTLE_MS = 120;      // ~8 msg/s — de sobra bajo los límites de Meta
 const MAX_RECIPIENTS = 1000;  // tope de seguridad por difusión
 
-/** Destinatarios elegibles: con teléfono, sin opt-out, filtro por etiqueta. */
+const { normalizePhone } = require('../utils/phone');
+
+function _norm(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+/**
+ * Destinatarios elegibles: con teléfono, sin opt-out. Segmentable (2026-07-07)
+ * para pasar de megáfono a bisturí:
+ *   opts.tag           — solo con esa etiqueta
+ *   opts.service       — solo quien ha consumido ese servicio (historial de citas)
+ *   opts.inactiveDays  — solo quien no viene desde hace ≥N días (dormidos)
+ *   opts.birthdayMonth — solo quien cumple años ESTE mes (sector_data.fecha_cumpleanos)
+ * Los filtros se combinan en AND. Sin ninguno → toda la cartera (como antes).
+ */
 async function getRecipients(orgId, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
   if (!db.enabled || !orgId) return [];
+  const now = opts.now || new Date();
   let q = db.client.from('contacts')
-    .select('id, name, phone, tags')
+    .select('id, name, phone, tags, sector_data')
     .eq('org_id', orgId).is('deleted_at', null)
     .not('phone', 'is', null)
     .limit(MAX_RECIPIENTS + 1);
@@ -32,6 +47,48 @@ async function getRecipients(orgId, opts = {}) {
   if (opts.tag) {
     const tag = String(opts.tag).toLowerCase();
     list = list.filter(c => Array.isArray(c.tags) && c.tags.some(t => String(t).toLowerCase() === tag));
+  }
+
+  // Cumpleaños este mes (mes civil de Madrid) — no depende de citas.
+  if (opts.birthdayMonth) {
+    const month = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', month: 'numeric' }).format(now));
+    list = list.filter(c => {
+      const raw = c.sector_data && c.sector_data.fecha_cumpleanos;
+      if (!raw) return false;
+      const d = new Date(String(raw).slice(0, 10) + 'T12:00:00');
+      return !isNaN(d.getTime()) && (d.getMonth() + 1) === month;
+    });
+  }
+
+  // Segmentos por HISTORIAL de citas (servicio consumido / inactividad).
+  if ((opts.service || opts.inactiveDays) && list.length) {
+    const svc = opts.service ? _norm(opts.service) : null;
+    const cutoff = opts.inactiveDays ? new Date(now.getTime() - Number(opts.inactiveDays) * 86400000) : null;
+    let apts = [];
+    try {
+      const { data: aptData } = await db.client.from('nf_appointments')
+        .select('phone, service, date, status')
+        .eq('organization_id', orgId).limit(20000);
+      apts = aptData || [];
+    } catch (_) { apts = []; }
+    // Índice por teléfono normalizado.
+    const byPhone = new Map();
+    for (const a of apts) {
+      if (a.status === 'cancelled' || !a.phone) continue;
+      const k = normalizePhone(a.phone);
+      if (!byPhone.has(k)) byPhone.set(k, []);
+      byPhone.get(k).push(a);
+    }
+    list = list.filter(c => {
+      const hist = byPhone.get(normalizePhone(c.phone)) || [];
+      if (svc && !hist.some(a => _norm(a.service).includes(svc) || svc.includes(_norm(a.service)))) return false;
+      if (cutoff) {
+        // Inactivo: su cita más reciente es anterior al corte (o no tiene ninguna).
+        const last = hist.reduce((m, a) => (a.date && a.date > m ? a.date : m), '');
+        if (last && new Date(last + 'T12:00:00') >= cutoff) return false;
+      }
+      return true;
+    });
   }
 
   // Opt-outs (no_whatsapp) en bloque — jamás se contacta a quien dijo no.
@@ -55,7 +112,7 @@ async function getRecipients(orgId, opts = {}) {
  * Si la plantilla aún no está aprobada en Meta, aborta al primer fallo de
  * plantilla con un mensaje claro (no quema el bucle entero).
  */
-async function sendPromo(orgId, { text, tag, bizName } = {}, deps = {}) {
+async function sendPromo(orgId, { text, tag, bizName, service, inactiveDays, birthdayMonth } = {}, deps = {}) {
   const db = deps.db || require('../db/database').getDatabase();
   const sendTemplate = deps.sendTemplate || require('./client-whatsapp').sendTemplate;
   const throttle = deps.throttleMs != null ? deps.throttleMs : THROTTLE_MS;
@@ -66,7 +123,7 @@ async function sendPromo(orgId, { text, tag, bizName } = {}, deps = {}) {
   const promoText = String(text || '').replace(/\s+/g, ' ').trim();
   if (promoText.length < 10) return { ...out, aborted: 'El texto de la promo es demasiado corto' };
 
-  const recipients = await getRecipients(orgId, { tag, db });
+  const recipients = await getRecipients(orgId, { tag, service, inactiveDays, birthdayMonth, db });
   out.recipients = recipients.length;
   if (!recipients.length) return { ...out, aborted: 'No hay destinatarios elegibles' };
 

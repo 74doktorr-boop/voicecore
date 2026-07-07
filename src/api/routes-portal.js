@@ -2561,9 +2561,16 @@ function setupPortalRoutes(app, pipeline, config) {
       const { getRecipients, sendPromo } = require('../notifications/promo-broadcast');
       const text = String((req.body && req.body.text) || '').trim().slice(0, 300);
       const tag = String((req.body && req.body.tag) || '').trim() || null;
+      // Segmentos (2026-07-07): filtros combinables para acotar el envío.
+      const b = req.body || {};
+      const seg = {
+        service: b.service ? String(b.service).slice(0, 60) : null,
+        inactiveDays: b.inactiveDays ? Math.max(1, Math.min(3650, parseInt(b.inactiveDays, 10) || 0)) : null,
+        birthdayMonth: b.birthdayMonth === true,
+      };
 
       if (req.body && req.body.preview) {
-        const recipients = await getRecipients(req.businessId, { tag, db: getDatabase() });
+        const recipients = await getRecipients(req.businessId, { tag, ...seg, db: getDatabase() });
         return res.json({ ok: true, preview: true, recipients: recipients.length });
       }
 
@@ -2574,7 +2581,7 @@ function setupPortalRoutes(app, pipeline, config) {
       }
       _promoLast.set(req.businessId, Date.now());
 
-      const out = await sendPromo(req.businessId, { text, tag, bizName: req.flowConfig.name }, { db: getDatabase() });
+      const out = await sendPromo(req.businessId, { text, tag, bizName: req.flowConfig.name, ...seg }, { db: getDatabase() });
       // Fallo sin ningún envío: cooldown corto (1 min) en vez de reset total —
       // permite reintentar pronto pero no martillear (auditoría 2026-07-07).
       if (out.aborted && out.sent === 0) {
