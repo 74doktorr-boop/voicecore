@@ -135,6 +135,16 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
       </select>
       <small id="sectorHint" style="display:none;font-size:12px;margin-top:6px"></small>
     </div>
+
+    <!-- ¿Qué ofreces? — servicios sugeridos por sector (personaliza reglas y precios desde el día 0) -->
+    <div class="form-group" id="svcGroup" style="display:none">
+      <label>¿Qué ofreces? <span style="font-weight:400;opacity:.7">(marca tus servicios — el asistente y los seguimientos se ajustan a ellos)</span></label>
+      <div id="svcChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input type="text" id="svcOther" placeholder="Otro servicio… (Enter para añadir)" style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:inherit;font-size:14px">
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="idioma">Idioma de tu asistente *</label>
       <select id="idioma">
@@ -437,7 +447,7 @@ async function submitRegistro() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText() }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices() }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
@@ -508,6 +518,67 @@ function redirectToStripe() {
 
   window.location.href = url;
 }
+</script>
+
+<script>
+// ── ¿Qué ofreces? — chips de servicios por sector ─────────────────────────
+// Pre-marcados los típicos; el negocio quita/añade en segundos. Alimenta
+// serviceList desde el DÍA 0: reglas de seguimiento exactas y precios listos.
+const SVC_SUGGEST = {
+  peluqueria: ['Corte','Tinte','Mechas','Peinado','Tratamiento','Permanente','Barba'],
+  clinica: ['Consulta médica','Fisioterapia','Podología','Nutrición','Psicología','Psicotécnicos'],
+  dental: ['Revisión','Limpieza','Empaste','Ortodoncia','Implante','Blanqueamiento'],
+  fisioterapia: ['Sesión de fisioterapia','Osteopatía','Punción seca','Masaje deportivo','Readaptación'],
+  veterinaria: ['Consulta','Vacunación','Desparasitación','Cirugía','Peluquería canina'],
+  optica: ['Revisión de vista','Gafas graduadas','Lentillas','Gafas de sol','Audiología'],
+  gimnasio: ['Cuota mensual','Clases dirigidas','Entrenador personal','Fisioterapia'],
+  yoga: ['Clase de yoga','Clase de pilates','Bono 10 clases','Meditación'],
+  spa: ['Circuito spa','Masaje','Tratamiento facial','Depilación láser'],
+  taller: ['Revisión','Cambio de aceite','Neumáticos','Frenos','Pre-ITV','Diagnosis'],
+  restaurante: ['Comidas','Cenas','Menú del día','Grupos y celebraciones','Terraza'],
+  hotel: ['Habitaciones','Desayuno','Eventos','Parking'],
+  psicologia: ['Terapia individual','Terapia de pareja','Terapia infantil','Online'],
+  nutricion: ['Primera consulta','Seguimiento','Plan nutricional','Deportiva'],
+  farmacia: ['Dispensación','Fórmulas magistrales','SPD','Nutrición y dermo'],
+  podologia: ['Quiropodia','Estudio de la pisada','Plantillas','Uña encarnada'],
+  asesoria: ['Fiscal','Laboral','Contable','Renta','Constitución de empresas'],
+  autoescuela: ['Carnet B','Carnet A','Carnet C/D','Recuperación de puntos'],
+  inmobiliaria: ['Venta','Alquiler','Tasación','Gestión de alquileres'],
+  abogados: ['Civil','Laboral','Familia','Extranjería','Penal'],
+};
+let _svcSel = new Set();
+function renderSvcChips() {
+  const sec = document.getElementById('sector').value;
+  const grp = document.getElementById('svcGroup');
+  const box = document.getElementById('svcChips');
+  const sug = SVC_SUGGEST[sec] || [];
+  if (!sug.length && !_svcSel.size) { grp.style.display = 'none'; return; }
+  grp.style.display = 'block';
+  _svcSel = new Set(sug.slice(0, 4)); // los 4 típicos pre-marcados
+  paintSvcChips(sug);
+}
+function paintSvcChips(sug) {
+  const box = document.getElementById('svcChips');
+  const all = [...new Set([...(sug || []), ..._svcSel])];
+  box.innerHTML = all.map(name => {
+    const on = _svcSel.has(name);
+    return '<span onclick="toggleSvc(this.textContent)" style="cursor:pointer;user-select:none;padding:7px 14px;border-radius:20px;font-size:13px;border:1px solid ' +
+      (on ? 'rgba(108,92,231,.9);background:rgba(108,92,231,.25);font-weight:600' : 'rgba(255,255,255,.18);background:rgba(255,255,255,.04);opacity:.8') + '">' + name + '</span>';
+  }).join('');
+}
+function toggleSvc(name) {
+  if (_svcSel.has(name)) _svcSel.delete(name); else _svcSel.add(name);
+  const sec = document.getElementById('sector').value;
+  paintSvcChips(SVC_SUGGEST[sec] || []);
+}
+function selectedServices() { return [..._svcSel].slice(0, 20); }
+document.getElementById('sector').addEventListener('change', renderSvcChips);
+document.getElementById('svcOther').addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = this.value.trim().slice(0, 60);
+  if (v) { _svcSel.add(v); this.value = ''; paintSvcChips(SVC_SUGGEST[document.getElementById('sector').value] || []); }
+});
 </script>
 </body>
 </html>

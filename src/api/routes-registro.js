@@ -181,7 +181,13 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios } = req.body;
+
+      // Servicios que ofrece (chips del onboarding): personalizan reglas de
+      // seguimiento y precios desde el DÍA 0. Saneado: máx 20, strings cortos.
+      const serviciosClean = Array.isArray(servicios)
+        ? servicios.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 60)).slice(0, 20)
+        : [];
       // Único plan comercial: Negocio €49. Se ignora cualquier `plan` del form
       // (incluido el legacy 'pro' de enlaces antiguos).
       const plan = 'negocio';
@@ -250,6 +256,7 @@ function setupRegistroRoutes(app) {
         idioma: efectivoIdioma,
         saludo: efectivoSaludo,
         horario:  typeof horario === 'object' ? horario : {},
+        ...(serviciosClean.length ? { servicios: serviciosClean } : {}),
         language: effectiveLanguage,
         ...(effectiveSource ? { source: effectiveSource } : {}),
         ...(couponData ? {

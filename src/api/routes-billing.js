@@ -256,6 +256,24 @@ function setupBillingRoutes(app, config) {
                   ...(registro.sector ? { assistant_config: { sector: registro.sector } } : {}),
                 });
 
+                // Servicios del onboarding → serviceList desde el DÍA 0: las
+                // reglas de seguimiento se auto-ajustan a lo que OFRECE (una
+                // clínica sin psicotécnicos nace sin esa regla) y el asistente
+                // conoce su carta. El bloque del número (más abajo) re-lee
+                // automation_config y hace merge, así que esto no se pisa.
+                if (Array.isArray(registro.servicios) && registro.servicios.length) {
+                  try {
+                    const serviceList = registro.servicios.map(name => ({ name }));
+                    const { data: cur } = await db.client.from('organizations')
+                      .select('automation_config').eq('id', org.id).maybeSingle();
+                    const ac = (cur && cur.automation_config) || {};
+                    await db.client.from('organizations').update({
+                      automation_config: { ...ac, config: { ...(ac.config || {}), serviceList } },
+                    }).eq('id', org.id);
+                    log.info(`serviceList sembrada desde el onboarding: ${serviceList.length} servicios (${org.id})`);
+                  } catch (e) { log.warn(`serviceList del onboarding falló: ${e.message}`); }
+                }
+
                 // Crear asistente por defecto. El saludo sale de la fuente única
                 // (i18n.defaultFirstMessage): incluye la presentación como
                 // asistente virtual (transparencia IA) y el token {{GREETING}}
