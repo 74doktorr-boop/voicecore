@@ -1143,6 +1143,31 @@ function dashFeed(list) {
 // pero el calendario NO está conectado, las citas no llegan a la agenda real del
 // dueño — viven solo en el portal = fallo silencioso. Antes era un opt-in
 // enterrado en "Apps"; ahora se pide en el dashboard hasta conectar u ocultar.
+// Citas de MAÑANA con riesgo de plantón — el dueño las confirma personalmente.
+function dashAtRisk(atRisk) {
+  if (!atRisk || !atRisk.length) return '';
+  var rows = atRisk.map(function (a) {
+    var tel = String(a.phone || '').replace(/[^0-9]/g, '');
+    return '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap">' +
+      '<div style="font-weight:700;font-size:13px;min-width:44px">' + esc(a.time || '—') + '</div>' +
+      '<div style="flex:1;min-width:120px">' +
+        '<div style="font-size:13px;color:var(--text)">' + esc(a.patientName || 'Cliente') + (a.service ? ' · <span style="color:var(--dim)">' + esc(a.service) + '</span>' : '') + '</div>' +
+        '<div style="font-size:11px;color:#e0a030">' + esc(a.note || ('Ha faltado ' + a.noShows + ' veces')) + '</div>' +
+      '</div>' +
+      (tel ? '<a class="btn btn-d btn-sm" style="text-decoration:none" href="https://wa.me/' + tel + '" target="_blank">💬</a>' +
+             '<button class="btn btn-d btn-sm" onclick="callOutbound(\'' + esc(a.phone) + '\',this)">📞</button>' : '') +
+    '</div>';
+  }).join('');
+  return '<div class="card" style="margin-bottom:20px;border-color:rgba(224,160,48,.35);background:rgba(224,160,48,.05)">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">' +
+      '<div style="font-size:22px">⚠️</div>' +
+      '<div style="font-weight:800;font-size:14px">' + atRisk.length + ' cita' + (atRisk.length !== 1 ? 's' : '') + ' de mañana con riesgo de plantón</div>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:6px">Estos clientes suelen faltar. Una llamada tuya hoy convierte el hueco en dinero, no en una ausencia.</div>' +
+    rows +
+  '</div>';
+}
+
 function dashCalendarNudge(cal, mode) {
   if (!cal || !cal.enabled || cal.connected) return '';   // no aplica o ya conectado
   if (mode === 'contacto') return '';                      // no agenda citas → no molestar
@@ -1313,7 +1338,7 @@ async function loadDashboard() {
 
   // Contadores accionables + consumo de minutos (en paralelo, tolerante a fallos)
   var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
-  var usage = null, cal = null, asisMode = 'citas';
+  var usage = null, cal = null, asisMode = 'citas', atRisk = [];
   try {
     var r = await Promise.all([
       api('/api/portal/missed-opportunities').catch(function () { return {}; }),
@@ -1323,6 +1348,7 @@ async function loadDashboard() {
       api('/api/billing/usage').catch(function () { return null; }),
       api('/api/calendar/status').catch(function () { return null; }),
       api('/api/portal/assistant').catch(function () { return null; }),
+      api('/api/portal/at-risk-tomorrow').catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
@@ -1332,6 +1358,7 @@ async function loadDashboard() {
     usage = r[4];
     cal = r[5];
     asisMode = (r[6] && r[6].config && r[6].config.mode) || 'citas';
+    atRisk = (r[7] && r[7].atRisk) || [];
   } catch (e) {}
 
   sec.innerHTML =
@@ -1339,6 +1366,7 @@ async function loadDashboard() {
     dashMinutes(usage) +
     dashSetup(d) +
     dashCalendarNudge(cal, asisMode) +
+    dashAtRisk(atRisk) +
     dashRecos(act) +
     dashContinue() +
     dashQuick(act) +

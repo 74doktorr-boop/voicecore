@@ -563,6 +563,31 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true, count: appointments.length, appointments });
   });
 
+  // ── GET /api/portal/at-risk-tomorrow ──────────────────────
+  // Citas de MAÑANA cuyo cliente tiene riesgo ALTO de plantón, para que el
+  // dueño las confirme personalmente. Hace accionable la predicción (op.5).
+  app.get('/api/portal/at-risk-tomorrow', portalAuth, (req, res) => {
+    try {
+      const { businessId } = req;
+      const { computeNoShowRisk } = require('../lifecycle/no-show-risk');
+      const { normalizePhone } = require('../utils/phone');
+      const all = scheduler.getAppointments(businessId) || [];
+      const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+      const tomorrow = all.filter(a => a.date === tomorrowStr && a.status !== 'cancelled' && a.phone);
+      const atRisk = [];
+      for (const apt of tomorrow) {
+        const p9 = normalizePhone(apt.phone);
+        const history = all.filter(h => normalizePhone(h.phone) === p9 && h !== apt);
+        const risk = computeNoShowRisk(history);
+        if (risk.level === 'high') {
+          atRisk.push({ id: apt.id, patientName: apt.patientName, phone: apt.phone, time: apt.time, service: apt.service, noShows: risk.noShows, note: risk.note });
+        }
+      }
+      atRisk.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      res.json({ ok: true, date: tomorrowStr, atRisk });
+    } catch (e) { log.warn(`at-risk-tomorrow: ${e.message}`); res.json({ ok: true, atRisk: [] }); }
+  });
+
   // ── POST /api/portal/appointments ─────────────────────────
   app.post('/api/portal/appointments', portalAuth, (req, res) => {
     const { businessId } = req;
