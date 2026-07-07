@@ -220,6 +220,12 @@ function setupBillingRoutes(app, config) {
               await billing.addOverageItem(subscriptionId)
                 .catch(e => log.warn(`No se pudo añadir item de overage: ${e.message}`));
             }
+            // Ítem del paquete de MENSAJES (0,10€/extra, meter 'mensajes_extra')
+            // — mismo patrón que los minutos; gateado por su env.
+            if (subscriptionId && process.env.STRIPE_MSG_PRICE_ID) {
+              await billing.addOverageItem(subscriptionId, process.env.STRIPE_MSG_PRICE_ID)
+                .catch(e => log.warn(`No se pudo añadir item de mensajes: ${e.message}`));
+            }
 
             // Plan del formulario coincide directamente con el valor de DB ('starter'|'negocio'|'pro')
             const orgPlan = registro.plan || 'negocio';
