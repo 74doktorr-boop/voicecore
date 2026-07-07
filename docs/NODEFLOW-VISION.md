@@ -357,3 +357,31 @@ Guard emergieron tres activos que trascienden el vertical.
 *Última revisión: 2026-07-06 · Ritual: cada feature terminada pasa por las 10
 preguntas + test de demo 30s + Compounding Score, y lo que emerja se escribe
 AQUÍ en lenguaje de cliente. Añadir aquí, no en la cabeza.*
+
+## Oportunidades capturadas — maratón 2026-07-07 (motor de seguimientos completo)
+
+Estado: el motor quedó completo esta madrugada (33 sectores ligados a servicios,
+Ficha 360, promo 📣, paquete de mensajes 200+0,10€, campañas del año, mensaje
+100% del dueño con {detalle}, fechas inventadas por el negocio). Oportunidades
+que emergieron construyéndolo — solo oportunidades, en orden de compounding:
+
+- **(#cuidado) Respuesta negativa al "¿qué tal fue?" → alerta urgente al dueño.**
+  El check-in ya sale; cuando el cliente responda "mal", el webhook la ve pasar.
+  Clasificación determinista (regex de queja) → flag_urgent. Es la mitad que
+  falta del valor del como_fue: no solo preguntar — rescatar. Compounding: 9.
+- **(#fidelización) Cumpleaños universal (cliente y MASCOTA en vete).** Campo
+  fecha en la ficha + plantilla felicitación con detalle opcional. Nadie del
+  mercado local lo hace con cero esfuerzo del dueño. Compounding: 8.
+- **(#whatsapp) Embedded Signup del número propio — YA desbloqueado.** La App
+  de Meta está publicada; falta la revisión "proveedor de tecnología" (días).
+  Cuando pase, el add-on wa_own_number (+15€) se activa solo desde el portal:
+  ingreso recurrente sin fricción. Empezar la revisión cuanto antes. Compounding: 8.
+- **(#datos) Predicción de no-shows.** El historial por contacto ya existe
+  (citas + estados); "María tiene 3 plantones → pide confirmación extra" es
+  una regla determinista sobre datos que ya guardamos. Compounding: 7.
+- **(#campañas) Campañas propias del dueño (fecha+texto libres).** El catálogo
+  estacional es nuestro; dejar que inventen las suyas ("aniversario del local")
+  es el mismo motor con una fila más en org_campaigns + UI. Compounding: 6.
+- **(#i18n) Plantillas WhatsApp en gl/eu.** El clamp de idioma ya existe; al
+  aprobar plantillas en galego, los negocios gallegos envían en su lengua sin
+  tocar código. Diferencial emocional en el mercado objetivo. Compounding: 6.
