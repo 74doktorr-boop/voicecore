@@ -13,20 +13,34 @@ var _wizardContacts = [];  // cache of contacts loaded for the wizard
 var _wizardFields   = [];  // cache of sector fields for the wizard
 
 // ── API helper ────────────────────────────────────────────────
-async function api(path, method, body) {
+async function api(path, method, body, timeoutMs) {
   method = method || 'GET';
+  // Timeout de red: sin esto, una consulta que cuelga (pooler de Supabase
+  // saturado en frío → hasta 20s) congelaba el dashboard entero, que espera
+  // varias en paralelo (bug 2026-07-07). Aborta a los 12s (GET) — el llamador
+  // lo cachea con .catch y renderiza sin ese panel en vez de quedar en blanco.
+  var ctrl = new AbortController();
+  var to = setTimeout(function() { ctrl.abort(); }, timeoutMs || (method === 'GET' ? 12000 : 30000));
   var opts = {
     method: method,
+    signal: ctrl.signal,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + _token,
     },
   };
   if (body !== undefined && body !== null) opts.body = JSON.stringify(body);
-  var res = await fetch(path, opts);
-  var data = await res.json().catch(function() { return {}; });
-  if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
-  return data;
+  try {
+    var res = await fetch(path, opts);
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    return data;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('La respuesta tardó demasiado — inténtalo de nuevo');
+    throw e;
+  } finally {
+    clearTimeout(to);
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -1353,19 +1367,21 @@ async function loadDashboard() {
     return;
   }
 
-  // Contadores accionables + consumo de minutos (en paralelo, tolerante a fallos)
+  // Contadores accionables + consumo de minutos (en paralelo, tolerante a fallos).
+  // Timeout CORTO (6s): son secundarios; si la BD va lenta, el dashboard se
+  // pinta igual y el panel que falta sale a 0 en vez de congelar todo.
   var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
   var usage = null, cal = null, asisMode = 'citas', atRisk = [];
   try {
     var r = await Promise.all([
-      api('/api/portal/missed-opportunities').catch(function () { return {}; }),
-      api('/api/portal/tasks').catch(function () { return {}; }),
-      api('/api/portal/waitlist').catch(function () { return {}; }),
-      api('/api/portal/knowledge/unanswered').catch(function () { return {}; }),
-      api('/api/billing/usage').catch(function () { return null; }),
-      api('/api/calendar/status').catch(function () { return null; }),
-      api('/api/portal/assistant').catch(function () { return null; }),
-      api('/api/portal/at-risk-tomorrow').catch(function () { return {}; }),
+      api('/api/portal/missed-opportunities', null, null, 6000).catch(function () { return {}; }),
+      api('/api/portal/tasks', null, null, 6000).catch(function () { return {}; }),
+      api('/api/portal/waitlist', null, null, 6000).catch(function () { return {}; }),
+      api('/api/portal/knowledge/unanswered', null, null, 6000).catch(function () { return {}; }),
+      api('/api/billing/usage', null, null, 6000).catch(function () { return null; }),
+      api('/api/calendar/status', null, null, 6000).catch(function () { return null; }),
+      api('/api/portal/assistant', null, null, 6000).catch(function () { return null; }),
+      api('/api/portal/at-risk-tomorrow', null, null, 6000).catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
