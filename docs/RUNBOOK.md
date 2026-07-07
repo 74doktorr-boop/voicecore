@@ -145,3 +145,27 @@ el resampler de utils/audio ya filtra. Las previews del navegador pasan por
 **Gotcha Meta idiomas:** las plantillas de WhatsApp NO admiten euskera (eu) ni
 gallego (gl) — verificado por API. La localización eu/gl va por SMS/email
 (fallbackText) y por el texto libre del dueño en nodeflow_aviso.
+
+## ⚠️ ANTES de lanzar marketing masivo por WhatsApp — coste de Meta
+
+WhatsApp cambió a **precio POR MENSAJE** en 2025 (ya no "1.000 conversaciones
+gratis/mes", ese era el modelo viejo). Reglas actuales:
+- **Servicio (el cliente escribe primero)** → gratis e ilimitado en la ventana 24h.
+- **Plantillas UTILITY** (confirmación, recordatorio) → gratis dentro de la
+  ventana de servicio abierta; si no, se cobran.
+- **Plantillas MARKETING** (promo, reactivación, nodeflow_promo, nodeflow_aviso
+  cuando es promocional) → **SE COBRAN SIEMPRE**, por mensaje entregado, tarifa España.
+
+**ACCIÓN antes de escalar:** consultar la tarifa España vigente en la página
+oficial de precios de WhatsApp de Meta (cambia; no fiarse de cifras de memoria)
+y cuadrarla con NUESTRO paquete (200 msg/mes + 0,10€ extra que cobramos al
+negocio). Verificar margen: coste-Meta-por-plantilla-marketing < 0,10€.
+
+**Umbral de facturación de Meta:** al añadir tarjeta a una WABA, Meta pone un
+límite de facturación automático (visto 20€ el 2026-07-07 — cargo "Pendiente,
+sin motivo" con uso real 0€ = era el umbral/autorización de la tarjeta, NO
+mensajes; las conversaciones facturables estaban a 0€ verificado por API). Se
+revisa/ajusta en Facturación → Configuración de pagos / Líneas de crédito.
+Ojo: hay 2 WABA "NodeFlow" en el business (2548201375610184 = la que usa el
+código; 2089981524951027 = duplicada, posible resto de pruebas de Embedded
+Signup — revisar si sigue con tarjeta y facturando por su cuenta).
