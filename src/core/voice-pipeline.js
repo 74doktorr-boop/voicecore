@@ -487,6 +487,17 @@ class VoicePipeline {
 
       // Handle tool calls
       if (pendingToolCalls.length > 0 && !session.interrupted) {
+        // FRASE-PUENTE (2026-07-07): el turno con herramienta era ~3,8s de
+        // SILENCIO medido (LLM decide tool → tool corre → LLM redacta). Si aún
+        // no ha sonado nada este turno, un "un momento" cacheado (coste ~0 tras
+        // la 1ª vez) llena el hueco: el cliente sabe que seguimos ahí.
+        if (session._turnFirstAudioMs == null) {
+          const lang = session.assistant.language || 'es';
+          const filler = lang === 'eu' ? 'Momentu bat, mesedez…'
+            : lang === 'gl' ? 'Un momento, por favor…'
+            : 'Un momento, por favor…';
+          await this._speakText(callId, filler, { cache: true });
+        }
         await this._handleToolCalls(callId, session, pendingToolCalls, turnMetrics);
       } else if (fullResponse) {
         session.addAssistantMessage(fullResponse);

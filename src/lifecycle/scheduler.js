@@ -246,10 +246,12 @@ async function processOneReminder(reminder, db) {
 
     // Skip if a future appointment exists (client already has something booked)
     // Join via phone since nf_appointments has no contact_id
-    // EXCEPTO cumpleaños: es felicitación (cuidado), no captación — se envía
-    // igual aunque tenga cita, y tampoco se pospone por tope de frecuencia
-    // (felicitar tarde es peor que no felicitar).
-    const isGreeting = reminder.service_key === 'cumpleanos';
+    // EXCEPTO cumpleaños y avisos DIRECTOS del dueño (aviso_*): el cumpleaños
+    // es cuidado (no captación) y el aviso manual es voluntad explícita del
+    // negocio — ninguno se cancela por cita futura ni se pospone por tope de
+    // frecuencia (el dueño lo envió AHORA a propósito).
+    const isGreeting = reminder.service_key === 'cumpleanos'
+      || String(reminder.service_key || '').startsWith('aviso_');
     let newerApt = null;
     if (!isGreeting && contact?.phone) {
       const { data: newerAptData } = await db.client.from('nf_appointments')
@@ -290,7 +292,8 @@ async function processOneReminder(reminder, db) {
         .eq('id', reminder.id);
       // Cumpleaños es recurrente: al enviarse queda programado el del año
       // que viene (los contactos sin actividad no pasan por recalculate).
-      if (isGreeting) {
+      // SOLO cumpleanos — un aviso_* manual jamás se repite solo.
+      if (reminder.service_key === 'cumpleanos') {
         try {
           const next = new Date(reminder.scheduled_for);
           next.setFullYear(next.getFullYear() + 1);

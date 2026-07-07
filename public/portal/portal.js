@@ -285,7 +285,7 @@ async function loadEspera() {
       '<td>' + esc(w.service || '—') + '</td>' +
       '<td style="color:var(--dim);font-size:12px">' + esc(w.preferred || '—') + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
-        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none">📞</a> ' +
+        '<button class="btn btn-g btn-sm" onclick="dialOrCopy(\'' + esc(tel) + '\')">📞</button> ' +
         '<button class="btn btn-accent btn-sm" onclick="markWaitlistBooked(' + w.id + ')">✓ Citada</button> ' +
         '<button class="btn btn-d btn-sm" onclick="deleteWaitlist(' + w.id + ')">🗑</button>' +
       '</td></tr>';
@@ -324,6 +324,18 @@ async function deleteWaitlist(id) {
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
+// ── 📞 en escritorio: los enlaces tel: abren una página en blanco si no hay
+// app de llamadas (bug reportado por Unai 2026-07-07). En móvil marcamos;
+// en PC copiamos el número y lo decimos claro.
+function dialOrCopy(tel) {
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if (isTouch) { window.location.href = 'tel:' + tel; return; }
+  try {
+    navigator.clipboard.writeText(tel);
+    toast('📋 Número copiado: ' + tel + ' — márcalo desde tu teléfono');
+  } catch (e) { toast(tel, 'warn'); }
+}
+
 // ════════ Oportunidades (llamadas sin cita) ═══════════════════════════════════
 async function loadOportunidades() {
   var box = document.getElementById('oportunidades-body');
@@ -342,12 +354,17 @@ async function loadOportunidades() {
   }
   var rows = ops.map(function(o){
     var tel = o.phone.replace(/[^0-9+]/g,'');
+    // El número abre la TRANSCRIPCIÓN de su última llamada (antes era texto
+    // muerto y el 📞 tel: abría una página en blanco en PC).
+    var numCell = o.lastCallId
+      ? '<a href="#" onclick="openTranscriptModal(\'' + esc(o.lastCallId) + '\');return false" style="color:var(--accent-l);font-weight:700;text-decoration:none" data-tip="Ver qué dijo en su última llamada">' + esc(o.phone) + '</a>'
+      : '<strong>' + esc(o.phone) + '</strong>';
     return '<tr>' +
-      '<td><strong>' + esc(o.phone) + '</strong>' + (o.count>1?' <span class="badge bp" style="font-size:10px">'+o.count+' llamadas</span>':'') + '</td>' +
+      '<td>' + numCell + (o.count>1?' <span class="badge bp" style="font-size:10px">'+o.count+' llamadas</span>':'') + '</td>' +
       '<td style="color:var(--dim);font-size:12px">' + (o.lastCall?timeAgo(o.lastCall):'—') + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
         '<button class="btn btn-accent btn-sm" onclick="oppAiCall(\'' + esc(tel) + '\')">🤖 Que le llame</button> ' +
-        '<a class="btn btn-g btn-sm" href="tel:' + esc(tel) + '" style="text-decoration:none" data-tip="Llamar tú">📞</a> ' +
+        '<button class="btn btn-g btn-sm" onclick="dialOrCopy(\'' + esc(tel) + '\')" data-tip="Llamar tú">📞</button> ' +
         '<a class="btn btn-sm" style="background:#25d366;color:#fff;text-decoration:none" href="https://wa.me/' + esc(tel.replace(/\+/g,'')) + '" target="_blank" data-tip="WhatsApp">💬</a>' +
       '</td></tr>';
   }).join('');
@@ -2609,9 +2626,15 @@ async function loadClientes(q) {
       var tagsHtml = (c.tags && c.tags.length)
         ? '<div class="nf-client-tags">' + c.tags.map(function(t){return nfTagChip(t,false);}).join('') + '</div>'
         : '';
-      cardsHtml += '<div class="nf-client" role="button" tabindex="0" ' +
-        'onclick="openContactProfile(\'' + esc(c.id) + '\')" ' +
-        'onkeydown="if(event.key===\'Enter\')openContactProfile(\'' + esc(c.id) + '\')">' +
+      var selected = _clientesSelectMode && _clientesSelected.has(c.id);
+      var cardClick = _clientesSelectMode
+        ? 'nfToggleSelect(\'' + esc(c.id) + '\')'
+        : 'openContactProfile(\'' + esc(c.id) + '\')';
+      cardsHtml += '<div class="nf-client" role="button" tabindex="0" data-cid="' + esc(c.id) + '" ' +
+        'style="' + (_clientesSelectMode ? 'position:relative;' : '') + (selected ? 'border-color:var(--accent-l);box-shadow:0 0 0 1px var(--accent-l)' : '') + '" ' +
+        'onclick="' + cardClick + '" ' +
+        'onkeydown="if(event.key===\'Enter\')' + cardClick + '">' +
+        (_clientesSelectMode ? '<div style="position:absolute;top:8px;right:10px;font-size:15px">' + (selected ? '✅' : '⬜') + '</div>' : '') +
         '<div class="nf-client-top">' +
           '<div class="nf-client-avatar">' + esc(initial) + '</div>' +
           '<div class="u-flex-1" style="min-width:0">' +
@@ -2663,18 +2686,66 @@ async function loadClientes(q) {
       '<div class="kicker">Actividad</div><div class="section-title">Clientes</div>' +
       '<div class="u-flex u-items-center u-gap-2">' +
         '<span class="u-text-md u-dim">' + (data.count || 0) + ' contactos</span>' +
+        '<button class="btn ' + (_clientesSelectMode ? 'btn-accent' : 'btn-d') + ' btn-sm" onclick="toggleSelectMode()">📨 Avisar' + (_clientesSelectMode ? ' — cancelar' : '') + '</button>' +
         '<button class="btn btn-accent btn-sm" onclick="openPromoModal()">📣 Promoción</button>' +
         '<button class="btn btn-d btn-sm" onclick="openImportModal()">⬆ Importar</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
       '</div>' +
     '</div>' +
+    (_clientesSelectMode ? '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--dim)">📨 Toca los clientes a los que quieras enviar un aviso por WhatsApp <strong style="color:var(--text)">en nombre de tu negocio</strong>, y pulsa "Escribir aviso" abajo.</div>' : '') +
     '<div class="search-bar">' +
       '<input class="search-input" id="clientesSearch" placeholder="Buscar por nombre, teléfono o email…"' +
         ' value="' + esc(q) + '" oninput="onClientesSearch()">' +
     '</div>' +
     attnFilter +
     tagFilter +
-    cardsHtml;
+    cardsHtml +
+    (_clientesSelectMode ? '<div style="position:sticky;bottom:12px;margin-top:14px;display:flex;gap:10px;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,.35)">' +
+      '<span style="font-size:13px;color:var(--dim)"><strong style="color:var(--text)">' + _clientesSelected.size + '</strong> seleccionado' + (_clientesSelected.size !== 1 ? 's' : '') + '</span>' +
+      '<button class="btn btn-accent btn-sm" ' + (_clientesSelected.size ? '' : 'disabled ') + 'onclick="openNotifyModal()">Escribir aviso →</button>' +
+    '</div>' : '');
+}
+
+// ── 📨 Aviso directo a clientes seleccionados ────────────────────────────────
+var _clientesSelectMode = false;
+var _clientesSelected = new Set();
+
+function toggleSelectMode() {
+  _clientesSelectMode = !_clientesSelectMode;
+  if (!_clientesSelectMode) _clientesSelected.clear();
+  loadClientes((document.getElementById('clientesSearch') || {}).value || '');
+}
+
+function nfToggleSelect(id) {
+  if (_clientesSelected.has(id)) _clientesSelected.delete(id); else _clientesSelected.add(id);
+  loadClientes((document.getElementById('clientesSearch') || {}).value || '');
+}
+
+function openNotifyModal() {
+  if (!_clientesSelected.size) return;
+  openModal(
+    '<div class="modal-title">📨 Aviso a ' + _clientesSelected.size + ' cliente' + (_clientesSelected.size !== 1 ? 's' : '') + '</div>' +
+    '<p style="color:var(--dim);font-size:13px;line-height:1.6;margin-bottom:10px">Les llegará por WhatsApp como <strong style="color:var(--text)">"Hola [nombre], un mensaje de ' + esc((window._bizName || 'tu negocio')) + ': [tu texto]"</strong>. Cuenta para tu paquete de mensajes; quien pidió no recibir avisos queda excluido automáticamente.</p>' +
+    '<textarea id="notifyText" maxlength="240" placeholder="ej. mañana cerramos por la tarde — si tenías pensado pasarte, ven por la mañana." style="width:100%;min-height:84px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5"></textarea>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="sendNotifyClients(this)">Enviar aviso</button>' +
+    '</div>');
+}
+
+async function sendNotifyClients(btn) {
+  var text = ((document.getElementById('notifyText') || {}).value || '').trim();
+  if (text.length < 10) { toast('Escribe el mensaje (mínimo 10 caracteres)', 'warn'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
+  try {
+    var r = await api('/api/portal/notify-clients', 'POST', { contactIds: Array.from(_clientesSelected), text: text });
+    closeModal();
+    toast('📨 Aviso en camino a ' + r.queued + ' cliente' + (r.queued !== 1 ? 's' : '') + (r.skipped ? ' (' + r.skipped + ' excluidos por sus preferencias)' : ''));
+    toggleSelectMode();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar aviso'; }
+    toast(e.message || 'No se pudo enviar', 'err');
+  }
 }
 
 function setClientesTag(tag) {
@@ -5406,6 +5477,12 @@ function addRecipeRow(i) {
   box.appendChild(tmp.firstChild);
   var card = document.querySelector('.recipe-card[data-recipe="' + i + '"]');
   if (card) card.remove();
+  // Última idea añadida → fuera también la cabecera (quedaba huérfana:
+  // "Ideas para tu sector" sin ideas debajo — reporte de Unai 2026-07-07).
+  if (!document.querySelector('#rules-recipes .recipe-card')) {
+    var rbox = document.getElementById('rules-recipes');
+    if (rbox) rbox.innerHTML = '';
+  }
   toast('Añadido — revisa los días y pulsa "Guardar cambios"');
   box.lastChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -6335,7 +6412,7 @@ async function loadWidget() {
         var when = c.created_at ? new Date(c.created_at).toLocaleString('es-ES') : '';
         return '<tr>' +
           '<td>' + esc(c.name || '—') + '</td>' +
-          '<td><a href="tel:' + esc(c.phone) + '" style="color:var(--accent-l)">' + esc(c.phone) + '</a></td>' +
+          '<td><a href="#" onclick="dialOrCopy(\'' + esc(String(c.phone||'').replace(/[^0-9+]/g,'')) + '\');return false" style="color:var(--accent-l)">' + esc(c.phone) + '</a></td>' +
           '<td style="color:var(--dim);font-size:12px">' + esc(c.message || '') + '</td>' +
           '<td style="color:var(--dim);font-size:12px">' + esc(when) + '</td>' +
         '</tr>';

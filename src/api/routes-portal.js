@@ -1464,7 +1464,7 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       const { data } = await db.client
         .from('nf_calls')
-        .select('caller_number, outcome, started_at, duration_ms')
+        .select('id, caller_number, outcome, started_at, duration_ms')
         .eq('org_id', req.businessId)
         .gte('started_at', since)
         .neq('outcome', 'booked')
@@ -1478,7 +1478,8 @@ function setupPortalRoutes(app, pipeline, config) {
       for (const c of (data || [])) {
         if (!c.caller_number) continue;
         if (excluded.has(normalizePhone(c.caller_number))) continue;
-        if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, count: 0, lastOutcome: c.outcome };
+        // lastCallId → el portal abre la TRANSCRIPCIÓN al clicar el número
+        if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, lastCallId: c.id, count: 0, lastOutcome: c.outcome };
         byPhone[c.caller_number].count++;
       }
       const opportunities = Object.values(byPhone)
@@ -2616,6 +2617,46 @@ function setupPortalRoutes(app, pipeline, config) {
       log.info(`Promo (${req.flowConfig.name}): ${out.sent}/${out.recipients} enviadas`);
       res.json({ ok: true, ...out });
     } catch (e) { log.warn(`promo: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // ── 📨 Aviso directo a clientes SELECCIONADOS (2026-07-07, pedido Unai) ──
+  // "Contactar a X clientes por WhatsApp en nombre del negocio": el dueño
+  // marca clientes concretos y escribe SU mensaje. Viaja como TXT: por la
+  // plantilla-portadora nodeflow_aviso vía el dispatcher normal → respeta
+  // opt-outs/pausas, entra al ledger (paquete + ficha + ROI). Tope 50/envío.
+  const _notifyLast = new Map();
+  app.post('/api/portal/notify-clients', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+      const text = String((req.body && req.body.text) || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+      const ids = Array.isArray(req.body && req.body.contactIds) ? req.body.contactIds.slice(0, 50) : [];
+      if (text.length < 10) return res.status(400).json({ error: 'Escribe el mensaje (mínimo 10 caracteres)' });
+      if (!ids.length) return res.status(400).json({ error: 'Selecciona al menos un cliente' });
+      const last = _notifyLast.get(req.businessId) || 0;
+      if (Date.now() - last < 60 * 1000) return res.status(429).json({ error: 'Espera un minuto entre avisos.' });
+      _notifyLast.set(req.businessId, Date.now());
+
+      // Propiedad: solo contactos de SU org.
+      const { data: owned } = await db.client.from('contacts')
+        .select('id').eq('org_id', req.businessId).is('deleted_at', null).in('id', ids);
+      const validIds = (owned || []).map(c => c.id);
+
+      const { scheduleReminder } = require('../lifecycle/reminder-engine');
+      const crypto = require('crypto');
+      let queued = 0, skipped = 0;
+      for (const cid of validIds) {
+        const out = await scheduleReminder({
+          orgId: req.businessId, contactId: cid,
+          serviceKey: 'aviso_' + crypto.randomBytes(4).toString('hex'),
+          scheduledFor: new Date(Date.now() + 5000),
+          channel: 'whatsapp', messagePreview: 'TXT:' + text,
+        });
+        if (out && out.ok) queued++; else skipped++;
+      }
+      log.info(`Aviso directo (${req.flowConfig.name}): ${queued} encolados, ${skipped} saltados de ${ids.length}`);
+      res.json({ ok: true, queued, skipped, invalid: ids.length - validIds.length });
+    } catch (e) { log.warn(`notify-clients: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ── FICHA 360: seguimiento PERSONAL para un cliente concreto ──
