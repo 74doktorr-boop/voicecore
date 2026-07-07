@@ -214,7 +214,7 @@ async function handleReply({ from, type, payload }) {
 }
 
 // ── Opt-out (cumplimiento WhatsApp: honrar bajas evita reportes y bans) ───────
-const OPTOUT_RE = /\b(baja|stop|darme de baja|dar de baja|no\s*molestar|no\s*quiero(?:\s*m[aá]s)?|unsubscribe|dejar de (?:recibir|escribir)|suscripci[oó]n)\b/i;
+const OPTOUT_RE = /\b(baja|baixa|stop|darme de baja|dar de baja|no\s*molestar|no\s*quiero(?:\s*m[aá]s)?|unsubscribe|dejar de (?:recibir|escribir)|suscripci[oó]n|ez dut nahi|kendu|baja eman)\b/i;
 
 function isOptOut(text = '') {
   return OPTOUT_RE.test(String(text));

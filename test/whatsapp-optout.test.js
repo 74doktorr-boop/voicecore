@@ -52,7 +52,9 @@ describe('isCourtesy — cortesías que NO molestan al dueño', () => {
 
 describe('isOptOut — detección de baja', () => {
   const yes = ['BAJA', 'baja', 'Me doy de baja', 'STOP', 'stop', 'no quiero más mensajes',
-               'No quiero mas mensajes', 'dejar de recibir', 'unsubscribe', 'cancelar suscripción', 'NO MOLESTAR'];
+               'No quiero mas mensajes', 'dejar de recibir', 'unsubscribe', 'cancelar suscripción', 'NO MOLESTAR',
+               // Euskera/gallego (2026-07-07, con las plantillas eu/gl):
+               'quero darme de baixa', 'BAIXA', 'ez dut nahi', 'kendu mesedez'];
   for (const t of yes) {
     test(`detecta baja: "${t}"`, () => assert.strictEqual(isOptOut(t), true));
   }

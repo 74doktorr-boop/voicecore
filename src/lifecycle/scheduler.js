@@ -58,6 +58,30 @@ const SERVICE_LABELS = {
 // que viaje como {{n}} pasa por aquí (nombres importados de CSV incluidos).
 function waParam(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
 
+// Texto de FALLBACK (SMS/email) por idioma — coherente con la plantilla de
+// WhatsApp localizada (2026-07-07). Solo el marco cambia; los datos van igual.
+function fallbackText(kind, lang, { firstName, orgName, label }) {
+  const L = (lang === 'eu' || lang === 'gl') ? lang : 'es';
+  const T = {
+    servicio: {
+      es: `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${label}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`,
+      eu: `Kaixo ${firstName} 👋 ${orgName} gara. ${label} egiteko garaia iritsi da. Hitzordua hartu nahi duzu? Erantzun mezu honi edo deitu iezaguzu.`,
+      gl: `Ola ${firstName} 👋 Escribímosche desde ${orgName}. Chegou o momento de ${label}. Axudámoste a reservar cita? Podes responder a esta mensaxe ou chamarnos directamente.`,
+    },
+    aviso: {
+      es: `Hola ${firstName}, un mensaje de ${orgName}: ${label} Puedes respondernos por aquí o llamarnos cuando quieras.`,
+      eu: `Kaixo ${firstName}, ${orgName}(r)en mezua: ${label} Erantzun hemen edo deitu nahi duzunean.`,
+      gl: `Ola ${firstName}, unha mensaxe de ${orgName}: ${label} Podes respondernos por aquí ou chamarnos cando queiras.`,
+    },
+    como_fue: {
+      es: `Hola ${firstName}, somos ${orgName}. ¿Qué tal fue ${label}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.`,
+      eu: `Kaixo ${firstName}, ${orgName} gara. Zer moduz joan zen ${label}? Zerbait doitu behar baduzu edo zalantzarik baduzu, erantzun hemen eta pozik lagunduko dizugu.`,
+      gl: `Ola ${firstName}, somos ${orgName}. Que tal foi ${label}? Se precisas calquera axuste ou tes algunha dúbida, respóndenos por aquí e axudámoste encantados.`,
+    },
+  };
+  return (T[kind] && T[kind][L]) || T[kind].es;
+}
+
 function buildMessage(reminder, contact, memory) {
   const name      = waParam(contact?.name) || 'cliente';
   const firstName = name.split(' ')[0];
@@ -77,7 +101,7 @@ function buildMessage(reminder, contact, memory) {
   if (typeof reminder.message_preview === 'string' && reminder.message_preview.startsWith('TXT:')) {
     const ownText = waParam(reminder.message_preview.slice(4));
     return {
-      text: `Hola ${firstName}, un mensaje de ${orgName}: ${ownText}`,
+      text: fallbackText('aviso', lang, { firstName, orgName, label: ownText }),
       language: templateLanguage('nodeflow_aviso', lang),
       waTemplateName: 'nodeflow_aviso',
       waComponents: [{
@@ -100,7 +124,7 @@ function buildMessage(reminder, contact, memory) {
     // que Meta apruebe la plantilla nodeflow_como_fue_v2.
     const tplName = process.env.WA_COMO_FUE_BUTTONS === '1' ? 'nodeflow_como_fue_v2' : 'nodeflow_como_fue';
     return {
-      text: `Hola ${firstName}, somos ${orgName}. ¿Qué tal fue ${careLabel}? Si necesitas cualquier ajuste o tienes alguna duda, respóndenos por aquí y te ayudamos encantados.`,
+      text: fallbackText('como_fue', lang, { firstName, orgName, label: careLabel }),
       language: templateLanguage(tplName, lang),
       waTemplateName: tplName,
       waComponents: [{
@@ -114,7 +138,7 @@ function buildMessage(reminder, contact, memory) {
     };
   }
 
-  const text = `Hola ${firstName} 👋 Te escribimos desde ${orgName}. Ha llegado el momento de ${serviceLabel}. ¿Te ayudamos a reservar cita? Puedes responder a este mensaje o llamarnos directamente.`;
+  const text = fallbackText('servicio', lang, { firstName, orgName, label: serviceLabel });
 
   return {
     text,

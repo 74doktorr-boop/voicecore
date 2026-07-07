@@ -32,12 +32,19 @@ describe('WA_TEMPLATES — integridad', () => {
 });
 
 describe('templateLanguage — clamp de idioma', () => {
-  test('preferencia no aprobada (eu/gl) cae al idioma aprobado', () => {
-    assert.strictEqual(templateLanguage('nodeflow_recordatorio_servicio', 'eu'), 'es');
-    assert.strictEqual(templateLanguage('nodeflow_recordatorio_servicio', 'gl'), 'es');
+  // Meta NO admite eu/gl en WhatsApp (verificado por API 2026-07-07): el
+  // clamp DEBE caer a 'es' para no enrutar a una plantilla inexistente
+  // (que rompería el envío WhatsApp del cliente eu/gl).
+  test('preferencia eu/gl cae a es en el canal WhatsApp', () => {
+    for (const name of ['nodeflow_recordatorio_servicio', 'nodeflow_aviso', 'nodeflow_como_fue']) {
+      assert.strictEqual(templateLanguage(name, 'eu'), 'es', `${name} eu debe caer a es`);
+      assert.strictEqual(templateLanguage(name, 'gl'), 'es', `${name} gl debe caer a es`);
+      assert.strictEqual(templateLanguage(name, 'es'), 'es');
+    }
   });
-  test('preferencia aprobada se respeta', () => {
-    assert.strictEqual(templateLanguage('nodeflow_recordatorio_servicio', 'es'), 'es');
+  test('no hay ninguna plantilla eu/gl (Meta no las admite)', () => {
+    const bad = WA_TEMPLATES.filter(t => t.language === 'eu' || t.language === 'gl');
+    assert.strictEqual(bad.length, 0, 'Meta rechaza eu/gl — no deben registrarse');
   });
   test('plantilla desconocida → es (default seguro)', () => {
     assert.strictEqual(templateLanguage('no_existe', 'eu'), 'es');

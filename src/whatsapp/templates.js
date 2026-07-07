@@ -112,6 +112,13 @@ const WA_TEMPLATES = [
       { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
     ],
   },
+  // NOTA (2026-07-07, oportunidad 7): Meta NO admite euskera (eu) ni gallego
+  // (gl) como idioma de plantilla de WhatsApp (sí catalán) — verificado por
+  // API. Por eso el motor no tiene variantes eu/gl aquí: templateLanguage cae
+  // a 'es' y el WhatsApp automático sale con marco español. La localización a
+  // eu/gl SÍ ocurre en SMS/email (texto libre, ver fallbackText en scheduler)
+  // y en los mensajes propios del dueño, que puede escribirlos en su lengua
+  // dentro de la plantilla-portadora nodeflow_aviso ({{3}} = texto libre).
   {
     // POST-SERVICIO v2 con BOTONES (2026-07-07): responder cuesta un tap →
     // dispara la tasa de respuesta del check-in. 👍 abre la máquina de
