@@ -247,7 +247,7 @@ Object.entries(LEGACY_REDIRECTS).forEach(([from, to]) => {
 });
 
 // ─── Páginas legales ───
-['privacidad', 'terminos', 'aviso-legal'].forEach(page => {
+['privacidad', 'terminos', 'aviso-legal', 'condiciones'].forEach(page => {
   const file = path.join(__dirname, 'public', page, 'index.html');
   app.get([`/${page}`, `/${page}/`], serveGitHubPage(`/${page}/index.html`, file));
 });
