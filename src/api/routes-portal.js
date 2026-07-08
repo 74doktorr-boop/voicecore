@@ -3319,6 +3319,214 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ════════ IMPORTACIÓN MÁGICA (v1) — su Excel → fichas avisando solas ══════
+  // El desbloqueador de adopción: pega su listado, el sistema detecta las
+  // columnas contra la plantilla de SU sector (determinista, cero LLM) y crea
+  // las fichas con el dueño vinculado por teléfono. Parser/mapeo/validación
+  // son PUROS en src/entities/entity-import.js; aquí solo la escritura
+  // (org-scoped SIEMPRE) y el disparo de los avisos 🔔.
+
+  // Resuelve gate + tipo + parseo + mapeo + filas. Compartido por preview y
+  // commit (el commit re-parsea: sin estado en el servidor entre pasos).
+  async function _entityImportPrepare(req) {
+    const types = await _entityGate(req);
+    if (!types) return { status: 404, error: 'Fichas no disponibles' };
+
+    const body = req.body || {};
+    const type = types.find(t => t.key === String(body.type || '')) || types[0];
+    if (!type) return { status: 400, error: 'Tipo de ficha desconocido' };
+
+    const csv = String(body.csv || '');
+    if (!csv.trim()) return { status: 400, error: 'Pega tus datos o sube el archivo primero' };
+    if (csv.length > 2_000_000) return { status: 413, error: 'Fichero demasiado grande (máx ~2MB)' };
+
+    const { parseCsv, suggestMapping, sanitizeMapping, buildImportRows } =
+      require('../entities/entity-import');
+    const parsed = parseCsv(csv);
+    if (!parsed.headers.length || !parsed.rows.length) {
+      return { status: 400, error: 'No he encontrado datos: la primera línea deben ser los títulos de las columnas y debajo las filas' };
+    }
+
+    const mapping = Array.isArray(body.mapping)
+      ? sanitizeMapping(body.mapping, type.fields || [])
+      : suggestMapping(parsed.headers, type.fields || []);
+    const built = buildImportRows({ rows: parsed.rows, mapping, fields: type.fields || [] });
+    return { type, parsed, mapping, built };
+  }
+
+  // ── POST /api/portal/entities/import/preview ── analiza SIN escribir ──────
+  // { type, csv, mapping? } → columnas detectadas + mapeo sugerido (o el del
+  // dueño revalidado) + muestra de filas + conteos. Cambiar un select en el
+  // paso 2 re-llama aquí con el mapeo nuevo: la validación siempre es del
+  // servidor, la UI jamás inventa conteos.
+  app.post('/api/portal/entities/import/preview', portalAuth, async (req, res) => {
+    try {
+      const p = await _entityImportPrepare(req);
+      if (p.error) return res.status(p.status).json({ error: p.error });
+      const { MAX_IMPORT_ROWS } = require('../entities/entity-import');
+
+      res.json({
+        ok: true,
+        type:         p.type.key,
+        headers:      p.parsed.headers,
+        mapping:      p.mapping,
+        totalRows:    p.parsed.rows.length,
+        maxRows:      MAX_IMPORT_ROWS,
+        ready:        p.built.rows.length,
+        drafts:       p.built.rows.filter(r => r.isDraft).length,
+        withPhone:    p.built.rows.filter(r => r.phone).length,
+        skipped:      p.built.skipped.slice(0, 20),
+        skippedCount: p.built.skipped.length,
+        truncated:    p.built.truncated,
+        sample:       p.built.rows.slice(0, 5).map(r => ({
+          row: r.row, attrs: r.attrs, phone: r.phone, contactName: r.contactName, isDraft: r.isDraft,
+        })),
+      });
+    } catch (e) {
+      log.error('POST entities import preview', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/entities/import/commit ── crea las fichas en bloque ──
+  // { type, csv, mapping } → contactos por teléfono (vincula existentes por
+  // variantes; crea los que faltan — sin dueño no hay a quién avisar), fichas
+  // en chunks, eventos 'created' en bloque y avisos re-materializados en
+  // background. Devuelve { created, linked, contactsCreated, drafts, skipped }.
+  app.post('/api/portal/entities/import/commit', portalAuth, async (req, res) => {
+    try {
+      const p = await _entityImportPrepare(req);
+      if (p.error) return res.status(p.status).json({ error: p.error });
+      const { type, built } = p;
+      if (!built.rows.length) {
+        return res.status(400).json({
+          error: 'Ninguna fila válida para importar — revisa el mapeo de columnas',
+          skipped: built.skipped.slice(0, 20), skippedCount: built.skipped.length,
+        });
+      }
+
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+      const orgId = req.businessId;
+      const { phoneVariants, normalizePhone } = require('../utils/phone');
+      const { computeDisplayName } = require('../entities/entities');
+
+      // 1) Vincular dueños EXISTENTES por variantes de teléfono (+34/nacional/
+      //    espacios) — mismo criterio que la importación de clientes.
+      const contactIdByKey = new Map();
+      const withPhone = built.rows.filter(r => r.phone);
+      const uniqPhones = [...new Map(withPhone.map(r => [normalizePhone(r.phone), r.phone])).entries()]
+        .filter(([k]) => k);
+      const PHONE_CHUNK = 40;
+      for (let i = 0; i < uniqPhones.length; i += PHONE_CHUNK) {
+        const chunk = uniqPhones.slice(i, i + PHONE_CHUNK);
+        const variants = [...new Set(chunk.flatMap(([, phone]) => phoneVariants(phone)))];
+        if (!variants.length) continue;
+        try {
+          const { data } = await db.client.from('contacts')
+            .select('id, phone').eq('org_id', orgId).in('phone', variants);
+          for (const c of (data || [])) {
+            const k = normalizePhone(c.phone);
+            if (k && !contactIdByKey.has(k)) contactIdByKey.set(k, c.id);
+          }
+        } catch (e) { log.warn(`entity import: lookup contactos falló: ${e.message}`); }
+      }
+
+      // 2) Crear los contactos que FALTAN (dedupe por teléfono normalizado):
+      //    la promesa es "avisando solos" — sin contacto no hay aviso.
+      let contactsCreated = 0;
+      const toCreate = new Map();   // key normalizado → fila de contacts
+      for (const r of withPhone) {
+        const k = normalizePhone(r.phone);
+        if (!k || contactIdByKey.has(k) || toCreate.has(k)) continue;
+        toCreate.set(k, { org_id: orgId, phone: r.phone, name: r.contactName || null, call_count: 0 });
+      }
+      const newContacts = [...toCreate.values()];
+      const INSERT_CHUNK = 200;
+      for (let i = 0; i < newContacts.length; i += INSERT_CHUNK) {
+        const chunk = newContacts.slice(i, i + INSERT_CHUNK);
+        try {
+          const { data, error } = await db.client.from('contacts').insert(chunk).select('id, phone');
+          if (error) throw new Error(error.message);
+          for (const c of (data || [])) {
+            const k = normalizePhone(c.phone);
+            if (k) contactIdByKey.set(k, c.id);
+          }
+          contactsCreated += (data || []).length;
+        } catch (e) { log.warn(`entity import: alta de contactos falló: ${e.message}`); }
+      }
+
+      // 3) Fichas en chunks (display_name desnormalizado al escribir, como
+      //    createEntity — attrs YA validados por buildImportRows).
+      const skipped = [...built.skipped];
+      const created = [];
+      const ENT_CHUNK = 100;
+      for (let i = 0; i < built.rows.length; i += ENT_CHUNK) {
+        const chunk = built.rows.slice(i, i + ENT_CHUNK);
+        const payload = chunk.map(r => ({
+          organization_id: orgId,
+          entity_type_id:  type.id,
+          contact_id:      (r.phone && contactIdByKey.get(normalizePhone(r.phone))) || null,
+          display_name:    computeDisplayName(type.label_template, r.attrs, type.label_singular),
+          attrs:           r.attrs,
+        }));
+        try {
+          const { data, error } = await db.client.from('nf_entities')
+            .insert(payload).select('id, contact_id, display_name, attrs');
+          if (error) throw new Error(error.message);
+          created.push(...(data || []));
+        } catch (e) {
+          for (const r of chunk) skipped.push({ row: r.row, reason: `Error al guardar: ${e.message}` });
+        }
+      }
+
+      // 4) Evento 'created' en bloque (best effort: el timeline de cada ficha
+      //    cuenta de dónde salió; si falla, la importación NO se cae).
+      for (let i = 0; i < created.length; i += INSERT_CHUNK) {
+        const chunk = created.slice(i, i + INSERT_CHUNK);
+        await db.client.from('nf_entity_events').insert(chunk.map(en => ({
+          organization_id: orgId,
+          entity_id:       en.id,
+          kind:            'created',
+          title:           `${type.label_singular} importado: ${en.display_name}`,
+          properties:      { imported: true },
+          actor:           'staff',
+        }))).then(undefined, e => log.warn(`entity import: eventos no registrados: ${e.message}`));
+      }
+
+      // 5) Avisos 🔔 en background — el "avisando solos en 5 minutos": las
+      //    fichas con dueño y fecha materializan YA, no a la noche. Secuencial
+      //    y best effort (la pasada nocturna recoge lo que falle).
+      const withOwner = created.filter(en => en.contact_id);
+      if (withOwner.length) {
+        setImmediate(async () => {
+          try {
+            const { syncEntityRemindersNow } = require('../entities/entity-reminders');
+            for (const en of withOwner) {
+              await syncEntityRemindersNow({ orgId, entityType: type, entity: en }).catch(() => {});
+            }
+          } catch (_) {}
+        });
+      }
+
+      const linked = withOwner.length;
+      log.info(`Importación de entidades (${orgId}): ${created.length} fichas (${linked} con dueño, ${contactsCreated} contactos nuevos), ${skipped.length} saltadas`);
+      res.json({
+        ok: true,
+        created:         created.length,
+        linked,
+        contactsCreated,
+        drafts:          built.rows.filter(r => r.isDraft).length,
+        skipped:         skipped.slice(0, 50),
+        skippedCount:    skipped.length,
+        truncated:       built.truncated,
+      });
+    } catch (e) {
+      log.error('POST entities import commit', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
 } // end setupPortalRoutes
 
 module.exports = { setupPortalRoutes, portalAuth };

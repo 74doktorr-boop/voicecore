@@ -6716,7 +6716,10 @@ async function loadEntidades() {
       '<div><div class="kicker">Actividad</div>' +
       '<h2 class="section-title">' + esc(type.icon || '') + ' ' + esc(type.label_plural) + '</h2>' +
       '<p class="section-sub">Cada ficha guarda sus fechas importantes — los avisos a tus clientes salen solos ' + _entReminderPill(true) + '</p></div>' +
-      '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-d" style="font-size:15px;padding:12px 16px" onclick="openEntityImportModal()">📥 Importar de Excel</button>' +
+        '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>' +
+      '</div>' +
     '</div>' +
     tabs +
     '<div class="card" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
@@ -6962,8 +6965,11 @@ function entOnboardingHtml(type) {
     '</div>' +
     stepsHtml +
     cards +
-    '<button class="btn ' + (items.length ? 'btn-d' : 'btn-accent') + '" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">' +
-      (items.length ? 'O empieza desde cero — añadir ' : '+ Añadir ') + esc(type.label_singular.toLowerCase()) + '</button>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">' +
+      '<button class="btn ' + (items.length ? 'btn-d' : 'btn-accent') + '" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">' +
+        (items.length ? 'O empieza desde cero — añadir ' : '+ Añadir ') + esc(type.label_singular.toLowerCase()) + '</button>' +
+      '<button class="btn btn-d" style="font-size:15px;padding:12px 20px" onclick="openEntityImportModal()">📥 ¿Ya los tienes en un Excel? Impórtalos</button>' +
+    '</div>' +
   '</div>';
 }
 
@@ -7273,6 +7279,210 @@ async function deleteEntity(id) {
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
+}
+
+// ════════ IMPORTACIÓN MÁGICA (v1) — su Excel → fichas en 3 pasos ═══════════
+// Regla de los 60 años: grande, obvio y en cristiano. Paso 1 pegar/subir,
+// paso 2 revisar el mapeo (selects por columna, revalidado en el servidor),
+// paso 3 resultado con conteos y errores claros. Cero jerga.
+
+var _entImp = null;   // { csv, preview } — estado del asistente
+
+function openEntityImportModal() {
+  var type = _entType();
+  if (!type) { toast('Las fichas no están disponibles para tu negocio', 'err'); return; }
+  // «← Volver» desde el paso 2 conserva lo ya pegado
+  var prevCsv = (_entImp && _entImp.csv) || '';
+  _entImp = { csv: prevCsv };
+  openModal(
+    '<div class="modal-title">📥 Importar ' + esc(type.label_plural.toLowerCase()) + ' desde tu Excel</div>' +
+    '<div style="color:var(--dim);font-size:13.5px;line-height:1.6;margin-bottom:14px">' +
+      'Abre tu Excel, <b>selecciona las celdas</b> (incluida la fila de títulos), cópialas y pégalas aquí abajo. También vale un archivo .csv exportado.</div>' +
+    '<textarea class="form-input" id="entImpCsv" rows="9" placeholder="Pega aquí tus datos…&#10;&#10;Ejemplo:&#10;Matrícula\tMarca\tTeléfono\tPróxima ITV&#10;1234ABC\tSeat\t612345678\t15/03/2027" ' +
+      'style="width:100%;font-size:13px;font-family:ui-monospace,monospace;white-space:pre;overflow-x:auto">' + esc(prevCsv) + '</textarea>' +
+    '<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<label class="btn btn-d" style="cursor:pointer;font-size:14px">📄 O elegir archivo CSV' +
+        '<input type="file" accept=".csv,.txt,.tsv" style="display:none" onchange="entImpFile(this)"></label>' +
+      '<span id="entImpFileName" style="color:var(--dim);font-size:12px"></span>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" style="font-size:15px;padding:12px 22px" onclick="entImpPreview()">Continuar →</button>' +
+    '</div>'
+  );
+}
+
+function entImpFile(input) {
+  var f = input.files && input.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function() {
+    var el = document.getElementById('entImpCsv');
+    if (el) el.value = String(reader.result || '');
+    var nm = document.getElementById('entImpFileName');
+    if (nm) nm.textContent = '✓ ' + f.name;
+  };
+  reader.readAsText(f);
+}
+
+// Paso 1→2 (y re-mapeos): analiza en el SERVIDOR — la UI nunca inventa conteos
+async function entImpPreview(mapping) {
+  var type = _entType();
+  if (!type || !_entImp) return;
+  var el = document.getElementById('entImpCsv');
+  if (el) _entImp.csv = el.value;
+  if (!_entImp.csv || !_entImp.csv.trim()) { toast('Pega tus datos o elige el archivo primero', 'err'); return; }
+  var body = { type: type.key, csv: _entImp.csv };
+  if (mapping) body.mapping = mapping;
+  var r;
+  try {
+    r = await api('/api/portal/entities/import/preview', 'POST', body);
+  } catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  _entImp.preview = r;
+  entImpRenderStep2(type, r);
+}
+
+function entImpRemap(i, v) {
+  if (!_entImp || !_entImp.preview) return;
+  var m = (_entImp.preview.mapping || []).slice();
+  // un destino solo puede venir de UNA columna: si ya estaba en otra, la libera
+  if (v) { for (var k = 0; k < m.length; k++) { if (k !== i && m[k] === v) m[k] = ''; } }
+  m[i] = v;
+  entImpPreview(m);
+}
+
+function entImpRenderStep2(type, r) {
+  var fields = type.fields || [];
+  var i, j;
+
+  // Mapeo: una fila por columna detectada, con select grande
+  var mapRows = '';
+  for (i = 0; i < r.headers.length; i++) {
+    var opts = '<option value="">— No usar esta columna —</option>' +
+      '<option value="_phone"' + (r.mapping[i] === '_phone' ? ' selected' : '') + '>📱 Teléfono del cliente</option>' +
+      '<option value="_name"'  + (r.mapping[i] === '_name'  ? ' selected' : '') + '>👤 Nombre del cliente</option>';
+    for (j = 0; j < fields.length; j++) {
+      opts += '<option value="' + esc(fields[j].key) + '"' + (r.mapping[i] === fields[j].key ? ' selected' : '') + '>' +
+        esc(fields[j].label || fields[j].key) + (fields[j].type === 'date' && fields[j].reminder ? ' 🔔' : '') + '</option>';
+    }
+    mapRows += '<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="flex:1;font-weight:700;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+        esc(r.headers[i] || ('Columna ' + (i + 1))) + '</div>' +
+      '<div style="color:var(--dim);flex:none">→</div>' +
+      '<select class="form-input" style="flex:1.3;font-size:15px;padding:10px" onchange="entImpRemap(' + i + ', this.value)">' + opts + '</select>' +
+    '</div>';
+  }
+
+  // Muestra: las primeras fichas TAL Y COMO quedarán
+  var sample = '';
+  if (r.sample && r.sample.length) {
+    var labelByKey = {};
+    for (j = 0; j < fields.length; j++) labelByKey[fields[j].key] = fields[j].label || fields[j].key;
+    sample = '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:16px 0 8px">Así quedarán las primeras fichas</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">' +
+      r.sample.map(function(s) {
+        var rows = '';
+        for (var k in s.attrs) {
+          if (k === 'is_draft') continue;
+          var val = s.attrs[k];
+          rows += '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:2px 0">' +
+            '<span style="color:var(--dim)">' + esc(labelByKey[k] || k) + '</span>' +
+            '<span style="font-weight:600;text-align:right">' + esc(Array.isArray(val) ? val.join(', ') : String(val)) + '</span></div>';
+        }
+        var owner = s.phone
+          ? '<div style="font-size:11.5px;color:var(--accent-l);margin-top:6px">📱 ' + esc(s.contactName ? s.contactName + ' · ' : '') + esc(s.phone) + ' → recibirá los avisos</div>'
+          : '<div style="font-size:11.5px;color:var(--dim);margin-top:6px">Sin teléfono — la ficha se guarda pero no avisa</div>';
+        return '<div style="padding:12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.02)">' +
+          rows + (s.isDraft ? '<div style="margin-top:6px">' + _entDraftBadge(true) + '</div>' : '') + owner + '</div>';
+      }).join('') + '</div>';
+  }
+
+  // Resumen en grande (la verdad del servidor)
+  var chips =
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px">' +
+      '<div style="padding:10px 16px;border:1px solid rgba(196,245,70,.35);border-radius:12px;background:rgba(196,245,70,.06)">' +
+        '<span style="font-size:22px;font-weight:800;color:var(--accent-l)">' + r.ready + '</span> ' +
+        '<span style="font-size:13px">fichas listas</span></div>' +
+      '<div style="padding:10px 16px;border:1px solid var(--border);border-radius:12px">' +
+        '<span style="font-size:22px;font-weight:800">' + r.withPhone + '</span> ' +
+        '<span style="font-size:13px">con teléfono → avisos automáticos 🔔</span></div>' +
+      (r.skippedCount ? '<div style="padding:10px 16px;border:1px solid rgba(225,112,85,.4);border-radius:12px;background:rgba(225,112,85,.06)">' +
+        '<span style="font-size:22px;font-weight:800;color:#e17055">' + r.skippedCount + '</span> ' +
+        '<span style="font-size:13px">con problemas (se saltarán)</span></div>' : '') +
+    '</div>' +
+    (r.drafts ? '<div style="color:var(--dim);font-size:12.5px;margin:4px 0">' + r.drafts + ' entrarán como borrador «completar ficha» (les falta algún dato obligatorio).</div>' : '') +
+    (r.truncated ? '<div style="color:#e0a030;font-size:12.5px;margin:4px 0">⚠️ Tu archivo tiene ' + r.totalRows + ' filas — en esta pasada entran las primeras ' + r.maxRows + '. Repite la importación con el resto después.</div>' : '');
+
+  var skippedHtml = '';
+  if (r.skipped && r.skipped.length) {
+    skippedHtml = '<details style="margin:8px 0"><summary style="cursor:pointer;font-size:13px;color:#e17055">Ver los problemas (' + r.skippedCount + ')</summary>' +
+      '<div style="font-size:12.5px;color:var(--dim);margin-top:6px;line-height:1.7">' +
+      r.skipped.map(function(s) { return 'Fila ' + s.row + ': ' + esc(s.reason); }).join('<br>') +
+      (r.skippedCount > r.skipped.length ? '<br>… y ' + (r.skippedCount - r.skipped.length) + ' más' : '') +
+      '</div></details>';
+  }
+
+  openModal(
+    '<div class="modal-title">📥 Paso 2 de 3 — Revisa las columnas</div>' +
+    '<div style="color:var(--dim);font-size:13.5px;line-height:1.6;margin-bottom:12px">' +
+      'Hemos reconocido tus columnas. Comprueba que cada una va a su sitio — puedes cambiarlas aquí mismo.</div>' +
+    '<div style="max-height:38vh;overflow-y:auto;padding-right:4px">' + mapRows + '</div>' +
+    chips + skippedHtml + sample +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-d" onclick="openEntityImportModal()">← Volver</button>' +
+      '<button class="btn btn-accent" id="entImpGo" style="font-size:15px;padding:12px 22px" ' +
+        (r.ready ? '' : 'disabled ') + 'onclick="entImpCommit()">Importar ' + r.ready + ' ' +
+        esc(r.ready === 1 ? type.label_singular.toLowerCase() : type.label_plural.toLowerCase()) + '</button>' +
+    '</div>'
+  );
+}
+
+// Paso 3: crear de verdad (timeout largo: 500 filas tardan)
+async function entImpCommit() {
+  var type = _entType();
+  if (!type || !_entImp || !_entImp.preview) return;
+  var btn = document.getElementById('entImpGo');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando… no cierres esta ventana'; }
+  var r;
+  try {
+    r = await api('/api/portal/entities/import/commit', 'POST',
+      { type: type.key, csv: _entImp.csv, mapping: _entImp.preview.mapping }, 120000);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Importar'; }
+    return;
+  }
+
+  var skippedHtml = '';
+  if (r.skipped && r.skipped.length) {
+    skippedHtml = '<details style="margin:10px 0;text-align:left"><summary style="cursor:pointer;font-size:13px;color:#e17055">' +
+      r.skippedCount + ' filas no entraron — ver por qué</summary>' +
+      '<div style="font-size:12.5px;color:var(--dim);margin-top:6px;line-height:1.7">' +
+      r.skipped.map(function(s) { return 'Fila ' + s.row + ': ' + esc(s.reason); }).join('<br>') +
+      (r.skippedCount > r.skipped.length ? '<br>… y ' + (r.skippedCount - r.skipped.length) + ' más' : '') +
+      '</div></details>';
+  }
+
+  openModal(
+    '<div class="modal-title">✅ Paso 3 de 3 — ¡Hecho!</div>' +
+    '<div style="text-align:center;padding:10px 0 4px">' +
+      '<div style="font-size:44px;font-weight:800;color:var(--accent-l);line-height:1">' + r.created + '</div>' +
+      '<div style="font-size:15px;font-weight:700;margin-top:4px">' +
+        esc(r.created === 1 ? type.label_singular.toLowerCase() : type.label_plural.toLowerCase()) + ' en tu panel</div>' +
+      '<div style="color:var(--dim);font-size:13.5px;line-height:1.7;margin-top:10px">' +
+        (r.linked ? '📱 ' + r.linked + ' con cliente vinculado — sus avisos ya están en marcha 🔔<br>' : '') +
+        (r.contactsCreated ? '👤 ' + r.contactsCreated + ' clientes nuevos creados desde el Excel<br>' : '') +
+        (r.drafts ? '📝 ' + r.drafts + ' como borrador «completar ficha»' : '') +
+      '</div>' +
+    '</div>' +
+    skippedHtml +
+    '<div class="modal-actions">' +
+      '<button class="btn btn-accent" style="font-size:15px;padding:12px 22px" onclick="closeModal();entFetchList()">Ver mis ' +
+        esc(type.label_plural.toLowerCase()) + '</button>' +
+    '</div>'
+  );
+  _entImp = null;
+  if (document.getElementById('entList')) entFetchList();
 }
 
 // ── Service Worker (PWA) ──────────────────────────────────────

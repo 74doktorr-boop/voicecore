@@ -155,6 +155,10 @@ app.use('/api/portal/voice/clone', express.raw({ type: ['audio/*', 'application/
 // Parser propio ANTES del global para que el límite de 512 KB no la corte.
 app.use('/api/portal/contacts/import', express.json({ limit: '3mb' }));
 
+// Importación mágica de entidades: mismo caso — el CSV/Excel pegado viaja
+// dentro del JSON (preview y commit), hasta ~2 MB de fichero.
+app.use('/api/portal/entities/import', express.json({ limit: '3mb' }));
+
 // Limit JSON and URL-encoded body size to 512 KB — prevents DoS via massive POST bodies.
 // verify: guarda el body crudo en req.rawBody para verificar firmas HMAC (webhook de Meta/WA).
 app.use(express.json({

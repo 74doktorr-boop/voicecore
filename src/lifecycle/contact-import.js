@@ -302,4 +302,9 @@ async function importContacts(orgId, rows, opts = {}) {
   return out;
 }
 
-module.exports = { parseImportCsv, importContacts, countScheduled, plannedReminder, DATE_FIELD, TYPE_FIELD };
+module.exports = {
+  parseImportCsv, importContacts, countScheduled, plannedReminder, DATE_FIELD, TYPE_FIELD,
+  // Primitivas CSV reutilizadas por la importación mágica de entidades
+  // (src/entities/entity-import.js): un solo parser en toda la casa.
+  splitCsvLine: _splitLine, toISODate: _toISO, cleanCsvPhone: _cleanPhone,
+};
