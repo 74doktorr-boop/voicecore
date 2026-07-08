@@ -20,23 +20,49 @@ const {
   entityServiceKey, buildEntityReminderPlan,
 } = require('../src/entities/entity-reminders');
 
-// ─── Integridad del catálogo de plantillas (los 14 sectores) ────────────────
+// ─── Integridad del catálogo de plantillas (TODOS los sectores) ─────────────
 
 describe('ENTITY_TEMPLATES — integridad del catálogo', () => {
   const EXPECTED_SECTORS = [
+    // v0 (2026-07-07)
     'taller', 'veterinaria', 'inmobiliaria', 'abogados', 'asesoria',
     'seguros', 'gimnasio', 'academia', 'optica', 'clima',
     'informatica', 'reformas', 'agencia_viajes', 'dental',
+    // catálogo completo (2026-07-08): una CRM única por sector
+    'peluqueria', 'estetica_avanzada', 'laser', 'spa', 'fisioterapia',
+    'coaching', 'guarderia_canina', 'residencia_mascotas', 'hotel',
+    'clinica', 'nutricion', 'pilates', 'yoga', 'podologia', 'psicologia',
+    'restaurante', 'notaria', 'arquitectura', 'autoescuela', 'farmacia',
+    'reconocimientos', 'generico',
   ];
 
   test('cubre exactamente los sectores esperados', () => {
     assert.deepStrictEqual(Object.keys(ENTITY_TEMPLATES).sort(), [...EXPECTED_SECTORS].sort());
   });
 
+  test('CERO sectores del catálogo de seguimientos sin plantilla de entidad', () => {
+    // La lista canónica de sectores vive en lifecycle/sector-catalog. Si mañana
+    // se añade un sector allí, este test exige diseñarle su entidad.
+    const { SECTOR_CATALOG } = require('../src/lifecycle/sector-catalog');
+    for (const sector of Object.keys(SECTOR_CATALOG)) {
+      assert.ok(ENTITY_TEMPLATES[sector],
+        `el sector '${sector}' del catálogo de seguimientos no tiene plantilla de entidad`);
+    }
+  });
+
   test('1 tipo de entidad por sector (regla del catálogo)', () => {
     for (const [sector, templates] of Object.entries(ENTITY_TEMPLATES)) {
       assert.strictEqual(templates.length, 1, `${sector} debe tener exactamente 1 tipo`);
     }
+  });
+
+  test('keys de plantilla ÚNICAS a nivel global (el upsert choca en org+key)', () => {
+    // copy-on-create hace upsert onConflict(organization_id, key): si dos
+    // sectores compartieran key, una org que cambia de sector heredaría el
+    // tipo equivocado en silencio.
+    const keys = Object.values(ENTITY_TEMPLATES).map(ts => ts[0].key);
+    assert.strictEqual(new Set(keys).size, keys.length,
+      `keys duplicadas: ${keys.filter((k, i) => keys.indexOf(k) !== i).join(', ')}`);
   });
 
   for (const [sector, templates] of Object.entries(ENTITY_TEMPLATES)) {
@@ -105,9 +131,16 @@ describe('templatesForSector', () => {
     assert.strictEqual(templatesForSector('talleres')[0].key, 'vehiculo');
   });
 
-  test('sector sin entidades → [] (peluquería: la persona YA es el objeto)', () => {
-    assert.deepStrictEqual(templatesForSector('peluqueria'), []);
-    assert.deepStrictEqual(templatesForSector('restaurante'), []);
+  test('catálogo completo: peluquería y restaurante YA tienen su entidad', () => {
+    // La persona sigue en contacts; la entidad es SU cosa: la fórmula del
+    // color en peluquería, el evento de grupo en el restaurante.
+    assert.strictEqual(templatesForSector('peluqueria')[0].key, 'ficha_tecnica');
+    assert.strictEqual(templatesForSector('restaurante')[0].key, 'evento');
+    assert.strictEqual(templatesForSector('autoescuela')[0].key, 'permiso');
+    assert.strictEqual(templatesForSector('generico')[0].key, 'renovacion');
+  });
+
+  test('entrada vacía → [] (nunca petar con input basura)', () => {
     assert.deepStrictEqual(templatesForSector(''), []);
     assert.deepStrictEqual(templatesForSector(null), []);
   });
@@ -115,7 +148,8 @@ describe('templatesForSector', () => {
   test('sectorHasEntityTemplates — gate del portal y del tool de voz', () => {
     assert.strictEqual(sectorHasEntityTemplates('taller'), true);
     assert.strictEqual(sectorHasEntityTemplates('dental'), true);
-    assert.strictEqual(sectorHasEntityTemplates('peluqueria'), false);
+    assert.strictEqual(sectorHasEntityTemplates('peluqueria'), true);
+    assert.strictEqual(sectorHasEntityTemplates(''), false);
   });
 
   test('kill-switch ENTITIES_DISABLED=1 apaga el gate', () => {

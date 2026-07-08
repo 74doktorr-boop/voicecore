@@ -330,6 +330,454 @@ const ENTITY_TEMPLATES = {
       { key: 'notas',            type: 'note',   label: 'Notas', position: 6 },
     ],
   }],
+
+  // ── Catálogo COMPLETO (2026-07-08): un tipo de entidad por CADA sector ──────
+  // Orden del Fundador: "la CRM tiene que ser ÚNICA para cada sector". La
+  // persona sigue siendo contact; aquí vive la COSA que recurre (el bono,
+  // la fórmula, el permiso, el expediente) con SU fecha de dinero.
+  // Las keys son ÚNICAS a nivel global (no solo por sector): el upsert de
+  // copy-on-create choca en (organization_id, key) y una org que cambia de
+  // sector no debe heredar el tipo equivocado por colisión de nombre.
+
+  // 🎨 Peluquería → Fichas técnicas (la fórmula del color: les cambia la vida)
+  peluqueria: [{
+    key: 'ficha_tecnica', label_singular: 'Ficha técnica', label_plural: 'Fichas técnicas',
+    icon: '🎨', color: '#c4f546',
+    label_template: '{{marca}} · {{formula}}',
+    fields: [
+      { key: 'formula',           type: 'text',   label: 'Fórmula del color (p. ej. 7.3 + 8.1 a partes iguales)', required: true, show_in_list: true, position: 1 },
+      { key: 'marca',             type: 'text',   label: 'Marca del tinte', show_in_list: true, position: 2 },
+      { key: 'oxidante',          type: 'select', label: 'Oxidante (volúmenes)', position: 3,
+        options: [
+          { value: '10vol', label: '10 vol.' }, { value: '20vol', label: '20 vol.' },
+          { value: '30vol', label: '30 vol.' }, { value: '40vol', label: '40 vol.' },
+        ] },
+      { key: 'tiempo_exposicion', type: 'number', label: 'Tiempo de exposición (min)', position: 4 },
+      { key: 'alergias',          type: 'text',   label: 'Alergias / prueba de mecha', position: 5 },
+      { key: 'proximo_retoque',   type: 'date',   label: 'Próximo retoque de raíces', show_in_list: true, position: 6,
+        reminder: { offset_days: -4, campaign_kind: 'retoque', message_hint: 'Tu retoque de raíces toca el {{value}} — tenemos tu fórmula guardada ({{entity}}), ¿te reservamos hueco?' } },
+      { key: 'notas',             type: 'note',   label: 'Notas (mechas, matiz, resultado…)', position: 7 },
+    ],
+  }],
+
+  // 💆 Estética avanzada → Bonos de sesiones ("Bono láser piernas · 3/8")
+  estetica_avanzada: [{
+    key: 'bono_sesiones', label_singular: 'Bono', label_plural: 'Bonos',
+    icon: '💆', color: '#c4f546',
+    label_template: 'Bono {{tratamiento}} · {{sesiones_restantes}}/{{sesiones_totales}}',
+    fields: [
+      { key: 'tratamiento',        type: 'text',   label: 'Tratamiento (facial, radiofrecuencia…)', required: true, show_in_list: true, position: 1 },
+      { key: 'zona',               type: 'text',   label: 'Zona', position: 2 },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones del bono', position: 3 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 4 },
+      { key: 'caducidad',          type: 'date',   label: 'Caducidad del bono', show_in_list: true, position: 5,
+        reminder: { offset_days: -21, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} y aún te quedan sesiones — ¿reservamos la próxima?' } },
+      { key: 'notas',              type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // ✨ Depilación láser → Bonos por zona (la sesión Y la caducidad avisan)
+  laser: [{
+    key: 'bono_laser', label_singular: 'Bono láser', label_plural: 'Bonos láser',
+    icon: '✨', color: '#c4f546',
+    label_template: 'Láser {{zona}} · {{sesiones_restantes}}/{{sesiones_totales}}',
+    fields: [
+      { key: 'zona',               type: 'select', label: 'Zona', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'piernas', label: 'Piernas' }, { value: 'axilas', label: 'Axilas' },
+          { value: 'ingles', label: 'Ingles' }, { value: 'brazos', label: 'Brazos' },
+          { value: 'facial', label: 'Facial' }, { value: 'espalda', label: 'Espalda' },
+          { value: 'cuerpo_completo', label: 'Cuerpo completo' }, { value: 'otra', label: 'Otra' },
+        ] },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones del bono', position: 2 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 3 },
+      { key: 'proxima_sesion',     type: 'date',   label: 'Próxima sesión', show_in_list: true, position: 4,
+        reminder: { offset_days: -3, campaign_kind: 'sesion', message_hint: 'Tu sesión de {{entity}} es el {{value}} — recuerda venir con la zona rasurada y sin cremas' } },
+      { key: 'caducidad',          type: 'date',   label: 'Caducidad del bono', position: 5,
+        reminder: { offset_days: -30, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} — aprovecha las sesiones que te quedan' } },
+      { key: 'notas',              type: 'note',   label: 'Notas (fototipo, potencia…)', position: 6 },
+    ],
+  }],
+
+  // 🧖 Spa / balneario → Bonos y circuitos (que no caduquen sin usar)
+  spa: [{
+    key: 'bono_spa', label_singular: 'Bono', label_plural: 'Bonos y circuitos',
+    icon: '🧖', color: '#c4f546',
+    label_template: 'Bono {{nombre}} · {{sesiones_restantes}}/{{sesiones_totales}}',
+    fields: [
+      { key: 'nombre',             type: 'text',   label: 'Bono o circuito (circuito + masaje, ritual…)', required: true, show_in_list: true, position: 1 },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones del bono', position: 2 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 3 },
+      { key: 'caducidad',          type: 'date',   label: 'Caducidad', show_in_list: true, position: 4,
+        reminder: { offset_days: -21, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} — reserva tu momento de relax antes de que expire' } },
+      { key: 'importe',            type: 'number', label: 'Importe (€)', position: 5 },
+      { key: 'notas',              type: 'note',   label: 'Notas (regalo, para dos…)', position: 6 },
+    ],
+  }],
+
+  // 🤲 Fisioterapia → Planes de tratamiento (sesiones restantes + revisión)
+  fisioterapia: [{
+    key: 'plan_tratamiento', label_singular: 'Plan de tratamiento', label_plural: 'Planes de tratamiento',
+    icon: '🤲', color: '#c4f546',
+    label_template: 'Plan {{motivo}} · {{sesiones_restantes}}/{{sesiones_totales}}',
+    fields: [
+      { key: 'motivo',             type: 'text',   label: 'Motivo / zona (lumbar, hombro…)', required: true, show_in_list: true, position: 1 },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones del bono', position: 2 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 3 },
+      { key: 'proxima_revision',   type: 'date',   label: 'Próxima revisión', show_in_list: true, position: 4,
+        reminder: { offset_days: -3, campaign_kind: 'revision', message_hint: 'Toca revisión de tu {{entity}} el {{value}} — así vemos cómo evoluciona' } },
+      { key: 'caducidad_bono',     type: 'date',   label: 'Caducidad del bono', position: 5,
+        reminder: { offset_days: -14, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} y aún te quedan sesiones' } },
+      { key: 'notas',              type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // 🎯 Coaching → Programas (la renovación es la venta)
+  coaching: [{
+    key: 'programa', label_singular: 'Programa', label_plural: 'Programas',
+    icon: '🎯', color: '#c4f546',
+    label_template: 'Programa {{nombre}}',
+    fields: [
+      { key: 'nombre',             type: 'text',   label: 'Nombre del programa', required: true, show_in_list: true, position: 1 },
+      { key: 'objetivo',           type: 'text',   label: 'Objetivo', position: 2 },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones incluidas', position: 3 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 4 },
+      { key: 'fecha_renovacion',   type: 'date',   label: 'Fecha de renovación', show_in_list: true, position: 5,
+        reminder: { offset_days: -15, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} se renueva el {{value}} — buen momento para hablar de la siguiente etapa' } },
+      { key: 'importe',            type: 'number', label: 'Importe (€)', position: 6 },
+      { key: 'notas',              type: 'note',   label: 'Notas', position: 7 },
+    ],
+  }],
+
+  // 🐕 Guardería canina → Perros (vacunas al día = requisito para venir)
+  guarderia_canina: [{
+    key: 'perro', label_singular: 'Perro', label_plural: 'Perros',
+    icon: '🐕', color: '#c4f546',
+    label_template: '{{nombre}} ({{raza}})',
+    fields: [
+      { key: 'nombre',              type: 'text',   label: 'Nombre', required: true, show_in_list: true, position: 1 },
+      { key: 'raza',                type: 'text',   label: 'Raza', show_in_list: true, position: 2 },
+      { key: 'proxima_vacuna',      type: 'date',   label: 'Renovación de vacunas', show_in_list: true, position: 3,
+        reminder: { offset_days: -14, campaign_kind: 'vacuna', message_hint: 'A {{entity}} le toca renovar las vacunas el {{value}} — las necesita al día para venir a la guarde' } },
+      { key: 'dias_bono_restantes', type: 'number', label: 'Días de bono restantes', show_in_list: true, position: 4 },
+      { key: 'alergias',            type: 'text',   label: 'Alergias / medicación', position: 5 },
+      { key: 'sociable',            type: 'select', label: 'Con otros perros', position: 6,
+        options: [
+          { value: 'sociable', label: 'Sociable' }, { value: 'con_cuidado', label: 'Con cuidado' },
+          { value: 'mejor_solo', label: 'Mejor solo' },
+        ] },
+      { key: 'notas',               type: 'note',   label: 'Notas (comida, manías…)', position: 7 },
+    ],
+  }],
+
+  // 🏡 Residencia de mascotas → Estancias (entrada Y salida avisan solas)
+  residencia_mascotas: [{
+    key: 'estancia', label_singular: 'Estancia', label_plural: 'Estancias',
+    icon: '🏡', color: '#c4f546',
+    label_template: 'Estancia de {{mascota}}',
+    fields: [
+      { key: 'mascota',        type: 'text',    label: 'Nombre de la mascota', required: true, show_in_list: true, position: 1 },
+      { key: 'fecha_entrada',  type: 'date',    label: 'Fecha de entrada', show_in_list: true, position: 2,
+        reminder: { offset_days: -3, campaign_kind: 'entrada', message_hint: 'La {{entity}} empieza el {{value}} — recuerda traer la cartilla, su comida habitual y su manta' } },
+      { key: 'fecha_salida',   type: 'date',    label: 'Fecha de recogida', show_in_list: true, position: 3,
+        reminder: { offset_days: -1, campaign_kind: 'recogida', message_hint: 'Mañana {{value}} toca recoger — {{entity}} os espera con ganas' } },
+      { key: 'vacunas_al_dia', type: 'boolean', label: 'Vacunas al día', position: 4 },
+      { key: 'medicacion',     type: 'text',    label: 'Medicación / pauta', position: 5 },
+      { key: 'notas',          type: 'note',    label: 'Notas (alimentación, carácter…)', position: 6 },
+    ],
+  }],
+
+  // 🧳 Hotel → Grupos y eventos (lo que genuinamente recurre y hay que reconfirmar)
+  hotel: [{
+    key: 'grupo', label_singular: 'Grupo / evento', label_plural: 'Grupos y eventos',
+    icon: '🧳', color: '#c4f546',
+    label_template: 'Grupo {{nombre}}',
+    fields: [
+      { key: 'nombre',        type: 'text',   label: 'Nombre del grupo o evento', required: true, show_in_list: true, position: 1 },
+      { key: 'fecha_llegada', type: 'date',   label: 'Fecha de llegada', show_in_list: true, position: 2,
+        reminder: { offset_days: -7, campaign_kind: 'reconfirmacion', message_hint: 'El {{entity}} llega el {{value}} — reconfirmamos habitaciones, régimen y horas de entrada' } },
+      { key: 'fecha_salida',  type: 'date',   label: 'Fecha de salida', position: 3 },
+      { key: 'habitaciones',  type: 'number', label: 'Habitaciones', show_in_list: true, position: 4 },
+      { key: 'regimen',       type: 'select', label: 'Régimen', position: 5,
+        options: [
+          { value: 'solo_alojamiento', label: 'Solo alojamiento' }, { value: 'desayuno', label: 'Alojamiento y desayuno' },
+          { value: 'media_pension', label: 'Media pensión' }, { value: 'pension_completa', label: 'Pensión completa' },
+        ] },
+      { key: 'importe',       type: 'number', label: 'Importe estimado (€)', position: 6 },
+      { key: 'notas',         type: 'note',   label: 'Notas (señal, peticiones…)', position: 7 },
+    ],
+  }],
+
+  // 🩺 Clínica médica → Revisiones y analíticas (neutro: cero datos clínicos)
+  clinica: [{
+    key: 'revision_medica', label_singular: 'Revisión', label_plural: 'Revisiones',
+    icon: '🩺', color: '#c4f546',
+    label_template: '{{tipo}}',
+    fields: [
+      { key: 'tipo',          type: 'select', label: 'Tipo', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'revision_anual', label: 'Revisión anual' }, { value: 'analitica', label: 'Analítica' },
+          { value: 'prueba', label: 'Prueba diagnóstica' }, { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'proxima_fecha', type: 'date',   label: 'Próxima fecha', show_in_list: true, position: 2,
+        reminder: { offset_days: -21, campaign_kind: 'revision', message_hint: 'Tu {{entity}} toca el {{value}} — llámanos y te damos cita sin esperas' } },
+      { key: 'ultima_fecha',  type: 'date',   label: 'Última realizada', position: 3 },
+      { key: 'periodicidad',  type: 'select', label: 'Periodicidad', position: 4,
+        options: [
+          { value: 'anual', label: 'Anual' }, { value: 'semestral', label: 'Semestral' },
+          { value: 'trimestral', label: 'Trimestral' },
+        ] },
+      { key: 'notas',         type: 'note',   label: 'Notas administrativas', position: 5 },
+    ],
+  }],
+
+  // 🥗 Nutrición → Planes nutricionales (la revisión mensual sostiene el plan)
+  nutricion: [{
+    key: 'plan_nutricional', label_singular: 'Plan nutricional', label_plural: 'Planes nutricionales',
+    icon: '🥗', color: '#c4f546',
+    label_template: 'Plan {{objetivo}}',
+    fields: [
+      { key: 'objetivo',         type: 'text',   label: 'Objetivo del plan (deportivo, hábitos…)', required: true, show_in_list: true, position: 1 },
+      { key: 'fecha_inicio',     type: 'date',   label: 'Fecha de inicio', position: 2 },
+      { key: 'proxima_revision', type: 'date',   label: 'Próxima revisión', show_in_list: true, position: 3,
+        reminder: { offset_days: -3, campaign_kind: 'revision', message_hint: 'Tu revisión del {{entity}} toca el {{value}} — seguimos afinando, ¿te va bien la hora de siempre?' } },
+      { key: 'duracion_semanas', type: 'number', label: 'Duración (semanas)', position: 4 },
+      { key: 'estado',           type: 'select', label: 'Estado', show_in_list: true, position: 5,
+        options: [
+          { value: 'activo', label: 'Activo' }, { value: 'pausado', label: 'Pausado' },
+          { value: 'finalizado', label: 'Finalizado' },
+        ] },
+      { key: 'notas',            type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // 🤸 Pilates → Bonos de clases (renovar antes de perder la plaza)
+  pilates: [{
+    key: 'bono_clases', label_singular: 'Bono de clases', label_plural: 'Bonos de clases',
+    icon: '🤸', color: '#c4f546',
+    label_template: 'Bono {{tipo}} · {{clases_restantes}}/{{clases_totales}}',
+    fields: [
+      { key: 'tipo',             type: 'select', label: 'Tipo de clase', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'suelo', label: 'Suelo' }, { value: 'maquina', label: 'Máquina (reformer)' },
+          { value: 'duo', label: 'Dúo' }, { value: 'privada', label: 'Privada' },
+        ] },
+      { key: 'clases_totales',   type: 'number', label: 'Clases del bono', position: 2 },
+      { key: 'clases_restantes', type: 'number', label: 'Clases restantes', show_in_list: true, position: 3 },
+      { key: 'caducidad',        type: 'date',   label: 'Caducidad del bono', show_in_list: true, position: 4,
+        reminder: { offset_days: -5, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} caduca el {{value}} — renuévalo y no pierdas tu plaza en clase' } },
+      { key: 'notas',            type: 'note',   label: 'Notas (lesiones, horario preferido…)', position: 5 },
+    ],
+  }],
+
+  // 🧘 Yoga → Bonos de clases
+  yoga: [{
+    key: 'bono_yoga', label_singular: 'Bono de clases', label_plural: 'Bonos de clases',
+    icon: '🧘', color: '#c4f546',
+    label_template: 'Bono {{tipo}} · {{clases_restantes}}/{{clases_totales}}',
+    fields: [
+      { key: 'tipo',             type: 'select', label: 'Tipo de clase', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'hatha', label: 'Hatha' }, { value: 'vinyasa', label: 'Vinyasa' },
+          { value: 'yin', label: 'Yin' }, { value: 'embarazo', label: 'Embarazo' },
+          { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'clases_totales',   type: 'number', label: 'Clases del bono', position: 2 },
+      { key: 'clases_restantes', type: 'number', label: 'Clases restantes', show_in_list: true, position: 3 },
+      { key: 'caducidad',        type: 'date',   label: 'Caducidad del bono', show_in_list: true, position: 4,
+        reminder: { offset_days: -5, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} caduca el {{value}} — renuévalo y sigue con tu práctica sin cortes' } },
+      { key: 'notas',            type: 'note',   label: 'Notas', position: 5 },
+    ],
+  }],
+
+  // 🦶 Podología → Tratamientos periódicos (la quiropodia vuelve cada 6 semanas)
+  podologia: [{
+    key: 'tratamiento_podal', label_singular: 'Tratamiento', label_plural: 'Tratamientos',
+    icon: '🦶', color: '#c4f546',
+    label_template: '{{tipo}}',
+    fields: [
+      { key: 'tipo',                 type: 'select', label: 'Tratamiento', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'quiropodia', label: 'Quiropodia' }, { value: 'plantillas', label: 'Plantillas' },
+          { value: 'estudio_pisada', label: 'Estudio de la pisada' }, { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'proxima_revision',     type: 'date',   label: 'Próxima revisión', show_in_list: true, position: 2,
+        reminder: { offset_days: -7, campaign_kind: 'revision', message_hint: 'Tu {{entity}} toca revisión el {{value}} — tus pies te lo agradecerán' } },
+      { key: 'ultima_visita',        type: 'date',   label: 'Última visita', position: 3 },
+      { key: 'periodicidad_semanas', type: 'number', label: 'Cada cuántas semanas', position: 4 },
+      { key: 'notas',                type: 'note',   label: 'Notas', position: 5 },
+    ],
+  }],
+
+  // 📅 Psicología → Planes de sesiones — campos NEUTROS a propósito: cero
+  // datos clínicos (RGPD art. 9, categoría especial). Solo administración.
+  psicologia: [{
+    key: 'plan_sesiones', label_singular: 'Plan de sesiones', label_plural: 'Planes de sesiones',
+    icon: '📅', color: '#c4f546',
+    label_template: '{{nombre}} · {{sesiones_restantes}}/{{sesiones_totales}}',
+    fields: [
+      { key: 'nombre',             type: 'text',   label: 'Nombre del plan (p. ej. Bono 5 sesiones)', required: true, show_in_list: true, position: 1 },
+      { key: 'sesiones_totales',   type: 'number', label: 'Sesiones incluidas', position: 2 },
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 3 },
+      { key: 'proxima_renovacion', type: 'date',   label: 'Próxima renovación', show_in_list: true, position: 4,
+        reminder: { offset_days: -7, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} se renueva el {{value}} — si quieres seguir, te reservamos tu hueco de siempre' } },
+      { key: 'modalidad',          type: 'select', label: 'Modalidad', position: 5,
+        options: [
+          { value: 'presencial', label: 'Presencial' }, { value: 'online', label: 'Online' },
+          { value: 'mixta', label: 'Mixta' },
+        ] },
+      { key: 'notas',              type: 'note',   label: 'Notas administrativas (nunca datos clínicos)', position: 6 },
+    ],
+  }],
+
+  // 🎉 Restaurante → Eventos y grupos (reconfirmar comensales y señal)
+  restaurante: [{
+    key: 'evento', label_singular: 'Evento / grupo', label_plural: 'Eventos y grupos',
+    icon: '🎉', color: '#c4f546',
+    label_template: '{{nombre}}',
+    fields: [
+      { key: 'nombre',       type: 'text',    label: 'Evento (comida de empresa, comunión…)', required: true, show_in_list: true, position: 1 },
+      { key: 'fecha_evento', type: 'date',    label: 'Fecha del evento', show_in_list: true, position: 2,
+        reminder: { offset_days: -5, campaign_kind: 'reconfirmacion', message_hint: 'El {{entity}} es el {{value}} — reconfirmamos comensales, menú y señal para tenerlo todo listo' } },
+      { key: 'comensales',   type: 'number',  label: 'Comensales', show_in_list: true, position: 3 },
+      { key: 'menu',         type: 'text',    label: 'Menú elegido', position: 4 },
+      { key: 'senal_pagada', type: 'boolean', label: 'Señal pagada', show_in_list: true, position: 5 },
+      { key: 'alergias',     type: 'text',    label: 'Alergias / intolerancias del grupo', position: 6 },
+      { key: 'notas',        type: 'note',    label: 'Notas (tarta, decoración…)', position: 7 },
+    ],
+  }],
+
+  // 📜 Notaría → Expedientes (la firma prevista y los papeles que faltan)
+  notaria: [{
+    key: 'expediente_notarial', label_singular: 'Expediente', label_plural: 'Expedientes',
+    icon: '📜', color: '#c4f546',
+    label_template: '{{tipo}} · {{referencia}}',
+    fields: [
+      { key: 'referencia',              type: 'text',   label: 'Referencia', required: true, show_in_list: true, position: 1 },
+      { key: 'tipo',                    type: 'select', label: 'Tipo', show_in_list: true, position: 2,
+        options: [
+          { value: 'compraventa', label: 'Compraventa' }, { value: 'herencia', label: 'Herencia' },
+          { value: 'poder', label: 'Poder' }, { value: 'testamento', label: 'Testamento' },
+          { value: 'constitucion_sociedad', label: 'Constitución de sociedad' }, { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'fecha_firma',             type: 'date',   label: 'Firma prevista', show_in_list: true, position: 3,
+        reminder: { offset_days: -3, campaign_kind: 'firma', message_hint: 'La firma de {{entity}} es el {{value}} — recuerda traer el DNI y la documentación pendiente' } },
+      { key: 'documentacion_pendiente', type: 'text',   label: 'Documentación pendiente', position: 4 },
+      { key: 'estado',                  type: 'select', label: 'Estado', position: 5,
+        options: [
+          { value: 'en_preparacion', label: 'En preparación' }, { value: 'pendiente_firma', label: 'Pendiente de firma' },
+          { value: 'firmado', label: 'Firmado' },
+        ] },
+      { key: 'notas',                   type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // 📐 Arquitectura → Proyectos (la licencia de obra CADUCA — pedir prórroga a tiempo)
+  arquitectura: [{
+    key: 'proyecto', label_singular: 'Proyecto', label_plural: 'Proyectos',
+    icon: '📐', color: '#c4f546',
+    label_template: 'Proyecto {{nombre}}',
+    fields: [
+      { key: 'nombre',             type: 'text',   label: 'Nombre / dirección del proyecto', required: true, show_in_list: true, position: 1 },
+      { key: 'fase',               type: 'select', label: 'Fase', show_in_list: true, position: 2,
+        options: [
+          { value: 'anteproyecto', label: 'Anteproyecto' }, { value: 'proyecto_basico', label: 'Proyecto básico' },
+          { value: 'proyecto_ejecucion', label: 'Proyecto de ejecución' }, { value: 'direccion_obra', label: 'Dirección de obra' },
+          { value: 'finalizado', label: 'Finalizado' },
+        ] },
+      { key: 'caducidad_licencia', type: 'date',   label: 'Caducidad de la licencia de obra', show_in_list: true, position: 3,
+        reminder: { offset_days: -60, campaign_kind: 'licencia', message_hint: 'La licencia de obra de {{entity}} caduca el {{value}} — conviene pedir la prórroga con margen' } },
+      { key: 'proximo_hito',       type: 'date',   label: 'Próximo hito (visado, visita de obra…)', position: 4,
+        reminder: { offset_days: -7, campaign_kind: 'hito', message_hint: 'Hito del {{entity}}: {{value}}' } },
+      { key: 'honorarios',         type: 'number', label: 'Honorarios (€)', position: 5 },
+      { key: 'notas',              type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // 🚦 Autoescuela → Permisos en curso (el teórico aprobado CADUCA a los 2 años)
+  autoescuela: [{
+    key: 'permiso', label_singular: 'Permiso en curso', label_plural: 'Permisos en curso',
+    icon: '🚦', color: '#c4f546',
+    label_template: 'Permiso {{tipo}}',
+    fields: [
+      { key: 'tipo',              type: 'select', label: 'Permiso', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'b', label: 'B (coche)' }, { value: 'a2', label: 'A2 (moto)' },
+          { value: 'a', label: 'A (moto)' }, { value: 'c', label: 'C (camión)' },
+          { value: 'd', label: 'D (autobús)' }, { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'estado',            type: 'select', label: 'Fase', show_in_list: true, position: 2,
+        options: [
+          { value: 'teorico', label: 'Preparando teórico' }, { value: 'practicas', label: 'En prácticas' },
+          { value: 'examen', label: 'Pendiente de examen' }, { value: 'aprobado', label: 'Aprobado' },
+        ] },
+      { key: 'caducidad_teorico', type: 'date',   label: 'Caducidad del teórico aprobado', show_in_list: true, position: 3,
+        reminder: { offset_days: -60, campaign_kind: 'caducidad_teorico', message_hint: 'Tu teórico aprobado caduca el {{value}} — quedan pocas semanas para sacarte el práctico sin repetir examen' } },
+      { key: 'examen_practico',   type: 'date',   label: 'Fecha de examen práctico', position: 4,
+        reminder: { offset_days: -3, campaign_kind: 'examen', message_hint: 'Tu examen práctico del {{entity}} es el {{value}} — ¿repasamos con una clase extra?' } },
+      { key: 'clases_restantes',  type: 'number', label: 'Clases de bono restantes', position: 5 },
+      { key: 'notas',             type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
+
+  // 💊 Farmacia → Tratamientos crónicos / SPD (la dispensación que recurre)
+  farmacia: [{
+    key: 'tratamiento_cronico', label_singular: 'Tratamiento', label_plural: 'Tratamientos',
+    icon: '💊', color: '#c4f546',
+    label_template: '{{nombre}}',
+    fields: [
+      { key: 'nombre',               type: 'text',    label: 'Tratamiento / SPD (p. ej. SPD semanal)', required: true, show_in_list: true, position: 1 },
+      { key: 'proxima_dispensacion', type: 'date',    label: 'Próxima dispensación', show_in_list: true, position: 2,
+        reminder: { offset_days: -3, campaign_kind: 'dispensacion', message_hint: 'Tu {{entity}} estará listo para recoger el {{value}} — te lo dejamos preparado' } },
+      { key: 'periodicidad',         type: 'select',  label: 'Periodicidad', show_in_list: true, position: 3,
+        options: [
+          { value: 'semanal', label: 'Semanal' }, { value: 'quincenal', label: 'Quincenal' },
+          { value: 'mensual', label: 'Mensual' }, { value: 'trimestral', label: 'Trimestral' },
+        ] },
+      { key: 'receta_electronica',   type: 'boolean', label: 'Receta electrónica', position: 4 },
+      { key: 'notas',                type: 'note',    label: 'Notas (sin datos de salud sensibles)', position: 5 },
+    ],
+  }],
+
+  // 🪪 Reconocimientos médicos → Certificados (la caducidad ES el negocio)
+  reconocimientos: [{
+    key: 'certificado', label_singular: 'Certificado', label_plural: 'Certificados',
+    icon: '🪪', color: '#c4f546',
+    label_template: 'Certificado {{tipo}}',
+    fields: [
+      { key: 'tipo',            type: 'select', label: 'Tipo de certificado', required: true, show_in_list: true, position: 1,
+        options: [
+          { value: 'carnet_conducir', label: 'Carnet de conducir' }, { value: 'armas', label: 'Licencia de armas' },
+          { value: 'seguridad_privada', label: 'Seguridad privada' }, { value: 'embarcaciones', label: 'Embarcaciones' },
+          { value: 'otro', label: 'Otro' },
+        ] },
+      { key: 'clase_permiso',   type: 'text',   label: 'Clase de permiso (B, C+E…)', position: 2 },
+      { key: 'fecha_caducidad', type: 'date',   label: 'Fecha de caducidad', show_in_list: true, position: 3,
+        reminder: { offset_days: -30, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} caduca el {{value}} — renueva el psicotécnico con nosotros, sin colas y en 20 minutos' } },
+      { key: 'fecha_emision',   type: 'date',   label: 'Fecha de emisión', position: 4 },
+      { key: 'notas',           type: 'note',   label: 'Notas', position: 5 },
+    ],
+  }],
+
+  // 🔔 Genérico / Otro → Renovaciones y vencimientos (catch-all útil, no excluido)
+  generico: [{
+    key: 'renovacion', label_singular: 'Renovación', label_plural: 'Renovaciones y vencimientos',
+    icon: '🔔', color: '#c4f546',
+    label_template: '{{nombre}}',
+    fields: [
+      { key: 'nombre',       type: 'text',   label: 'Qué es (cuota, contrato, garantía…)', required: true, show_in_list: true, position: 1 },
+      { key: 'descripcion',  type: 'text',   label: 'Descripción', position: 2 },
+      { key: 'importe',      type: 'number', label: 'Importe (€)', show_in_list: true, position: 3 },
+      { key: 'vencimiento',  type: 'date',   label: 'Fecha de vencimiento', show_in_list: true, position: 4,
+        reminder: { offset_days: -15, campaign_kind: 'vencimiento', message_hint: 'Tu {{entity}} vence el {{value}} — ¿lo renovamos?' } },
+      { key: 'periodicidad', type: 'select', label: 'Periodicidad', position: 5,
+        options: [
+          { value: 'mensual', label: 'Mensual' }, { value: 'trimestral', label: 'Trimestral' },
+          { value: 'anual', label: 'Anual' }, { value: 'unico', label: 'Único' },
+        ] },
+      { key: 'notas',        type: 'note',   label: 'Notas', position: 6 },
+    ],
+  }],
 };
 
 // ─── Kill-switch ─────────────────────────────────────────────────────────────
@@ -346,9 +794,10 @@ function _norm(s) {
 /**
  * Plantillas de entidad para un sector (o alias). Primero por clave directa
  * del catálogo de plantillas; si no, por el slug canónico del registro de
- * sectores (así 'veterinario' o 'talleres' también resuelven). [] si el
- * sector no tiene entidades — no forzar: en peluquería la persona YA es
- * el objeto.
+ * sectores (así 'veterinario' o 'talleres' también resuelven). Desde
+ * 2026-07-08 TODOS los sectores del registro (y 'generico') tienen plantilla:
+ * la persona sigue en contacts; aquí vive su bono, su fórmula, su permiso.
+ * [] solo para entradas vacías o sectores custom sin equivalente.
  */
 function templatesForSector(sectorRaw) {
   if (!sectorRaw) return [];
