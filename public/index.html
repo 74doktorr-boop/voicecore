@@ -233,6 +233,11 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
 .foot-col a:hover{color:var(--lime)}
 .foot-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:26px;border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3)}
 
+/* ── meta verified badge (sello proveedor tecnológico) ── */
+.meta-badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);opacity:.85;transition:opacity .2s,color .2s;cursor:default}
+.meta-badge:hover{opacity:1;color:var(--ink-2)}
+.meta-badge svg{flex:none;opacity:.9}
+
 .mobile-cta{display:none}
 @media(max-width:900px){
   .wrap{padding:0 22px}
@@ -286,6 +291,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
         <span><span class="k">✓</span> Escúchalo antes de pagar</span>
         <span><span class="k">✓</span> Sin cambiar tu número</span>
         <span><span class="k">✓</span> Cancela cuando quieras</span>
+      </div>
+      <div class="meta-badge" style="margin-top:20px" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
+        <span>Proveedor de tecnología verificado por Meta · WhatsApp Business Platform oficial</span>
       </div>
     </div>
     <div class="demo">
@@ -424,6 +433,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si un mes pasas de 500 min, se añaden solos. Sin cortes, siempre a la vista.</p></div>
   </div>
   <div class="price-foot">Empiezas por <b>49€ al mes</b> · IVA incluido · sin permanencia · cancela cuando quieras. Los extras, cuando los quieras.</div>
+  <div class="meta-badge" style="margin-top:16px" title="Los avisos de WhatsApp se envían por la API oficial: Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
+    <span>WhatsApp por la API oficial de Meta · Proveedor de tecnología verificado</span>
+  </div>
 </div></section>
 
 <!-- FAQ -->
@@ -456,7 +469,14 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <div class="foot-col"><h5>Empresa</h5><a href="#">Sobre NodeFlow</a><a href="#">Blog</a><a href="#">Contacto</a><a href="#">Aviso legal</a></div>
     <div class="foot-col"><h5>Empieza</h5><a href="#precio">Ver precio</a><a href="/portal/">Iniciar sesión</a><a href="https://wa.me/34666351319" target="_blank" rel="noopener">Soporte</a></div>
   </div>
-  <div class="foot-bot"><div>© 2026 NodeFlow · Hecho en Euskadi</div><div>Cumple RGPD · Soporte humano en español</div></div>
+  <div class="foot-bot">
+    <div>© 2026 NodeFlow · Hecho en Euskadi</div>
+    <div class="meta-badge" style="letter-spacing:.04em;text-transform:none;font-size:.72rem" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
+      <span>Proveedor de tecnología verificado por Meta</span>
+    </div>
+    <div>Cumple RGPD · Soporte humano en español</div>
+  </div>
 </div></footer>
 
 <div class="mobile-cta"><a href="/onboarding.html?plan=negocio" class="btn btn-fill">Activar mi asistente →</a></div>
