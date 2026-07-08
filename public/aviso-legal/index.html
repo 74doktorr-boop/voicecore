@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0a0b0d; --bg-2:#101216;
@@ -17,83 +17,281 @@
   --disp:'Clash Display',system-ui,sans-serif;
   --sans:'Satoshi',system-ui,sans-serif;
   --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+  --z-nav:50;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.7;font-size:16px}
-a{color:var(--lime);text-decoration:none}
-a:hover{text-decoration:underline}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.7;font-size:16px;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
 ::selection{background:var(--lime);color:#0a0b0d}
-nav{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;border-bottom:1px solid var(--line)}
+h1,h2,h3{font-family:var(--disp);color:var(--ink);font-weight:600;letter-spacing:-.025em;line-height:1.05;text-wrap:balance}
+.wrap{max-width:1220px;margin:0 auto;padding:0 40px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lime{color:var(--lime)}
+
+/* ── nav (idéntico a la landing) ── */
+nav{position:sticky;top:0;z-index:var(--z-nav);background:rgba(10,11,13,.86);backdrop-filter:blur(6px);border-bottom:1px solid transparent;transition:border-color .25s}
+nav.stuck{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px}
 .logo{font-family:var(--disp);font-weight:600;font-size:1.4rem;letter-spacing:-.03em;color:var(--ink)}
 .logo b{color:var(--lime);font-weight:600}
-.back{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--bg-2);border:1px solid var(--line);padding:8px 16px;border-radius:8px}
-.back:hover{color:var(--ink);text-decoration:none;border-color:var(--line-2)}
-main{max-width:760px;margin:0 auto;padding:64px 24px 110px}
-h1{font-family:var(--disp);font-weight:600;letter-spacing:-.025em;color:var(--ink);font-size:clamp(30px,5vw,40px);line-height:1.05;margin-bottom:10px}
-.meta{font-family:var(--mono);font-size:.74rem;letter-spacing:.05em;color:var(--ink-3);margin-bottom:44px}
-h2{font-family:var(--disp);font-weight:500;font-size:1.22rem;letter-spacing:-.01em;color:var(--ink);margin:44px 0 14px}
-p{margin-bottom:14px}
-ul{padding-left:20px;margin-bottom:14px}
-li{margin-bottom:7px}
+.nav-links{display:flex;gap:30px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.nav-links a{transition:color .2s}.nav-links a:hover{color:var(--ink)}
+.nav-right{display:flex;align-items:center;gap:clamp(16px,2vw,24px)}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);padding:10px 16px;transition:color .2s,border-color .2s}
+.back:hover{color:var(--lime);border-color:var(--lime)}
+.back .ar{transition:transform .2s}
+.back:hover .ar{transform:translateX(-3px)}
+
+/* ── page hero ── */
+.doc-hero{padding:clamp(46px,6vw,80px) 0 clamp(30px,4vw,44px);border-bottom:1px solid var(--line)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:24px;margin-bottom:clamp(28px,4vw,42px);border-bottom:1px solid var(--line)}
+.hero-top .doc-kind{color:var(--lime)}
+.doc-hero h1{font-size:clamp(2.6rem,7vw,4.6rem);letter-spacing:-.035em;line-height:.96;max-width:16ch}
+.chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.chip{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);padding:8px 14px}
+.chip.accent{color:#0a0b0d;background:var(--lime);border-color:var(--lime);font-weight:700}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--lime)}
+.chip.accent .dot{background:#0a0b0d}
+.doc-intro{font-size:clamp(1.1rem,1.6vw,1.28rem);line-height:1.55;color:var(--ink-2);max-width:60ch;margin-top:clamp(26px,3.4vw,38px)}
+.doc-intro b{color:var(--ink);font-weight:600}
+
+/* ── layout: sticky TOC rail + reading column ── */
+.doc-body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:clamp(40px,6vw,88px);align-items:start;padding:clamp(48px,6vw,80px) 0 clamp(70px,9vw,120px)}
+.toc{position:sticky;top:96px;align-self:start;min-width:0}
+.toc-label{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:16px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.toc ol{list-style:none;counter-reset:toc;display:flex;flex-direction:column}
+.toc a{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:baseline;padding:9px 0;font-size:.9rem;line-height:1.35;color:var(--ink-3);border-left:1px solid transparent;transition:color .2s}
+.toc a .tn{font-family:var(--mono);font-size:.78rem;color:var(--ink-3);font-variant-numeric:tabular-nums;transition:color .2s}
+.toc a:hover{color:var(--ink-2)}
+.toc a:hover .tn{color:var(--ink-2)}
+.toc a.active{color:var(--ink)}
+.toc a.active .tn{color:var(--lime)}
+
+/* ── reading column ── */
+.doc-content{max-width:720px;min-width:0}
+.sec{padding:clamp(30px,4vw,44px) 0;border-top:1px solid var(--line);scroll-margin-top:96px}
+.sec:first-child{border-top:none;padding-top:0}
+.sec-head{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:baseline;margin-bottom:20px}
+.sec-num{font-family:var(--mono);font-size:.82rem;font-weight:700;letter-spacing:.02em;color:#0a0b0d;background:var(--lime);width:34px;height:34px;display:grid;place-items:center;font-variant-numeric:tabular-nums;transform:translateY(-2px)}
+.sec h2{font-size:clamp(1.5rem,2.6vw,2rem);letter-spacing:-.02em;line-height:1.08;overflow-wrap:anywhere}
+.sec h3{font-family:var(--sans);font-weight:700;font-size:1.06rem;color:var(--ink);margin:26px 0 8px;letter-spacing:-.005em}
+.sec h3 em{font-style:italic;color:var(--lime);font-weight:700}
+.sec p{margin-bottom:15px;max-width:68ch}
+.sec p:last-child{margin-bottom:0}
 strong{color:var(--ink);font-weight:700}
-.card{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin:20px 0}
-.card p{margin:0}
-footer{text-align:center;padding:34px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3);border-top:1px solid var(--line)}
-footer a{color:var(--ink-3)}footer a:hover{color:var(--lime)}
-a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:6px}
+a.link{color:var(--lime);border-bottom:1px solid rgba(196,245,70,.32);transition:border-color .2s,color .2s}
+a.link:hover{color:#d6ff5c;border-bottom-color:var(--lime)}
+
+/* lists with lime markers */
+.sec ul{list-style:none;margin:16px 0 4px;display:flex;flex-direction:column;gap:11px}
+.sec ul li{display:grid;grid-template-columns:20px 1fr;gap:12px;align-items:baseline;font-size:1rem;max-width:66ch}
+.sec ul li::before{content:"›";font-family:var(--mono);color:var(--lime);font-weight:700;line-height:1.5}
+
+/* ── responsable / identidad card ── */
+.id-card{border:1px solid var(--line);background:var(--bg-2);margin:6px 0 4px}
+.id-card .ic-head{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line)}
+.id-card .ic-head svg{color:var(--lime);flex:none}
+.id-card .ic-head span{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.id-rows{display:grid}
+.id-row{display:grid;grid-template-columns:210px 1fr;gap:16px;padding:13px 22px;border-top:1px solid var(--line);font-size:.98rem}
+.id-row:first-child{border-top:none}
+.id-row .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-top:2px}
+.id-row .v{color:var(--ink)}
+.id-row .v a{color:var(--lime)}
+.id-row .v .ph{color:var(--ink-3);font-style:italic}
+
+/* ── callout box (full border, tint — no side-stripe) ── */
+.callout{border:1px solid var(--line-2);background:linear-gradient(180deg,rgba(196,245,70,.05),rgba(196,245,70,.02));padding:22px 24px;margin:22px 0 6px}
+.callout .co-label{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:12px}
+.callout .co-label svg{flex:none}
+.callout p{margin:0;font-size:.98rem;color:var(--ink-2)}
+.callout p b,.callout p strong{color:var(--ink)}
+
+/* ── footer (idéntico a la landing) ── */
+footer{border-top:1px solid var(--line);padding:64px 0 48px}
+.foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
+.foot-brand p{font-size:.92rem;color:var(--ink-3);line-height:1.55;margin-top:14px;max-width:32ch}
+.foot-col h5{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px}
+.foot-col a{display:block;font-size:.94rem;color:var(--ink-2);margin-bottom:11px;transition:color .2s}
+.foot-col a:hover{color:var(--lime)}
+.foot-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:26px;border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3)}
+.meta-badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3);opacity:.85;transition:opacity .2s,color .2s;cursor:default}
+.meta-badge:hover{opacity:1;color:var(--ink-2)}
+.meta-badge svg{flex:none;opacity:.9}
+
+a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+
+@media(max-width:900px){
+  .wrap{padding:0 22px}
+  .nav-links{display:none}
+  .doc-body{grid-template-columns:1fr;gap:0;padding-top:clamp(28px,5vw,40px)}
+  .toc{position:static;margin-bottom:36px;padding-bottom:8px}
+  .toc ol{flex-direction:column}
+  .toc-label{margin-bottom:4px}
+  .doc-content{max-width:none}
+  .id-row{grid-template-columns:1fr;gap:4px}
+  .id-row .k{padding-top:0}
+  .sec-head{grid-template-columns:auto 1fr;gap:14px}
+  .foot-grid{grid-template-columns:1fr 1fr;gap:32px}
+}
+@media(max-width:520px){
+  .foot-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<nav>
+
+<nav id="nav"><div class="wrap"><div class="nav-in">
   <a href="/" class="logo">node<b>flow</b></a>
-  <a href="/" class="back">← Volver</a>
-</nav>
-
-<main>
-  <h1>Aviso Legal</h1>
-  <p class="meta">En cumplimiento de la Ley 34/2002 (LSSI-CE)</p>
-
-  <h2>1. Datos identificativos del titular</h2>
-  <div class="card">
-    <p>
-      <strong>Titular:</strong> Nodeflow Inteligencia Artificial S.L.<br>
-      <strong>NIF:</strong> B88840202<br>
-      <strong>Domicilio:</strong> [DIRECCIÓN FISCAL — a completar]<br>
-      <strong>Email de contacto:</strong> <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a><br>
-      <strong>Nombre comercial:</strong> NodeFlow<br>
-      <strong>Sitio web:</strong> <a href="https://nodeflow.es">https://nodeflow.es</a>
-    </p>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="/aviso-legal">Aviso legal</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones</a>
+    </div>
+    <a href="/" class="back"><span class="ar">←</span> Volver</a>
   </div>
+</div></div></nav>
 
-  <h2>2. Objeto y ámbito de aplicación</h2>
-  <p>El presente Aviso Legal regula el acceso y uso del sitio web <strong>nodeflow.es</strong> y sus subdominios, titularidad de Nodeflow Inteligencia Artificial S.L. El acceso y uso de este sitio web implica la aceptación de las condiciones recogidas en este aviso legal.</p>
+<!-- HERO -->
+<header class="doc-hero"><div class="wrap">
+  <div class="hero-top">
+    <span class="doc-kind">Legal · NodeFlow</span>
+    <span>Nodeflow Inteligencia Artificial S.L.</span>
+  </div>
+  <h1>Aviso Legal</h1>
+  <div class="chips">
+    <span class="chip accent"><span class="dot"></span>Ley 34/2002 · LSSI-CE</span>
+    <span class="chip"><span class="dot"></span>NIF B88840202</span>
+  </div>
+  <p class="doc-intro">Este documento identifica al titular de <b>nodeflow.es</b> y regula las condiciones de acceso y uso del sitio, en cumplimiento de la <b>Ley 34/2002 de Servicios de la Sociedad de la Información y de Comercio Electrónico</b>.</p>
+</div></header>
 
-  <h2>3. Propiedad intelectual e industrial</h2>
-  <p>Todos los contenidos de este sitio web —incluyendo textos, imágenes, diseño, código fuente, logotipos y la marca NodeFlow— son propiedad de Nodeflow Inteligencia Artificial S.L. o cuentan con licencia de uso. Queda expresamente prohibida su reproducción, distribución, comunicación pública o transformación sin autorización previa y por escrito del titular.</p>
+<!-- BODY: TOC + CONTENT -->
+<div class="doc-body wrap">
 
-  <h2>4. Condiciones de uso del sitio</h2>
-  <p>El usuario se compromete a hacer un uso lícito del sitio web, conforme a la ley, la moral, el orden público y las presentes condiciones. Queda prohibido:</p>
-  <ul>
-    <li>Utilizar el sitio con fines contrarios a la ley o que puedan perjudicar a terceros.</li>
-    <li>Intentar acceder a zonas restringidas del sitio o de sus sistemas informáticos.</li>
-    <li>Reproducir o copiar los contenidos sin autorización expresa.</li>
-    <li>Introducir o difundir contenidos falsos, ofensivos o que vulneren derechos de terceros.</li>
-  </ul>
+  <!-- TOC -->
+  <nav class="toc" aria-label="Índice del documento">
+    <div class="toc-label">En esta página</div>
+    <ol>
+      <li><a href="#s1"><span class="tn">01</span><span>Datos del titular</span></a></li>
+      <li><a href="#s2"><span class="tn">02</span><span>Objeto y ámbito</span></a></li>
+      <li><a href="#s3"><span class="tn">03</span><span>Propiedad intelectual</span></a></li>
+      <li><a href="#s4"><span class="tn">04</span><span>Condiciones de uso</span></a></li>
+      <li><a href="#s5"><span class="tn">05</span><span>Responsabilidad</span></a></li>
+      <li><a href="#s6"><span class="tn">06</span><span>Cookies y datos</span></a></li>
+      <li><a href="#s7"><span class="tn">07</span><span>Ley y jurisdicción</span></a></li>
+      <li><a href="#s8"><span class="tn">08</span><span>Modificaciones</span></a></li>
+    </ol>
+  </nav>
 
-  <h2>5. Exclusión de responsabilidad</h2>
-  <p>NodeFlow no se hace responsable de los daños o perjuicios derivados del uso del sitio web, de la imposibilidad de acceder al mismo, ni de los contenidos accesibles a través de enlaces a sitios de terceros. Los enlaces externos se proporcionan únicamente a título informativo.</p>
+  <!-- CONTENT -->
+  <main class="doc-content">
 
-  <h2>6. Cookies y datos personales</h2>
-  <p>Este sitio utiliza únicamente cookies técnicas estrictamente necesarias para el funcionamiento del servicio. El tratamiento de datos personales se rige por nuestra <a href="/privacidad">Política de Privacidad</a>.</p>
+    <section class="sec" id="s1">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Datos identificativos del titular</h2></div>
+      <div class="id-card">
+        <div class="ic-head">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M8 4v5"/></svg>
+          <span>Titular del sitio web</span>
+        </div>
+        <div class="id-rows">
+          <div class="id-row"><div class="k">Titular</div><div class="v">Nodeflow Inteligencia Artificial S.L.</div></div>
+          <div class="id-row"><div class="k">NIF</div><div class="v">B88840202</div></div>
+          <div class="id-row"><div class="k">Domicilio</div><div class="v"><span class="ph">[DIRECCIÓN FISCAL — a completar]</span></div></div>
+          <div class="id-row"><div class="k">Email de contacto</div><div class="v"><a class="link" href="mailto:unai@nodeflow.es">unai@nodeflow.es</a></div></div>
+          <div class="id-row"><div class="k">Nombre comercial</div><div class="v">NodeFlow</div></div>
+          <div class="id-row"><div class="k">Sitio web</div><div class="v"><a class="link" href="https://nodeflow.es">https://nodeflow.es</a></div></div>
+        </div>
+      </div>
+    </section>
 
-  <h2>7. Legislación aplicable y jurisdicción</h2>
-  <p>Las presentes condiciones se rigen por la legislación española vigente. Para la resolución de cualquier controversia derivada del acceso o uso de este sitio web, las partes se someten a los Juzgados y Tribunales que correspondan conforme a la normativa aplicable en España.</p>
+    <section class="sec" id="s2">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Objeto y ámbito de aplicación</h2></div>
+      <p>El presente Aviso Legal regula el acceso y uso del sitio web <strong>nodeflow.es</strong> y sus subdominios, titularidad de Nodeflow Inteligencia Artificial S.L. El acceso y uso de este sitio web implica la aceptación de las condiciones recogidas en este aviso legal.</p>
+    </section>
 
-  <h2>8. Modificaciones</h2>
-  <p>NodeFlow se reserva el derecho de modificar el presente Aviso Legal en cualquier momento. Se recomienda al usuario revisarlo periódicamente.</p>
-</main>
+    <section class="sec" id="s3">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Propiedad intelectual e industrial</h2></div>
+      <p>Todos los contenidos de este sitio web —incluyendo textos, imágenes, diseño, código fuente, logotipos y la marca NodeFlow— son propiedad de Nodeflow Inteligencia Artificial S.L. o cuentan con licencia de uso. Queda expresamente prohibida su reproducción, distribución, comunicación pública o transformación sin autorización previa y por escrito del titular.</p>
+    </section>
 
-<footer>© 2026 NodeFlow · <a href="/privacidad">Privacidad</a> · <a href="/condiciones">Condiciones</a></footer>
+    <section class="sec" id="s4">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Condiciones de uso del sitio</h2></div>
+      <p>El usuario se compromete a hacer un uso lícito del sitio web, conforme a la ley, la moral, el orden público y las presentes condiciones. Queda prohibido:</p>
+      <ul>
+        <li>Utilizar el sitio con fines contrarios a la ley o que puedan perjudicar a terceros.</li>
+        <li>Intentar acceder a zonas restringidas del sitio o de sus sistemas informáticos.</li>
+        <li>Reproducir o copiar los contenidos sin autorización expresa.</li>
+        <li>Introducir o difundir contenidos falsos, ofensivos o que vulneren derechos de terceros.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="s5">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Exclusión de responsabilidad</h2></div>
+      <p>NodeFlow no se hace responsable de los daños o perjuicios derivados del uso del sitio web, de la imposibilidad de acceder al mismo, ni de los contenidos accesibles a través de enlaces a sitios de terceros. Los enlaces externos se proporcionan únicamente a título informativo.</p>
+    </section>
+
+    <section class="sec" id="s6">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Cookies y datos personales</h2></div>
+      <p>Este sitio utiliza únicamente cookies técnicas estrictamente necesarias para el funcionamiento del servicio. El tratamiento de datos personales se rige por nuestra <a class="link" href="/privacidad">Política de Privacidad</a>.</p>
+    </section>
+
+    <section class="sec" id="s7">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Legislación aplicable y jurisdicción</h2></div>
+      <p>Las presentes condiciones se rigen por la legislación española vigente. Para la resolución de cualquier controversia derivada del acceso o uso de este sitio web, las partes se someten a los Juzgados y Tribunales que correspondan conforme a la normativa aplicable en España.</p>
+    </section>
+
+    <section class="sec" id="s8">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Modificaciones</h2></div>
+      <p>NodeFlow se reserva el derecho de modificar el presente Aviso Legal en cualquier momento. Se recomienda al usuario revisarlo periódicamente.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- FOOTER (idéntico a la landing) -->
+<footer><div class="wrap">
+  <div class="foot-grid">
+    <div class="foot-brand"><div class="logo">node<b>flow</b></div><p>La recepcionista con IA para negocios locales. Hecha en Euskal Herria — castellano, euskera y galego.</p></div>
+    <div class="foot-col"><h5>Producto</h5><a href="/#como">Cómo funciona</a><a href="/#capacidades">Qué hace</a><a href="/#precio">Precio</a><a href="/#sectores">Sectores</a></div>
+    <div class="foot-col"><h5>Empresa</h5><a href="/blog">Blog</a><a href="https://wa.me/34666351319" target="_blank" rel="noopener">Contacto</a><a href="/aviso-legal">Aviso legal</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones</a></div>
+    <div class="foot-col"><h5>Empieza</h5><a href="/#precio">Ver precio</a><a href="/portal/">Iniciar sesión</a><a href="https://wa.me/34666351319" target="_blank" rel="noopener">Soporte</a></div>
+  </div>
+  <div class="foot-bot">
+    <div>© 2026 NodeFlow · Hecho en Euskadi</div>
+    <div class="meta-badge" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
+      <span>Proveedor de tecnología verificado por Meta</span>
+    </div>
+    <div>Cumple RGPD · Soporte humano en español</div>
+  </div>
+</div></footer>
+
+<script>
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('stuck',scrollY>10),{passive:true});
+
+  // ── scrollspy: resalta la sección visible en el índice ──
+  const links=[...document.querySelectorAll('.toc a')];
+  const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const secs=[...document.querySelectorAll('.sec')];
+  let current=null;
+  function setActive(id){
+    if(id===current) return; current=id;
+    links.forEach(a=>a.classList.toggle('active',a.getAttribute('href').slice(1)===id));
+  }
+  // Fallback robusto por scroll: elige la sección cuyo inicio esté más cerca
+  // (pero por encima) de un punto de referencia ~30% del viewport.
+  function spy(){
+    const ref=window.scrollY+window.innerHeight*0.30;
+    let best=secs[0]?secs[0].id:null;
+    for(const s of secs){ if(s.offsetTop<=ref) best=s.id; else break; }
+    if(best) setActive(best);
+  }
+  addEventListener('scroll',spy,{passive:true});
+  addEventListener('resize',spy,{passive:true});
+  spy();
+</script>
 </body>
 </html>
