@@ -101,20 +101,24 @@ function setupCalendarRoutes(app, config) {
     return fresh;
   }
 
-  // ── List events for a date ───────────────────────────────────────────────────
+  // ── List events for a date or range ──────────────────────────────────────────
+  // ?date=YYYY-MM-DD  → ese día
+  // ?from=…&to=…      → rango (usado por la agenda del portal)
   app.get('/api/calendar/events', auth, async (req, res) => {
-    const { date } = req.query;
-    if (!date) return res.status(400).json({ error: 'date required (YYYY-MM-DD)' });
+    const { date, from, to } = req.query;
+    if (!date && !(from && to)) return res.status(400).json({ error: 'date o from/to requeridos (YYYY-MM-DD)' });
 
     const org = req.org;
     if (!org.google_refresh_token) return res.json({ events: [], connected: false });
 
     try {
       const tokens = await getFreshTokens(org);
-      const events = await cal.listEvents(tokens, date, org.google_calendar_id || 'primary');
+      const calId  = org.google_calendar_id || 'primary';
+      const [f, t] = (from && to) ? [from, to] : [date, date];
+      const events = await cal.listEventsRange(tokens, f, t, calId);
       res.json({ events, connected: true });
     } catch (e) {
-      log.error(`listEvents error: ${e.message}`);
+      log.error(`listEventsRange error: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
   });

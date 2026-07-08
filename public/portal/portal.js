@@ -1751,6 +1751,7 @@ async function loadCalls(outcome, from, to) {
 
 // ── Citas ─────────────────────────────────────────────────────
 var _citasData = [];
+var _gcalEvents = [];   // eventos del Google Calendar del negocio (solo lectura)
 var _citasFilterStatus = 'todas';
 var _citasSearch = '';
 var _citasView = localStorage.getItem('nf_citas_view') || 'semana';
@@ -1802,6 +1803,16 @@ function citasWeekHtml(filtered, today) {
         '<div class="nf-apt-name">' + esc(a.patientName) + '</div>' +
         '<div class="nf-apt-svc">' + esc(a.service || '') + '</div></div>';
     }
+    // Eventos del Google Calendar del negocio (solo lectura, estilo distinto)
+    var gce = _gcalEvents.filter(function (e) { return e.date === iso; })
+                         .sort(function (x, y) { return (x.time || '').localeCompare(y.time || ''); });
+    for (var k = 0; k < gce.length; k++) {
+      var g = gce[k];
+      cards += '<div class="nf-apt gcal" title="De tu Google Calendar (solo lectura)">' +
+        '<div class="nf-apt-time">' + (g.allDay ? 'Todo el día' : esc(g.time || '')) + '</div>' +
+        '<div class="nf-apt-name">' + esc(g.summary) + '</div>' +
+        '<div class="nf-apt-svc">📅 Google Calendar</div></div>';
+    }
     cols += '<div class="nf-week-day' + (iso === today ? ' today' : '') + '">' +
       '<div class="nf-week-head"><span>' + names[i] + '</span>' +
         '<span style="display:inline-flex;align-items:center;gap:4px">' +
@@ -1821,7 +1832,9 @@ function citasWeekHtml(filtered, today) {
     '<button class="btn btn-d btn-sm" onclick="_citasWeekOffset++;renderCitas()" aria-label="Semana siguiente">›</button>' +
     (_citasWeekOffset !== 0 ? '<button class="btn btn-d btn-sm" onclick="_citasWeekOffset=0;renderCitas()">Hoy</button>' : '') +
     '<span style="font-size:13px;font-weight:700;color:var(--white)">' + weekLbl + '</span>' +
-    '<span style="font-size:12px;color:var(--dim);text-transform:capitalize">· ' + monthLbl + '</span></div>' +
+    '<span style="font-size:12px;color:var(--dim);text-transform:capitalize">· ' + monthLbl + '</span>' +
+    (_gcalEvents.length ? '<span class="nf-gcal-legend">📅 de tu Google Calendar</span>' : '') +
+    '</div>' +
     '<div class="nf-week-scroll"><div class="nf-week nf-stagger">' + cols + '</div></div>';
 }
 
@@ -1841,6 +1854,17 @@ async function loadCitas(statusFilter, search) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
   }
+
+  // Eventos del Google Calendar del negocio (si está conectado) para pintarlos
+  // JUNTO a las citas de NodeFlow en la agenda. Una sola llamada por un rango
+  // amplio que cubre la navegación típica por semanas. No bloquea la vista.
+  try {
+    var _f = new Date(); _f.setDate(_f.getDate() - 7);
+    var _t = new Date(); _t.setDate(_t.getDate() + 60);
+    var gc = await api('/api/calendar/events?from=' + _f.toLocaleDateString('sv-SE') +
+                       '&to=' + _t.toLocaleDateString('sv-SE'), null, null, 6000);
+    _gcalEvents = (gc && gc.events) || [];
+  } catch (e) { _gcalEvents = []; }
 
   // Salto automático a la semana con citas: la vista abría siempre en la
   // semana actual aunque todas las citas fueran de la siguiente y había que

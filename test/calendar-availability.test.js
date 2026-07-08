@@ -4,7 +4,7 @@
 
 const { test } = require('node:test');
 const assert   = require('node:assert');
-const { busyIntervalsToByDate } = require('../src/integrations/google-calendar');
+const { busyIntervalsToByDate, normalizeEvent } = require('../src/integrations/google-calendar');
 const { scheduler } = require('../src/scheduling/scheduler');
 
 test('busyIntervalsToByDate: evento mismo día → minutos del día en Madrid', () => {
@@ -48,6 +48,24 @@ test('getAvailableSlots excluye el hueco ocupado en Google Calendar', () => {
   const d2 = (withBusy.availableDays || []).find(x => x.date === day.date);
   const stillThere = d2 && d2.slots.some(s => s.time === t);
   assert.strictEqual(stillThere, false, `el hueco ${t} debía quedar excluido por Google Calendar`);
+});
+
+test('normalizeEvent: evento con hora → hora local Madrid', () => {
+  const ev = normalizeEvent({ id: 'e1', summary: 'Comida', start: { dateTime: '2026-07-10T12:00:00Z' }, end: { dateTime: '2026-07-10T13:00:00Z' } });
+  assert.deepStrictEqual(ev, { id: 'e1', date: '2026-07-10', time: '14:00', endTime: '15:00', allDay: false, summary: 'Comida' });
+});
+
+test('normalizeEvent: evento de día completo', () => {
+  const ev = normalizeEvent({ id: 'e2', summary: 'Festivo', start: { date: '2026-07-10' }, end: { date: '2026-07-11' } });
+  assert.strictEqual(ev.allDay, true);
+  assert.strictEqual(ev.time, null);
+  assert.strictEqual(ev.date, '2026-07-10');
+});
+
+test('normalizeEvent: cancelados y sin inicio → null', () => {
+  assert.strictEqual(normalizeEvent({ status: 'cancelled', start: { dateTime: '2026-07-10T12:00:00Z' } }), null);
+  assert.strictEqual(normalizeEvent({ id: 'x', summary: 'sin fecha' }), null);
+  assert.strictEqual(normalizeEvent(null), null);
 });
 
 test('bookAppointment rechaza reservar sobre un evento de Google Calendar', () => {

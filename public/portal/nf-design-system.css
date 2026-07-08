@@ -923,6 +923,13 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .nf-apt.pending { border-style: dashed; }
 .nf-apt.cancelled { opacity: .45; }
 .nf-apt.cancelled .nf-apt-time { color: var(--red); text-decoration: line-through; }
+/* Eventos del Google Calendar del negocio: solo lectura, azul para no
+   confundirlos con las citas de NodeFlow (lima). No editables. */
+.nf-apt.gcal { cursor: default; background: rgba(90,150,255,.09); border-color: rgba(90,150,255,.32); border-style: dashed; }
+.nf-apt.gcal:hover { transform: none; border-color: rgba(90,150,255,.5); }
+.nf-apt.gcal .nf-apt-time { color: #7ea8ff; }
+.nf-apt.gcal .nf-apt-svc { color: #7ea8ff; opacity: .85; }
+.nf-gcal-legend { font-size: var(--fs-2xs); color: #7ea8ff; margin-left: 4px; white-space: nowrap; }
 .nf-week-empty { font-size: var(--fs-2xs); color: var(--muted); text-align: center; margin: auto; }
 .nf-week-add {
   background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 700;

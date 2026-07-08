@@ -164,6 +164,29 @@ class GoogleCalendar {
       return {};
     }
   }
+
+  // Eventos del calendario en un rango, normalizados para pintar en el portal
+  // (una sola llamada). Devuelve [{id,date,time,endTime,allDay,summary}].
+  async listEventsRange(tokens, fromDate, toDate, calendarId = 'primary') {
+    if (!this.enabled) return [];
+    try {
+      const { google } = require('googleapis');
+      const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
+      const { data } = await cal.events.list({
+        calendarId,
+        timeMin:      `${fromDate}T00:00:00Z`,
+        timeMax:      `${toDate}T23:59:59Z`,
+        timeZone:     'Europe/Madrid',
+        singleEvents: true,
+        orderBy:      'startTime',
+        maxResults:   250,
+      });
+      return (data.items || []).map(normalizeEvent).filter(Boolean);
+    } catch (e) {
+      log.warn(`listEventsRange failed: ${e.message}`);
+      return [];
+    }
+  }
 }
 
 // ── Helpers puros (exportados para test) ──────────────────────────────────────
@@ -206,10 +229,31 @@ function busyIntervalsToByDate(busy) {
   return out;
 }
 
+// Evento crudo de la API de Google → forma normalizada para el portal (hora
+// local Madrid). Devuelve null para eventos cancelados o sin inicio usable.
+function normalizeEvent(ev) {
+  if (!ev || ev.status === 'cancelled') return null;
+  const start = ev.start || {}, end = ev.end || {};
+  const summary = ev.summary || '(sin título)';
+  if (start.date && !start.dateTime) {   // evento de día completo
+    return { id: ev.id, date: start.date, time: null, endTime: null, allDay: true, summary };
+  }
+  if (!start.dateTime) return null;
+  const s = _madridDateMin(start.dateTime);
+  if (!s) return null;
+  const e = end.dateTime ? _madridDateMin(end.dateTime) : null;
+  const hhmm = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  return {
+    id: ev.id, date: s.date, time: hhmm(s.min),
+    endTime: (e && e.date === s.date) ? hhmm(e.min) : null,
+    allDay: false, summary,
+  };
+}
+
 let _instance = null;
 function getGoogleCalendar() {
   if (!_instance) _instance = new GoogleCalendar();
   return _instance;
 }
 
-module.exports = { GoogleCalendar, getGoogleCalendar, busyIntervalsToByDate };
+module.exports = { GoogleCalendar, getGoogleCalendar, busyIntervalsToByDate, normalizeEvent };
