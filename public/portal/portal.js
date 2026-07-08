@@ -534,7 +534,16 @@ async function loadInsights() {
     '</div>';
 }
 
-// ════════ Mis tareas (mini-agenda CRM) ════════════════════════════════════════
+// ════════ Mis tareas CON VIDA — la IA llena el inbox sola ══════════════════════
+// Dos bloques: "Sugeridas por tu asistente" (auto, ordenadas por urgencia, con
+// enlace a la sección que las resuelve + Hecho/Descartar) y "Tus tareas" (las
+// manuales de siempre, con su formulario intacto). dismissKeyFor debe coincidir
+// con el backend (src/lifecycle/task-inbox.js).
+function _dismissKeyFor(t) {
+  var base = t.key || ((t.section || '') + ':' + (t.sourceId || ''));
+  return t.dismissScope ? base + '@' + t.dismissScope : base;
+}
+
 async function loadTareas() {
   var box = document.getElementById('tareas-body');
   if (!box) return;
@@ -544,10 +553,28 @@ async function loadTareas() {
   try { data = await api('/api/portal/tasks'); }
   catch (e) { box.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>'; return; }
 
-  var tasks = data.tasks || [];
-  var pend = tasks.filter(function(t){ return !t.done; });
-  var done = tasks.filter(function(t){ return t.done; });
+  var suggested = data.suggested || [];
+  var manual = data.manual || data.tasks || [];
+  var pend = manual.filter(function(t){ return !t.done; });
+  var done = manual.filter(function(t){ return t.done; });
   var today = new Date().toISOString().slice(0,10);
+
+  // ── Tarjeta de una tarea SUGERIDA por la IA ────────────────────────────────
+  function sugRow(t) {
+    var dk = _dismissKeyFor(t);
+    var nav = "navigate('" + esc(t.section) + "')";
+    return '<div style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border)">' +
+      '<span style="font-size:22px;line-height:1;flex-shrink:0">' + (t.icon || '•') + '</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:15px;color:var(--text);line-height:1.35">' + esc(t.text) + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0">' +
+        '<button class="btn btn-accent btn-sm" onclick="' + nav + '">Ir →</button>' +
+        '<button class="btn btn-d btn-sm" title="Hecho" onclick="doneSuggestion(this)" data-dk="' + esc(dk) + '">✓ Hecho</button>' +
+        '<button class="btn btn-d btn-sm" title="Descartar" onclick="dismissSuggestion(this)" data-dk="' + esc(dk) + '">Descartar</button>' +
+      '</div>' +
+    '</div>';
+  }
 
   function taskRow(t) {
     var overdue = !t.done && t.due_date && t.due_date < today;
@@ -564,8 +591,19 @@ async function loadTareas() {
     '</div>';
   }
 
+  // "Todo al día" solo cuando NO hay ni sugerencias ni pendientes manuales.
+  var allClear = suggested.length === 0 && pend.length === 0;
+
   box.innerHTML =
-    // Añadir tarea
+    // Sugeridas por tu asistente (auto)
+    (suggested.length
+      ? '<div class="card" style="margin-bottom:18px;border-color:rgba(196,245,70,.35);background:rgba(196,245,70,.04)">' +
+          '<div style="font-size:14px;font-weight:800;margin-bottom:4px">✨ Sugeridas por tu asistente <span style="color:var(--dim);font-weight:400">(' + suggested.length + ')</span></div>' +
+          '<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Tu asistente vigila el negocio y te dice qué hacer. Toca "Ir" para resolverlo.</div>' +
+          suggested.map(sugRow).join('') +
+        '</div>'
+      : '') +
+    // Añadir tarea (formulario manual — intacto)
     '<div class="card" style="margin-bottom:18px">' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
         '<input class="form-input" id="newTaskTitle" placeholder="¿Qué tienes que hacer? (ej. Llamar a Ana)" style="flex:2;min-width:200px" onkeydown="if(event.key===\'Enter\')addTask()">' +
@@ -573,10 +611,13 @@ async function loadTareas() {
         '<button class="btn btn-accent" onclick="addTask()">+ Añadir</button>' +
       '</div>' +
     '</div>' +
-    // Pendientes
+    // Tus tareas (manuales)
     '<div class="card" style="margin-bottom:18px">' +
-      '<div style="font-size:14px;font-weight:700;margin-bottom:6px">Pendientes <span style="color:var(--dim);font-weight:400">(' + pend.length + ')</span></div>' +
-      (pend.length ? pend.map(taskRow).join('') : '<div style="color:var(--dim);font-size:13px;padding:10px 0">🎉 Nada pendiente. ¡Todo al día!</div>') +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px">Tus tareas <span style="color:var(--dim);font-weight:400">(' + pend.length + ')</span></div>' +
+      (pend.length ? pend.map(taskRow).join('')
+        : (allClear
+            ? '<div style="color:var(--dim);font-size:14px;padding:14px 0;text-align:center">Todo al día ✅ — tu asistente vigila y te avisará.</div>'
+            : '<div style="color:var(--dim);font-size:13px;padding:10px 0">🎉 Nada que escribir a mano. Mira lo que sugiere tu asistente arriba.</div>')) +
     '</div>' +
     // Completadas
     (done.length ? '<div class="card">' +
@@ -584,6 +625,26 @@ async function loadTareas() {
       done.slice(0,20).map(taskRow).join('') +
     '</div>' : '');
 }
+
+// "Hecho" y "Descartar" en una sugerencia: ambos la ocultan y la PERSISTEN como
+// descartada (TTL en el backend → puede resurgir cuando vuelva a ser real). La
+// diferencia es solo el mensaje: "Hecho" felicita, "Descartar" es silencioso.
+async function _dismissSuggestion(btn, doneMode) {
+  var dk = btn && btn.getAttribute('data-dk');
+  if (!dk) return;
+  var row = btn.closest ? btn.closest('div[style*="border-bottom"]') : null;
+  if (row) row.style.opacity = '.4';
+  try {
+    await api('/api/portal/tasks/dismiss', 'POST', { dismissKey: dk });
+    if (doneMode) toast('¡Hecho! 💪');
+    loadTareas();
+  } catch (e) {
+    if (row) row.style.opacity = '1';
+    toast('Error: ' + e.message, 'err');
+  }
+}
+function dismissSuggestion(btn) { return _dismissSuggestion(btn, false); }
+function doneSuggestion(btn)    { return _dismissSuggestion(btn, true); }
 
 async function addTask() {
   var title = (document.getElementById('newTaskTitle')||{}).value || '';
@@ -1442,7 +1503,10 @@ async function loadDashboard() {
       api('/api/portal/at-risk-tomorrow', null, null, 6000).catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
-    act.tasks = (r[1].tasks || []).filter(function (t) { return !t.done; }).length;
+    // Contador UNIFICADO: tareas manuales abiertas + sugerencias no descartadas
+    // (una sola cifra en el dashboard, el nav y el briefing).
+    act.tasks = (r[1].manual || r[1].tasks || []).filter(function (t) { return !t.done; }).length
+              + (r[1].suggested || []).length;
     act.wait  = (r[2].waitlist || []).filter(function (w) { return w.status === 'waiting'; }).length;
     var dismissed = _kbDismissedSet();
     act.unanswered = (r[3].questions || []).filter(function (x) { return !dismissed.has(_kbQKey(x.question)); }).length;

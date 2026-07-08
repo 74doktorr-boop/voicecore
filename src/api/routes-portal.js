@@ -92,6 +92,134 @@ function _atRiskTomorrow(businessId) {
   return { date: tomorrowStr, atRisk };
 }
 
+// Clientes inactivos recuperables — la MISMA señal "⚠ Reactivar" de Clientes y
+// del briefing (umbral por sector de REBOOKING_DEFAULTS, 60 días por defecto).
+// Devuelve { count, euros } con € honesto: solo si el negocio configuró ticket
+// medio; sin él, euros=0 y la línea sale sin cifra. Compartida por briefing y
+// task-inbox → una sola fuente de verdad.
+async function _inactiveClientsSignal(db, businessId, avgTicket) {
+  if (!db.enabled) return { count: 0, euros: 0 };
+  const { reactivationThresholdDays } = require('../lifecycle/morning-briefing');
+  let sector = 'generico';
+  try {
+    const { data } = await db.client.from('organizations')
+      .select('assistant_config').eq('id', businessId).maybeSingle();
+    const raw = (data && data.assistant_config && data.assistant_config.sector) || '';
+    try { sector = require('../sectors/sector-registry').resolveSector(raw).slug; }
+    catch (_) { sector = raw || 'generico'; }
+  } catch (_) {}
+  const thr = reactivationThresholdDays(sector);
+  if (thr === null) return { count: 0, euros: 0 }; // sector con reactivación off
+  const cutoff = new Date(Date.now() - thr * 86400000).toISOString();
+  const { count } = await db.client.from('contacts')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_id', businessId).is('deleted_at', null)
+    .not('last_call_at', 'is', null).lt('last_call_at', cutoff)
+    .gte('call_count', 1);
+  const n = count || 0;
+  return { count: n, euros: n * (Math.max(0, Number(avgTicket) || 0)) };
+}
+
+// Fichas en borrador (attrs.is_draft) + bonos a punto de agotarse/caducar, para
+// el task-inbox. Best-effort y GATED (feature+tablas): sin entidades devuelve
+// listas vacías y nada rompe. Un solo SELECT sobre nf_entities por org (no N+1).
+async function _entityTaskSignals(db, businessId) {
+  const empty = { draftEntities: [], expiringBonos: [] };
+  try {
+    const { entitiesFeatureEnabled, entityTablesExist, getOrgEntityTypes } = require('../entities/entity-types');
+    if (!entitiesFeatureEnabled() || !(await entityTablesExist(db))) return empty;
+    const eTypes = await getOrgEntityTypes(businessId, { db });
+    if (!eTypes.length) return empty;
+    const typeById = new Map(eTypes.map(t => [t.id, t]));
+    const { data } = await db.client.from('nf_entities')
+      .select('id, entity_type_id, display_name, contact_id, attrs')
+      .eq('organization_id', businessId)
+      .eq('is_archived', false)
+      .order('updated_at', { ascending: false })
+      .limit(500);
+
+    // Nombre del dueño (contact_id → nombre) en UN batch para los bonos.
+    const rows = data || [];
+    const contactIds = [...new Set(rows.map(r => r.contact_id).filter(Boolean))];
+    const nameById = new Map();
+    if (contactIds.length) {
+      const { data: cs } = await db.client.from('contacts')
+        .select('id, name').eq('org_id', businessId).in('id', contactIds.slice(0, 200));
+      for (const c of (cs || [])) nameById.set(c.id, c.name);
+    }
+
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const BONO_SOON_DAYS = 21; // caduca dentro de 3 semanas → avisar
+    const BONO_LOW_LEFT  = 2;  // le quedan ≤2 sesiones → avisar
+    const draftEntities = [];
+    const expiringBonos = [];
+    for (const e of rows) {
+      const attrs = e.attrs || {};
+      const t = typeById.get(e.entity_type_id);
+      if (attrs.is_draft) {
+        draftEntities.push({ id: e.id, display_name: e.display_name, type_label: t && t.label_singular });
+      }
+      // Bono: tiene sesiones_restantes o caducidad. Actionable si quedan pocas
+      // sesiones O caduca pronto. (No excluye borradores; un bono a medias
+      // también merece que lo completen/avisen.)
+      const rem = attrs.sesiones_restantes;
+      const cad = attrs.caducidad;
+      const hasRem = rem !== undefined && rem !== null && rem !== '' && Number.isFinite(Number(rem));
+      const lowLeft = hasRem && Number(rem) > 0 && Number(rem) <= BONO_LOW_LEFT;
+      let soonExpiry = false, daysToExpiry = null;
+      if (typeof cad === 'string' && /^\d{4}-\d{2}-\d{2}/.test(cad)) {
+        daysToExpiry = Math.round((new Date(cad.slice(0, 10) + 'T12:00:00') - new Date(todayStr + 'T12:00:00')) / 86400000);
+        soonExpiry = daysToExpiry >= 0 && daysToExpiry <= BONO_SOON_DAYS;
+      }
+      if ((hasRem || cad) && (lowLeft || soonExpiry)) {
+        expiringBonos.push({
+          id: e.id, display_name: e.display_name,
+          remaining: hasRem ? Number(rem) : null,
+          daysToExpiry, ownerName: nameById.get(e.contact_id) || null,
+        });
+      }
+    }
+    return { draftEntities, expiringBonos };
+  } catch (_) { return empty; }
+}
+
+// Agrega TODAS las señales del task-inbox en paralelo y tolerante a fallos
+// (allSettled): si una fuente cae, sale vacía y el resto se sirve. Reúsa las
+// MISMAS listas que la sección Oportunidades, at-risk-tomorrow y el briefing —
+// una sola fuente de verdad para la cifra que ve el dueño en todas partes.
+async function _aggregateTaskSignals(db, businessId, avgTicket) {
+  const r = await Promise.allSettled([
+    _missedOpportunitiesList(db, businessId, 14),
+    Promise.resolve().then(() => _atRiskTomorrow(businessId)),
+    _inactiveClientsSignal(db, businessId, avgTicket),
+    _entityTaskSignals(db, businessId),
+  ]);
+  const val = (i, f) => r[i].status === 'fulfilled' ? r[i].value : f;
+  const opps    = val(0, []);
+  const risk    = val(1, { date: null, atRisk: [] });
+  const inactive = val(2, { count: 0, euros: 0 });
+  const ents    = val(3, { draftEntities: [], expiringBonos: [] });
+
+  // Nombre del que llamó (para "Llama a Raúl") en UN batch por teléfono.
+  const oppNameByPhone = new Map();
+  try {
+    const phones = [...new Set((opps || []).map(o => o.phone).filter(Boolean))].slice(0, 200);
+    if (db.enabled && phones.length) {
+      const { data: cts } = await db.client.from('contacts')
+        .select('name, phone').eq('org_id', businessId).in('phone', phones);
+      for (const c of (cts || [])) if (c.name) oppNameByPhone.set(c.phone, c.name);
+    }
+  } catch (_) {}
+
+  return {
+    missedOpportunities: (opps || []).map(o => ({ phone: o.phone, name: oppNameByPhone.get(o.phone) || null, lastCallId: o.lastCallId })),
+    atRiskTomorrow: { date: risk.date, list: (risk.atRisk || []).map(a => ({ id: a.id, patientName: a.patientName, time: a.time })) },
+    inactiveClients: inactive,
+    draftEntities: ents.draftEntities,
+    expiringBonos: ents.expiringBonos,
+  };
+}
+
 // ── Auth middleware ──────────────────────────────────────────
 async function portalAuth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -361,11 +489,15 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/briefing', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
     const db = getDatabase();
-    const { buildBriefing, hourInMadrid, madridMidnightUtc, reactivationThresholdDays } = require('../lifecycle/morning-briefing');
+    const { buildBriefing, hourInMadrid, madridMidnightUtc } = require('../lifecycle/morning-briefing');
 
     // Ayer en fecha civil de MADRID, no UTC — mismo criterio que /dashboard.
     const todayStr     = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     const yesterdayStr = new Date(new Date(todayStr + 'T12:00:00').getTime() - 86400000).toLocaleDateString('sv-SE');
+
+    // € honesto: nº de inactivos × ticket medio SOLO si el negocio lo configuró
+    // (sin ticket no inventamos cifra: la línea sale sin €). Siempre con "~".
+    const avgTicket = Number(flowConfig.automations?.config?.avgTicket) || 0;
 
     const results = await Promise.allSettled([
       // 1. Llamadas de AYER + cuántas acabaron en cita (nf_calls)
@@ -380,26 +512,11 @@ function setupPortalRoutes(app, pipeline, config) {
         const rows = data || [];
         return { calls: rows.length, booked: rows.filter(c => c.outcome === 'booked').length };
       })(),
-      // 2. Oportunidades sin responder — misma lista que la sección Oportunidades
-      _missedOpportunitiesList(db, businessId, 14).then(l => l.length),
-      // 3. Citas de mañana con riesgo de plantón — misma lista que at-risk-tomorrow
-      Promise.resolve().then(() => _atRiskTomorrow(businessId).atRisk.length),
-      // 4. Clientes inactivos recuperables — misma señal "⚠ Reactivar" de Clientes
-      //    (umbral por sector de REBOOKING_DEFAULTS, 60 días por defecto)
-      (async () => {
-        if (!db.enabled) return 0;
-        const sector = await _resolveOrgSector(businessId);
-        const thr = reactivationThresholdDays(sector);
-        if (thr === null) return 0; // sector con reactivación desactivada
-        const cutoff = new Date(Date.now() - thr * 86400000).toISOString();
-        const { count } = await db.client.from('contacts')
-          .select('id', { count: 'exact', head: true })
-          .eq('org_id', businessId).is('deleted_at', null)
-          .not('last_call_at', 'is', null).lt('last_call_at', cutoff)
-          .gte('call_count', 1);
-        return count || 0;
-      })(),
-      // 5. Seguimientos con mensaje ya redactado (Personalizados)
+      // 2. Señales compartidas con el task-inbox (oportunidades, riesgo mañana,
+      //    inactivos) — MISMA fuente de verdad: la cifra del briefing = la del
+      //    inbox = la del contador del nav.
+      _aggregateTaskSignals(db, businessId, avgTicket),
+      // 3. Seguimientos con mensaje ya redactado (Personalizados) — briefing-only
       (async () => {
         const { getCandidates } = require('../lifecycle/followups');
         return (await getCandidates(businessId, { db, bizName: flowConfig.name, lang: flowConfig.language || 'es' })).length;
@@ -407,21 +524,19 @@ function setupPortalRoutes(app, pipeline, config) {
     ]);
 
     const val = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
-    const yesterday     = val(0, { calls: 0, booked: 0 });
-    const inactiveCount = val(3, 0);
-    // € honesto: nº de inactivos × ticket medio SOLO si el negocio lo configuró
-    // (sin ticket no inventamos cifra: la línea sale sin €). Siempre con "~".
-    const avgTicket = Number(flowConfig.automations?.config?.avgTicket) || 0;
+    const yesterday = val(0, { calls: 0, booked: 0 });
+    const sig       = val(1, { missedOpportunities: [], atRiskTomorrow: { list: [] }, inactiveClients: { count: 0, euros: 0 } });
+    const inactiveCount = sig.inactiveClients.count || 0;
 
     const briefing = buildBriefing({
       greetingName:     flowConfig.name,
       yesterdayCalls:   yesterday.calls,
       yesterdayBooked:  yesterday.booked,
-      missedCount:      val(1, 0),
-      atRiskCount:      val(2, 0),
+      missedCount:      sig.missedOpportunities.length,
+      atRiskCount:      sig.atRiskTomorrow.list.length,
       inactiveCount,
-      recoverableEuros: inactiveCount * avgTicket,
-      followupsPending: val(4, 0),
+      recoverableEuros: sig.inactiveClients.euros || 0,
+      followupsPending: val(2, 0),
     }, hourInMadrid());
 
     res.json({ ok: true, ...briefing });
@@ -1593,20 +1708,88 @@ function setupPortalRoutes(app, pipeline, config) {
 
   // ════════ Tareas del dueño (mini-agenda CRM) ════════════════════════════════
 
-  // GET /api/portal/tasks — pendientes primero (por fecha), luego completadas
+  // GET /api/portal/tasks — MIS TAREAS CON VIDA: la IA llena el inbox sola.
+  // Devuelve { suggested:[...], manual:[...], tasks:[...] }:
+  //   · suggested = tareas que propone el asistente desde las MISMAS señales
+  //     del briefing (oportunidades, riesgo mañana, borradores, inactivos,
+  //     bonos), ordenadas por urgencia, sin las que el dueño descartó (con TTL).
+  //   · manual    = las tareas que el dueño escribió (nf_tasks), como siempre.
+  //   · tasks     = alias de manual (compat: el dashboard ya lo lee).
+  // Tolerante: si las sugerencias fallan, se sirven solo las manuales.
   app.get('/api/portal/tasks', portalAuth, async (req, res) => {
     const db = getDatabase();
-    if (!db.enabled) return res.json({ tasks: [] });
-    const { data, error } = await db.client
-      .from('nf_tasks')
-      .select('id, contact_id, contact_name, title, due_date, done, created_at')
-      .eq('organization_id', req.businessId)
-      .order('done', { ascending: true })
-      .order('due_date', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ ok: true, tasks: data || [] });
+    const { businessId, flowConfig } = req;
+    const { buildSuggestedTasks, filterDismissed } = require('../lifecycle/task-inbox');
+
+    let manual = [];
+    let suggested = [];
+    if (db.enabled) {
+      const [manRes, sug] = await Promise.allSettled([
+        db.client.from('nf_tasks')
+          .select('id, contact_id, contact_name, title, due_date, done, created_at')
+          .eq('organization_id', businessId)
+          .order('done', { ascending: true })
+          .order('due_date', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(200),
+        (async () => {
+          const avgTicket = Number(flowConfig?.automations?.config?.avgTicket) || 0;
+          const signals = await _aggregateTaskSignals(db, businessId, avgTicket);
+          const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+          const all = buildSuggestedTasks(signals, { today: todayStr });
+          // Filtrar las descartadas (mapa fresco de BD; TTL las deja resurgir).
+          let dismissed = {};
+          try {
+            const { data } = await db.client.from('organizations')
+              .select('automation_config').eq('id', businessId).maybeSingle();
+            dismissed = (data && data.automation_config && data.automation_config.config
+              && data.automation_config.config._dismissedTasks) || {};
+          } catch (_) {}
+          return filterDismissed(all, dismissed, new Date());
+        })(),
+      ]);
+      if (manRes.status === 'fulfilled' && !manRes.value.error) manual = manRes.value.data || [];
+      if (sug.status === 'fulfilled') suggested = sug.value || [];
+    }
+    res.json({ ok: true, suggested, manual, tasks: manual });
+  });
+
+  // POST /api/portal/tasks/dismiss — descartar una sugerencia (persistente, TTL).
+  // Read-merge-write AUTORITATIVO sobre automation_config.config._dismissedTasks
+  // de BD (mismo patrón anti-clobber que las flags de entidad): se lee FRESCO,
+  // se añade el descarte con caducidad y se escribe solo esa clave. dismissKey lo
+  // calcula el cliente con dismissKeyFor (incluye la fecha en señales efímeras).
+  app.post('/api/portal/tasks/dismiss', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const dismissKey = String(req.body?.dismissKey || '').trim().slice(0, 200);
+    if (!dismissKey) return res.status(400).json({ error: 'Falta dismissKey' });
+    const { addDismissal, pruneDismissed } = require('../lifecycle/task-inbox');
+    try {
+      const { data: cur, error: readErr } = await db.client
+        .from('organizations').select('automation_config').eq('id', req.businessId).maybeSingle();
+      if (readErr) throw new Error('lectura: ' + readErr.message);
+      const baseAuto = (cur && cur.automation_config) || {};
+      const baseCfg  = baseAuto.config || {};
+      // Podar caducadas antes de añadir → el mapa no crece sin fin.
+      const now = new Date();
+      const pruned = pruneDismissed(baseCfg._dismissedTasks || {}, now);
+      const nextDismissed = addDismissal(pruned, dismissKey, now);
+      const mergedAuto = { ...baseAuto, config: { ...baseCfg, _dismissedTasks: nextDismissed } };
+      const { error: upErr } = await db.client.from('organizations')
+        .update({ automation_config: mergedAuto }).eq('id', req.businessId);
+      if (upErr) throw new Error('escritura: ' + upErr.message);
+      // Espejo en memoria (como las flags de entidad) para no servir stale.
+      const flowRef = flowManager.get(req.businessId);
+      if (flowRef) {
+        if (!flowRef.automations) flowRef.automations = {};
+        flowRef.automations.config = { ...(flowRef.automations.config || {}), _dismissedTasks: nextDismissed };
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      log.error(`Portal: dismiss task FAILED for ${req.businessId}: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo guardar: ' + e.message });
+    }
   });
 
   // POST /api/portal/tasks — crear { title, dueDate?, contactId?, contactName? }
