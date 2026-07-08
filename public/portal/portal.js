@@ -1396,6 +1396,7 @@ async function loadDashboard() {
 
   sec.innerHTML =
     dashHero(d) +
+    '<div id="dash-roi" style="margin:0 0 14px"></div>' +
     dashMinutes(usage) +
     dashSetup(d) +
     dashCalendarNudge(cal, asisMode) +
@@ -1407,6 +1408,7 @@ async function loadDashboard() {
     referralCta('dashboard');
 
   startDashLive();
+  loadFollowupRoi('dash-roi'); // 💶 lo que el motor ha traído — en la primera pantalla
 }
 
 // ── Notificaciones de llamadas (v1: sondeo cada 30s) ─────────────────────
@@ -5202,8 +5204,11 @@ async function loadSeguimientos() {
 }
 
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──
-async function loadFollowupRoi() {
-  var box = document.getElementById('followup-roi');
+// targetId opcional (2026-07-08): la misma tarjeta se pinta en Seguimientos
+// (followup-roi) y en el DASHBOARD (dash-roi) — la cifra que renueva
+// suscripciones debe estar en la primera pantalla, no escondida en una pestaña.
+async function loadFollowupRoi(targetId) {
+  var box = document.getElementById(targetId || 'followup-roi');
   if (!box) return;
   var r;
   try { r = await api('/api/portal/followup-roi'); }
