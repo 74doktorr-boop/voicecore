@@ -3072,11 +3072,20 @@ function setupPortalRoutes(app, pipeline, config) {
   }
 
   // ── GET /api/portal/entity-types ── tipos de entidad de la org ────────────
+  // Incluye los PRESETS del sector (recetario de fichas, mismo patrón que el
+  // recetario de Seguimientos): fichas típicas que prellenan el formulario
+  // con un clic. Las fechas relativas se resuelven AQUÍ, al servir — nunca
+  // viajan horneadas. Best effort: sin presets la pestaña funciona igual.
   app.get('/api/portal/entity-types', portalAuth, async (req, res) => {
     try {
       const types = await _entityGate(req);
       if (!types) return res.json({ available: false, types: [] });
-      res.json({ available: true, types });
+      let presets = null;
+      try {
+        const { resolvePresetsForSector } = require('../entities/entity-presets');
+        presets = resolvePresetsForSector(await _resolveOrgSector(req.businessId), new Date());
+      } catch (e) { log.warn(`entity-presets: ${e.message}`); }
+      res.json({ available: true, types, presets });
     } catch (e) {
       log.warn(`GET entity-types: ${e.message}`);
       res.json({ available: false, types: [] }); // fail-closed: la pestaña se oculta

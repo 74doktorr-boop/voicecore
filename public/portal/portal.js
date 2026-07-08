@@ -6589,6 +6589,7 @@ var _entList     = [];     // entidades cargadas
 var _entQ        = '';     // búsqueda actual
 var _entQTimer   = null;
 var _entContacts = null;   // cache de contactos para el selector "dueño"
+var _entPresets  = null;   // recetario del sector: { type, intro, items } o null
 
 // Al entrar: ¿tiene esta org fichas? Si sí, aparece la pestaña con su nombre.
 async function initEntidades() {
@@ -6597,6 +6598,7 @@ async function initEntidades() {
     if (!r.available || !r.types || !r.types.length) return; // pestaña oculta
     _entTypes   = r.types;
     _entTypeKey = r.types[0].key;
+    _entPresets = r.presets || null; // fichas típicas del sector (fechas ya resueltas)
     var nav = document.getElementById('nav-entidades');
     var lbl = document.getElementById('nav-entidades-label');
     if (lbl) lbl.textContent = r.types.length === 1 ? r.types[0].label_plural : 'Fichas';
@@ -6646,6 +6648,7 @@ async function loadEntidades() {
       '<input class="form-input" id="entSearch" placeholder="🔎 Buscar…" value="' + esc(_entQ) + '" ' +
         'style="width:100%;font-size:16px;padding:12px" oninput="entSearchInput(this.value)">' +
     '</div>' +
+    '<div id="entPresetChips"></div>' +
     '<div id="entList"><div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando fichas…</div></div></div>';
 
   entFetchList();
@@ -6672,19 +6675,31 @@ async function entFetchList() {
   }
 }
 
+// Presets del sector si aplican al tipo activo (v0: 1 tipo por sector).
+function _entPresetItems(type) {
+  if (!_entPresets || !type || _entPresets.type !== type.key) return [];
+  return _entPresets.items || [];
+}
+
 function renderEntidades() {
-  var type = _entType();
-  var box  = document.getElementById('entList');
+  var type  = _entType();
+  var box   = document.getElementById('entList');
+  var chips = document.getElementById('entPresetChips');
   if (!type || !box) return;
 
   if (!_entList.length) {
-    box.innerHTML = emptyState(type.icon || '🗂️',
-      _entQ ? 'Sin resultados' : 'Aún no hay ' + esc(type.label_plural.toLowerCase()),
-      _entQ ? 'Prueba con otro nombre o identificador.'
-            : 'Añade la primera ficha: apunta sus fechas (ITV, vacuna, renovación…) y los avisos a tus clientes saldrán solos.',
-      _entQ ? '' : '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>');
+    if (chips) chips.innerHTML = ''; // sin lista, el recetario vive en el onboarding
+    if (_entQ) {
+      box.innerHTML = emptyState(type.icon || '🗂️', 'Sin resultados',
+        'Prueba con otro nombre o identificador.', '');
+    } else {
+      box.innerHTML = entOnboardingHtml(type);
+    }
     return;
   }
+
+  // Con lista: el recetario se pliega a chips de alta rápida sobre la lista
+  if (chips) chips.innerHTML = entPresetChipsHtml(type);
 
   var fields     = type.fields || [];
   var listFields = fields.filter(function(f) { return f.show_in_list; });
@@ -6728,6 +6743,79 @@ function renderEntidades() {
   box.innerHTML = html;
 }
 
+// ── Primera vez: onboarding personalizado del sector ─────────────
+// El fundador (2026-07-08): "una pantalla vacía sin planes predefinidos ni
+// guías no le sirve a ningún sector". Mismo patrón que el recetario de
+// Seguimientos: qué es esto (en SU vocabulario), cómo funciona en 3 pasos,
+// y fichas típicas que prellenan el formulario con un clic.
+function entOnboardingHtml(type) {
+  var items = _entPresetItems(type);
+  var intro = (_entPresets && _entPresets.type === type.key && _entPresets.intro)
+    ? _entPresets.intro
+    : 'Guarda cada ' + type.label_singular.toLowerCase() + ' con sus fechas importantes — y NodeFlow avisa a tu cliente antes de que llegue el día.';
+
+  var steps = [
+    ['1', 'Crea la ficha', 'Elige una de ejemplo o empieza desde cero'],
+    ['2', 'Sus fechas quedan guardadas', 'Caducidades, revisiones, renovaciones…'],
+    ['3', 'Los avisos salen solos 🔔', 'A tu cliente, por WhatsApp, antes de la fecha'],
+  ];
+  var stepsHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:18px 0 22px">' +
+    steps.map(function(s) {
+      return '<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px">' +
+        '<div style="flex:none;width:26px;height:26px;border-radius:50%;background:rgba(196,245,70,.15);color:var(--accent-l);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center">' + s[0] + '</div>' +
+        '<div style="min-width:0"><div style="font-weight:700;font-size:13px">' + s[1] + '</div>' +
+        '<div style="color:var(--dim);font-size:12px;line-height:1.45;margin-top:2px">' + s[2] + '</div></div></div>';
+    }).join('') + '</div>';
+
+  var cards = '';
+  if (items.length) {
+    cards = '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:0 0 10px">💡 Empieza con una ficha típica de tu sector — un clic y casi lista</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:18px">' +
+      items.map(function(p, i) {
+        return '<div role="button" tabindex="0" onclick="entApplyPreset(' + i + ')" onkeydown="if(event.key===\'Enter\')entApplyPreset(' + i + ')" ' +
+          'style="padding:16px;cursor:pointer;border:1px dashed rgba(196,245,70,.35);border-radius:12px;background:rgba(196,245,70,.04);display:flex;flex-direction:column">' +
+          '<div style="font-weight:700;font-size:15px;margin-bottom:6px">' + esc(p.label) + '</div>' +
+          '<div style="color:var(--dim);font-size:12px;line-height:1.5;margin-bottom:12px;flex:1">' + esc(p.description || '') + '</div>' +
+          '<span style="align-self:flex-start;color:var(--accent-l);border:1px solid rgba(196,245,70,.4);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700">+ Añadir</span>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  return '<div class="card" style="padding:22px 20px;max-width:920px">' +
+    '<div style="display:flex;gap:14px;align-items:flex-start">' +
+      '<div style="font-size:34px;line-height:1">' + esc(type.icon || '🗂️') + '</div>' +
+      '<div style="min-width:0">' +
+        '<div style="font-weight:800;font-size:17px;margin-bottom:6px">Tus ' + esc(type.label_plural.toLowerCase()) + ', con los avisos en piloto automático</div>' +
+        '<div style="color:var(--dim);font-size:13.5px;line-height:1.6">' + esc(intro) + '</div>' +
+      '</div>' +
+    '</div>' +
+    stepsHtml +
+    cards +
+    '<button class="btn ' + (items.length ? 'btn-d' : 'btn-accent') + '" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">' +
+      (items.length ? 'O empieza desde cero — añadir ' : '+ Añadir ') + esc(type.label_singular.toLowerCase()) + '</button>' +
+  '</div>';
+}
+
+// Chips de alta rápida cuando ya hay fichas (el mismo recetario, plegado)
+function entPresetChipsHtml(type) {
+  var items = _entPresetItems(type);
+  if (!items.length) return '';
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">' +
+    '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)">⚡ Alta rápida:</span>' +
+    items.map(function(p, i) {
+      return '<button onclick="entApplyPreset(' + i + ')" title="' + esc(p.description || '') + '" ' +
+        'style="background:transparent;color:var(--accent-l);border:1px dashed rgba(196,245,70,.4);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">+ ' + esc(p.label) + '</button>';
+    }).join('') + '</div>';
+}
+
+// Clic en un preset → el modal de alta se abre PRELLENADO (fechas incluidas,
+// ya resueltas por el servidor a partir de hoy). El dueño elige el cliente,
+// ajusta lo que quiera y guarda.
+function entApplyPreset(i) {
+  var items = _entPresetItems(_entType());
+  if (items[i]) openEntityModal(null, i);
+}
+
 // Contactos para el selector "dueño" (cacheados 1 vez por sesión de pestaña)
 async function _entLoadContacts() {
   if (_entContacts) return _entContacts;
@@ -6740,7 +6828,8 @@ async function _entLoadContacts() {
 
 // Modal crear/editar — el formulario se GENERA desde las field defs:
 // inputs grandes, campos-fecha con la pill de aviso automático.
-async function openEntityModal(id) {
+// presetIdx (opcional, solo alta): prellenar con esa ficha típica del sector.
+async function openEntityModal(id, presetIdx) {
   var type = _entType();
   if (!type) return;
   var entity = null;
@@ -6748,7 +6837,9 @@ async function openEntityModal(id) {
     for (var i = 0; i < _entList.length; i++) if (_entList[i].id === id) entity = _entList[i];
     if (!entity) return;
   }
-  var a = (entity && entity.attrs) || {};
+  var preset = (!id && presetIdx !== undefined && presetIdx !== null)
+    ? (_entPresetItems(type)[presetIdx] || null) : null;
+  var a = (entity && entity.attrs) || (preset && preset.attrs) || {};
   var contacts = await _entLoadContacts();
 
   var BIG = 'width:100%;font-size:16px;padding:12px';
@@ -6795,8 +6886,13 @@ async function openEntityModal(id) {
     ? '<button class="btn btn-d" style="color:#e17055;margin-right:auto" onclick="deleteEntity(\'' + esc(entity.id) + '\')">🗑 Eliminar</button>'
     : '';
 
+  var presetHint = preset
+    ? '<div style="color:var(--dim);font-size:12.5px;line-height:1.5;margin:-4px 0 14px">✨ Prellenado con fechas de ejemplo a partir de hoy — revisa lo que quieras, elige el cliente y guarda.</div>'
+    : '';
+
   openModal(
-    '<div class="modal-title">' + esc(type.icon || '') + ' ' + (entity ? esc(entity.display_name) : '+ Nuevo ' + esc(type.label_singular.toLowerCase())) + '</div>' +
+    '<div class="modal-title">' + esc(type.icon || '') + ' ' + (entity ? esc(entity.display_name) : (preset ? esc(preset.label) : '+ Nuevo ' + esc(type.label_singular.toLowerCase()))) + '</div>' +
+    presetHint +
     formHtml +
     '<div class="modal-actions" style="display:flex;gap:10px;align-items:center">' + del +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
