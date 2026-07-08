@@ -865,8 +865,9 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .svc-del { padding: 0; height: 38px; display: flex; align-items: center; justify-content: center; }
 
 /* Setup checklist */
-.setup-step { padding: 8px 12px; border-radius: var(--r-1); font-size: var(--fs-md); color: var(--text); }
-.setup-step.done { color: var(--green2); opacity: .7; }
+.setup-step { padding: 8px 12px; border-radius: var(--r-1); font-size: var(--fs-md); color: var(--text); transition: background .2s ease, color .2s ease; }
+.setup-step.done { color: var(--green); opacity: 1; font-weight: 600; background: rgba(var(--green-rgb), .12); box-shadow: inset 3px 0 0 var(--green); border-radius: 0 var(--r-1) var(--r-1) 0; }
+.setup-step.done strong { color: var(--green); }
 
 /* Recordatorios */
 .reminder-group { margin-bottom: var(--sp-4); }
