@@ -566,13 +566,14 @@ class VoicePipeline {
       let spokeFirstFragment = false; // arranque temprano: la 1ª cláusula no espera al punto
 
       // Tope de tokens del turno CONVERSACIONAL: backstop duro contra los
-      // monólogos (veredicto del fundador "habla demasiado"). ~150 tokens ≈
-      // 2-3 frases habladas, de sobra para un turno conversacional pero un
-      // freno real al párrafo. OJO: solo el turno principal — el turno
-      // POST-HERRAMIENTA (confirmación de reserva con nombre+día+hora) conserva
-      // el límite alto para no truncar la confirmación a media frase. El dueño
-      // puede subirlo con assistant_config.maxTokens.
-      const convMaxTokens = session.assistant.maxTokens || 150;
+      // monólogos (veredicto del fundador "habla demasiado"). ~200 tokens ≈
+      // 3-4 frases habladas: sigue siendo breve pero ya no corta una respuesta
+      // legítima a media frase (subido de 150→200 tras la revisión adversarial,
+      // que detectó truncado ocasional sin finish_reason). OJO: solo el turno
+      // principal — el turno POST-HERRAMIENTA (confirmación de reserva con
+      // nombre+día+hora) conserva el límite alto. El dueño puede ajustarlo con
+      // assistant_config.maxTokens.
+      const convMaxTokens = session.assistant.maxTokens || 200;
       for await (const chunk of this.llmRouter.streamCompletion({
         callId,
         messages: session.messages,
