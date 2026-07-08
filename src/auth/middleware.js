@@ -107,7 +107,7 @@ function requireAuth(config = {}) {
           // Load org by email, including billing fields
           const { data: orgRow } = await db.client
             .from('organizations')
-            .select('id, name, owner_email, phone, plan, is_active, api_key, monthly_minutes_used, stripe_customer_id, stripe_subscription_id, registered_at, created_at')
+            .select('id, name, owner_email, phone, plan, is_active, api_key, monthly_minutes_used, stripe_customer_id, stripe_subscription_id, registered_at, created_at, google_refresh_token, google_access_token, google_token_expiry, google_calendar_id')
             .eq('owner_email', session.email.toLowerCase())
             .eq('is_active', true)
             .order('created_at', { ascending: false })
@@ -125,6 +125,10 @@ function requireAuth(config = {}) {
               monthly_minutes_used:     parseFloat(orgRow.monthly_minutes_used) || 0,
               stripe_customer_id:       orgRow.stripe_customer_id || null,
               stripe_subscription_id:   orgRow.stripe_subscription_id || null,
+              google_refresh_token:     orgRow.google_refresh_token || null,
+              google_access_token:      orgRow.google_access_token || null,
+              google_token_expiry:      orgRow.google_token_expiry || null,
+              google_calendar_id:       orgRow.google_calendar_id || null,
             };
             return next();
           }
