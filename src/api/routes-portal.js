@@ -904,6 +904,12 @@ function setupPortalRoutes(app, pipeline, config) {
     const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes });
     if (!result.success) return res.status(409).json({ error: result.error });
     log.info(`Portal: appointment created ${result.appointment.id} for ${patientName}`);
+    // (C) Empuja la cita al Google Calendar del negocio si está conectado. No
+    // bloqueante y con los mismos criterios que la reserva por voz — antes solo
+    // se sincronizaban las citas que agendaba el asistente, no las manuales.
+    try {
+      require('../tools/executor').syncAppointmentToCalendar(businessId, result.appointment).catch(() => {});
+    } catch (_) {}
     res.json({ ok: true, appointment: result.appointment });
   });
 
