@@ -169,3 +169,31 @@ revisa/ajusta en Facturación → Configuración de pagos / Líneas de crédito.
 Ojo: hay 2 WABA "NodeFlow" en el business (2548201375610184 = la que usa el
 código; 2089981524951027 = duplicada, posible resto de pruebas de Embedded
 Signup — revisar si sigue con tarjeta y facturando por su cuenta).
+
+## Flags de voz y escala (añadidos 2026-07-08, commit c6502a6)
+
+- `MISUNDERSTAND_ESCALATE_AFTER` (default 3): malentendidos SEGUIDOS de STT
+  (confianza <0.75) antes de que la IA escale a "tomo el recado y le llaman"
+  + aviso al dueño con el número + lead `voice_call_take_message`. Una vez
+  por llamada; se resetea al entender bien. Métrica: `escalatedTakeMessage`.
+- `MAX_CONCURRENT_CALLS_NODE` (default 0 = sin límite): techo GLOBAL de
+  llamadas simultáneas del nodo (suma de todos los asistentes). Rechaza a
+  coste 0 antes de abrir STT. En producción: 45 (puesto en EasyPanel).
+  Complementa `MAX_CONCURRENT_CALLS_PER_ASSISTANT` (default 10).
+
+## Embedded Signup / App Review de Meta (estado 2026-07-08)
+
+- Config de Login for Business: `WA_ES_CONFIG_ID=27430128569976874` +
+  `WA_APP_ID=1004065339078581` en EasyPanel (desplegado). Dominios
+  autorizados: nodeflow.es (SDK JS + OAuth redirect /portal).
+- **App Review ENVIADO 2026-07-08** (business_management,
+  whatsapp_business_management, whatsapp_business_messaging,
+  public_profile). Hasta que aprueben, el popup muestra "no puede
+  incorporar clientes" — esperado. Al aprobar NO hay que flipear nada.
+- Cuenta de revisor para Meta: org demo "Clinica Demo NodeFlow"
+  (0ff77e17-0925-4134-b75a-5e3988dad018), login por contraseña
+  74doktorr+metarevisor@gmail.com (contraseña en el gestor de Unai y en la
+  solicitud de Meta). Tiene `wa_own_number` activado A MANO
+  (automation_config.config.addons, manual:true) para que el botón lance el
+  popup. Al terminar la revisión: quitar la clave o soft-delete de la org.
+- Textos completos de la solicitud: Desktop/NodeFlow — Textos App Review Meta.md

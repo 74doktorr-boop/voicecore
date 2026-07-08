@@ -423,3 +423,37 @@ plantillas Meta. Lo que emergió construyéndolo:
   redeploy sintetiza el saludo en frío (~700ms extra). Pre-cachear los saludos
   de las orgs activas al arrancar el proceso elimina el único "se traba" que
   queda sistemáticamente. Compounding: 5.
+
+## Oportunidades capturadas — sesión 2026-07-08 (rescate en llamada + Meta self-service + escala 100)
+
+Contexto: shipped hoy — salida de gracia anti-bucle (3 malentendidos → recado +
+aviso + lead), cap global de concurrencia por nodo, canal WhatsApp verificado
+end-to-end en producción (6 plantillas), Embedded Signup completo (config_id,
+dominios, portal) con App Review ENVIADO, cuenta de revisor con org demo. Lo
+que emergió construyéndolo:
+
+- **(#growth) Funnel completo "quiero mi número" cuando Meta apruebe.** Hoy el
+  botón sin add-on envía una solicitud manual ("te contactamos en 24h"). Con el
+  acceso avanzado aprobado, la cadena natural es: botón → checkout del add-on
+  (15€/mes, Stripe ya lo soporta) → popup de Embedded Signup → número propio
+  conectado SOLO, sin tocar nada nosotros. Alta self-service de un add-on de
+  pago de punta a punta: es LA palanca de ingreso por cliente sin trabajo
+  marginal. Compounding: 8.
+- **(#confianza) "Llamadas rescatadas" como métrica visible.** La escalada
+  anti-bucle ya marca `escalatedTakeMessage` en metrics. Enseñar en el portal
+  "este mes rescatamos N llamadas difíciles (te avisamos al momento)" convierte
+  el peor momento del producto (no entender) en prueba de que hay red. Nadie
+  del sector enseña sus rescates. Compounding: 7.
+- **(#ops) La org demo del revisor como demo comercial permanente.** Ya existe
+  (Clinica Demo NodeFlow, login con contraseña, portal completo). Sembrarle
+  datos bonitos (citas, llamadas, seguimientos) la convierte en la demo que se
+  enseña en puerta fría y a socios de Galicia sin exponer datos reales — y en
+  el entorno de pruebas seguro para features nuevas. Compounding: 6.
+- **(#escala) Semáforo de capacidad en /health.** `activeCalls` y el cap global
+  ya existen; exponer "ocupación de voz: 12/45" en /health + alerta al founder
+  al 80% avisa ANTES de rechazar llamadas — el dato ya está, falta la línea.
+  Compounding: 5.
+- **(#voz) Umbral de escalada por sector.** MISUNDERSTAND_ESCALATE_AFTER es
+  global (3); un gimnasio con música y un despacho silencioso no fallan igual.
+  Llevarlo a config del asistente (como concurrentCalls) permite afinar por
+  tipo de negocio cuando haya datos de escalatedTakeMessage. Compounding: 4.
