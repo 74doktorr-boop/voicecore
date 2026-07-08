@@ -255,6 +255,12 @@ async function updateEntity({ orgId, entityType, entityId, attrs, contactId, act
     merged = { ...merged, ...v.attrs };
     // null = borrar el valor
     for (const k of Object.keys(merged)) { if (merged[k] === null) delete merged[k]; }
+    // Borrador de la IA que se completa: al tener todos los required, el
+    // badge «completar ficha» se apaga SOLO (regla en código, no en la UI).
+    if (merged.is_draft) {
+      const { draftIsComplete } = require('./entity-ai');
+      if (draftIsComplete(entityType.fields || [], merged)) delete merged.is_draft;
+    }
     patch.attrs        = merged;
     patch.display_name = computeDisplayName(entityType.label_template, merged, entityType.label_singular);
   }
@@ -282,6 +288,79 @@ async function updateEntity({ orgId, entityType, entityId, attrs, contactId, act
     }
   }
   return { ok: true, entity: data };
+}
+
+/**
+ * Crea una ficha BORRADOR desde la voz (create_entity_draft): el llamante
+ * menciona un coche/mascota nuevo y la IA la abre con lo que haya recogido.
+ * Los required de TEXTO pueden faltar (validación partial) — se marca
+ * attrs.is_draft=true y el portal enseña «completar ficha». Los valores
+ * presentes se validan IGUAL de estrictos (tipos, opciones, fechas).
+ */
+async function createEntityDraft({ orgId, entityType, attrs, contactId, actor = 'ai', db }) {
+  db = db || getDatabase();
+  if (!db.enabled) return { ok: false, error: 'db_disabled' };
+
+  const v = validateAttrs(entityType.fields || [], attrs, { partial: true });
+  if (!v.ok) return { ok: false, errors: v.errors };
+  const clean = { ...v.attrs };
+  for (const k of Object.keys(clean)) { if (clean[k] === null) delete clean[k]; }
+
+  const { draftIsComplete } = require('./entity-ai');
+  if (!draftIsComplete(entityType.fields || [], clean)) clean.is_draft = true;
+
+  const display = computeDisplayName(entityType.label_template, clean, entityType.label_singular);
+  const { data, error } = await db.client.from('nf_entities').insert({
+    organization_id: orgId,
+    entity_type_id:  entityType.id,
+    contact_id:      contactId || null,
+    display_name:    display,
+    attrs:           clean,
+  }).select().single();
+
+  if (error) {
+    log.warn(`createEntityDraft(${orgId}): ${error.message}`);
+    return { ok: false, error: error.message };
+  }
+
+  await _logEvent(db, {
+    orgId, entityId: data.id, kind: 'created',
+    title: `${entityType.label_singular} creado durante una llamada: ${display}`,
+    properties: clean.is_draft ? { is_draft: true } : {},
+    actor,
+  });
+  return { ok: true, entity: data, isDraft: !!clean.is_draft };
+}
+
+/**
+ * Nota manual en el timeline de la ficha («añadir nota» de la ficha viva).
+ * Verifica pertenencia org-scoped ANTES de escribir (cero cross-tenant).
+ */
+async function addEntityNote({ orgId, entityId, text, actor = 'staff', db }) {
+  db = db || getDatabase();
+  if (!db.enabled) return { ok: false, error: 'db_disabled' };
+
+  const clean = String(text || '').trim().slice(0, 500);
+  if (!clean) return { ok: false, error: 'Escribe la nota antes de guardar' };
+
+  const entity = await getEntity({ orgId, entityId, db });
+  if (!entity) return { ok: false, error: 'not_found' };
+
+  const { error } = await db.client.from('nf_entity_events').insert({
+    organization_id: orgId,
+    entity_id:       entityId,
+    kind:            'note',
+    title:           clean,
+    actor:           actor === 'ai' ? 'ai' : 'staff',
+  });
+  if (error) return { ok: false, error: error.message };
+
+  // La ficha "se mueve": sube en las listas ordenadas por updated_at
+  await db.client.from('nf_entities')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('organization_id', orgId).eq('id', entityId)
+    .then(undefined, () => {});
+  return { ok: true };
 }
 
 /** Archiva (borrado suave — desaparece de listas y del materializador). */
@@ -366,6 +445,8 @@ module.exports = {
   listEntities,
   getEntity,
   createEntity,
+  createEntityDraft,
+  addEntityNote,
   updateEntity,
   archiveEntity,
   searchEntities,

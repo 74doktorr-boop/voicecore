@@ -3176,6 +3176,9 @@ async function openContactProfile(id) {
       '<button class="btn btn-d btn-sm" onclick="addContactTag()">+ Añadir</button>' +
     '</div>' +
 
+    // ── FICHA 360 ↔ ENTIDADES: "sus cosas" (su coche, su bono, su póliza) ──
+    cpEntitiesHtml(data, id) +
+
     // ── FICHA 360: los seguimientos DE ESTE cliente ──────────────────
     '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
       '<span>🔔 Seguimientos de este cliente</span>' +
@@ -3203,6 +3206,42 @@ async function openContactProfile(id) {
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
+}
+
+// ── FICHA 360 ↔ ENTIDADES: "sus cosas" ──────────────────────────────────────
+// Bidireccional con la ficha viva: las entidades de ESTE cliente como chips
+// («🚗 Golf GTI · 1234ABC») que abren su ficha; y el alta desde aquí vincula
+// al cliente sola (prelink). Solo aparece si el sector tiene fichas.
+function cpEntitiesHtml(data, contactId) {
+  if (!data.hasEntityTypes) return '';
+  var ents = data.entities || [];
+  var typeLabel = '';
+  try {
+    var t = _entType();
+    if (t) typeLabel = ' ' + t.label_singular.toLowerCase();
+  } catch (e) {}
+
+  var chips = ents.map(function(en) {
+    return '<button class="btn btn-d btn-sm" style="border-radius:999px;font-size:13px;padding:9px 14px" ' +
+      'onclick="openEntityFicha(\'' + esc(en.id) + '\')">' +
+      esc(en.icon || '🗂️') + ' ' + esc(en.display_name) +
+      (en.is_draft ? ' ' + _entDraftBadge(true) : '') + '</button>';
+  }).join(' ');
+
+  return '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span>🗂️ Sus cosas</span>' +
+      '<button class="btn btn-d btn-sm" onclick="entNewForContact(\'' + esc(contactId) + '\')">+ Añadir' + esc(typeLabel) + '</button>' +
+    '</div>' +
+    (chips
+      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">' + chips + '</div>'
+      : '<div style="color:var(--dim);font-size:12px;margin-bottom:16px">Sin fichas vinculadas todavía. Añade la suya y sus avisos (ITV, vacuna, renovación…) saldrán solos.</div>');
+}
+
+// Alta de entidad DESDE la Ficha 360: el cliente llega preseleccionado.
+async function entNewForContact(contactId) {
+  if (!_entTypes) { try { await initEntidades(); } catch (e) {} }
+  if (!_entType()) { toast('Las fichas no están disponibles para tu negocio', 'err'); return; }
+  openEntityModal(null, null, contactId);
 }
 
 // ── FICHA 360: badge de riesgo de plantón (no-show) ─────────────────────────
@@ -6590,6 +6629,30 @@ var _entQ        = '';     // búsqueda actual
 var _entQTimer   = null;
 var _entContacts = null;   // cache de contactos para el selector "dueño"
 var _entPresets  = null;   // recetario del sector: { type, intro, items } o null
+var _entView         = 'list'; // 'list' | 'grouped' (solo si el tipo es agrupable)
+var _entFichaCur     = null;   // entidad abierta en la ficha viva (editar desde ahí)
+var _entModalTypeKey = null;   // tipo del modal abierto (puede no ser el de la pestaña)
+
+// Espejo ES5 de groupableField (src/entities/entity-types.js): el PRIMER
+// select con 2..6 opciones agrupa la lista (estado, fase, especie…).
+function entGroupField(fields) {
+  for (var i = 0; i < (fields || []).length; i++) {
+    var f = fields[i];
+    if (f.type === 'select' && f.options && f.options.length >= 2 && f.options.length <= 6) return f;
+  }
+  return null;
+}
+
+function _entTypeById(id) {
+  if (!_entTypes) return null;
+  for (var i = 0; i < _entTypes.length; i++) if (_entTypes[i].id === id) return _entTypes[i];
+  return null;
+}
+
+// Badge de ficha borrador (la abrió la IA en una llamada; falta completarla)
+function _entDraftBadge(small) {
+  return '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(224,160,48,.14);border:1px solid rgba(224,160,48,.4);color:#e0a030;border-radius:999px;padding:' + (small ? '1px 8px' : '2px 10px') + ';font-size:' + (small ? '10px' : '11px') + ';font-weight:700;white-space:nowrap">📝 completar ficha</span>';
+}
 
 // Al entrar: ¿tiene esta org fichas? Si sí, aparece la pestaña con su nombre.
 async function initEntidades() {
@@ -6636,6 +6699,18 @@ async function loadEntidades() {
     }).join('') + '</div>';
   }
 
+  // Vista agrupada por estado/fase (v1): solo si la plantilla tiene un
+  // select agrupable. Acordeón táctil, NO kanban (regla de los 60 años).
+  var gf = entGroupField(type.fields);
+  var viewToggle = '';
+  if (gf) {
+    viewToggle =
+      '<div style="display:flex;gap:6px;flex:none">' +
+        '<button class="btn ' + (_entView === 'list' ? 'btn-accent' : 'btn-d') + '" style="padding:10px 14px" onclick="entSetView(\'list\')">☰ Lista</button>' +
+        '<button class="btn ' + (_entView === 'grouped' ? 'btn-accent' : 'btn-d') + '" style="padding:10px 14px" onclick="entSetView(\'grouped\')">⊞ Por ' + esc((gf.label || gf.key).toLowerCase()) + '</button>' +
+      '</div>';
+  }
+
   sec.innerHTML =
     '<div class="section-header">' +
       '<div><div class="kicker">Actividad</div>' +
@@ -6644,9 +6719,10 @@ async function loadEntidades() {
       '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>' +
     '</div>' +
     tabs +
-    '<div class="card" style="padding:14px;margin-bottom:16px">' +
+    '<div class="card" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
       '<input class="form-input" id="entSearch" placeholder="🔎 Buscar…" value="' + esc(_entQ) + '" ' +
-        'style="width:100%;font-size:16px;padding:12px" oninput="entSearchInput(this.value)">' +
+        'style="flex:1;min-width:180px;font-size:16px;padding:12px" oninput="entSearchInput(this.value)">' +
+      viewToggle +
     '</div>' +
     '<div id="entPresetChips"></div>' +
     '<div id="entList"><div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando fichas…</div></div></div>';
@@ -6654,7 +6730,9 @@ async function loadEntidades() {
   entFetchList();
 }
 
-function entSwitchType(key) { _entTypeKey = key; _entQ = ''; loadEntidades(); }
+function entSwitchType(key) { _entTypeKey = key; _entQ = ''; _entView = 'list'; loadEntidades(); }
+
+function entSetView(v) { _entView = v; loadEntidades(); }
 
 function entSearchInput(v) {
   _entQ = v;
@@ -6703,44 +6781,137 @@ function renderEntidades() {
 
   var fields     = type.fields || [];
   var listFields = fields.filter(function(f) { return f.show_in_list; });
+  var gf         = entGroupField(fields);
+
+  if (gf && _entView === 'grouped') {
+    box.innerHTML = entGroupedHtml(type, gf, listFields);
+    return;
+  }
 
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px">';
   for (var i = 0; i < _entList.length; i++) {
-    var e = _entList[i];
-    var a = e.attrs || {};
-
-    // Datos de la lista (máx 4-5 por plantilla) — fechas con aviso llevan 🔔
-    var rows = '';
-    for (var j = 0; j < listFields.length; j++) {
-      var f = listFields[j];
-      var v = a[f.key];
-      if (v === undefined || v === null || v === '') continue;
-      var shown = f.type === 'date' ? fmtDate(String(v)) : (Array.isArray(v) ? v.join(', ') : String(v));
-      if (f.type === 'select' && f.options) {
-        for (var k = 0; k < f.options.length; k++) if (f.options[k].value === v) shown = f.options[k].label;
-      }
-      rows += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:3px 0">' +
-        '<span style="color:var(--dim)">' + esc(f.label || f.key) + '</span>' +
-        '<span style="font-weight:600;text-align:right">' + esc(shown) + (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span></div>';
-    }
-
-    // Chip del dueño → Ficha 360 del contacto
-    var owner = e.contact_id
-      ? '<button class="btn btn-d btn-sm" style="border-radius:999px" onclick="event.stopPropagation();openContactProfile(\'' + esc(e.contact_id) + '\')">👤 ' + esc(e.contact_name || 'Ver cliente') + '</button>'
-      : '<span style="font-size:11px;color:var(--dim)">Sin cliente vinculado</span>';
-
-    html += '<div class="card" style="padding:16px;cursor:pointer" onclick="openEntityModal(\'' + esc(e.id) + '\')">' +
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
-        '<div style="font-size:22px">' + esc(type.icon || '🗂️') + '</div>' +
-        '<div style="font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(e.display_name) + '</div>' +
-      '</div>' +
-      rows +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px">' + owner +
-        '<span style="font-size:12px;color:var(--accent-l);font-weight:700">Editar ✏️</span></div>' +
-    '</div>';
+    html += entCardHtml(_entList[i], type, listFields, null);
   }
   html += '</div>';
   box.innerHTML = html;
+}
+
+// Tarjeta de entidad (compartida entre lista y agrupada). Clic → FICHA VIVA;
+// «Editar ✏️» va directo al formulario. stateField (solo agrupada): selector
+// grande para cambiar de estado sin abrir nada.
+function entCardHtml(e, type, listFields, stateField) {
+  var a = e.attrs || {};
+
+  // Datos de la lista (máx 4-5 por plantilla) — fechas con aviso llevan 🔔
+  var rows = '';
+  for (var j = 0; j < listFields.length; j++) {
+    var f = listFields[j];
+    if (stateField && f.key === stateField.key) continue; // la sección ya lo dice
+    var v = a[f.key];
+    if (v === undefined || v === null || v === '') continue;
+    var shown = f.type === 'date' ? fmtDate(String(v)) : (Array.isArray(v) ? v.join(', ') : String(v));
+    if (f.type === 'select' && f.options) {
+      for (var k = 0; k < f.options.length; k++) if (f.options[k].value === v) shown = f.options[k].label;
+    }
+    rows += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:3px 0">' +
+      '<span style="color:var(--dim)">' + esc(f.label || f.key) + '</span>' +
+      '<span style="font-weight:600;text-align:right">' + esc(shown) + (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span></div>';
+  }
+
+  // Chip del dueño → Ficha 360 del contacto
+  var owner = e.contact_id
+    ? '<button class="btn btn-d btn-sm" style="border-radius:999px" onclick="event.stopPropagation();openContactProfile(\'' + esc(e.contact_id) + '\')">👤 ' + esc(e.contact_name || 'Ver cliente') + '</button>'
+    : '<span style="font-size:11px;color:var(--dim)">Sin cliente vinculado</span>';
+
+  // Selector de estado en la vista agrupada (dedo grande, cero drag)
+  var stateSel = '';
+  if (stateField) {
+    stateSel = '<div style="margin-top:10px" onclick="event.stopPropagation()">' +
+      '<select class="form-input" style="width:100%;font-size:15px;padding:10px" ' +
+        'onchange="entQuickState(\'' + esc(e.id) + '\',\'' + esc(stateField.key) + '\',this.value)">' +
+      '<option value="">— ' + esc(stateField.label || stateField.key) + ' —</option>' +
+      (stateField.options || []).map(function(o) {
+        return '<option value="' + esc(o.value) + '"' + (String(a[stateField.key] || '') === o.value ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+      }).join('') + '</select></div>';
+  }
+
+  return '<div class="card" style="padding:16px;cursor:pointer" onclick="openEntityFicha(\'' + esc(e.id) + '\')">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+      '<div style="font-size:22px">' + esc(type.icon || '🗂️') + '</div>' +
+      '<div style="font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(e.display_name) + '</div>' +
+      (a.is_draft ? _entDraftBadge(true) : '') +
+    '</div>' +
+    rows +
+    stateSel +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px">' + owner +
+      '<button class="btn btn-d btn-sm" onclick="event.stopPropagation();openEntityModal(\'' + esc(e.id) + '\')">Editar ✏️</button></div>' +
+  '</div>';
+}
+
+// ── Vista AGRUPADA por estado/fase (v1) ──────────────────────────
+// Secciones con contador en el orden de las opciones + «Sin estado» al
+// final. Cabecera táctil que pliega/despliega; el cambio de estado es un
+// select grande en la tarjeta (queda registrado en el timeline de la ficha).
+function entGroupedHtml(type, gf, listFields) {
+  var groups = {};   // value → items
+  var i;
+  for (i = 0; i < _entList.length; i++) {
+    var v = String((_entList[i].attrs || {})[gf.key] || '');
+    if (!groups[v]) groups[v] = [];
+    groups[v].push(_entList[i]);
+  }
+
+  var sections = (gf.options || []).map(function(o) { return { value: o.value, label: o.label }; });
+  sections.push({ value: '', label: 'Sin ' + (gf.label || gf.key).toLowerCase() });
+
+  var html = '';
+  for (i = 0; i < sections.length; i++) {
+    var s     = sections[i];
+    var items = groups[s.value] || [];
+    if (!items.length && s.value === '') continue; // «Sin estado» solo si hay huérfanas
+    var sid = 'entGrp-' + i;
+    html +=
+      '<div class="card" style="padding:0;margin-bottom:12px;overflow:hidden">' +
+        '<div role="button" tabindex="0" onclick="entToggleGroup(\'' + sid + '\')" onkeydown="if(event.key===\'Enter\')entToggleGroup(\'' + sid + '\')" ' +
+          'style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none">' +
+          '<span style="font-weight:800;font-size:15px;flex:1">' + esc(s.label) + '</span>' +
+          '<span style="background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.3);color:var(--accent-l);border-radius:999px;padding:2px 12px;font-size:12px;font-weight:700">' + items.length + '</span>' +
+          '<span id="' + sid + '-arrow" style="color:var(--dim);font-size:12px">▾</span>' +
+        '</div>' +
+        '<div id="' + sid + '" style="padding:0 12px 12px">' +
+          (items.length
+            ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px">' +
+                items.map(function(e) { return entCardHtml(e, type, listFields, gf); }).join('') + '</div>'
+            : '<div style="color:var(--dim);font-size:12.5px;padding:2px 6px 6px">Nada en «' + esc(s.label.toLowerCase()) + '» ahora mismo.</div>') +
+        '</div>' +
+      '</div>';
+  }
+  return html || '<div class="empty-state"><div class="empty-state-text">Sin fichas todavía.</div></div>';
+}
+
+function entToggleGroup(sid) {
+  var body  = document.getElementById(sid);
+  var arrow = document.getElementById(sid + '-arrow');
+  if (!body) return;
+  var hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  if (arrow) arrow.textContent = hidden ? '▾' : '▸';
+}
+
+// Cambio de estado desde la tarjeta (vista agrupada) → PATCH + evento en
+// el timeline (updateEntity registra el field_change en el servidor).
+async function entQuickState(id, key, value) {
+  if (!value) return;
+  try {
+    var body = { attrs: {} };
+    body.attrs[key] = value;
+    await api('/api/portal/entities/' + id, 'PATCH', body);
+    toast('Estado actualizado ✔');
+    entFetchList();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+    entFetchList();
+  }
 }
 
 // ── Primera vez: onboarding personalizado del sector ─────────────
@@ -6826,17 +6997,162 @@ async function _entLoadContacts() {
   return _entContacts;
 }
 
+// ════════ FICHA VIVA (v1) — la historia completa de la cosa ═════════
+// Clic en una tarjeta → cabecera con chips, dueño, estado tocable y el
+// TIMELINE universal: eventos propios + citas + avisos (enviados y
+// próximos 🔔) ya unidos por el servidor. Con caja de «añadir nota».
+
+async function openEntityFicha(id) {
+  openModal('<div class="modal-title">🗂️ Ficha</div>' +
+    '<div style="color:var(--dim);font-size:13px">Cargando…</div>');
+
+  var r;
+  try {
+    r = await api('/api/portal/entities/' + id + '/timeline');
+  } catch (err) {
+    openModal('<div class="modal-title">🗂️ Ficha</div>' +
+      '<p style="color:var(--dim)">Error: ' + esc(err.message) + '</p>' +
+      '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>');
+    return;
+  }
+  if (!_entTypes) { try { await initEntidades(); } catch (e2) {} }
+
+  var e = r.entity;
+  _entFichaCur = e;
+  var type = _entTypeById(e.entity_type_id) || _entType() || { fields: [], icon: '🗂️', label_singular: 'Ficha' };
+  var a = e.attrs || {};
+
+  // Chips de los datos clave (los show_in_list de la plantilla)
+  var chips = '';
+  var fields = type.fields || [];
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    if (!f.show_in_list) continue;
+    var v = a[f.key];
+    if (v === undefined || v === null || v === '') continue;
+    var shown = f.type === 'date' ? fmtDate(String(v)) : (Array.isArray(v) ? v.join(', ') : String(v));
+    if (f.type === 'select' && f.options) {
+      for (var k = 0; k < f.options.length; k++) if (f.options[k].value === v) shown = f.options[k].label;
+    }
+    chips += '<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12.5px">' +
+      '<span style="color:var(--dim)">' + esc(f.label || f.key) + ':</span> <b>' + esc(shown) + '</b>' +
+      (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span> ';
+  }
+
+  // Dueño → Ficha 360 del contacto (bidireccional con «sus cosas»)
+  var ownerChip = e.contact_id
+    ? '<button class="btn btn-d btn-sm" style="border-radius:999px" onclick="openContactProfile(\'' + esc(e.contact_id) + '\')">👤 ' + esc(e.contact_name || 'Ver cliente') + '</button>'
+    : '<span style="font-size:12px;color:var(--dim)">Sin cliente vinculado — sin dueño no hay a quién avisar</span>';
+
+  // Estado tocable (pills grandes) si la plantilla es agrupable
+  var gf = entGroupField(fields);
+  var stateRow = '';
+  if (gf) {
+    stateRow = '<div style="margin:12px 0 4px">' +
+      '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:6px">' + esc(gf.label || gf.key) + '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+      (gf.options || []).map(function(o) {
+        var cur = String(a[gf.key] || '') === o.value;
+        return '<button onclick="entFichaSetState(\'' + esc(e.id) + '\',\'' + esc(gf.key) + '\',\'' + esc(o.value) + '\')" ' +
+          'style="border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;' +
+          (cur ? 'background:rgba(196,245,70,.15);border:1px solid rgba(196,245,70,.5);color:var(--accent-l)'
+               : 'background:transparent;border:1px solid var(--border);color:var(--dim)') + '">' +
+          esc(o.label) + '</button>';
+      }).join('') + '</div></div>';
+  }
+
+  openModal(
+    '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px">' +
+      '<div style="font-size:34px;line-height:1">' + esc(type.icon || '🗂️') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="modal-title" style="margin:0 0 4px">' + esc(e.display_name) + (a.is_draft ? ' ' + _entDraftBadge() : '') + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + ownerChip + '</div>' +
+      '</div>' +
+      '<button class="btn btn-accent" style="flex:none;padding:10px 16px" onclick="openEntityModal(\'' + esc(e.id) + '\')">✏️ Editar</button>' +
+    '</div>' +
+    (chips ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + chips + '</div>' : '') +
+    stateRow +
+    '<div class="profile-section-title" style="margin-top:16px">📋 Su historia</div>' +
+    entTimelineHtml(r.timeline || []) +
+    '<div style="display:flex;gap:6px;align-items:center;margin-top:12px">' +
+      '<input class="form-input" id="entNoteText" placeholder="Añadir nota a la ficha…" maxlength="500" ' +
+        'style="flex:1;font-size:15px;padding:11px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();entAddNote(\'' + esc(e.id) + '\');}">' +
+      '<button class="btn btn-accent" style="padding:11px 18px" onclick="entAddNote(\'' + esc(e.id) + '\')">+ Nota</button>' +
+    '</div>' +
+    '<div class="modal-actions" style="margin-top:16px">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
+    '</div>'
+  );
+}
+
+// El timeline llega LISTO del servidor (título, icono, meta, upcoming):
+// aquí solo se pinta. Próximo primero (🔔), después la historia.
+function entTimelineHtml(items) {
+  if (!items.length) {
+    return '<div style="color:var(--dim);font-size:13px;padding:8px 0">Sin actividad todavía. Aparecerá aquí cada cambio, cita, nota y aviso.</div>';
+  }
+  var html = '';
+  var lastUpcoming = null;
+  for (var i = 0; i < items.length; i++) {
+    var ev = items[i];
+    if (lastUpcoming === null || lastUpcoming !== !!ev.upcoming) {
+      lastUpcoming = !!ev.upcoming;
+      html += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:' +
+        (lastUpcoming ? 'var(--accent-l)' : 'var(--dim)') + ';margin:8px 0 2px">' +
+        (lastUpcoming ? '🔜 Próximo' : 'Historia') + '</div>';
+    }
+    var d = ev.at ? new Date(ev.at) : null;
+    var dateStr = d && !isNaN(d.getTime()) ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    html += '<div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)' +
+        (ev.upcoming ? ';background:rgba(196,245,70,.03)' : '') + '">' +
+      '<div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">' + esc(ev.icon || '•') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">' + esc(ev.title || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--dim)">' + dateStr + (ev.meta ? ' · ' + esc(ev.meta) : '') + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '<div style="max-height:340px;overflow-y:auto;position:relative;padding-left:2px">' + html + '</div>';
+}
+
+async function entAddNote(id) {
+  var el = document.getElementById('entNoteText');
+  var text = ((el && el.value) || '').trim();
+  if (!text) { toast('Escribe la nota antes de guardar', 'err'); if (el) el.focus(); return; }
+  try {
+    await api('/api/portal/entities/' + id + '/notes', 'POST', { text: text });
+    toast('Nota guardada ✔');
+    openEntityFicha(id); // recarga: la nota aparece arriba de la historia
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function entFichaSetState(id, key, value) {
+  try {
+    var body = { attrs: {} };
+    body.attrs[key] = value;
+    await api('/api/portal/entities/' + id, 'PATCH', body);
+    toast('Estado actualizado ✔');
+    openEntityFicha(id); // el cambio queda YA en su historia
+    if (document.getElementById('entList')) entFetchList();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
 // Modal crear/editar — el formulario se GENERA desde las field defs:
 // inputs grandes, campos-fecha con la pill de aviso automático.
 // presetIdx (opcional, solo alta): prellenar con esa ficha típica del sector.
-async function openEntityModal(id, presetIdx) {
-  var type = _entType();
-  if (!type) return;
+// prelinkContactId (opcional, solo alta): dueño preseleccionado — crear la
+// ficha DESDE la Ficha 360 del cliente la vincula sola.
+async function openEntityModal(id, presetIdx, prelinkContactId) {
   var entity = null;
   if (id) {
     for (var i = 0; i < _entList.length; i++) if (_entList[i].id === id) entity = _entList[i];
+    // Abierta desde la ficha viva o desde la Ficha 360: puede no estar en la lista
+    if (!entity && _entFichaCur && _entFichaCur.id === id) entity = _entFichaCur;
     if (!entity) return;
   }
+  var type = entity ? (_entTypeById(entity.entity_type_id) || _entType()) : _entType();
+  if (!type) return;
+  _entModalTypeKey = type.key;
   var preset = (!id && presetIdx !== undefined && presetIdx !== null)
     ? (_entPresetItems(type)[presetIdx] || null) : null;
   var a = (entity && entity.attrs) || (preset && preset.attrs) || {};
@@ -6873,8 +7189,9 @@ async function openEntityModal(id, presetIdx) {
     formHtml += '<div class="form-group">' + label + input + '</div>';
   }
 
-  // Dueño / titular (persona = contacto; la cosa = esta ficha)
-  var curContact = entity ? (entity.contact_id || '') : '';
+  // Dueño / titular (persona = contacto; la cosa = esta ficha).
+  // Alta desde la Ficha 360 → el cliente viene YA preseleccionado.
+  var curContact = entity ? (entity.contact_id || '') : (prelinkContactId || '');
   var contactOpts = '<option value="">— Sin cliente vinculado —</option>' + contacts.map(function(c) {
     return '<option value="' + esc(c.id) + '"' + (curContact === c.id ? ' selected' : '') + '>' + esc(c.displayName || c.phone || '') + '</option>';
   }).join('');
@@ -6902,7 +7219,9 @@ async function openEntityModal(id, presetIdx) {
 }
 
 async function saveEntity(id) {
-  var type = _entType();
+  // El tipo del MODAL, no el de la pestaña: la ficha pudo abrirse desde la
+  // Ficha 360 de un cliente con otro tipo activo.
+  var type = (_entModalTypeKey && _entTypes ? _entTypes.filter(function(t) { return t.key === _entModalTypeKey; })[0] : null) || _entType();
   if (!type) return;
   var attrs = {};
   var fields = type.fields || [];
@@ -6930,8 +7249,13 @@ async function saveEntity(id) {
       await api('/api/portal/entities', 'POST', body);
       toast(type.label_singular + ' añadido ✔');
     }
-    closeModal();
-    entFetchList();
+    // Editada desde la ficha viva → volver a ella (con la historia fresca)
+    if (id && _entFichaCur && _entFichaCur.id === id) {
+      openEntityFicha(id);
+    } else {
+      closeModal();
+    }
+    if (document.getElementById('entList')) entFetchList();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
@@ -6943,8 +7267,9 @@ async function deleteEntity(id) {
   try {
     await api('/api/portal/entities/' + id, 'DELETE');
     toast('Ficha eliminada');
+    _entFichaCur = null;
     closeModal();
-    entFetchList();
+    if (document.getElementById('entList')) entFetchList();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }

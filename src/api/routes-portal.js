@@ -1785,6 +1785,40 @@ function setupPortalRoutes(app, pipeline, config) {
       paused = !!(mem && mem.no_whatsapp && mem.no_sms && mem.no_email);
     } catch (_) {}
 
+    // 5. FICHA 360 ↔ ENTIDADES (v1): "sus cosas" — el Golf, el bono, la
+    //    póliza de ESTE cliente como chips que llevan a la ficha viva.
+    //    Best effort: sin tablas/feature, el array queda vacío y la ficha
+    //    360 sigue exactamente igual que antes.
+    let contactEntities = [];
+    let hasEntityTypes  = false;
+    try {
+      const { entitiesFeatureEnabled, entityTablesExist, getOrgEntityTypes } = require('../entities/entity-types');
+      if (entitiesFeatureEnabled() && (await entityTablesExist(db))) {
+        const eTypes = await getOrgEntityTypes(businessId, { db });
+        hasEntityTypes = eTypes.length > 0;
+        if (hasEntityTypes) {
+          const { data: ents } = await db.client.from('nf_entities')
+            .select('id, entity_type_id, display_name, attrs')
+            .eq('organization_id', businessId)
+            .eq('contact_id', id)
+            .eq('is_archived', false)
+            .order('updated_at', { ascending: false })
+            .limit(20);
+          const typeById = new Map(eTypes.map(t => [t.id, t]));
+          contactEntities = (ents || []).map(e => {
+            const t = typeById.get(e.entity_type_id);
+            return {
+              id:           e.id,
+              display_name: e.display_name,
+              icon:         (t && t.icon) || '🗂️',
+              type_key:     t ? t.key : null,
+              is_draft:     !!(e.attrs && e.attrs.is_draft),
+            };
+          });
+        }
+      }
+    } catch (_) {}
+
     res.json({
       ok: true,
       contact: {
@@ -1803,6 +1837,8 @@ function setupPortalRoutes(app, pipeline, config) {
       sectorFields,
       paused,
       noShowRisk,
+      entities:       contactEntities,
+      hasEntityTypes,
       calls: (calls || []).map(c => ({
         callSid:    c.id,
         outcome:    c.outcome    || 'abandoned',
@@ -3071,6 +3107,19 @@ function setupPortalRoutes(app, pipeline, config) {
     return types.length ? types : null;
   }
 
+  // v1: al guardar una ficha, sus avisos se re-materializan YA en background
+  // (antes solo la pasada nocturna) — el 🔔 del timeline refleja el cambio
+  // al instante. Best effort: si falla, la noche lo recoge igual.
+  function _syncEntityRemindersBg(orgId, entityType, entity) {
+    if (!entity) return;
+    setImmediate(() => {
+      try {
+        const { syncEntityRemindersNow } = require('../entities/entity-reminders');
+        syncEntityRemindersNow({ orgId, entityType, entity }).catch(() => {});
+      } catch (_) {}
+    });
+  }
+
   // ── GET /api/portal/entity-types ── tipos de entidad de la org ────────────
   // Incluye los PRESETS del sector (recetario de fichas, mismo patrón que el
   // recetario de Seguimientos): fichas típicas que prellenan el formulario
@@ -3149,6 +3198,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const { createEntity } = require('../entities/entities');
       const r = await createEntity({ orgId: req.businessId, entityType: type, attrs: body.attrs, contactId });
       if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
+      _syncEntityRemindersBg(req.businessId, type, r.entity);
       res.json({ ok: true, entity: r.entity });
     } catch (e) {
       log.error('POST entities', { error: e.message });
@@ -3186,9 +3236,70 @@ function setupPortalRoutes(app, pipeline, config) {
         attrs: body.attrs, contactId,
       });
       if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
+      _syncEntityRemindersBg(req.businessId, type, r.entity);
       res.json({ ok: true, entity: r.entity });
     } catch (e) {
       log.error('PATCH entities', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── GET /api/portal/entities/:id/timeline ── la FICHA VIVA (v1) ───────────
+  // Un solo viaje: la entidad + su historia. El timeline es la unión de
+  // (a) nf_entity_events, (b) citas con entity_id, (c) avisos enviados y
+  // programados 🔔 — consultas en PARALELO + merge puro (cero N+1), títulos
+  // listos-para-pintar (el cliente no hace joins).
+  app.get('/api/portal/entities/:id/timeline', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+
+      const { getEntity } = require('../entities/entities');
+      const entity = await getEntity({ orgId: req.businessId, entityId: req.params.id });
+      if (!entity) return res.status(404).json({ error: 'Ficha no encontrada' });
+      const type = types.find(t => t.id === entity.entity_type_id);
+
+      const db = getDatabase();
+      const { fetchEntityTimeline } = require('../entities/entity-timeline');
+
+      // Timeline + nombre del dueño, en paralelo
+      const [timeline, ownerName] = await Promise.all([
+        fetchEntityTimeline({ orgId: req.businessId, entityId: entity.id, entityType: type, db }),
+        (async () => {
+          if (!entity.contact_id) return null;
+          const { data: c } = await db.client.from('contacts')
+            .select('name, phone').eq('id', entity.contact_id).eq('org_id', req.businessId).maybeSingle();
+          return c ? (c.name || c.phone || null) : null;
+        })(),
+      ]);
+
+      res.json({
+        available: true,
+        entity:    { ...entity, contact_name: ownerName },
+        type_key:  type ? type.key : null,
+        timeline,
+      });
+    } catch (e) {
+      log.error('GET entity timeline', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/entities/:id/notes ── nota manual en el timeline ─────
+  app.post('/api/portal/entities/:id/notes', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+
+      const { addEntityNote } = require('../entities/entities');
+      const r = await addEntityNote({ orgId: req.businessId, entityId: req.params.id, text: (req.body || {}).text });
+      if (!r.ok) {
+        return res.status(r.error === 'not_found' ? 404 : 400)
+          .json({ error: r.error === 'not_found' ? 'Ficha no encontrada' : r.error });
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      log.error('POST entity note', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });

@@ -144,16 +144,21 @@ async function getOrgAssistant(orgId) {
       // sector: para que el AUDITOR juzgue con la rúbrica del vertical y el
       // bucle de mejora agrupe por sector (2026-07-04).
       sector:       cfg.sector || null,
-      // Entidades v0: si el sector tiene fichas (taller→vehículos,
+      // Entidades: si el sector tiene fichas (taller→vehículos,
       // veterinaria→mascotas…), el asistente puede consultarlas
-      // ("¿cuándo caduca la ITV del 1234ABC?"). Determinista: la
-      // herramienta solo EXISTE para sectores con plantillas; el propio
-      // tool NO-OPea con gracia si las tablas aún no están migradas.
+      // ("¿cuándo caduca la ITV del 1234ABC?") y desde v1 también
+      // ESCRIBIR con candados deterministas: apuntar fechas
+      // (update_entity_date) y abrir fichas borrador de cosas nuevas
+      // (create_entity_draft). Las herramientas solo EXISTEN para
+      // sectores con plantillas; cada tool NO-OPea con gracia si las
+      // tablas aún no están migradas.
       tools:        (() => {
         const base = cfg.mode === 'contacto' ? CONTACT_TOOLS : RECEPTIONIST_TOOLS;
         try {
           const { sectorHasEntityTemplates } = require('../entities/entity-types');
-          if (sectorHasEntityTemplates(cfg.sector)) return [...base, 'lookup_entity'];
+          if (sectorHasEntityTemplates(cfg.sector)) {
+            return [...base, 'lookup_entity', 'update_entity_date', 'create_entity_draft'];
+          }
         } catch (_) {}
         return base;
       })(),

@@ -147,6 +147,8 @@ class ToolExecutor {
 
       // ── Entidades (vehículos, mascotas, pólizas…) ──
       lookup_entity:       this.lookupEntity.bind(this),
+      update_entity_date:  this.updateEntityDate.bind(this),
+      create_entity_draft: this.createEntityDraft.bind(this),
 
       // ── Inmobiliaria ──
       search_properties:   this.searchProperties.bind(this),
@@ -1050,6 +1052,158 @@ class ToolExecutor {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 9-ter. ENTIDADES v1 — la IA ESCRIBE en la ficha (con candados)
+  // Engineering Charter: las reglas viven en código, no en el LLM.
+  //   · update_entity_date → SOLO campos-fecha, validados contra las field
+  //     defs del tipo; escribe field_change con actor:'ai' y re-materializa
+  //     los avisos de ESA entidad al momento. Jamás borra ni toca texto.
+  //   · create_entity_draft → alta de una ficha nueva vinculada al llamante
+  //     (caller ID determinista); lo que falte queda como borrador y el
+  //     portal enseña «completar ficha».
+  // Ambos NO-OPean con gracia si la feature/tablas no están.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Gate común: BD viva + feature encendida + tablas migradas → tipos de la org.
+  async _entityToolGate(assistantId) {
+    const db = getDatabase();
+    const { entitiesFeatureEnabled, entityTablesExist, getOrgEntityTypes } = require('../entities/entity-types');
+    if (!db.enabled || !entitiesFeatureEnabled() || !(await entityTablesExist(db))) return null;
+    const types = await getOrgEntityTypes(assistantId, { db });
+    return types.length ? { db, types } : null;
+  }
+
+  async updateEntityDate(args, assistantId, context = {}) {
+    const query = String(args.query || args.entity || '').trim();
+    if (!query) return { success: false, message: 'Pregunta el nombre o la matrícula/número de la ficha antes de apuntar la fecha.' };
+
+    try {
+      const gate = await this._entityToolGate(assistantId);
+      if (!gate) return { success: false, message: 'No tengo acceso a las fichas ahora mismo; toma nota y el equipo lo apuntará.' };
+      const { db } = gate;
+
+      // 1) Resolver la entidad — determinista, org-scoped (mismo buscador que lookup_entity)
+      const { searchEntities } = require('../entities/entities');
+      const matches = await searchEntities({ orgId: assistantId, q: query, typeKey: args.type ? String(args.type) : undefined, limit: 3, db });
+      if (!matches.length) {
+        return { success: false, message: `No encuentro ninguna ficha que coincida con "${query}". Pide otro dato (matrícula completa, nombre exacto) y vuelve a intentarlo.` };
+      }
+      if (matches.length > 1) {
+        return { success: false, message: `Hay ${matches.length} fichas que coinciden: ${matches.map(m => m.display_name).join(' | ')}. Pide un dato más para distinguirlas antes de apuntar nada.` };
+      }
+      const entity = matches[0];
+      const type   = entity._type;
+      if (!type) return { success: false, message: 'No puedo consultar las fichas ahora mismo; toma nota y continúa.' };
+
+      // 2) Resolver el CAMPO — candado: solo campos tipo fecha, jamás otro
+      const { resolveDateField, dateFieldLabels, resolveTargetDate } = require('../entities/entity-ai');
+      const field = resolveDateField(type.fields || [], args.field);
+      if (!field) {
+        const labels = dateFieldLabels(type.fields || []);
+        return { success: false, message: `No sé a qué fecha te refieres con "${args.field || ''}". Las fechas de esta ficha son: ${labels.join(', ')}. Pregunta cuál quiere actualizar.` };
+      }
+
+      // 3) Resolver la FECHA — parser determinista + aritmética en código
+      //    ("la pasó hoy y toca en un año" → date:'hoy', plus_years:1)
+      const todayMadrid = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+      const target = resolveTargetDate({
+        dateRaw:    args.date,
+        plusYears:  args.plus_years, plusMonths: args.plus_months, plusDays: args.plus_days,
+        todayIso:   todayMadrid,
+      });
+      if (!target.ok) return { success: false, message: target.error };
+
+      // 4) Escribir — updateEntity valida contra las field defs y registra
+      //    el field_change con actor:'ai' (sale en el timeline como 🤖)
+      const { updateEntity } = require('../entities/entities');
+      const r = await updateEntity({
+        orgId: assistantId, entityType: type, entityId: entity.id,
+        attrs: { [field.key]: target.iso }, actor: 'ai', db,
+      });
+      if (!r.ok) {
+        return { success: false, message: (r.errors && r.errors[0] && r.errors[0].error) || 'No se pudo guardar la fecha; toma nota y el equipo lo apuntará.' };
+      }
+
+      // 5) Re-materializar los avisos de ESTA entidad YA (fuera del hot path
+      //    de la llamada: <700ms por turno — charter)
+      setImmediate(() => {
+        try {
+          const { syncEntityRemindersNow } = require('../entities/entity-reminders');
+          syncEntityRemindersNow({ orgId: assistantId, entityType: type, entity: r.entity, db }).catch(() => {});
+        } catch (_) {}
+      });
+
+      const bonita = new Date(target.iso + 'T12:00:00').toLocaleDateString('es-ES');
+      return {
+        success: true,
+        entity:  entity.display_name,
+        field:   field.label || field.key,
+        date:    target.iso,
+        message: `Apuntado: «${field.label || field.key}» de ${entity.display_name} → ${bonita}. El aviso automático se reprograma solo. Confírmaselo al cliente.`,
+      };
+    } catch (e) {
+      log.warn(`updateEntityDate: ${e.message}`);
+      return { success: false, message: 'No puedo escribir en las fichas ahora mismo; toma nota y continúa.' };
+    }
+  }
+
+  async createEntityDraft(args, assistantId, context = {}) {
+    try {
+      const gate = await this._entityToolGate(assistantId);
+      if (!gate) return { success: false, message: 'No tengo acceso a las fichas ahora mismo; toma nota y el equipo la creará.' };
+      const { db, types } = gate;
+
+      // Tipo: por key si viene; si la org tiene uno solo (regla v0), ese.
+      const type = args.type ? types.find(t => t.key === String(args.type)) : (types.length === 1 ? types[0] : null);
+      if (!type) {
+        return { success: false, message: `Indica el tipo de ficha (${types.map(t => t.key).join(', ')}) y vuelve a intentarlo.` };
+      }
+
+      // Datos que la IA recogió — validateAttrs limpia: claves desconocidas
+      // se descartan, tipos/opciones/fechas se validan igual de estrictos.
+      const data = (args.data && typeof args.data === 'object' && !Array.isArray(args.data)) ? args.data : {};
+
+      // Dueño = el LLAMANTE, resuelto por caller ID (determinista, jamás
+      // preguntar el teléfono teniendo el mejor canal ya en la mano).
+      let contactId = null;
+      const callerPhone = context.session?.callerNumber;
+      if (callerPhone && callerPhone !== 'unknown') {
+        try {
+          const { phoneVariants } = require('../utils/phone');
+          const { data: c } = await db.client.from('contacts')
+            .select('id').eq('org_id', assistantId)
+            .in('phone', phoneVariants(callerPhone)).limit(1).maybeSingle();
+          contactId = c?.id || null;
+        } catch (_) {}
+      }
+
+      const { createEntityDraft } = require('../entities/entities');
+      const r = await createEntityDraft({ orgId: assistantId, entityType: type, attrs: data, contactId, actor: 'ai', db });
+      if (!r.ok) {
+        return { success: false, message: (r.errors && r.errors[0] && r.errors[0].error) || 'No se pudo crear la ficha; toma nota y el equipo la creará.' };
+      }
+
+      // Si trae fechas, sus avisos nacen YA (fuera del hot path)
+      setImmediate(() => {
+        try {
+          const { syncEntityRemindersNow } = require('../entities/entity-reminders');
+          syncEntityRemindersNow({ orgId: assistantId, entityType: type, entity: r.entity, db }).catch(() => {});
+        } catch (_) {}
+      });
+
+      return {
+        success: true,
+        entity:  r.entity.display_name,
+        draft:   !!r.isDraft,
+        linked_to_caller: !!contactId,
+        message: `${type.label_singular} «${r.entity.display_name}» creado${contactId ? ' y vinculado al cliente' : ''}${r.isDraft ? ' como borrador (el equipo completará el resto de datos)' : ''}. Confírmaselo al cliente.`,
+      };
+    } catch (e) {
+      log.warn(`createEntityDraft: ${e.message}`);
+      return { success: false, message: 'No puedo crear fichas ahora mismo; toma nota y continúa.' };
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 10. INMOBILIARIA
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1259,6 +1413,43 @@ class ToolExecutor {
               type:  { type: 'string', description: 'Opcional: tipo de ficha (vehiculo, mascota, poliza, expediente…) si está claro por contexto' },
             },
             required: ['query'],
+          },
+        },
+      },
+      update_entity_date: {
+        type: 'function',
+        function: {
+          name: 'update_entity_date',
+          description: 'Apunta o actualiza UNA FECHA en la ficha de una cosa del cliente (vehículo, mascota, póliza, bono…). Úsalo cuando el cliente diga que algo ya se hizo o cuándo toca lo próximo ("pasó la ITV hoy", "la vacuna es el 15 de marzo"). Si algo se hizo HOY y lo próximo toca en X tiempo, pasa date="hoy" y plus_years/plus_months — el sistema calcula la fecha, tú no hagas cuentas. Solo puede tocar fechas, nada más.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query:       { type: 'string', description: 'Cómo identificar la ficha: matrícula, nombre de la mascota, nº de póliza… (ej: "1234ABC", "Luna")' },
+              field:       { type: 'string', description: 'Qué fecha: como la diga el cliente ("itv", "próxima vacuna", "renovación")' },
+              date:        { type: 'string', description: 'La fecha base, tal cual se dijo: "hoy", "el 15 de marzo", "2027-03-15"' },
+              plus_years:  { type: 'number', description: 'Años a SUMAR a la fecha base (ej: pasó la ITV hoy y la próxima es en 1 año → date="hoy", plus_years=1)' },
+              plus_months: { type: 'number', description: 'Meses a sumar a la fecha base' },
+              plus_days:   { type: 'number', description: 'Días a sumar a la fecha base' },
+            },
+            required: ['query', 'field', 'date'],
+          },
+        },
+      },
+      create_entity_draft: {
+        type: 'function',
+        function: {
+          name: 'create_entity_draft',
+          description: 'Crea la ficha de una cosa NUEVA que menciona el cliente (un coche que no está registrado, una mascota nueva, una póliza…). Se vincula sola al teléfono del llamante. Pasa en data lo que hayas recogido en la conversación; lo que falte no importa — quedará como borrador para que el equipo lo complete. No pidas datos de más: con lo dicho basta.',
+          parameters: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', description: 'Tipo de ficha si hay varios (vehiculo, mascota…). Con un solo tipo en el negocio, omítelo.' },
+              data: {
+                type: 'object',
+                description: 'Los datos recogidos, con claves en snake_case (ej: {"matricula":"1234ABC","marca":"Seat"} o {"nombre":"Luna","especie":"gato"}). Solo lo que el cliente haya dicho.',
+              },
+            },
+            required: ['data'],
           },
         },
       },

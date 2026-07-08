@@ -35,6 +35,10 @@ const FIELD_TYPES      = ['text', 'number', 'date', 'select', 'multiselect', 'bo
 const ENTITY_TEMPLATES = {
 
   // 🔧 Taller → Vehículos
+  // OJO producto (Unai, 2026-07-08): el dinero del taller NO es la ITV en sí
+  // (eso es negocio de la estación) — es SU revisión pre-ITV: mirar el coche
+  // antes para que pase a la primera. Cada hint vende el servicio DEL TALLER
+  // con la fecha como gancho de urgencia, nunca el trámite de un tercero.
   taller: [{
     key: 'vehiculo', label_singular: 'Vehículo', label_plural: 'Vehículos',
     icon: '🚗', color: '#c4f546',
@@ -45,11 +49,11 @@ const ENTITY_TEMPLATES = {
       { key: 'modelo',           type: 'text',   label: 'Modelo',    position: 3 },
       { key: 'km',               type: 'number', label: 'Kilómetros', position: 4 },
       { key: 'proxima_itv',      type: 'date',   label: 'Próxima ITV', show_in_list: true, position: 5,
-        reminder: { offset_days: -30, campaign_kind: 'itv', message_hint: 'La ITV de {{entity}} caduca el {{value}}' } },
+        reminder: { offset_days: -30, campaign_kind: 'itv', message_hint: 'A tu {{entity}} le toca la ITV el {{value}}. ¿Te lo revisamos antes para que pases a la primera? Pide cita y te lo dejamos listo.' } },
       { key: 'proxima_revision', type: 'date',   label: 'Próxima revisión', position: 6,
-        reminder: { offset_days: -15, campaign_kind: 'revision', message_hint: 'Revisión de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -15, campaign_kind: 'revision', message_hint: 'La revisión de {{entity}} toca el {{value}} — resérvanos un hueco y te lo dejamos a punto.' } },
       { key: 'cambio_aceite',    type: 'date',   label: 'Próximo cambio de aceite', position: 7,
-        reminder: { offset_days: -15, campaign_kind: 'aceite', message_hint: 'Cambio de aceite de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -15, campaign_kind: 'aceite', message_hint: 'A {{entity}} le toca el cambio de aceite el {{value}} — pásate y te lo hacemos en el día.' } },
       { key: 'notas',            type: 'note',   label: 'Notas', position: 8 },
     ],
   }],
@@ -70,11 +74,11 @@ const ENTITY_TEMPLATES = {
       { key: 'raza',            type: 'text',   label: 'Raza', position: 3 },
       { key: 'chip',            type: 'text',   label: 'Nº de chip', position: 4 },
       { key: 'proxima_vacuna',  type: 'date',   label: 'Próxima vacuna', show_in_list: true, position: 5,
-        reminder: { offset_days: -14, campaign_kind: 'vacuna', message_hint: 'La vacuna de {{entity}} toca el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'vacuna', message_hint: 'A {{entity}} le toca la vacuna el {{value}} — pide cita y lo dejamos protegido y con la cartilla al día.' } },
       { key: 'desparasitacion', type: 'date',   label: 'Próxima desparasitación', position: 6,
-        reminder: { offset_days: -7, campaign_kind: 'desparasitacion', message_hint: 'Desparasitación de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -7, campaign_kind: 'desparasitacion', message_hint: 'A {{entity}} le toca la desparasitación el {{value}} — pásate y te la llevas puesta en cinco minutos.' } },
       { key: 'revision_anual',  type: 'date',   label: 'Revisión anual', position: 7,
-        reminder: { offset_days: -21, campaign_kind: 'revision', message_hint: 'Revisión anual de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -21, campaign_kind: 'revision', message_hint: 'Toca la revisión anual de {{entity}} el {{value}} — ¿te reservamos su hueco de siempre?' } },
       { key: 'notas',           type: 'note',   label: 'Notas (alergias, historial…)', position: 8 },
     ],
   }],
@@ -91,9 +95,9 @@ const ENTITY_TEMPLATES = {
       { key: 'operacion', type: 'select', label: 'Operación', position: 4,
         options: [{ value: 'venta', label: 'Venta' }, { value: 'alquiler', label: 'Alquiler' }] },
       { key: 'caducidad_certificado_energetico', type: 'date', label: 'Caducidad certificado energético', position: 5,
-        reminder: { offset_days: -60, campaign_kind: 'certificado', message_hint: 'El certificado energético de {{entity}} caduca el {{value}}' } },
+        reminder: { offset_days: -60, campaign_kind: 'certificado', message_hint: 'El certificado energético de {{entity}} caduca el {{value}} — te gestionamos la renovación para que la operación no se pare.' } },
       { key: 'proxima_revision_precio', type: 'date', label: 'Próxima revisión de precio', position: 6,
-        reminder: { offset_days: -7, campaign_kind: 'revision_precio', message_hint: 'Revisar el precio de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -7, campaign_kind: 'revision_precio', message_hint: 'Toca revisar el precio de {{entity}} ({{value}}) — te llamamos y lo ajustamos juntos al mercado para venderlo antes.' } },
       { key: 'notas',     type: 'note',   label: 'Notas', position: 7 },
     ],
   }],
@@ -114,9 +118,9 @@ const ENTITY_TEMPLATES = {
         ] },
       { key: 'juzgado',       type: 'text',   label: 'Juzgado', position: 3 },
       { key: 'proximo_plazo', type: 'date',   label: 'Próximo plazo procesal', show_in_list: true, position: 4,
-        reminder: { offset_days: -7, campaign_kind: 'plazo', message_hint: 'Plazo procesal de {{entity}} vence el {{value}}' } },
+        reminder: { offset_days: -7, campaign_kind: 'plazo', message_hint: 'El plazo de {{entity}} vence el {{value}} — si falta algún documento, envíanoslo esta semana y lo presentamos con margen.' } },
       { key: 'proxima_vista', type: 'date',   label: 'Próxima vista', position: 5,
-        reminder: { offset_days: -14, campaign_kind: 'vista', message_hint: 'Vista de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'vista', message_hint: 'La vista de {{entity}} es el {{value}} — te llamamos unos días antes para prepararla contigo.' } },
       { key: 'estado',        type: 'select', label: 'Estado', position: 6,
         options: [
           { value: 'abierto', label: 'Abierto' }, { value: 'en_tramite', label: 'En trámite' },
@@ -141,7 +145,7 @@ const ENTITY_TEMPLATES = {
       { key: 'empresa',             type: 'text',   label: 'Empresa / actividad', show_in_list: true, position: 2 },
       { key: 'nif',                 type: 'text',   label: 'NIF/CIF', position: 3 },
       { key: 'proximo_vencimiento', type: 'date',   label: 'Próximo vencimiento', show_in_list: true, position: 4,
-        reminder: { offset_days: -15, campaign_kind: 'vencimiento', message_hint: '{{entity}} vence el {{value}}' } },
+        reminder: { offset_days: -15, campaign_kind: 'vencimiento', message_hint: '{{entity}} vence el {{value}} — envíanos la documentación estos días y lo dejamos presentado sin prisas.' } },
       { key: 'periodicidad',        type: 'select', label: 'Periodicidad', position: 5,
         options: [
           { value: 'trimestral', label: 'Trimestral' }, { value: 'anual', label: 'Anual' },
@@ -167,7 +171,7 @@ const ENTITY_TEMPLATES = {
         ] },
       { key: 'prima_anual',      type: 'number', label: 'Prima anual (€)', position: 4 },
       { key: 'fecha_renovacion', type: 'date',   label: 'Fecha de renovación', show_in_list: true, position: 5,
-        reminder: { offset_days: -30, campaign_kind: 'renovacion', message_hint: 'La póliza {{entity}} se renueva el {{value}}' } },
+        reminder: { offset_days: -30, campaign_kind: 'renovacion', message_hint: 'Tu póliza {{entity}} se renueva el {{value}} — ¿la repasamos antes? Muchas veces podemos mejorarte precio o coberturas.' } },
       { key: 'notas',            type: 'note',   label: 'Notas', position: 6 },
     ],
   }],
@@ -182,7 +186,7 @@ const ENTITY_TEMPLATES = {
       { key: 'cuota_mensual',    type: 'number', label: 'Cuota mensual (€)', position: 2 },
       { key: 'fecha_alta',       type: 'date',   label: 'Fecha de alta', position: 3 },
       { key: 'fecha_renovacion', type: 'date',   label: 'Fecha de renovación', show_in_list: true, position: 4,
-        reminder: { offset_days: -10, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} se renueva el {{value}}' } },
+        reminder: { offset_days: -10, campaign_kind: 'renovacion', message_hint: 'Tu {{entity}} se renueva el {{value}} — ¿seguimos entrenando? Si quieres cambiar de plan u horario, dínoslo y te lo dejamos hecho.' } },
       { key: 'estado',           type: 'select', label: 'Estado', show_in_list: true, position: 5,
         options: [
           { value: 'activa', label: 'Activa' }, { value: 'pausada', label: 'Pausada' },
@@ -201,9 +205,9 @@ const ENTITY_TEMPLATES = {
       { key: 'curso',         type: 'text', label: 'Curso', required: true, show_in_list: true, position: 1 },
       { key: 'nivel',         type: 'text', label: 'Nivel', show_in_list: true, position: 2 },
       { key: 'fecha_examen',  type: 'date', label: 'Fecha de examen', position: 3,
-        reminder: { offset_days: -14, campaign_kind: 'examen', message_hint: 'Examen de {{entity}} el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'examen', message_hint: 'Tu examen de {{entity}} es el {{value}} — ¿reforzamos con una clase de repaso estas semanas?' } },
       { key: 'fin_matricula', type: 'date', label: 'Fin de matrícula', show_in_list: true, position: 4,
-        reminder: { offset_days: -15, campaign_kind: 'renovacion', message_hint: 'La matrícula {{entity}} termina el {{value}}' } },
+        reminder: { offset_days: -15, campaign_kind: 'renovacion', message_hint: 'Tu matrícula de {{entity}} termina el {{value}} — renueva ahora y no pierdes tu plaza ni tu grupo.' } },
       { key: 'notas',         type: 'note', label: 'Notas', position: 5 },
     ],
   }],
@@ -224,7 +228,7 @@ const ENTITY_TEMPLATES = {
       { key: 'graduacion_oi',    type: 'text', label: 'Graduación ojo izquierdo', position: 3 },
       { key: 'ultima_revision',  type: 'date', label: 'Última revisión', show_in_list: true, position: 4 },
       { key: 'proxima_revision', type: 'date', label: 'Próxima revisión visual', show_in_list: true, position: 5,
-        reminder: { offset_days: -14, campaign_kind: 'revision_visual', message_hint: 'Revisión visual el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'revision_visual', message_hint: 'Te toca la revisión visual el {{value}} — ven y comprobamos tu graduación sin compromiso; si ha cambiado, te lo dejamos perfecto.' } },
       { key: 'notas',            type: 'note', label: 'Notas', position: 6 },
     ],
   }],
@@ -244,9 +248,9 @@ const ENTITY_TEMPLATES = {
       { key: 'marca',               type: 'text', label: 'Marca', show_in_list: true, position: 2 },
       { key: 'modelo',              type: 'text', label: 'Modelo', position: 3 },
       { key: 'revision_obligatoria', type: 'date', label: 'Próxima revisión obligatoria', show_in_list: true, position: 4,
-        reminder: { offset_days: -30, campaign_kind: 'revision', message_hint: 'La revisión obligatoria de {{entity}} toca el {{value}}' } },
+        reminder: { offset_days: -30, campaign_kind: 'revision', message_hint: 'La revisión obligatoria de {{entity}} toca el {{value}} — pide cita y te la hacemos con el certificado en regla.' } },
       { key: 'fin_garantia',        type: 'date', label: 'Fin de garantía', position: 5,
-        reminder: { offset_days: -30, campaign_kind: 'garantia', message_hint: 'La garantía de {{entity}} termina el {{value}}' } },
+        reminder: { offset_days: -30, campaign_kind: 'garantia', message_hint: 'La garantía de {{entity}} termina el {{value}} — contrata ahora el mantenimiento y sigue cubierto sin sustos.' } },
       { key: 'notas',               type: 'note', label: 'Notas', position: 6 },
     ],
   }],
@@ -265,7 +269,7 @@ const ENTITY_TEMPLATES = {
         ] },
       { key: 'cuota',            type: 'number', label: 'Cuota (€)', position: 3 },
       { key: 'fecha_renovacion', type: 'date',   label: 'Fecha de renovación', show_in_list: true, position: 4,
-        reminder: { offset_days: -30, campaign_kind: 'renovacion', message_hint: 'El contrato {{entity}} se renueva el {{value}}' } },
+        reminder: { offset_days: -30, campaign_kind: 'renovacion', message_hint: 'Tu contrato {{entity}} se renueva el {{value}} — lo revisamos contigo y aprovechamos para dejar el sistema al día.' } },
       { key: 'notas',            type: 'note',   label: 'Notas', position: 5 },
     ],
   }],
@@ -285,7 +289,7 @@ const ENTITY_TEMPLATES = {
         ] },
       { key: 'fin_previsto', type: 'date',   label: 'Fin previsto', position: 4 },
       { key: 'fin_garantia', type: 'date',   label: 'Fin de garantía', position: 5,
-        reminder: { offset_days: -30, campaign_kind: 'garantia', message_hint: 'La garantía de {{entity}} termina el {{value}} — buen momento para ofrecer mantenimiento' } },
+        reminder: { offset_days: -30, campaign_kind: 'garantia', message_hint: 'La garantía de {{entity}} termina el {{value}} — si quieres, pasamos a repasarla y te dejamos cualquier detalle resuelto antes de que venza.' } },
       { key: 'notas',        type: 'note',   label: 'Notas', position: 6 },
     ],
   }],
@@ -304,7 +308,7 @@ const ENTITY_TEMPLATES = {
       { key: 'numero',    type: 'text', label: 'Número', position: 2 },
       { key: 'pais',      type: 'text', label: 'País (visados)', position: 3 },
       { key: 'caducidad', type: 'date', label: 'Fecha de caducidad', show_in_list: true, position: 4,
-        reminder: { offset_days: -90, campaign_kind: 'caducidad', message_hint: 'Tu {{entity}} caduca el {{value}} — renuévalo antes de tu próximo viaje' } },
+        reminder: { offset_days: -90, campaign_kind: 'caducidad', message_hint: 'Tu {{entity}} caduca el {{value}} — renuévalo con tiempo y cuéntanos tu próximo destino: te dejamos el viaje cuadrado sin sustos en el aeropuerto.' } },
       { key: 'notas',     type: 'note', label: 'Notas', position: 5 },
     ],
   }],
@@ -324,9 +328,9 @@ const ENTITY_TEMPLATES = {
           { value: 'completado', label: 'Completado' },
         ] },
       { key: 'proxima_revision', type: 'date',   label: 'Próxima revisión', show_in_list: true, position: 4,
-        reminder: { offset_days: -14, campaign_kind: 'revision', message_hint: 'Revisión de tu {{entity}} el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'revision', message_hint: 'Toca revisar tu {{entity}} el {{value}} — pide cita y lo vemos en una visita corta, sin esperas.' } },
       { key: 'proxima_higiene',  type: 'date',   label: 'Próxima higiene / limpieza', position: 5,
-        reminder: { offset_days: -14, campaign_kind: 'higiene', message_hint: 'Tu limpieza dental toca el {{value}}' } },
+        reminder: { offset_days: -14, campaign_kind: 'higiene', message_hint: 'Tu limpieza dental toca el {{value}} — reserva tu hueco y sales con la boca como nueva.' } },
       { key: 'notas',            type: 'note',   label: 'Notas', position: 6 },
     ],
   }],
@@ -688,7 +692,7 @@ const ENTITY_TEMPLATES = {
       { key: 'caducidad_licencia', type: 'date',   label: 'Caducidad de la licencia de obra', show_in_list: true, position: 3,
         reminder: { offset_days: -60, campaign_kind: 'licencia', message_hint: 'La licencia de obra de {{entity}} caduca el {{value}} — conviene pedir la prórroga con margen' } },
       { key: 'proximo_hito',       type: 'date',   label: 'Próximo hito (visado, visita de obra…)', position: 4,
-        reminder: { offset_days: -7, campaign_kind: 'hito', message_hint: 'Hito del {{entity}}: {{value}}' } },
+        reminder: { offset_days: -7, campaign_kind: 'hito', message_hint: 'El {{entity}} tiene un hito el {{value}} — te llamamos estos días para coordinarlo y que no se pare nada.' } },
       { key: 'honorarios',         type: 'number', label: 'Honorarios (€)', position: 5 },
       { key: 'notas',              type: 'note',   label: 'Notas', position: 6 },
     ],
@@ -783,6 +787,24 @@ const ENTITY_TEMPLATES = {
 // ─── Kill-switch ─────────────────────────────────────────────────────────────
 function entitiesFeatureEnabled() {
   return process.env.ENTITIES_DISABLED !== '1';
+}
+
+// ─── Vista agrupada por estado (v1) ──────────────────────────────────────────
+/**
+ * PURA — ¿por qué campo se puede agrupar la lista? El PRIMER select con
+ * 2..6 opciones (estado del expediente, fase de la obra, especie de la
+ * mascota…). Genérico para las 36 plantillas: sin campo así → null y la
+ * lista sigue plana. Con más de 6 opciones las secciones dejan de caber
+ * en un móvil (regla touch-first).
+ * El cliente (portal.js) replica esta lógica en ES5 — si cambia aquí,
+ * cambia allí (entGroupField).
+ */
+function groupableField(fields) {
+  for (const f of (fields || [])) {
+    if (f.type === 'select' && Array.isArray(f.options) &&
+        f.options.length >= 2 && f.options.length <= 6) return f;
+  }
+  return null;
 }
 
 // ─── Resolución de plantillas por sector ─────────────────────────────────────
@@ -930,6 +952,7 @@ module.exports = {
   MAX_FIELDS,
   FIELD_TYPES,
   entitiesFeatureEnabled,
+  groupableField,
   templatesForSector,
   sectorHasEntityTemplates,
   instantiateTemplate,

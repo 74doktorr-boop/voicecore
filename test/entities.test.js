@@ -308,8 +308,11 @@ describe('buildEntityReminderPlan', () => {
     assert.strictEqual(p.scheduledFor.getMonth(), 7);   // agosto
     assert.strictEqual(p.scheduledFor.getDate(), 16);
     assert.strictEqual(p.scheduledFor.getHours(), 9);
-    // message_hint es frase completa → marcador TXT: (envío íntegro)
-    assert.ok(p.messagePreview.startsWith('TXT:La ITV de Seat León · 1234ABC caduca el '));
+    // message_hint es frase completa → marcador TXT: (envío íntegro).
+    // Producto (2026-07-08): el CTA es la revisión pre-ITV DEL TALLER,
+    // con la fecha de la ITV como gancho — nunca el trámite de un tercero.
+    assert.ok(p.messagePreview.startsWith('TXT:A tu Seat León · 1234ABC le toca la ITV el '));
+    assert.ok(p.messagePreview.includes('¿Te lo revisamos antes'));
   });
 
   test('fecha cuyo aviso caería en pasado → NO se programa', () => {

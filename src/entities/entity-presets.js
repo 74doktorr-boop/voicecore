@@ -30,10 +30,16 @@ function d(relDays) { return { rel_days: relDays }; }
 const ENTITY_PRESETS = {
 
   taller: {
-    intro: 'Guarda cada coche con su ITV, su revisión y su aceite — NodeFlow avisa al dueño antes de la fecha y el coche vuelve a tu taller, no al de la esquina.',
+    // El negocio del taller NO es la ITV (eso es de la estación): es SU
+    // revisión pre-ITV — mirar el coche antes para que pase a la primera.
+    // Cada aviso vende el servicio DEL TALLER con la fecha como gancho.
+    intro: 'Guarda cada coche con su ITV, su revisión y su aceite — NodeFlow avisa al dueño ofreciendo TU revisión y el coche vuelve a tu taller, no al de la esquina.',
     items: [
+      { id: 'tal_pre_itv', label: 'Revisión pre-ITV (un mes antes de la ITV)',
+        description: 'La ITV es de la estación; la pre-ITV es TUYA: el aviso ofrece revisarlo antes para pasar a la primera — reparación y cliente agradecido.',
+        attrs: { proxima_itv: d(60) } },
       { id: 'tal_itv_anual', label: 'Coche de cliente — ITV anual',
-        description: 'El aviso 30 días antes trae la pre-ITV y la reparación a tu taller.',
+        description: 'Apunta la ITV del año que viene: el aviso saldrá un mes antes ofreciendo tu revisión pre-ITV.',
         attrs: { proxima_itv: d(365) } },
       { id: 'tal_revision_15k', label: 'Revisión de los 15.000 km',
         description: 'La revisión periódica es la visita que mantiene el coche (y el cliente) contigo.',
