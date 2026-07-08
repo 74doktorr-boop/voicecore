@@ -2086,6 +2086,16 @@ async function loadAutomatizaciones() {
       '</div><label class="toggle"><input type="checkbox" id="togEntityCalls" ' + (entOn ? 'checked' : '') +
         ' onchange="patchAuto(\'entityCalls\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
       '<div class="u-text-xs u-dim u-mt-2">Las llamadas salientes consumen minutos de tu plan. El aviso por WhatsApp sigue saliendo igual.</div></div>';
+
+    // 📤 LA FICHA COMUNICA — auto-envío del resumen al crear ficha (defecto OFF)
+    var sumOn = !!(auto.entitySummaryOnCreate && auto.entitySummaryOnCreate.enabled);
+    entCallCard +=
+      '<div class="auto-card"><div class="auto-row"><div>' +
+        '<div class="auto-name">📤 Resumen al crear ficha</div>' +
+        '<div class="auto-desc">Al crear una ficha con cliente vinculado, se le envía un resumen humano por WhatsApp (bono, próxima cita, renovación…) para que lo tenga a mano</div>' +
+      '</div><label class="toggle"><input type="checkbox" id="togEntitySummary" ' + (sumOn ? 'checked' : '') +
+        ' onchange="patchAuto(\'entitySummaryOnCreate\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
+      '<div class="u-text-xs u-dim u-mt-2">Consume 1 mensaje del paquete por ficha. También puedes enviarlo a mano desde cada ficha. Respeta si el cliente pidió no recibir avisos.</div></div>';
   }
 
   var critRows = '';
@@ -7138,10 +7148,101 @@ async function openEntityFicha(id) {
         'style="flex:1;font-size:15px;padding:11px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();entAddNote(\'' + esc(e.id) + '\');}">' +
       '<button class="btn btn-accent" style="padding:11px 18px" onclick="entAddNote(\'' + esc(e.id) + '\')">+ Nota</button>' +
     '</div>' +
+    entSummaryBlock(e, type) +
     '<div class="modal-actions" style="margin-top:16px">' +
       '<button class="btn btn-d" onclick="closeModal()">Cerrar</button>' +
     '</div>'
   );
+}
+
+// 📤 LA FICHA COMUNICA — enviar al cliente un resumen humano de su ficha.
+// Dos caminos, como en Seguimientos: (a) wa.me desde el móvil del dueño (sin
+// límite de plantilla), (b) "Enviar desde NodeFlow" por la maquinaria de
+// avisos (cuenta 1 mensaje del paquete). Sin dueño con teléfono → botones
+// deshabilitados con motivo honesto.
+function entSummaryBlock(e, type) {
+  var hasPhone = !!(e.contact_id && e.contact_phone);
+  var tip = !e.contact_id
+    ? 'Vincula un cliente con teléfono para poder enviarle el resumen'
+    : (!e.contact_phone ? 'El cliente vinculado no tiene teléfono' : '');
+  var dis = hasPhone ? '' : ' disabled style="opacity:.5;cursor:not-allowed"';
+  var tipAttr = tip ? ' title="' + esc(tip) + '"' : '';
+  return '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:8px">📤 Enviar resumen al cliente</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="btn btn-sm" style="background:#25d366;color:#fff"' + dis + tipAttr +
+        ' onclick="entSummaryWaLink(\'' + esc(e.id) + '\')">💬 Por WhatsApp (desde tu móvil)</button>' +
+      '<button class="btn btn-accent btn-sm"' + dis + tipAttr +
+        ' onclick="entSummarySend(\'' + esc(e.id) + '\')">Enviar desde NodeFlow</button>' +
+    '</div>' +
+    (tip ? '<div class="u-text-xs u-dim u-mt-2">' + esc(tip) + '.</div>'
+         : '<div class="u-text-xs u-dim u-mt-2">«Enviar desde NodeFlow» consume 1 mensaje del paquete y respeta si el cliente pidió no recibir avisos.</div>') +
+    '</div>';
+}
+
+// Espejo ES5 del builder del servidor (src/entities/entity-notify.js) SOLO para
+// prellenar el enlace wa.me — el servidor sigue siendo la fuente de verdad del
+// envío por NodeFlow. Si cambia allí, cambia aquí.
+function entBuildSummary(e, type) {
+  var a = (e && e.attrs) || {};
+  var fields = (type && type.fields) || [];
+  var name = ((e && e.contact_name) || '').trim().split(/\s+/)[0] || '';
+  var label = ((e && e.display_name) || (type && type.label_singular) || 'tu ficha').trim();
+  var shown = fields.filter(function(f) { return f.show_in_list && f.type !== 'note'; })
+    .sort(function(x, y) { return (x.position || 99) - (y.position || 99); });
+  var parts = [];
+  for (var i = 0; i < shown.length; i++) {
+    var f = shown[i], v = a[f.key];
+    if (v === undefined || v === null || v === '') continue;
+    var val;
+    if (f.type === 'date') val = fmtDate(String(v));
+    else if (f.type === 'boolean') val = (v === true || v === 'true') ? 'Sí' : 'No';
+    else if ((f.type === 'select' || f.type === 'multiselect') && f.options) {
+      var arr = Array.isArray(v) ? v : [v];
+      val = arr.map(function(x) {
+        for (var k = 0; k < f.options.length; k++) if (String(f.options[k].value) === String(x)) return f.options[k].label;
+        return String(x);
+      }).join(', ');
+    } else val = Array.isArray(v) ? v.join(', ') : String(v).trim();
+    if (!val) continue;
+    if (label.toLowerCase().indexOf(String(val).toLowerCase()) !== -1) continue;
+    var fl = String(f.label || f.key).replace(/\s*\([^)]*\)\s*$/, '').trim();
+    fl = fl ? fl.charAt(0).toLowerCase() + fl.slice(1) : fl;
+    parts.push(f.type === 'date' ? (fl + ' el ' + val) : (fl + ': ' + val));
+  }
+  var saludo = name ? ('Hola ' + name + ' 👋') : '¡Hola! 👋';
+  var cuerpo;
+  if (parts.length) {
+    var joined = parts.length === 1 ? parts[0]
+      : parts.length === 2 ? (parts[0] + ' y ' + parts[1])
+      : (parts.slice(0, -1).join(', ') + ' y ' + parts[parts.length - 1]);
+    cuerpo = 'Aquí tienes el resumen de tu ' + label + ': ' + joined + '.';
+  } else {
+    cuerpo = 'Aquí tienes tu ficha: ' + label + '.';
+  }
+  return _fuWellFormed(saludo + ' ' + cuerpo + ' Cualquier cosa, respóndenos por aquí.');
+}
+
+function entSummaryWaLink(id) {
+  var e = _entFichaCur;
+  if (!e || e.id !== id || !e.contact_phone) { toast('Sin teléfono del cliente', 'err'); return; }
+  var type = _entTypeById(e.entity_type_id) || _entType() || { fields: [] };
+  var msg = entBuildSummary(e, type);
+  var num = String(e.contact_phone).replace(/[^0-9]/g, '');
+  if (num.length === 9) num = '34' + num;
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+  toast('WhatsApp abierto con el resumen ✔');
+}
+
+async function entSummarySend(id) {
+  try {
+    var r = await api('/api/portal/entities/' + id + '/send-summary', 'POST', {});
+    var chan = r.channel === 'sms' ? 'SMS' : r.channel === 'email' ? 'email' : 'WhatsApp';
+    toast('Resumen enviado por ' + chan + ' 📤');
+    openEntityFicha(id); // el envío queda YA en la historia de la ficha
+  } catch (e) {
+    toast(e.message || 'No se pudo enviar', 'err');
+  }
 }
 
 // El timeline llega LISTO del servidor (título, icono, meta, upcoming):

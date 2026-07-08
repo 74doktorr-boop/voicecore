@@ -932,29 +932,38 @@ function setupPortalRoutes(app, pipeline, config) {
     // 📞 LA ENTIDAD LLAMA — opt-in fuera del whitelist del flow-manager:
     // vive en automation_config.config.entityCalls y se lee FRESCO de BD
     // (la copia en memoria pierde .config al reiniciar).
-    let entityCallsOn = flowConfig.automations?.config?.entityCalls === true;
+    let entityCallsOn   = flowConfig.automations?.config?.entityCalls === true;
+    // 📤 LA FICHA COMUNICA — auto-envío del resumen al crear ficha (defecto OFF)
+    let summaryOnCreate = flowConfig.automations?.config?.entitySummaryOnCreate === true;
     try {
       const db = getDatabase();
       if (db.enabled) {
         const { data } = await db.client.from('organizations')
           .select('automation_config').eq('id', businessId).maybeSingle();
-        if (data) entityCallsOn = data.automation_config?.config?.entityCalls === true;
+        if (data) {
+          entityCallsOn   = data.automation_config?.config?.entityCalls === true;
+          summaryOnCreate = data.automation_config?.config?.entitySummaryOnCreate === true;
+        }
       }
     } catch (_) { /* fail-open: se enseña la copia en memoria */ }
-    res.json({ ok: true, automations: { ...automations, entityCalls: { enabled: entityCallsOn } } });
+    res.json({ ok: true, automations: { ...automations, entityCalls: { enabled: entityCallsOn }, entitySummaryOnCreate: { enabled: summaryOnCreate } } });
   });
 
   // ── PATCH /api/portal/automations ────────────────────────
   app.patch('/api/portal/automations', portalAuth, async (req, res) => {
     const { businessId } = req;
-    const { reminders, reviews, waConfirm, rebooking, noshow, entityCalls } = req.body;
+    const { reminders, reviews, waConfirm, rebooking, noshow, entityCalls, entitySummaryOnCreate } = req.body;
 
-    // 📞 LA ENTIDAD LLAMA — opt-in fuera del whitelist del flow-manager
-    // (patch() lo tiraría). Read-merge-write AUTORITATIVO sobre el
-    // automation_config de BD, como PATCH /api/portal/config: la fuente
-    // de verdad que lee el enqueuer es automation_config.config.entityCalls.
-    if (entityCalls !== undefined) {
-      const enabled = entityCalls === true || !!(entityCalls && entityCalls.enabled);
+    // 📞 LA ENTIDAD LLAMA / 📤 LA FICHA COMUNICA — opt-ins FUERA del whitelist
+    // del flow-manager (patch() los tiraría). Read-merge-write AUTORITATIVO
+    // sobre automation_config.config de BD, como PATCH /api/portal/config: la
+    // fuente de verdad que leen el enqueuer / el POST de entidades es ese
+    // config. Se pueden mandar juntos o por separado.
+    const cfgFlags = {};
+    if (entityCalls           !== undefined) cfgFlags.entityCalls           = entityCalls === true || !!(entityCalls && entityCalls.enabled);
+    if (entitySummaryOnCreate !== undefined) cfgFlags.entitySummaryOnCreate = entitySummaryOnCreate === true || !!(entitySummaryOnCreate && entitySummaryOnCreate.enabled);
+
+    if (Object.keys(cfgFlags).length) {
       const db = getDatabase();
       if (db.enabled) {
         try {
@@ -962,12 +971,12 @@ function setupPortalRoutes(app, pipeline, config) {
             .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
           if (readErr) throw new Error('lectura: ' + readErr.message);
           const baseAuto   = (cur && cur.automation_config) || {};
-          const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), entityCalls: enabled } };
+          const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), ...cfgFlags } };
           const { error: upErr } = await db.client.from('organizations')
             .update({ automation_config: mergedAuto }).eq('id', businessId);
           if (upErr) throw new Error('escritura: ' + upErr.message);
         } catch (e) {
-          log.error(`Portal: entityCalls save FAILED for ${businessId}: ${e.message}`);
+          log.error(`Portal: entity flags save FAILED for ${businessId}: ${e.message}`);
           return res.status(500).json({ error: 'No se pudo guardar en la base de datos: ' + e.message });
         }
       }
@@ -975,14 +984,19 @@ function setupPortalRoutes(app, pipeline, config) {
       const flowRef = flowManager.get(businessId);
       if (flowRef) {
         if (!flowRef.automations) flowRef.automations = {};
-        flowRef.automations.config = { ...(flowRef.automations.config || {}), entityCalls: enabled };
+        flowRef.automations.config = { ...(flowRef.automations.config || {}), ...cfgFlags };
       }
-      // Solo entityCalls en el body → no pasar por flowManager.patch+saveToDB
+      // Solo flags de entidad en el body → no pasar por flowManager.patch+saveToDB
       // (saveToDB volcaría la copia en memoria encima del config recién escrito).
       if (reminders === undefined && reviews === undefined && waConfirm === undefined
           && rebooking === undefined && noshow === undefined) {
-        log.info(`Portal: entityCalls ${enabled ? 'ON' : 'OFF'} for ${businessId}`);
-        return res.json({ ok: true, automations: { ...((flowRef && flowRef.automations) || {}), entityCalls: { enabled } } });
+        log.info(`Portal: entity flags ${JSON.stringify(cfgFlags)} for ${businessId}`);
+        const cfg = (flowRef && flowRef.automations && flowRef.automations.config) || {};
+        return res.json({ ok: true, automations: {
+          ...((flowRef && flowRef.automations) || {}),
+          entityCalls:           { enabled: cfg.entityCalls === true },
+          entitySummaryOnCreate: { enabled: cfg.entitySummaryOnCreate === true },
+        } });
       }
     }
 
@@ -3173,6 +3187,29 @@ function setupPortalRoutes(app, pipeline, config) {
     });
   }
 
+  // 📤 LA FICHA COMUNICA (auto, opt-in): al CREAR una ficha en el portal CON
+  // dueño vinculado, si la org activó entitySummaryOnCreate, le enviamos el
+  // resumen solo. Lee el flag FRESCO de BD (misma fuente que el enqueuer, no
+  // la copia en memoria que pierde .config al reiniciar). Best effort en
+  // background: nunca bloquea ni rompe la creación.
+  function _maybeAutoSendSummary(orgId, entityType, entity) {
+    if (!entity || !entity.contact_id) return;
+    setImmediate(async () => {
+      try {
+        const db = getDatabase();
+        if (!db.enabled) return;
+        const { data } = await db.client.from('organizations')
+          .select('automation_config').eq('id', orgId).maybeSingle();
+        const on = data && data.automation_config
+          && data.automation_config.config
+          && data.automation_config.config.entitySummaryOnCreate === true;
+        if (!on) return;
+        const { sendEntitySummary } = require('../entities/entity-notify');
+        await sendEntitySummary({ orgId, entityType, entity, db }).catch(() => {});
+      } catch (_) {}
+    });
+  }
+
   // ── GET /api/portal/entity-types ── tipos de entidad de la org ────────────
   // Incluye los PRESETS del sector (recetario de fichas, mismo patrón que el
   // recetario de Seguimientos): fichas típicas que prellenan el formulario
@@ -3272,6 +3309,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const r = await createEntity({ orgId: req.businessId, entityType: type, attrs: body.attrs, contactId });
       if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
       _syncEntityRemindersBg(req.businessId, type, r.entity);
+      _maybeAutoSendSummary(req.businessId, type, r.entity);
       res.json({ ok: true, entity: r.entity });
     } catch (e) {
       log.error('POST entities', { error: e.message });
@@ -3335,20 +3373,25 @@ function setupPortalRoutes(app, pipeline, config) {
       const db = getDatabase();
       const { fetchEntityTimeline } = require('../entities/entity-timeline');
 
-      // Timeline + nombre del dueño, en paralelo
-      const [timeline, ownerName] = await Promise.all([
+      // Timeline + datos del dueño (nombre para pintar; teléfono para el botón
+      // wa.me de "enviar resumen"), en paralelo.
+      const [timeline, owner] = await Promise.all([
         fetchEntityTimeline({ orgId: req.businessId, entityId: entity.id, entityType: type, db }),
         (async () => {
           if (!entity.contact_id) return null;
           const { data: c } = await db.client.from('contacts')
             .select('name, phone').eq('id', entity.contact_id).eq('org_id', req.businessId).maybeSingle();
-          return c ? (c.name || c.phone || null) : null;
+          return c || null;
         })(),
       ]);
 
       res.json({
         available: true,
-        entity:    { ...entity, contact_name: ownerName },
+        entity:    {
+          ...entity,
+          contact_name:  owner ? (owner.name || owner.phone || null) : null,
+          contact_phone: owner ? (owner.phone || null) : null,
+        },
         type_key:  type ? type.key : null,
         timeline,
       });
@@ -3373,6 +3416,41 @@ function setupPortalRoutes(app, pipeline, config) {
       res.json({ ok: true });
     } catch (e) {
       log.error('POST entity note', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/entities/:id/send-summary ── LA FICHA COMUNICA ───────
+  // Envía al dueño un resumen humano de su ficha por la maquinaria de avisos
+  // (WA → SMS → Email, respetando opt-out). Cuenta 1 mensaje del paquete.
+  // Requiere dueño con teléfono/email → si no, 4xx claro en español (el botón
+  // del portal ya sale deshabilitado, esto es el cinturón de seguridad).
+  app.post('/api/portal/entities/:id/send-summary', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+
+      const { getEntity } = require('../entities/entities');
+      const entity = await getEntity({ orgId: req.businessId, entityId: req.params.id });
+      if (!entity) return res.status(404).json({ error: 'Ficha no encontrada' });
+      const type = types.find(t => t.id === entity.entity_type_id);
+
+      const { sendEntitySummary } = require('../entities/entity-notify');
+      const r = await sendEntitySummary({ orgId: req.businessId, entityType: type, entity });
+      if (r.ok) return res.json({ ok: true, channel: r.channel });
+
+      // Errores de negocio → 4xx honesto en español (nunca un 500 opaco)
+      const MESSAGES = {
+        no_contact:      'Esta ficha no tiene cliente vinculado. Vincula un dueño con teléfono para poder enviarle el resumen.',
+        no_phone:        'El cliente vinculado no tiene teléfono ni email. Añádelos en su ficha para poder escribirle.',
+        do_not_contact:  'Este cliente pidió no recibir mensajes. Respetamos su preferencia y no le escribimos.',
+        send_failed:     'No se pudo enviar por ningún canal ahora mismo. Prueba de nuevo en unos minutos.',
+        db_disabled:     'El envío no está disponible ahora mismo.',
+      };
+      const status = (r.reason === 'send_failed' || r.reason === 'db_disabled') ? 502 : 400;
+      return res.status(status).json({ error: MESSAGES[r.reason] || 'No se pudo enviar el resumen.' });
+    } catch (e) {
+      log.error('POST entity send-summary', { error: e.message });
       res.status(500).json({ error: e.message });
     }
   });

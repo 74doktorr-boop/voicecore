@@ -1190,6 +1190,28 @@ class ToolExecutor {
         } catch (_) {}
       });
 
+      // 📤 AVISAR AL DUEÑO: la IA acaba de abrir una ficha en una llamada — el
+      // equipo debe saberlo para completarla en el portal. Alerta interna al
+      // dueño (no gasto del cliente) → siempre activa. Fuera del hot path.
+      setImmediate(async () => {
+        try {
+          let quien = 'un cliente';
+          if (contactId) {
+            const { data: c } = await db.client.from('contacts')
+              .select('name, phone').eq('id', contactId).eq('org_id', assistantId).maybeSingle();
+            quien = (c && (c.name || c.phone)) || quien;
+          } else if (callerPhone && callerPhone !== 'unknown') {
+            quien = callerPhone;
+          }
+          _notifyOwner(
+            `🗂️ *Ficha creada en una llamada*\n` +
+            `La IA ha creado una ficha: *${r.entity.display_name}* de ${quien}.\n` +
+            `Complétala en el portal → Entidades.`,
+            assistantId
+          );
+        } catch (_) {}
+      });
+
       return {
         success: true,
         entity:  r.entity.display_name,

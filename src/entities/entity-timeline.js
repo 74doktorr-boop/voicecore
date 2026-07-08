@@ -60,7 +60,7 @@ function buildEntityTimeline({ events, appointments, reminders, fieldLabels, now
   const items = [];
 
   // (a) Eventos propios de la entidad (ya grabados por el CRUD y la IA)
-  const EVENT_ICON = { created: '✨', field_change: '✏️', note: '📝', ai_mention: '🤖' };
+  const EVENT_ICON = { created: '✨', field_change: '✏️', note: '📝', ai_mention: '🤖', sent: '📤' };
   for (const ev of (events || [])) {
     const actor = ev.actor || 'staff';
     const meta  = ev.kind === 'field_change' ? _diffSummary(ev.properties, fieldLabels) : '';
