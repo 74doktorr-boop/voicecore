@@ -289,6 +289,16 @@ async function runAutomations() {
       await enqueueNoShowConfirmations({ scheduler, flowManager });
     } catch (e) { log.warn(`anti no-show por voz: ${e.message}`); }
 
+    // ── LA ENTIDAD LLAMA (opt-in, defecto OFF): campos-fecha de fichas con
+    // recordatorio (ITV, vacuna, renovación…) → el asistente llama por la
+    // mañana (franja 10-14h dentro del propio enqueuer), ofrece el servicio
+    // del negocio y reserva en la misma llamada. Dedupe por (entidad, campo,
+    // fecha) en BD → reejecutar cada tick es no-op. Leader-gated arriba.
+    try {
+      const { enqueueEntityDateCalls } = require('../entities/entity-calls');
+      await enqueueEntityDateCalls();
+    } catch (e) { log.warn(`la entidad llama: ${e.message}`); }
+
     // ── Monthly usage reset (1st of month, free/Starter orgs only) ──
     // Stripe-subscribed orgs are reset via invoice.paid webhook; only reset orgs without
     // a Stripe subscription so we don't interfere with mid-month billing periods.

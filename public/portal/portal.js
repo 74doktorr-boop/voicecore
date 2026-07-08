@@ -5371,8 +5371,22 @@ function _fuAgo(iso) {
   return 'hace ' + d + ' días';
 }
 
+// Teléfono legible: "612 345 678" para nacionales (quita +34/0034); el resto tal cual.
+function _fuPhoneFmt(p) {
+  var raw = String(p || '').trim();
+  var d = raw.replace(/[^0-9]/g, '');
+  if (!d) return '';
+  if (d.length === 11 && d.indexOf('34') === 0) d = d.slice(2);
+  else if (d.length === 13 && d.indexOf('0034') === 0) d = d.slice(4);
+  if (d.length === 9) return d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+  return raw;
+}
+
 function followupCard(f) {
-  var who = esc(f.name || f.phone || 'Cliente');
+  // Nombre + teléfono SIEMPRE: con tres "Raúl" en la lista solo el número los
+  // distingue (bug 2026-07-08). Sin nombre, el teléfono solo.
+  var phoneFmt = _fuPhoneFmt(f.phone);
+  var who = esc(f.name ? (phoneFmt ? f.name + ' · ' + phoneFmt : f.name) : (phoneFmt || 'Cliente'));
   var id  = esc(f.callId);
   return '' +
     '<div class="fu-card" data-fu="' + id + '" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">' +
@@ -5389,9 +5403,25 @@ function followupCard(f) {
     '</div>';
 }
 
+// Elimina suplentes UTF-16 huérfanos (p. ej. un pegado que cortó un emoji por
+// la mitad): encodeURIComponent LANZA URIError con ellos (el botón moriría en
+// silencio) y por otras vías acaban pintados como "�" en WhatsApp.
+function _fuWellFormed(s) {
+  var out = '', i, c, d;
+  for (i = 0; i < s.length; i++) {
+    c = s.charCodeAt(i);
+    if (c >= 0xD800 && c <= 0xDBFF) {           // suplente alto…
+      d = s.charCodeAt(i + 1);
+      if (d >= 0xDC00 && d <= 0xDFFF) { out += s[i] + s[i + 1]; i++; }  // …con pareja: emoji válido
+    } else if (!(c >= 0xDC00 && c <= 0xDFFF)) { // bajo huérfano → fuera
+      out += s[i];
+    }
+  }
+  return out;
+}
 function _fuMsg(id) {
   var card = document.querySelector('.fu-card[data-fu="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
-  return card ? card.querySelector('.fu-msg').value.trim() : '';
+  return card ? _fuWellFormed(card.querySelector('.fu-msg').value).trim() : '';
 }
 function _fuRemove(id) {
   var card = document.querySelector('.fu-card[data-fu="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');

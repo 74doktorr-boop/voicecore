@@ -7,7 +7,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { draftMessage, getCandidates, markDone } = require('../src/lifecycle/followups');
+const { draftMessage, getCandidates, markDone, dedupeCalls, followupKind, truncateSafe } = require('../src/lifecycle/followups');
 
 // ── Stub mínimo del cliente Supabase (encadenable) ──────────
 function stubDb({ calls = [], contacts = [], callRow = null, onUpdate, onOr } = {}) {
@@ -84,6 +84,89 @@ describe('draftMessage (pura)', () => {
   });
 });
 
+describe('dedupeCalls (pura) — una sugerencia por contacto y motivo', () => {
+  const call = (id, phone, outcome, at, metrics) =>
+    ({ id, caller_number: phone, outcome, started_at: at, metrics: metrics || {} });
+
+  test('tres llamadas del mismo contacto y motivo → UNA tarjeta, gana la más reciente', () => {
+    // Bug 2026-07-08: "Raúl · Consultó, no reservó" ×3 (hoy/ayer/ayer).
+    const out = dedupeCalls([
+      call('c-hoy',   '+34600111222', 'info', '2026-07-08T10:00:00Z'),
+      call('c-ayer1', '600111222',    'info', '2026-07-07T18:00:00Z'),   // variante nacional
+      call('c-ayer2', '34600111222',  null,   '2026-07-07T09:00:00Z'),   // NULL cae a 'info'
+    ]);
+    assert.strictEqual(out.length, 1);
+    assert.strictEqual(out[0].id, 'c-hoy');   // la última llamada manda (y su fecha)
+  });
+
+  test('motivos distintos del mismo contacto conviven (consultó + se cortó)', () => {
+    const out = dedupeCalls([
+      call('c1', '+34600111222', 'info',      '2026-07-08T10:00:00Z'),
+      call('c2', '+34600111222', 'abandoned', '2026-07-07T10:00:00Z'),
+    ]);
+    assert.strictEqual(out.length, 2);
+  });
+
+  test('contactos distintos no se mezclan aunque compartan motivo', () => {
+    const out = dedupeCalls([
+      call('c1', '+34600111222', 'info', '2026-07-08T10:00:00Z'),
+      call('c2', '+34600333444', 'info', '2026-07-08T11:00:00Z'),
+    ]);
+    assert.strictEqual(out.length, 2);
+    assert.strictEqual(out[0].id, 'c2');   // orden: más recientes primero
+  });
+
+  test('seguir al contacto silencia también sus llamadas hermanas anteriores', () => {
+    // El dueño siguió a Raúl por la llamada de hoy → la de ayer NO resucita.
+    const out = dedupeCalls([
+      call('c-hoy',  '+34600111222', 'info', '2026-07-08T10:00:00Z',
+        { followup: { done: true, at: '2026-07-08T12:00:00Z' } }),
+      call('c-ayer', '600111222',    'info', '2026-07-07T10:00:00Z'),
+    ]);
+    assert.strictEqual(out.length, 0);
+  });
+
+  test('una llamada POSTERIOR al seguimiento sí genera sugerencia nueva', () => {
+    const out = dedupeCalls([
+      call('c-nueva',   '+34600111222', 'info', '2026-07-08T15:00:00Z'),
+      call('c-seguida', '+34600111222', 'info', '2026-07-07T10:00:00Z',
+        { followup: { done: true, at: '2026-07-07T12:00:00Z' } }),
+    ]);
+    assert.strictEqual(out.length, 1);
+    assert.strictEqual(out[0].id, 'c-nueva');
+  });
+
+  test('followupKind: outcomes raros y null caen a info', () => {
+    assert.strictEqual(followupKind('callback_requested'), 'callback_requested');
+    assert.strictEqual(followupKind('abandoned'), 'abandoned');
+    assert.strictEqual(followupKind(null), 'info');
+    assert.strictEqual(followupKind('zzz'), 'info');
+  });
+});
+
+describe('truncateSafe — el emoji sobrevive al recorte y al enlace wa.me', () => {
+  test('recorte que cae en mitad de un emoji no deja suplente huérfano', () => {
+    const msg = 'hola 🙂';                       // 🙂 = 2 unidades UTF-16
+    const cut = truncateSafe(msg, msg.length - 1); // el corte parte el par
+    assert.strictEqual(cut, 'hola ');            // retrocede, no deja media pareja
+    assert.doesNotThrow(() => encodeURIComponent(cut)); // .slice a lo bruto lanzaría URIError
+  });
+
+  test('sin pasarse del límite el mensaje queda intacto', () => {
+    assert.strictEqual(truncateSafe('hola 🙂', 100), 'hola 🙂');
+  });
+
+  test('transformación completa: borrador → recorte → URL wa.me → decodificado', () => {
+    const draft = draftMessage({ name: 'Raúl', reason: 'info', bizName: 'Taller Beti' });
+    assert.match(draft, /🙂/);                   // el borrador acaba en emoji
+    const message = truncateSafe(draft.trim(), 1000);           // ruta /send del portal
+    const url = 'https://wa.me/34600111222?text=' + encodeURIComponent(message);
+    const decoded = decodeURIComponent(url.split('?text=')[1]); // lo que ve WhatsApp
+    assert.strictEqual(decoded, draft);
+    assert.doesNotMatch(decoded, /�/);      // jamás "�"
+  });
+});
+
 describe('getCandidates', () => {
   test('sin BD → []', async () => {
     const out = await getCandidates('org1', { db: { enabled: false } });
@@ -133,6 +216,21 @@ describe('getCandidates', () => {
     assert.strictEqual(out[0].name, 'Aitor');
     assert.strictEqual(out[0].score, 42);
     assert.match(out[0].draft, /Hola Aitor/);
+  });
+
+  test('mismo contacto llamando 3 veces → una sola tarjeta por motivo, con la última fecha', async () => {
+    const db = stubDb({
+      calls: [
+        { id: 'c-hoy', caller_number: '+34600111222', outcome: 'info', started_at: '2026-07-08T10:00:00Z', metrics: {} },
+        { id: 'c-ay1', caller_number: '600111222',    outcome: 'info', started_at: '2026-07-07T18:00:00Z', metrics: {} },
+        { id: 'c-ay2', caller_number: '34600111222',  outcome: null,   started_at: '2026-07-07T09:00:00Z', metrics: {} },
+        { id: 'c-cut', caller_number: '+34600111222', outcome: 'abandoned', started_at: '2026-07-06T09:00:00Z', metrics: {} },
+      ],
+    });
+    const out = await getCandidates('org1', { db });
+    assert.strictEqual(out.length, 2);   // "consultó" + "se cortó", nada repetido
+    assert.strictEqual(out[0].callId, 'c-hoy');
+    assert.strictEqual(out[0].when, '2026-07-08T10:00:00Z');
   });
 });
 

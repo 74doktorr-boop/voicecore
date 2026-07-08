@@ -2569,7 +2569,10 @@ function setupPortalRoutes(app, pipeline, config) {
   // cliente no ha escrito, Meta lo rechaza → el dueño usa el enlace wa.me.
   app.post('/api/portal/followups/:callId/send', portalAuth, async (req, res) => {
     try {
-      const message = String(req.body && req.body.message || '').trim().slice(0, 1000);
+      // truncateSafe: un .slice() a lo bruto puede partir un emoji (par suplente
+      // UTF-16) y el mensaje llega a WhatsApp acabado en "�".
+      const { truncateSafe } = require('../lifecycle/followups');
+      const message = truncateSafe(String(req.body && req.body.message || '').trim(), 1000);
       if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
 
       const db = getDatabase();

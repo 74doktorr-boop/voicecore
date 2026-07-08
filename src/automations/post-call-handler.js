@@ -59,6 +59,17 @@ async function handle(callData) {
   const bookedList = (callData.bookedAppointments && callData.bookedAppointments.length)
     ? callData.bookedAppointments
     : (callData.bookedAppointment ? [callData.bookedAppointment] : []);
+
+  // ── 0b. LA ENTIDAD LLAMA: cita reservada en una llamada de entidad →
+  // enlazarla a la ficha (nf_appointments.entity_id) para que el timeline
+  // de la entidad la pinte. NO-OPea si el job no es entity_date.
+  if (callData.campaignRef && callData.outcome === 'booked' && bookedList.length) {
+    try {
+      const { linkBookedAppointmentsToEntity } = require('../entities/entity-calls');
+      linkBookedAppointmentsToEntity(callData.campaignRef, bookedList.map(a => a && a.id).filter(Boolean))
+        .catch(e => log.warn(`entity link failed: ${e.message}`));
+    } catch (e) { log.warn(`entity link: ${e.message}`); }
+  }
   if (callData.outcome === 'booked') {
     const { sendWaConfirmation } = require('../notifications/reminders');
     for (const apt of bookedList) {

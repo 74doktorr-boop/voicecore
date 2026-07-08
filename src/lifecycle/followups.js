@@ -17,6 +17,7 @@
 'use strict';
 
 const { Logger } = require('../utils/logger');
+const { phoneVariants, normalizePhone } = require('../utils/phone');
 const log = new Logger('FOLLOWUPS');
 
 function _firstName(name) {
@@ -66,8 +67,67 @@ function draftMessage({ name, reason, bizName, lang } = {}) {
 }
 
 /**
+ * Recorta a `max` unidades UTF-16 SIN partir pares suplentes: un corte a lo
+ * bruto por en medio de un emoji (🙂 son 2 unidades) deja un suplente huérfano
+ * que el navegador/WhatsApp pinta como "�". PURA.
+ */
+function truncateSafe(str, max) {
+  const s = String(str || '');
+  if (s.length <= max) return s;
+  let cut = max;
+  const hi = s.charCodeAt(cut - 1);
+  if (hi >= 0xD800 && hi <= 0xDBFF) cut--;   // el corte caía en mitad de un emoji
+  return s.slice(0, cut);
+}
+
+/** Motivo canónico de la sugerencia (los outcomes raros/null caen a 'info'). */
+function followupKind(outcome) {
+  return outcome === 'callback_requested' || outcome === 'abandoned' ? outcome : 'info';
+}
+
+/**
+ * UNA sugerencia activa por (teléfono normalizado + motivo). PURA.
+ * - Si el mismo contacto llama 3 veces y no reserva, gana la llamada MÁS
+ *   RECIENTE (no 3 tarjetas idénticas — bug 2026-07-08, los "tres Raúles").
+ * - Si CUALQUIER llamada del grupo ya se siguió (metrics.followup.done), se
+ *   silencian también las hermanas anteriores: seguir al CONTACTO una vez
+ *   basta. Una llamada POSTERIOR al seguimiento sí vuelve a sugerirse.
+ * @param {Array} calls filas de nf_calls (caller_number, outcome, started_at, metrics)
+ * @returns {Array} una fila por grupo, las más recientes primero.
+ */
+function dedupeCalls(calls) {
+  const groups = new Map();
+  for (const c of calls || []) {
+    if (!c || !c.caller_number) continue;
+    const key = (normalizePhone(c.caller_number) || c.caller_number) + '|' + followupKind(c.outcome);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  const ts = (c) => new Date((c && c.started_at) || 0).getTime() || 0;
+  const out = [];
+  for (const list of groups.values()) {
+    let doneUntil = 0;   // último seguimiento hecho al contacto (por este motivo)
+    for (const c of list) {
+      const f = c.metrics && c.metrics.followup;
+      if (f && f.done) doneUntil = Math.max(doneUntil, new Date(f.at || c.started_at || 0).getTime() || 0);
+    }
+    const pending = list.filter(c => {
+      const f = c.metrics && c.metrics.followup;
+      if (f && f.done) return false;
+      return !doneUntil || ts(c) > doneUntil;   // cubierta por un seguimiento previo
+    });
+    if (!pending.length) continue;
+    pending.sort((a, b) => ts(b) - ts(a));
+    out.push(pending[0]);
+  }
+  out.sort((a, b) => ts(b) - ts(a));
+  return out;
+}
+
+/**
  * Candidatos a seguimiento: llamadas recientes que NO acabaron en cita y que
- * aún no se han seguido. Resuelve el nombre del contacto y redacta el mensaje.
+ * aún no se han seguido. UNA tarjeta por contacto y motivo (dedupeCalls).
+ * Resuelve el nombre del contacto y redacta el mensaje.
  * @returns {Promise<Array>} [{ callId, phone, name, reason, when, score, draft }]
  */
 async function getCandidates(orgId, opts = {}) {
@@ -92,14 +152,13 @@ async function getCandidates(orgId, opts = {}) {
     // La bandera de "ya seguido" es NUESTRA (metrics.followup.done). followup_sent
     // pertenece al email automático post-llamada (post-call-handler/cron) y no
     // debe ocultar candidatos: un email automático no es el WhatsApp del dueño.
-    calls = (data || []).filter(c =>
-      c.caller_number && c.caller_number !== 'unknown' &&
-      !(c.metrics && c.metrics.followup && c.metrics.followup.done));
+    // dedupeCalls aplica esa bandera A NIVEL DE CONTACTO (silencia hermanas)
+    // y colapsa a UNA tarjeta por (teléfono + motivo), la más reciente.
+    calls = dedupeCalls((data || []).filter(c => c.caller_number && c.caller_number !== 'unknown'));
   } catch (e) { log.warn(`getCandidates(${orgId}): ${e.message}`); return []; }
   if (!calls.length) return [];
 
   // Nombres de contacto (best-effort, por variantes del teléfono).
-  const { phoneVariants, normalizePhone } = require('../utils/phone');
   const nameByPhone = {};
   try {
     const variants = [...new Set(calls.flatMap(c => phoneVariants(c.caller_number)))];
@@ -149,4 +208,4 @@ async function markDone(callId, orgId, opts = {}) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-module.exports = { draftMessage, getCandidates, markDone };
+module.exports = { draftMessage, getCandidates, markDone, dedupeCalls, followupKind, truncateSafe };
