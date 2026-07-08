@@ -926,15 +926,65 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/automations ───────────────────────────
-  app.get('/api/portal/automations', portalAuth, (req, res) => {
-    const { flowConfig } = req;
-    res.json({ ok: true, automations: flowConfig.automations || {} });
+  app.get('/api/portal/automations', portalAuth, async (req, res) => {
+    const { businessId, flowConfig } = req;
+    const automations = { ...(flowConfig.automations || {}) };
+    // 📞 LA ENTIDAD LLAMA — opt-in fuera del whitelist del flow-manager:
+    // vive en automation_config.config.entityCalls y se lee FRESCO de BD
+    // (la copia en memoria pierde .config al reiniciar).
+    let entityCallsOn = flowConfig.automations?.config?.entityCalls === true;
+    try {
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data } = await db.client.from('organizations')
+          .select('automation_config').eq('id', businessId).maybeSingle();
+        if (data) entityCallsOn = data.automation_config?.config?.entityCalls === true;
+      }
+    } catch (_) { /* fail-open: se enseña la copia en memoria */ }
+    res.json({ ok: true, automations: { ...automations, entityCalls: { enabled: entityCallsOn } } });
   });
 
   // ── PATCH /api/portal/automations ────────────────────────
   app.patch('/api/portal/automations', portalAuth, async (req, res) => {
     const { businessId } = req;
-    const { reminders, reviews, waConfirm, rebooking, noshow } = req.body;
+    const { reminders, reviews, waConfirm, rebooking, noshow, entityCalls } = req.body;
+
+    // 📞 LA ENTIDAD LLAMA — opt-in fuera del whitelist del flow-manager
+    // (patch() lo tiraría). Read-merge-write AUTORITATIVO sobre el
+    // automation_config de BD, como PATCH /api/portal/config: la fuente
+    // de verdad que lee el enqueuer es automation_config.config.entityCalls.
+    if (entityCalls !== undefined) {
+      const enabled = entityCalls === true || !!(entityCalls && entityCalls.enabled);
+      const db = getDatabase();
+      if (db.enabled) {
+        try {
+          const { data: cur, error: readErr } = await db.client
+            .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
+          if (readErr) throw new Error('lectura: ' + readErr.message);
+          const baseAuto   = (cur && cur.automation_config) || {};
+          const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), entityCalls: enabled } };
+          const { error: upErr } = await db.client.from('organizations')
+            .update({ automation_config: mergedAuto }).eq('id', businessId);
+          if (upErr) throw new Error('escritura: ' + upErr.message);
+        } catch (e) {
+          log.error(`Portal: entityCalls save FAILED for ${businessId}: ${e.message}`);
+          return res.status(500).json({ error: 'No se pudo guardar en la base de datos: ' + e.message });
+        }
+      }
+      // Espejo en memoria (mutación directa del ref, como PATCH /config)
+      const flowRef = flowManager.get(businessId);
+      if (flowRef) {
+        if (!flowRef.automations) flowRef.automations = {};
+        flowRef.automations.config = { ...(flowRef.automations.config || {}), entityCalls: enabled };
+      }
+      // Solo entityCalls en el body → no pasar por flowManager.patch+saveToDB
+      // (saveToDB volcaría la copia en memoria encima del config recién escrito).
+      if (reminders === undefined && reviews === undefined && waConfirm === undefined
+          && rebooking === undefined && noshow === undefined) {
+        log.info(`Portal: entityCalls ${enabled ? 'ON' : 'OFF'} for ${businessId}`);
+        return res.json({ ok: true, automations: { ...((flowRef && flowRef.automations) || {}), entityCalls: { enabled } } });
+      }
+    }
 
     const patch = {};
     if (reminders !== undefined) patch.reminders = reminders;

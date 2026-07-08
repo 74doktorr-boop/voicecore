@@ -2051,6 +2051,10 @@ async function loadAutomatizaciones() {
   // sin configurar), la sección NUNCA muere entera — el resto se pinta y el
   // bloque roto muestra un aviso suave. Bug real 2026-07-03: la sección
   // Automatizaciones quedaba en negro con el error crudo a pantalla completa.
+  // La tarjeta "avisos por llamada" solo aparece si la org tiene fichas
+  // (entidades) — sin fichas no hay fechas que llamar.
+  if (!_entTypes) { try { await initEntidades(); } catch (e) {} }
+
   var autoData, critData, critError = null;
   try {
     autoData = await api('/api/portal/automations');
@@ -2069,6 +2073,20 @@ async function loadAutomatizaciones() {
   var rem  = auto.reminders || {};
   var rev  = auto.reviews   || {};
   var reb  = auto.rebooking || {};
+
+  // 📞 LA ENTIDAD LLAMA — opt-in (defecto OFF, al contrario que el resto):
+  // solo si la org tiene fichas. Nota honesta: las salientes consumen minutos.
+  var entCallCard = '';
+  if (_entTypes && _entTypes.length) {
+    var entOn = !!(auto.entityCalls && auto.entityCalls.enabled);
+    entCallCard =
+      '<div class="auto-card"><div class="auto-row"><div>' +
+        '<div class="auto-name">📞 Avisos por llamada</div>' +
+        '<div class="auto-desc">Cuando a una ficha le llega una fecha importante (ITV, vacuna, renovación…), la asistente llama al cliente, le ofrece tu servicio y le reserva la cita en la misma llamada</div>' +
+      '</div><label class="toggle"><input type="checkbox" id="togEntityCalls" ' + (entOn ? 'checked' : '') +
+        ' onchange="patchAuto(\'entityCalls\',{enabled:this.checked})"><span class="slider"></span></label></div>' +
+      '<div class="u-text-xs u-dim u-mt-2">Las llamadas salientes consumen minutos de tu plan. El aviso por WhatsApp sigue saliendo igual.</div></div>';
+  }
 
   var critRows = '';
   if (critData.entries && critData.entries.length > 0) {
@@ -2141,6 +2159,7 @@ async function loadAutomatizaciones() {
         '<div class="auto-desc">Si un cliente falta a su cita, la IA le escribe automáticamente para reagendar</div>' +
       '</div><label class="toggle"><input type="checkbox" id="togNoshow" ' + ((auto.noshow && auto.noshow.enabled !== false) ? 'checked' : '') +
         ' onchange="patchAuto(\'noshow\',{enabled:this.checked})"><span class="slider"></span></label></div></div>' +
+      entCallCard +
     '</div>' +
     '<div class="card"><div class="card-title" style="justify-content:space-between">' +
       '<span>📅 Fechas críticas</span>' +
