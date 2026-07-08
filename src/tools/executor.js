@@ -19,6 +19,42 @@ function _memory()     { return require('../lifecycle/call-memory');         }
 function _critDates()  { return require('../scheduling/critical-dates');      }
 function _flowMgr()    { return require('../automations/flow-manager').flowManager; }
 
+// ── Disponibilidad real de Google Calendar ────────────────────────────────────
+// Caché corta (TTL 45s) por negocio+rango: evita pegar a Google (freebusy) en
+// cada consulta durante la llamada de voz. También cachea el "no conectado".
+const _calBusyCache = new Map();
+
+// Bloques ocupados del Google Calendar del negocio para [fromDate, toDate].
+// Devuelve { 'YYYY-MM-DD': [{startMin,endMin}] }. FAIL-OPEN: {} si el negocio
+// no tiene calendario conectado o Google falla — nunca bloquea una reserva.
+async function _calendarBusy(businessId, fromDate, toDate) {
+  try {
+    const cal = getGoogleCalendar();
+    if (!cal.enabled) return {};
+    const key = `${businessId}:${fromDate}:${toDate}`;
+    const hit = _calBusyCache.get(key);
+    if (hit && Date.now() - hit.at < 45000) return hit.data;
+    const db = getDatabase();
+    if (!db.enabled) return {};
+    const org = await db.getOrg(businessId);
+    if (!org || !org.google_refresh_token) {
+      _calBusyCache.set(key, { at: Date.now(), data: {} });   // negativo: no conectado
+      return {};
+    }
+    const fresh = await cal.refreshIfNeeded({
+      access_token:  org.google_access_token,
+      refresh_token: org.google_refresh_token,
+      expiry_date:   org.google_token_expiry,
+    });
+    const data = await cal.getBusyByDate(fresh, fromDate, toDate, org.google_calendar_id || 'primary');
+    _calBusyCache.set(key, { at: Date.now(), data });
+    return data;
+  } catch (e) {
+    log.warn(`_calendarBusy failed for ${businessId}: ${e.message}`);
+    return {};
+  }
+}
+
 // ── Push a calendar event after a successful booking (non-blocking) ───────────
 async function _syncToCalendar(businessId, appointment) {
   try {
@@ -199,7 +235,7 @@ class ToolExecutor {
   // 1. CORE SCHEDULING
   // ─────────────────────────────────────────────────────────────────────────
 
-  checkAvailability(args, assistantId, context = {}) {
+  async checkAvailability(args, assistantId, context = {}) {
     // Candado de confianza: reservar exige haber consultado disponibilidad
     // en ESTA llamada (ver bookAppointment). Aquí se abre el candado.
     if (context.session) context.session.availabilityChecked = true;
@@ -210,7 +246,11 @@ class ToolExecutor {
       const d = new Date(fromDate); d.setDate(d.getDate() + 5);
       return d.toISOString().split('T')[0];
     })();
-    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null);
+    // Disponibilidad REAL: cruza los huecos de NodeFlow con lo ocupado en el
+    // Google Calendar del negocio (comida, reunión personal…), para no ofrecer
+    // huecos que en realidad no lo están.
+    const busyByDate = await _calendarBusy(businessId, fromDate, toDate);
+    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate);
 
     if (result.availableDays) {
       let lang = 'es';
@@ -238,7 +278,7 @@ class ToolExecutor {
     return result;
   }
 
-  bookAppointment(args, assistantId, context = {}) {
+  async bookAppointment(args, assistantId, context = {}) {
     // ── Capa de confianza (bug real APT-1002, 2026-07-03): la IA reservó un
     // día y hora que el cliente JAMÁS oyó ni aceptó (el transcript no
     // menciona fecha alguna). Dos candados deterministas, server-side:
@@ -293,6 +333,8 @@ class ToolExecutor {
     // recordatorios/WhatsApp no tenían destinatario.
     const callerPhone = context.session?.callerNumber;
     const defaultPhone = (callerPhone && callerPhone !== 'unknown') ? callerPhone : '';
+    // Guard final: no reservar sobre un evento del Google Calendar del negocio.
+    const busyByDate = await _calendarBusy(businessId, normalizedDate, normalizedDate);
     const result = scheduler.bookAppointment(businessId, {
       patientName: name,
       phone:       args.phone  || defaultPhone,
@@ -301,7 +343,7 @@ class ToolExecutor {
       date:        normalizedDate,
       time:        normalizedTime,
       notes:       args.notes || args.vehicle || '',
-    });
+    }, busyByDate[normalizedDate] || []);
 
     if (result.success && result.appointment && context.session) {
       context.session.bookedAppointment = result.appointment;
@@ -1265,7 +1307,7 @@ class ToolExecutor {
     const biz     = _getBizConfig(assistantId);
 
     // Book it as an appointment
-    const result = this.bookAppointment({
+    const result = await this.bookAppointment({
       patient_name: name,
       phone,
       service:      'Valoración gratuita de inmueble',

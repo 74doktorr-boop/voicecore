@@ -137,6 +137,73 @@ class GoogleCalendar {
       return [];
     }
   }
+
+  // Busy blocks across a date range in ONE request (freebusy API — mucho más
+  // barato que listEvents por día, clave para no ralentizar la llamada de voz).
+  // Devuelve { 'YYYY-MM-DD': [{startMin, endMin}] } en minutos del día (Madrid).
+  // Fail-open: {} ante cualquier error, para que un hipo de Google NUNCA
+  // bloquee una reserva (mejor un solape raro que no poder reservar nada).
+  async getBusyByDate(tokens, fromDate, toDate, calendarId = 'primary') {
+    if (!this.enabled) return {};
+    try {
+      const { google } = require('googleapis');
+      const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
+      const { data } = await cal.freebusy.query({
+        requestBody: {
+          // Ventana UTC que cubre de sobra las horas de negocio en Madrid.
+          timeMin:  `${fromDate}T00:00:00Z`,
+          timeMax:  `${toDate}T23:59:59Z`,
+          timeZone: 'Europe/Madrid',
+          items:    [{ id: calendarId }],
+        },
+      });
+      const busy = (data.calendars && data.calendars[calendarId] && data.calendars[calendarId].busy) || [];
+      return busyIntervalsToByDate(busy);
+    } catch (e) {
+      log.warn(`getBusyByDate failed: ${e.message}`);
+      return {};
+    }
+  }
+}
+
+// ── Helpers puros (exportados para test) ──────────────────────────────────────
+// Instante ISO → { date:'YYYY-MM-DD', min:Number } en Europe/Madrid.
+function _madridDateMin(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const g = t => parts.find(p => p.type === t).value;
+  return { date: `${g('year')}-${g('month')}-${g('day')}`, min: Number(g('hour')) * 60 + Number(g('minute')) };
+}
+
+// [{start,end} RFC3339] → { 'YYYY-MM-DD': [{startMin,endMin}] } (minutos Madrid).
+// Parte los eventos que cruzan medianoche en bloques por día.
+function busyIntervalsToByDate(busy) {
+  const out = {};
+  const add = (date, startMin, endMin) => {
+    if (endMin <= startMin) return;
+    (out[date] = out[date] || []).push({ startMin, endMin });
+  };
+  for (const b of busy || []) {
+    const s = _madridDateMin(b.start), e = _madridDateMin(b.end);
+    if (!s || !e) continue;
+    if (s.date === e.date) { add(s.date, s.min, e.min); continue; }
+    // Cruza medianoche: día de inicio hasta las 24:00, días completos en medio,
+    // y día final desde las 00:00.
+    add(s.date, s.min, 24 * 60);
+    let cur = new Date(`${s.date}T00:00:00Z`);
+    const end = new Date(`${e.date}T00:00:00Z`);
+    cur.setUTCDate(cur.getUTCDate() + 1);
+    while (cur < end) {
+      add(cur.toISOString().slice(0, 10), 0, 24 * 60);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    add(e.date, 0, e.min);
+  }
+  return out;
 }
 
 let _instance = null;
@@ -145,4 +212,4 @@ function getGoogleCalendar() {
   return _instance;
 }
 
-module.exports = { GoogleCalendar, getGoogleCalendar };
+module.exports = { GoogleCalendar, getGoogleCalendar, busyIntervalsToByDate };

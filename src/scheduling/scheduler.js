@@ -110,7 +110,9 @@ class SchedulingSystem {
   }
 
   // ─── Get available slots for a date range ───
-  getAvailableSlots(businessId, fromDate, toDate, serviceId) {
+  // busyByDate: { 'YYYY-MM-DD': [{startMin,endMin}] } de bloques ocupados
+  // EXTERNOS (p.ej. Google Calendar). Por defecto {} → comportamiento idéntico.
+  getAvailableSlots(businessId, fromDate, toDate, serviceId, busyByDate = {}) {
     const config = this.getBusinessConfig(businessId);
     if (!config) return { error: 'Business not configured' };
     // Never show slots in the past — clamp fromDate to today
@@ -133,15 +135,17 @@ class SchedulingSystem {
       const dateStr = d.toISOString().split('T')[0];
       const daySlots = [];
 
+      const extraBusy = busyByDate[dateStr] || [];
+
       // Morning slots
       if (daySchedule.open && daySchedule.close) {
-        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId);
+        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy);
         daySlots.push(...morningSlots);
       }
 
       // Afternoon slots
       if (daySchedule.afternoon_open && daySchedule.afternoon_close) {
-        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId);
+        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy);
         daySlots.push(...afternoonSlots);
       }
 
@@ -175,7 +179,7 @@ class SchedulingSystem {
     };
   }
 
-  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId) {
+  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = []) {
     const slots = [];
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
@@ -187,7 +191,7 @@ class SchedulingSystem {
       const slotEnd = `${String(Math.floor((m + duration) / 60)).padStart(2, '0')}:${String((m + duration) % 60).padStart(2, '0')}`;
 
       // Check if slot is taken
-      const isTaken = this._isSlotTaken(businessId, dateStr, slotStart, duration);
+      const isTaken = this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy);
       if (!isTaken) {
         slots.push({ time: slotStart, endTime: slotEnd });
       }
@@ -195,7 +199,9 @@ class SchedulingSystem {
     return slots;
   }
 
-  _isSlotTaken(businessId, date, time, duration) {
+  // extraBusy: bloques ocupados EXTERNOS (Google Calendar) para esta fecha,
+  // en minutos del día [{startMin,endMin}]. Por defecto [] → sin cambios.
+  _isSlotTaken(businessId, date, time, duration, extraBusy = []) {
     const [h, m] = time.split(':').map(Number);
     const slotStart = h * 60 + m;
     const slotEnd = slotStart + duration;
@@ -208,11 +214,15 @@ class SchedulingSystem {
       // Check overlap
       if (slotStart < aptEnd && slotEnd > aptStart) return true;
     }
+    // Solapes con eventos externos (Google Calendar del negocio)
+    for (const b of extraBusy) {
+      if (slotStart < b.endMin && slotEnd > b.startMin) return true;
+    }
     return false;
   }
 
   // ─── Book an appointment ───
-  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }) {
+  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, extraBusy = []) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -284,8 +294,8 @@ class SchedulingSystem {
       createdAt: new Date().toISOString()
     };
 
-    // Verify slot is available
-    if (this._isSlotTaken(businessId, date, time, appointment.duration)) {
+    // Verify slot is available (incluye eventos externos de Google Calendar)
+    if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy)) {
       return { success: false, error: 'Esa hora ya está ocupada. Por favor elige otra.' };
     }
 
