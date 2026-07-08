@@ -19,6 +19,8 @@ const { mulawToPcm, pcm8kToPcm16k } = require('../utils/audio');
 const { sendAudioToVonage } = require('../telephony/vonage-handler');
 const { getKnowledgeBase } = require('../knowledge/base');
 const { getDatabase } = require('../db/database');
+// Estado de clúster (DORMANTE — no-op salvo CLUSTER_MODE=1 + Redis).
+const clusterState = require('../utils/cluster-state');
 const {
   personalizeGreeting,
   isShortCloser,
@@ -81,6 +83,13 @@ class VoicePipeline {
     // en EasyPanel: rechazar limpio la llamada nº51 es mucho mejor que caer.
     this.maxConcurrentNode =
       Number(config.maxConcurrentNode ?? process.env.MAX_CONCURRENT_CALLS_NODE) || 0;
+
+    // Cap GLOBAL del CLÚSTER (DORMANTE). Solo se consulta cuando
+    // CLUSTER_MODE=1 (varias réplicas): suma las llamadas activas de TODAS
+    // las réplicas vía Redis, para que el techo agregado no se multiplique
+    // por el nº de nodos. 0 = sin límite. Sin efecto con el flag apagado.
+    this.maxConcurrentCluster =
+      Number(config.maxConcurrentCluster ?? process.env.MAX_CONCURRENT_CALLS_CLUSTER) || 0;
   }
 
   /** Llamadas activas para un asistente concreto. */
@@ -176,6 +185,18 @@ class VoicePipeline {
       return null;
     }
 
+    // Cap GLOBAL del CLÚSTER (DORMANTE — solo con CLUSTER_MODE=1).
+    // isClusterMode() es una comparación de string barata; si es false
+    // (producción hoy) NO se ejecuta NADA de abajo y el camino queda
+    // idéntico byte-a-byte al de siempre (cero await, cero latencia).
+    if (clusterState.isClusterMode() && this.maxConcurrentCluster > 0) {
+      const clusterActive = await clusterState.getClusterCallCount(this.activeCalls.size);
+      if (clusterActive >= this.maxConcurrentCluster) {
+        log.warn(`[${callId}] Rechazada: clúster en cap global (${clusterActive}/${this.maxConcurrentCluster})`);
+        return null;
+      }
+    }
+
     // Cap de concurrentes por asistente: rechaza ANTES de abrir STT (coste 0).
     // Devuelve null → el handler de telefonía cierra el WS limpiamente.
     const limit = this._concurrentLimitFor(assistant);
@@ -192,6 +213,9 @@ class VoicePipeline {
     session.provider  = provider;
     session.status    = 'active';
     this.activeCalls.set(callId, session);
+    // Alta en el contador del clúster (DORMANTE — no-op si CLUSTER_MODE off).
+    // Fire-and-forget: jamás bloquea ni añade latencia al alta de la llamada.
+    clusterState.incrCall(callId).catch(() => {});
 
     // ── Experto en el negocio: inyecta precios estructurados + base de conocimiento ──
     // Una sola vez, al inicio. FAIL-OPEN: si falla o no hay datos, la llamada sigue igual.
@@ -1026,6 +1050,9 @@ class VoicePipeline {
     this.sttRouter.closeSession(callId);
     const callData = session.end();
     this.activeCalls.delete(callId);
+    // Baja del contador del clúster (DORMANTE — no-op si CLUSTER_MODE off).
+    // Fire-and-forget; si fallara, la clave caduca sola por TTL de auto-cura.
+    clusterState.decrCall(callId).catch(() => {});
     this.callHistory.unshift(callData);
     if (this.callHistory.length > this.maxHistory) this.callHistory.pop();
     // Persistencia (C1): registro completo, upsert idempotente — recupera
