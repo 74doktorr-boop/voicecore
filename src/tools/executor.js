@@ -145,6 +145,9 @@ class ToolExecutor {
       // ── Asesoría ──
       lookup_case:         this.lookupCase.bind(this),
 
+      // ── Entidades (vehículos, mascotas, pólizas…) ──
+      lookup_entity:       this.lookupEntity.bind(this),
+
       // ── Inmobiliaria ──
       search_properties:   this.searchProperties.bind(this),
       schedule_valuation:  this.scheduleValuation.bind(this),
@@ -981,6 +984,72 @@ class ToolExecutor {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 9-bis. ENTIDADES v0 — "el Golf de Ane", "la ITV del 1234ABC"
+  // Determinista: busca en nf_entities de LA ORG por display_name (trigram)
+  // o identificador exacto normalizado (matrícula, chip, nº póliza) y
+  // devuelve información compacta para el LLM. NO-OPea con gracia si la
+  // feature/tablas no están (respuesta neutra, la conversación sigue).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async lookupEntity(args, assistantId) {
+    const query = String(args.query || args.name || args.matricula || '').trim();
+    if (!query) return { found: false, message: 'Pregunta el nombre o la matrícula/número para poder buscar la ficha.' };
+
+    try {
+      const db = getDatabase();
+      const { entitiesFeatureEnabled, entityTablesExist } = require('../entities/entity-types');
+      if (!db.enabled || !entitiesFeatureEnabled() || !(await entityTablesExist(db))) {
+        return { found: false, message: 'No tengo acceso a las fichas ahora mismo; toma nota y continúa.' };
+      }
+
+      const { searchEntities } = require('../entities/entities');
+      const matches = await searchEntities({
+        orgId: assistantId, q: query,
+        typeKey: args.type ? String(args.type) : undefined,
+        limit: 3, db,
+      });
+      if (!matches.length) {
+        return { found: false, message: `No encuentro ninguna ficha que coincida con "${query}". Pide otro dato (matrícula completa, nombre exacto).` };
+      }
+
+      // Nombre del dueño (si está vinculado) para confirmar identidad en la llamada
+      const contactIds = [...new Set(matches.map(m => m.contact_id).filter(Boolean))];
+      const owners = {};
+      if (contactIds.length) {
+        const { data: cs } = await db.client.from('contacts')
+          .select('id, name').in('id', contactIds).eq('org_id', assistantId);
+        for (const c of (cs || [])) owners[c.id] = c.name || null;
+      }
+
+      const lines = matches.map(m => {
+        const type   = m._type || { fields: [] };
+        const attrs  = m.attrs || {};
+        const parts  = [m.display_name];
+        const owner  = m.contact_id && owners[m.contact_id];
+        if (owner) parts.push(`dueño: ${owner}`);
+        // Solo los datos que importan al teléfono: fechas con recordatorio
+        for (const f of (type.fields || [])) {
+          if (f.type !== 'date' || !attrs[f.key]) continue;
+          const fecha = new Date(attrs[f.key] + 'T12:00:00');
+          if (!isNaN(fecha.getTime())) parts.push(`${f.label || f.key}: ${fecha.toLocaleDateString('es-ES')}`);
+        }
+        return parts.join(' — ');
+      });
+
+      return {
+        found:   true,
+        count:   matches.length,
+        message: matches.length === 1
+          ? `Ficha encontrada: ${lines[0]}`
+          : `Hay ${matches.length} fichas que coinciden: ${lines.join(' | ')}. Pide un dato más para distinguirlas.`,
+      };
+    } catch (e) {
+      log.warn(`lookupEntity: ${e.message}`);
+      return { found: false, message: 'No puedo consultar las fichas ahora mismo; toma nota y continúa.' };
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 10. INMOBILIARIA
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1176,6 +1245,21 @@ class ToolExecutor {
           name: 'get_services',
           description: 'Obtiene la lista de servicios con precios y duración',
           parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+      lookup_entity: {
+        type: 'function',
+        function: {
+          name: 'lookup_entity',
+          description: 'Busca la ficha de una COSA del cliente (su vehículo, mascota, póliza, expediente…) por nombre o identificador (matrícula, nº de chip, nº de póliza). Úsalo cuando pregunten por fechas como la ITV, la próxima vacuna o una renovación.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Lo que ha dicho el cliente: matrícula, nombre de la mascota, nº de póliza… (ej: "1234ABC", "Luna")' },
+              type:  { type: 'string', description: 'Opcional: tipo de ficha (vehiculo, mascota, poliza, expediente…) si está claro por contexto' },
+            },
+            required: ['query'],
+          },
         },
       },
       add_critical_date: {

@@ -96,6 +96,7 @@ function navigate(section) {
   else if (section === 'automatizaciones') loadAutomatizaciones();
   else if (section === 'configuracion')    loadConfig();
   else if (section === 'clientes')         loadClientes();
+  else if (section === 'entidades')        loadEntidades();
   else if (section === 'facturacion')      loadFacturacion();
   else if (section === 'integraciones')    loadIntegraciones();
   else if (section === 'seguimientos')     loadSeguimientos();
@@ -737,6 +738,7 @@ function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display         = 'block';
   startCallNotifications(); // avisos en pantalla de cada llamada (si están activados)
+  initEntidades();          // pestaña Vehículos/Mascotas/… si el sector la tiene
 
   // Sin contraseña → crearla (obligatorio). Con contraseña pero entrando
   // por enlace mágico → ofrecer cambiarla (probable olvido).
@@ -6570,6 +6572,282 @@ function toggleFaq(id) {
   document.querySelectorAll('.faq-item.open').forEach(function(x) { x.classList.remove('open'); });
   // Abrir el pulsado si estaba cerrado
   if (!isOpen) el.classList.add('open');
+}
+
+// ════════ ENTIDADES v0 — Vehículos / Mascotas / Pólizas… ═══════════════════
+// Pestaña dinámica: la etiqueta, el icono y el FORMULARIO salen de la
+// plantilla del sector (field defs) — un solo componente para 14 sectores.
+// Simple > completo: fichas grandes, botones grandes, cero configuración.
+
+var _entTypes    = null;   // tipos de entidad de la org (o [] si no aplica)
+var _entTypeKey  = null;   // tipo activo (v0: casi siempre hay uno)
+var _entList     = [];     // entidades cargadas
+var _entQ        = '';     // búsqueda actual
+var _entQTimer   = null;
+var _entContacts = null;   // cache de contactos para el selector "dueño"
+
+// Al entrar: ¿tiene esta org fichas? Si sí, aparece la pestaña con su nombre.
+async function initEntidades() {
+  try {
+    var r = await api('/api/portal/entity-types');
+    if (!r.available || !r.types || !r.types.length) return; // pestaña oculta
+    _entTypes   = r.types;
+    _entTypeKey = r.types[0].key;
+    var nav = document.getElementById('nav-entidades');
+    var lbl = document.getElementById('nav-entidades-label');
+    if (lbl) lbl.textContent = r.types.length === 1 ? r.types[0].label_plural : 'Fichas';
+    if (nav) nav.style.display = '';
+  } catch (e) { /* sin fichas: la pestaña no aparece */ }
+}
+
+function _entType() {
+  if (!_entTypes) return null;
+  for (var i = 0; i < _entTypes.length; i++) if (_entTypes[i].key === _entTypeKey) return _entTypes[i];
+  return _entTypes[0] || null;
+}
+
+// ¿Este campo-fecha genera aviso automático? → pill 🔔
+function _entReminderPill(small) {
+  return '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.3);color:var(--accent-l);border-radius:999px;padding:' + (small ? '1px 8px' : '2px 10px') + ';font-size:' + (small ? '10px' : '11px') + ';font-weight:700;white-space:nowrap">🔔 aviso automático</span>';
+}
+
+async function loadEntidades() {
+  var sec = document.getElementById('sec-entidades');
+  if (!sec) return;
+  if (!_entTypes) { await initEntidades(); }
+  var type = _entType();
+  if (!type) {
+    sec.innerHTML = '<div class="empty-state"><div style="font-size:34px">🗂️</div>' +
+      '<div class="empty-state-text">Las fichas no están disponibles para tu negocio todavía.</div></div>';
+    return;
+  }
+
+  // Cabecera + buscador + botón grande (se pinta una vez; la lista se refresca)
+  var tabs = '';
+  if (_entTypes.length > 1) {
+    tabs = '<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">' + _entTypes.map(function(t) {
+      return '<button class="btn ' + (t.key === _entTypeKey ? 'btn-accent' : 'btn-d') + '" onclick="entSwitchType(\'' + esc(t.key) + '\')">' + esc(t.icon || '') + ' ' + esc(t.label_plural) + '</button>';
+    }).join('') + '</div>';
+  }
+
+  sec.innerHTML =
+    '<div class="section-header">' +
+      '<div><div class="kicker">Actividad</div>' +
+      '<h2 class="section-title">' + esc(type.icon || '') + ' ' + esc(type.label_plural) + '</h2>' +
+      '<p class="section-sub">Cada ficha guarda sus fechas importantes — los avisos a tus clientes salen solos ' + _entReminderPill(true) + '</p></div>' +
+      '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>' +
+    '</div>' +
+    tabs +
+    '<div class="card" style="padding:14px;margin-bottom:16px">' +
+      '<input class="form-input" id="entSearch" placeholder="🔎 Buscar…" value="' + esc(_entQ) + '" ' +
+        'style="width:100%;font-size:16px;padding:12px" oninput="entSearchInput(this.value)">' +
+    '</div>' +
+    '<div id="entList"><div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando fichas…</div></div></div>';
+
+  entFetchList();
+}
+
+function entSwitchType(key) { _entTypeKey = key; _entQ = ''; loadEntidades(); }
+
+function entSearchInput(v) {
+  _entQ = v;
+  clearTimeout(_entQTimer);
+  _entQTimer = setTimeout(entFetchList, 300);
+}
+
+async function entFetchList() {
+  var type = _entType();
+  var box  = document.getElementById('entList');
+  if (!type || !box) return;
+  try {
+    var r = await api('/api/portal/entities?type=' + encodeURIComponent(type.key) + (_entQ ? '&q=' + encodeURIComponent(_entQ) : ''));
+    _entList = r.entities || [];
+    renderEntidades();
+  } catch (e) {
+    box.innerHTML = '<div class="empty-state"><div class="empty-state-text">Error al cargar: ' + esc(e.message) + '</div></div>';
+  }
+}
+
+function renderEntidades() {
+  var type = _entType();
+  var box  = document.getElementById('entList');
+  if (!type || !box) return;
+
+  if (!_entList.length) {
+    box.innerHTML = emptyState(type.icon || '🗂️',
+      _entQ ? 'Sin resultados' : 'Aún no hay ' + esc(type.label_plural.toLowerCase()),
+      _entQ ? 'Prueba con otro nombre o identificador.'
+            : 'Añade la primera ficha: apunta sus fechas (ITV, vacuna, renovación…) y los avisos a tus clientes saldrán solos.',
+      _entQ ? '' : '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>');
+    return;
+  }
+
+  var fields     = type.fields || [];
+  var listFields = fields.filter(function(f) { return f.show_in_list; });
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px">';
+  for (var i = 0; i < _entList.length; i++) {
+    var e = _entList[i];
+    var a = e.attrs || {};
+
+    // Datos de la lista (máx 4-5 por plantilla) — fechas con aviso llevan 🔔
+    var rows = '';
+    for (var j = 0; j < listFields.length; j++) {
+      var f = listFields[j];
+      var v = a[f.key];
+      if (v === undefined || v === null || v === '') continue;
+      var shown = f.type === 'date' ? fmtDate(String(v)) : (Array.isArray(v) ? v.join(', ') : String(v));
+      if (f.type === 'select' && f.options) {
+        for (var k = 0; k < f.options.length; k++) if (f.options[k].value === v) shown = f.options[k].label;
+      }
+      rows += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:3px 0">' +
+        '<span style="color:var(--dim)">' + esc(f.label || f.key) + '</span>' +
+        '<span style="font-weight:600;text-align:right">' + esc(shown) + (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span></div>';
+    }
+
+    // Chip del dueño → Ficha 360 del contacto
+    var owner = e.contact_id
+      ? '<button class="btn btn-d btn-sm" style="border-radius:999px" onclick="event.stopPropagation();openContactProfile(\'' + esc(e.contact_id) + '\')">👤 ' + esc(e.contact_name || 'Ver cliente') + '</button>'
+      : '<span style="font-size:11px;color:var(--dim)">Sin cliente vinculado</span>';
+
+    html += '<div class="card" style="padding:16px;cursor:pointer" onclick="openEntityModal(\'' + esc(e.id) + '\')">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+        '<div style="font-size:22px">' + esc(type.icon || '🗂️') + '</div>' +
+        '<div style="font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(e.display_name) + '</div>' +
+      '</div>' +
+      rows +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px">' + owner +
+        '<span style="font-size:12px;color:var(--accent-l);font-weight:700">Editar ✏️</span></div>' +
+    '</div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// Contactos para el selector "dueño" (cacheados 1 vez por sesión de pestaña)
+async function _entLoadContacts() {
+  if (_entContacts) return _entContacts;
+  try {
+    var r = await api('/api/portal/contacts');
+    _entContacts = (r.contacts || []).slice(0, 300);
+  } catch (e) { _entContacts = []; }
+  return _entContacts;
+}
+
+// Modal crear/editar — el formulario se GENERA desde las field defs:
+// inputs grandes, campos-fecha con la pill de aviso automático.
+async function openEntityModal(id) {
+  var type = _entType();
+  if (!type) return;
+  var entity = null;
+  if (id) {
+    for (var i = 0; i < _entList.length; i++) if (_entList[i].id === id) entity = _entList[i];
+    if (!entity) return;
+  }
+  var a = (entity && entity.attrs) || {};
+  var contacts = await _entLoadContacts();
+
+  var BIG = 'width:100%;font-size:16px;padding:12px';
+  var formHtml = '';
+  var fields = type.fields || [];
+  for (var j = 0; j < fields.length; j++) {
+    var f = fields[j];
+    var v = a[f.key]; if (v === undefined || v === null) v = '';
+    var label = '<label class="form-label" style="font-size:13px">' + esc(f.label || f.key) +
+      (f.required ? ' *' : '') +
+      (f.type === 'date' && f.reminder ? ' ' + _entReminderPill(true) : '') + '</label>';
+    var input = '';
+    var fid = 'ent-f-' + esc(f.key);
+
+    if (f.type === 'select') {
+      input = '<select class="form-input" id="' + fid + '" style="' + BIG + '"><option value="">—</option>' +
+        (f.options || []).map(function(o) {
+          return '<option value="' + esc(o.value) + '"' + (String(v) === o.value ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+        }).join('') + '</select>';
+    } else if (f.type === 'note') {
+      input = '<textarea class="form-input" id="' + fid + '" rows="3" style="' + BIG + '">' + esc(String(v)) + '</textarea>';
+    } else if (f.type === 'boolean') {
+      input = '<select class="form-input" id="' + fid + '" style="' + BIG + '">' +
+        '<option value=""' + (v === '' ? ' selected' : '') + '>—</option>' +
+        '<option value="true"'  + (v === true  ? ' selected' : '') + '>Sí</option>' +
+        '<option value="false"' + (v === false ? ' selected' : '') + '>No</option></select>';
+    } else {
+      var itype = f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : f.type === 'phone' ? 'tel' : 'text';
+      input = '<input class="form-input" id="' + fid + '" type="' + itype + '" value="' + esc(String(v)) + '" style="' + BIG + '">';
+    }
+    formHtml += '<div class="form-group">' + label + input + '</div>';
+  }
+
+  // Dueño / titular (persona = contacto; la cosa = esta ficha)
+  var curContact = entity ? (entity.contact_id || '') : '';
+  var contactOpts = '<option value="">— Sin cliente vinculado —</option>' + contacts.map(function(c) {
+    return '<option value="' + esc(c.id) + '"' + (curContact === c.id ? ' selected' : '') + '>' + esc(c.displayName || c.phone || '') + '</option>';
+  }).join('');
+  formHtml += '<div class="form-group"><label class="form-label" style="font-size:13px">👤 Cliente (dueño/titular)</label>' +
+    '<select class="form-input" id="ent-f-contact" style="' + BIG + '">' + contactOpts + '</select>' +
+    '<small style="color:var(--dim);font-size:11px">Los avisos automáticos se envían a este cliente. Sin cliente, la ficha se guarda pero no avisa.</small></div>';
+
+  var del = entity
+    ? '<button class="btn btn-d" style="color:#e17055;margin-right:auto" onclick="deleteEntity(\'' + esc(entity.id) + '\')">🗑 Eliminar</button>'
+    : '';
+
+  openModal(
+    '<div class="modal-title">' + esc(type.icon || '') + ' ' + (entity ? esc(entity.display_name) : '+ Nuevo ' + esc(type.label_singular.toLowerCase())) + '</div>' +
+    formHtml +
+    '<div class="modal-actions" style="display:flex;gap:10px;align-items:center">' + del +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" style="font-size:15px;padding:12px 22px" onclick="saveEntity(' + (entity ? '\'' + esc(entity.id) + '\'' : 'null') + ')">Guardar</button>' +
+    '</div>'
+  );
+}
+
+async function saveEntity(id) {
+  var type = _entType();
+  if (!type) return;
+  var attrs = {};
+  var fields = type.fields || [];
+  for (var j = 0; j < fields.length; j++) {
+    var f  = fields[j];
+    var el = document.getElementById('ent-f-' + f.key);
+    if (!el) continue;
+    var v = el.value;
+    if (f.required && !String(v || '').trim()) {
+      toast('Falta «' + (f.label || f.key) + '»', 'err');
+      el.focus();
+      return;
+    }
+    attrs[f.key] = v; // el servidor valida tipos/opciones y limpia
+  }
+  var contactEl = document.getElementById('ent-f-contact');
+  var body = { attrs: attrs, contact_id: contactEl ? (contactEl.value || null) : null };
+
+  try {
+    if (id) {
+      await api('/api/portal/entities/' + id, 'PATCH', body);
+      toast('Ficha actualizada');
+    } else {
+      body.type = type.key;
+      await api('/api/portal/entities', 'POST', body);
+      toast(type.label_singular + ' añadido ✔');
+    }
+    closeModal();
+    entFetchList();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function deleteEntity(id) {
+  var type = _entType();
+  if (!confirm('¿Eliminar esta ficha' + (type ? ' de ' + type.label_plural.toLowerCase() : '') + '? Sus avisos pendientes se cancelarán.')) return;
+  try {
+    await api('/api/portal/entities/' + id, 'DELETE');
+    toast('Ficha eliminada');
+    closeModal();
+    entFetchList();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
 }
 
 // ── Service Worker (PWA) ──────────────────────────────────────

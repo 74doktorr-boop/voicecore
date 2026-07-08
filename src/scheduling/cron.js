@@ -18,6 +18,7 @@ let _history     = [];
 let _lastMonthlyResetDay = null; // 'YYYY-MM-01' — prevents duplicate resets in same day
 let _lastWeeklyReportDay = null; // 'YYYY-MM-DD' (Monday) — prevents duplicate weekly reports
 let _lastImprovementDay  = null; // 'YYYY-MM-DD' (Monday) — dedupe del ciclo de mejora
+let _lastEntityRemindersDay = null; // 'YYYY-MM-DD' — dedupe del materializador de entidades
 
 async function checkAndSendCriticalDateReminders() {
   const { criticalDatesStore } = require('../scheduling/critical-dates');
@@ -335,6 +336,22 @@ async function runAutomations() {
     const noShows          = await checkAndHandleNoShows(scheduler, flowManager);
     const weeklyReports    = await sendWeeklyReports(scheduler, flowManager);
     const recoveredFollowups = await recoverMissedFollowups();
+
+    // ── ENTIDADES v0 — materializador nocturno (02-05h Madrid, 1×/día) ──
+    // Campos-fecha con recordatorio (ITV, vacuna, renovación de póliza…) →
+    // scheduled_reminders. NO-OPea si las tablas de entidades no existen aún
+    // (migración pendiente) o con ENTITIES_DISABLED=1. Leader-gated arriba.
+    try {
+      const hourMadridNow = parseInt(new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(new Date()), 10);
+      if (hourMadridNow >= 2 && hourMadridNow < 5 && _lastEntityRemindersDay !== todayMadrid) {
+        _lastEntityRemindersDay = todayMadrid;
+        const { materializeEntityReminders } = require('../entities/entity-reminders');
+        const ent = await materializeEntityReminders();
+        if (ent.created || ent.cancelled) {
+          _stats.entityReminders = (_stats.entityReminders || 0) + ent.created;
+        }
+      }
+    } catch (e) { log.warn(`materializador de entidades: ${e.message}`); }
 
     // ── Ciclo de mejora continua — lunes 09-10h Madrid, una vez por semana
     // (opción A, 2026-07-04): huecos de datos → aviso a cada dueño; reglas

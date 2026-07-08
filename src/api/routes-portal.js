@@ -2989,6 +2989,153 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { res.status(500).send('Error interno'); }
   });
 
+  // ════════ ENTIDADES v0 — vehículos, mascotas, pólizas… ═══════════════════
+  // La "cosa" del cliente como objeto de primera clase (diseño Entidades
+  // 2026-07-08). Gate triple: feature flag + el sector tiene plantillas +
+  // las tablas existen (migración manual pendiente → {available:false} y el
+  // portal oculta la pestaña). Copy-on-create perezoso al primer GET.
+
+  // Resuelve el gate y devuelve los tipos de la org (o null si no aplica).
+  async function _entityGate(req) {
+    const { sectorHasEntityTemplates, entityTablesExist, ensureOrgEntityTypes } =
+      require('../entities/entity-types');
+    const sector = req.flowConfig && req.flowConfig.sector;
+    if (!sector || !sectorHasEntityTemplates(sector)) return null;
+    const db = getDatabase();
+    if (!db.enabled || !(await entityTablesExist(db))) return null;
+    // Siembra las plantillas del sector si faltan (idempotente, cacheado)
+    const types = await ensureOrgEntityTypes(req.businessId, sector, { db });
+    return types.length ? types : null;
+  }
+
+  // ── GET /api/portal/entity-types ── tipos de entidad de la org ────────────
+  app.get('/api/portal/entity-types', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.json({ available: false, types: [] });
+      res.json({ available: true, types });
+    } catch (e) {
+      log.warn(`GET entity-types: ${e.message}`);
+      res.json({ available: false, types: [] }); // fail-closed: la pestaña se oculta
+    }
+  });
+
+  // ── GET /api/portal/entities?type=vehiculo&q=… ── lista org-scoped ────────
+  app.get('/api/portal/entities', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.json({ available: false, entities: [] });
+
+      const typeKey = String(req.query.type || '').slice(0, 40);
+      const type    = typeKey ? types.find(t => t.key === typeKey) : types[0];
+      if (!type) return res.status(400).json({ error: 'Tipo de ficha desconocido' });
+
+      const { listEntities } = require('../entities/entities');
+      const r = await listEntities({
+        orgId: req.businessId, entityTypeId: type.id,
+        q: req.query.q, limit: 200,
+      });
+      if (!r.ok) return res.status(500).json({ error: r.error || 'Error al cargar' });
+
+      // Nombres de los dueños vinculados, en lote (chip → Ficha 360)
+      const db = getDatabase();
+      const contactIds = [...new Set(r.entities.map(e => e.contact_id).filter(Boolean))];
+      const names = {};
+      if (contactIds.length) {
+        const { data: cs } = await db.client.from('contacts')
+          .select('id, name, phone').in('id', contactIds).eq('org_id', req.businessId);
+        for (const c of (cs || [])) names[c.id] = c.name || c.phone || null;
+      }
+      const entities = r.entities.map(e => ({ ...e, contact_name: e.contact_id ? (names[e.contact_id] || null) : null }));
+      res.json({ available: true, type: type.key, entities });
+    } catch (e) {
+      log.error('GET entities', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/portal/entities ── crear (attrs validados en código) ────────
+  app.post('/api/portal/entities', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+
+      const body = req.body || {};
+      const type = types.find(t => t.key === String(body.type || ''));
+      if (!type) return res.status(400).json({ error: 'Tipo de ficha desconocido' });
+
+      // El dueño solo puede vincular contactos SUYOS
+      let contactId = null;
+      if (body.contact_id) {
+        const db = getDatabase();
+        const { data: c } = await db.client.from('contacts')
+          .select('id').eq('id', body.contact_id).eq('org_id', req.businessId).maybeSingle();
+        if (!c) return res.status(400).json({ error: 'Cliente no encontrado' });
+        contactId = c.id;
+      }
+
+      const { createEntity } = require('../entities/entities');
+      const r = await createEntity({ orgId: req.businessId, entityType: type, attrs: body.attrs, contactId });
+      if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
+      res.json({ ok: true, entity: r.entity });
+    } catch (e) {
+      log.error('POST entities', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── PATCH /api/portal/entities/:id ── editar (merge parcial de attrs) ─────
+  app.patch('/api/portal/entities/:id', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+
+      const { getEntity, updateEntity } = require('../entities/entities');
+      const current = await getEntity({ orgId: req.businessId, entityId: req.params.id });
+      if (!current) return res.status(404).json({ error: 'Ficha no encontrada' });
+      const type = types.find(t => t.id === current.entity_type_id);
+      if (!type) return res.status(400).json({ error: 'Tipo de ficha desconocido' });
+
+      const body = req.body || {};
+      let contactId; // undefined = no tocar
+      if (body.contact_id !== undefined) {
+        if (!body.contact_id) contactId = null;
+        else {
+          const db = getDatabase();
+          const { data: c } = await db.client.from('contacts')
+            .select('id').eq('id', body.contact_id).eq('org_id', req.businessId).maybeSingle();
+          if (!c) return res.status(400).json({ error: 'Cliente no encontrado' });
+          contactId = c.id;
+        }
+      }
+
+      const r = await updateEntity({
+        orgId: req.businessId, entityType: type, entityId: req.params.id,
+        attrs: body.attrs, contactId,
+      });
+      if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
+      res.json({ ok: true, entity: r.entity });
+    } catch (e) {
+      log.error('PATCH entities', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── DELETE /api/portal/entities/:id ── archivar (borrado suave) ───────────
+  app.delete('/api/portal/entities/:id', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ available: false, error: 'Fichas no disponibles' });
+      const { archiveEntity } = require('../entities/entities');
+      const r = await archiveEntity({ orgId: req.businessId, entityId: req.params.id });
+      if (!r.ok) return res.status(500).json({ error: r.error || 'No se pudo eliminar' });
+      res.json({ ok: true });
+    } catch (e) {
+      log.error('DELETE entities', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
 } // end setupPortalRoutes
 
 module.exports = { setupPortalRoutes, portalAuth };
