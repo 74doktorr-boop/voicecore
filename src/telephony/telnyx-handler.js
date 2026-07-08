@@ -235,10 +235,20 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
  * TeXML is Telnyx's version of TwiML — nearly identical syntax.
  * Docs: https://developers.telnyx.com/docs/voice/texml/texml-overview
  */
+// Escapado de atributos XML (auditoría 2026-07-08): assistantId puede llegar
+// de la query del webhook y wsUrl deriva del header Host — sin escapar, un
+// valor con comillas/ángulos rompe (o inyecta) el TeXML devuelto.
+function escapeXmlAttr(s) {
+  return String(s == null ? '' : s).replace(/[<>&"']/g, (c) => (
+    { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]
+  ));
+}
+
 function generateTeXML(wsUrl, assistantId = null) {
   const params = assistantId
-    ? `\n      <Parameter name="assistantId" value="${assistantId}" />`
+    ? `\n      <Parameter name="assistantId" value="${escapeXmlAttr(assistantId)}" />`
     : '';
+  wsUrl = escapeXmlAttr(wsUrl);
   // bidirectionalMode="rtp" es OBLIGATORIO en Telnyx: sin él el stream es solo
   // de entrada y el audio del asistente se descarta (llamada en silencio).
   // PCMU = mulaw 8kHz, el mismo formato que ya enviamos por el WS (Twilio-compat).

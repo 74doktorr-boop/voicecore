@@ -127,8 +127,18 @@ function setupTwilioStreams(wss, pipeline, assistantManager) {
 /**
  * Generate TwiML for incoming calls
  */
+// Escapado de atributos XML (auditoría 2026-07-08): assistantId puede llegar
+// de la query del webhook y wsUrl deriva del header Host — sin escapar, un
+// valor con comillas/ángulos rompe (o inyecta) el TwiML devuelto.
+function escapeXmlAttr(s) {
+  return String(s == null ? '' : s).replace(/[<>&"']/g, (c) => (
+    { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c]
+  ));
+}
+
 function generateTwiML(wsUrl, assistantId = null) {
-  const params = assistantId ? ` <Parameter name="assistantId" value="${assistantId}" />` : '';
+  const params = assistantId ? ` <Parameter name="assistantId" value="${escapeXmlAttr(assistantId)}" />` : '';
+  wsUrl = escapeXmlAttr(wsUrl);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>

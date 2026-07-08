@@ -20,7 +20,14 @@ const log = new Logger('WA-WEBHOOK');
 function verifyMetaSignature(req) {
   const appSecret = process.env.WA_APP_SECRET;
   if (!appSecret) {
-    log.warn('WA_APP_SECRET no configurado — webhook SIN verificar firma (configúralo para producción)');
+    // Auditoría 2026-07-08: en producción FALLA CERRADO — sin secret, un POST
+    // falso podría inyectar opt-outs/respuestas. El fail-open queda solo para
+    // desarrollo (setup inicial sin credenciales).
+    if (process.env.NODE_ENV === 'production') {
+      log.error('WA_APP_SECRET no configurado en PRODUCCIÓN — webhook rechazado (fail-closed)');
+      return false;
+    }
+    log.warn('WA_APP_SECRET no configurado — webhook SIN verificar firma (solo desarrollo)');
     return true; // permitir durante el setup inicial
   }
   const sigHeader = req.headers['x-hub-signature-256'] || '';
