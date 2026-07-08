@@ -1,6 +1,6 @@
 // ============================================================
 // NodeFlow — Plantillas WhatsApp (Meta UTILITY)
-// Única fuente de verdad de las 3 plantillas de avisos al cliente.
+// Única fuente de verdad de las plantillas de avisos al cliente.
 // La usan: el alta manual (scripts/wa-submit-templates.js) y el
 // alta automática al conectar un número propio (meta-connect.js).
 // Variables del cuerpo: {{1}}=nombre {{2}}=negocio {{3}}=fecha
@@ -176,6 +176,75 @@ const WA_TEMPLATES = [
         type: 'BODY',
         text: 'Hola {{1}}, desde {{2}} queremos contarte algo: {{3}} Si te interesa, responde a este mensaje y te atendemos al momento.',
         example: { body_text: [['María', 'Peluquería Ainhoa', 'este mes el tinte + corte tiene un 15% de descuento.']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más mensajes' },
+    ],
+  },
+  {
+    // PRE-ITV (2026-07-08, motor de entidades): la fecha de ITV del vehículo
+    // es el gancho de urgencia, pero el CTA es el servicio DEL TALLER (la
+    // revisión pre-ITV) — vendemos su hueco, no el trámite. {{3}}=vehículo
+    // ("tu Golf", "la furgoneta"). MARKETING → opt-out obligatorio.
+    name: 'nodeflow_pre_itv',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        // OJO Meta: no puede empezar ni terminar en variable (ver cita_confirmada).
+        text: 'Hola {{1}}, te escribimos de {{2}}: a {{3}} le toca pronto la ITV. Si quieres, te lo revisamos antes para que pases a la primera y sin sustos. Responde a este mensaje y te damos hueco esta misma semana.',
+        example: { body_text: [['María', 'Taller Garaia', 'tu Volkswagen Golf']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
+    ],
+  },
+  {
+    // HUECO URGENTE (2026-07-08, motor de entidades): variante del hueco libre
+    // pero dirigida por URGENCIA de ficha (ITV/vacuna/revisión que vence), no
+    // por lista de espera → es una oferta, MARKETING. {{3}}=cuándo es el hueco
+    // ("mañana jueves a las 10:00"), {{4}}=para qué ("la revisión pre-ITV").
+    name: 'nodeflow_hueco_urgente',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, buenas noticias desde {{2}}: se nos ha quedado libre un hueco {{3}} y hemos pensado en ti para {{4}}. ¿Lo quieres? Responde a este mensaje y te lo guardamos ahora mismo.',
+        example: { body_text: [['María', 'Taller Garaia', 'mañana jueves a las 10:00', 'la revisión pre-ITV de tu coche']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más avisos' },
+    ],
+  },
+  {
+    // GARANTÍA / REVISIÓN QUE VENCE (2026-07-08, motor de entidades): aviso
+    // transaccional sobre algo que el cliente YA tiene contratado (su garantía,
+    // su plan de revisiones) → UTILITY, sin opt-out de marketing. {{3}}=qué
+    // vence ("la garantía de tu caldera"), {{4}}=fecha de vencimiento.
+    name: 'nodeflow_garantia',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, te avisamos desde {{2}}: {{3}} vence el {{4}}. Si quieres que lo revisemos antes de esa fecha para que no pierdas la cobertura, responde a este mensaje y te reservamos cita.',
+        example: { body_text: [['María', 'Instalaciones Bidasoa', 'la garantía de tu caldera', '15 de agosto']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Sistema de citas inteligente' },
+    ],
+  },
+  {
+    // CUMPLEAÑOS DE MASCOTA (2026-07-08, motor de entidades): el toque cálido
+    // que ninguna clínica tiene tiempo de hacer a mano. {{3}}=nombre de la
+    // mascota. El CTA es suave (chequeo/mimo), la felicitación es el mensaje.
+    // MARKETING → opt-out obligatorio.
+    name: 'nodeflow_cumple_mascota',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, desde {{2}} queremos felicitar a alguien muy especial: ¡{{3}} cumple años! 🎉 Dale un achuchón de nuestra parte. Y si quieres celebrarlo con un chequeo o una sesión de mimos, responde por aquí y le buscamos hueco.',
+        example: { body_text: [['María', 'Clínica Veterinaria Txakur', 'Pintxo']] },
       },
       { type: 'FOOTER', text: 'NodeFlow — Responde BAJA para no recibir más mensajes' },
     ],

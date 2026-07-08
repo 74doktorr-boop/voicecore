@@ -29,6 +29,45 @@ describe('WA_TEMPLATES — integridad', () => {
       assert.strictEqual(body.example.body_text[0].length, vars, `${t.name}: ejemplo no cuadra con las variables`);
     }
   });
+
+  // Regla de Meta que ya nos costó un rechazo: el BODY no puede empezar
+  // ni terminar en variable.
+  test('ningún BODY empieza ni termina en variable (regla de alta de Meta)', () => {
+    for (const t of WA_TEMPLATES) {
+      const body = t.components.find(c => c.type === 'BODY');
+      assert.ok(!/^\{\{\d\}\}/.test(body.text.trim()), `${t.name}: empieza en variable`);
+      assert.ok(!/\{\{\d\}\}$/.test(body.text.trim()), `${t.name}: termina en variable`);
+    }
+  });
+
+  // Toda MARKETING necesita opt-out ("Responde BAJA…") — Meta lo exige y
+  // nosotros lo usamos para procesar la baja en el webhook.
+  test('toda plantilla MARKETING lleva footer con opt-out BAJA', () => {
+    for (const t of WA_TEMPLATES.filter(x => x.category === 'MARKETING')) {
+      const footer = t.components.find(c => c.type === 'FOOTER');
+      assert.ok(footer, `${t.name}: MARKETING sin FOOTER`);
+      assert.match(footer.text, /Responde BAJA/, `${t.name}: footer sin opt-out`);
+    }
+  });
+});
+
+describe('lote de plantillas de entidades (2026-07-08)', () => {
+  const expectativas = [
+    { name: 'nodeflow_pre_itv', category: 'MARKETING', vars: 3 },
+    { name: 'nodeflow_hueco_urgente', category: 'MARKETING', vars: 4 },
+    { name: 'nodeflow_garantia', category: 'UTILITY', vars: 4 },
+    { name: 'nodeflow_cumple_mascota', category: 'MARKETING', vars: 3 },
+  ];
+  for (const e of expectativas) {
+    test(`${e.name} existe como ${e.category} con ${e.vars} variables`, () => {
+      const t = WA_TEMPLATES.find(x => x.name === e.name);
+      assert.ok(t, `${e.name} debe existir`);
+      assert.strictEqual(t.category, e.category);
+      assert.strictEqual(t.language, 'es');
+      const body = t.components.find(c => c.type === 'BODY');
+      assert.strictEqual((body.text.match(/\{\{\d\}\}/g) || []).length, e.vars);
+    });
+  }
 });
 
 describe('templateLanguage — clamp de idioma', () => {
