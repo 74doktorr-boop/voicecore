@@ -1396,6 +1396,7 @@ async function loadDashboard() {
 
   sec.innerHTML =
     dashHero(d) +
+    '<div id="dash-briefing" style="margin:0 0 14px"></div>' +
     '<div id="dash-roi" style="margin:0 0 14px"></div>' +
     dashMinutes(usage) +
     dashSetup(d) +
@@ -1408,7 +1409,52 @@ async function loadDashboard() {
     referralCta('dashboard');
 
   startDashLive();
+  loadMorningBriefing();       // ☀️ briefing matinal — lo primero que se ve
   loadFollowupRoi('dash-roi'); // 💶 lo que el motor ha traído — en la primera pantalla
+}
+
+// ── Briefing matinal accionable: el dashboard saluda y propone ───────────
+// v0 del "dashboard = cerebro del negocio": resume AYER y lista lo accionable
+// de HOY, cada línea clicable hacia la sección que lo resuelve. Carga NO
+// bloqueante (mismo patrón que loadFollowupRoi, timeout 6s): si la BD va
+// lenta, el dashboard ya está pintado y la tarjeta aparece cuando llega.
+async function loadMorningBriefing() {
+  var box = document.getElementById('dash-briefing');
+  if (!box) return;
+  var b;
+  try { b = await api('/api/portal/briefing', null, null, 6000); }
+  catch (e) { box.innerHTML = ''; return; }
+  if (!b || !b.ok) { box.innerHTML = ''; return; }
+
+  var head =
+    '<div style="font-size:17px;font-weight:800;color:var(--text);line-height:1.3">' +
+      esc(b.greeting) + (b.greetingName ? ', ' + esc(b.greetingName) : '') + ' 👋' +
+    '</div>' +
+    (b.summary ? '<div style="font-size:12.5px;color:var(--dim);margin-top:3px">' + esc(b.summary) + '</div>' : '');
+
+  var body;
+  if (b.allClear) {
+    // Nunca caja vacía: una línea serena y a otra cosa.
+    body = '<div style="font-size:13px;color:var(--dim);margin-top:10px">✅ ' +
+      esc(b.allClearText || 'Todo al día. Tu asistente sigue de guardia 24/7.') + '</div>';
+  } else {
+    body = (b.lines || []).map(function (l) {
+      var nav = 'navigate(\'' + esc(l.section) + '\')';
+      return '<div role="button" tabindex="0" onclick="' + nav + '" ' +
+        'onkeydown="if(event.key===\'Enter\')' + nav + '" ' +
+        'onmouseover="this.style.borderColor=\'var(--accent-l)\'" onmouseout="this.style.borderColor=\'var(--border)\'" ' +
+        'style="display:flex;align-items:center;gap:10px;padding:9px 12px;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s">' +
+        '<span style="font-size:16px;line-height:1">' + l.icon + '</span>' +
+        '<span style="flex:1;min-width:0;font-size:13px;color:var(--text)">' + esc(l.text) + '</span>' +
+        '<span style="color:var(--accent-l);font-weight:800">→</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  box.innerHTML =
+    '<div class="card" style="border-color:rgba(196,245,70,.35);background:rgba(196,245,70,.04)">' +
+      head + body +
+    '</div>';
 }
 
 // ── Notificaciones de llamadas (v1: sondeo cada 30s) ─────────────────────

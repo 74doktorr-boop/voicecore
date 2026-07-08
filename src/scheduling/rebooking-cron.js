@@ -312,4 +312,6 @@ function stopRebookingCron() {
   if (_interval) { clearInterval(_interval); _interval = null; log.info('Rebooking cron stopped'); }
 }
 
-module.exports = { startRebookingCron, stopRebookingCron, checkAndSendRebookings };
+// REBOOKING_DEFAULTS exportado: el briefing matinal (morning-briefing.js) usa
+// el MISMO umbral por sector que este cron — una sola fuente de verdad.
+module.exports = { startRebookingCron, stopRebookingCron, checkAndSendRebookings, REBOOKING_DEFAULTS };

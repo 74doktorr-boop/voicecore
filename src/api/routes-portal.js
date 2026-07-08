@@ -40,6 +40,58 @@ async function _excludedRecoveryPhones(db, businessId, sinceISO) {
   return excluded;
 }
 
+// Oportunidades sin responder: llamadas recientes que NO acabaron en cita,
+// agrupadas por teléfono y sin quien ya reservó / tiene cita próxima.
+// Compartida por el GET de oportunidades y el briefing matinal (misma cifra
+// en la tarjeta que en la sección — si divergieran, el dueño perdería la fe).
+async function _missedOpportunitiesList(db, businessId, sinceDays) {
+  if (!db.enabled) return [];
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data } = await db.client
+    .from('nf_calls')
+    .select('id, caller_number, outcome, started_at, duration_ms')
+    .eq('org_id', businessId)
+    .gte('started_at', since)
+    .neq('outcome', 'booked')
+    .order('started_at', { ascending: false })
+    .limit(300);
+
+  // Excluir a quien YA reservó (en una llamada posterior) o tiene cita próxima.
+  const excluded = await _excludedRecoveryPhones(db, businessId, since);
+  // Agrupar por número: nos quedamos con la llamada más reciente de cada uno
+  const byPhone = {};
+  for (const c of (data || [])) {
+    if (!c.caller_number) continue;
+    if (excluded.has(normalizePhone(c.caller_number))) continue;
+    // lastCallId → el portal abre la TRANSCRIPCIÓN al clicar el número
+    if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, lastCallId: c.id, count: 0, lastOutcome: c.outcome };
+    byPhone[c.caller_number].count++;
+  }
+  return Object.values(byPhone)
+    .sort((a, b) => new Date(b.lastCall) - new Date(a.lastCall))
+    .slice(0, 100);
+}
+
+// Citas de MAÑANA cuyo cliente tiene riesgo ALTO de plantón. Compartida por
+// GET /at-risk-tomorrow y el briefing matinal (todo en memoria: barata).
+function _atRiskTomorrow(businessId) {
+  const { computeNoShowRisk } = require('../lifecycle/no-show-risk');
+  const all = scheduler.getAppointments(businessId) || [];
+  const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  const tomorrow = all.filter(a => a.date === tomorrowStr && a.status !== 'cancelled' && a.phone);
+  const atRisk = [];
+  for (const apt of tomorrow) {
+    const p9 = normalizePhone(apt.phone);
+    const history = all.filter(h => normalizePhone(h.phone) === p9 && h !== apt);
+    const risk = computeNoShowRisk(history);
+    if (risk.level === 'high') {
+      atRisk.push({ id: apt.id, patientName: apt.patientName, phone: apt.phone, time: apt.time, service: apt.service, noShows: risk.noShows, note: risk.note });
+    }
+  }
+  atRisk.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  return { date: tomorrowStr, atRisk };
+}
+
 // ── Auth middleware ──────────────────────────────────────────
 async function portalAuth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -298,6 +350,81 @@ function setupPortalRoutes(app, pipeline, config) {
       recentActivity,
       onboarding,
     });
+  });
+
+  // ── GET /api/portal/briefing ── briefing matinal accionable ──────────────
+  // La primera tarjeta del dashboard: saluda, resume AYER y propone lo
+  // accionable de HOY con enlace a la sección que lo resuelve. Agrega en
+  // paralelo con fallos tolerados (allSettled): si una fuente cae, su línea
+  // sale a 0 y el resto del briefing se sirve igual. La redacción de líneas
+  // vive en buildBriefing() (pura, src/lifecycle/morning-briefing.js).
+  app.get('/api/portal/briefing', portalAuth, async (req, res) => {
+    const { businessId, flowConfig } = req;
+    const db = getDatabase();
+    const { buildBriefing, hourInMadrid, madridMidnightUtc, reactivationThresholdDays } = require('../lifecycle/morning-briefing');
+
+    // Ayer en fecha civil de MADRID, no UTC — mismo criterio que /dashboard.
+    const todayStr     = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const yesterdayStr = new Date(new Date(todayStr + 'T12:00:00').getTime() - 86400000).toLocaleDateString('sv-SE');
+
+    const results = await Promise.allSettled([
+      // 1. Llamadas de AYER + cuántas acabaron en cita (nf_calls)
+      (async () => {
+        if (!db.enabled) return { calls: 0, booked: 0 };
+        const { data } = await db.client.from('nf_calls')
+          .select('outcome')
+          .eq('org_id', businessId)
+          .gte('started_at', madridMidnightUtc(yesterdayStr).toISOString())
+          .lt('started_at', madridMidnightUtc(todayStr).toISOString())
+          .limit(1000);
+        const rows = data || [];
+        return { calls: rows.length, booked: rows.filter(c => c.outcome === 'booked').length };
+      })(),
+      // 2. Oportunidades sin responder — misma lista que la sección Oportunidades
+      _missedOpportunitiesList(db, businessId, 14).then(l => l.length),
+      // 3. Citas de mañana con riesgo de plantón — misma lista que at-risk-tomorrow
+      Promise.resolve().then(() => _atRiskTomorrow(businessId).atRisk.length),
+      // 4. Clientes inactivos recuperables — misma señal "⚠ Reactivar" de Clientes
+      //    (umbral por sector de REBOOKING_DEFAULTS, 60 días por defecto)
+      (async () => {
+        if (!db.enabled) return 0;
+        const sector = await _resolveOrgSector(businessId);
+        const thr = reactivationThresholdDays(sector);
+        if (thr === null) return 0; // sector con reactivación desactivada
+        const cutoff = new Date(Date.now() - thr * 86400000).toISOString();
+        const { count } = await db.client.from('contacts')
+          .select('id', { count: 'exact', head: true })
+          .eq('org_id', businessId).is('deleted_at', null)
+          .not('last_call_at', 'is', null).lt('last_call_at', cutoff)
+          .gte('call_count', 1);
+        return count || 0;
+      })(),
+      // 5. Seguimientos con mensaje ya redactado (Personalizados)
+      (async () => {
+        const { getCandidates } = require('../lifecycle/followups');
+        return (await getCandidates(businessId, { db, bizName: flowConfig.name, lang: flowConfig.language || 'es' })).length;
+      })(),
+    ]);
+
+    const val = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
+    const yesterday     = val(0, { calls: 0, booked: 0 });
+    const inactiveCount = val(3, 0);
+    // € honesto: nº de inactivos × ticket medio SOLO si el negocio lo configuró
+    // (sin ticket no inventamos cifra: la línea sale sin €). Siempre con "~".
+    const avgTicket = Number(flowConfig.automations?.config?.avgTicket) || 0;
+
+    const briefing = buildBriefing({
+      greetingName:     flowConfig.name,
+      yesterdayCalls:   yesterday.calls,
+      yesterdayBooked:  yesterday.booked,
+      missedCount:      val(1, 0),
+      atRiskCount:      val(2, 0),
+      inactiveCount,
+      recoverableEuros: inactiveCount * avgTicket,
+      followupsPending: val(4, 0),
+    }, hourInMadrid());
+
+    res.json({ ok: true, ...briefing });
   });
 
   // ── GET /api/portal/knowledge/unanswered ─────────────────────
@@ -568,23 +695,8 @@ function setupPortalRoutes(app, pipeline, config) {
   // dueño las confirme personalmente. Hace accionable la predicción (op.5).
   app.get('/api/portal/at-risk-tomorrow', portalAuth, (req, res) => {
     try {
-      const { businessId } = req;
-      const { computeNoShowRisk } = require('../lifecycle/no-show-risk');
-      const { normalizePhone } = require('../utils/phone');
-      const all = scheduler.getAppointments(businessId) || [];
-      const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
-      const tomorrow = all.filter(a => a.date === tomorrowStr && a.status !== 'cancelled' && a.phone);
-      const atRisk = [];
-      for (const apt of tomorrow) {
-        const p9 = normalizePhone(apt.phone);
-        const history = all.filter(h => normalizePhone(h.phone) === p9 && h !== apt);
-        const risk = computeNoShowRisk(history);
-        if (risk.level === 'high') {
-          atRisk.push({ id: apt.id, patientName: apt.patientName, phone: apt.phone, time: apt.time, service: apt.service, noShows: risk.noShows, note: risk.note });
-        }
-      }
-      atRisk.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-      res.json({ ok: true, date: tomorrowStr, atRisk });
+      const { date, atRisk } = _atRiskTomorrow(req.businessId);
+      res.json({ ok: true, date, atRisk });
     } catch (e) { log.warn(`at-risk-tomorrow: ${e.message}`); res.json({ ok: true, atRisk: [] }); }
   });
 
@@ -1460,31 +1572,8 @@ function setupPortalRoutes(app, pipeline, config) {
     const db = getDatabase();
     if (!db.enabled) return res.json({ opportunities: [] });
     const sinceDays = Math.min(parseInt(req.query.days) || 14, 60);
-    const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
     try {
-      const { data } = await db.client
-        .from('nf_calls')
-        .select('id, caller_number, outcome, started_at, duration_ms')
-        .eq('org_id', req.businessId)
-        .gte('started_at', since)
-        .neq('outcome', 'booked')
-        .order('started_at', { ascending: false })
-        .limit(300);
-
-      // Excluir a quien YA reservó (en una llamada posterior) o tiene cita próxima.
-      const excluded = await _excludedRecoveryPhones(db, req.businessId, since);
-      // Agrupar por número: nos quedamos con la llamada más reciente de cada uno
-      const byPhone = {};
-      for (const c of (data || [])) {
-        if (!c.caller_number) continue;
-        if (excluded.has(normalizePhone(c.caller_number))) continue;
-        // lastCallId → el portal abre la TRANSCRIPCIÓN al clicar el número
-        if (!byPhone[c.caller_number]) byPhone[c.caller_number] = { phone: c.caller_number, lastCall: c.started_at, lastCallId: c.id, count: 0, lastOutcome: c.outcome };
-        byPhone[c.caller_number].count++;
-      }
-      const opportunities = Object.values(byPhone)
-        .sort((a, b) => new Date(b.lastCall) - new Date(a.lastCall))
-        .slice(0, 100);
+      const opportunities = await _missedOpportunitiesList(db, req.businessId, sinceDays);
       res.json({ ok: true, sinceDays, opportunities });
     } catch (e) {
       log.warn(`missed-opportunities: ${e.message}`);
