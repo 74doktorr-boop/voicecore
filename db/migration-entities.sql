@@ -106,8 +106,12 @@ alter table scheduled_reminders
 -- Dedupe del materializador nocturno: un solo pendiente por
 -- (entidad, campo, día). El job además compara por día antes de insertar;
 -- este índice es el cinturón de seguridad ante carreras.
+-- OJO (fix 2026-07-08): `scheduled_for::date` a secas no es IMMUTABLE
+-- (depende del timezone de sesión) y Postgres lo rechaza en índices (42P17).
+-- Fijamos UTC: timestamptz AT TIME ZONE 'utc' → timestamp, y su ::date SÍ es
+-- inmutable. El día-UTC basta para el dedupe (el job además compara antes).
 create unique index if not exists uq_reminder_entity_field_day
-  on scheduled_reminders (entity_id, service_key, (scheduled_for::date))
+  on scheduled_reminders (entity_id, service_key, (((scheduled_for at time zone 'utc'))::date))
   where entity_id is not null and status = 'pending';
 
 -- Consulta del job nocturno ("pendientes de esta entidad")
