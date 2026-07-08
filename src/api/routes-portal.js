@@ -1050,6 +1050,13 @@ function setupPortalRoutes(app, pipeline, config) {
       }
     } catch (_) { /* fail-open */ }
     const { effectiveFirstMessage } = require('../assistants/org-assistant');
+    // FUENTE DE VERDAD = BD fresca por encima de la copia en memoria. Tras
+    // redeploys + escrituras de automation_config, la config en memoria (custom)
+    // puede haber PERDIDO serviceList/avgTicket/… mientras la BD los conserva
+    // (bug real 2026-07-08: al dueño le "desaparecieron" los servicios, que en
+    // realidad seguían salvos en BD). Merge: BD gana campo a campo.
+    const { effectiveConfigSource } = require('./config-merge');
+    const src = effectiveConfigSource(custom, dbAuto && dbAuto.config);
     res.json({
       ok: true,
       config: {
@@ -1057,23 +1064,23 @@ function setupPortalRoutes(app, pipeline, config) {
         ownerEmail:     flowConfig.ownerEmail  || '',
         phone:          flowConfig.ownerPhone  || '',
         language:       (dbAsis && dbAsis.language) || flowConfig.language || 'es',
-        sector:         (dbAsis && dbAsis.sector) || flowConfig.sector || custom.sector || '',
+        sector:         (dbAsis && dbAsis.sector) || flowConfig.sector || src.sector || '',
         plan:           flowConfig.plan        || '',
-        avgTicket:      custom.avgTicket       || 35,
+        avgTicket:      src.avgTicket          || 35,
         // Saludo: el MISMO que Asistente → Básico (assistant_config.firstMessage),
         // honrando el welcomeMessage legado aún no convergido. Sin BD (dev), cae
         // a la copia en memoria.
         welcomeMessage: (dbAsis || dbAuto)
           ? effectiveFirstMessage(dbAsis, dbAuto)
           : (custom.welcomeMessage || ''),
-        services:       custom.services        || '',
-        schedule:       custom.schedule        || '',
-        reviewUrl:      custom.reviewUrl       || '',
+        services:       src.services           || '',
+        schedule:       src.schedule           || '',
+        reviewUrl:      src.reviewUrl          || '',
         outboundNumber: outboundNumber,                 // assigned by admin — read-only for portal users
-        alertPhone:     custom.alertPhone      || '',   // teléfono personal dueño para alertas WA
-        notifyEmail:    custom.notifyEmail     || flowConfig.ownerEmail || '',
-        address:        custom.address         || '',
-        serviceList:    Array.isArray(custom.serviceList) ? custom.serviceList : [],
+        alertPhone:     src.alertPhone         || '',   // teléfono personal dueño para alertas WA
+        notifyEmail:    src.notifyEmail        || flowConfig.ownerEmail || '',
+        address:        src.address            || '',
+        serviceList:    Array.isArray(src.serviceList) ? src.serviceList : [],
       },
     });
   });
@@ -1307,8 +1314,13 @@ function setupPortalRoutes(app, pipeline, config) {
     if (!flow) return res.status(404).json({ error: 'Negocio no encontrado en FlowManager' });
     if (!flow.automations) flow.automations = {};
     const existingCustom = flow.automations.config || {};
-    flow.automations.config = {
-      ...existingCustom,
+
+    // PARCHE explícito: SOLO los campos que ESTE request trae. Nunca arrastra
+    // el resto de la config en memoria (que puede estar obsoleta tras un
+    // redeploy) — así, al persistir, se mergea sobre la BD FRESCA sin pisar
+    // campos ausentes en el body (bug real 2026-07-08: guardar el horario
+    // clonaba un serviceList vacío en memoria y borraba los servicios de BD).
+    const configPatch = {
       ...(sector         !== undefined && { sector }),
       ...(avgTicket      !== undefined && { avgTicket: Number(avgTicket) }),
       ...(welcomeMessage !== undefined && { welcomeMessage }),
@@ -1329,6 +1341,7 @@ function setupPortalRoutes(app, pipeline, config) {
           notes:    s.notes    ? String(s.notes).slice(0, 160)   : '',
         })) }),
     };
+    flow.automations.config = { ...existingCustom, ...configPatch };
     flow.updatedAt = new Date().toISOString();
 
     // Persist to DB
@@ -1341,7 +1354,11 @@ function setupPortalRoutes(app, pipeline, config) {
           .from('organizations').select('automation_config, assistant_config').eq('id', businessId).maybeSingle();
         if (readErr) throw new Error('lectura: ' + readErr.message);
         const baseAuto   = (cur && cur.automation_config) || {};
-        const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), ...(flow.automations.config || {}) } };
+        // Mergea SOLO el parche de este request sobre la config FRESCA de BD.
+        // Nunca el flow en memoria completo: un campo ausente en el body (p.ej.
+        // serviceList al guardar solo el horario) DEBE conservar su valor de BD.
+        const { mergeConfigForWrite } = require('./config-merge');
+        const mergedAuto = { ...baseAuto, config: mergeConfigForWrite(baseAuto.config, configPatch) };
         // El saludo YA NO vive aquí: converge a assistant_config.firstMessage
         // (ver asisPatch abajo). Si quedara la copia legada, seguiría tapando
         // al canónico en la migración suave de lectura (effectiveFirstMessage).

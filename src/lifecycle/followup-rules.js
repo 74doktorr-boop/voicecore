@@ -17,7 +17,7 @@
 // ============================================================
 'use strict';
 
-const { getSectorFollowups, TRIGGERS, CUSTOM_TRIGGERS } = require('./sector-catalog');
+const { getSectorFollowups, TRIGGERS, CUSTOM_TRIGGERS, NO_DATA_TRIGGERS } = require('./sector-catalog');
 const { Logger } = require('../utils/logger');
 const log = new Logger('FOLLOWUP-RULES');
 
@@ -63,7 +63,9 @@ function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
       applies,
       custom: false,
       // los defaults con disparador de fecha/frecuencia no editan "días" a mano
-      editableDays: fu.days != null && (fu.trigger === 'from_last_appointment' || fu.trigger === 'from_last_if_no_new' || fu.trigger === 'before_sector_field'),
+      editableDays: fu.days != null && (fu.trigger === 'from_last_appointment' || fu.trigger === 'from_last_if_no_new' || fu.trigger === 'from_signup' || fu.trigger === 'before_sector_field'),
+      // ¿dispara SOLO, sin que el dueño rellene nada por cliente?
+      noData: NO_DATA_TRIGGERS.includes(fu.trigger),
     };
   });
 
@@ -84,6 +86,7 @@ function buildRulesView(sectorSlug, orgConfig = {}, serviceList = null) {
       enabled: c.enabled !== false,
       custom: true,
       editableDays: true,
+      noData: NO_DATA_TRIGGERS.includes(c.trigger),
     });
   }
   return rules;
@@ -219,36 +222,64 @@ async function estimateReach(orgId, sectorSlug, opts = {}) {
   if (!db.enabled) return out;
 
   const orgConfig = await loadOrgConfig(db, orgId);
-  const rules = buildRulesView(sectorSlug, orgConfig)
-    .filter(r => r.enabled && (r.trigger === 'from_last_appointment' || r.trigger === 'from_last_if_no_new') && r.days);
-  if (!rules.length) return out;
-
-  // Última cita por teléfono (con su servicio) — ventana amplia.
-  const sinceDays = Math.max(...rules.map(r => r.days)) + horizon + 5;
-  const since = new Date(Date.now() - sinceDays * 864e5).toISOString().slice(0, 10);
-  let apts = [];
-  try {
-    const { data } = await db.client.from('nf_appointments')
-      .select('phone, service, date, status')
-      .eq('organization_id', orgId).gte('date', since)
-      .order('date', { ascending: false }).limit(3000);
-    apts = data || [];
-  } catch (e) { log.warn(`estimateReach: ${e.message}`); return out; }
-
-  const latestByPhone = new Map();
-  for (const a of apts) { if (a.phone && !latestByPhone.has(a.phone)) latestByPhone.set(a.phone, a); }
+  const allRules = buildRulesView(sectorSlug, orgConfig).filter(r => r.enabled && r.days);
+  const visitRules  = allRules.filter(r => r.trigger === 'from_last_appointment' || r.trigger === 'from_last_if_no_new');
+  const signupRules = allRules.filter(r => r.trigger === 'from_signup');
+  if (!visitRules.length && !signupRules.length) return out;
 
   const now = Date.now(), end = now + horizon * 864e5;
   const counted = new Set();
-  for (const r of rules) {
-    let n = 0;
-    for (const [phone, a] of latestByPhone) {
-      if (r.serviceFilter && r.serviceFilter.length && !r.serviceFilter.some(f => (a.service || '').toLowerCase().includes(f))) continue;
-      const due = new Date(a.date).getTime() + r.days * 864e5;
-      if (due >= now && due <= end) { n++; if (!counted.has(phone)) { counted.add(phone); out.total++; } }
+
+  // ── Reglas basadas en la última visita ──
+  if (visitRules.length) {
+    const sinceDays = Math.max(...visitRules.map(r => r.days)) + horizon + 5;
+    const since = new Date(Date.now() - sinceDays * 864e5).toISOString().slice(0, 10);
+    let apts = [];
+    try {
+      const { data } = await db.client.from('nf_appointments')
+        .select('phone, service, date, status')
+        .eq('organization_id', orgId).gte('date', since)
+        .order('date', { ascending: false }).limit(3000);
+      apts = data || [];
+    } catch (e) { log.warn(`estimateReach: ${e.message}`); }
+
+    const latestByPhone = new Map();
+    for (const a of apts) { if (a.phone && !latestByPhone.has(a.phone)) latestByPhone.set(a.phone, a); }
+
+    for (const r of visitRules) {
+      let n = 0;
+      for (const [phone, a] of latestByPhone) {
+        if (r.serviceFilter && r.serviceFilter.length && !r.serviceFilter.some(f => (a.service || '').toLowerCase().includes(f))) continue;
+        const due = new Date(a.date).getTime() + r.days * 864e5;
+        if (due >= now && due <= end) { n++; if (!counted.has(phone)) { counted.add(phone); out.total++; } }
+      }
+      if (n) out.byRule[r.key] = n;
     }
-    if (n) out.byRule[r.key] = n;
   }
+
+  // ── Reglas "a los N días del alta" (created_at) — sin dato manual ──
+  if (signupRules.length) {
+    const sinceDays = Math.max(...signupRules.map(r => r.days)) + horizon + 5;
+    const since = new Date(Date.now() - sinceDays * 864e5).toISOString();
+    let contacts = [];
+    try {
+      const { data } = await db.client.from('contacts')
+        .select('id, created_at').eq('org_id', orgId).is('deleted_at', null)
+        .gte('created_at', since).limit(3000);
+      contacts = data || [];
+    } catch (e) { log.warn(`estimateReach(signup): ${e.message}`); }
+
+    for (const r of signupRules) {
+      let n = 0;
+      for (const c of contacts) {
+        if (!c.created_at) continue;
+        const due = new Date(c.created_at).getTime() + r.days * 864e5;
+        if (due >= now && due <= end) { n++; if (!counted.has(c.id)) { counted.add(c.id); out.total++; } }
+      }
+      if (n) out.byRule[r.key] = n;
+    }
+  }
+
   return out;
 }
 

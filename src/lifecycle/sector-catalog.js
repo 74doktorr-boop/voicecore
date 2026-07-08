@@ -21,9 +21,13 @@
 const ENGINE_KEYS = ['trigger', 'days', 'serviceFilter', 'field', 'onlyIfCompleted', 'frequencyField', 'daysOffset', 'serviceMatch', 'customText'];
 
 // Disparadores admitidos, con una explicación en cristiano para la UI.
+// from_signup / from_last_if_gone NO piden NINGÚN dato manual: el "alta" es la
+// fecha en que el cliente entró en tu agenda (created_at) y la "última visita"
+// es su última cita. Disparan solos con lo que ya tienes.
 const TRIGGERS = {
-  from_last_appointment: 'A los N días de su última cita',
-  from_last_if_no_new:   'A los N días de su última cita, solo si no ha vuelto',
+  from_last_appointment: 'A los N días de su última visita',
+  from_last_if_no_new:   'A los N días de su última visita, solo si no ha vuelto',
+  from_signup:           'A los N días desde que lo diste de alta',
   before_sector_field:   'N días antes de una fecha del cliente (caducidad, cuota…)',
   from_sector_field:     'N días después de una fecha del cliente',
   custom_frequency:      'Según la frecuencia guardada del cliente',
@@ -31,11 +35,16 @@ const TRIGGERS = {
 };
 
 // Disparadores que un dueño puede elegir para un seguimiento PERSONALIZADO.
-// (los basados en fechas de sector requieren datos que no todos tienen)
-// before_sector_field = 'N días antes de una FECHA que tú defines' — el negocio
-// inventa la fecha ('caducidad del extintor', 'fin de garantía') y esa fecha
-// aparece sola en la ficha de cada cliente para rellenar. Personalización 0→100%.
-const CUSTOM_TRIGGERS = ['from_last_appointment', 'from_last_if_no_new', 'before_sector_field'];
+// Los tres primeros NO piden ningún dato por cliente (disparan solos con lo que
+// ya hay: alta = created_at, última visita = última cita). before_sector_field
+// = 'N días antes de una FECHA que tú defines' — el negocio inventa la fecha
+// ('caducidad del extintor', 'fin de garantía') y esa fecha aparece sola en la
+// ficha de cada cliente para rellenar. Personalización 0→100%.
+const CUSTOM_TRIGGERS = ['from_last_appointment', 'from_last_if_no_new', 'from_signup', 'before_sector_field'];
+
+// Disparadores que NO requieren que el dueño rellene ningún dato por cliente:
+// funcionan de fábrica con lo que el sistema ya sabe (alta y visitas).
+const NO_DATA_TRIGGERS = ['from_last_appointment', 'from_last_if_no_new', 'from_signup'];
 
 // ── Catálogo ────────────────────────────────────────────────
 // days = número de días del disparador. serviceLabel = cómo se nombra el
@@ -99,7 +108,10 @@ const SECTOR_CATALOG = {
     label: 'Fisioterapia',
     followups: [
       { key: 'seguimiento_post', label: 'Seguimiento post-sesión', serviceLabel: 'tu seguimiento',           desc: 'A los 14 días (si completó la cita)', trigger: 'from_last_appointment', days: 14, onlyIfCompleted: true },
-      { key: 'mantenimiento',    label: 'Sesión de mantenimiento', serviceLabel: 'tu sesión de mantenimiento', desc: 'A los 90 días del alta',            trigger: 'from_sector_field',  days: 90, field: 'fecha_alta' },
+      // "A los 90 días del alta": el alta es la fecha en que diste de alta al
+      // cliente (created_at) — no hay que rellenar nada. Antes usaba
+      // fecha_alta (campo manual que nadie llenaba → nunca disparaba).
+      { key: 'mantenimiento',    label: 'Sesión de mantenimiento', serviceLabel: 'tu sesión de mantenimiento', desc: 'A los 90 días de darlo de alta',    trigger: 'from_signup',        days: 90 },
     ],
   },
   psicologia: {
@@ -364,6 +376,7 @@ module.exports = {
   appliesToServices,
   TRIGGERS,
   CUSTOM_TRIGGERS,
+  NO_DATA_TRIGGERS,
   toEngineDefaults,
   getSectorFollowups,
   serviceLabelFor,

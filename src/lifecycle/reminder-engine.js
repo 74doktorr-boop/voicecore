@@ -97,13 +97,26 @@ async function _loadOrgConfig(db, orgId) {
 /**
  * Calculate scheduledFor date from a trigger definition and data.
  * Returns a Date or null if trigger cannot be resolved.
+ * @param {object} opts - { contactCreatedAt } fecha de alta del cliente (created_at)
  */
-function calculateScheduledFor(def, sectorData, lastAppointmentDate) {
+function calculateScheduledFor(def, sectorData, lastAppointmentDate, opts = {}) {
   const now = new Date();
 
   if (def.trigger === 'from_last_appointment' || def.trigger === 'from_last_if_no_new') {
     if (!lastAppointmentDate) return null;
     const d = new Date(lastAppointmentDate);
+    d.setDate(d.getDate() + (def.days || 30));
+    return d > now ? d : null; // Don't schedule in the past
+  }
+
+  // "A los N días del alta": el alta es la fecha en que el cliente entró en la
+  // agenda del negocio (contacts.created_at). NO necesita ningún dato manual —
+  // funciona de fábrica con lo que el sistema ya sabe.
+  if (def.trigger === 'from_signup') {
+    const base = opts.contactCreatedAt;
+    if (!base) return null;
+    const d = new Date(base);
+    if (isNaN(d.getTime())) return null;
     d.setDate(d.getDate() + (def.days || 30));
     return d > now ? d : null; // Don't schedule in the past
   }
@@ -245,7 +258,7 @@ async function recalculate(contactId, orgId, ctx = {}) {
   let contact = ctx.contact;
   if (!contact) {
     const { data } = await db.client.from('contacts')
-      .select('sector_data, phone').eq('id', contactId).maybeSingle();
+      .select('sector_data, phone, created_at').eq('id', contactId).maybeSingle();
     contact = data;
   }
   if (!contact) return;
@@ -305,7 +318,7 @@ async function recalculate(contactId, orgId, ctx = {}) {
     // onlyIfCompleted: only schedule if the relevant appointment was completed
     if (def.onlyIfCompleted && relevantApt?.status !== 'completed') continue;
 
-    const scheduledFor = calculateScheduledFor(def, contact.sector_data, relevantApt?.date);
+    const scheduledFor = calculateScheduledFor(def, contact.sector_data, relevantApt?.date, { contactCreatedAt: contact.created_at });
     if (!scheduledFor) continue;
 
     // PERSONALIZACIÓN por ficha: si el cliente tiene un detalle guardado
@@ -365,7 +378,7 @@ async function recalculateOrg(orgId, opts = {}) {
     const config = await getOrgReminderConfig(orgId, sectorSlug, { db });
     const LIMIT = opts.limit || 3000;
     const { data: contacts } = await db.client.from('contacts')
-      .select('id, phone, sector_data').eq('org_id', orgId).is('deleted_at', null).limit(LIMIT + 1);
+      .select('id, phone, sector_data, created_at').eq('org_id', orgId).is('deleted_at', null).limit(LIMIT + 1);
     const list = contacts || [];
     const capped = list.length > LIMIT;
     const work = capped ? list.slice(0, LIMIT) : list;

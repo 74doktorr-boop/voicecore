@@ -5751,7 +5751,8 @@ function ruleRow(r) {
     : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
         (r.applies === false ? ' <span style="font-size:10px;font-weight:600;color:#e0a030;background:rgba(224,160,48,.12);border:1px solid rgba(224,160,48,.3);border-radius:5px;padding:1px 7px;vertical-align:middle" data-tip="Ninguno de tus servicios casa con este seguimiento. Actívalo solo si lo ofreces.">no ofreces este servicio</span>' : '') +
       '</div>' +
-      '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + _coverageNote(r) + '</div>';
+      '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || '') + _coverageNote(r) +
+        (r.noData ? ' <span style="color:var(--green2,#21c08a)">✓ Funciona solo, sin rellenar nada.</span>' : '') + '</div>';
 
   var trigCell = isCustom
     ? '<select class="rule-trigger" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;max-width:220px">' +
@@ -6127,6 +6128,7 @@ var _upcomingReminders = [];
 var _calSelectedDay = null;   // 'YYYY-MM-DD' o null = todos
 
 async function loadUpcomingReminders() {
+  loadAutoRulesPanel();   // arriba del todo: qué está activo, qué espera, y crear
   var container = document.getElementById('reminders-upcoming-list');
   container.innerHTML = '<div class="loading-msg">Cargando...</div>';
   var calBox = document.getElementById('reminders-calendar');
@@ -6142,12 +6144,13 @@ async function loadUpcomingReminders() {
   }
 
   if (!res || !res.reminders || !res.reminders.length) {
+    // Sin avisos EN COLA todavía. No es un callejón sin salida: el panel de
+    // arriba ya dice qué reglas están activas y deja crear las tuyas.
     container.innerHTML =
-      '<div class="empty-state" style="padding:48px 24px">' +
+      '<div class="empty-state" style="padding:36px 24px">' +
         '<div class="empty-state-icon">🔄</div>' +
-        '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Seguimientos automáticos</div>' +
-        '<div class="empty-state-text" style="max-width:480px;margin:0 auto">Cuando tus clientes lleven más días sin visitar tu negocio que el umbral de tu sector, NodeFlow les enviará automáticamente un mensaje personalizado para invitarles a volver. Los seguimientos aparecerán aquí.</div>' +
-        '<div style="margin-top:14px;font-size:12px;color:var(--muted)">El sistema se activa automáticamente según los umbrales de tu sector</div>' +
+        '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Aún no hay ningún aviso en cola</div>' +
+        '<div class="empty-state-text" style="max-width:520px;margin:0 auto">En cuanto una de tus reglas de arriba encuentre un cliente que toque avisar (por ejemplo, alguien que llegue a los días marcados desde su última visita o desde que lo diste de alta), el aviso aparecerá aquí con su fecha exacta. Puedes crear las tuyas con el botón de arriba.</div>' +
       '</div>';
     return;
   }
@@ -6155,6 +6158,239 @@ async function loadUpcomingReminders() {
   _upcomingReminders = res.reminders;
   renderRemindersCalendar();
   renderUpcomingList();
+}
+
+// ── Panel "Recordatorios automáticos": qué está ACTIVO, qué ESPERA (y por qué,
+// con el arreglo), y el botón para crear los tuyos. Nace del dolor de Unai:
+// la pestaña estaba vacía y no había forma de crear reglas (2026-07-08). ──
+function _autoRuleStatus(r, fieldCoverage, chLive) {
+  // Apagada por el dueño.
+  if (r.enabled === false) return { state: 'off' };
+  // Ningún canal puede enviar hoy.
+  var anyChannel = chLive.whatsapp || chLive.sms || chLive.email;
+  if (!anyChannel) {
+    return { state: 'waiting', why: 'Ningún canal de envío está activo todavía.', fix: 'Activa WhatsApp (o SMS/email) para que estos avisos puedan salir.' };
+  }
+  // No ofreces el servicio con el que casa esta regla de fábrica.
+  if (r.applies === false) {
+    return { state: 'waiting', why: 'Ninguno de tus servicios casa con este aviso.', fix: 'Actívalo solo si ofreces este servicio (o edítalo en "Reglas por sector").' };
+  }
+  // Regla de FECHA del cliente sin ninguna ficha rellenada.
+  var needsField = (r.trigger === 'before_sector_field' || r.trigger === 'from_sector_field' || r.trigger === 'yearly_field');
+  if (needsField && (r.key in fieldCoverage) && fieldCoverage[r.key] === 0) {
+    return { state: 'waiting', why: 'Ningún cliente tiene aún la fecha que necesita este aviso.', fix: 'Rellena la fecha (' + esc(r.label || 'la de esta regla') + ') en la ficha de cada cliente, o crea abajo un aviso "desde su alta / última visita" que no necesita fechas.' };
+  }
+  // Todo listo: dispara sola con lo que ya hay.
+  return { state: 'active' };
+}
+
+async function loadAutoRulesPanel() {
+  var box = document.getElementById('auto-rules-panel');
+  if (!box) return;
+  box.innerHTML = '<div class="loading-msg">Cargando reglas...</div>';
+  var res;
+  try { res = await api('/api/portal/followup-rules'); }
+  catch (e) { box.innerHTML = ''; return; }
+
+  var rules = (res.rules || []).slice();
+  var cov = res.fieldCoverage || {};
+  var chLive = res.channelsLive || { whatsapp: true, sms: true, email: true };
+  _rulesState.channels = res.channels || _rulesState.channels;
+  _rulesState.triggers = res.customTriggers || _rulesState.triggers;
+
+  var active = [], waiting = [];
+  rules.forEach(function(r) {
+    var st = _autoRuleStatus(r, cov, chLive);
+    if (st.state === 'active')  active.push(r);
+    else if (st.state === 'waiting') waiting.push({ r: r, st: st });
+  });
+
+  function line(r, badge, sub) {
+    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)">' +
+      badge +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label || r.key) + '</div>' +
+        '<div style="color:var(--dim);font-size:12px;margin-top:1px">' + esc(r.desc || r.triggerLabel || '') + '</div>' +
+        (sub || '') +
+      '</div>' +
+      '<span class="badge bp" style="font-size:11px;white-space:nowrap">' + esc(_CH_LABEL[r.channel] || r.channel || 'WhatsApp') + '</span>' +
+    '</div>';
+  }
+
+  var GREEN = '<span style="font-size:16px;line-height:1.3">🟢</span>';
+  var AMBER = '<span style="font-size:16px;line-height:1.3">🟡</span>';
+
+  var html =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:4px">' +
+        '<div>' +
+          '<div style="font-size:15px;font-weight:700;color:var(--text)">Avisos que salen solos</div>' +
+          '<div style="color:var(--dim);font-size:13px;margin-top:2px">Estas reglas trabajan por ti sin que tengas que acordarte. Crea las tuyas o ajústalas cuando quieras.</div>' +
+        '</div>' +
+        '<button class="btn btn-accent btn-sm" onclick="openAutoRuleCreator()" style="white-space:nowrap">+ Crear recordatorio automático</button>' +
+      '</div>';
+
+  if (active.length) {
+    html += '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--green2,#21c08a);margin:16px 0 2px">✓ Activos — salen solos</div>' +
+      active.map(function(r) { return line(r, GREEN, ''); }).join('');
+  }
+
+  if (waiting.length) {
+    html += '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#e0a030;margin:16px 0 2px">⏳ Esperando algo para poder salir</div>' +
+      waiting.map(function(w) {
+        var sub = '<div style="font-size:12px;color:#e0a030;margin-top:4px;line-height:1.5">' + esc(w.st.why) +
+          ' <span style="color:var(--dim)">→ ' + w.st.fix + '</span></div>';
+        return line(w.r, AMBER, sub);
+      }).join('');
+  }
+
+  if (!active.length && !waiting.length) {
+    html += '<div style="padding:20px 0;color:var(--dim);font-size:13px;text-align:center">Todavía no tienes ningún aviso automático encendido. Pulsa <strong style="color:var(--text)">"+ Crear recordatorio automático"</strong> para poner el primero — el más fácil es "a los N días de su última visita", que funciona con lo que ya tienes.</div>';
+  }
+
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// Constructor sencillo (en cristiano) de un recordatorio automático. Guarda por
+// la MISMA vía que "Reglas por sector" (PUT /followup-rules, custom[]), así el
+// motor lo recoge y lo aplica a la cartera actual (recalculateOrg).
+function openAutoRuleCreator() {
+  var triggers = (_rulesState.triggers && _rulesState.triggers.length ? _rulesState.triggers : [
+    { value: 'from_last_appointment', label: 'A los N días de su última visita' },
+    { value: 'from_last_if_no_new',   label: 'A los N días de su última visita, solo si no ha vuelto' },
+    { value: 'from_signup',           label: 'A los N días desde que lo diste de alta' },
+    { value: 'before_sector_field',   label: 'N días antes de una fecha del cliente (caducidad, cuota…)' },
+  ]);
+  var channels = (_rulesState.channels && _rulesState.channels.length) ? _rulesState.channels : ['whatsapp','sms','email'];
+
+  var trigOpts = triggers.map(function(t) {
+    return '<option value="' + esc(t.value) + '">' + esc(t.label) + '</option>';
+  }).join('');
+  var chOpts = channels.map(function(c) {
+    return '<option value="' + c + '">' + _CH_LABEL[c] + '</option>';
+  }).join('');
+
+  openModal(
+    '<div style="max-width:520px">' +
+      '<h3 style="margin:0 0 4px;font-size:18px;color:var(--text)">Crear recordatorio automático</h3>' +
+      '<p style="color:var(--dim);font-size:13px;margin:0 0 18px">Se enviará solo cuando cada cliente cumpla la condición. No tienes que hacer nada más.</p>' +
+
+      '<label style="display:block;font-size:13px;color:var(--text);font-weight:600;margin-bottom:5px">¿Cómo quieres llamarlo?</label>' +
+      '<input type="text" id="ar-label" maxlength="60" placeholder="ej. Invitar a volver, Bienvenida, Revisión…" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:16px">' +
+
+      '<label style="display:block;font-size:13px;color:var(--text);font-weight:600;margin-bottom:5px">¿Cuándo se envía?</label>' +
+      '<select id="ar-trigger" onchange="_arOnTriggerChange()" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px">' + trigOpts + '</select>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+        '<input type="number" id="ar-days" min="1" max="3650" value="30" style="width:80px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:14px;text-align:center">' +
+        '<span style="font-size:13px;color:var(--dim)">días</span>' +
+      '</div>' +
+      '<div id="ar-trighint" style="font-size:12px;color:var(--accent-l);margin-bottom:16px;line-height:1.5"></div>' +
+
+      '<label style="display:block;font-size:13px;color:var(--text);font-weight:600;margin-bottom:5px">Mensaje <span style="color:var(--dim);font-weight:400">(opcional — si lo dejas vacío, usamos uno estándar)</span></label>' +
+      '<textarea id="ar-text" maxlength="250" placeholder="✍️ Escríbelo como tú hablas. Usa {detalle} para el dato de cada ficha." style="width:100%;min-height:64px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;line-height:1.5;margin-bottom:16px"></textarea>' +
+
+      '<label style="display:block;font-size:13px;color:var(--text);font-weight:600;margin-bottom:5px">¿Por dónde se envía?</label>' +
+      '<select id="ar-channel" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:20px">' + chOpts + '</select>' +
+
+      '<div id="ar-entities-note"></div>' +
+
+      '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+        '<button class="btn btn-d btn-sm" onclick="closeModal()">Cancelar</button>' +
+        '<button class="btn btn-accent btn-sm" onclick="saveAutoRule(this)">Crear</button>' +
+      '</div>' +
+    '</div>'
+  );
+  _arOnTriggerChange();
+  _arLoadEntitiesNote();  // tie-in con ENTIDADES: si ya tienen fichas con fechas
+}
+
+// Tie-in con ENTIDADES (opcional, fail-closed): si el negocio usa fichas
+// (vehículos, bonos…) con fechas que ya generan avisos solos (ITV, caducidad),
+// se lo recordamos aquí para que no las duplique con una regla manual.
+async function _arLoadEntitiesNote() {
+  var note = document.getElementById('ar-entities-note');
+  if (!note) return;
+  var r;
+  try { r = await api('/api/portal/entity-types'); } catch (e) { return; }
+  if (!r || !r.available || !r.types || !r.types.length) return;
+  var dateFields = [];
+  r.types.forEach(function(t) {
+    (t.fields || []).forEach(function(f) {
+      if (f.type === 'date' && f.reminder) dateFields.push((t.label_singular || t.label || t.key) + ' · ' + (f.label || f.key));
+    });
+  });
+  if (!dateFields.length) return;
+  note.innerHTML =
+    '<div style="display:flex;gap:8px;align-items:flex-start;background:rgba(196,245,70,.06);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:10px 12px;margin-bottom:16px">' +
+      '<span>📇</span><div style="font-size:12px;color:var(--dim);line-height:1.5">' +
+        '<strong style="color:var(--text)">Ya tienes fichas con fechas que avisan solas</strong> — ' + esc(dateFields.slice(0, 4).join(', ')) +
+        (dateFields.length > 4 ? '…' : '') + '. Esas no hace falta crearlas aquí: se envían solas cuando se acerca la fecha de cada ficha.' +
+      '</div>' +
+    '</div>';
+}
+
+function _arOnTriggerChange() {
+  var t = document.getElementById('ar-trigger');
+  var hint = document.getElementById('ar-trighint');
+  if (!t || !hint) return;
+  var v = t.value;
+  var msg = {
+    from_last_appointment: '👍 Funciona con lo que ya tienes: cuenta desde la última cita del cliente. No hay que rellenar nada.',
+    from_last_if_no_new:   '👍 Funciona con lo que ya tienes: solo escribe a quien no haya vuelto a reservar. Nada que rellenar.',
+    from_signup:           '👍 Funciona con lo que ya tienes: cuenta desde el día que diste de alta al cliente. No hay que rellenar nada.',
+    before_sector_field:   '📅 Necesita una fecha por cliente (tú la inventas). Aparecerá en la ficha de cada uno para que la rellenes; hasta entonces, a ese cliente no se le envía.',
+  }[v] || '';
+  hint.innerHTML = esc(msg).replace('👍', '<span>👍</span>').replace('📅', '<span>📅</span>');
+  // color de aviso para el que sí pide datos
+  hint.style.color = (v === 'before_sector_field') ? '#e0a030' : 'var(--accent-l)';
+}
+
+async function saveAutoRule(btn) {
+  var label = (document.getElementById('ar-label').value || '').trim();
+  var trigger = document.getElementById('ar-trigger').value;
+  var days = parseInt(document.getElementById('ar-days').value, 10);
+  var customText = (document.getElementById('ar-text').value || '').trim();
+  var channel = document.getElementById('ar-channel').value;
+
+  if (label.length < 2) { toast('Ponle un nombre al recordatorio', 'err'); return; }
+  if (!days || days < 1) { toast('Pon los días', 'err'); return; }
+
+  // Read-merge-write: recuperamos las reglas actuales para NO borrar las que ya
+  // existen (defaults + otros personalizados) al añadir la nueva.
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+  var current;
+  try { current = await api('/api/portal/followup-rules'); }
+  catch (e) { toast('No se pudo cargar la configuración actual', 'err'); if (btn) { btn.disabled = false; btn.textContent = 'Crear'; } return; }
+
+  var overrides = {}, custom = [];
+  (current.rules || []).forEach(function(r) {
+    if (r.custom) {
+      custom.push({
+        key: r.key, label: r.label, trigger: r.trigger, days: r.days,
+        serviceFilter: (r.serviceFilter && r.serviceFilter.length) ? r.serviceFilter.join(', ') : undefined,
+        channel: r.channel, enabled: r.enabled !== false,
+        serviceLabel: r.serviceLabel || undefined,
+        customText: r.customText || undefined,
+      });
+    } else {
+      var ov = { enabled: r.enabled !== false, channel: r.channel };
+      if (r.editableDays && r.days) ov.days = r.days;
+      overrides[r.key] = ov;
+    }
+  });
+  custom.push({ label: label, trigger: trigger, days: days, channel: channel, enabled: true, customText: customText || undefined });
+
+  try {
+    await api('/api/portal/followup-rules', 'PUT', { overrides: overrides, custom: custom });
+    toast('Recordatorio creado — ya trabaja por ti ✓');
+    closeModal();
+    loadAutoRulesPanel();
+    loadUpcomingReminders();
+  } catch (e) {
+    toast(e.message || 'No se pudo crear', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Crear'; }
+  }
 }
 
 // ── Mini-calendario: qué saldrá solo las próximas 4 semanas ──
