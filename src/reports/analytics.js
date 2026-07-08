@@ -165,13 +165,26 @@ function computeFunnel(calls, appointments, now = Date.now()) {
     { key: 'booked', label: 'Citas', value: booked },
     { key: 'completed', label: 'Completadas', value: completed },
   ];
+  // Un embudo es monótono decreciente POR DEFINICIÓN. Pero 'completed' sale de
+  // nf_appointments (creadas también por el motor de seguimientos, altas
+  // manuales, importación…) mientras 'booked' sale de nf_calls — son tablas
+  // independientes, así que 'completed' puede SUPERAR a 'booked' (o incluso a
+  // 'calls'). Sin acotar, eso pintaba barras con pct > 100% y "caídas"
+  // negativas (bug real revisión post-sesión). Acotamos el valor de CADA paso
+  // a los pasos anteriores para que la geometría del embudo sea válida; el
+  // conteo REAL se conserva en rawValue para no mentir en la etiqueta.
   const base = total || 1;
-  const steps = raw.map((s, i) => {
-    const pct = total > 0 ? Math.round((s.value / base) * 100) : 0;
-    const prevVal = i > 0 ? raw[i - 1].value : s.value;
-    const dropPct = prevVal > 0 ? Math.round(((prevVal - s.value) / prevVal) * 100) : 0;
-    return { ...s, pct, dropPct };
-  });
+  const steps = [];
+  let cap = Infinity;
+  for (let i = 0; i < raw.length; i++) {
+    const s = raw[i];
+    const value = Math.min(s.value, cap);          // nunca por encima del paso previo
+    cap = value;
+    const pct = total > 0 ? Math.round((value / base) * 100) : 0;  // ≤ 100 garantizado
+    const prevVal = i > 0 ? steps[i - 1].value : value;
+    const dropPct = prevVal > 0 ? Math.round(((prevVal - value) / prevVal) * 100) : 0; // ≥ 0
+    steps.push({ ...s, value, rawValue: s.value, pct, dropPct });
+  }
   return { steps, convRate: total > 0 ? Math.round((booked / total) * 100) : 0 };
 }
 

@@ -114,6 +114,40 @@ describe('computeFunnel', () => {
     assert.strictEqual(f.convRate, 0);
     assert.strictEqual(f.steps[0].value, 0);
   });
+
+  // Regresión (revisión post-sesión): 'completed' viene de nf_appointments y
+  // puede SUPERAR a 'booked' (motor de seguimientos, altas manuales…). El
+  // embudo NUNCA debe invertirse: sin pct > 100% ni dropPct negativo.
+  test('completed > booked no invierte el embudo (pct ≤ 100, drop ≥ 0)', () => {
+    const calls = [
+      { status: 'ended', outcome: 'booked' },   // booked = 1
+      { status: 'ended', outcome: 'info' },      // answered pero no booked
+    ];
+    // 5 citas completadas (creadas por el motor, no por estas llamadas)
+    const appts = [
+      { status: 'confirmed', date: '2026-07-01' },
+      { status: 'confirmed', date: '2026-07-01' },
+      { status: 'confirmed', date: '2026-07-02' },
+      { status: 'confirmed', date: '2026-07-02' },
+      { status: 'confirmed', date: '2026-07-03' },
+    ];
+    const f = A.computeFunnel(calls, appts, NOW);
+    const by = Object.fromEntries(f.steps.map(s => [s.key, s]));
+    // El valor de embudo de 'completed' queda acotado a 'booked' (1)…
+    assert.strictEqual(by.completed.value, 1);
+    // …pero el conteo REAL se conserva (5) para la etiqueta honesta.
+    assert.strictEqual(by.completed.rawValue, 5);
+    // Ningún paso supera el 100% ni tiene una "caída" negativa.
+    for (const s of f.steps) {
+      assert.ok(s.pct <= 100, `pct ${s.pct} > 100 en ${s.key}`);
+      assert.ok(s.pct >= 0, `pct ${s.pct} < 0 en ${s.key}`);
+      assert.ok(s.dropPct >= 0, `dropPct ${s.dropPct} < 0 en ${s.key}`);
+    }
+    // Monotonía: cada paso ≤ al anterior.
+    for (let i = 1; i < f.steps.length; i++) {
+      assert.ok(f.steps[i].value <= f.steps[i - 1].value, 'embudo no monótono');
+    }
+  });
 });
 
 describe('weekdayDistribution / hourDistribution', () => {

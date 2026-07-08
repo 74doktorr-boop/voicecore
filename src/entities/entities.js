@@ -417,9 +417,11 @@ async function archiveEntity({ orgId, entityId, actor = 'staff', db }) {
     .eq('id', entityId);
   if (error) return { ok: false, error: error.message };
 
-  // Cancela recordatorios pendientes nacidos de esta entidad
+  // Cancela recordatorios pendientes nacidos de esta entidad (org-scoped:
+  // defensa en profundidad, como el resto de mutaciones de entidad).
   await db.client.from('scheduled_reminders')
     .update({ status: 'cancelled', failed_reason: 'entity_archived', updated_at: new Date().toISOString() })
+    .eq('org_id', orgId)
     .eq('entity_id', entityId)
     .in('status', ['pending', 'postponed'])
     .then(undefined, () => {});

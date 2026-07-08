@@ -1044,15 +1044,20 @@ async function ensureOrgEntityTypes(orgId, sectorRaw, opts = {}) {
   // vieja ("Planes de tratamiento" tras salir de fisioterapia).
   const { toDeactivate, toReactivate } = deactivationPlan(existing, templates);
   let touched = false;
+  // Defensa en profundidad (revisión post-sesión): acotar SIEMPRE por
+  // organization_id además del id. Los ids nacen de una lectura org-scoped y
+  // son UUID (no explotable hoy), pero un UPDATE por id sin filtro de tenant
+  // es justo el patrón que causa escrituras cross-org si la fuente del id
+  // cambia. Toda mutación de entidades es org-scoped; esta se alinea.
   if (toDeactivate.length) {
     const { error } = await db.client.from('nf_entity_types')
-      .update({ is_active: false }).in('id', toDeactivate);
+      .update({ is_active: false }).eq('organization_id', orgId).in('id', toDeactivate);
     if (error) log.warn(`ensureOrgEntityTypes deactivate(${orgId}): ${error.message}`);
     else { touched = true; log.info(`Entidades: desactivados ${toDeactivate.length} tipos ajenos al sector para org ${orgId}`); }
   }
   if (toReactivate.length) {
     const { error } = await db.client.from('nf_entity_types')
-      .update({ is_active: true }).in('id', toReactivate);
+      .update({ is_active: true }).eq('organization_id', orgId).in('id', toReactivate);
     if (error) log.warn(`ensureOrgEntityTypes reactivate(${orgId}): ${error.message}`);
     else { touched = true; log.info(`Entidades: reactivados ${toReactivate.length} tipos del sector para org ${orgId}`); }
   }
