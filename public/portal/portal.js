@@ -1338,22 +1338,53 @@ function dashCalendarNudge(cal, mode) {
   '</div>';
 }
 
+// Cada paso del cuadro se marca SOLO con señales reales (calculadas en el
+// servidor: d.onboardingSteps). Cuando TODO está hecho (o el servidor lo
+// persistió), el cuadro no se pinta más. El "Ocultar" manual sigue existiendo.
 function dashSetup(d) {
   if (localStorage.getItem('nf_banner_dismissed') === '1') return '';
-  if ((d.totalCalls || 0) !== 0) return '';
+  var ob = d.onboardingSteps || null;
+  // Sin datos del servidor (BD caída / respuesta vieja): cae al comportamiento
+  // antiguo — muestra el cuadro solo si aún no hay ninguna llamada.
+  if (!ob) { if ((d.totalCalls || 0) !== 0) return ''; }
+  // Auto-hide permanente: todos los pasos hechos → el cuadro desaparece.
+  if (ob && ob.complete) return '';
+
   var arrow = ' <span class="u-accent">→</span>';
+  var check = '<span class="u-accent" style="font-weight:800">✓</span> ';
+  var byKey = {};
+  (ob && ob.steps ? ob.steps : []).forEach(function (s) { byKey[s.key] = !!s.done; });
+  function done(key, fallback) { return ob ? !!byKey[key] : !!fallback; }
+
+  // Un paso hecho = check + texto atenuado (.done). Pendiente = enlace accionable.
+  function step(isDone, target, label, extra) {
+    if (isDone) return '<div class="setup-step done">' + check + label + '</div>';
+    return '<div class="setup-step u-pointer" onclick="navigate(\'' + target + '\')">' +
+           label + (extra || '') + arrow + '</div>';
+  }
+
+  var numAssigned = d.onboarding && d.onboarding.number_assigned;
   var steps =
-    '<div class="setup-step done">✅ Pago confirmado — tu cuenta está activa</div>' +
-    '<div class="setup-step u-pointer" onclick="navigate(\'asistente\')">⚙️ <strong>Configura tu asistente</strong> — nombre, voz, idioma y servicios' + arrow + '</div>' +
-    '<div class="setup-step u-pointer" onclick="navigate(\'configuracion\')">📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp' + arrow + '</div>' +
-    (d.onboarding && d.onboarding.number_assigned
-      ? '<div class="setup-step u-pointer" onclick="navigate(\'asistente\')">▶ <strong>Escúchalo antes de desviar</strong> — tu asistente te llama al móvil' + arrow + '</div>' +
-        '<div class="setup-step u-pointer" onclick="navigate(\'configuracion\')">📞 <strong>Activa el desvío de llamadas</strong>' +
-        (d.nodeflowNumber ? ' — tu número NodeFlow: <strong class="u-accent">' + esc(d.nodeflowNumber) + '</strong>' : '') +
-        arrow + '</div>'
+    '<div class="setup-step done">' + check + 'Pago confirmado — tu cuenta está activa</div>' +
+    step(done('assistant', false), 'asistente',
+      '⚙️ <strong>Configura tu asistente</strong> — nombre, voz, idioma y servicios') +
+    step(done('business', false), 'configuracion',
+      '📋 <strong>Completa los datos del negocio</strong> — dirección, horarios, tu WhatsApp') +
+    (numAssigned
+      ? step(done('heard', false), 'asistente',
+          '▶ <strong>Escúchalo antes de desviar</strong> — tu asistente te llama al móvil') +
+        step(done('forwarding', false), 'configuracion',
+          '📞 <strong>Activa el desvío de llamadas</strong>',
+          (d.nodeflowNumber ? ' — tu número NodeFlow: <strong class="u-accent">' + esc(d.nodeflowNumber) + '</strong>' : ''))
       : '<div class="setup-step u-dim-2">⏳ <strong>Número NodeFlow asignándose…</strong> — recibirás un email con los códigos de desvío</div>');
+
+  var progress = ob
+    ? '<span class="u-dim-2" style="font-size:13px;font-weight:600">' + ob.doneCount + ' de ' + ob.total + '</span>'
+    : '';
   return '<div class="card u-border-accent" id="setup-banner">' +
-    '<div class="card-title">🚀 Primeros pasos</div>' +
+    '<div class="card-title u-flex" style="justify-content:space-between;align-items:center">' +
+      '<span>🚀 Primeros pasos</span>' + progress +
+    '</div>' +
     '<div class="u-flex u-col u-gap-2">' + steps + '</div>' +
     '<button class="btn btn-d btn-sm u-mt-4" ' +
       'onclick="document.getElementById(\'setup-banner\').style.display=\'none\';localStorage.setItem(\'nf_banner_dismissed\',\'1\')">Ocultar</button>' +

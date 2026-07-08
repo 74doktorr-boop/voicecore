@@ -13,10 +13,41 @@ const { scheduler }          = require('../scheduling/scheduler');
 const { getDatabase }        = require('../db/database');
 const { getOrgReminderConfig, scheduleReminder, recalculate } = require('../lifecycle/reminder-engine');
 const { SECTOR_REQUIRED_FIELDS, getCompletionStatus } = require('../lifecycle/sector-fields');
+const { onboardingSummary } = require('../lifecycle/onboarding-steps');
 const { getKnowledgeBase } = require('../knowledge/base');
 const { normalizePhone } = require('../utils/phone');
 
 const log = new Logger('ROUTES-PORTAL');
+
+// Marca el onboarding como COMPLETO de forma permanente en
+// automation_config.config.onboardingComplete. Read-merge-write sobre la fila
+// FRESCA de BD (mismo patrón anti-clobber que /config y /password/clear): lee,
+// funde SOLO esta clave y reescribe — NUNCA vía flowManager.patch (que no pasa
+// las claves custom de automations). Idempotente: si ya estaba, no reescribe.
+async function persistOnboardingComplete(businessId) {
+  const db = getDatabase();
+  if (!db.enabled) return false;
+  const { data: cur, error: readErr } = await db.client
+    .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
+  if (readErr) throw new Error('lectura: ' + readErr.message);
+  const baseAuto = (cur && cur.automation_config) || {};
+  if (baseAuto.config && baseAuto.config.onboardingComplete) return true; // ya persistido
+  const merged = { ...baseAuto, config: { ...(baseAuto.config || {}), onboardingComplete: true } };
+  const { error: upErr } = await db.client.from('organizations')
+    .update({ automation_config: merged }).eq('id', businessId);
+  if (upErr) throw new Error('escritura: ' + upErr.message);
+  // Espejo en memoria por consistencia (el flow guarda una copia).
+  try {
+    const flowRef = flowManager.get(businessId);
+    if (flowRef) {
+      if (!flowRef.automations) flowRef.automations = {};
+      if (!flowRef.automations.config) flowRef.automations.config = {};
+      flowRef.automations.config.onboardingComplete = true;
+    }
+  } catch (_) {}
+  log.info(`Portal: onboarding marcado como completo para ${businessId}`);
+  return true;
+}
 
 // Teléfonos que NO son oportunidad de recuperación: ya reservaron (llamada
 // 'booked' en la ventana) o tienen una cita próxima. Compartido por el GET de
@@ -454,6 +485,53 @@ function setupPortalRoutes(app, pipeline, config) {
       complete:        !!nodeflowNum,
     };
 
+    // ── "Primeros pasos" SMART — cada paso se marca solo con señales reales ──
+    // Señales de config: fusiona la copia en memoria con la fila FRESCA de BD
+    // (assistant_config = sector/voz/saludo; automation_config.config = servicios/
+    // datos negocio). El asistente cacheado en memoria puede estar stale tras un
+    // redeploy, así que la BD gana campo a campo (mismo criterio que /config).
+    let obDbAsis = null, obDbAuto = null, obComplete = !!custom.onboardingComplete;
+    try {
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data: orgRow } = await db.client.from('organizations')
+          .select('assistant_config, automation_config').eq('id', businessId).maybeSingle();
+        obDbAsis = orgRow?.assistant_config  || null;
+        obDbAuto = orgRow?.automation_config || null;
+        if (obDbAuto?.config?.onboardingComplete) obComplete = true;
+      }
+    } catch (_) { /* fail-open: se calcula con lo que haya en memoria */ }
+    const { effectiveConfigSource } = require('./config-merge');
+    const cfgSrc      = effectiveConfigSource(custom, obDbAuto && obDbAuto.config);
+    const obWelcome   = (obDbAsis && (obDbAsis.firstMessage || obDbAsis.welcomeMessage)) || custom.welcomeMessage || '';
+    const obVoice     = (obDbAsis && obDbAsis.voice) || custom.voice || '';
+    const obSector    = (obDbAsis && obDbAsis.sector) || flowConfig.sector || cfgSrc.sector || '';
+    const inboundCnt  = bizCalls.filter(c => (c.direction || 'inbound') === 'inbound').length;
+    const obSummary   = onboardingSummary({
+      sector:         obSector,
+      serviceList:    Array.isArray(cfgSrc.serviceList) ? cfgSrc.serviceList : [],
+      welcomeMessage: obWelcome,
+      voice:          obVoice,
+      address:        cfgSrc.address,
+      schedule:       cfgSrc.schedule,
+      alertPhone:     cfgSrc.alertPhone,
+      totalCalls:     bizCalls.length,
+      inboundCalls:   inboundCnt,
+    });
+    // Persistir onboardingComplete la PRIMERA vez que todo está hecho, para que
+    // el cuadro no reaparezca aunque una señal parpadee (read-merge-write sobre
+    // BD FRESCA, anti-clobber — NUNCA vía flow-manager.patch).
+    if (obSummary.allDone && !obComplete) {
+      obComplete = true;
+      persistOnboardingComplete(businessId).catch(() => { /* no crítico */ });
+    }
+    const onboardingSteps = {
+      steps:     obSummary.steps,
+      doneCount: obSummary.doneCount,
+      total:     obSummary.total,
+      complete:  obComplete,          // hecho por señales O ya persistido
+    };
+
     // Valor estimado de las reservas de hoy — misma regla que /reports (reservas × ticket medio)
     const avgTicketConfigured = !!(flowConfig.automations?.config?.avgTicket);
     const avgTicket     = flowConfig.automations?.config?.avgTicket || 35;
@@ -477,6 +555,7 @@ function setupPortalRoutes(app, pipeline, config) {
       upcoming,
       recentActivity,
       onboarding,
+      onboardingSteps,
     });
   });
 
