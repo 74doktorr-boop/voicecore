@@ -13,6 +13,7 @@
 const { getDatabase }    = require('../db/database');
 const { generatePrompt } = require('./prompt-generator');
 const { defaultFirstMessage } = require('./i18n');
+const { brevityPromptBlock } = require('./greeting');
 const { Logger }         = require('../utils/logger');
 
 const log = new Logger('ORG-ASSISTANT');
@@ -98,10 +99,21 @@ async function getOrgAssistant(orgId) {
       ? { ...cfg, serviceList: structuredList }
       : cfg;
 
+    // Escotilla de escape: el dueño puede apagar el saludo personalizado
+    // por su nombre (por defecto ENCENDIDO). Cubre negocios que prefieren
+    // la fórmula genérica siempre.
+    const personalizedGreetingEnabled = cfg.personalizedGreeting !== false;
+
     const assistant = {
       id:           org.id,
       name:         cfg.assistantName || org.name,
-      systemPrompt: generatePrompt(cfgConLista, org.name),
+      personalizedGreeting: personalizedGreetingEnabled,
+      // BREVEDAD + criterio de relevancia: cabecera del system prompt (lo
+      // PRIMERO que lee el LLM) — respuestas cortas, una idea/una pregunta
+      // por turno, prohibido volcar catálogos/días, token [NO_DIRIGIDO]
+      // para lo que no va con ella. Aprobado por el fundador para llamadas
+      // reales (veredicto "habla demasiado", 2026-07-08).
+      systemPrompt: brevityPromptBlock(true) + '\n' + generatePrompt(cfgConLista, org.name),
       firstMessage: effectiveFirstMessage(cfg, org.automation_config) || defaultFirstMessage(language, org.name),
       // La voz elegida decide también el PROVEEDOR: Estándar = Cartesia
       // (incluida), Premium = ElevenLabs (voice-map resuelve id/alias),

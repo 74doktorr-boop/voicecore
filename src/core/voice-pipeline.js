@@ -19,6 +19,12 @@ const { mulawToPcm, pcm8kToPcm16k } = require('../utils/audio');
 const { sendAudioToVonage } = require('../telephony/vonage-handler');
 const { getKnowledgeBase } = require('../knowledge/base');
 const { getDatabase } = require('../db/database');
+const {
+  personalizeGreeting,
+  isShortCloser,
+  containsNotAddressedToken,
+  stripNotAddressedToken,
+} = require('../assistants/greeting');
 
 // Caché LRU de audio para frases FIJAS (saludos, "¿Sí? Dígame.", despedidas).
 // mulaw 8kHz ≈ 8KB/s → 120 entradas de ~5s ≈ 5MB máximo. El saludo de cada
@@ -124,6 +130,39 @@ class VoicePipeline {
     const { data } = await db.client
       .from('nf_phone_pool').select('org_id').eq('phone_number', clean).maybeSingle();
     return data?.org_id || null;
+  }
+
+  /**
+   * Resuelve el NOMBRE del cliente que llama (por su número, aislado por
+   * negocio) para el saludo personalizado. Con TIMEOUT DURO (~250ms): el
+   * saludo es la primera impresión y NO puede saltarse el presupuesto de
+   * latencia (<700ms al primer audio, charter). Si la BD tarda, se cae al
+   * saludo genérico configurado — jamás bloquea. Devuelve '' si no hay
+   * nombre usable, BD apagada o timeout. FAIL-OPEN total.
+   */
+  async _resolveGreetingName(orgId, callerNumber, timeoutMs = 250) {
+    if (!orgId || !callerNumber || callerNumber === 'unknown') return '';
+    const db = getDatabase();
+    if (!db.enabled) return '';
+    try {
+      const { phoneVariants } = require('../utils/phone');
+      const { isUsableName } = require('../lifecycle/lead-safety-net');
+      const lookup = db.client.from('contacts')
+        .select('name')
+        .eq('org_id', orgId)
+        .in('phone', phoneVariants(callerNumber))
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => data?.name || '');
+      const guarded = Promise.race([
+        lookup,
+        new Promise(resolve => setTimeout(() => resolve(''), timeoutMs)),
+      ]);
+      const name = await guarded;
+      return isUsableName(name) ? String(name).trim() : '';
+    } catch (_) {
+      return '';
+    }
   }
 
   /**
@@ -293,9 +332,30 @@ class VoicePipeline {
     if (assistant.firstMessage) {
       const madridHour = parseInt(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
       const greeting = timeOfDayGreeting(assistant.language, madridHour);
-      const firstMsg = assistant.firstMessage.replace(/\{\{GREETING\}\}/g, greeting);
-      await this._speakText(callId, firstMsg, { cache: true });
+      // Saludo NATURAL: reconoce al cliente por su número ANTES de hablar.
+      // Solo en castellano (la transformación está en español) y si el dueño
+      // no lo apagó. Timeout duro ~250ms → jamás retrasa el primer audio; si
+      // no hay nombre/BD/tiempo, cae al saludo configurado. La cache de audio
+      // fijo sigue funcionando: el saludo genérico es idéntico llamada a
+      // llamada; el personalizado varía por nombre pero es coste puntual.
+      let firstMsg = assistant.firstMessage;
+      const lang = assistant.language || 'es';
+      if (assistant.personalizedGreeting !== false && (lang === 'es' || lang === 'es+eu' || lang === 'es+gl')) {
+        try {
+          const name = await this._resolveGreetingName(session.orgId, callerNumber);
+          if (name) {
+            firstMsg = personalizeGreeting(assistant.firstMessage, name, assistant.name);
+            log.info(`[${callId}] Saludo personalizado: cliente reconocido (${name})`);
+          }
+        } catch (_) { /* fail-open: saludo configurado */ }
+      }
+      firstMsg = firstMsg.replace(/\{\{GREETING\}\}/g, greeting);
+      // El saludo personalizado varía por nombre — no cachear (evita llenar
+      // la LRU de variantes); el genérico sí (misma frase siempre).
+      const isPersonalized = firstMsg !== assistant.firstMessage.replace(/\{\{GREETING\}\}/g, greeting);
+      await this._speakText(callId, firstMsg, { cache: !isPersonalized });
       session.addAssistantMessage(firstMsg);
+      session._greeted = true; // el LLM ya no debe re-saludar (lo dice el prompt)
     }
 
     // Vigilante de fin de llamada: (a) 75s sin turnos ni voz del asistente →
@@ -396,9 +456,18 @@ class VoicePipeline {
     const conf = typeof meta?.confidence === 'number' ? meta.confidence : null;
     if (conf !== null) turnMetrics.sttConfidence = +conf.toFixed(3);
 
+    // Cierre corto ("nada", "no", "ya está"): NO es un fallo de STT, el
+    // cliente quiere cerrar. Se trata como ALTA confianza para que la
+    // escalera de abajo no lo convierta en "¿me lo puede repetir?" (queja
+    // real: un "Nada" tras una oferta desataba una petición de repetición).
+    // El LLM decide la despedida amable (lo dice el prompt de cierre); aquí
+    // solo evitamos que la escalera de confianza lo trate como ruido.
+    const shortCloser = isShortCloser(userText);
+    if (shortCloser) turnMetrics.shortCloser = true;
+
     // Malentendidos CONSECUTIVOS (se resetea al entender bien). Sin confianza de
     // STT no hay evidencia de fallo → se resetea, para no escalar en falso.
-    const misunderstoodTurn = (conf !== null && conf < 0.75);
+    const misunderstoodTurn = (conf !== null && conf < 0.75 && !shortCloser);
     session._consecMisunderstand = misunderstoodTurn ? (session._consecMisunderstand || 0) + 1 : 0;
     const ESCALATE_AFTER = Math.max(2, Number(process.env.MISUNDERSTAND_ESCALATE_AFTER) || 3);
 
@@ -449,7 +518,7 @@ class VoicePipeline {
         return;
       }
 
-      if (conf !== null && conf < 0.55) {
+      if (conf !== null && conf < 0.55 && !shortCloser) {
         // Nivel 4 — determinista, sin LLM: con esta fiabilidad cualquier
         // "entendimiento" es una moneda al aire. Se pide repetición y punto.
         session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
@@ -461,7 +530,7 @@ class VoicePipeline {
         session.recordTurn(turnMetrics);
         return;
       }
-      if (conf !== null && conf < 0.75) {
+      if (conf !== null && conf < 0.75 && !shortCloser) {
         // Nivel 3 — pregunta abierta, prohibido actuar con estos datos.
         session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
         session.messages.push({
@@ -469,7 +538,7 @@ class VoicePipeline {
           content: `AVISO (fiabilidad ${Math.round(conf * 100)}%): la última frase del cliente se ha reconocido MAL. NO ejecutes ninguna acción ni registres ningún dato basándote en ella. Haz una pregunta abierta y amable para que el cliente repita lo que necesita (ej.: "No estoy seguro de haberle entendido bien, ¿me lo puede repetir?").`,
         });
         log.warn(`[${callId}] Confianza nivel 3 (${conf.toFixed(2)}) — pregunta abierta`);
-      } else if (conf !== null && conf < 0.92) {
+      } else if (conf !== null && conf < 0.92 && !shortCloser) {
         // Nivel 2 — repetición parcial antes de usar cualquier dato.
         session.metrics.clarifications = (session.metrics.clarifications || 0) + 1;
         session.messages.push({
@@ -492,20 +561,40 @@ class VoicePipeline {
       let fullResponse = '';
       let pendingToolCalls = [];
       let accumulatedText = '';
+      let rawResponse = '';        // acumulado crudo — para detectar [NO_DIRIGIDO]
+      let notAddressed = false;    // la frase no iba dirigida a la asistente
       let spokeFirstFragment = false; // arranque temprano: la 1ª cláusula no espera al punto
 
+      // Tope de tokens del turno CONVERSACIONAL: backstop duro contra los
+      // monólogos (veredicto del fundador "habla demasiado"). ~150 tokens ≈
+      // 2-3 frases habladas, de sobra para un turno conversacional pero un
+      // freno real al párrafo. OJO: solo el turno principal — el turno
+      // POST-HERRAMIENTA (confirmación de reserva con nombre+día+hora) conserva
+      // el límite alto para no truncar la confirmación a media frase. El dueño
+      // puede subirlo con assistant_config.maxTokens.
+      const convMaxTokens = session.assistant.maxTokens || 150;
       for await (const chunk of this.llmRouter.streamCompletion({
         callId,
         messages: session.messages,
         model: modelSpec,
         tools,
         temperature: session.assistant.temperature || 0.7,
-        maxTokens: session.assistant.maxTokens || 500,
+        maxTokens: convMaxTokens,
         fallbackModel,
       })) {
         if (session.interrupted) break;
 
         if (chunk.type === 'text') {
+          rawResponse += chunk.content;
+          // Criterio de relevancia: si el LLM emite [NO_DIRIGIDO], la frase del
+          // cliente no iba con ella (habló con otro, tele, ruido). Se descarta
+          // el turno ENTERO: ni TTS ni frase suelta. En cuanto se detecta, se
+          // deja de acumular/hablar (el token va solo, no hay nada válido antes).
+          if (containsNotAddressedToken(rawResponse)) {
+            notAddressed = true;
+            accumulatedText = '';
+            continue;
+          }
           accumulatedText += chunk.content;
           // Stream TTS in sentences for low latency
           const sentences = this._extractCompleteSentences(accumulatedText);
@@ -548,6 +637,30 @@ class VoicePipeline {
           turnMetrics.llmProvider = chunk.metrics?.provider;
           if (chunk.toolCalls?.length > 0) pendingToolCalls = chunk.toolCalls;
         }
+      }
+
+      // Criterio de relevancia: la frase NO iba dirigida a la asistente.
+      // Se descarta el turno — sin TTS, sin turno de asistente registrado —
+      // y se sigue escuchando. La frase descartada se conserva en el
+      // historial marcada "[aparte del cliente]" para que, si luego el
+      // cliente sí pregunta, no se pierda contexto. Métrica notAddressed++.
+      if (notAddressed || containsNotAddressedToken(rawResponse)) {
+        session.metrics.notAddressed = (session.metrics.notAddressed || 0) + 1;
+        turnMetrics.notAddressed = true;
+        // Reetiqueta el último user message (el que se acaba de añadir) como aparte.
+        for (let i = session.messages.length - 1; i >= 0; i--) {
+          if (session.messages[i].role === 'user') {
+            session.messages[i].content = `[aparte del cliente, no dirigido a ti] ${userText}`;
+            break;
+          }
+        }
+        if (session.transcript.length && session.transcript[session.transcript.length - 1].role === 'user') {
+          session.transcript[session.transcript.length - 1].notAddressed = true;
+        }
+        log.info(`[${callId}] [NO_DIRIGIDO] — frase no dirigida a la asistente, turno descartado`);
+        turnMetrics.totalTime = Date.now() - turnStart;
+        session.recordTurn(turnMetrics);
+        return;
       }
 
       // Speak any remaining text
@@ -728,6 +841,13 @@ class VoicePipeline {
     // esto cubre cualquier proveedor y el turno post-herramientas.
     text = stripTextualToolCalls(text);
     if (!text) return;
+    // Defensa en profundidad: el token de relevancia [NO_DIRIGIDO] JAMÁS
+    // se pronuncia, ni aunque el LLM lo incruste en una frase. La lógica
+    // de descarte del turno vive en _processTurn; esto es el último cortafuegos.
+    if (containsNotAddressedToken(text)) {
+      text = stripNotAddressedToken(text);
+      if (!text) return;
+    }
     // Dicción determinista: €→euros, "1 hora"→"una hora"… antes del TTS.
     text = toSpeakable(text);
 
