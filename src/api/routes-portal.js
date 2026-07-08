@@ -1057,8 +1057,14 @@ function setupPortalRoutes(app, pipeline, config) {
     // realidad seguían salvos en BD). Merge: BD gana campo a campo.
     const { effectiveConfigSource } = require('./config-merge');
     const src = effectiveConfigSource(custom, dbAuto && dbAuto.config);
+    // ¿Ya hay contraseña de acceso? La verdad vive en automation_config.auth.hash
+    // de la fila FRESCA de BD (NO en .config). Sin este dato, Configuración
+    // enseñaba el campo "crear contraseña" en blanco aunque la org tuviera hash
+    // desde hacía días (bug real 2026-07-08).
+    const hasPassword = !!(dbAuto && dbAuto.auth && dbAuto.auth.hash);
     res.json({
       ok: true,
+      hasPassword,
       config: {
         name:           flowConfig.name        || '',
         ownerEmail:     flowConfig.ownerEmail  || '',
@@ -1083,6 +1089,36 @@ function setupPortalRoutes(app, pipeline, config) {
         serviceList:    Array.isArray(src.serviceList) ? src.serviceList : [],
       },
     });
+  });
+
+  // ── POST /api/portal/password/clear ── quitar la contraseña de acceso ──────
+  // Read-merge-write sobre la fila FRESCA de BD: borra SOLO automation_config.auth
+  // y conserva el resto (mismo patrón anti-clobber que el PATCH de config). Tras
+  // esto la org vuelve a entrar únicamente por enlace mágico.
+  app.post('/api/portal/password/clear', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      const { data: cur, error: readErr } = await db.client
+        .from('organizations').select('automation_config').eq('id', businessId).maybeSingle();
+      if (readErr) throw new Error('lectura: ' + readErr.message);
+      const merged = { ...((cur && cur.automation_config) || {}) };
+      delete merged.auth;
+      const { error: upErr } = await db.client.from('organizations')
+        .update({ automation_config: merged }).eq('id', businessId);
+      if (upErr) throw new Error('escritura: ' + upErr.message);
+      // Espejo en memoria por consistencia (el flow guarda una copia).
+      try {
+        const flowRef = flowManager.get(businessId);
+        if (flowRef && flowRef.automations && flowRef.automations.auth) delete flowRef.automations.auth;
+      } catch (_) {}
+      log.info(`Portal: contraseña eliminada para ${businessId}`);
+      res.json({ ok: true });
+    } catch (e) {
+      log.error(`Portal: clear password FAILED for ${businessId}: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo quitar la contraseña: ' + e.message });
+    }
   });
 
   // ── Add-ons de suscripción (voz Premium +10€, Crecimiento +39€) ──

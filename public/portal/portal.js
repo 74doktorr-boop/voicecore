@@ -864,6 +864,45 @@ async function portalLogin() {
   }
 }
 
+// ── Sección "ACCESO AL PORTAL" según el estado real (hasPassword) ──────────
+// Con contraseña: confirmación + "Cambiar" (revela el input) + "Quitar".
+// Sin contraseña: el campo de crear. Antes SIEMPRE se pintaba el campo en
+// blanco, así que quien ya tenía contraseña creía que no la tenía (bug 2026-07-08).
+function passwordSectionHtml(hasPassword) {
+  if (hasPassword) {
+    return '<label class="form-label">Contraseña de acceso</label>' +
+      '<div class="callout callout--accent" style="align-items:center">' +
+        '<div class="u-flex-1" style="min-width:200px">✓ Ya tienes una contraseña de acceso configurada. Entras con tu email y contraseña; el enlace por email seguirá funcionando igual.</div>' +
+        '<button type="button" class="btn btn-d btn-sm u-nowrap" onclick="revealPasswordChange()">Cambiar contraseña</button>' +
+      '</div>' +
+      '<div id="cfgPasswordChange" style="display:none;margin-top:12px">' +
+        '<div class="u-flex u-gap-2 u-items-center">' +
+          '<input class="form-input u-flex-1" id="cfgPassword" type="password" placeholder="Nueva contraseña (mínimo 6 caracteres)" autocomplete="new-password">' +
+          '<button type="button" class="btn btn-d u-nowrap" onclick="setPortalPassword()">Guardar</button>' +
+        '</div>' +
+      '</div>' +
+      '<small class="form-hint" style="margin-top:10px"><a class="u-link" onclick="clearPortalPassword()">Quitar contraseña</a> — volverás a entrar solo con el enlace por email.</small>';
+  }
+  return '<label class="form-label">Contraseña de acceso <span class="u-normal">(opcional — para entrar sin esperar el enlace)</span></label>' +
+    '<div class="u-flex u-gap-2 u-items-center">' +
+      '<input class="form-input u-flex-1" id="cfgPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">' +
+      '<button type="button" class="btn btn-d u-nowrap" onclick="setPortalPassword()">Guardar contraseña</button>' +
+    '</div>' +
+    '<small class="form-hint">Entra con tu email y esta contraseña. El enlace por email seguirá funcionando igual.</small>';
+}
+
+// Revela el input para cambiar la contraseña ya existente.
+function revealPasswordChange() {
+  var box = document.getElementById('cfgPasswordChange');
+  if (box) { box.style.display = ''; var inp = document.getElementById('cfgPassword'); if (inp) inp.focus(); }
+}
+
+// Repinta la sección tras un cambio de estado (guardar/quitar) sin recargar todo.
+function _refreshPasswordSection(hasPassword) {
+  var sec = document.getElementById('cfgPasswordSection');
+  if (sec) sec.innerHTML = passwordSectionHtml(hasPassword);
+}
+
 // Establecer / cambiar contraseña de acceso (desde Configuración)
 async function setPortalPassword() {
   var el = document.getElementById('cfgPassword');
@@ -874,6 +913,19 @@ async function setPortalPassword() {
     await api('/api/auth/set-password', 'POST', { password: pass });
     el.value = '';
     toast('✅ Contraseña guardada — ya puedes entrar con email y contraseña');
+    _refreshPasswordSection(true);
+  } catch (e) {
+    toast('Error: ' + (e.message || e), 'err');
+  }
+}
+
+// Quitar la contraseña de acceso (vuelve a solo-enlace). Confirma antes.
+async function clearPortalPassword() {
+  if (!confirm('¿Quitar la contraseña de acceso? Volverás a entrar solo con el enlace por email.')) return;
+  try {
+    await api('/api/portal/password/clear', 'POST', {});
+    toast('Contraseña eliminada — entrarás con el enlace por email');
+    _refreshPasswordSection(false);
   } catch (e) {
     toast('Error: ' + (e.message || e), 'err');
   }
@@ -2290,6 +2342,7 @@ async function loadConfig() {
   }
 
   var c = data.config || {};
+  var hasPassword = !!data.hasPassword;
   // Sectores desde /api/sectors (fuente única). Primer paint con fallback; tras
   // cargar, se repuebla el <select> — así los sectores nuevos aparecen sin deploy.
   var sectorOpts = sectorOptionsHtml(c.sector);
@@ -2368,12 +2421,7 @@ async function loadConfig() {
       '</div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
-      '<div class="form-group"><label class="form-label">Contraseña de acceso <span class="u-normal">(opcional — para entrar sin esperar el enlace)</span></label>' +
-        '<div class="u-flex u-gap-2 u-items-center">' +
-          '<input class="form-input u-flex-1" id="cfgPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">' +
-          '<button type="button" class="btn btn-d u-nowrap" onclick="setPortalPassword()">Guardar contraseña</button>' +
-        '</div>' +
-        '<small class="form-hint">Entra con tu email y esta contraseña. El enlace por email seguirá funcionando igual.</small></div>' +
+      '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +
 
       '<div class="u-flex u-gap-3 u-mt-6">' +
         '<button class="btn btn-accent" onclick="saveConfig()">Guardar cambios</button>' +
@@ -7221,15 +7269,38 @@ async function entQuickState(id, key, value) {
 // guías no le sirve a ningún sector". Mismo patrón que el recetario de
 // Seguimientos: qué es esto (en SU vocabulario), cómo funciona en 3 pasos,
 // y fichas típicas que prellenan el formulario con un clic.
+// Espejo ES5 de emptyStateVocabulary (src/entities/entity-types.js): las
+// palabras del PROPIO tipo (sus campos-fecha) para el estado vacío, en vez de
+// una lista genérica de otro sector ("ITV, vacuna…" para una fisio). Si cambia
+// allí, cambia aquí.
+function entVocabExamples(type) {
+  var out = [], seen = {};
+  var fields = (type && type.fields) || [];
+  for (var i = 0; i < fields.length && out.length < 3; i++) {
+    if (fields[i].type !== 'date') continue;
+    var c = String(fields[i].label || '')
+      .replace(/^pr[óo]xim[oa]s?\s+/i, '')
+      .replace(/^fecha\s+de\s+/i, '')
+      .replace(/^[úu]ltim[oa]\s+/i, '')
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/\s+/g, ' ').trim().toLowerCase();
+    if (c && !seen[c]) { seen[c] = 1; out.push(c); }
+  }
+  return out;
+}
+
 function entOnboardingHtml(type) {
   var items = _entPresetItems(type);
+  var examples = entVocabExamples(type);
+  var examplesText = examples.length ? examples.join(', ')
+    : 'fechas importantes de cada ' + type.label_singular.toLowerCase();
   var intro = (_entPresets && _entPresets.type === type.key && _entPresets.intro)
     ? _entPresets.intro
     : 'Guarda cada ' + type.label_singular.toLowerCase() + ' con sus fechas importantes — y NodeFlow avisa a tu cliente antes de que llegue el día.';
 
   var steps = [
     ['1', 'Crea la ficha', 'Elige una de ejemplo o empieza desde cero'],
-    ['2', 'Sus fechas quedan guardadas', 'Caducidades, revisiones, renovaciones…'],
+    ['2', 'Sus fechas quedan guardadas', examplesText.charAt(0).toUpperCase() + examplesText.slice(1) + '…'],
     ['3', 'Los avisos salen solos 🔔', 'A tu cliente, por WhatsApp, antes de la fecha'],
   ];
   var stepsHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:18px 0 22px">' +

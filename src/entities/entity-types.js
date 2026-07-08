@@ -872,6 +872,66 @@ function sectorHasEntityTemplates(sectorRaw) {
 }
 
 /**
+ * PURA — plan de (des)activación cuando la org cambia de sector. Un tipo de
+ * entidad pertenece al sector actual si su `key` está entre las plantillas de
+ * ese sector (las keys son ÚNICAS a nivel global). Los que NO pertenecen se
+ * DESACTIVAN (is_active=false, jamás se borran: los datos se conservan y
+ * volver al sector los reactiva). Los del sector actual que estén desactivados
+ * se REACTIVAN.
+ *   @param existing  filas de nf_entity_types de la org (con id, key, is_active)
+ *   @param templates plantillas del sector ACTUAL (templatesForSector)
+ *   @returns { toDeactivate:[ids], toReactivate:[ids] } — solo lo que CAMBIA.
+ * El caller aplica los cambios y siembra las plantillas que falten.
+ */
+function deactivationPlan(existing, templates) {
+  const currentKeys = new Set((templates || []).map(t => t.key));
+  const toDeactivate = [];
+  const toReactivate = [];
+  for (const row of (existing || [])) {
+    if (!row || !row.id) continue;
+    const belongs = currentKeys.has(row.key);
+    if (belongs && row.is_active === false)      toReactivate.push(row.id);
+    else if (!belongs && row.is_active !== false) toDeactivate.push(row.id);
+  }
+  return { toDeactivate, toReactivate };
+}
+
+/**
+ * PURA — vocabulario del PROPIO tipo para el estado vacío / onboarding, en vez
+ * de una lista genérica hardcodeada ("ITV, vacuna, renovación…"). Deriva de la
+ * plantilla: los labels de sus campos-fecha (donde vive el dinero recurrente),
+ * en minúscula y sin el prefijo "Próxima/o" ni "Fecha de". Cae con gracia si el
+ * tipo no tiene campos-fecha usables.
+ *   @returns { labelPlural, labelSingular, dateExamples:[..], examplesText }
+ * examplesText: "sesiones, revisión, caducidad del bono" (ya listo para pintar).
+ */
+function emptyStateVocabulary(templateOrType) {
+  const t = templateOrType || {};
+  const labelPlural   = t.label_plural   || 'fichas';
+  const labelSingular = t.label_singular || 'ficha';
+  const clean = (label) => String(label || '')
+    .replace(/^pr[óo]xim[oa]s?\s+/i, '')      // "Próxima revisión" → "revisión"
+    .replace(/^fecha\s+de\s+/i, '')            // "Fecha de renovación" → "renovación"
+    .replace(/^[úu]ltim[oa]\s+/i, '')          // "Última visita" → "visita"
+    .replace(/\s*\([^)]*\)\s*/g, ' ')          // quita paréntesis aclaratorios
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+  const seen = new Set();
+  const dateExamples = [];
+  for (const f of (t.fields || [])) {
+    if (f.type !== 'date') continue;
+    const c = clean(f.label);
+    if (c && !seen.has(c)) { seen.add(c); dateExamples.push(c); }
+    if (dateExamples.length >= 3) break;
+  }
+  // Con al menos un campo-fecha → sus propias palabras; si no, algo honesto y
+  // genérico de este tipo (nunca vocabulario de OTRO sector).
+  const examplesText = dateExamples.length
+    ? dateExamples.join(', ')
+    : `fechas importantes de cada ${labelSingular.toLowerCase()}`;
+  return { labelPlural, labelSingular, dateExamples, examplesText };
+}
+
+/**
  * Instancia una plantilla del catálogo como fila de nf_entity_types para
  * una org (copy-on-create). PURA — testeable sin BD.
  */
@@ -957,26 +1017,63 @@ async function ensureOrgEntityTypes(orgId, sectorRaw, opts = {}) {
   const db = opts.db || getDatabase();
   if (!db.enabled || !(await entityTablesExist(db))) return [];
 
-  const existing     = await getOrgEntityTypes(orgId, { db });
+  // TODAS las filas de la org (activas Y desactivadas): para saber qué siguen
+  // sin pertenecer al sector actual y qué hay que reactivar al volver. La
+  // función cacheada solo trae activas → aquí leemos crudo.
+  let existing = [];
+  try {
+    const { data, error } = await db.client
+      .from('nf_entity_types')
+      .select('id, key, catalog_key, label_singular, label_plural, icon, color, label_template, fields, is_active')
+      .eq('organization_id', orgId)
+      .order('key');
+    if (error) { log.warn(`ensureOrgEntityTypes read(${orgId}): ${error.message}`); return getOrgEntityTypes(orgId, { db }); }
+    existing = data || [];
+  } catch (e) {
+    log.warn(`ensureOrgEntityTypes read(${orgId}): ${e.message}`);
+    return getOrgEntityTypes(orgId, { db });
+  }
+
   const existingKeys = new Set(existing.map(t => t.key));
   const missing      = templates.filter(t => !existingKeys.has(t.key));
-  if (!missing.length) return existing;
 
-  // slug canónico para el catalog_key (aunque llegara un alias)
-  let sectorSlug = _norm(sectorRaw);
-  try { sectorSlug = require('../sectors/sector-registry').resolveSector(sectorRaw).slug || sectorSlug; } catch (_) {}
-  if (!ENTITY_TEMPLATES[sectorSlug] && ENTITY_TEMPLATES[_norm(sectorRaw)]) sectorSlug = _norm(sectorRaw);
-
-  const rows = missing.map(t => instantiateTemplate(t, orgId, sectorSlug));
-  const { error } = await db.client
-    .from('nf_entity_types')
-    .upsert(rows, { onConflict: 'organization_id,key', ignoreDuplicates: true });
-  if (error) {
-    log.warn(`ensureOrgEntityTypes(${orgId}): ${error.message}`);
-    return existing;
+  // La pestaña de Entidades debe seguir SIEMPRE al sector actual: desactivar
+  // los tipos que ya no pertenecen (no borrar — reversible) y reactivar los
+  // del sector actual que estuvieran desactivados (volver al sector = datos
+  // intactos). Bug real 2026-07-09: al cambiar de sector persistía la pestaña
+  // vieja ("Planes de tratamiento" tras salir de fisioterapia).
+  const { toDeactivate, toReactivate } = deactivationPlan(existing, templates);
+  let touched = false;
+  if (toDeactivate.length) {
+    const { error } = await db.client.from('nf_entity_types')
+      .update({ is_active: false }).in('id', toDeactivate);
+    if (error) log.warn(`ensureOrgEntityTypes deactivate(${orgId}): ${error.message}`);
+    else { touched = true; log.info(`Entidades: desactivados ${toDeactivate.length} tipos ajenos al sector para org ${orgId}`); }
   }
-  log.info(`Entidades: sembrados ${rows.map(r => r.key).join(', ')} para org ${orgId} (${sectorSlug})`);
-  invalidateOrgEntityTypes(orgId);
+  if (toReactivate.length) {
+    const { error } = await db.client.from('nf_entity_types')
+      .update({ is_active: true }).in('id', toReactivate);
+    if (error) log.warn(`ensureOrgEntityTypes reactivate(${orgId}): ${error.message}`);
+    else { touched = true; log.info(`Entidades: reactivados ${toReactivate.length} tipos del sector para org ${orgId}`); }
+  }
+
+  if (missing.length) {
+    // slug canónico para el catalog_key (aunque llegara un alias)
+    let sectorSlug = _norm(sectorRaw);
+    try { sectorSlug = require('../sectors/sector-registry').resolveSector(sectorRaw).slug || sectorSlug; } catch (_) {}
+    if (!ENTITY_TEMPLATES[sectorSlug] && ENTITY_TEMPLATES[_norm(sectorRaw)]) sectorSlug = _norm(sectorRaw);
+
+    const rows = missing.map(t => instantiateTemplate(t, orgId, sectorSlug));
+    const { error } = await db.client
+      .from('nf_entity_types')
+      .upsert(rows, { onConflict: 'organization_id,key', ignoreDuplicates: true });
+    if (error) log.warn(`ensureOrgEntityTypes seed(${orgId}): ${error.message}`);
+    else { touched = true; log.info(`Entidades: sembrados ${rows.map(r => r.key).join(', ')} para org ${orgId} (${sectorSlug})`); }
+  }
+
+  if (touched) invalidateOrgEntityTypes(orgId);
+  // Devuelve SOLO los tipos activos del sector actual (getOrgEntityTypes filtra
+  // is_active=true), garantía de que la pestaña muestra el sector correcto.
   return getOrgEntityTypes(orgId, { db });
 }
 
@@ -988,6 +1085,8 @@ module.exports = {
   entitiesFeatureEnabled,
   groupableField,
   identifierField,
+  deactivationPlan,
+  emptyStateVocabulary,
   templatesForSector,
   sectorHasEntityTemplates,
   instantiateTemplate,
