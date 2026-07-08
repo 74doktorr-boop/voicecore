@@ -25,7 +25,7 @@
 'use strict';
 
 const { splitCsvLine, toISODate, cleanCsvPhone } = require('../lifecycle/contact-import');
-const { validateAttrs } = require('./entities');
+const { validateAttrs, normalizeIdentifier } = require('./entities');
 const { draftIsComplete } = require('./entity-ai');
 
 const MAX_IMPORT_ROWS = 500;   // cap duro por importación (v1)
@@ -269,6 +269,42 @@ function buildImportRows({ rows, mapping, fields }) {
   return out;
 }
 
+// ─── Upsert por identificador (reimportar NO duplica) ────────────────────────
+
+/**
+ * PURA — reparte las filas listas de buildImportRows entre INSERTAR y
+ * ACTUALIZAR según el campo identificador del tipo (matrícula, nº póliza…):
+ *   · sin idField (sector sin identificador natural) → todo inserta, como antes
+ *   · fila sin valor en el identificador → inserta (no hay con qué casar)
+ *   · identificador ya visto EN EL MISMO archivo → skip con motivo (dos
+ *     inserts del mismo id sí duplicarían; la primera fila gana)
+ *   · identificador que casa con una entidad existente (normalizado:
+ *     «1234-ABC» == «1234 abc») → update sobre esa entidad
+ * @param {Array}    rows           filas de buildImportRows ({row, attrs, …})
+ * @param {object}   idField        campo identificador ({key, label}) o null
+ * @param {Map|null} existingIndex  identificador normalizado → entidad viva
+ * @returns {{ inserts: [], updates: Array<{row, entity}>, skipped: [] }}
+ */
+function resolveImportActions({ rows, idField, existingIndex }) {
+  const out = { inserts: [], updates: [], skipped: [] };
+  if (!idField) { out.inserts = (rows || []).slice(); return out; }
+
+  const seen = new Map();   // identificador normalizado → nº de fila que lo trajo
+  for (const r of (rows || [])) {
+    const norm = normalizeIdentifier(r.attrs ? r.attrs[idField.key] : '');
+    if (!norm) { out.inserts.push(r); continue; }
+    if (seen.has(norm)) {
+      out.skipped.push({ row: r.row, reason: `«${idField.label || idField.key}» repetido en el archivo (igual que la fila ${seen.get(norm)})` });
+      continue;
+    }
+    seen.set(norm, r.row);
+    const existing = existingIndex ? existingIndex.get(norm) : null;
+    if (existing) out.updates.push({ row: r, entity: existing });
+    else out.inserts.push(r);
+  }
+  return out;
+}
+
 module.exports = {
   MAX_IMPORT_ROWS,
   parseCsv,
@@ -276,4 +312,5 @@ module.exports = {
   sanitizeMapping,
   convertCell,
   buildImportRows,
+  resolveImportActions,
 };

@@ -3195,6 +3195,26 @@ function setupPortalRoutes(app, pipeline, config) {
         contactId = c.id;
       }
 
+      // Anti-duplicados: si el tipo tiene identificador natural (matrícula,
+      // nº de póliza…) y ya existe una ficha viva con ese valor → 409 con
+      // mensaje claro. El duplicado se evita AQUÍ (código), no en la UI.
+      const { identifierField } = require('../entities/entity-types');
+      const idField = identifierField(type);
+      const idValue = idField && body.attrs && typeof body.attrs === 'object' ? body.attrs[idField.key] : null;
+      if (idField && String(idValue || '').trim()) {
+        const { findEntityByIdentifier } = require('../entities/entities');
+        const dup = await findEntityByIdentifier({
+          orgId: req.businessId, entityTypeId: type.id,
+          fieldKey: idField.key, value: idValue,
+        });
+        if (dup) {
+          return res.status(409).json({
+            error: `Ya tienes una ficha con ${(idField.label || idField.key).toLowerCase()} «${String(idValue).trim()}»: ${dup.display_name}. Edita esa ficha en vez de crear un duplicado.`,
+            duplicate_id: dup.id,
+          });
+        }
+      }
+
       const { createEntity } = require('../entities/entities');
       const r = await createEntity({ orgId: req.businessId, entityType: type, attrs: body.attrs, contactId });
       if (!r.ok) return res.status(400).json({ error: (r.errors && r.errors[0] && r.errors[0].error) || r.error || 'No se pudo guardar', errors: r.errors });
@@ -3456,13 +3476,43 @@ function setupPortalRoutes(app, pipeline, config) {
         } catch (e) { log.warn(`entity import: alta de contactos falló: ${e.message}`); }
       }
 
-      // 3) Fichas en chunks (display_name desnormalizado al escribir, como
-      //    createEntity — attrs YA validados por buildImportRows).
+      // 2b) UPSERT por identificador: si la plantilla tiene identificador
+      //     natural (matrícula, nº de póliza…), indexamos las fichas vivas
+      //     por su valor normalizado y las filas que casan ACTUALIZAN en vez
+      //     de insertar — reimportar el mismo Excel ya no duplica.
+      const { identifierField } = require('../entities/entity-types');
+      const { resolveImportActions } = require('../entities/entity-import');
+      const { normalizeIdentifier, updateEntity } = require('../entities/entities');
       const skipped = [...built.skipped];
+      const idField = identifierField(type);
+      let existingIndex = null;
+      if (idField) {
+        existingIndex = new Map();
+        const PAGE = 1000, MAX_SCAN = 10000;
+        for (let from = 0; from < MAX_SCAN; from += PAGE) {
+          const { data, error } = await db.client.from('nf_entities')
+            .select('id, contact_id, attrs')
+            .eq('organization_id', orgId)
+            .eq('entity_type_id', type.id)
+            .eq('is_archived', false)
+            .range(from, from + PAGE - 1);
+          if (error) { log.warn(`entity import: índice de identificadores falló: ${error.message}`); break; }
+          for (const en of (data || [])) {
+            const k = normalizeIdentifier((en.attrs || {})[idField.key]);
+            if (k && !existingIndex.has(k)) existingIndex.set(k, en);
+          }
+          if (!data || data.length < PAGE) break;
+        }
+      }
+      const actions = resolveImportActions({ rows: built.rows, idField, existingIndex });
+      skipped.push(...actions.skipped);
+
+      // 3) Fichas NUEVAS en chunks (display_name desnormalizado al escribir,
+      //    como createEntity — attrs YA validados por buildImportRows).
       const created = [];
       const ENT_CHUNK = 100;
-      for (let i = 0; i < built.rows.length; i += ENT_CHUNK) {
-        const chunk = built.rows.slice(i, i + ENT_CHUNK);
+      for (let i = 0; i < actions.inserts.length; i += ENT_CHUNK) {
+        const chunk = actions.inserts.slice(i, i + ENT_CHUNK);
         const payload = chunk.map(r => ({
           organization_id: orgId,
           entity_type_id:  type.id,
@@ -3478,6 +3528,31 @@ function setupPortalRoutes(app, pipeline, config) {
         } catch (e) {
           for (const r of chunk) skipped.push({ row: r.row, reason: `Error al guardar: ${e.message}` });
         }
+      }
+
+      // 3b) Fichas EXISTENTES: merge de attrs (lo importado GANA), display_name
+      //     recomputado, evento 'field_change' con el diff y is_draft que se
+      //     apaga solo si el merge completa los required — todo vía
+      //     updateEntity (mismas reglas que un PATCH manual). El vínculo con
+      //     el dueño solo se toca si el Excel trae teléfono.
+      const updated = [];
+      const UPD_CONC = 10;
+      for (let i = 0; i < actions.updates.length; i += UPD_CONC) {
+        const batch = actions.updates.slice(i, i + UPD_CONC);
+        await Promise.all(batch.map(async ({ row, entity }) => {
+          const attrs = { ...row.attrs };
+          delete attrs.is_draft;   // en un update decide el merge, no la fila
+          const contactId = (row.phone && contactIdByKey.get(normalizePhone(row.phone))) || undefined;
+          try {
+            const r2 = await updateEntity({
+              orgId, entityType: type, entityId: entity.id, attrs, contactId, actor: 'staff',
+            });
+            if (r2.ok) updated.push(r2.entity);
+            else skipped.push({ row: row.row, reason: `Error al actualizar: ${(r2.errors && r2.errors[0] && r2.errors[0].error) || r2.error || 'desconocido'}` });
+          } catch (e) {
+            skipped.push({ row: row.row, reason: `Error al actualizar: ${e.message}` });
+          }
+        }));
       }
 
       // 4) Evento 'created' en bloque (best effort: el timeline de cada ficha
@@ -3496,8 +3571,9 @@ function setupPortalRoutes(app, pipeline, config) {
 
       // 5) Avisos 🔔 en background — el "avisando solos en 5 minutos": las
       //    fichas con dueño y fecha materializan YA, no a la noche. Secuencial
-      //    y best effort (la pasada nocturna recoge lo que falle).
-      const withOwner = created.filter(en => en.contact_id);
+      //    y best effort (la pasada nocturna recoge lo que falle). Las
+      //    actualizadas también: el Excel pudo traer fechas nuevas.
+      const withOwner = [...created, ...updated].filter(en => en.contact_id);
       if (withOwner.length) {
         setImmediate(async () => {
           try {
@@ -3510,13 +3586,14 @@ function setupPortalRoutes(app, pipeline, config) {
       }
 
       const linked = withOwner.length;
-      log.info(`Importación de entidades (${orgId}): ${created.length} fichas (${linked} con dueño, ${contactsCreated} contactos nuevos), ${skipped.length} saltadas`);
+      log.info(`Importación de entidades (${orgId}): ${created.length} nuevas + ${updated.length} actualizadas (${linked} con dueño, ${contactsCreated} contactos nuevos), ${skipped.length} saltadas`);
       res.json({
         ok: true,
         created:         created.length,
+        updated:         updated.length,   // «actualizadas»: ya existían por identificador
         linked,
         contactsCreated,
-        drafts:          built.rows.filter(r => r.isDraft).length,
+        drafts:          actions.inserts.filter(r => r.isDraft).length,
         skipped:         skipped.slice(0, 50),
         skippedCount:    skipped.length,
         truncated:       built.truncated,

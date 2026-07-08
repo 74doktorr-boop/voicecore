@@ -126,6 +126,49 @@ function normalizePlate(s) {
   return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+/**
+ * PURA — normaliza el valor de un campo identificador para comparar:
+ * sin acentos, mayúsculas, solo [A-Z0-9]. «1234-ABC» == «1234 abc»,
+ * «Calle José 5, 2ºB» == «calle jose 5 2b». '' si no hay valor.
+ */
+function normalizeIdentifier(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * Busca una entidad viva del tipo cuyo attrs[fieldKey] normalizado coincida
+ * con value (anti-duplicados del alta manual y upsert de importación).
+ * Pagina en BD y compara en código: la normalización no vive en PostgREST.
+ * @returns la entidad {id, contact_id, display_name, attrs} o null
+ */
+async function findEntityByIdentifier({ orgId, entityTypeId, fieldKey, value, db }) {
+  db = db || getDatabase();
+  if (!db.enabled) return null;
+  const target = normalizeIdentifier(value);
+  if (!target) return null;
+
+  const PAGE = 1000, MAX_SCAN = 10000;
+  for (let from = 0; from < MAX_SCAN; from += PAGE) {
+    const { data, error } = await db.client.from('nf_entities')
+      .select('id, contact_id, display_name, attrs')
+      .eq('organization_id', orgId)
+      .eq('entity_type_id', entityTypeId)
+      .eq('is_archived', false)
+      .range(from, from + PAGE - 1);
+    if (error) {
+      log.warn(`findEntityByIdentifier(${orgId}): ${error.message}`);
+      return null;
+    }
+    for (const e of (data || [])) {
+      if (normalizeIdentifier((e.attrs || {})[fieldKey]) === target) return e;
+    }
+    if (!data || data.length < PAGE) break;
+  }
+  return null;
+}
+
 // ─── Timeline de eventos (best effort, jamás rompe la operación) ─────────────
 
 async function _logEvent(db, { orgId, entityId, kind, title, properties, actor }) {
@@ -441,6 +484,8 @@ module.exports = {
   validateAttrs,
   computeDisplayName,
   normalizePlate,
+  normalizeIdentifier,
+  findEntityByIdentifier,
   diffAttrs,
   listEntities,
   getEntity,

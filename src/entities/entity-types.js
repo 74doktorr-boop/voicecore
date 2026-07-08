@@ -26,6 +26,12 @@ const TEMPLATE_VERSION = 'v1';
 const MAX_FIELDS       = 8;   // cap duro v0 — añadir campos exige justificación
 const FIELD_TYPES      = ['text', 'number', 'date', 'select', 'multiselect', 'boolean', 'phone', 'note'];
 
+// is_identifier (máx 1 por plantilla): el campo que identifica la COSA en el
+// mundo real (matrícula, nº de póliza, nº de expediente…). Reimportar el mismo
+// Excel ACTUALIZA la ficha existente en vez de duplicarla (upsert), y el alta
+// manual avisa del duplicado. Los sectores sin identificador natural (bonos,
+// planes, eventos) NO llevan ninguno — y eso es honesto: ahí no hay upsert.
+
 // ─── Catálogo de plantillas por sector ───────────────────────────────────────
 // Cada plantilla: 1 tipo de entidad, ≤8 campos, y SIEMPRE al menos un campo
 // fecha con semántica de recordatorio (reminder) — ahí vive el dinero
@@ -44,7 +50,7 @@ const ENTITY_TEMPLATES = {
     icon: '🚗', color: '#c4f546',
     label_template: '{{marca}} {{modelo}} · {{matricula}}',
     fields: [
-      { key: 'matricula',        type: 'text',   label: 'Matrícula', required: true, show_in_list: true, position: 1 },
+      { key: 'matricula',        type: 'text',   label: 'Matrícula', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'marca',            type: 'text',   label: 'Marca',     show_in_list: true, position: 2 },
       { key: 'modelo',           type: 'text',   label: 'Modelo',    position: 3 },
       { key: 'km',               type: 'number', label: 'Kilómetros', position: 4 },
@@ -72,7 +78,7 @@ const ENTITY_TEMPLATES = {
           { value: 'reptil', label: 'Reptil' }, { value: 'otro', label: 'Otro' },
         ] },
       { key: 'raza',            type: 'text',   label: 'Raza', position: 3 },
-      { key: 'chip',            type: 'text',   label: 'Nº de chip', position: 4 },
+      { key: 'chip',            type: 'text',   label: 'Nº de chip', position: 4, is_identifier: true },
       { key: 'proxima_vacuna',  type: 'date',   label: 'Próxima vacuna', show_in_list: true, position: 5,
         reminder: { offset_days: -14, campaign_kind: 'vacuna', message_hint: 'A {{entity}} le toca la vacuna el {{value}} — pide cita y lo dejamos protegido y con la cartilla al día.' } },
       { key: 'desparasitacion', type: 'date',   label: 'Próxima desparasitación', position: 6,
@@ -89,7 +95,7 @@ const ENTITY_TEMPLATES = {
     icon: '🏠', color: '#c4f546',
     label_template: '{{direccion}}',
     fields: [
-      { key: 'direccion', type: 'text',   label: 'Dirección', required: true, show_in_list: true, position: 1 },
+      { key: 'direccion', type: 'text',   label: 'Dirección', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'metros',    type: 'number', label: 'Metros cuadrados (m²)', show_in_list: true, position: 2 },
       { key: 'precio',    type: 'number', label: 'Precio (€)', show_in_list: true, position: 3 },
       { key: 'operacion', type: 'select', label: 'Operación', position: 4,
@@ -108,7 +114,7 @@ const ENTITY_TEMPLATES = {
     icon: '⚖️', color: '#c4f546',
     label_template: 'Exp. {{numero}} · {{tipo}}',
     fields: [
-      { key: 'numero',        type: 'text',   label: 'Nº de expediente', required: true, show_in_list: true, position: 1 },
+      { key: 'numero',        type: 'text',   label: 'Nº de expediente', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'tipo',          type: 'select', label: 'Tipo', show_in_list: true, position: 2,
         options: [
           { value: 'civil', label: 'Civil' }, { value: 'penal', label: 'Penal' },
@@ -161,7 +167,7 @@ const ENTITY_TEMPLATES = {
     icon: '🛡️', color: '#c4f546',
     label_template: '{{ramo}} {{compania}} · {{numero}}',
     fields: [
-      { key: 'numero',           type: 'text',   label: 'Nº de póliza', show_in_list: true, position: 1 },
+      { key: 'numero',           type: 'text',   label: 'Nº de póliza', show_in_list: true, position: 1, is_identifier: true },
       { key: 'compania',         type: 'text',   label: 'Compañía', required: true, show_in_list: true, position: 2 },
       { key: 'ramo',             type: 'select', label: 'Ramo', show_in_list: true, position: 3,
         options: [
@@ -280,7 +286,7 @@ const ENTITY_TEMPLATES = {
     icon: '🧱', color: '#c4f546',
     label_template: 'Obra {{tipo}} · {{direccion}}',
     fields: [
-      { key: 'direccion',    type: 'text',   label: 'Dirección', required: true, show_in_list: true, position: 1 },
+      { key: 'direccion',    type: 'text',   label: 'Dirección', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'tipo',         type: 'text',   label: 'Tipo de obra (baño, cocina…)', show_in_list: true, position: 2 },
       { key: 'estado',       type: 'select', label: 'Estado', show_in_list: true, position: 3,
         options: [
@@ -305,7 +311,7 @@ const ENTITY_TEMPLATES = {
           { value: 'pasaporte', label: 'Pasaporte' }, { value: 'dni', label: 'DNI' },
           { value: 'visado', label: 'Visado' }, { value: 'otro', label: 'Otro' },
         ] },
-      { key: 'numero',    type: 'text', label: 'Número', position: 2 },
+      { key: 'numero',    type: 'text', label: 'Número', position: 2, is_identifier: true },
       { key: 'pais',      type: 'text', label: 'País (visados)', position: 3 },
       { key: 'caducidad', type: 'date', label: 'Fecha de caducidad', show_in_list: true, position: 4,
         reminder: { offset_days: -90, campaign_kind: 'caducidad', message_hint: 'Tu {{entity}} caduca el {{value}} — renuévalo con tiempo y cuéntanos tu próximo destino: te dejamos el viaje cuadrado sin sustos en el aeropuerto.' } },
@@ -657,7 +663,7 @@ const ENTITY_TEMPLATES = {
     icon: '📜', color: '#c4f546',
     label_template: '{{tipo}} · {{referencia}}',
     fields: [
-      { key: 'referencia',              type: 'text',   label: 'Referencia', required: true, show_in_list: true, position: 1 },
+      { key: 'referencia',              type: 'text',   label: 'Referencia', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'tipo',                    type: 'select', label: 'Tipo', show_in_list: true, position: 2,
         options: [
           { value: 'compraventa', label: 'Compraventa' }, { value: 'herencia', label: 'Herencia' },
@@ -682,7 +688,7 @@ const ENTITY_TEMPLATES = {
     icon: '📐', color: '#c4f546',
     label_template: 'Proyecto {{nombre}}',
     fields: [
-      { key: 'nombre',             type: 'text',   label: 'Nombre / dirección del proyecto', required: true, show_in_list: true, position: 1 },
+      { key: 'nombre',             type: 'text',   label: 'Nombre / dirección del proyecto', required: true, show_in_list: true, position: 1, is_identifier: true },
       { key: 'fase',               type: 'select', label: 'Fase', show_in_list: true, position: 2,
         options: [
           { value: 'anteproyecto', label: 'Anteproyecto' }, { value: 'proyecto_basico', label: 'Proyecto básico' },
@@ -803,6 +809,34 @@ function groupableField(fields) {
   for (const f of (fields || [])) {
     if (f.type === 'select' && Array.isArray(f.options) &&
         f.options.length >= 2 && f.options.length <= 6) return f;
+  }
+  return null;
+}
+
+// ─── Identificador natural (upsert de importación / anti-duplicados) ────────
+/** Plantilla del catálogo por key de tipo (las keys son ÚNICAS a nivel global). */
+function catalogTemplateByKey(typeKey) {
+  for (const arr of Object.values(ENTITY_TEMPLATES)) {
+    for (const t of arr) { if (t.key === typeKey) return t; }
+  }
+  return null;
+}
+
+/**
+ * PURA — el campo identificador natural del tipo (matrícula, nº de póliza…)
+ * o null si el sector no tiene ninguno (bonos, planes, eventos — honesto).
+ * Acepta tanto una plantilla del catálogo como una fila de nf_entity_types:
+ * las filas sembradas ANTES de esta feature guardan fields sin is_identifier,
+ * así que cae al catálogo por key (keys globalmente únicas).
+ */
+function identifierField(templateOrType) {
+  if (!templateOrType) return null;
+  for (const f of (templateOrType.fields || [])) {
+    if (f.is_identifier) return f;
+  }
+  const cat = catalogTemplateByKey(templateOrType.key);
+  if (cat && cat !== templateOrType) {
+    for (const f of (cat.fields || [])) { if (f.is_identifier) return f; }
   }
   return null;
 }
@@ -953,6 +987,7 @@ module.exports = {
   FIELD_TYPES,
   entitiesFeatureEnabled,
   groupableField,
+  identifierField,
   templatesForSector,
   sectorHasEntityTemplates,
   instantiateTemplate,

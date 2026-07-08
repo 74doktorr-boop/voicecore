@@ -33,7 +33,11 @@ async function api(path, method, body, timeoutMs) {
   try {
     var res = await fetch(path, opts);
     var data = await res.json().catch(function() { return {}; });
-    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    if (!res.ok) {
+      var err = new Error(data.error || 'HTTP ' + res.status);
+      err.status = res.status;   // el llamador puede distinguir (409 = duplicado)
+      throw err;
+    }
     return data;
   } catch (e) {
     if (e.name === 'AbortError') throw new Error('La respuesta tardó demasiado — inténtalo de nuevo');
@@ -7263,7 +7267,10 @@ async function saveEntity(id) {
     }
     if (document.getElementById('entList')) entFetchList();
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    // 409 = duplicado por identificador (matrícula, nº de póliza…): aviso
+    // amable con el mensaje del servidor, sin el prefijo de error técnico.
+    if (e.status === 409) toast('⚠️ ' + e.message, 'err');
+    else toast('Error: ' + e.message, 'err');
   }
 }
 
@@ -7463,13 +7470,17 @@ async function entImpCommit() {
       '</div></details>';
   }
 
+  var totalOk = (r.created || 0) + (r.updated || 0);
   openModal(
     '<div class="modal-title">✅ Paso 3 de 3 — ¡Hecho!</div>' +
     '<div style="text-align:center;padding:10px 0 4px">' +
-      '<div style="font-size:44px;font-weight:800;color:var(--accent-l);line-height:1">' + r.created + '</div>' +
+      '<div style="font-size:44px;font-weight:800;color:var(--accent-l);line-height:1">' + totalOk + '</div>' +
       '<div style="font-size:15px;font-weight:700;margin-top:4px">' +
-        esc(r.created === 1 ? type.label_singular.toLowerCase() : type.label_plural.toLowerCase()) + ' en tu panel</div>' +
+        esc(totalOk === 1 ? type.label_singular.toLowerCase() : type.label_plural.toLowerCase()) + ' en tu panel</div>' +
       '<div style="color:var(--dim);font-size:13.5px;line-height:1.7;margin-top:10px">' +
+        (r.updated ? '✨ ' + r.created + (r.created === 1 ? ' ficha nueva' : ' fichas nuevas') +
+          ' · 🔁 ' + r.updated + (r.updated === 1 ? ' actualizada' : ' actualizadas') +
+          ' (ya existían — datos refrescados, sin duplicados)<br>' : '') +
         (r.linked ? '📱 ' + r.linked + ' con cliente vinculado — sus avisos ya están en marcha 🔔<br>' : '') +
         (r.contactsCreated ? '👤 ' + r.contactsCreated + ' clientes nuevos creados desde el Excel<br>' : '') +
         (r.drafts ? '📝 ' + r.drafts + ' como borrador «completar ficha»' : '') +
