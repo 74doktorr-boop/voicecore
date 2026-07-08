@@ -3057,7 +3057,12 @@ function setupPortalRoutes(app, pipeline, config) {
   async function _entityGate(req) {
     const { sectorHasEntityTemplates, entityTablesExist, ensureOrgEntityTypes } =
       require('../entities/entity-types');
-    const sector = req.flowConfig && req.flowConfig.sector;
+    // BUG REAL (2026-07-09, org de Unai): req.flowConfig.sector es undefined
+    // cuando portalAuth resuelve desde flowManager en memoria (el flow guarda
+    // el sector en automations.config.sector, no en la raíz) → la pestaña de
+    // Entidades no aparecía NUNCA. Se resuelve con el helper canónico, que
+    // mira todos los sitios donde puede vivir el sector.
+    const sector = await _resolveOrgSector(req.businessId);
     if (!sector || !sectorHasEntityTemplates(sector)) return null;
     const db = getDatabase();
     if (!db.enabled || !(await entityTablesExist(db))) return null;
