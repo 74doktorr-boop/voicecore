@@ -2304,7 +2304,11 @@ async function loadConfig() {
         '</div></div>' +
       '<div class="form-section-title">Configuración de la IA</div>' +
       '<div class="form-group"><label class="form-label">Mensaje de bienvenida</label>' +
-        '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea></div>' +
+        '<textarea class="form-input" id="cfgWelcome" rows="3" placeholder="Hola, has llamado a…">' + esc(c.welcomeMessage || '') + '</textarea>' +
+        // Campo COMPARTIDO con Asistente → Básico (mismo almacén: es lo que
+        // suena al descolgar). Antes cada pantalla guardaba en un sitio
+        // distinto y el saludo nuevo nunca llegaba a las llamadas.
+        '<small class="form-hint">Es el saludo que oyen tus clientes al llamar — el mismo que ves en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a>. Para quitarlo y volver al saludo automático, bórralo desde Asistente.</small></div>' +
       '<div class="form-group"><label class="form-label">Precio medio por servicio (€)</label>' +
         '<input class="form-input" id="cfgAvgTicket" type="number" min="1" max="9999" value="' + (c.avgTicket || 35) + '"></div>' +
       '<div class="form-section-title">Dirección</div>' +

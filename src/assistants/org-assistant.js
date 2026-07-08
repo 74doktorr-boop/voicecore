@@ -43,6 +43,23 @@ const CONTACT_TOOLS = [
 ];
 
 /**
+ * Saludo EFECTIVO de una org — UNA sola verdad, con migración suave.
+ * Canónico: assistant_config.firstMessage (lo edita Asistente → Básico y es
+ * lo que suena en llamadas). Legado: automation_config.config.welcomeMessage —
+ * lo escribía la pantalla Configuración donde NADA lo leía (ni el runtime ni
+ * Asistente): el dueño guardaba su saludo nuevo y las llamadas seguían con el
+ * viejo (bug real 2026-07-08, org fisioterapia). Si ese valor legado existe,
+ * es lo último que el dueño guardó creyendo que regía → se honra aquí. Todo
+ * guardado posterior (Configuración o Asistente) converge los dos almacenes
+ * en firstMessage y borra el legado, así que esta rama muere sola.
+ */
+function effectiveFirstMessage(assistantCfg, automationCfg) {
+  const legacy = automationCfg && automationCfg.config && automationCfg.config.welcomeMessage;
+  if (typeof legacy === 'string' && legacy.trim()) return legacy.trim();
+  return (assistantCfg && assistantCfg.firstMessage) || '';
+}
+
+/**
  * Devuelve el asistente vivo de una org, construido desde assistant_config.
  * null si la org no existe, está inactiva o no hay BD.
  */
@@ -85,7 +102,7 @@ async function getOrgAssistant(orgId) {
       id:           org.id,
       name:         cfg.assistantName || org.name,
       systemPrompt: generatePrompt(cfgConLista, org.name),
-      firstMessage: cfg.firstMessage || defaultFirstMessage(language, org.name),
+      firstMessage: effectiveFirstMessage(cfg, org.automation_config) || defaultFirstMessage(language, org.name),
       // La voz elegida decide también el PROVEEDOR: Estándar = Cartesia
       // (incluida), Premium = ElevenLabs (voice-map resuelve id/alias),
       // euskera = servidor local.
@@ -156,4 +173,4 @@ function invalidateOrgAssistant(orgId) {
   _cache.delete(orgId);
 }
 
-module.exports = { getOrgAssistant, invalidateOrgAssistant };
+module.exports = { getOrgAssistant, invalidateOrgAssistant, effectiveFirstMessage };

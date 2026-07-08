@@ -958,18 +958,22 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
     const custom = flowConfig.automations?.config || {};
-    // Número asignado: nf_phone_pool/BD = fuente de verdad. La config en
-    // memoria (flowManager) no ve asignaciones recientes → Configuración
-    // decía "pendiente de asignación" con el número asignado y operativo
-    // (caso real 2026-07-03; mismo fix que ya llevaba el dashboard).
     let outboundNumber = custom.outboundNumber || custom.nodeflowNumber || '';
-    if (!outboundNumber) {
-      try {
-        const db = getDatabase();
-        if (db.enabled) {
-          const { data: orgRow } = await db.client.from('organizations')
-            .select('automation_config').eq('id', businessId).maybeSingle();
-          const dbCustom = orgRow?.automation_config?.config || {};
+    // Fila FRESCA de BD: assistant_config es el almacén canónico del saludo
+    // y el idioma (los edita Asistente) — sin leerlo, Configuración enseñaba
+    // una copia muerta y los dos formularios divergían (bug real 2026-07-08).
+    let dbAuto = null, dbAsis = null;
+    try {
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data: orgRow } = await db.client.from('organizations')
+          .select('automation_config, assistant_config').eq('id', businessId).maybeSingle();
+        dbAuto = orgRow?.automation_config || null;
+        dbAsis = orgRow?.assistant_config  || null;
+        // Número asignado: nf_phone_pool/BD = fuente de verdad (la config en
+        // memoria no ve asignaciones recientes — caso real 2026-07-03).
+        if (!outboundNumber) {
+          const dbCustom = dbAuto?.config || {};
           outboundNumber = dbCustom.outboundNumber || dbCustom.nodeflowNumber || '';
           if (!outboundNumber) {
             const { data: poolRow } = await db.client
@@ -979,19 +983,25 @@ function setupPortalRoutes(app, pipeline, config) {
             if (poolRow) outboundNumber = poolRow.phone_number;
           }
         }
-      } catch (_) { /* fail-open */ }
-    }
+      }
+    } catch (_) { /* fail-open */ }
+    const { effectiveFirstMessage } = require('../assistants/org-assistant');
     res.json({
       ok: true,
       config: {
         name:           flowConfig.name        || '',
         ownerEmail:     flowConfig.ownerEmail  || '',
         phone:          flowConfig.ownerPhone  || '',
-        language:       flowConfig.language    || 'es',
-        sector:         flowConfig.sector      || custom.sector || '',
+        language:       (dbAsis && dbAsis.language) || flowConfig.language || 'es',
+        sector:         (dbAsis && dbAsis.sector) || flowConfig.sector || custom.sector || '',
         plan:           flowConfig.plan        || '',
         avgTicket:      custom.avgTicket       || 35,
-        welcomeMessage: custom.welcomeMessage  || '',
+        // Saludo: el MISMO que Asistente → Básico (assistant_config.firstMessage),
+        // honrando el welcomeMessage legado aún no convergido. Sin BD (dev), cae
+        // a la copia en memoria.
+        welcomeMessage: (dbAsis || dbAuto)
+          ? effectiveFirstMessage(dbAsis, dbAuto)
+          : (custom.welcomeMessage || ''),
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
@@ -1268,15 +1278,31 @@ function setupPortalRoutes(app, pipeline, config) {
         if (readErr) throw new Error('lectura: ' + readErr.message);
         const baseAuto   = (cur && cur.automation_config) || {};
         const mergedAuto = { ...baseAuto, config: { ...(baseAuto.config || {}), ...(flow.automations.config || {}) } };
+        // El saludo YA NO vive aquí: converge a assistant_config.firstMessage
+        // (ver asisPatch abajo). Si quedara la copia legada, seguiría tapando
+        // al canónico en la migración suave de lectura (effectiveFirstMessage).
+        if (welcomeMessage !== undefined) delete mergedAuto.config.welcomeMessage;
         const dbUpdate = { automation_config: mergedAuto };
         if (name)     dbUpdate.name     = name;
         if (language) dbUpdate.language = language;
-        // 'sector' NO es columna de organizations. Vive en assistant_config.sector,
-        // que es de donde lo leen el ASISTENTE, el AUDITOR y los recordatorios (7
-        // lectores). Este form lo escribía SOLO en automation_config.config.sector
-        // → nunca llegaba al auditor: todo salía 'genérico' y el aprendizaje por
-        // vertical no podía agrupar. Se escribe en la ubicación canónica.
-        if (sector) dbUpdate.assistant_config = { ...((cur && cur.assistant_config) || {}), sector };
+        // Campos COMPARTIDOS con la pantalla Asistente → van a su almacén
+        // canónico (assistant_config), que es lo que leen el asistente en
+        // llamada, el AUDITOR y los recordatorios:
+        // - sector: este form lo escribía SOLO en automation_config.config.sector
+        //   → nunca llegaba al auditor y todo salía 'genérico' (6 bugs).
+        // - firstMessage (mensaje de bienvenida): se escribía en
+        //   automation_config.config.welcomeMessage, que NADA leía — el dueño
+        //   guardaba su saludo y las llamadas seguían con el viejo (bug real
+        //   2026-07-08). Vacío NO borra: quitar el saludo se hace en Asistente
+        //   (aquí un '' solo significa "sin opinión" y protege el canónico).
+        const asisPatch = {};
+        if (sector) asisPatch.sector = sector;
+        if (typeof welcomeMessage === 'string' && welcomeMessage.trim()) {
+          asisPatch.firstMessage = welcomeMessage.trim();
+        }
+        if (Object.keys(asisPatch).length) {
+          dbUpdate.assistant_config = { ...((cur && cur.assistant_config) || {}), ...asisPatch };
+        }
         const { error: upErr } = await db.client.from('organizations').update(dbUpdate).eq('id', businessId);
         if (upErr) throw new Error('escritura: ' + upErr.message);
         flow.automations = mergedAuto; // mantener la memoria en sync con BD
@@ -1307,7 +1333,9 @@ function setupPortalRoutes(app, pipeline, config) {
         sector:         flow.sector      || custom.sector || '',
         plan:           flow.plan        || '',
         avgTicket:      custom.avgTicket       || 35,
-        welcomeMessage: custom.welcomeMessage  || '',
+        // Eco del saludo convergido (ya vive en assistant_config.firstMessage)
+        welcomeMessage: (typeof welcomeMessage === 'string' && welcomeMessage.trim())
+          ? welcomeMessage.trim() : (custom.welcomeMessage || ''),
         services:       custom.services        || '',
         schedule:       custom.schedule        || '',
         reviewUrl:      custom.reviewUrl       || '',
@@ -1895,10 +1923,18 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       const { data } = await db.client
         .from('organizations')
-        .select('name, assistant_config')
+        .select('name, assistant_config, automation_config')
         .eq('id', businessId)
         .single();
-      res.json({ config: data?.assistant_config || {}, orgName: data?.name || '' });
+      // Saludo efectivo: si queda un welcomeMessage legado guardado desde
+      // Configuración (cuando escribía en un campo que nada leía), se enseña
+      // aquí — es lo último que el dueño guardó. Al guardar cualquiera de las
+      // dos pantallas, converge en assistant_config.firstMessage.
+      const cfg = { ...(data?.assistant_config || {}) };
+      const { effectiveFirstMessage } = require('../assistants/org-assistant');
+      const eff = effectiveFirstMessage(data?.assistant_config, data?.automation_config);
+      if (eff) cfg.firstMessage = eff;
+      res.json({ config: cfg, orgName: data?.name || '' });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -2009,6 +2045,28 @@ function setupPortalRoutes(app, pipeline, config) {
         .from('organizations')
         .update({ assistant_config: merged })
         .eq('id', businessId);
+
+      // Convergencia del saludo: guardado aquí firstMessage (canónico), el
+      // welcomeMessage legado de automation_config.config se borra — si
+      // quedara, seguiría tapando al canónico en la migración suave de
+      // lectura (effectiveFirstMessage) y las dos pantallas divergirían.
+      if (safe.firstMessage !== undefined) {
+        try {
+          const autoCur = existing?.automation_config;
+          if (autoCur?.config && typeof autoCur.config.welcomeMessage === 'string') {
+            const { welcomeMessage: _legado, ...cfgSinLegado } = autoCur.config;
+            await db.client.from('organizations')
+              .update({ automation_config: { ...autoCur, config: cfgSinLegado } })
+              .eq('id', businessId);
+          }
+          // También en el flow EN MEMORIA: si quedara ahí, el próximo PATCH
+          // /config lo re-mergearía a BD y resucitaría el legado.
+          const flowRef = flowManager.get(businessId);
+          if (flowRef?.automations?.config) delete flowRef.automations.config.welcomeMessage;
+        } catch (e) {
+          log.warn(`Portal: limpieza de welcomeMessage legado falló: ${e.message}`);
+        }
+      }
 
       // UNA sola verdad de servicios (#8): la tabla estructurada
       // (automation_config.serviceList) manda. El texto libre legacy solo
