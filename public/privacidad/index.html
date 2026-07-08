@@ -1,115 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de Privacidad — NodeFlow</title>
-  <meta name="robots" content="noindex">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0d0d12; --bg2: #13131a; --card: #1a1a24;
-      --text: #f0f0f5; --dim: #a0a0b8; --muted: #666680;
-      --accent: #e0a23c; --accent-l: #f2bd5e; --border: rgba(255,255,255,0.08);
-    }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; }
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
-    nav a { color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; }
-    nav a span { color: var(--accent-l); }
-    .back { font-size: 13px; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 7px 16px; border-radius: 8px; }
-    .back:hover { color: var(--text); }
-    main { max-width: 760px; margin: 0 auto; padding: 60px 24px 100px; }
-    h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
-    .meta { font-size: 13px; color: var(--muted); margin-bottom: 48px; }
-    h2 { font-size: 18px; font-weight: 700; margin: 36px 0 12px; color: var(--accent-l); }
-    p { color: var(--dim); margin-bottom: 14px; font-size: 15px; }
-    ul { color: var(--dim); font-size: 15px; padding-left: 20px; margin-bottom: 14px; }
-    li { margin-bottom: 6px; }
-    a { color: var(--accent-l); }
-    .highlight { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 20px 0; }
-    footer { text-align: center; padding: 32px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); }
-      h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad — NodeFlow</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0b0d; --bg-2:#101216;
+  --ink:#f3f5f1; --ink-2:#9aa09a; --ink-3:#636963;
+  --line:rgba(240,244,240,.13); --line-2:rgba(240,244,240,.28);
+  --lime:#c4f546; --lime-d:#aee02c;
+  --disp:'Clash Display',system-ui,sans-serif;
+  --sans:'Satoshi',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.7;font-size:16px}
+a{color:var(--lime);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--lime);color:#0a0b0d}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--disp);font-weight:600;font-size:1.4rem;letter-spacing:-.03em;color:var(--ink)}
+.logo b{color:var(--lime);font-weight:600}
+.back{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--bg-2);border:1px solid var(--line);padding:8px 16px;border-radius:8px}
+.back:hover{color:var(--ink);text-decoration:none;border-color:var(--line-2)}
+main{max-width:760px;margin:0 auto;padding:64px 24px 110px}
+h1{font-family:var(--disp);font-weight:600;letter-spacing:-.025em;color:var(--ink);font-size:clamp(30px,5vw,40px);line-height:1.05;margin-bottom:10px}
+.meta{font-family:var(--mono);font-size:.74rem;letter-spacing:.05em;color:var(--ink-3);margin-bottom:44px}
+h2{font-family:var(--disp);font-weight:500;font-size:1.22rem;letter-spacing:-.01em;color:var(--ink);margin:44px 0 14px}
+h3{font-family:var(--sans);font-weight:700;font-size:1rem;color:var(--ink);margin:24px 0 8px}
+p{margin-bottom:14px}
+ul{padding-left:20px;margin-bottom:14px}
+li{margin-bottom:7px}
+strong{color:var(--ink);font-weight:700}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin:20px 0}
+.card p{margin:0}
+.note{border-left:2px solid var(--lime);padding:2px 0 2px 18px;margin:20px 0;color:var(--ink-2)}
+footer{text-align:center;padding:34px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3);border-top:1px solid var(--line)}
+footer a{color:var(--ink-3)}footer a:hover{color:var(--lime)}
+a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:6px}
+</style>
 </head>
 <body>
 <nav>
-  <a href="/">Node<span>Flow</span></a>
+  <a href="/" class="logo">node<b>flow</b></a>
   <a href="/" class="back">← Volver</a>
 </nav>
 
 <main>
   <h1>Política de Privacidad</h1>
-  <p class="meta">Última actualización: mayo de 2026 · Aplicable desde la fecha de publicación</p>
+  <p class="meta">Última actualización: julio de 2026 · Aplicable desde la fecha de publicación</p>
 
-  <p>En NodeFlow nos tomamos muy en serio la protección de tus datos personales. Esta política explica qué datos recogemos, con qué finalidad y cuáles son tus derechos conforme al <strong>Reglamento (UE) 2016/679 (RGPD)</strong> y la <strong>Ley Orgánica 3/2018 (LOPDGDD)</strong>.</p>
+  <p>En NodeFlow nos tomamos en serio la protección de datos personales. Esta política explica qué datos tratamos, con qué finalidad, con qué base legal y qué derechos tienes, conforme al <strong>Reglamento (UE) 2016/679 (RGPD)</strong> y la <strong>Ley Orgánica 3/2018 (LOPDGDD)</strong>.</p>
 
   <h2>1. Responsable del tratamiento</h2>
-  <div class="highlight">
+  <div class="card">
     <p><strong>Denominación:</strong> Nodeflow Inteligencia Artificial S.L.<br>
     <strong>NIF:</strong> B88840202<br>
-    <strong>Domicilio:</strong> Kaleberria 38, 20140 Andoain, Guipúzcoa<br>
-    <strong>Email de contacto:</strong> <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a></p>
+    <strong>Domicilio:</strong> [DIRECCIÓN FISCAL — a completar]<br>
+    <strong>Email de contacto en materia de privacidad:</strong> <a href="mailto:privacidad@nodeflow.es">privacidad@nodeflow.es</a> [confirmar buzón monitorizado] · Contacto general: <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a><br>
+    <strong>Delegado de Protección de Datos (DPO):</strong> [no designado / a completar si aplica]</p>
   </div>
 
-  <h2>2. Datos que recogemos</h2>
-  <p>Recogemos únicamente los datos necesarios para prestar el servicio:</p>
+  <h2>2. Dos roles distintos: responsable y encargado</h2>
+  <p>NodeFlow trata datos personales en dos calidades diferentes. Es importante distinguirlas:</p>
+
+  <h3>a) NodeFlow como <em>responsable del tratamiento</em></h3>
+  <p>Respecto a los datos de <strong>nuestros clientes de negocio</strong> (los profesionales y empresas que contratan NodeFlow): datos de registro y cuenta, facturación, uso del servicio y comunicaciones que mantienen con nosotros. De estos datos decidimos nosotros la finalidad y los medios, y por tanto somos responsables.</p>
+
+  <h3>b) NodeFlow como <em>encargado del tratamiento</em></h3>
+  <p>Respecto a los datos de los <strong>clientes finales</strong> de cada negocio (las personas que llaman, escriben o son gestionadas por el asistente), NodeFlow actúa como <strong>encargado del tratamiento</strong> (art. 28 RGPD) <strong>por cuenta y siguiendo las instrucciones del negocio contratante</strong>, que es el responsable de esos datos. Entre estos datos pueden estar: grabaciones y transcripciones de llamadas, nombres, teléfonos, citas y reservas, mensajes de WhatsApp, y datos de las fichas y entidades que gestione el negocio (por ejemplo vehículos, mascotas, pólizas o expedientes, según el sector).</p>
+  <p>Como encargado, tratamos esos datos <strong>solo para prestar el servicio</strong> contratado por el negocio, aplicamos medidas de seguridad, no los usamos para fines propios, y los suprimimos o devolvemos al terminar la relación, salvo obligación legal de conservación. Cada negocio es responsable de informar a sus propios clientes y de disponer de base legítima para el tratamiento.</p>
+
+  <h2>3. Datos que tratamos</h2>
   <ul>
-    <li><strong>Formulario de contratación:</strong> nombre, email, teléfono, nombre del negocio, sector, ciudad, horario y saludo del asistente.</li>
-    <li><strong>Pago:</strong> los datos de tarjeta son procesados íntegramente por <strong>Stripe, Inc.</strong> NodeFlow no almacena datos bancarios en ningún momento.</li>
-    <li><strong>Uso del servicio:</strong> registros de llamadas, duración, transcripciones (anonimizadas) para mejorar el servicio.</li>
-    <li><strong>Comunicaciones:</strong> emails y mensajes de WhatsApp que nos envíes.</li>
+    <li><strong>Registro y cuenta (responsable):</strong> nombre, email, teléfono, nombre del negocio, sector, ciudad, horario y configuración del asistente.</li>
+    <li><strong>Facturación (responsable):</strong> datos necesarios para emitir facturas. Los datos completos de tarjeta los procesa íntegramente <strong>Stripe</strong>; NodeFlow no almacena números de tarjeta.</li>
+    <li><strong>Datos de clientes finales (encargado):</strong> grabaciones y transcripciones de llamadas, nombres, teléfonos, citas, mensajes de WhatsApp y datos de fichas/entidades gestionadas por el negocio.</li>
+    <li><strong>Uso y soporte:</strong> registros técnicos de llamadas (duración, fecha) y comunicaciones que mantienes con soporte.</li>
   </ul>
 
-  <h2>3. Finalidad y base legal</h2>
+  <div class="note">
+    <p><strong>Grabación y transcripción de llamadas.</strong> Para prestar el servicio, las llamadas atendidas por el asistente pueden grabarse y transcribirse (por ejemplo, para generar resúmenes, gestionar citas y avisar al negocio). El asistente se identifica como asistente virtual al inicio de la llamada. Cada negocio es responsable de informar debidamente a sus clientes de esta grabación conforme a su propia normativa.</p>
+  </div>
+
+  <h2>4. Finalidad y base legal</h2>
   <ul>
-    <li><strong>Prestación del servicio contratado</strong> — base legal: ejecución de contrato (art. 6.1.b RGPD)</li>
-    <li><strong>Facturación y obligaciones fiscales</strong> — base legal: obligación legal (art. 6.1.c RGPD)</li>
-    <li><strong>Mejora del servicio y análisis de uso</strong> — base legal: interés legítimo (art. 6.1.f RGPD)</li>
-    <li><strong>Comunicaciones comerciales propias</strong> — base legal: consentimiento (art. 6.1.a RGPD) o interés legítimo en clientes existentes</li>
+    <li><strong>Prestación del servicio contratado</strong> — ejecución de contrato (art. 6.1.b RGPD).</li>
+    <li><strong>Tratamiento de datos de clientes finales por cuenta del negocio</strong> — con base en el contrato de encargo (art. 28 RGPD); la base legal frente al cliente final la determina el negocio responsable.</li>
+    <li><strong>Facturación y obligaciones fiscales</strong> — obligación legal (art. 6.1.c RGPD).</li>
+    <li><strong>Mejora y seguridad del servicio</strong> — interés legítimo (art. 6.1.f RGPD).</li>
+    <li><strong>Comunicaciones comerciales propias</strong> — consentimiento (art. 6.1.a RGPD) o interés legítimo respecto de clientes existentes.</li>
   </ul>
 
-  <h2>4. Plazo de conservación</h2>
-  <p>Conservamos tus datos mientras dure la relación contractual y, una vez finalizada, durante los plazos legales aplicables:</p>
+  <h2>5. Destinatarios y encargados/subencargados</h2>
+  <p>Para prestar el servicio recurrimos a proveedores tecnológicos que tratan datos por nuestra cuenta (o, en el caso de datos de clientes finales, como subencargados), todos ellos con garantías contractuales adecuadas. Por categorías:</p>
   <ul>
-    <li>Datos de facturación: 6 años (Código de Comercio y Ley del IVA)</li>
-    <li>Registros de llamadas: 12 meses desde la finalización del contrato</li>
-    <li>Datos de contacto: hasta que solicites su supresión</li>
+    <li><strong>Base de datos y alojamiento:</strong> Supabase.</li>
+    <li><strong>Proveedores de IA de voz y lenguaje:</strong> transcripción (voz a texto), síntesis de voz (texto a voz) y modelos de lenguaje.</li>
+    <li><strong>Telefonía:</strong> Telnyx (infraestructura de llamadas).</li>
+    <li><strong>Mensajería:</strong> Meta Platforms — WhatsApp Business Platform.</li>
+    <li><strong>Pagos:</strong> Stripe.</li>
+    <li><strong>Correo electrónico:</strong> proveedor de envío de email transaccional y de notificaciones.</li>
+  </ul>
+  <p>Algunos de estos proveedores pueden tratar datos <strong>fuera del Espacio Económico Europeo</strong>. En esos casos las transferencias se amparan en <strong>garantías adecuadas</strong>, como las <strong>Cláusulas Contractuales Tipo</strong> aprobadas por la Comisión Europea. La lista actualizada de subencargados puede solicitarse en <a href="mailto:privacidad@nodeflow.es">privacidad@nodeflow.es</a>.</p>
+  <p>No vendemos ni cedemos datos personales a terceros con fines comerciales propios.</p>
+
+  <h2>6. Plazo de conservación</h2>
+  <ul>
+    <li><strong>Datos de facturación:</strong> durante los plazos legales aplicables (Código de Comercio y normativa fiscal, hasta 6 años).</li>
+    <li><strong>Registros y grabaciones de llamadas:</strong> durante el tiempo necesario para prestar el servicio; como regla general se conservan durante la relación contractual y se suprimen o devuelven al negocio a su finalización, salvo obligación legal de conservación o instrucción del negocio responsable.</li>
+    <li><strong>Datos de contacto y cuenta:</strong> mientras dure la relación y hasta que solicites su supresión.</li>
   </ul>
 
-  <h2>5. Destinatarios</h2>
-  <p>Tus datos pueden ser compartidos con los siguientes proveedores de servicios, todos ellos con garantías adecuadas:</p>
+  <h2>7. Seguridad</h2>
+  <p>Aplicamos medidas técnicas y organizativas apropiadas conforme al RGPD: <strong>cifrado en tránsito (HTTPS/TLS)</strong>, <strong>cifrado en reposo (AES-256)</strong>, control de acceso restringido a datos personales, y revisiones periódicas de seguridad.</p>
+
+  <h2>8. Tus derechos</h2>
+  <p>Puedes ejercer en cualquier momento los siguientes derechos escribiendo a <a href="mailto:privacidad@nodeflow.es">privacidad@nodeflow.es</a>:</p>
   <ul>
-    <li><strong>Stripe, Inc.</strong> — procesamiento de pagos (EE.UU., cláusulas contractuales tipo)</li>
-    <li><strong>Twilio, Inc.</strong> — infraestructura de llamadas telefónicas</li>
-    <li><strong>OpenAI, Inc.</strong> — procesamiento de lenguaje natural</li>
-    <li><strong>Deepgram, Inc.</strong> — transcripción de voz</li>
-    <li><strong>Supabase, Inc.</strong> — base de datos del servicio</li>
+    <li><strong>Acceso:</strong> conocer qué datos tratamos sobre ti.</li>
+    <li><strong>Rectificación:</strong> corregir datos inexactos.</li>
+    <li><strong>Supresión:</strong> eliminar tus datos cuando ya no sean necesarios.</li>
+    <li><strong>Oposición:</strong> oponerte a tratamientos basados en interés legítimo.</li>
+    <li><strong>Portabilidad:</strong> recibir tus datos en un formato estructurado y de uso común.</li>
+    <li><strong>Limitación:</strong> restringir el tratamiento en determinadas circunstancias.</li>
   </ul>
-  <p>No vendemos ni cedemos tus datos a terceros con fines comerciales.</p>
+  <p>Si eres un <strong>cliente final</strong> de un negocio que usa NodeFlow y quieres ejercer tus derechos sobre datos que gestiona ese negocio, dirígete al negocio (responsable); nosotros, como encargados, le daremos soporte. En todo caso, si consideras que el tratamiento no es conforme a la normativa, puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (<a href="https://www.aepd.es" target="_blank" rel="noopener">aepd.es</a>).</p>
 
-  <h2>6. Tus derechos</h2>
-  <p>Puedes ejercer en cualquier momento los siguientes derechos dirigiéndote a <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a>:</p>
-  <ul>
-    <li><strong>Acceso:</strong> conocer qué datos tratamos sobre ti</li>
-    <li><strong>Rectificación:</strong> corregir datos inexactos</li>
-    <li><strong>Supresión:</strong> eliminar tus datos cuando no sean necesarios</li>
-    <li><strong>Oposición:</strong> oponerte al tratamiento basado en interés legítimo</li>
-    <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado</li>
-    <li><strong>Limitación:</strong> restringir el tratamiento en determinadas circunstancias</li>
-  </ul>
-  <p>Si consideras que el tratamiento no es conforme a la normativa, puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (aepd.es).</p>
+  <h2>9. Cookies</h2>
+  <p>Esta web utiliza únicamente cookies técnicas estrictamente necesarias para el funcionamiento del servicio y una herramienta de analítica web respetuosa con la privacidad, sin cookies de seguimiento publicitario de terceros.</p>
 
-  <h2>7. Cookies</h2>
-  <p>Esta web utiliza únicamente cookies técnicas estrictamente necesarias para el funcionamiento del servicio. No utilizamos cookies de seguimiento ni publicidad de terceros.</p>
-
-  <h2>8. Seguridad</h2>
-  <p>Aplicamos medidas técnicas y organizativas apropiadas para proteger tus datos: cifrado en tránsito (HTTPS/TLS), acceso restringido a datos personales y revisiones periódicas de seguridad.</p>
-
-  <h2>9. Cambios en esta política</h2>
-  <p>Podemos actualizar esta política ocasionalmente. Te informaremos de cambios significativos por email. La versión vigente siempre estará disponible en esta página.</p>
+  <h2>10. Cambios en esta política</h2>
+  <p>Podemos actualizar esta política. Informaremos de cambios significativos por email y la versión vigente estará siempre disponible en esta página.</p>
 </main>
 
-<footer>© 2026 NodeFlow · <a href="/aviso-legal">Aviso legal</a> · <a href="/terminos">Términos</a></footer>
+<footer>© 2026 NodeFlow · <a href="/aviso-legal">Aviso legal</a> · <a href="/condiciones">Condiciones</a></footer>
 </body>
 </html>

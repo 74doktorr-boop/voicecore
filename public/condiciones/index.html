@@ -1,65 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Condiciones del Servicio — NodeFlow</title>
-  <meta name="robots" content="noindex">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0d0d12; --bg2: #13131a; --card: #1a1a24;
-      --text: #f0f0f5; --dim: #a0a0b8; --muted: #666680;
-      --accent: #e0a23c; --accent-l: #f2bd5e; --border: rgba(255,255,255,0.08);
-    }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; }
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
-    nav a { color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; }
-    nav a span { color: var(--accent-l); }
-    .back { font-size: 13px; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 7px 16px; border-radius: 8px; }
-    .back:hover { color: var(--text); }
-    main { max-width: 760px; margin: 0 auto; padding: 60px 24px 100px; }
-    h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
-    .meta { font-size: 13px; color: var(--muted); margin-bottom: 48px; }
-    h2 { font-size: 18px; font-weight: 700; margin: 36px 0 12px; color: var(--accent-l); }
-    p { color: var(--dim); margin-bottom: 14px; font-size: 15px; }
-    ul { color: var(--dim); font-size: 15px; padding-left: 20px; margin-bottom: 14px; }
-    li { margin-bottom: 6px; }
-    a { color: var(--accent-l); }
-    .highlight { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 20px 0; }
-    footer { text-align: center; padding: 32px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); }
-      h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
-      a:focus-visible,button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Condiciones de Uso — NodeFlow</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0b0d; --bg-2:#101216;
+  --ink:#f3f5f1; --ink-2:#9aa09a; --ink-3:#636963;
+  --line:rgba(240,244,240,.13); --line-2:rgba(240,244,240,.28);
+  --lime:#c4f546; --lime-d:#aee02c;
+  --disp:'Clash Display',system-ui,sans-serif;
+  --sans:'Satoshi',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.7;font-size:16px}
+a{color:var(--lime);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--lime);color:#0a0b0d}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--disp);font-weight:600;font-size:1.4rem;letter-spacing:-.03em;color:var(--ink)}
+.logo b{color:var(--lime);font-weight:600}
+.back{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--bg-2);border:1px solid var(--line);padding:8px 16px;border-radius:8px}
+.back:hover{color:var(--ink);text-decoration:none;border-color:var(--line-2)}
+main{max-width:760px;margin:0 auto;padding:64px 24px 110px}
+h1{font-family:var(--disp);font-weight:600;letter-spacing:-.025em;color:var(--ink);font-size:clamp(30px,5vw,40px);line-height:1.05;margin-bottom:10px}
+.meta{font-family:var(--mono);font-size:.74rem;letter-spacing:.05em;color:var(--ink-3);margin-bottom:44px}
+h2{font-family:var(--disp);font-weight:500;font-size:1.22rem;letter-spacing:-.01em;color:var(--ink);margin:44px 0 14px}
+p{margin-bottom:14px}
+ul{padding-left:20px;margin-bottom:14px}
+li{margin-bottom:7px}
+strong{color:var(--ink);font-weight:700}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:22px 26px;margin:20px 0}
+.card p{margin:0}
+footer{text-align:center;padding:34px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:var(--ink-3);border-top:1px solid var(--line)}
+footer a{color:var(--ink-3)}footer a:hover{color:var(--lime)}
+a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:6px}
+</style>
 </head>
 <body>
 <nav>
-  <a href="/">Node<span>Flow</span></a>
+  <a href="/" class="logo">node<b>flow</b></a>
   <a href="/" class="back">← Volver</a>
 </nav>
 
 <main>
-  <h1>Condiciones del Servicio</h1>
+  <h1>Condiciones de Uso</h1>
   <p class="meta">Última actualización: julio de 2026 · Aplicable desde la fecha de publicación</p>
 
-  <p>Estas condiciones regulan la contratación y el uso de los servicios de NodeFlow. Al darte de alta aceptas estas condiciones. Están escritas para leerse: si algo no queda claro, escríbenos y te lo explicamos.</p>
+  <p>Estas condiciones regulan la contratación y el uso de los servicios de NodeFlow. Al darte de alta las aceptas. Están escritas para leerse: si algo no queda claro, escríbenos y te lo explicamos.</p>
 
   <h2>1. Quiénes somos</h2>
-  <div class="highlight">
+  <div class="card">
     <p><strong>Denominación:</strong> Nodeflow Inteligencia Artificial S.L.<br>
     <strong>NIF:</strong> B88840202<br>
-    <strong>Domicilio:</strong> Kaleberria 38, 20140 Andoain, Guipúzcoa<br>
+    <strong>Domicilio:</strong> [DIRECCIÓN FISCAL — a completar]<br>
     <strong>Email de contacto:</strong> <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a></p>
   </div>
 
   <h2>2. El servicio</h2>
-  <p>NodeFlow es una plataforma de automatización con inteligencia artificial para negocios: un asistente telefónico que atiende llamadas, gestiona citas y registra avisos, junto con automatizaciones de comunicación con tus clientes (confirmaciones, recordatorios, seguimientos y mensajes de reactivación por WhatsApp, SMS o email) y un portal de gestión.</p>
-  <p><strong>Transparencia sobre la IA:</strong> el asistente telefónico es un sistema de inteligencia artificial. Los saludos por defecto lo presentan como asistente virtual y el sistema nunca afirma ser una persona. Como toda IA, puede cometer errores de comprensión o de respuesta: el servicio incluye mecanismos de control (confirmaciones, avisos al responsable, registro de llamadas), pero la revisión de la información crítica del negocio (precios, horarios, disponibilidad) es responsabilidad del cliente a través de su portal.</p>
+  <p>NodeFlow es una plataforma de automatización con inteligencia artificial para negocios: un asistente telefónico que atiende llamadas, gestiona citas y registra avisos, junto con automatizaciones de comunicación con los clientes del negocio (confirmaciones, recordatorios, seguimientos y mensajes de reactivación por WhatsApp, SMS o email) y un portal de gestión.</p>
+  <p><strong>Transparencia sobre la IA:</strong> el asistente telefónico es un sistema de inteligencia artificial. Se presenta como asistente virtual y nunca afirma ser una persona. Como toda IA, puede cometer errores de comprensión o de respuesta: el servicio incluye mecanismos de control (confirmaciones, avisos al responsable, registro de llamadas), pero la revisión de la información crítica del negocio (precios, horarios, disponibilidad) es responsabilidad del cliente a través de su portal.</p>
 
   <h2>3. Alta, planes y precios</h2>
   <ul>
     <li>La contratación se realiza online. El plan vigente, sus minutos incluidos y el precio del exceso de minutos son los publicados en <a href="https://nodeflow.es">nodeflow.es</a> en el momento de la contratación.</li>
-    <li>Los precios se muestran sin IVA salvo indicación contraria. La facturación es mensual por adelantado; el exceso de minutos se factura a mes vencido según consumo medido.</li>
+    <li>Los precios se muestran sin IVA salvo indicación contraria. La facturación es mensual por adelantado; el exceso de minutos y los complementos (add-ons) se facturan según consumo medido.</li>
+    <li><strong>Sin permanencia:</strong> puedes cancelar cuando quieras (ver punto 4).</li>
     <li>Los pagos se procesan a través de Stripe. No almacenamos datos completos de tarjetas.</li>
   </ul>
 
@@ -70,13 +83,13 @@
     <li>Al terminar el servicio, tu número NodeFlow se desactiva y tus datos se tratan según la <a href="/privacidad">Política de Privacidad</a>.</li>
   </ul>
 
-  <h2>5. Uso correcto del servicio</h2>
+  <h2>5. Obligaciones del cliente</h2>
   <p>Como cliente te comprometes a:</p>
   <ul>
     <li>Usar el servicio solo para comunicaciones legítimas con tus propios clientes y contactos, nunca para comunicaciones masivas no solicitadas (spam) ni fines ilícitos.</li>
-    <li>Disponer de base legítima para los datos de contacto que cargues en la plataforma (agenda, importaciones, historial).</li>
-    <li>Informar a tus clientes de que las llamadas pueden ser atendidas por un asistente de inteligencia artificial y de que sus datos se tratan para la gestión de citas y avisos, conforme a tu propia política de privacidad.</li>
-    <li>Respetar las bajas: si un cliente final pide no recibir más mensajes (por ejemplo respondiendo BAJA), el sistema lo registra y tú te comprometes a no reincorporarlo manualmente.</li>
+    <li>Disponer de base legítima y del consentimiento necesario para los datos de contacto que cargues en la plataforma (agenda, importaciones, historial) y para las comunicaciones que se envíen en tu nombre.</li>
+    <li>Informar a tus clientes de que las llamadas pueden ser atendidas y grabadas por un asistente de inteligencia artificial y de que sus datos se tratan para la gestión de citas y avisos, conforme a tu propia política de privacidad.</li>
+    <li>Respetar las bajas y opt-outs: si un cliente final pide no recibir más mensajes (por ejemplo respondiendo BAJA), el sistema lo registra y tú te comprometes a no reincorporarlo manualmente.</li>
     <li>Mantener al día la información de tu negocio (precios, horarios, servicios) que el asistente comunica en tu nombre.</li>
   </ul>
   <p>El incumplimiento grave de estas obligaciones (en particular el spam) permite suspender el servicio de forma inmediata para proteger la plataforma y al resto de clientes.</p>
@@ -85,7 +98,7 @@
   <ul>
     <li>Respecto a <strong>tus datos como cliente</strong> (contacto, facturación, uso), NodeFlow es responsable del tratamiento. Todo el detalle está en la <a href="/privacidad">Política de Privacidad</a>.</li>
     <li>Respecto a los <strong>datos de tus clientes finales</strong> (llamadas, citas, teléfonos, mensajes), NodeFlow actúa como <strong>encargado del tratamiento</strong> (art. 28 RGPD) por tu cuenta: tratamos esos datos solo para prestarte el servicio y siguiendo tus instrucciones a través de la plataforma, aplicamos medidas de seguridad, y los suprimimos o devolvemos al terminar la relación, salvo obligación legal de conservación.</li>
-    <li>Para prestar el servicio empleamos proveedores tecnológicos (subencargados) como infraestructura de telefonía, mensajería (WhatsApp/Meta), reconocimiento y síntesis de voz, modelos de lenguaje, base de datos y pagos. Mantenemos con ellos garantías contractuales adecuadas; la lista vigente puede solicitarse en <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a>.</li>
+    <li>Para prestar el servicio empleamos proveedores tecnológicos (subencargados): telefonía, mensajería (WhatsApp/Meta), reconocimiento y síntesis de voz, modelos de lenguaje, base de datos y pagos, con garantías contractuales adecuadas. La lista vigente puede solicitarse en <a href="mailto:privacidad@nodeflow.es">privacidad@nodeflow.es</a>.</li>
   </ul>
 
   <h2>7. Disponibilidad y soporte</h2>
@@ -94,7 +107,7 @@
     <li>Soporte por email en <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a>. Respondemos lo antes posible en horario laboral.</li>
   </ul>
 
-  <h2>8. Responsabilidad</h2>
+  <h2>8. Limitación de responsabilidad</h2>
   <ul>
     <li>El asistente de IA es una herramienta de apoyo a tu negocio; no sustituye tu criterio profesional. NodeFlow no responde de decisiones tomadas por tus clientes finales a partir de la información que tú configuras.</li>
     <li>NodeFlow no responde de daños indirectos ni lucro cesante. En cualquier caso, la responsabilidad total de NodeFlow frente al cliente queda limitada al importe de las cuotas pagadas por el servicio en los 12 meses anteriores al hecho que la origine.</li>
@@ -113,8 +126,6 @@
   <p style="margin-top:40px">¿Dudas sobre estas condiciones? Escríbenos a <a href="mailto:unai@nodeflow.es">unai@nodeflow.es</a> — preferimos explicarlo a esconderlo en letra pequeña.</p>
 </main>
 
-<footer>
-  NodeFlow · <a href="/privacidad">Política de Privacidad</a> · <a href="/condiciones">Condiciones del Servicio</a>
-</footer>
+<footer>© 2026 NodeFlow · <a href="/privacidad">Privacidad</a> · <a href="/aviso-legal">Aviso legal</a></footer>
 </body>
 </html>
