@@ -1239,3 +1239,89 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .card--flat{background:none;border:1px solid var(--border);box-shadow:none;border-radius:var(--r-3)}
 .card--flat:hover{border-color:var(--border-2)}
 .u-link{color:var(--accent-l);cursor:pointer;text-decoration:underline}.u-cyan{color:var(--cyan)}.u-mono{font-family:monospace}
+
+/* ── 20 · INFORMES (panel analítico) ─────────────────────────────────────── */
+/* Selector de rango tipo segmented control */
+.rpt-range{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);padding:3px;gap:2px}
+.rpt-range button{appearance:none;border:none;background:none;color:var(--dim);font:inherit;font-size:var(--fs-sm);font-weight:700;padding:7px 14px;border-radius:var(--r-2);cursor:pointer;transition:background var(--dur-2) var(--ease-out),color var(--dur-2) var(--ease-out);white-space:nowrap}
+.rpt-range button:hover{color:var(--text)}
+.rpt-range button.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--glow-accent)}
+
+/* KPI con delta + sparkline */
+.rpt-kpi{position:relative;overflow:hidden}
+.rpt-kpi .rpt-kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.rpt-delta{display:inline-flex;align-items:center;gap:3px;font-size:var(--fs-xs);font-weight:800;font-variant-numeric:tabular-nums;padding:2px 7px;border-radius:var(--r-pill);white-space:nowrap}
+.rpt-delta.up{color:var(--green2);background:rgba(25,184,148,.13)}
+.rpt-delta.down{color:#ff6b6b;background:rgba(255,107,107,.12)}
+.rpt-delta.flat{color:var(--dim);background:rgba(255,255,255,.05)}
+.rpt-spark{display:block;margin-top:10px;width:100%;height:32px;overflow:visible}
+.rpt-kpi-cmp{font-size:var(--fs-2xs);color:var(--muted);margin-top:6px}
+
+/* Insight line (el toque del manifiesto) */
+.rpt-insight{display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;background:rgba(var(--accent-rgb),.06);border:1px solid rgba(var(--accent-rgb),.16);border-radius:var(--r-3);font-size:var(--fs-sm);color:var(--text);line-height:1.45}
+.rpt-insight .ic{flex:0 0 auto;font-size:14px;line-height:1.3}
+
+/* Gráficos SVG comunes */
+.rpt-chart{width:100%;height:auto;display:block;font-variant-numeric:tabular-nums}
+.rpt-chart .grid{stroke:var(--border);stroke-width:1}
+.rpt-chart .axis-lbl{fill:var(--muted);font-size:10px}
+.rpt-tooltip{position:absolute;pointer-events:none;background:var(--surface-3);border:1px solid var(--border-2);border-radius:var(--r-3);padding:7px 10px;font-size:var(--fs-sm);color:var(--white);box-shadow:var(--shadow-3);white-space:nowrap;z-index:20;transform:translate(-50%,-115%);opacity:0;transition:opacity .1s;font-variant-numeric:tabular-nums}
+.rpt-tooltip.show{opacity:1}
+.rpt-tooltip b{color:var(--accent-l)}
+
+/* Embudo horizontal */
+.rpt-funnel{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.rpt-funnel-row{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:12px}
+.rpt-funnel-lbl{font-size:var(--fs-sm);color:var(--dim);font-weight:600}
+.rpt-funnel-track{position:relative;height:34px;background:rgba(255,255,255,.04);border-radius:var(--r-3);overflow:hidden}
+.rpt-funnel-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--accent),var(--accent-l));border-radius:var(--r-3);display:flex;align-items:center;padding-left:12px;min-width:34px;transition:width .5s var(--ease-out)}
+.rpt-funnel-fill .v{font-size:var(--fs-md);font-weight:800;color:var(--on-accent);font-variant-numeric:tabular-nums}
+.rpt-funnel-side{text-align:right;font-size:var(--fs-xs);min-width:78px}
+.rpt-funnel-side .pct{font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.rpt-funnel-side .drop{color:#ff8080;font-variant-numeric:tabular-nums}
+
+/* Money story — barra segmentada + leyenda */
+.rpt-money-bar{display:flex;height:38px;border-radius:var(--r-3);overflow:hidden;background:rgba(255,255,255,.04);margin:4px 0 14px}
+.rpt-money-seg{display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);font-weight:800;color:var(--on-accent);min-width:2px;transition:flex-grow .5s var(--ease-out);font-variant-numeric:tabular-nums}
+.rpt-legend{display:flex;flex-direction:column;gap:8px}
+.rpt-legend-row{display:flex;align-items:center;gap:10px;font-size:var(--fs-sm)}
+.rpt-legend-row .dot{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+.rpt-legend-row .nm{color:var(--dim);flex:1}
+.rpt-legend-row .amt{font-weight:800;color:var(--white);font-variant-numeric:tabular-nums}
+
+/* Hora punta (heat bars) */
+.rpt-hours{display:flex;align-items:flex-end;gap:3px;height:90px;padding-top:6px}
+.rpt-hour{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.rpt-hour .hbar{width:100%;background:rgba(var(--accent-rgb),.28);border-radius:2px 2px 0 0;min-height:2px;transition:background var(--dur-2)}
+.rpt-hour:hover .hbar{background:var(--accent)}
+.rpt-hour .hlbl{font-size:9px;color:var(--muted)}
+
+/* Servicios */
+.rpt-svc{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.rpt-svc-row{display:grid;grid-template-columns:1fr 44px;align-items:center;gap:10px}
+.rpt-svc-bar{position:relative;height:22px;background:rgba(255,255,255,.04);border-radius:var(--r-2);overflow:hidden}
+.rpt-svc-fill{position:absolute;inset:0 auto 0 0;background:rgba(var(--accent-rgb),.55);border-radius:var(--r-2);display:flex;align-items:center;padding-left:9px;font-size:var(--fs-xs);font-weight:700;color:var(--white);white-space:nowrap}
+.rpt-svc-cnt{text-align:right;font-weight:800;color:var(--white);font-variant-numeric:tabular-nums;font-size:var(--fs-sm)}
+
+.rpt-empty{text-align:center;padding:40px 20px;color:var(--dim)}
+.rpt-empty .big{font-size:40px;margin-bottom:12px}
+.rpt-empty .t{font-size:var(--fs-lg);color:var(--white);font-weight:700;margin-bottom:6px}
+.rpt-empty .s{font-size:var(--fs-md);max-width:420px;margin:0 auto;line-height:1.5}
+
+.rpt-est{font-size:var(--fs-2xs);color:var(--muted);font-weight:500}
+
+/* ── Impresión: informe limpio en papel ─────────────────────────────────── */
+@media print{
+  @page{margin:14mm}
+  body{background:#fff!important}
+  .sidebar,.nf-topbar,.rpt-range,.rpt-print-btn,.nav-item,.cmdk-hint,.plan-badge,.dash-action-bar,#cmdk,.skel-wrap{display:none!important}
+  .app-main,.main,.content{margin:0!important;padding:0!important;max-width:none!important}
+  .section-header{border:none;padding-top:0}
+  .card,.kpi,.rpt-kpi{background:#fff!important;border:1px solid #d0d5dd!important;box-shadow:none!important;color:#101216!important;break-inside:avoid;page-break-inside:avoid}
+  .card-title,.kpi-val,.section-title,strong,.rpt-funnel-side .pct,.rpt-svc-cnt,.rpt-legend-row .amt{color:#101216!important}
+  .kpi-label,.kpi-sub,.section-desc,.rpt-funnel-lbl,.rpt-legend-row .nm,.axis-lbl{color:#475467!important}
+  .rpt-insight{background:#f4fae6!important;border-color:#c4f546!important;color:#101216!important}
+  .rpt-funnel-fill{background:#8bbf1f!important}
+  .two-col,.kpi-grid{break-inside:avoid}
+  a[href]:after{content:""}
+}

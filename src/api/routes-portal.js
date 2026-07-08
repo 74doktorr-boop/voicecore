@@ -971,73 +971,94 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── GET /api/portal/reports ───────────────────────────────
+  // Panel analítico "cerebro del negocio". UNA llamada eficiente:
+  // llamadas del periodo + del periodo anterior (para deltas) + citas +
+  // atribución del motor, en paralelo y tolerante a fallos parciales.
+  // La agregación/insights viven en src/reports/analytics.js (puras).
   app.get('/api/portal/reports', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const period  = req.query.period || 'month';
-    const days    = period === 'week' ? 7 : period === 'quarter' ? 90 : 30;
-    const fromTs  = Date.now() - days * 86400000;
-    const fromStr = new Date(fromTs).toISOString().slice(0, 10);
+    const analytics = require('../reports/analytics');
+    const { getAttribution } = require('../lifecycle/followup-attribution');
 
-    // Fuente de verdad: nf_calls. Los informes salían de la memoria del
-    // proceso (borrada en cada deploy) → "1 llamada" tras una noche de
-    // pruebas. Fallback a memoria solo si la BD está caída.
-    let bizCalls;
+    const range   = analytics.RANGE_DAYS[req.query.period] ? req.query.period
+                  : analytics.RANGE_DAYS[req.query.range] ? req.query.range : 'month';
+    const days    = analytics.rangeDays(range);
+    const now     = Date.now();
+    const curFrom = new Date(now - days * 864e5).toISOString();
+    // Periodo anterior: la misma ventana justo antes.
+    const prevFrom = new Date(now - 2 * days * 864e5).toISOString();
+    const prevTo   = curFrom;
+    const avgTicket = flowConfig.automations?.config?.avgTicket || 35;
     const db = getDatabase();
-    if (db.enabled) {
-      try {
-        const { data, error } = await db.client.from('nf_calls')
-          .select('outcome, started_at, ended_at')
-          .eq('org_id', businessId)
-          .order('started_at', { ascending: false })
-          .limit(2000);
-        if (error) throw new Error(error.message);
-        bizCalls = (data || []).map(c => ({
-          outcome: c.outcome, startTime: c.started_at, endTime: c.ended_at,
-        }));
-      } catch (e) {
-        log.warn(`portal reports desde nf_calls falló (${e.message}) — fallback memoria`);
-      }
-    }
-    if (!bizCalls) {
-      bizCalls = pipeline.getCallHistory(500)
-        .filter(c => (c.businessId || c.assistantId) === businessId);
-    }
 
-    // Period calls
-    // BUG-30 FIX: same field name issue — use endTime/startTime from toJSON()
-    const periodCalls = bizCalls.filter(c => (c.endTime || c.startTime || '') >= fromStr);
-    const totalCalls  = periodCalls.length;
-    const bookings    = periodCalls.filter(c => c.outcome === 'booked').length;
-    const convRate    = totalCalls > 0 ? Math.round((bookings / totalCalls) * 100) : 0;
-    const hoursSaved  = Math.round((totalCalls * 4) / 60 * 10) / 10;
-    const avgTicket   = flowConfig.automations?.config?.avgTicket || 35;
-    const revenueEst  = bookings * avgTicket;
-
-    // Calls by day-of-week
-    const DOW_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    const callsByDow = Array(7).fill(0);
-    for (const c of periodCalls) {
-      // Día de la semana en MADRID (no en el huso del servidor UTC): una llamada de
-      // madrugada podía caer en el día anterior y descuadrar el gráfico del portal.
-      const d = new Date(new Date(c.endTime || c.startTime || Date.now())
-        .toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
-      callsByDow[d.getDay()]++;
-    }
-    const callsByDayOfWeek = DOW_LABELS.map((label, i) => ({ label, value: callsByDow[i] }));
-
-    // All-time stats
-    const allTotal    = bizCalls.length;
-    const allBookings = bizCalls.filter(c => c.outcome === 'booked').length;
-    const allHours    = Math.round((allTotal * 4) / 60 * 10) / 10;
-    const allRevenue  = allBookings * avgTicket;
-
-    res.json({
-      ok: true,
-      period,
-      summary: { totalCalls, bookings, convRate, hoursSaved, revenueEst },
-      callsByDayOfWeek,
-      allTime: { totalCalls: allTotal, bookings: allBookings, hoursSaved: allHours, revenueEst: allRevenue },
+    // Mapea filas de nf_calls al shape que esperan las funciones puras.
+    const mapCall = c => ({
+      outcome: c.outcome, status: c.status,
+      startTime: c.started_at, endTime: c.ended_at,
     });
+
+    let curCalls = null, prevCalls = null, appts = [], allCalls = null, attribution = null;
+
+    if (db.enabled) {
+      const results = await Promise.allSettled([
+        // Llamadas del periodo actual
+        db.client.from('nf_calls')
+          .select('outcome, status, started_at, ended_at')
+          .eq('org_id', businessId).gte('started_at', curFrom)
+          .order('started_at', { ascending: false }).limit(4000),
+        // Llamadas del periodo anterior (solo para deltas)
+        db.client.from('nf_calls')
+          .select('outcome, status, started_at')
+          .eq('org_id', businessId).gte('started_at', prevFrom).lt('started_at', prevTo)
+          .limit(4000),
+        // Citas del periodo (embudo + servicios)
+        db.client.from('nf_appointments')
+          .select('service, price, status, date, created_at')
+          .eq('organization_id', businessId).gte('created_at', curFrom).limit(4000),
+        // Totales "desde que activaste" (ligero: solo outcome)
+        db.client.from('nf_calls')
+          .select('outcome').eq('org_id', businessId).limit(20000),
+        // Atribución del motor (ROI por fuente) — su propio módulo tolerante
+        getAttribution(businessId, { db, sinceDays: days, avgTicket }),
+      ]);
+
+      const [rCur, rPrev, rApt, rAll, rAttr] = results;
+      if (rCur.status === 'fulfilled' && !rCur.value.error) curCalls = (rCur.value.data || []).map(mapCall);
+      if (rPrev.status === 'fulfilled' && !rPrev.value.error) prevCalls = (rPrev.value.data || []).map(mapCall);
+      if (rApt.status === 'fulfilled' && !rApt.value.error) appts = rApt.value.data || [];
+      if (rAll.status === 'fulfilled' && !rAll.value.error) allCalls = rAll.value.data || [];
+      if (rAttr.status === 'fulfilled') attribution = rAttr.value;
+      if (rCur.status === 'rejected') log.warn(`reports: nf_calls periodo falló — ${rCur.reason?.message || rCur.reason}`);
+    }
+
+    // Fallback a memoria solo si la BD está caída (histórico se pierde en deploy,
+    // pero al menos el panel no muere).
+    if (curCalls === null) {
+      const mem = pipeline.getCallHistory(2000)
+        .filter(c => (c.businessId || c.assistantId) === businessId);
+      const fromStr = curFrom;
+      curCalls = mem.filter(c => (c.startTime || c.endTime || '') >= fromStr);
+      allCalls = allCalls || mem.map(c => ({ outcome: c.outcome }));
+    }
+    if (prevCalls === null) prevCalls = [];
+
+    // Totales all-time
+    const allTotal    = (allCalls || []).length;
+    const allBookings = (allCalls || []).filter(c => c.outcome === 'booked').length;
+    const allTime = {
+      totalCalls: allTotal,
+      bookings: allBookings,
+      hoursSaved: Math.round((allTotal * 4) / 60 * 10) / 10,
+      revenueEst: allBookings * avgTicket,
+    };
+
+    const report = analytics.buildReport({
+      range, now, avgTicket,
+      calls: curCalls, prevCalls, appointments: appts,
+      attribution, allTime,
+    });
+
+    res.json(report);
   });
 
   // ── GET /api/portal/automations ───────────────────────────

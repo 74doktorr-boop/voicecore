@@ -11,6 +11,7 @@ let _currentSection = 'dashboard';
 
 var _wizardContacts = [];  // cache of contacts loaded for the wizard
 var _wizardFields   = [];  // cache of sector fields for the wizard
+var _rptRange       = 'month'; // rango activo del panel de Informes
 
 // ── API helper ────────────────────────────────────────────────
 async function api(path, method, body, timeoutMs) {
@@ -2082,68 +2083,330 @@ async function submitCancelCita(id) {
   }
 }
 
-// ── Informes ──────────────────────────────────────────────────
-async function loadInformes(period) {
-  period = period || 'month';
+// ── Informes ── panel analítico "cerebro del negocio" ─────────────
+var RPT_RANGE_LABEL = { week: 'Semana', month: 'Mes', quarter: '3 meses', year: 'Año' };
+var RPT_RANGE_PREV  = {
+  week: 'vs semana anterior', month: 'vs mes anterior',
+  quarter: 'vs 3 meses anteriores', year: 'vs año anterior',
+};
+
+function fmtEuro(n) { return '€' + (Math.round(Number(n) || 0)).toLocaleString('es-ES'); }
+function fmtNum(n)  { return (Number(n) || 0).toLocaleString('es-ES'); }
+
+// Sparkline SVG (serie corta). Endpoint enfatizado.
+function rptSparkline(series, color) {
+  color = color || 'var(--accent)';
+  var vals = (series || []).map(function(v){ return Number(v) || 0; });
+  if (vals.length < 2) return '';
+  var W = 120, H = 32, max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+  var span = (max - min) || 1;
+  var step = W / (vals.length - 1);
+  var pts = vals.map(function(v, i){
+    var x = i * step;
+    var y = H - 3 - ((v - min) / span) * (H - 6);
+    return [x, y];
+  });
+  var line = pts.map(function(p, i){ return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+  var area = line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z';
+  var last = pts[pts.length - 1];
+  var uid = 'sg' + Math.random().toString(36).slice(2, 8);
+  return '<svg class="rpt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+    '<defs><linearGradient id="' + uid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + color + '" stop-opacity=".28"/>' +
+      '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+    '<path d="' + area + '" fill="url(#' + uid + ')"/>' +
+    '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="' + color + '"/></svg>';
+}
+
+function rptDeltaHtml(d) {
+  if (!d) return '';
+  if (d.pct === null) return '<span class="rpt-delta up">nuevo</span>';
+  var cls = d.dir === 'up' ? 'up' : d.dir === 'down' ? 'down' : 'flat';
+  var arrow = d.dir === 'up' ? '▲' : d.dir === 'down' ? '▼' : '·';
+  var sign = d.pct > 0 ? '+' : '';
+  return '<span class="rpt-delta ' + cls + '">' + arrow + ' ' + sign + d.pct + '%</span>';
+}
+
+function rptKpiCard(label, valHtml, kpi, sparkColor, cmpLabel) {
+  var spark = (kpi && kpi.spark && kpi.spark.length > 1) ? rptSparkline(kpi.spark, sparkColor) : '';
+  return '<div class="kpi rpt-kpi">' +
+    '<div class="rpt-kpi-top"><div class="kpi-label">' + esc(label) + '</div>' + rptDeltaHtml(kpi && kpi.delta) + '</div>' +
+    '<div class="kpi-val">' + valHtml + '</div>' +
+    (spark || '') +
+    (cmpLabel ? '<div class="rpt-kpi-cmp">' + esc(cmpLabel) + '</div>' : '') +
+  '</div>';
+}
+
+function rptInsight(text) {
+  if (!text) return '';
+  return '<div class="rpt-insight"><span class="ic">💡</span><span>' + esc(text) + '</span></div>';
+}
+
+// Gráfico de líneas/área: llamadas & reservas en el tiempo, con hover.
+function rptTrendChart(trend) {
+  var labels = trend.labels || [], calls = trend.calls || [], books = trend.bookings || [];
+  var n = labels.length;
+  if (!n) return '<div class="rpt-empty"><div class="s">Sin datos en el rango.</div></div>';
+  var W = 720, H = 240, padL = 34, padR = 12, padT = 14, padB = 26;
+  var iw = W - padL - padR, ih = H - padT - padB;
+  var max = 1;
+  for (var i = 0; i < n; i++) { max = Math.max(max, calls[i] || 0, books[i] || 0); }
+  // redondea el techo a algo bonito
+  var ceil = niceCeil(max);
+  var stepX = n > 1 ? iw / (n - 1) : 0;
+  function X(i){ return padL + i * stepX; }
+  function Y(v){ return padT + ih - (v / ceil) * ih; }
+
+  function pathFor(arr){
+    return arr.map(function(v, i){ return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v || 0).toFixed(1); }).join(' ');
+  }
+  var callLine = pathFor(calls);
+  var callArea = callLine + ' L' + X(n - 1).toFixed(1) + ' ' + Y(0) + ' L' + X(0).toFixed(1) + ' ' + Y(0) + ' Z';
+  var bookLine = pathFor(books);
+
+  // gridlines + eje Y (4 líneas)
+  var grid = '';
+  for (var g = 0; g <= 4; g++) {
+    var gv = ceil * g / 4, gy = Y(gv);
+    grid += '<line class="grid" x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + gy.toFixed(1) + '" opacity="' + (g === 0 ? '.5' : '.28') + '"/>';
+    grid += '<text class="axis-lbl" x="' + (padL - 6) + '" y="' + (gy + 3).toFixed(1) + '" text-anchor="end">' + Math.round(gv) + '</text>';
+  }
+  // etiquetas X (máx ~7 para no saturar)
+  var xlabels = '';
+  var stride = Math.max(1, Math.ceil(n / 7));
+  for (var xi = 0; xi < n; xi += stride) {
+    xlabels += '<text class="axis-lbl" x="' + X(xi).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(labels[xi]) + '</text>';
+  }
+  // puntos + hovers (rects invisibles)
+  var dots = '', hovers = '';
+  for (var d = 0; d < n; d++) {
+    var payload = esc(labels[d]) + '|' + (calls[d] || 0) + '|' + (books[d] || 0);
+    var hw = stepX || iw;
+    hovers += '<rect x="' + (X(d) - hw / 2).toFixed(1) + '" y="' + padT + '" width="' + hw.toFixed(1) + '" height="' + ih + '" fill="transparent" ' +
+      'onmousemove="rptTip(event,\'' + payload + '\')" onmouseleave="rptTipHide()"></rect>';
+  }
+  // endpoints enfatizados
+  dots += '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(calls[n - 1] || 0).toFixed(1) + '" r="3.5" fill="var(--accent)"/>';
+  dots += '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(books[n - 1] || 0).toFixed(1) + '" r="3.5" fill="var(--green2)"/>';
+
+  return '<div style="position:relative">' +
+    '<div id="rpt-tip" class="rpt-tooltip"></div>' +
+    '<svg class="rpt-chart" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs><linearGradient id="rptCallArea" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/>' +
+        '<stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
+      grid + xlabels +
+      '<path d="' + callArea + '" fill="url(#rptCallArea)"/>' +
+      '<path d="' + callLine + '" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<path d="' + bookLine + '" fill="none" stroke="var(--green2)" stroke-width="2" stroke-dasharray="1 0" stroke-linejoin="round" stroke-linecap="round"/>' +
+      dots + hovers +
+    '</svg>' +
+    '<div style="display:flex;gap:18px;margin-top:6px;font-size:12px">' +
+      '<span style="color:var(--accent-l)">● Llamadas</span>' +
+      '<span style="color:var(--green2)">● Reservas</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function niceCeil(v) {
+  if (v <= 5) return 5;
+  var mag = Math.pow(10, Math.floor(Math.log10(v)));
+  var norm = v / mag;
+  var nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
+// Tooltip del gráfico de tendencia
+function rptTip(ev, payload) {
+  var tip = document.getElementById('rpt-tip');
+  if (!tip) return;
+  var parts = payload.split('|');
+  tip.innerHTML = '<div style="color:var(--dim);font-size:11px;margin-bottom:2px">' + parts[0] + '</div>' +
+    '<b>' + parts[1] + '</b> llamadas · <span style="color:var(--green2)">' + parts[2] + '</span> reservas';
+  var host = tip.parentElement.getBoundingClientRect();
+  tip.style.left = (ev.clientX - host.left) + 'px';
+  tip.style.top = (ev.clientY - host.top) + 'px';
+  tip.classList.add('show');
+}
+function rptTipHide() { var t = document.getElementById('rpt-tip'); if (t) t.classList.remove('show'); }
+
+// Embudo horizontal
+function rptFunnel(funnel) {
+  var steps = funnel.steps || [];
+  var base = steps.length ? (steps[0].value || 1) : 1;
+  return '<div class="rpt-funnel">' + steps.map(function(s, i){
+    var w = Math.max(4, Math.round((s.value / base) * 100));
+    var side = '<span class="pct">' + s.pct + '%</span>' +
+      (i > 0 && s.dropPct > 0 ? ' <span class="drop">−' + s.dropPct + '%</span>' : '');
+    return '<div class="rpt-funnel-row">' +
+      '<div class="rpt-funnel-lbl">' + esc(s.label) + '</div>' +
+      '<div class="rpt-funnel-track"><div class="rpt-funnel-fill" style="width:' + w + '%"><span class="v">' + fmtNum(s.value) + '</span></div></div>' +
+      '<div class="rpt-funnel-side">' + side + '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// Money story: barra segmentada + leyenda
+var RPT_MONEY_COLORS = { voz: 'var(--accent)', seguimientos: 'var(--green2)', fichas: '#60a5fa' };
+function rptMoney(money) {
+  var segs = money.segments || [];
+  if (!segs.length || money.total <= 0) {
+    return '<div class="rpt-empty" style="padding:24px 12px"><div class="s">Aún no hay ingresos atribuibles en este periodo. Cuando la asistente reserve o el motor de seguimientos traiga citas, el desglose aparecerá aquí.</div></div>';
+  }
+  var bar = segs.map(function(s){
+    var pct = (s.value / money.total) * 100;
+    var col = RPT_MONEY_COLORS[s.key] || 'var(--dim)';
+    return '<div class="rpt-money-seg" style="flex-grow:' + s.value + ';background:' + col + '" title="' + esc(s.label) + ': ' + fmtEuro(s.value) + '">' + (pct > 12 ? fmtEuro(s.value) : '') + '</div>';
+  }).join('');
+  var legend = segs.map(function(s){
+    var col = RPT_MONEY_COLORS[s.key] || 'var(--dim)';
+    return '<div class="rpt-legend-row"><span class="dot" style="background:' + col + '"></span>' +
+      '<span class="nm">' + esc(s.label) + (s.estimated ? ' <span class="rpt-est">~estimado</span>' : '') + '</span>' +
+      '<span class="amt">' + fmtEuro(s.value) + '</span></div>';
+  }).join('');
+  var recovered = money.recovered > 0
+    ? '<div class="rpt-legend-row" style="border-top:1px solid var(--border);padding-top:9px;margin-top:3px"><span class="nm" style="color:var(--white);font-weight:700">€ recuperados por seguimientos</span><span class="amt" style="color:var(--green2)">~' + fmtEuro(money.recovered) + '</span></div>'
+    : '';
+  return '<div class="rpt-money-bar">' + bar + '</div>' +
+    '<div class="rpt-legend">' + legend + recovered + '</div>';
+}
+
+// Hora punta (barras 0..23)
+function rptHours(hours) {
+  var max = 1;
+  for (var i = 0; i < hours.length; i++) max = Math.max(max, hours[i].value || 0);
+  if (max <= 1 && hours.every(function(h){ return !h.value; })) {
+    return '<div class="rpt-empty" style="padding:20px 12px"><div class="s">Cuando entren más llamadas verás aquí tus horas punta.</div></div>';
+  }
+  return '<div class="rpt-hours">' + hours.map(function(h){
+    var pct = Math.round((h.value / max) * 100);
+    var lbl = (h.hour % 3 === 0) ? h.hour + 'h' : '';
+    return '<div class="rpt-hour" title="' + h.hour + ':00 — ' + h.value + ' llamadas">' +
+      '<div class="hbar" style="height:' + Math.max(pct, 2) + '%"></div>' +
+      '<div class="hlbl">' + lbl + '</div></div>';
+  }).join('') + '</div>';
+}
+
+// Weekday distribution (SVG-free, existente pero con nuevos datos Lun..Dom)
+function rptWeekday(weekday) {
+  var max = 1;
+  for (var i = 0; i < weekday.length; i++) max = Math.max(max, weekday[i].value || 0);
+  return '<div class="bar-chart">' + weekday.map(function(w){
+    var pct = Math.round((w.value / max) * 100);
+    return '<div class="bar-wrap"><div class="bar-val">' + (w.value > 0 ? w.value : '') + '</div>' +
+      '<div class="bar" style="height:' + Math.max(pct, 4) + '%" title="' + esc(w.label) + ': ' + w.value + '"></div>' +
+      '<div class="bar-label">' + esc(w.label) + '</div></div>';
+  }).join('') + '</div>';
+}
+
+// Servicios más pedidos
+function rptServices(services) {
+  if (!services.length) {
+    return '<div class="rpt-empty" style="padding:20px 12px"><div class="s">Sin servicios registrados en las citas todavía.</div></div>';
+  }
+  var max = services[0].count || 1;
+  return '<div class="rpt-svc">' + services.map(function(s){
+    var w = Math.max(8, Math.round((s.count / max) * 100));
+    return '<div class="rpt-svc-row">' +
+      '<div class="rpt-svc-bar"><div class="rpt-svc-fill" style="width:' + w + '%">' + esc(s.name) + '</div></div>' +
+      '<div class="rpt-svc-cnt">' + s.count + '</div></div>';
+  }).join('') + '</div>';
+}
+
+async function loadInformes(range) {
+  range = range || _rptRange || 'month';
+  _rptRange = range;
   var sec = document.getElementById('sec-informes');
   sec.innerHTML = skelPanel();
 
   var data;
   try {
-    data = await api('/api/portal/reports?period=' + period);
+    data = await api('/api/portal/reports?range=' + range);
   } catch (e) {
     sec.innerHTML = '<div class="empty-state"><div>Error: ' + esc(e.message) + '</div></div>';
     return;
   }
 
-  var s = data.summary || {};
-  var t = data.allTime || {};
-  var PERIOD_LABEL = { week: 'Esta semana', month: 'Este mes', quarter: 'Últimos 3 meses' };
-
-  // CSS bar chart
-  var dow    = data.callsByDayOfWeek || [];
-  var maxVal = 1;
-  for (var i = 0; i < dow.length; i++) { if (dow[i].value > maxVal) maxVal = dow[i].value; }
-  var bars = '';
-  for (var i = 0; i < dow.length; i++) {
-    var pct = Math.round((dow[i].value / maxVal) * 100);
-    bars += '<div class="bar-wrap">' +
-      '<div class="bar-val">' + (dow[i].value > 0 ? dow[i].value : '') + '</div>' +
-      '<div class="bar" style="height:' + Math.max(pct, 5) + '%" title="' + esc(dow[i].label) + ': ' + dow[i].value + '"></div>' +
-      '<div class="bar-label">' + esc(dow[i].label) + '</div></div>';
-  }
-
-  var periodBtns = ['week','month','quarter'].map(function(p) {
-    return '<button class="btn ' + (p === period ? 'btn-accent' : 'btn-d') + ' btn-sm" onclick="loadInformes(\'' + p + '\')">' + PERIOD_LABEL[p] + '</button>';
+  var rangeBtns = ['week','month','quarter','year'].map(function(p){
+    return '<button class="' + (p === range ? 'on' : '') + '" onclick="loadInformes(\'' + p + '\')">' + RPT_RANGE_LABEL[p] + '</button>';
   }).join('');
 
-  sec.innerHTML =
+  var header =
     '<div class="section-header">' +
-      '<div class="kicker">Crecimiento</div><div class="section-title">Informes</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">' + periodBtns + '</div>' +
-    '</div>' +
-    '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + (PERIOD_LABEL[period] || period) + '</div>' +
-    '<div class="kpi-grid">' +
-      '<div class="kpi"><div class="kpi-label">Llamadas</div><div class="kpi-val" style="color:var(--accent-l)">' + (s.totalCalls || 0) + '</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Reservas</div><div class="kpi-val" style="color:var(--green2)">' + (s.bookings || 0) + '</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Conversión</div><div class="kpi-val" style="color:var(--yellow)">' + (s.convRate || 0) + '%</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Horas ahorradas</div><div class="kpi-val" style="color:#60a5fa">' + (s.hoursSaved || 0) + 'h</div></div>' +
-      '<div class="kpi"><div class="kpi-label">Ingresos estimados</div><div class="kpi-val" style="color:var(--green2)">€' + (s.revenueEst || 0) + '</div><div class="kpi-sub">reservas × precio medio</div></div>' +
-    '</div>' +
-    '<div class="two-col">' +
-      '<div class="card"><div class="card-title">📊 Llamadas por día de la semana</div>' +
-        '<div class="bar-chart">' + (bars || '<div style="color:var(--dim);font-size:12px">Sin datos</div>') + '</div>' +
-      '</div>' +
-      '<div class="card"><div class="card-title">🏆 Desde que activaste NodeFlow</div>' +
-        '<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">' +
-          '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Total llamadas</span><strong>' + (t.totalCalls || 0) + '</strong></div>' +
-          '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Reservas generadas</span><strong style="color:var(--green2)">' + (t.bookings || 0) + '</strong></div>' +
-          '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Horas ahorradas</span><strong style="color:#60a5fa">' + (t.hoursSaved || 0) + 'h</strong></div>' +
-          '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Ingresos atribuidos</span><strong style="color:var(--green2)">€' + (t.revenueEst || 0) + '</strong></div>' +
-        '</div>' +
+      '<div class="kicker">Crecimiento · el cerebro del negocio</div>' +
+      '<div class="section-title">Informes</div>' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+        '<div class="rpt-range">' + rangeBtns + '</div>' +
+        '<button class="btn btn-d btn-sm rpt-print-btn" onclick="rptPrint()">⭳ Descargar informe</button>' +
       '</div>' +
     '</div>';
+
+  // Empty state honesto
+  if (!data.hasData) {
+    sec.innerHTML = header +
+      '<div class="card"><div class="rpt-empty">' +
+        '<div class="big">📈</div>' +
+        '<div class="t">Aún pocos datos por aquí</div>' +
+        '<div class="s">Cuando entren más llamadas y citas verás tus tendencias, tu embudo de conversión y de dónde vienen tus ingresos. Todo se calcula solo, con tus datos reales.</div>' +
+      '</div></div>';
+    return;
+  }
+
+  var k = data.kpis || {};
+  var ins = data.insights || {};
+  var cmp = RPT_RANGE_PREV[range];
+
+  var kpis = '<div class="kpi-grid">' +
+    rptKpiCard('Llamadas', fmtNum(k.totalCalls && k.totalCalls.value), k.totalCalls, 'var(--accent)', cmp) +
+    rptKpiCard('Reservas', fmtNum(k.bookings && k.bookings.value), k.bookings, 'var(--green2)', cmp) +
+    rptKpiCard('Conversión', (k.convRate && k.convRate.value || 0) + '%', k.convRate, 'var(--yellow)', cmp) +
+    rptKpiCard('Horas ahorradas', (k.hoursSaved && k.hoursSaved.value || 0) + 'h', k.hoursSaved, '#60a5fa', cmp) +
+    rptKpiCard('Ingresos estimados', fmtEuro(k.revenueEst && k.revenueEst.value), k.revenueEst, 'var(--green2)', 'reservas × precio medio') +
+  '</div>';
+
+  var lowNote = data.lowData
+    ? '<div class="rpt-insight" style="background:rgba(var(--yellow-rgb),.06);border-color:rgba(var(--yellow-rgb),.22)"><span class="ic">ℹ️</span><span>Todavía tienes pocos datos en este rango: las tendencias e insights ganarán precisión a medida que entren más llamadas.</span></div>'
+    : '';
+
+  var trendCard = '<div class="card"><div class="card-title">📈 Tendencia · llamadas y reservas</div>' +
+    rptTrendChart(data.trend) + rptInsight(ins.trend) + '</div>';
+
+  var funnelCard = '<div class="card"><div class="card-title">🔻 Embudo de conversión</div>' +
+    rptFunnel(data.funnel) + rptInsight(ins.funnel) + '</div>';
+
+  var moneyCard = '<div class="card"><div class="card-title">💶 De dónde vienen tus ingresos</div>' +
+    rptMoney(data.money) + rptInsight(ins.money) + '</div>';
+
+  var weekdayCard = '<div class="card"><div class="card-title">📊 Llamadas por día de la semana</div>' +
+    rptWeekday(data.weekday) + rptInsight(ins.weekday) + '</div>';
+
+  var hoursCard = '<div class="card"><div class="card-title">🕐 Horas punta</div>' +
+    rptHours(data.hours) + rptInsight(ins.hours) + '</div>';
+
+  var svcCard = '<div class="card"><div class="card-title">🧾 Servicios más pedidos</div>' +
+    rptServices(data.services) + rptInsight(ins.services) + '</div>';
+
+  var t = data.allTime || {};
+  var allTimeCard = '<div class="card"><div class="card-title">🏆 Desde que activaste NodeFlow</div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">' +
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Total llamadas</span><strong>' + fmtNum(t.totalCalls) + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Reservas generadas</span><strong style="color:var(--green2)">' + fmtNum(t.bookings) + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Horas ahorradas</span><strong style="color:#60a5fa">' + fmtNum(t.hoursSaved) + 'h</strong></div>' +
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--dim)">Ingresos estimados</span><strong style="color:var(--green2)">' + fmtEuro(t.revenueEst) + '</strong></div>' +
+    '</div></div>';
+
+  sec.innerHTML = header +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:14px">' + esc(data.rangeLabel || '') + '</div>' +
+    kpis + lowNote +
+    trendCard +
+    '<div class="two-col">' + funnelCard + moneyCard + '</div>' +
+    '<div class="two-col">' + weekdayCard + hoursCard + '</div>' +
+    '<div class="two-col">' + svcCard + allTimeCard + '</div>';
 }
+
+// Descargar informe: window.print() con hoja de estilo de impresión limpia.
+function rptPrint() { window.print(); }
 
 // ── Automatizaciones ──────────────────────────────────────────
 // Etiquetas en español de los tipos de fecha crítica (slug → texto)
