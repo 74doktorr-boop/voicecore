@@ -910,6 +910,31 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       require('../tools/executor').syncAppointmentToCalendar(businessId, result.appointment).catch(() => {});
     } catch (_) {}
+    // Crear/enlazar el CONTACTO para que el cliente aparezca en Clientes con su
+    // ficha editable. Antes una cita manual no creaba contacto → el cliente
+    // quedaba sin ficha (no se podía gestionar). Insert directo, SIN tocar
+    // call_count/last_call_at (no fue una llamada). Best-effort, no bloquea.
+    const _db = getDatabase();
+    if (phone && _db.enabled) {
+      (async () => {
+        try {
+          const nowIso = new Date().toISOString();
+          const { data: existing } = await _db.client.from('contacts')
+            .select('id, name').eq('org_id', businessId).eq('phone', phone)
+            .is('deleted_at', null).maybeSingle();
+          if (!existing) {
+            await _db.client.from('contacts').insert({
+              org_id: businessId, phone, name: patientName || null, email: email || null,
+              created_at: nowIso, updated_at: nowIso,
+            });
+          } else if (!existing.name && patientName) {
+            // Ficha sin nombre y ahora tenemos uno → lo completamos (no pisamos).
+            await _db.client.from('contacts').update({ name: patientName, updated_at: nowIso })
+              .eq('id', existing.id);
+          }
+        } catch (e) { log.warn(`contacto desde cita manual: ${e.message}`); }
+      })();
+    }
     res.json({ ok: true, appointment: result.appointment });
   });
 
