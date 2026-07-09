@@ -1553,7 +1553,7 @@ async function loadDashboard() {
   sec.innerHTML =
     dashHero(d) +
     '<div id="dash-briefing" style="margin:0 0 14px"></div>' +
-    '<div id="dash-roi" style="margin:0 0 14px"></div>' +
+    '<div id="dash-recovery" style="margin:0 0 14px"></div>' +
     dashMinutes(usage) +
     dashSetup(d) +
     dashConfirmAttendance(apptsForReview) +
@@ -1566,8 +1566,8 @@ async function loadDashboard() {
     referralCta('dashboard');
 
   startDashLive();
-  loadMorningBriefing();       // ☀️ briefing matinal — lo primero que se ve
-  loadFollowupRoi('dash-roi'); // 💶 lo que el motor ha traído — en la primera pantalla
+  loadMorningBriefing();          // ☀️ briefing matinal — lo primero que se ve
+  loadRecovery('dash-recovery');  // 🧾 "Lo que recuperé por ti": llamadas rescatadas + seguimientos
 }
 
 // ── Briefing matinal accionable: el dashboard saluda y propone ───────────
@@ -5921,6 +5921,41 @@ async function loadFollowupRoi(targetId) {
   } else {
     box.innerHTML = '';
   }
+}
+
+// ── "Lo que recuperé por ti" (Experimento 01: la prueba del ROI) ──
+// Superset de loadFollowupRoi: suma las reservas RESCATADAS al teléfono
+// (llamadas fuera de horario o en saturación que se habrían perdido) + las
+// citas que trajo el motor. La cifra que hace innegable el valor: va en la
+// primera pantalla. Cabecera conservadora: solo lo que se habría perdido.
+async function loadRecovery(targetId) {
+  var box = document.getElementById(targetId || 'dash-recovery');
+  if (!box) return;
+  var r;
+  try { r = await api('/api/portal/recovery'); }
+  catch (e) { box.innerHTML = ''; return; }
+
+  var total = (r && r.total) || 0;
+  var lines = (r && r.lines) || [];
+  if (!(total > 0) || !lines.length) { box.innerHTML = ''; return; }
+
+  var rows = lines.map(function (l) {
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line,rgba(255,255,255,.08));font-size:13px">' +
+        '<span>' + esc(l.label) + ' <span style="color:var(--dim)">· ' + l.count + '</span></span>' +
+        '<span style="font-family:monospace;color:var(--accent,#c4f546);font-weight:700;white-space:nowrap">~' + l.value + '€</span>' +
+      '</div>';
+  }).join('');
+
+  box.innerHTML =
+    '<div style="background:linear-gradient(180deg,rgba(196,245,70,.09),rgba(196,245,70,.02));border:1px solid rgba(196,245,70,.32);border-radius:14px;padding:16px 18px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">' +
+        '<span style="font-size:20px">🧾</span>' +
+        '<span style="font-weight:800;font-size:15px">Lo que recuperé por ti</span>' +
+        '<span style="margin-left:auto;font-family:monospace;font-size:23px;font-weight:800;color:var(--accent,#c4f546)">~' + total + '€</span>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:4px">En 30 días · solo lo que se habría perdido sin mí</div>' +
+      rows +
+    '</div>';
 }
 
 // ── Seguimientos personalizados (sistema sugiere → tú revisas y envías) ──

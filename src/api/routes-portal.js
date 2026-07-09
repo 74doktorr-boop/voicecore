@@ -3415,6 +3415,39 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── "Lo que recuperé por ti" (Experimento 01: la prueba del ROI) ──
+  // Fusiona dos fuentes de atribución CONSERVADORA en un solo número:
+  //  · llamadas que NodeFlow cogió y se habrían perdido sin él
+  //    (fuera de horario o en saturación) y acabaron en reserva.
+  //  · citas que trajo el motor de seguimientos.
+  // La cabecera suma solo lo indiscutible; el resto se informa aparte.
+  // Read-only: no escribe nada. Fail-soft: ante error, total 0.
+  app.get('/api/portal/recovery', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const days = Math.min(90, Math.max(7, parseInt(req.query.days, 10) || 30));
+      const avgTicket = req.flowConfig?.automations?.config?.avgTicket || 0;
+      const { getCallRecovery } = require('../lifecycle/call-recovery');
+      const { getAttribution } = require('../lifecycle/followup-attribution');
+      const [calls, followups] = await Promise.all([
+        getCallRecovery(req.businessId, { db, sinceDays: days, avgTicket }),
+        getAttribution(req.businessId, { db, sinceDays: days, avgTicket }),
+      ]);
+      const ct = calls.totals, ft = followups.totals;
+      // Solo atribución fuerte de llamadas + citas del motor.
+      const total = (ct.strongValue || 0) + (ft.value || 0);
+      const lines = [
+        { key: 'after_hours', label: 'Llamadas fuera de horario', count: ct.afterHours || 0, value: ct.afterHoursValue || 0 },
+        { key: 'concurrent',  label: 'Llamadas en saturación',    count: ct.concurrent || 0, value: ct.concurrentValue || 0 },
+        { key: 'followups',   label: 'Citas que traje con seguimientos', count: ft.count || 0, value: ft.value || 0 },
+      ].filter(l => l.count > 0);
+      res.json({ ok: true, days, total, lines, calls: ct, followups: ft });
+    } catch (e) {
+      log.warn(`recovery: ${e.message}`);
+      res.json({ ok: true, days: 30, total: 0, lines: [], calls: {}, followups: {} });
+    }
+  });
+
   // ── Recetario: ideas curadas de seguimiento con "+ Añadir" ──
   app.get('/api/portal/followup-rules/recipes', portalAuth, async (req, res) => {
     try {
