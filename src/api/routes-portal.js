@@ -930,11 +930,11 @@ function setupPortalRoutes(app, pipeline, config) {
           if (!existing) {
             await _db.client.from('contacts').insert({
               org_id: businessId, phone: phone || null, name: patientName || null,
-              email: email || null, created_at: nowIso, updated_at: nowIso,
+              email: email || null, created_at: nowIso,
             });
           } else if (!existing.name && patientName) {
             // Ficha sin nombre y ahora tenemos uno → lo completamos (no pisamos).
-            await _db.client.from('contacts').update({ name: patientName, updated_at: nowIso })
+            await _db.client.from('contacts').update({ name: patientName })
               .eq('id', existing.id);
           }
         } catch (e) { log.warn(`contacto desde cita manual: ${e.message}`); }
@@ -2356,7 +2356,6 @@ function setupPortalRoutes(app, pipeline, config) {
           if (!ex[0].name  && name)  patch.name  = name;
           if (!ex[0].email && email) patch.email = email;
           if (Object.keys(patch).length) {
-            patch.updated_at = new Date().toISOString();
             await db.client.from('contacts').update(patch).eq('id', ex[0].id);
           }
           return res.json({ ok: true, existed: true, contact: shape({ ...ex[0], ...patch }) });
@@ -2364,7 +2363,7 @@ function setupPortalRoutes(app, pipeline, config) {
       }
       const nowIso = new Date().toISOString();
       const { data, error } = await db.client.from('contacts')
-        .insert({ org_id: businessId, name, phone, email, created_at: nowIso, updated_at: nowIso })
+        .insert({ org_id: businessId, name, phone, email, created_at: nowIso })
         .select('id, name, phone, email').single();
       if (error) return res.status(500).json({ error: error.message });
       res.json({ ok: true, contact: shape(data) });
