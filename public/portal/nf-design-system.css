@@ -923,6 +923,23 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .nf-apt.pending { border-style: dashed; }
 .nf-apt.cancelled { opacity: .45; }
 .nf-apt.cancelled .nf-apt-time { color: var(--red); text-decoration: line-through; }
+.nf-apt.completed { opacity: .72; }
+.nf-apt.completed .nf-apt-time { color: var(--green); }
+.nf-apt.completed .nf-apt-time::after { content: ' ✓'; }
+.nf-apt.noshow { opacity: .55; }
+.nf-apt.noshow .nf-apt-time { color: var(--red); text-decoration: line-through; }
+
+/* Confirma la asistencia — citas pasadas sin resolver */
+.nf-review { border: 1px solid rgba(var(--accent-rgb), .4); margin-bottom: 16px; }
+.nf-review-title { font-weight: 800; font-size: var(--fs-md); color: var(--accent-l); margin-bottom: 4px; }
+.nf-review-sub { font-size: var(--fs-xs); color: var(--dim); line-height: 1.6; margin-bottom: 12px; }
+.nf-review-row { display: grid; grid-template-columns: minmax(110px,auto) 1fr auto; gap: 12px; align-items: center;
+  padding: 9px 0; border-top: 1px solid var(--border); }
+.nf-review-when { font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nf-review-who { min-width: 0; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nf-review-who span { color: var(--dim); font-size: var(--fs-xs); }
+.nf-review-actions { display: flex; gap: 6px; white-space: nowrap; }
+.nf-review-more { font-size: var(--fs-xs); color: var(--dim); padding-top: 10px; }
 /* Eventos del Google Calendar del negocio: solo lectura, azul para no
    confundirlos con las citas de NodeFlow (lima). No editables. */
 .nf-apt.gcal { cursor: default; background: rgba(90,150,255,.09); border-color: rgba(90,150,255,.32); border-style: dashed; }
