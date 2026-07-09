@@ -2342,13 +2342,17 @@ function setupPortalRoutes(app, pipeline, config) {
     const shape = c => ({ id: c.id, name: c.name, phone: c.phone, email: c.email,
                           displayName: c.name || c.phone || 'Cliente' });
     try {
-      // Dedup por teléfono: si ya existe, completa huecos y lo devuelve.
+      // Dedup por teléfono: si ya existe, completa huecos y lo devuelve. NO
+      // filtramos deleted_at a propósito: la restricción UNIQUE(org_id, phone)
+      // sigue ocupada por un contacto borrado, así que si el telefono coincide
+      // lo REVIVIMOS (en vez de intentar un insert que choca con la unique).
       if (phone) {
         const { data: ex } = await db.client.from('contacts')
-          .select('id, name, phone, email').eq('org_id', businessId)
-          .eq('phone', phone).is('deleted_at', null).limit(1);
+          .select('id, name, phone, email, deleted_at').eq('org_id', businessId)
+          .eq('phone', phone).limit(1);
         if (ex && ex[0]) {
           const patch = {};
+          if (ex[0].deleted_at)      patch.deleted_at = null;   // revivir el borrado
           if (!ex[0].name  && name)  patch.name  = name;
           if (!ex[0].email && email) patch.email = email;
           if (Object.keys(patch).length) {
