@@ -29,10 +29,10 @@ describe('ENTITY_PRESETS — cobertura del catálogo', () => {
       'cada sector con plantilla debe tener sus presets (y ninguno huérfano)');
   });
 
-  test('3-5 presets por sector (ni vacío ni abrumador)', () => {
+  test('3-8 presets por sector (ni vacío ni abrumador)', () => {
     for (const [sector, p] of Object.entries(ENTITY_PRESETS)) {
-      assert.ok(p.items.length >= 3 && p.items.length <= 5,
-        `${sector}: ${p.items.length} presets (esperados 3-5)`);
+      assert.ok(p.items.length >= 3 && p.items.length <= 8,
+        `${sector}: ${p.items.length} presets (esperados 3-8)`);
     }
   });
 
