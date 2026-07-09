@@ -183,8 +183,16 @@ describe('resolveDateField', () => {
   });
 
   test('dateFieldLabels — para preguntar con las palabras del negocio', () => {
-    assert.deepStrictEqual(dateFieldLabels(fields),
-      ['Próxima ITV', 'Próxima revisión', 'Próximo cambio de aceite']);
+    // Fixture local: la función devuelve SOLO las etiquetas de campos date, en
+    // orden. Desacoplado del catálogo (que se enriquece con el tiempo).
+    const sample = [
+      { key: 'x',            type: 'text', label: 'X' },
+      { key: 'proxima_itv',  type: 'date', label: 'Próxima ITV' },
+      { key: 'cambio_aceite', type: 'date', label: 'Próximo cambio de aceite' },
+      { key: 'notas',        type: 'note', label: 'Notas' },
+    ];
+    assert.deepStrictEqual(dateFieldLabels(sample),
+      ['Próxima ITV', 'Próximo cambio de aceite']);
   });
 });
 

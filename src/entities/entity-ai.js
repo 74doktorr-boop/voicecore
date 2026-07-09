@@ -33,7 +33,9 @@ const STOPWORDS = new Set([
 ]);
 
 function _tokens(s) {
-  return _norm(s).split('_').filter(t => t && !STOPWORDS.has(t));
+  // length > 1: los tokens de 1 carácter (p. ej. la "c" de "(A/C)") nunca
+  // distinguen un campo y sobre-casan por inclusión ('aceite'.includes('c')).
+  return _norm(s).split('_').filter(t => t && t.length > 1 && !STOPWORDS.has(t));
 }
 
 /**
