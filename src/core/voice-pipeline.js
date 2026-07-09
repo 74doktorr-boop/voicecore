@@ -503,40 +503,7 @@ class VoicePipeline {
       // seguridad post-llamada. No bloquea el audio: el aviso va por setImmediate
       // y el lead es fire-and-forget.
       if (misunderstoodTurn && session._consecMisunderstand >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
-        session._escalatedTakeMessage = true;
-        session.metrics.escalatedTakeMessage = true;
-        turnMetrics.escalatedTakeMessage  = true;
-        const msg = 'Disculpe, hoy me cuesta oírle bien y no quiero hacerle perder el tiempo. Tomo nota de su llamada y le devolverán la llamada enseguida. Gracias por su paciencia.';
-        log.warn(`[${callId}] ${session._consecMisunderstand} malentendidos seguidos — escala a recado + aviso al dueño`);
-        await this._speakText(callId, msg, { cache: true });
-        session.addAssistantMessage(msg);
-        // Aviso inmediato al dueño (setImmediate dentro de _notifyOwner → no bloquea)
-        try {
-          require('../tools/executor')._notifyOwner(
-            `📞 *Llamada difícil de atender — NodeFlow*\n` +
-            `━━━━━━━━━━━━\n` +
-            `No se entendió bien al cliente por la línea. Le dijimos que le devolveríais la llamada.\n` +
-            `📞 ${session.callerNumber || 'número oculto'}\n` +
-            `━━━━━━━━━━━━\nMejor llamarle pronto. NodeFlow IA`,
-            session.businessId
-          );
-        } catch (_) {}
-        // Lead determinista (fire-and-forget: nunca bloquea ni tumba la llamada)
-        try {
-          const db = require('../db/database').getDatabase();
-          if (db.enabled && session.businessId) {
-            db.client.from('leads').insert({
-              org_id:     session.businessId,
-              name:       '',
-              phone:      session.callerNumber || '',
-              need:       'Llamada con mala calidad de audio: no se pudo atender bien. Devolver la llamada.',
-              notes:      'Escalado en llamada: la IA no entendió al cliente varias veces seguidas y le prometió que le devolverían la llamada.',
-              urgency:    'media',
-              source:     'voice_call_take_message',
-              created_at: new Date().toISOString(),
-            }).then(() => {}, () => {});
-          }
-        } catch (_) {}
+        await this._takeMessageAndNotify(callId, session, turnMetrics, `${session._consecMisunderstand} malentendidos seguidos`);
         if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
         session.recordTurn(turnMetrics);
         return;
@@ -708,6 +675,7 @@ class VoicePipeline {
         }
         await this._handleToolCalls(callId, session, pendingToolCalls, turnMetrics);
       } else if (fullResponse) {
+        session._consecRecovery = 0; // respuesta real → rompe cualquier racha de recuperación
         session.addAssistantMessage(fullResponse);
       }
 
@@ -715,11 +683,20 @@ class VoicePipeline {
       // (todos los proveedores LLM fallaron, respuesta vacía) el cliente
       // está esperando al teléfono — jamás dejar aire muerto.
       if (!session.interrupted && !fullResponse && pendingToolCalls.length === 0) {
-        const recovery = 'Perdone, no le he escuchado bien. ¿Me lo puede repetir?';
-        log.warn(`[${callId}] Turno sin respuesta del LLM — frase de recuperación`);
+        session._consecRecovery = (session._consecRecovery || 0) + 1;
         session.metrics.recoveries = (session.metrics.recoveries || 0) + 1;
-        await this._speakText(callId, recovery);
-        session.addAssistantMessage(recovery);
+        // Anti-bucle (fix 2026-07): esta rama antes quedaba FUERA del anti-bucle
+        // de la escalera de STT y podía repetir "¿me lo puede repetir?" sin fin
+        // (caso real: STT bien, LLM vacío en bucle). Ahora, tras N turnos sin
+        // respuesta seguidos, escala a recado con la misma salida de gracia.
+        if (session._consecRecovery >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
+          await this._takeMessageAndNotify(callId, session, turnMetrics, `${session._consecRecovery} turnos sin respuesta seguidos`);
+        } else {
+          const recovery = 'Perdone, no le he escuchado bien. ¿Me lo puede repetir?';
+          log.warn(`[${callId}] Turno sin respuesta del LLM — recuperación (${session._consecRecovery})`);
+          await this._speakText(callId, recovery);
+          session.addAssistantMessage(recovery);
+        }
       }
 
       turnMetrics.totalTime = Date.now() - turnStart;
@@ -754,6 +731,50 @@ class VoicePipeline {
         setImmediate(() => this._processTurn(callId, pending).catch(() => {}));
       }
     }
+  }
+
+  /**
+   * Salida de gracia UNIFICADA. Tras varios fallos seguidos —malentendidos
+   * de STT o turnos sin respuesta del LLM— deja de pedir "¿me lo puede
+   * repetir?" en bucle: toma el recado y avisa al dueño con el número del
+   * llamante. Una sola vez por llamada (session._escalatedTakeMessage). No
+   * hace recordTurn ni corta el flujo — de eso se encarga quien llama.
+   */
+  async _takeMessageAndNotify(callId, session, turnMetrics, reason) {
+    session._escalatedTakeMessage = true;
+    session.metrics.escalatedTakeMessage = true;
+    if (turnMetrics) turnMetrics.escalatedTakeMessage = true;
+    const msg = 'Disculpe, hoy me cuesta oírle bien y no quiero hacerle perder el tiempo. Tomo nota de su llamada y le devolverán la llamada enseguida. Gracias por su paciencia.';
+    log.warn(`[${callId}] ${reason} — escala a recado + aviso al dueño`);
+    await this._speakText(callId, msg, { cache: true });
+    session.addAssistantMessage(msg);
+    // Aviso inmediato al dueño (setImmediate dentro de _notifyOwner → no bloquea)
+    try {
+      require('../tools/executor')._notifyOwner(
+        `📞 *Llamada difícil de atender — NodeFlow*\n` +
+        `━━━━━━━━━━━━\n` +
+        `No se pudo atender bien al cliente por la línea. Le dijimos que le devolveríais la llamada.\n` +
+        `📞 ${session.callerNumber || 'número oculto'}\n` +
+        `━━━━━━━━━━━━\nMejor llamarle pronto. NodeFlow IA`,
+        session.businessId
+      );
+    } catch (_) {}
+    // Lead determinista (fire-and-forget: nunca bloquea ni tumba la llamada)
+    try {
+      const db = require('../db/database').getDatabase();
+      if (db.enabled && session.businessId) {
+        db.client.from('leads').insert({
+          org_id:     session.businessId,
+          name:       '',
+          phone:      session.callerNumber || '',
+          need:       'Llamada con mala calidad de audio: no se pudo atender bien. Devolver la llamada.',
+          notes:      'Escalado en llamada: la IA no pudo atender bien al cliente varias veces seguidas y le prometió que le devolverían la llamada.',
+          urgency:    'media',
+          source:     'voice_call_take_message',
+          created_at: new Date().toISOString(),
+        }).then(() => {}, () => {});
+      }
+    } catch (_) {}
   }
 
   /**
@@ -841,15 +862,24 @@ class VoicePipeline {
       }
 
       if (postToolResponse && !session.interrupted) {
+        session._consecRecovery = 0; // respuesta real tras la herramienta → rompe la racha
         session.addAssistantMessage(postToolResponse);
       } else if (!session.interrupted) {
         // Anti-silencio post-herramientas: el tool YA se ejecutó y el
-        // cliente espera la respuesta — jamás dejarle en el aire.
-        const recovery = 'Perdone, se me ha cortado un momento. ¿Me lo puede repetir?';
-        log.warn(`[${callId}] Turno post-tool sin respuesta del LLM — frase de recuperación`);
+        // cliente espera la respuesta — jamás dejarle en el aire. Con el mismo
+        // anti-bucle que el resto: tras N turnos post-tool vacíos seguidos,
+        // recado en vez de repetir sin fin.
+        const escalateAfter = Math.max(2, Number(process.env.MISUNDERSTAND_ESCALATE_AFTER) || 3);
+        session._consecRecovery = (session._consecRecovery || 0) + 1;
         session.metrics.recoveries = (session.metrics.recoveries || 0) + 1;
-        await this._speakText(callId, recovery);
-        session.addAssistantMessage(recovery);
+        if (session._consecRecovery >= escalateAfter && !session._escalatedTakeMessage) {
+          await this._takeMessageAndNotify(callId, session, turnMetrics, `${session._consecRecovery} turnos post-tool sin respuesta`);
+        } else {
+          const recovery = 'Perdone, se me ha cortado un momento. ¿Me lo puede repetir?';
+          log.warn(`[${callId}] Turno post-tool sin respuesta del LLM — recuperación (${session._consecRecovery})`);
+          await this._speakText(callId, recovery);
+          session.addAssistantMessage(recovery);
+        }
       }
     }
   }
