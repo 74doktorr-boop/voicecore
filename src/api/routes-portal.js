@@ -3651,6 +3651,38 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── PUT /api/portal/entity-types/:key/fields ── PERSONALIZAR la ficha ─────
+  // El negocio edita SUS propios campos (añadir/editar/borrar/reordenar),
+  // incluidos campos-fecha con su propio aviso automático. Escribe el JSONB
+  // `fields` de SU fila de nf_entity_types (org-scoped) e invalida la caché;
+  // el formulario, la lista, los avisos y la previsualización lo leen solos.
+  app.put('/api/portal/entity-types/:key/fields', portalAuth, async (req, res) => {
+    try {
+      const types = await _entityGate(req);
+      if (!types) return res.status(404).json({ error: 'Fichas no disponibles en tu plan/sector' });
+      const type = types.find(t => t.key === String(req.params.key || '').slice(0, 40));
+      if (!type) return res.status(404).json({ error: 'Tipo de ficha no encontrado' });
+
+      const { validateEntityFields, invalidateOrgEntityTypes } = require('../entities/entity-types');
+      const v = validateEntityFields(req.body && req.body.fields);
+      if (!v.ok) return res.status(400).json({ error: v.error });
+
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+      const { error } = await db.client.from('nf_entity_types')
+        .update({ fields: v.fields })
+        .eq('organization_id', req.businessId).eq('id', type.id);
+      if (error) return res.status(500).json({ error: error.message });
+
+      invalidateOrgEntityTypes(req.businessId);
+      log.info(`Entidades: ficha '${type.key}' personalizada (${v.fields.length} campos) org ${req.businessId}`);
+      res.json({ ok: true, fields: v.fields });
+    } catch (e) {
+      log.error('PUT entity-types fields', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── GET /api/portal/entities?type=vehiculo&q=… ── lista org-scoped ────────
   app.get('/api/portal/entities', portalAuth, async (req, res) => {
     try {

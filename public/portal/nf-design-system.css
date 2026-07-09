@@ -960,6 +960,11 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ent-next-aviso.soon { color: #f5c542; background: rgba(245, 197, 66, .12); }
 .ent-next-aviso.urgent { color: var(--red); background: rgba(240, 100, 90, .12); }
+
+/* Editor de campos: el negocio diseña su propia ficha */
+.fld-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--surface-2); }
+.fld-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); cursor: pointer; }
+.fld-check input { width: auto; margin: 0; }
 .nf-week-empty { font-size: var(--fs-2xs); color: var(--muted); text-align: center; margin: auto; }
 .nf-week-add {
   background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 700;

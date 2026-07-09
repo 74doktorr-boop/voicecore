@@ -7566,6 +7566,147 @@ function entAvisoPreview(key) {
     esc(_resolveHint(hint, ent, input.value)) + '»';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// EDITOR DE CAMPOS — el negocio diseña SU propia ficha (campos + avisos)
+// El tipo vive en nf_entity_types.fields (por-org); esto edita ese array y lo
+// guarda vía PUT. El formulario, la lista y los avisos lo leen solos.
+// ══════════════════════════════════════════════════════════════════════════
+var _fldEdit = [];
+var FIELD_TYPE_LABELS = [
+  { v: 'text', l: 'Texto' }, { v: 'number', l: 'Número' }, { v: 'date', l: 'Fecha' },
+  { v: 'select', l: 'Lista de opciones' }, { v: 'boolean', l: 'Sí / No' },
+  { v: 'note', l: 'Nota larga' }, { v: 'phone', l: 'Teléfono' },
+];
+
+function openFieldEditor() {
+  var type = _entType();
+  if (!type) { toast('No hay ficha que personalizar', 'err'); return; }
+  _fldEdit = JSON.parse(JSON.stringify(type.fields || []));   // copia de trabajo
+  renderFieldEditor();
+}
+
+function renderFieldEditor() {
+  var type = _entType(); if (!type) return;
+  var rows = _fldEdit.map(function (f, i) { return fieldEditorRow(f, i); }).join('');
+  openModal(
+    '<div class="modal-title">⚙️ Personalizar «' + esc(type.label_plural || 'ficha') + '»</div>' +
+    '<div style="font-size:12.5px;color:var(--dim);line-height:1.5;margin-bottom:14px">Diseña tu ficha: añade tus propios campos. Un campo <strong>Fecha</strong> puede mandar un WhatsApp automático a tu cliente — tú eliges cuántos días antes y el mensaje.</div>' +
+    '<div id="fldList">' + rows + '</div>' +
+    '<button class="btn btn-d u-mt-2" style="width:100%" onclick="fldAdd()">+ Añadir campo</button>' +
+    '<div class="modal-actions" style="margin-top:16px">' +
+      '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
+      '<button class="btn btn-accent" onclick="saveFieldEditor()">Guardar ficha</button>' +
+    '</div>'
+  );
+  for (var i = 0; i < _fldEdit.length; i++) { if (_fldEdit[i].type === 'date') _fldAvisoPreview(i); }
+}
+
+function fieldEditorRow(f, i) {
+  var isProtected = !!f.is_identifier;   // el identificador no se borra ni cambia de tipo
+  var typeOpts = FIELD_TYPE_LABELS.map(function (t) {
+    return '<option value="' + t.v + '"' + (f.type === t.v ? ' selected' : '') + '>' + t.l + '</option>';
+  }).join('');
+  var hasRem = f.type === 'date' && f.reminder && f.reminder.message_hint;
+  var days = hasRem ? Math.abs(f.reminder.offset_days || 0) : 30;
+  var msg = hasRem ? (f.reminder.message_hint || '') : '';
+  var isSel = f.type === 'select' || f.type === 'multiselect';
+
+  var dateBox = '<div id="fld-' + i + '-datebox" style="display:' + (f.type === 'date' ? 'block' : 'none') + ';margin-top:8px">' +
+    '<label class="fld-check"><input type="checkbox" id="fld-' + i + '-hasrem" ' + (hasRem ? 'checked' : '') + ' onchange="_fldRemToggle(' + i + ')"> 📲 Aviso automático por WhatsApp</label>' +
+    '<div id="fld-' + i + '-rembox" style="display:' + (hasRem ? 'block' : 'none') + ';margin-top:6px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><input class="form-input" type="number" min="0" id="fld-' + i + '-days" value="' + days + '" style="width:84px" oninput="_fldAvisoPreview(' + i + ')"><span style="font-size:12px;color:var(--dim)">días antes de la fecha</span></div>' +
+      '<textarea class="form-input" id="fld-' + i + '-msg" rows="2" placeholder="Mensaje al cliente… usa {{entity}} (la ficha) y {{value}} (la fecha)" oninput="_fldAvisoPreview(' + i + ')">' + esc(msg) + '</textarea>' +
+      '<div id="fld-' + i + '-prev" class="ent-aviso-prev" style="margin-top:6px"></div>' +
+    '</div></div>';
+
+  var optBox = '';
+  if (isSel) {
+    var list = (f.options || []).map(function (o, j) {
+      return '<div style="display:flex;gap:6px;margin-bottom:4px"><input class="form-input" id="fld-' + i + '-opt-' + j + '" value="' + esc(o.label || o.value || '') + '" placeholder="Opción" style="flex:1"><button class="btn btn-r btn-sm" onclick="fldOptDel(' + i + ',' + j + ')">✕</button></div>';
+    }).join('');
+    optBox = '<div id="fld-' + i + '-optbox" style="margin-top:8px"><div style="font-size:12px;color:var(--dim);margin-bottom:4px">Opciones de la lista:</div>' + list +
+      '<button class="btn btn-d btn-sm" onclick="fldOptAdd(' + i + ')">+ opción</button></div>';
+  }
+
+  return '<div class="fld-card">' +
+    '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+      '<input class="form-input" id="fld-' + i + '-label" value="' + esc(f.label || '') + '" placeholder="Nombre del campo" style="flex:1;min-width:120px">' +
+      '<select class="form-input" id="fld-' + i + '-type" style="width:150px" onchange="_fldTypeChange(' + i + ')"' + (isProtected ? ' disabled title="Campo identificador"' : '') + '>' + typeOpts + '</select>' +
+      '<button class="btn btn-d btn-sm" onclick="fldMove(' + i + ',-1)" aria-label="Subir">↑</button>' +
+      '<button class="btn btn-d btn-sm" onclick="fldMove(' + i + ',1)" aria-label="Bajar">↓</button>' +
+      (isProtected ? '<span style="width:30px;text-align:center" title="Campo clave, no se borra">🔑</span>'
+                   : '<button class="btn btn-r btn-sm" onclick="fldDel(' + i + ')" aria-label="Borrar">🗑</button>') +
+    '</div>' +
+    '<label class="fld-check" style="margin-top:6px"><input type="checkbox" id="fld-' + i + '-list" ' + (f.show_in_list ? 'checked' : '') + '> Mostrar en la lista de fichas</label>' +
+    dateBox + optBox +
+  '</div>';
+}
+
+// Lee TODOS los inputs del editor a _fldEdit antes de cualquier re-render.
+function _fldSync() {
+  for (var i = 0; i < _fldEdit.length; i++) {
+    var f = _fldEdit[i];
+    var lab = document.getElementById('fld-' + i + '-label'); if (lab) f.label = lab.value;
+    var typ = document.getElementById('fld-' + i + '-type'); if (typ && !f.is_identifier) f.type = typ.value;
+    var lst = document.getElementById('fld-' + i + '-list'); f.show_in_list = !!(lst && lst.checked);
+    if (f.type === 'date') {
+      var has = document.getElementById('fld-' + i + '-hasrem');
+      if (has && has.checked) {
+        var d = document.getElementById('fld-' + i + '-days');
+        var m = document.getElementById('fld-' + i + '-msg');
+        var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
+        f.reminder = { offset_days: -days, message_hint: (m && m.value) || '' };
+      } else { delete f.reminder; }
+    } else { delete f.reminder; }
+    if (f.type === 'select' || f.type === 'multiselect') {
+      var opts = [], j = 0, oe;
+      while ((oe = document.getElementById('fld-' + i + '-opt-' + j))) { var v = oe.value.trim(); if (v) opts.push({ label: v }); j++; }
+      f.options = opts;
+    } else { delete f.options; }
+  }
+}
+
+function fldAdd()  { _fldSync(); _fldEdit.push({ label: '', type: 'text' }); renderFieldEditor(); }
+function fldDel(i) { _fldSync(); if (_fldEdit[i] && _fldEdit[i].is_identifier) return; _fldEdit.splice(i, 1); renderFieldEditor(); }
+function fldMove(i, dir) { _fldSync(); var j = i + dir; if (j < 0 || j >= _fldEdit.length) return; var t = _fldEdit[i]; _fldEdit[i] = _fldEdit[j]; _fldEdit[j] = t; renderFieldEditor(); }
+function _fldTypeChange(i) { _fldSync(); renderFieldEditor(); }
+function _fldRemToggle(i)  { _fldSync(); renderFieldEditor(); }
+function fldOptAdd(i) { _fldSync(); if (!_fldEdit[i].options) _fldEdit[i].options = []; _fldEdit[i].options.push({ label: '' }); renderFieldEditor(); }
+function fldOptDel(i, j) { _fldSync(); if (_fldEdit[i].options) _fldEdit[i].options.splice(j, 1); renderFieldEditor(); }
+
+function _fldAvisoPreview(i) {
+  var box = document.getElementById('fld-' + i + '-prev'); if (!box) return;
+  var d = document.getElementById('fld-' + i + '-days');
+  var m = document.getElementById('fld-' + i + '-msg');
+  var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
+  var type = _entType();
+  // Placeholder de {{entity}}: como el mensaje real usa el display_name (sin
+  // artículo), aquí usamos el nombre del tipo a secas (no "tu vehículo" → evita
+  // el doble "tu" cuando el mensaje ya dice "tu {{entity}}").
+  var entName = String((type && type.label_singular) || 'ficha').toLowerCase();
+  box.innerHTML = '📲 <strong>' + _avisoDias(-days) + '</strong> NodeFlow enviará: «' +
+    esc(_resolveHint((m && m.value) || '', entName, '')) + '»';
+}
+
+async function saveFieldEditor() {
+  _fldSync();
+  var type = _entType(); if (!type) return;
+  if (!_fldEdit.length) { toast('La ficha necesita al menos un campo', 'err'); return; }
+  for (var i = 0; i < _fldEdit.length; i++) {
+    if (!String(_fldEdit[i].label || '').trim()) { toast('Hay un campo sin nombre', 'err'); return; }
+  }
+  try {
+    var r = await api('/api/portal/entity-types/' + encodeURIComponent(type.key) + '/fields', 'PUT', { fields: _fldEdit });
+    closeModal();
+    toast('✓ Ficha personalizada');
+    _entTypes = null;              // fuerza recarga de tipos desde el servidor
+    await initEntidades();
+    loadEntidades();
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
+}
+
 async function loadEntidades() {
   var sec = document.getElementById('sec-entidades');
   if (!sec) return;
@@ -7603,6 +7744,7 @@ async function loadEntidades() {
       '<h2 class="section-title">' + esc(type.icon || '') + ' ' + esc(type.label_plural) + '</h2>' +
       '<p class="section-sub">Cada ficha guarda sus fechas importantes — los avisos a tus clientes salen solos ' + _entReminderPill(true) + '</p></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-d" style="font-size:15px;padding:12px 16px" onclick="openFieldEditor()">⚙️ Personalizar ficha</button>' +
         '<button class="btn btn-d" style="font-size:15px;padding:12px 16px" onclick="openEntityImportModal()">📥 Importar de Excel</button>' +
         '<button class="btn btn-accent" style="font-size:15px;padding:12px 20px" onclick="openEntityModal()">+ Añadir ' + esc(type.label_singular.toLowerCase()) + '</button>' +
       '</div>' +
@@ -8224,7 +8366,7 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
     // Previsualización del aviso automático: qué WhatsApp saldrá y cuándo, con
     // el nombre de la ficha y la fecha ya sustituidos. Hace tangible el motor.
     if (f.type === 'date' && f.reminder) {
-      var entName = (entity && entity.display_name) ? entity.display_name : ('tu ' + String(type.label_singular || 'ficha').toLowerCase());
+      var entName = (entity && entity.display_name) ? entity.display_name : String(type.label_singular || 'ficha').toLowerCase();
       input += '<div class="ent-aviso-prev" id="avp-' + esc(f.key) + '"' +
         ' data-hint="' + encodeURIComponent(f.reminder.message_hint || '') + '"' +
         ' data-ent="' + encodeURIComponent(entName) + '"' +

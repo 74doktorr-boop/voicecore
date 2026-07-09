@@ -1214,11 +1214,74 @@ async function ensureOrgEntityTypes(orgId, sectorRaw, opts = {}) {
   return getOrgEntityTypes(orgId, { db });
 }
 
+// ─── Validación de campos personalizados (el negocio edita SU propia ficha) ──
+// Normaliza y valida el array de campos que llega del editor del portal: genera
+// claves únicas desde la etiqueta, acota tipos/opciones y valida los avisos de
+// los campos-fecha (offset NEGATIVO = avisar ANTES). PURA — testeable sin BD.
+function validateEntityFields(rawFields) {
+  if (!Array.isArray(rawFields) || rawFields.length < 1) {
+    return { ok: false, error: 'La ficha necesita al menos un campo.' };
+  }
+  if (rawFields.length > MAX_FIELDS) {
+    return { ok: false, error: `Máximo ${MAX_FIELDS} campos por ficha.` };
+  }
+  const out = [];
+  const seen = new Set();
+  let inList = 0;
+  for (let i = 0; i < rawFields.length; i++) {
+    const f = rawFields[i] || {};
+    const type = FIELD_TYPES.includes(f.type) ? f.type : 'text';
+    const label = String(f.label || '').trim().slice(0, 60);
+    if (!label) return { ok: false, error: `El campo nº ${i + 1} necesita un nombre.` };
+
+    // Clave: la dada o generada desde la etiqueta; ÚNICA dentro de la ficha.
+    const base = _norm(f.key || label).replace(/^_+|_+$/g, '').slice(0, 40) || 'campo';
+    let key = base, n = 2;
+    while (seen.has(key)) key = `${base}_${n++}`;
+    seen.add(key);
+
+    const field = { key, type, label, position: i + 1 };
+    if (f.required)      field.required = true;
+    if (f.is_identifier) field.is_identifier = true;
+    if (f.show_in_list)  { field.show_in_list = true; inList++; }
+
+    if (type === 'select' || type === 'multiselect') {
+      const options = (Array.isArray(f.options) ? f.options : [])
+        .map(o => ({
+          value: _norm(o && (o.value || o.label)).replace(/^_+|_+$/g, '').slice(0, 40),
+          label: String((o && (o.label || o.value)) || '').trim().slice(0, 60),
+        }))
+        .filter(o => o.value && o.label);
+      if (options.length < 2) return { ok: false, error: `"${label}" necesita al menos 2 opciones.` };
+      field.options = options;
+    }
+
+    // Aviso automático (solo campos-fecha): offset_days NEGATIVO = avisar antes.
+    if (type === 'date' && f.reminder && (f.reminder.message_hint || f.reminder.offset_days != null)) {
+      const off  = Math.round(Number(f.reminder.offset_days));
+      const hint = String(f.reminder.message_hint || '').trim().slice(0, 400);
+      if (!Number.isFinite(off) || off >= 0) {
+        return { ok: false, error: `El aviso de "${label}" debe programarse ANTES de la fecha.` };
+      }
+      if (!hint) return { ok: false, error: `El aviso de "${label}" necesita un mensaje.` };
+      field.reminder = {
+        offset_days: off,
+        campaign_kind: String(f.reminder.campaign_kind || 'custom_' + key).slice(0, 40),
+        message_hint: hint,
+      };
+    }
+    out.push(field);
+  }
+  if (inList > 5) return { ok: false, error: 'Máximo 5 campos marcados para la vista de lista.' };
+  return { ok: true, fields: out };
+}
+
 module.exports = {
   ENTITY_TEMPLATES,
   TEMPLATE_VERSION,
   MAX_FIELDS,
   FIELD_TYPES,
+  validateEntityFields,
   entitiesFeatureEnabled,
   groupableField,
   identifierField,

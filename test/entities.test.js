@@ -12,6 +12,7 @@ const assert = require('node:assert');
 const {
   ENTITY_TEMPLATES, TEMPLATE_VERSION, MAX_FIELDS, FIELD_TYPES,
   templatesForSector, sectorHasEntityTemplates, instantiateTemplate,
+  validateEntityFields,
 } = require('../src/entities/entity-types');
 const {
   validateAttrs, computeDisplayName, normalizePlate, diffAttrs,
@@ -373,5 +374,49 @@ describe('buildEntityReminderPlan', () => {
       assert.ok(hit.scheduledFor > NOW, `${sector}: aviso en futuro`);
       assert.ok(hit.messagePreview && hit.messagePreview.length > 4, `${sector}: mensaje vacío`);
     }
+  });
+});
+
+// ─── Campos personalizados: el negocio diseña SU ficha ───────────────────────
+describe('validateEntityFields (personalización de la ficha)', () => {
+  test('genera claves únicas desde la etiqueta y normaliza opciones', () => {
+    const r = validateEntityFields([
+      { label: 'Matrícula', type: 'text', is_identifier: true, show_in_list: true },
+      { label: 'Color favorito', type: 'select', options: [{ label: 'Blanco' }, { label: 'Negro' }] },
+    ]);
+    assert.ok(r.ok);
+    assert.strictEqual(r.fields[0].key, 'matricula');
+    assert.strictEqual(r.fields[1].key, 'color_favorito');
+    assert.deepStrictEqual(r.fields[1].options, [
+      { value: 'blanco', label: 'Blanco' }, { value: 'negro', label: 'Negro' },
+    ]);
+  });
+
+  test('campo-fecha con aviso propio: offset negativo + campaign_kind autogenerado', () => {
+    const r = validateEntityFields([
+      { label: 'Cambio de filtro', type: 'date', reminder: { offset_days: -20, message_hint: 'Toca el filtro de tu {{entity}} el {{value}}' } },
+    ]);
+    assert.ok(r.ok);
+    assert.strictEqual(r.fields[0].reminder.offset_days, -20);
+    assert.strictEqual(r.fields[0].reminder.campaign_kind, 'custom_cambio_de_filtro');
+    assert.match(r.fields[0].reminder.message_hint, /\{\{entity\}\}/);
+  });
+
+  test('rechaza: sin campos, aviso hacia el futuro, select con 1 opción, exceso de campos', () => {
+    assert.strictEqual(validateEntityFields([]).ok, false);
+    assert.strictEqual(validateEntityFields([{ label: 'X', type: 'date', reminder: { offset_days: 5, message_hint: 'x' } }]).ok, false);
+    assert.strictEqual(validateEntityFields([{ label: 'Y', type: 'select', options: [{ label: 'A' }] }]).ok, false);
+    const many = Array.from({ length: MAX_FIELDS + 1 }, (_, i) => ({ label: 'C' + i, type: 'text' }));
+    assert.strictEqual(validateEntityFields(many).ok, false);
+  });
+
+  test('claves duplicadas → se desambiguan solas', () => {
+    const r = validateEntityFields([{ label: 'Fecha', type: 'text' }, { label: 'Fecha', type: 'text' }]);
+    assert.deepStrictEqual(r.fields.map(f => f.key), ['fecha', 'fecha_2']);
+  });
+
+  test('máx 5 campos en la lista', () => {
+    const six = Array.from({ length: 6 }, (_, i) => ({ label: 'C' + i, type: 'text', show_in_list: true }));
+    assert.strictEqual(validateEntityFields(six).ok, false);
   });
 });
