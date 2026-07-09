@@ -7508,6 +7508,31 @@ function _entReminderPill(small) {
   return '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(196,245,70,.12);border:1px solid rgba(196,245,70,.3);color:var(--accent-l);border-radius:999px;padding:' + (small ? '1px 8px' : '2px 10px') + ';font-size:' + (small ? '10px' : '11px') + ';font-weight:700;white-space:nowrap">🔔 aviso automático</span>';
 }
 
+// "X días antes" a partir del offset_days (negativo = antes).
+function _avisoDias(offset) {
+  var n = Math.abs(offset || 0);
+  return n === 0 ? 'el mismo día' : (n === 1 ? '1 día antes' : n + ' días antes');
+}
+// Resuelve el message_hint del aviso: {{entity}} → nombre de la ficha,
+// {{value}} → la fecha (formateada) o 'esa fecha' si aún no hay.
+function _resolveHint(hint, entityName, dateVal) {
+  var val = dateVal ? fmtDate(dateVal) : 'esa fecha';
+  return String(hint || '')
+    .replace(/\{\{\s*entity\s*\}\}/gi, entityName || 'tu ficha')
+    .replace(/\{\{\s*value\s*\}\}/gi, val);
+}
+// Actualiza en vivo la previsualización del aviso al escribir la fecha.
+function entAvisoPreview(key) {
+  var input = document.getElementById('ent-f-' + key);
+  var box = document.getElementById('avp-' + key);
+  if (!input || !box) return;
+  var hint = decodeURIComponent(box.getAttribute('data-hint') || '');
+  var ent = decodeURIComponent(box.getAttribute('data-ent') || '');
+  var off = parseInt(box.getAttribute('data-off') || '0', 10);
+  box.innerHTML = '📲 <strong>' + _avisoDias(off) + '</strong> NodeFlow enviará: «' +
+    esc(_resolveHint(hint, ent, input.value)) + '»';
+}
+
 async function loadEntidades() {
   var sec = document.getElementById('sec-entidades');
   if (!sec) return;
@@ -8132,7 +8157,19 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
         '<option value="false"' + (v === false ? ' selected' : '') + '>No</option></select>';
     } else {
       var itype = f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : f.type === 'phone' ? 'tel' : 'text';
-      input = '<input class="form-input" id="' + fid + '" type="' + itype + '" value="' + esc(String(v)) + '" style="' + BIG + '">';
+      var oninp = (f.type === 'date' && f.reminder) ? ' oninput="entAvisoPreview(\'' + esc(f.key) + '\')"' : '';
+      input = '<input class="form-input" id="' + fid + '" type="' + itype + '" value="' + esc(String(v)) + '" style="' + BIG + '"' + oninp + '>';
+    }
+    // Previsualización del aviso automático: qué WhatsApp saldrá y cuándo, con
+    // el nombre de la ficha y la fecha ya sustituidos. Hace tangible el motor.
+    if (f.type === 'date' && f.reminder) {
+      var entName = (entity && entity.display_name) ? entity.display_name : ('tu ' + String(type.label_singular || 'ficha').toLowerCase());
+      input += '<div class="ent-aviso-prev" id="avp-' + esc(f.key) + '"' +
+        ' data-hint="' + encodeURIComponent(f.reminder.message_hint || '') + '"' +
+        ' data-ent="' + encodeURIComponent(entName) + '"' +
+        ' data-off="' + (f.reminder.offset_days || 0) + '">' +
+        '📲 <strong>' + _avisoDias(f.reminder.offset_days) + '</strong> NodeFlow enviará: «' +
+        esc(_resolveHint(f.reminder.message_hint, entName, v)) + '»</div>';
     }
     formHtml += '<div class="form-group">' + label + input + '</div>';
   }

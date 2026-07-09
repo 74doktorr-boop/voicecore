@@ -947,6 +947,12 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .nf-apt.gcal .nf-apt-time { color: #7ea8ff; }
 .nf-apt.gcal .nf-apt-svc { color: #7ea8ff; opacity: .85; }
 .nf-gcal-legend { font-size: var(--fs-2xs); color: #7ea8ff; margin-left: 4px; white-space: nowrap; }
+
+/* Previsualización del aviso automático bajo un campo-fecha de la ficha */
+.ent-aviso-prev { margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--dim);
+  background: rgba(var(--accent-rgb), .07); border-left: 2px solid var(--accent);
+  border-radius: 0 6px 6px 0; padding: 7px 10px; }
+.ent-aviso-prev strong { color: var(--accent-l); }
 .nf-week-empty { font-size: var(--fs-2xs); color: var(--muted); text-align: center; margin: auto; }
 .nf-week-add {
   background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 700;
