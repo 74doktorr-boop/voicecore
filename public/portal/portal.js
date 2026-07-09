@@ -2130,6 +2130,13 @@ async function submitNewCita() {
   }
   try {
     await api('/api/portal/appointments', 'POST', body);
+    // Asegurar la ficha del cliente por el endpoint que YA funciona (idempotente,
+    // deduplica). El backend también lo intenta, pero esto lo garantiza al vuelo
+    // y sin depender de un redeploy. La cita ya está creada; esto no bloquea.
+    if (body.patientName) {
+      api('/api/portal/contacts', 'POST', { name: body.patientName, phone: body.phone })
+        .catch(function () {});
+    }
     closeModal();
     toast('Cita creada correctamente');
     _citasData = [];
