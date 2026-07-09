@@ -2324,6 +2324,51 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true, contact: data });
   });
 
+  // ── POST /api/portal/contacts — crear ficha de cliente a mano ─────────────
+  // Usado desde el formulario de fichas (dueño/titular) para dar de alta un
+  // cliente que no existía, sin salir del modal. También vale como alta directa.
+  // Sin call_count/last_call_at (no es una llamada). Dedup por teléfono.
+  app.post('/api/portal/contacts', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+
+    let { name, phone, email } = req.body || {};
+    name  = (name  || '').toString().trim().slice(0, 120) || null;
+    phone = (phone || '').toString().trim().slice(0, 24)  || null;
+    email = (email || '').toString().trim().slice(0, 160) || null;
+    if (!name && !phone) return res.status(400).json({ error: 'Indica al menos un nombre o un teléfono' });
+
+    const shape = c => ({ id: c.id, name: c.name, phone: c.phone, email: c.email,
+                          displayName: c.name || c.phone || 'Cliente' });
+    try {
+      // Dedup por teléfono: si ya existe, completa huecos y lo devuelve.
+      if (phone) {
+        const { data: ex } = await db.client.from('contacts')
+          .select('id, name, phone, email').eq('org_id', businessId)
+          .eq('phone', phone).is('deleted_at', null).limit(1);
+        if (ex && ex[0]) {
+          const patch = {};
+          if (!ex[0].name  && name)  patch.name  = name;
+          if (!ex[0].email && email) patch.email = email;
+          if (Object.keys(patch).length) {
+            patch.updated_at = new Date().toISOString();
+            await db.client.from('contacts').update(patch).eq('id', ex[0].id);
+          }
+          return res.json({ ok: true, existed: true, contact: shape({ ...ex[0], ...patch }) });
+        }
+      }
+      const nowIso = new Date().toISOString();
+      const { data, error } = await db.client.from('contacts')
+        .insert({ org_id: businessId, name, phone, email, created_at: nowIso, updated_at: nowIso })
+        .select('id, name, phone, email').single();
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true, contact: shape(data) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ── DELETE /api/portal/contacts/:id ───────────────────────
   app.delete('/api/portal/contacts/:id', portalAuth, async (req, res) => {
     const { businessId } = req;

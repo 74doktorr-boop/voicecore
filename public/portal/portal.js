@@ -8105,11 +8105,19 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
   // Dueño / titular (persona = contacto; la cosa = esta ficha).
   // Alta desde la Ficha 360 → el cliente viene YA preseleccionado.
   var curContact = entity ? (entity.contact_id || '') : (prelinkContactId || '');
-  var contactOpts = '<option value="">— Sin cliente vinculado —</option>' + contacts.map(function(c) {
+  var contactOpts = '<option value="">— Sin cliente vinculado —</option>' +
+    '<option value="__new__">➕ Crear cliente nuevo…</option>' + contacts.map(function(c) {
     return '<option value="' + esc(c.id) + '"' + (curContact === c.id ? ' selected' : '') + '>' + esc(c.displayName || c.phone || '') + '</option>';
   }).join('');
   formHtml += '<div class="form-group"><label class="form-label" style="font-size:13px">👤 Cliente (dueño/titular)</label>' +
-    '<select class="form-input" id="ent-f-contact" style="' + BIG + '">' + contactOpts + '</select>' +
+    '<select class="form-input" id="ent-f-contact" style="' + BIG + '" onchange="entContactChange(this)">' + contactOpts + '</select>' +
+    // Mini-formulario inline: crear la ficha del cliente sin salir de aquí.
+    '<div id="ent-newcontact" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)">' +
+      '<input class="form-input" id="ent-nc-name" placeholder="Nombre del cliente" style="margin-bottom:6px">' +
+      '<input class="form-input" id="ent-nc-phone" type="tel" placeholder="Teléfono (opcional)" style="margin-bottom:8px">' +
+      '<button type="button" class="btn btn-accent btn-sm" onclick="entCreateContact()">Crear y vincular</button>' +
+      '<div style="color:var(--dim);font-size:11px;margin-top:6px">Se dará de alta en Clientes y quedará vinculado a esta ficha.</div>' +
+    '</div>' +
     '<small style="color:var(--dim);font-size:11px">Los avisos automáticos se envían a este cliente. Sin cliente, la ficha se guarda pero no avisa.</small></div>';
 
   var del = entity
@@ -8129,6 +8137,41 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
       '<button class="btn btn-accent" style="font-size:15px;padding:12px 22px" onclick="saveEntity(' + (entity ? '\'' + esc(entity.id) + '\'' : 'null') + ')">Guardar</button>' +
     '</div>'
   );
+}
+
+// Dueño/titular: al elegir "➕ Crear cliente nuevo…" se despliega el mini-form.
+function entContactChange(sel) {
+  var box = document.getElementById('ent-newcontact');
+  if (!box) return;
+  var isNew = sel.value === '__new__';
+  box.style.display = isNew ? 'block' : 'none';
+  if (isNew) { var n = document.getElementById('ent-nc-name'); if (n) n.focus(); }
+}
+
+// Crea el contacto SIN salir de la ficha, lo añade al desplegable ya
+// seleccionado, y queda dado de alta en Clientes. Al guardar la ficha se vincula.
+async function entCreateContact() {
+  var name  = ((document.getElementById('ent-nc-name')  || {}).value || '').trim();
+  var phone = ((document.getElementById('ent-nc-phone') || {}).value || '').trim();
+  if (!name && !phone) { toast('Pon al menos un nombre o un teléfono', 'err'); return; }
+  try {
+    var r = await api('/api/portal/contacts', 'POST', { name: name, phone: phone });
+    var c = r.contact;
+    var sel = document.getElementById('ent-f-contact');
+    var opt = sel.querySelector('option[value="' + c.id + '"]');
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.displayName || c.name || c.phone;
+      sel.appendChild(opt);
+    }
+    sel.value = c.id;
+    var box = document.getElementById('ent-newcontact');
+    if (box) box.style.display = 'none';
+    toast(r.existed ? 'Cliente ya existía — vinculado' : '✓ Cliente creado y vinculado');
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
 }
 
 async function saveEntity(id) {
