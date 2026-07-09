@@ -1522,7 +1522,7 @@ async function loadDashboard() {
   // Timeout CORTO (6s): son secundarios; si la BD va lenta, el dashboard se
   // pinta igual y el panel que falta sale a 0 en vez de congelar todo.
   var act = { opps: 0, tasks: 0, wait: 0, unanswered: 0 };
-  var usage = null, cal = null, asisMode = 'citas', atRisk = [];
+  var usage = null, cal = null, asisMode = 'citas', atRisk = [], apptsForReview = [];
   try {
     var r = await Promise.all([
       api('/api/portal/missed-opportunities', null, null, 6000).catch(function () { return {}; }),
@@ -1533,6 +1533,7 @@ async function loadDashboard() {
       api('/api/calendar/status', null, null, 6000).catch(function () { return null; }),
       api('/api/portal/assistant', null, null, 6000).catch(function () { return null; }),
       api('/api/portal/at-risk-tomorrow', null, null, 6000).catch(function () { return {}; }),
+      api('/api/portal/appointments', null, null, 6000).catch(function () { return {}; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     // Contador UNIFICADO: tareas manuales abiertas + sugerencias no descartadas
@@ -1546,6 +1547,7 @@ async function loadDashboard() {
     cal = r[5];
     asisMode = (r[6] && r[6].config && r[6].config.mode) || 'citas';
     atRisk = (r[7] && r[7].atRisk) || [];
+    apptsForReview = (r[8] && r[8].appointments) || [];
   } catch (e) {}
 
   sec.innerHTML =
@@ -1554,6 +1556,7 @@ async function loadDashboard() {
     '<div id="dash-roi" style="margin:0 0 14px"></div>' +
     dashMinutes(usage) +
     dashSetup(d) +
+    dashConfirmAttendance(apptsForReview) +
     dashCalendarNudge(cal, asisMode) +
     dashAtRisk(atRisk) +
     dashRecos(act) +
@@ -2046,10 +2049,42 @@ async function markAttendance(id, came) {
   try {
     await api('/api/portal/appointments/' + id + '/no-show', 'POST', { noShow: !came });
     toast(came ? '✓ Cita completada' : 'Marcada como no vino');
-    loadCitas();
+    // Recarga la vista donde esté el dueño (la tarjeta vive en dashboard y en Citas).
+    if (_currentSection === 'dashboard') loadDashboard();
+    else loadCitas();
   } catch (e) {
     toast('Error: ' + esc(e.message), 'err');
   }
+}
+
+// Tarjeta proactiva del dashboard: citas ya pasadas sin confirmar asistencia.
+// El "empleado digital" te dice qué resolver nada más entrar — y al confirmar
+// se activan los seguimientos post-servicio (como_fue, revisiones…).
+function dashConfirmAttendance(appts) {
+  var nowMs = Date.now();
+  var pending = (appts || []).filter(function (a) {
+    if (a.status !== 'confirmed' && a.status !== 'pending') return false;
+    var dt = new Date((a.date || '') + 'T' + (a.time || '00:00') + ':00');
+    return !isNaN(dt.getTime()) && dt.getTime() < nowMs;
+  }).sort(function (a, b) { return (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')); });
+  if (!pending.length) return '';
+  var rows = pending.slice(0, 4).map(function (a) {
+    var safeId = esc(a.id);
+    return '<div class="nf-review-row">' +
+      '<div class="nf-review-when">' + esc(fmtDate(a.date)) + ' · ' + esc(a.time || '') + '</div>' +
+      '<div class="nf-review-who"><strong>' + esc(a.patientName) + '</strong>' +
+        (a.service ? ' <span>' + esc(a.service) + '</span>' : '') + '</div>' +
+      '<div class="nf-review-actions">' +
+        '<button class="btn btn-accent btn-sm" onclick="markAttendance(\'' + safeId + '\',true)">✓ Vino</button> ' +
+        '<button class="btn btn-r btn-sm" onclick="markAttendance(\'' + safeId + '\',false)">✕ No vino</button>' +
+      '</div></div>';
+  }).join('');
+  return '<div class="card nf-review" style="margin-bottom:14px">' +
+    '<div class="nf-review-title">🕓 Confirma la asistencia · ' + pending.length + '</div>' +
+    '<div class="nf-review-sub">Citas ya pasadas sin resolver. Dinos si el cliente vino — se marca como completada y se activan los seguimientos post-servicio (el «¿qué tal fue?»).</div>' +
+    rows +
+    (pending.length > 4 ? '<button class="btn btn-d btn-sm u-mt-2" onclick="navigate(\'citas\')">Ver las ' + pending.length + ' en Citas →</button>' : '') +
+    '</div>';
 }
 
 function openNewCita() {
