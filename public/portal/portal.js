@@ -5937,7 +5937,21 @@ async function loadRecovery(targetId) {
 
   var total = (r && r.total) || 0;
   var lines = (r && r.lines) || [];
-  if (!(total > 0) || !lines.length) { box.innerHTML = ''; return; }
+
+  // Estado vacío HONESTO (el mejor estado es una verdad útil, no un hueco):
+  // si aún no hay ninguna recuperación fuerte, se enseña igual y se explica
+  // qué hará falta para que aparezca. Así el dueño ve la tarjeta desde el día 1.
+  if (!(total > 0) || !lines.length) {
+    box.innerHTML =
+      '<div style="background:rgba(196,245,70,.04);border:1px solid rgba(196,245,70,.18);border-radius:14px;padding:14px 18px">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">' +
+          '<span style="font-size:18px">🧾</span>' +
+          '<span style="font-weight:800;font-size:15px">Lo que recuperé por ti</span>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--dim);line-height:1.5">Aún no he rescatado ninguna llamada en cita este mes. En cuanto una llamada <strong>fuera de horario</strong> o <strong>en saturación</strong> acabe en reserva, aparecerá aquí con su valor.</div>' +
+      '</div>';
+    return;
+  }
 
   var rows = lines.map(function (l) {
     return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line,rgba(255,255,255,.08));font-size:13px">' +
