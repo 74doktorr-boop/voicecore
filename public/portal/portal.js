@@ -2709,7 +2709,7 @@ function openNewCritDate() {
     '<div class="form-group"><label class="form-label">Teléfono</label>' +
       '<input class="form-input" id="cdPhone" type="tel"></div>' +
     '<div class="form-group"><label class="form-label">Notas</label>' +
-      '<input class="form-input" id="cdNotes" placeholder="Vacuna rabia, perro Max…"></div>' +
+      '<input class="form-input" id="cdNotes" placeholder="Detalle o motivo del aviso…"></div>' +
     '<div class="modal-actions">' +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
       '<button class="btn btn-accent" onclick="submitCritDate()">Guardar</button>' +
@@ -3383,7 +3383,7 @@ function openPromoModal() {
     '<p style="color:var(--dim);font-size:13px;line-height:1.5;margin-bottom:12px">' +
       'Escribe tu promo y llegará por WhatsApp a tus clientes (los que pidieron no recibir mensajes quedan excluidos automáticamente). El mensaje sale con tu nombre de negocio y el cliente puede responder directamente.' +
     '</p>' +
-    '<textarea id="promoText" maxlength="300" oninput="promoPreview()" placeholder="ej. este mes el tinte + corte tiene un 15% de descuento. Pide tu cita antes del día 31." ' +
+    '<textarea id="promoText" maxlength="300" oninput="promoPreview()" placeholder="ej. este mes ' + esc(_svcExamples((_orgInfo && _orgInfo.sector) || '').name.toLowerCase()) + ' con un 15% de descuento. Pide tu cita antes del día 31." ' +
       'style="width:100%;min-height:90px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5"></textarea>' +
     '<div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:10px 12px">' +
       '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">🎯 ¿A quién? <span style="font-weight:400;color:var(--dim)">(combina los filtros que quieras)</span></div>' +
@@ -6239,7 +6239,7 @@ function ruleRow(r) {
 
   var nameCell = isCustom
     ? '<input type="text" class="rule-label" value="' + esc(r.label || '') + '" placeholder="Nombre del seguimiento" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600">' +
-      '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): corte, mechas…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">' +
+      '<input type="text" class="rule-filter" value="' + esc((r.serviceFilter || []).join(', ')) + '" placeholder="Solo tras (palabras, opcional): ' + esc(_svcExamples((_orgInfo && _orgInfo.sector) || '').name.toLowerCase()) + '…" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px">' +
       '<input type="text" class="rule-text" maxlength="250" value="' + esc(r.customText || '') + '" placeholder="✍️ Mensaje 100% tuyo (opcional) — usa {detalle} para el dato de cada ficha" style="width:100%;margin-top:5px;background:var(--bg);color:var(--dim);border:1px solid rgba(196,245,70,.25);border-radius:6px;padding:5px 8px;font-size:12px">' +
       (r.trigger === 'before_sector_field' ? '<div style="font-size:11px;color:var(--accent-l);margin-top:4px">📅 La fecha "' + esc(r.label || 'de esta regla') + '" aparecerá en la ficha de cada cliente para rellenar.' + _coverageNote(r) + '</div>' : '')
     : '<div style="font-weight:600;color:var(--text);font-size:14px">' + esc(r.label) +
