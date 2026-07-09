@@ -7652,6 +7652,33 @@ function renderEntidades() {
   box.innerHTML = html;
 }
 
+// Próximo campo-fecha con aviso (el más cercano en el futuro) de una ficha —
+// mira TODOS los campos-fecha con reminder, no solo los de la lista.
+function _entNextAviso(e, type) {
+  var a = (e && e.attrs) || {};
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var best = null;
+  (type.fields || []).forEach(function (f) {
+    if (f.type !== 'date' || !f.reminder) return;
+    var v = a[f.key];
+    if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return;
+    var dt = new Date(String(v) + 'T00:00:00');
+    if (isNaN(dt.getTime())) return;
+    var days = Math.round((dt - today) / 86400000);
+    if (days < 0) return;                       // ya pasó → el aviso ya salió
+    if (!best || days < best.days) best = { label: f.label || f.key, days: days };
+  });
+  return best;
+}
+// Línea "⏰ próximo aviso" para la tarjeta: roja <7 días, ámbar <30.
+function _entNextAvisoHtml(e, type) {
+  var n = _entNextAviso(e, type);
+  if (!n) return '';
+  var cls = n.days <= 7 ? ' urgent' : n.days <= 30 ? ' soon' : '';
+  var when = n.days === 0 ? 'hoy' : (n.days === 1 ? 'mañana' : 'en ' + n.days + ' días');
+  return '<div class="ent-next-aviso' + cls + '">⏰ ' + esc(n.label) + ' · ' + when + '</div>';
+}
+
 // Tarjeta de entidad (compartida entre lista y agrupada). Clic → FICHA VIVA;
 // «Editar ✏️» va directo al formulario. stateField (solo agrupada): selector
 // grande para cambiar de estado sin abrir nada.
@@ -7697,6 +7724,7 @@ function entCardHtml(e, type, listFields, stateField) {
       '<div style="font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(e.display_name) + '</div>' +
       (a.is_draft ? _entDraftBadge(true) : '') +
     '</div>' +
+    _entNextAvisoHtml(e, type) +
     rows +
     stateSel +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px">' + owner +

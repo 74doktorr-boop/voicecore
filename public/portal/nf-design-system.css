@@ -953,6 +953,13 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   background: rgba(var(--accent-rgb), .07); border-left: 2px solid var(--accent);
   border-radius: 0 6px 6px 0; padding: 7px 10px; }
 .ent-aviso-prev strong { color: var(--accent-l); }
+
+/* Línea "próximo aviso" en la tarjeta de ficha (urgencia por color) */
+.ent-next-aviso { font-size: 12px; font-weight: 700; color: var(--accent-l);
+  background: rgba(var(--accent-rgb), .10); border-radius: 6px; padding: 5px 9px; margin-bottom: 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ent-next-aviso.soon { color: #f5c542; background: rgba(245, 197, 66, .12); }
+.ent-next-aviso.urgent { color: var(--red); background: rgba(240, 100, 90, .12); }
 .nf-week-empty { font-size: var(--fs-2xs); color: var(--muted); text-align: center; margin: auto; }
 .nf-week-add {
   background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 700;
