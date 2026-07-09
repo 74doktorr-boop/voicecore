@@ -2054,6 +2054,8 @@ async function markAttendance(id, came) {
 
 function openNewCita() {
   var today = new Date().toISOString().slice(0, 10);
+  // Ejemplo de servicio SEGÚN EL SECTOR (un fisio no ve "Corte de pelo").
+  var svcEx = _svcExamples((_orgInfo && _orgInfo.sector) || '').name;
   openModal(
     '<div class="modal-title">+ Nueva cita</div>' +
     '<div class="form-group"><label class="form-label">Nombre del cliente *</label>' +
@@ -2063,7 +2065,7 @@ function openNewCita() {
     '<div class="form-group"><label class="form-label">Email</label>' +
       '<input class="form-input" id="mEmail" type="email" placeholder="cliente@email.com"></div>' +
     '<div class="form-group"><label class="form-label">Servicio *</label>' +
-      '<input class="form-input" id="mService" placeholder="Corte de pelo"></div>' +
+      '<input class="form-input" id="mService" placeholder="' + esc(svcEx) + '"></div>' +
     '<div class="form-group"><label class="form-label">Fecha *</label>' +
       '<input class="form-input" id="mDate" type="date" value="' + today + '"></div>' +
     '<div class="form-group"><label class="form-label">Hora *</label>' +
@@ -2815,7 +2817,7 @@ async function loadConfig() {
         '<datalist id="svcPriceOpts"><option value="a presupuesto"><option value="gratis"><option value="desde 30€"></datalist>' +
         '<button type="button" class="btn btn-d btn-sm u-mt-2" onclick="addServiceRow()">+ Añadir servicio</button>' +
         '<small class="form-hint">El precio también puede ser texto — <em>«a presupuesto»</em>, <em>«desde 30€»</em>, <em>«gratis»</em> — y la IA lo dirá tal cual. Si es a presupuesto, ofrecerá que le llaméis para presupuestar.</small>' +
-        copilotBox('services', 'Ej: corte de pelo 15 euros media hora, tinte 45 hora y media, mechas a presupuesto') + '</div>' +
+        copilotBox('services', _svcCopilotExample()) + '</div>' +
       // #7: el textarea libre de horarios era un campo MUERTO (custom.schedule
       // no lo leía nada del runtime) — el horario real es el selector por días
       // de Asistente (assistant_config.schedule), que alimenta agenda y prompt.
@@ -2935,6 +2937,14 @@ function _svcExamples(sector) {
   k = ALIAS[k] || k;
   var e = EX[k] || EX[k.replace(/es$/, '')] || EX[k.replace(/s$/, '')] || EX.generico;
   return { name: e[0], price: e[1], dur: e[2], notes: e[3] };
+}
+
+// Ejemplo de texto libre para el copiloto de servicios, según el sector — un
+// fisio NO debe ver "corte de pelo" (regla: los ejemplos siguen al sector).
+function _svcCopilotExample() {
+  var ex = _svcExamples((_orgInfo && _orgInfo.sector) || '');
+  return 'Ej: ' + String(ex.name).toLowerCase() + ' ' + ex.price + ' ' + ex.dur +
+         (ex.notes ? ', ' + ex.notes : '');
 }
 
 function addServiceRow(s) {
