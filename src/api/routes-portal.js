@@ -914,18 +914,23 @@ function setupPortalRoutes(app, pipeline, config) {
     // ficha editable. Antes una cita manual no creaba contacto → el cliente
     // quedaba sin ficha (no se podía gestionar). Insert directo, SIN tocar
     // call_count/last_call_at (no fue una llamada). Best-effort, no bloquea.
+    // Con teléfono → dedup por teléfono. Sin teléfono → ficha igualmente,
+    // deduplicando por nombre entre las fichas sin teléfono (requiere la
+    // migración que hace contacts.phone NULLABLE).
     const _db = getDatabase();
-    if (phone && _db.enabled) {
+    if (_db.enabled && (phone || patientName)) {
       (async () => {
         try {
           const nowIso = new Date().toISOString();
-          const { data: existing } = await _db.client.from('contacts')
-            .select('id, name').eq('org_id', businessId).eq('phone', phone)
-            .is('deleted_at', null).maybeSingle();
+          let q = _db.client.from('contacts').select('id, name')
+            .eq('org_id', businessId).is('deleted_at', null);
+          q = phone ? q.eq('phone', phone) : q.eq('name', patientName).is('phone', null);
+          const { data: rows } = await q.limit(1);
+          const existing = (rows && rows[0]) || null;
           if (!existing) {
             await _db.client.from('contacts').insert({
-              org_id: businessId, phone, name: patientName || null, email: email || null,
-              created_at: nowIso, updated_at: nowIso,
+              org_id: businessId, phone: phone || null, name: patientName || null,
+              email: email || null, created_at: nowIso, updated_at: nowIso,
             });
           } else if (!existing.name && patientName) {
             // Ficha sin nombre y ahora tenemos uno → lo completamos (no pisamos).
