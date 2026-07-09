@@ -70,18 +70,25 @@ class GoogleCalendar {
       const endM       = String(totalMins % 60).padStart(2, '0');
       const endLocal   = `${appointment.date}T${endH}:${endM}:00`;
 
+      // Título: CLIENTE primero (es lo que el negocio escanea de un vistazo) y
+      // luego el servicio. Google ya muestra la hora aparte, así que no la
+      // repetimos en el título. Fallbacks limpios si falta algún dato.
+      const summary = [appointment.patientName, appointment.service]
+        .map(s => (s || '').trim()).filter(Boolean).join(' · ') || 'Cita';
+
       const desc = [
-        `Cliente: ${appointment.patientName}`,
-        appointment.phone ? `Tel: ${appointment.phone}` : '',
-        appointment.email ? `Email: ${appointment.email}` : '',
         appointment.service ? `Servicio: ${appointment.service}` : '',
-        appointment.notes  ? `Notas: ${appointment.notes}` : '',
+        appointment.phone   ? `Teléfono: ${appointment.phone}` : '',
+        appointment.email   ? `Email: ${appointment.email}` : '',
+        appointment.notes   ? `Notas: ${appointment.notes}` : '',
+        '',
+        'Reservado con NodeFlow',
       ].filter(Boolean).join('\n');
 
       const { data } = await cal.events.insert({
         calendarId: config.calendarId || 'primary',
         requestBody: {
-          summary: `${appointment.service || 'Cita'} — ${appointment.patientName}`,
+          summary,
           description: desc,
           start: { dateTime: startLocal, timeZone: tz },
           end:   { dateTime: endLocal,   timeZone: tz },
