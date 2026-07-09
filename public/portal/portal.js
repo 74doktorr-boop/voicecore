@@ -2173,10 +2173,36 @@ async function openEditCita(id) {
     '<div class="form-group"><label class="form-label">Notas internas</label>' +
       '<textarea class="form-input" id="eNotes" rows="2" placeholder="Primera visita, alergias, observaciones…">' + esc(apt.notes || '') + '</textarea></div>' +
     '<div class="modal-actions">' +
+      '<button class="btn btn-d" style="margin-right:auto" onclick="openCitaClient()">👤 Ficha del cliente</button>' +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
       '<button class="btn btn-accent" onclick="submitEditCita(\'' + esc(id) + '\')">Guardar cambios</button>' +
     '</div>'
   );
+}
+
+// Abre la ficha del cliente de la cita que se está editando; si aún no existe
+// como contacto, lo crea al vuelo. Lee los valores ACTUALES del modal (por si
+// el dueño acaba de editar el nombre o el teléfono).
+async function openCitaClient() {
+  var phone = ((document.getElementById('ePhone') || {}).value || '').trim();
+  var name  = ((document.getElementById('ePatientName') || {}).value || '').trim();
+  if (!phone && !name) { toast('La cita no tiene datos de cliente', 'err'); return; }
+  try {
+    var data = await api('/api/portal/contacts?q=' + encodeURIComponent(phone || name));
+    var list = data.contacts || [];
+    var found = phone
+      ? list.filter(function (c) { return (c.phone || '') === phone; })[0]
+      : list.filter(function (c) { return (c.name || c.displayName || '') === name; })[0];
+    if (!found) {
+      var r = await api('/api/portal/contacts', 'POST', { name: name, phone: phone });
+      found = r.contact;
+      toast(r.existed ? 'Ficha vinculada' : '✓ Ficha de cliente creada');
+    }
+    closeModal();
+    openContactProfile(found.id);
+  } catch (e) {
+    toast('Error: ' + esc(e.message), 'err');
+  }
 }
 
 async function submitEditCita(id) {
