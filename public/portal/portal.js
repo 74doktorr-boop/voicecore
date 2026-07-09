@@ -8213,10 +8213,10 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
     '<select class="form-input" id="ent-f-contact" style="' + BIG + '" onchange="entContactChange(this)">' + contactOpts + '</select>' +
     // Mini-formulario inline: crear la ficha del cliente sin salir de aquí.
     '<div id="ent-newcontact" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)">' +
-      '<input class="form-input" id="ent-nc-name" placeholder="Nombre del cliente" style="margin-bottom:6px">' +
-      '<input class="form-input" id="ent-nc-phone" type="tel" placeholder="Teléfono (opcional)" style="margin-bottom:8px">' +
+      '<input class="form-input" id="ent-nc-name" placeholder="Nombre del cliente *" style="margin-bottom:6px">' +
+      '<input class="form-input" id="ent-nc-phone" type="tel" placeholder="Teléfono * (para los avisos)" style="margin-bottom:8px">' +
       '<button type="button" class="btn btn-accent btn-sm" onclick="entCreateContact()">Crear y vincular</button>' +
-      '<div style="color:var(--dim);font-size:11px;margin-top:6px">Se dará de alta en Clientes y quedará vinculado a esta ficha.</div>' +
+      '<div style="color:var(--dim);font-size:11px;margin-top:6px">📲 El teléfono es imprescindible: es donde llegan los avisos automáticos de esta ficha. Se dará de alta en Clientes.</div>' +
     '</div>' +
     '<small style="color:var(--dim);font-size:11px">Los avisos automáticos se envían a este cliente. Sin cliente, la ficha se guarda pero no avisa.</small></div>';
 
@@ -8253,7 +8253,19 @@ function entContactChange(sel) {
 async function entCreateContact() {
   var name  = ((document.getElementById('ent-nc-name')  || {}).value || '').trim();
   var phone = ((document.getElementById('ent-nc-phone') || {}).value || '').trim();
-  if (!name && !phone) { toast('Pon al menos un nombre o un teléfono', 'err'); return; }
+  // El teléfono es OBLIGATORIO aquí: este cliente es el dueño de la ficha y
+  // recibe sus avisos automáticos por WhatsApp — sin teléfono no hay a quién
+  // avisar y toda la automatización se queda coja.
+  if (!phone || phone.replace(/\D/g, '').length < 6) {
+    toast('El teléfono es imprescindible: es donde llegan los avisos automáticos de la ficha', 'err');
+    var pe = document.getElementById('ent-nc-phone'); if (pe) pe.focus();
+    return;
+  }
+  if (!name) {
+    toast('Pon también el nombre del cliente', 'err');
+    var ne = document.getElementById('ent-nc-name'); if (ne) ne.focus();
+    return;
+  }
   try {
     var r = await api('/api/portal/contacts', 'POST', { name: name, phone: phone });
     var c = r.contact;
