@@ -181,6 +181,18 @@ class TTSRouter {
         const audio = await info.instance.synthesize(params);
         const latency = Date.now() - t0;
 
+        // Un buffer VACÍO no es éxito: síntesis fallida silenciosa (API que
+        // responde 200 sin cuerpo, hipo transitorio). Tratarlo como error →
+        // siguiente proveedor, y JAMÁS cachearlo: una frase FIJA (saludo,
+        // recuperación, despedida) cacheada vacía = silencio permanente en
+        // TODAS las llamadas hasta el próximo deploy (el que llama descuelga,
+        // oye nada y cuelga). Bug latente 2026-07.
+        if (!audio || audio.length === 0) {
+          log.warn(`[${callId}] TTS '${providerName}' devolvió audio VACÍO — trying next`);
+          this._updateMetrics(providerName, 0, true);
+          continue;
+        }
+
         this._updateMetrics(providerName, latency, false);
         this._addToCache(cacheKey, audio);
 
