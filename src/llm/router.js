@@ -95,57 +95,85 @@ class LLMRouter {
   }
 
   /**
-   * Stream completion with automatic routing and fallback
+   * Stream completion con enrutado y fallback ROBUSTO.
+   *
+   * Bug real (fisioterapia unai, 2026-07): el cliente decía "Sí, por favor"
+   * (STT 0.999) y el asistente respondía "no te he escuchado". Dos causas:
+   *   1) el router solo hacía fallback ante un chunk 'error', NO ante una
+   *      respuesta VACÍA "exitosa" (Groq devolvía done sin texto ni tools).
+   *   2) el fallbackModel de la org apuntaba al MISMO Groq → reintentaba el
+   *      proveedor que acababa de fallar.
+   * Ahora: se prueban proveedores en orden (primario → fallbackModel →
+   * resto), NUNCA se repite un proveedor ya intentado, y una respuesta
+   * vacía cuenta como fallo (se pasa al siguiente). Solo tras agotarlos
+   * todos se emite 'error' (último recurso honesto → el pipeline recupera).
    */
   async *streamCompletion({ callId, messages, model, tools, temperature, maxTokens, fallbackModel }) {
-    const { provider, model: resolvedModel, providerName } = this.getProvider(model);
+    const opts = { messages, tools, temperature, maxTokens };
+    const attempted = new Set();
 
-    try {
-      log.llm(`[${callId}] Routing to ${providerName}/${resolvedModel}`);
-      // Los proveedores emiten chunks {type:'error'} en vez de lanzar — sin
-      // esto, un fallo del primario = LLAMADA EN SILENCIO (el fallback de
-      // abajo jamás se disparaba). Si el error llega ANTES de emitir texto,
-      // lo convertimos en throw para que actúe el fallback; si ya se habló
-      // parte de la respuesta, se deja pasar (no reiniciar = no duplicar).
-      let yieldedText = false;
-      for await (const chunk of provider.streamCompletion({ callId, messages, model: resolvedModel, tools, temperature, maxTokens })) {
-        if (chunk.type === 'error' && !yieldedText) {
-          throw new Error(chunk.message || chunk.content || `${providerName} error chunk`);
-        }
-        if (chunk.type === 'text' && chunk.content) yieldedText = true;
-        // Etiquetar QUIÉN sirvió el turno: sin esto el A/B de modelos era
-        // ciego (llmProvider llegaba null a métricas — bug real 2026-07-03).
-        if (chunk.type === 'done') {
-          chunk.metrics = { ...(chunk.metrics || {}), provider: providerName, model: resolvedModel };
-        }
-        yield chunk;
-      }
-      return;
-    } catch (error) {
-      log.warn(`[${callId}] ${providerName} failed (${error.message}), trying fallback...`);
-
-      if (fallbackModel) {
-        const fb = this.getProvider(fallbackModel);
-        for await (const chunk of fb.provider.streamCompletion({ callId, messages, model: fb.model, tools, temperature, maxTokens })) {
-          if (chunk.type === 'done') chunk.metrics = { ...(chunk.metrics || {}), provider: fb.providerName, model: fb.model, viaFallback: true };
-          yield chunk;
-        }
-      } else {
-        // Auto-fallback to next available provider
-        for (const [name, info] of this.providers) {
-          if (name === providerName) continue;
-          try {
-            log.info(`[${callId}] Fallback to ${name}`);
-            for await (const chunk of info.instance.streamCompletion({ callId, messages, model: info.models[0], tools, temperature, maxTokens })) {
-              if (chunk.type === 'done') chunk.metrics = { ...(chunk.metrics || {}), provider: name, model: info.models[0], viaFallback: true };
-              yield chunk;
-            }
-            return;
-          } catch (e) { continue; }
-        }
-        yield { type: 'error', message: 'All LLM providers failed' };
-      }
+    // Orden de intento: primario, luego el fallbackModel explícito, luego el resto.
+    const order = [this.getProvider(model)];
+    if (fallbackModel) order.push(this.getProvider(fallbackModel));
+    for (const [name, info] of this.providers) {
+      order.push({ provider: info.instance, model: info.models[0], providerName: name });
     }
+
+    for (let i = 0; i < order.length; i++) {
+      const resolved = order[i];
+      if (!resolved || !resolved.provider || attempted.has(resolved.providerName)) continue;
+      attempted.add(resolved.providerName);
+      const viaFallback = attempted.size > 1;
+      const ok = yield* this._tryProvider(callId, resolved, opts, viaFallback);
+      if (ok) return;
+      log.warn(`[${callId}] ${resolved.providerName} no produjo respuesta útil — probando siguiente`);
+    }
+
+    // Todos agotados: el pipeline lo trata como turno vacío (recupera/escala).
+    yield { type: 'error', message: 'All LLM providers failed or returned empty' };
+  }
+
+  /**
+   * Intenta UN proveedor. Emite sus chunks (texto/tool en streaming, para no
+   * añadir latencia) y retiene el 'done' hasta saber si hubo contenido.
+   * @returns {boolean} true si produjo algo con sentido (texto o tool_call);
+   *   false si vacío o error SIN nada emitido → el llamante prueba el siguiente.
+   *   Nunca lanza; nunca deja el 'done' vacío pasar (para no disparar la red
+   *   anti-silencio del pipeline antes de intentar el fallback).
+   */
+  async *_tryProvider(callId, { provider, model, providerName }, opts, viaFallback) {
+    let meaningful = false;
+    let doneChunk = null;
+    log.llm(`[${callId}] LLM → ${providerName}/${model}${viaFallback ? ' (fallback)' : ''}`);
+    try {
+      for await (const chunk of provider.streamCompletion({ callId, model, ...opts })) {
+        if (chunk.type === 'error') {
+          // Si ya emitimos texto no se puede deshacer: se deja pasar y se da por servido.
+          if (meaningful) { yield chunk; return true; }
+          log.warn(`[${callId}] ${providerName} error: ${chunk.message || chunk.content}`);
+          return false;
+        }
+        if (chunk.type === 'done') { doneChunk = chunk; continue; } // decidir al cerrar
+        if (chunk.type === 'text' && chunk.content) meaningful = true;
+        if (chunk.type === 'tool_call') meaningful = true;
+        yield chunk; // texto / tool_call / otros → en streaming
+      }
+    } catch (e) {
+      if (meaningful) {
+        if (doneChunk) { doneChunk.metrics = { ...(doneChunk.metrics || {}), provider: providerName, model, viaFallback }; yield doneChunk; }
+        return true;
+      }
+      log.warn(`[${callId}] ${providerName} lanzó: ${e.message}`);
+      return false;
+    }
+    const producedTool = !!(doneChunk && doneChunk.toolCalls && doneChunk.toolCalls.length > 0);
+    if (meaningful || producedTool) {
+      // Etiquetar QUIÉN sirvió el turno (A/B de modelos + diagnóstico).
+      if (doneChunk) { doneChunk.metrics = { ...(doneChunk.metrics || {}), provider: providerName, model, viaFallback }; yield doneChunk; }
+      return true;
+    }
+    // Vacío: NO se emite el done vacío — que el llamante pruebe otro proveedor.
+    return false;
   }
 
   getMetrics() {
