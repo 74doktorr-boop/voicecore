@@ -29,6 +29,10 @@ const TEMPLATE_VERSION = 'v1';
 // dueño rellena los que apliquen a cada ficha; los vacíos no generan nada.
 const MAX_FIELDS       = 16;
 const FIELD_TYPES      = ['text', 'number', 'date', 'select', 'multiselect', 'boolean', 'phone', 'note'];
+// Tope de avisos por campo-fecha (Fase 2C): p.ej. "cliente 24h antes" + "cliente
+// 1h antes" + "negocio la víspera". 4 cubre lo razonable sin dar pie a spam.
+const MAX_REMINDERS_PER_FIELD = 4;
+const REMINDER_RECIPIENTS = ['client', 'business'];
 
 // is_identifier (máx 1 por plantilla): el campo que identifica la COSA en el
 // mundo real (matrícula, nº de póliza, nº de expediente…). Reimportar el mismo
@@ -1237,6 +1241,27 @@ async function ensureOrgEntityTypes(orgId, sectorRaw, opts = {}) {
 // Normaliza y valida el array de campos que llega del editor del portal: genera
 // claves únicas desde la etiqueta, acota tipos/opciones y valida los avisos de
 // los campos-fecha (offset NEGATIVO = avisar ANTES). PURA — testeable sin BD.
+// Valida y normaliza UN aviso (compartido por el path array y el legacy).
+// offset NEGATIVO = avisar antes; recipient 'client'|'business' (default client);
+// campaign_kind autogenerado y único por índice si no viene. Devuelve
+// { ok, reminder } o { ok:false, error }.
+function _sanitizeReminder(raw, key, label, idx) {
+  const off  = Math.round(Number(raw.offset_days));
+  const hint = String(raw.message_hint || '').trim().slice(0, 400);
+  if (!Number.isFinite(off) || off >= 0) {
+    return { ok: false, error: `El aviso de "${label}" debe programarse ANTES de la fecha.` };
+  }
+  if (!hint) return { ok: false, error: `El aviso de "${label}" necesita un mensaje.` };
+  const recipient = REMINDER_RECIPIENTS.includes(raw.recipient) ? raw.recipient : 'client';
+  const kindDefault = 'custom_' + key + (idx ? '_' + (idx + 1) : '');
+  return { ok: true, reminder: {
+    offset_days:   off,
+    campaign_kind: String(raw.campaign_kind || kindDefault).slice(0, 40),
+    message_hint:  hint,
+    recipient,
+  } };
+}
+
 function validateEntityFields(rawFields) {
   if (!Array.isArray(rawFields) || rawFields.length < 1) {
     return { ok: false, error: 'La ficha necesita al menos un campo.' };
@@ -1275,19 +1300,27 @@ function validateEntityFields(rawFields) {
       field.options = options;
     }
 
-    // Aviso automático (solo campos-fecha): offset_days NEGATIVO = avisar antes.
-    if (type === 'date' && f.reminder && (f.reminder.message_hint || f.reminder.offset_days != null)) {
-      const off  = Math.round(Number(f.reminder.offset_days));
-      const hint = String(f.reminder.message_hint || '').trim().slice(0, 400);
-      if (!Number.isFinite(off) || off >= 0) {
-        return { ok: false, error: `El aviso de "${label}" debe programarse ANTES de la fecha.` };
+    // Avisos automáticos (solo campos-fecha). Dos formas:
+    //   f.reminders = [ ... ]  → VARIOS avisos (Fase 2C: antelaciones + destinatario)
+    //   f.reminder  = { ... }  → uno solo (legacy, sigue soportado)
+    // offset_days NEGATIVO = avisar ANTES. recipient 'client'|'business'.
+    if (type === 'date') {
+      if (Array.isArray(f.reminders)) {
+        const rems = [];
+        for (let k = 0; k < f.reminders.length && rems.length < MAX_REMINDERS_PER_FIELD; k++) {
+          const raw = f.reminders[k] || {};
+          // Aviso en blanco (el dueño añadió una fila y la dejó vacía) → se ignora.
+          if (!String(raw.message_hint || '').trim()) continue;
+          const s = _sanitizeReminder(raw, key, label, rems.length);
+          if (!s.ok) return s;
+          rems.push(s.reminder);
+        }
+        if (rems.length) field.reminders = rems;
+      } else if (f.reminder && (f.reminder.message_hint || f.reminder.offset_days != null)) {
+        const s = _sanitizeReminder(f.reminder, key, label, 0);
+        if (!s.ok) return s;
+        field.reminder = s.reminder;
       }
-      if (!hint) return { ok: false, error: `El aviso de "${label}" necesita un mensaje.` };
-      field.reminder = {
-        offset_days: off,
-        campaign_kind: String(f.reminder.campaign_kind || 'custom_' + key).slice(0, 40),
-        message_hint: hint,
-      };
     }
     out.push(field);
   }

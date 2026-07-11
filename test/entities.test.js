@@ -420,3 +420,70 @@ describe('validateEntityFields (personalización de la ficha)', () => {
     assert.strictEqual(validateEntityFields(six).ok, false);
   });
 });
+
+// ─── Fase 2C: varios avisos por campo + destinatario (cliente/negocio) ───────
+describe('validateEntityFields — varios avisos + destinatario', () => {
+  test('campo-fecha con reminders[]: cliente Y negocio → ambos, con recipient', () => {
+    const r = validateEntityFields([{
+      label: 'Próxima sesión', type: 'date',
+      reminders: [
+        { offset_days: -2, message_hint: 'Tu sesión de {{entity}} es el {{value}}, ¿confirmas?' },
+        { offset_days: -1, recipient: 'business', message_hint: 'Mañana viene {{entity}}' },
+      ],
+    }]);
+    assert.ok(r.ok, r.error);
+    const rems = r.fields[0].reminders;
+    assert.strictEqual(rems.length, 2);
+    assert.strictEqual(rems[0].recipient, 'client');   // por defecto
+    assert.strictEqual(rems[0].offset_days, -2);
+    assert.strictEqual(rems[1].recipient, 'business');
+    assert.strictEqual(rems[1].offset_days, -1);
+    assert.ok(rems.every(x => x.campaign_kind && x.message_hint));
+  });
+
+  test('recipient inválido/ausente → cae a "client"', () => {
+    const r = validateEntityFields([{
+      label: 'Revisión', type: 'date',
+      reminders: [{ offset_days: -3, recipient: 'pepe', message_hint: 'x {{value}}' }],
+    }]);
+    assert.ok(r.ok);
+    assert.strictEqual(r.fields[0].reminders[0].recipient, 'client');
+  });
+
+  test('aviso en blanco (sin mensaje) dentro del array → se ignora, no rompe', () => {
+    const r = validateEntityFields([{
+      label: 'Caducidad', type: 'date',
+      reminders: [
+        { offset_days: -10, message_hint: 'Caduca el {{value}}' },
+        { offset_days: -1, message_hint: '   ' },   // en blanco → fuera
+      ],
+    }]);
+    assert.ok(r.ok);
+    assert.strictEqual(r.fields[0].reminders.length, 1);
+  });
+
+  test('un aviso del array hacia el FUTURO (offset ≥ 0) → rechaza todo', () => {
+    const r = validateEntityFields([{
+      label: 'X', type: 'date',
+      reminders: [{ offset_days: 3, message_hint: 'tarde' }],
+    }]);
+    assert.strictEqual(r.ok, false);
+  });
+
+  test('cap de avisos por campo (no más de 4)', () => {
+    const many = Array.from({ length: 6 }, (_, k) => ({ offset_days: -(k + 1), message_hint: 'a ' + k }));
+    const r = validateEntityFields([{ label: 'Fechona', type: 'date', reminders: many }]);
+    assert.ok(r.ok);
+    assert.ok(r.fields[0].reminders.length <= 4, `capado a ${r.fields[0].reminders.length}`);
+  });
+
+  test('legacy: reminder único sigue funcionando (compat) y recibe recipient client', () => {
+    const r = validateEntityFields([{
+      label: 'Cambio de filtro', type: 'date',
+      reminder: { offset_days: -20, message_hint: 'Toca el filtro de tu {{entity}}' },
+    }]);
+    assert.ok(r.ok);
+    assert.strictEqual(r.fields[0].reminder.offset_days, -20);
+    assert.strictEqual(r.fields[0].reminder.recipient, 'client');
+  });
+});

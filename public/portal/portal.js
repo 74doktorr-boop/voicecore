@@ -6928,7 +6928,7 @@ async function _arLoadEntitiesNote() {
   var dateFields = [];
   r.types.forEach(function(t) {
     (t.fields || []).forEach(function(f) {
-      if (f.type === 'date' && f.reminder) dateFields.push((t.label_singular || t.label || t.key) + ' · ' + (f.label || f.key));
+      if (f.type === 'date' && _fieldHasAviso(f)) dateFields.push((t.label_singular || t.label || t.key) + ' · ' + (f.label || f.key));
     });
   });
   if (!dateFields.length) return;
@@ -7603,6 +7603,22 @@ function _resolveHint(hint, entityName, dateVal) {
     .replace(/\{\{\s*entity\s*\}\}/gi, entityName || 'tu ficha')
     .replace(/\{\{\s*value\s*\}\}/gi, val);
 }
+// ¿Este campo-fecha manda ALGÚN aviso? (uno único legacy o varios de la lista).
+function _fieldHasAviso(f) {
+  return !!(f && (f.reminder ||
+    (Array.isArray(f.reminders) && f.reminders.some(function (r) { return r && r.message_hint; }))));
+}
+// El aviso AL CLIENTE del campo (para la burbuja "así le llega a tu cliente" del
+// formulario de datos). Los avisos al negocio no se previsualizan ahí. Devuelve
+// el primer aviso al cliente con mensaje, o el `reminder` único legacy, o null.
+function _fieldClientReminder(f) {
+  if (!f) return null;
+  if (Array.isArray(f.reminders)) {
+    var withMsg = f.reminders.filter(function (r) { return r && r.message_hint; });
+    return withMsg.find(function (r) { return r.recipient !== 'business'; }) || null;
+  }
+  return f.reminder || null;
+}
 // Actualiza en vivo la previsualización del aviso al escribir la fecha.
 function entAvisoPreview(key) {
   var input = document.getElementById('ent-f-' + key);
@@ -7640,6 +7656,19 @@ function openFieldEditor() {
   var type = _entType();
   if (!type) { toast('No hay ficha que personalizar', 'err'); return; }
   _fldEdit = JSON.parse(JSON.stringify(type.fields || []));   // copia de trabajo
+  // Normaliza cada campo-fecha a la forma de LISTA (f.reminders): el editor
+  // trabaja siempre con un array de avisos, aunque venga el `reminder` único
+  // de siempre. Así la UI de "varios avisos + destinatario" es uniforme.
+  _fldEdit.forEach(function (f) {
+    if (f.type !== 'date') return;
+    if (!Array.isArray(f.reminders)) {
+      f.reminders = f.reminder
+        ? [Object.assign({ recipient: 'client' }, f.reminder)]
+        : [];
+    }
+    f.reminders.forEach(function (r) { if (r && !r.recipient) r.recipient = 'client'; });
+    delete f.reminder;
+  });
   renderFieldEditor();
 }
 
@@ -7656,7 +7685,11 @@ function renderFieldEditor() {
       '<button class="btn btn-accent" onclick="saveFieldEditor()">Guardar ficha</button>' +
     '</div>'
   );
-  for (var i = 0; i < _fldEdit.length; i++) { if (_fldEdit[i].type === 'date') _fldAvisoPreview(i); }
+  for (var i = 0; i < _fldEdit.length; i++) {
+    if (_fldEdit[i].type !== 'date') continue;
+    var avs = _fldEdit[i].reminders || [];
+    for (var k = 0; k < avs.length; k++) _fldAvisoPreview(i, k);
+  }
 }
 
 function fieldEditorRow(f, i) {
@@ -7664,24 +7697,23 @@ function fieldEditorRow(f, i) {
   var typeOpts = FIELD_TYPE_LABELS.map(function (t) {
     return '<option value="' + t.v + '"' + (f.type === t.v ? ' selected' : '') + '>' + t.l + '</option>';
   }).join('');
-  var hasRem = f.type === 'date' && f.reminder && f.reminder.message_hint;
-  var days = hasRem ? Math.abs(f.reminder.offset_days || 0) : 30;
-  var msg = hasRem ? (f.reminder.message_hint || '') : '';
   var isSel = f.type === 'select' || f.type === 'multiselect';
 
-  var dateBox = '<div id="fld-' + i + '-datebox" style="display:' + (f.type === 'date' ? 'block' : 'none') + ';margin-top:10px;border-top:1px solid var(--line);padding-top:10px">' +
-    '<label class="fld-check"><input type="checkbox" id="fld-' + i + '-hasrem" ' + (hasRem ? 'checked' : '') + ' onchange="_fldRemToggle(' + i + ')"> 📲 Enviarle un WhatsApp automático</label>' +
-    '<div id="fld-' + i + '-rembox" style="display:' + (hasRem ? 'block' : 'none') + ';margin-top:8px">' +
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13.5px;color:var(--ink);flex-wrap:wrap"><span>Se lo mando</span><input class="form-input" type="number" min="0" id="fld-' + i + '-days" value="' + days + '" style="width:60px;text-align:center" oninput="_fldAvisoPreview(' + i + ')"><span>días antes.</span></div>' +
-      '<div style="font-size:13.5px;color:var(--ink);margin-bottom:5px">¿Qué le escribo?</div>' +
-      '<textarea class="form-input" id="fld-' + i + '-msg" rows="2" placeholder="Ej: Hola, toca tu revisión. ¿La reservamos?" oninput="_fldAvisoPreview(' + i + ')">' + esc(_msgToDisplay(msg)) + '</textarea>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px">' +
-        '<span style="font-size:12px;color:var(--dim)">Toca para añadir:</span>' +
-        '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',\'[fecha]\')">📅 la fecha</button>' +
-        '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',\'[nombre]\')">🏷️ el nombre</button>' +
-      '</div>' +
-      '<div id="fld-' + i + '-prev" class="ent-aviso-prev" style="margin-top:8px"></div>' +
-    '</div></div>';
+  // ── Avisos automáticos del campo-fecha (Fase 2C): LISTA de avisos, cada uno
+  //    con destinatario (cliente / negocio) y su antelación. ──
+  var dateBox = '';
+  if (f.type === 'date') {
+    var avisos = f.reminders || [];
+    var cards = avisos.map(function (rem, k) { return avisoCardHtml(f, i, rem, k); }).join('');
+    var emptyHint = avisos.length ? '' :
+      '<div style="font-size:12.5px;color:var(--dim);margin-bottom:8px">Este dato es una fecha: puede mandar un WhatsApp él solo (a tu cliente, o a ti para avisarte). Añade el primero 👇</div>';
+    dateBox = '<div id="fld-' + i + '-datebox" style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">' +
+      '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent-l);margin-bottom:8px">📲 Avisos automáticos</div>' +
+      emptyHint +
+      '<div id="fld-' + i + '-avisos">' + cards + '</div>' +
+      '<button type="button" class="btn btn-d btn-sm" style="width:100%" onclick="fldRemAdd(' + i + ')">+ Añadir un aviso</button>' +
+    '</div>';
+  }
 
   var optBox = '';
   if (isSel) {
@@ -7706,6 +7738,41 @@ function fieldEditorRow(f, i) {
   '</div>';
 }
 
+// Una tarjeta de AVISO dentro de un campo-fecha: destinatario (cliente/negocio),
+// antelación, mensaje y burbuja de previsualización. k = índice en f.reminders.
+function avisoCardHtml(f, i, rem, k) {
+  var recip = (rem && rem.recipient === 'business') ? 'business' : 'client';
+  var days  = Math.abs((rem && rem.offset_days) || 0) || 1;
+  var msg   = (rem && rem.message_hint) || '';
+  var pfx   = 'fld-' + i + '-rem-' + k;
+  function pill(val, label) {
+    var on = recip === val;
+    return '<button type="button" onclick="fldRemRecip(' + i + ',' + k + ',\'' + val + '\')" ' +
+      'style="flex:1;padding:7px 8px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;' +
+      'border:1px solid ' + (on ? 'var(--accent)' : 'var(--border)') + ';' +
+      'background:' + (on ? 'var(--accent)' : 'transparent') + ';color:' + (on ? '#0a0f0a' : 'var(--dim)') + '">' +
+      label + '</button>';
+  }
+  return '<div class="fld-card" style="background:var(--surface);border-color:var(--border)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<span style="font-size:11.5px;color:var(--dim)">¿A quién avisa este mensaje?</span>' +
+      '<button type="button" class="btn btn-r btn-sm" onclick="fldRemDel(' + i + ',' + k + ')" title="Quitar este aviso" aria-label="Quitar aviso">🗑</button>' +
+    '</div>' +
+    '<input type="hidden" id="' + pfx + '-recip" value="' + recip + '">' +
+    '<div style="display:flex;gap:6px;margin-bottom:10px">' + pill('client', '🧑 A tu cliente') + pill('business', '🏪 A ti (negocio)') + '</div>' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:13.5px;color:var(--ink);flex-wrap:wrap"><span>Se manda</span>' +
+      '<input class="form-input" type="number" min="0" id="' + pfx + '-days" value="' + days + '" style="width:60px;text-align:center" oninput="_fldAvisoPreview(' + i + ',' + k + ')"><span>días antes.</span></div>' +
+    '<div style="font-size:13.5px;color:var(--ink);margin-bottom:5px">¿Qué dice el mensaje?</div>' +
+    '<textarea class="form-input" id="' + pfx + '-msg" rows="2" placeholder="Ej: Hola, toca tu revisión. ¿La reservamos?" oninput="_fldAvisoPreview(' + i + ',' + k + ')">' + esc(_msgToDisplay(msg)) + '</textarea>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px">' +
+      '<span style="font-size:12px;color:var(--dim)">Toca para añadir:</span>' +
+      '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',' + k + ',\'[fecha]\')">📅 la fecha</button>' +
+      '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',' + k + ',\'[nombre]\')">🏷️ el nombre</button>' +
+    '</div>' +
+    '<div id="' + pfx + '-prev" class="ent-aviso-prev" style="margin-top:8px"></div>' +
+  '</div>';
+}
+
 // Lee TODOS los inputs del editor a _fldEdit antes de cualquier re-render.
 function _fldSync() {
   for (var i = 0; i < _fldEdit.length; i++) {
@@ -7714,14 +7781,24 @@ function _fldSync() {
     var typ = document.getElementById('fld-' + i + '-type'); if (typ && !f.is_identifier) f.type = typ.value;
     var lst = document.getElementById('fld-' + i + '-list'); f.show_in_list = !!(lst && lst.checked);
     if (f.type === 'date') {
-      var has = document.getElementById('fld-' + i + '-hasrem');
-      if (has && has.checked) {
-        var d = document.getElementById('fld-' + i + '-days');
-        var m = document.getElementById('fld-' + i + '-msg');
-        var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
-        f.reminder = { offset_days: -days, message_hint: _msgToCanonical((m && m.value) || '') };
-      } else { delete f.reminder; }
-    } else { delete f.reminder; }
+      // Lee la lista de avisos (fld-i-rem-k-*). Conserva los de mensaje vacío en
+      // la copia de trabajo (para no perderlos al re-renderizar); el servidor
+      // ignora los vacíos al guardar.
+      var rems = [], k = 0, de;
+      while ((de = document.getElementById('fld-' + i + '-rem-' + k + '-days'))) {
+        var me = document.getElementById('fld-' + i + '-rem-' + k + '-msg');
+        var re = document.getElementById('fld-' + i + '-rem-' + k + '-recip');
+        var rdays = Math.abs(parseInt((de && de.value) || '0', 10) || 0);
+        rems.push({
+          offset_days: -rdays,
+          message_hint: _msgToCanonical((me && me.value) || ''),
+          recipient: (re && re.value === 'business') ? 'business' : 'client',
+        });
+        k++;
+      }
+      f.reminders = rems;
+      delete f.reminder;
+    } else { delete f.reminder; delete f.reminders; }
     if (f.type === 'select' || f.type === 'multiselect') {
       var opts = [], j = 0, oe;
       while ((oe = document.getElementById('fld-' + i + '-opt-' + j))) { var v = oe.value.trim(); if (v) opts.push({ label: v }); j++; }
@@ -7734,9 +7811,24 @@ function fldAdd()  { _fldSync(); _fldEdit.push({ label: '', type: 'text' }); ren
 function fldDel(i) { _fldSync(); if (_fldEdit[i] && _fldEdit[i].is_identifier) return; _fldEdit.splice(i, 1); renderFieldEditor(); }
 function fldMove(i, dir) { _fldSync(); var j = i + dir; if (j < 0 || j >= _fldEdit.length) return; var t = _fldEdit[i]; _fldEdit[i] = _fldEdit[j]; _fldEdit[j] = t; renderFieldEditor(); }
 function _fldTypeChange(i) { _fldSync(); renderFieldEditor(); }
-function _fldRemToggle(i)  { _fldSync(); renderFieldEditor(); }
 function fldOptAdd(i) { _fldSync(); if (!_fldEdit[i].options) _fldEdit[i].options = []; _fldEdit[i].options.push({ label: '' }); renderFieldEditor(); }
 function fldOptDel(i, j) { _fldSync(); if (_fldEdit[i].options) _fldEdit[i].options.splice(j, 1); renderFieldEditor(); }
+
+// ── Avisos de un campo-fecha (Fase 2C) ──
+var MAX_AVISOS_POR_CAMPO = 4;   // igual que el tope del servidor
+function fldRemAdd(i) {
+  _fldSync();
+  var f = _fldEdit[i]; if (!f.reminders) f.reminders = [];
+  if (f.reminders.length >= MAX_AVISOS_POR_CAMPO) { toast('Máximo ' + MAX_AVISOS_POR_CAMPO + ' avisos por dato', 'err'); return; }
+  f.reminders.push({ offset_days: -7, message_hint: '', recipient: 'client' });
+  renderFieldEditor();
+}
+function fldRemDel(i, k) { _fldSync(); if (_fldEdit[i] && _fldEdit[i].reminders) _fldEdit[i].reminders.splice(k, 1); renderFieldEditor(); }
+function fldRemRecip(i, k, recip) {
+  _fldSync();
+  if (_fldEdit[i] && _fldEdit[i].reminders && _fldEdit[i].reminders[k]) _fldEdit[i].reminders[k].recipient = recip;
+  renderFieldEditor();
+}
 
 // El dueño nunca ve {{value}}/{{entity}} (jerga): en el editor se muestran
 // como [fecha]/[nombre]. Se convierte a la forma canónica solo al guardar.
@@ -7748,8 +7840,8 @@ function _msgToCanonical(s) {
 }
 // Inserta [fecha]/[nombre] en la posición del cursor (o al final) sin que el
 // dueño teclee corchetes ni jerga; refresca la burbuja al instante.
-function _fldInsertToken(i, token) {
-  var ta = document.getElementById('fld-' + i + '-msg'); if (!ta) return;
+function _fldInsertToken(i, k, token) {
+  var ta = document.getElementById('fld-' + i + '-rem-' + k + '-msg'); if (!ta) return;
   var s = (ta.selectionStart != null) ? ta.selectionStart : ta.value.length;
   var e = (ta.selectionEnd != null) ? ta.selectionEnd : ta.value.length;
   var before = ta.value.slice(0, s);
@@ -7759,14 +7851,19 @@ function _fldInsertToken(i, token) {
   ta.focus();
   var pos = (before + ins).length;
   try { ta.setSelectionRange(pos, pos); } catch (_) {}
-  _fldAvisoPreview(i);
+  _fldAvisoPreview(i, k);
 }
 
-function _fldAvisoPreview(i) {
-  var box = document.getElementById('fld-' + i + '-prev'); if (!box) return;
-  var d = document.getElementById('fld-' + i + '-days');
-  var m = document.getElementById('fld-' + i + '-msg');
+// Burbuja del aviso k del campo i. Distingue destinatario: verde estilo
+// WhatsApp = al cliente; ámbar = a TI (al WhatsApp del negocio).
+function _fldAvisoPreview(i, k) {
+  var pfx = 'fld-' + i + '-rem-' + k;
+  var box = document.getElementById(pfx + '-prev'); if (!box) return;
+  var d = document.getElementById(pfx + '-days');
+  var m = document.getElementById(pfx + '-msg');
+  var r = document.getElementById(pfx + '-recip');
   var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
+  var toBiz = !!(r && r.value === 'business');
   var type = _entType();
   var entName = String((type && type.label_singular) || 'ficha').toLowerCase();
   var raw = (m && m.value || '').trim();
@@ -7775,12 +7872,22 @@ function _fldAvisoPreview(i) {
   // no un «esa fecha» abstracto. Convertimos [fecha]/[nombre] → canónico antes.
   var sample = new Date(); sample.setDate(sample.getDate() + 14);
   var text = _resolveHint(_msgToCanonical(raw), entName, sample.toISOString().slice(0, 10));
-  box.innerHTML =
-    '<div style="font-size:12px;color:var(--dim);margin-bottom:5px">Así le llegará a tu cliente por WhatsApp, ' + esc(_avisoDias(-days)) + ':</div>' +
-    '<div style="background:#dcf8c6;color:#0b141a;border-radius:12px;border-top-left-radius:4px;padding:9px 13px;max-width:92%;font-size:13.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.25)">' +
-      esc(text) +
-      '<span style="display:block;text-align:right;font-size:10px;color:#4a6b4a;margin-top:3px">✓✓ 12:30</span>' +
-    '</div>';
+  var cuando = esc(_avisoDias(-days));
+  if (toBiz) {
+    box.innerHTML =
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:5px">📥 Así te llega a <strong style="color:var(--accent-l)">ti</strong> (al WhatsApp del negocio), ' + cuando + ':</div>' +
+      '<div style="background:#fff3cd;color:#4a3b00;border-radius:12px;border-top-left-radius:4px;padding:9px 13px;max-width:92%;font-size:13.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.25)">' +
+        esc(text) +
+        '<span style="display:block;text-align:right;font-size:10px;color:#8a7400;margin-top:3px">✓✓ 12:30</span>' +
+      '</div>';
+  } else {
+    box.innerHTML =
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:5px">Así le llega a <strong style="color:var(--accent-l)">tu cliente</strong> por WhatsApp, ' + cuando + ':</div>' +
+      '<div style="background:#dcf8c6;color:#0b141a;border-radius:12px;border-top-left-radius:4px;padding:9px 13px;max-width:92%;font-size:13.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.25)">' +
+        esc(text) +
+        '<span style="display:block;text-align:right;font-size:10px;color:#4a6b4a;margin-top:3px">✓✓ 12:30</span>' +
+      '</div>';
+  }
 }
 
 async function saveFieldEditor() {
@@ -7929,7 +8036,7 @@ function _entNextAviso(e, type) {
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var best = null;
   (type.fields || []).forEach(function (f) {
-    if (f.type !== 'date' || !f.reminder) return;
+    if (f.type !== 'date' || !_fieldHasAviso(f)) return;
     var v = a[f.key];
     if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return;
     var dt = new Date(String(v) + 'T00:00:00');
@@ -7968,7 +8075,7 @@ function entCardHtml(e, type, listFields, stateField) {
     }
     rows += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:3px 0">' +
       '<span style="color:var(--dim)">' + esc(f.label || f.key) + '</span>' +
-      '<span style="font-weight:600;text-align:right">' + esc(shown) + (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span></div>';
+      '<span style="font-weight:600;text-align:right">' + esc(shown) + (f.type === 'date' && _fieldHasAviso(f) ? ' <span title="Aviso automático">🔔</span>' : '') + '</span></div>';
   }
 
   // Chip del dueño → Ficha 360 del contacto
@@ -8216,7 +8323,7 @@ async function openEntityFicha(id) {
     }
     chips += '<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12.5px">' +
       '<span style="color:var(--dim)">' + esc(f.label || f.key) + ':</span> <b>' + esc(shown) + '</b>' +
-      (f.type === 'date' && f.reminder ? ' <span title="Aviso automático">🔔</span>' : '') + '</span> ';
+      (f.type === 'date' && _fieldHasAviso(f) ? ' <span title="Aviso automático">🔔</span>' : '') + '</span> ';
   }
 
   // Dueño → Ficha 360 del contacto (bidireccional con «sus cosas»)
@@ -8437,7 +8544,7 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
     var v = a[f.key]; if (v === undefined || v === null) v = '';
     var label = '<label class="form-label" style="font-size:13px">' + esc(f.label || f.key) +
       (f.required ? ' *' : '') +
-      (f.type === 'date' && f.reminder ? ' ' + _entReminderPill(true) : '') + '</label>';
+      (f.type === 'date' && _fieldHasAviso(f) ? ' ' + _entReminderPill(true) : '') + '</label>';
     var input = '';
     var fid = 'ent-f-' + esc(f.key);
 
@@ -8455,19 +8562,22 @@ async function openEntityModal(id, presetIdx, prelinkContactId) {
         '<option value="false"' + (v === false ? ' selected' : '') + '>No</option></select>';
     } else {
       var itype = f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : f.type === 'phone' ? 'tel' : 'text';
-      var oninp = (f.type === 'date' && f.reminder) ? ' oninput="entAvisoPreview(\'' + esc(f.key) + '\')"' : '';
+      var cliRem = _fieldClientReminder(f);
+      var oninp = (f.type === 'date' && cliRem) ? ' oninput="entAvisoPreview(\'' + esc(f.key) + '\')"' : '';
       input = '<input class="form-input" id="' + fid + '" type="' + itype + '" value="' + esc(String(v)) + '" style="' + BIG + '"' + oninp + '>';
     }
-    // Previsualización del aviso automático: qué WhatsApp saldrá y cuándo, con
-    // el nombre de la ficha y la fecha ya sustituidos. Hace tangible el motor.
-    if (f.type === 'date' && f.reminder) {
+    // Previsualización del aviso AL CLIENTE: qué WhatsApp saldrá y cuándo, con el
+    // nombre de la ficha y la fecha ya sustituidos. Hace tangible el motor. (Los
+    // avisos al negocio no se previsualizan aquí — son internos del dueño.)
+    var cr = _fieldClientReminder(f);
+    if (f.type === 'date' && cr) {
       var entName = (entity && entity.display_name) ? entity.display_name : String(type.label_singular || 'ficha').toLowerCase();
       input += '<div class="ent-aviso-prev" id="avp-' + esc(f.key) + '"' +
-        ' data-hint="' + encodeURIComponent(f.reminder.message_hint || '') + '"' +
+        ' data-hint="' + encodeURIComponent(cr.message_hint || '') + '"' +
         ' data-ent="' + encodeURIComponent(entName) + '"' +
-        ' data-off="' + (f.reminder.offset_days || 0) + '">' +
-        '📲 <strong>' + _avisoDias(f.reminder.offset_days) + '</strong> NodeFlow enviará: «' +
-        esc(_resolveHint(f.reminder.message_hint, entName, v)) + '»</div>';
+        ' data-off="' + (cr.offset_days || 0) + '">' +
+        '📲 <strong>' + _avisoDias(cr.offset_days) + '</strong> NodeFlow enviará: «' +
+        esc(_resolveHint(cr.message_hint, entName, v)) + '»</div>';
     }
     formHtml += '<div class="form-group">' + label + input + '</div>';
   }
