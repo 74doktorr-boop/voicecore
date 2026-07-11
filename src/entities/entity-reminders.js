@@ -38,35 +38,48 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
   const attrs = entity.attrs || {};
 
   for (const f of (entityType.fields || [])) {
-    if (f.type !== 'date' || !f.reminder) continue;
+    if (f.type !== 'date') continue;
+    // Fase 2: un campo puede tener VARIAS antelaciones (f.reminders = lista).
+    // Retrocompatible: si solo hay el `reminder` único de siempre, lo envolvemos.
+    const avisos = (Array.isArray(f.reminders) && f.reminders.length)
+      ? f.reminders.filter(Boolean)
+      : (f.reminder ? [f.reminder] : []);
+    if (!avisos.length) continue;
+
     const value = attrs[f.key];
     if (!value || !DATE_RE.test(String(value))) continue;
 
-    // Aviso a las 09:00 del día objetivo (como el resto del motor)
-    const target = new Date(`${value}T09:00:00`);
-    if (isNaN(target.getTime())) continue;
-    target.setDate(target.getDate() + (Number(f.reminder.offset_days) || 0));
-    if (target <= now) continue; // nunca programar en pasado
-
+    const base        = entityServiceKey(entityType.key, f.key);
+    const multi       = avisos.length > 1;
     const fechaBonita = new Date(`${value}T12:00:00`).toLocaleDateString('es-ES');
     const displayName = entity.display_name
       || computeDisplayName(entityType.label_template, attrs, entityType.label_singular);
-    // message_hint es una FRASE completa → marcador 'TXT:' (el scheduler la
-    // envía íntegra vía plantilla-portadora nodeflow_aviso, como los
-    // seguimientos personalizados del dueño). Sin hint: fragmento-etiqueta.
-    const messagePreview = f.reminder.message_hint
-      ? 'TXT:' + f.reminder.message_hint
-          .replace(/\{\{\s*entity\s*\}\}/gi, displayName)
-          .replace(/\{\{\s*value\s*\}\}/gi, fechaBonita)
-          .slice(0, 240)
-      : `${f.label || f.key} — ${displayName} (${fechaBonita})`;
 
-    plan.push({
-      serviceKey:   entityServiceKey(entityType.key, f.key),
-      fieldKey:     f.key,
-      scheduledFor: target,
-      messagePreview,
-    });
+    for (const rem of avisos) {
+      // Aviso a las 09:00 del día objetivo (como el resto del motor)
+      const target = new Date(`${value}T09:00:00`);
+      if (isNaN(target.getTime())) continue;
+      const off = Number(rem.offset_days) || 0;
+      target.setDate(target.getDate() + off);
+      if (target <= now) continue; // nunca programar en pasado
+
+      // Con varias antelaciones, cada una necesita un serviceKey distinto (o el
+      // dedupe (entidad+serviceKey+día) colapsaría a una). Con una sola, el
+      // serviceKey queda como siempre (compat con lo ya materializado).
+      const serviceKey = multi ? `${base}:o${Math.abs(off)}` : base;
+
+      // message_hint es una FRASE completa → marcador 'TXT:' (el scheduler la
+      // envía íntegra vía plantilla-portadora nodeflow_aviso). Sin hint:
+      // fragmento-etiqueta.
+      const messagePreview = rem.message_hint
+        ? 'TXT:' + rem.message_hint
+            .replace(/\{\{\s*entity\s*\}\}/gi, displayName)
+            .replace(/\{\{\s*value\s*\}\}/gi, fechaBonita)
+            .slice(0, 240)
+        : `${f.label || f.key} — ${displayName} (${fechaBonita})`;
+
+      plan.push({ serviceKey, fieldKey: f.key, scheduledFor: target, messagePreview });
+    }
   }
   return plan;
 }
