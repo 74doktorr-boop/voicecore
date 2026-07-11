@@ -8,7 +8,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { pushAppointmentEvent, removeAppointmentEvent, syncCancelToCalendar } = require('../src/integrations/calendar-sync');
+const { pushAppointmentEvent, removeAppointmentEvent, updateAppointmentEvent, syncCancelToCalendar } = require('../src/integrations/calendar-sync');
 
 function fakeDeps(over = {}) {
   const calls = { createEvent: [], deleteEvent: [], updateOrg: [] };
@@ -29,6 +29,7 @@ function fakeDeps(over = {}) {
       refreshIfNeeded: over.refreshIfNeeded || (async (t) => t),  // por defecto no cambia
       createEvent: async (tokens, apt, cfg) => { calls.createEvent.push({ tokens, apt, cfg }); return over.createReturns !== undefined ? over.createReturns : { id: 'evt_123' }; },
       deleteEvent: async (tokens, eventId, calId) => { calls.deleteEvent.push({ tokens, eventId, calId }); return over.deleteReturns !== undefined ? over.deleteReturns : true; },
+      updateEvent: async (tokens, eventId, apt, cfg) => { calls.updateEvent = calls.updateEvent || []; calls.updateEvent.push({ eventId, apt, cfg }); return over.updateReturns !== undefined ? over.updateReturns : { id: eventId }; },
     },
     getConfig: () => ({ timezone: 'Europe/Madrid' }),
   };
@@ -99,6 +100,27 @@ describe('removeAppointmentEvent', () => {
   test('org no conectada → false', async () => {
     const { deps } = fakeDeps({ org: { google_refresh_token: null } });
     assert.strictEqual(await removeAppointmentEvent('org-1', 'evt_1', deps), false);
+  });
+});
+
+describe('updateAppointmentEvent (reprogramación)', () => {
+  test('mueve el evento por su id con la nueva fecha/hora', async () => {
+    const { deps, calls } = fakeDeps();
+    const apt2 = { ...APT, date: '2026-07-21', time: '12:00' };
+    const ok = await updateAppointmentEvent('org-1', 'evt_9', apt2, deps);
+    assert.strictEqual(ok, true);
+    assert.strictEqual(calls.updateEvent.length, 1);
+    assert.strictEqual(calls.updateEvent[0].eventId, 'evt_9');
+    assert.strictEqual(calls.updateEvent[0].apt.time, '12:00');
+  });
+  test('sin eventId → false, no llama a Google', async () => {
+    const { deps, calls } = fakeDeps();
+    assert.strictEqual(await updateAppointmentEvent('org-1', null, APT, deps), false);
+    assert.strictEqual(calls.updateEvent, undefined);
+  });
+  test('org no conectada → false', async () => {
+    const { deps } = fakeDeps({ org: { google_refresh_token: null } });
+    assert.strictEqual(await updateAppointmentEvent('org-1', 'evt_9', APT, deps), false);
   });
 });
 

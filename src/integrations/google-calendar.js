@@ -118,6 +118,41 @@ class GoogleCalendar {
     }
   }
 
+  // Mueve/actualiza un evento existente (reprogramación de cita). Sin esto, al
+  // cambiar fecha/hora en el portal el evento se quedaba en la hora VIEJA
+  // (fantasma). Misma construcción local+timeZone que createEvent (evita desfase
+  // UTC). Devuelve el evento actualizado o null. FAIL-OPEN.
+  async updateEvent(tokens, eventId, appointment, config = {}) {
+    if (!this.enabled || !eventId) return null;
+    try {
+      const { google } = require('googleapis');
+      const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
+      const tz = config.timezone || 'Europe/Madrid';
+      const startLocal = `${appointment.date}T${appointment.time}:00`;
+      const [startH, startM] = (appointment.time || '00:00').split(':').map(Number);
+      const totalMins = startH * 60 + startM + (appointment.duration || 30);
+      const endH = String(Math.floor(totalMins / 60) % 24).padStart(2, '0');
+      const endM = String(totalMins % 60).padStart(2, '0');
+      const endLocal = `${appointment.date}T${endH}:${endM}:00`;
+      const summary = [appointment.patientName, appointment.service]
+        .map(s => (s || '').trim()).filter(Boolean).join(' · ') || 'Cita';
+      const { data } = await cal.events.patch({
+        calendarId: config.calendarId || 'primary',
+        eventId,
+        requestBody: {
+          summary,
+          start: { dateTime: startLocal, timeZone: tz },
+          end:   { dateTime: endLocal,   timeZone: tz },
+        },
+      });
+      log.info(`Cal event updated: ${eventId}`);
+      return data;
+    } catch (e) {
+      log.error(`updateEvent failed: ${e.message}`);
+      return null;
+    }
+  }
+
   async listEvents(tokens, date, calendarId = 'primary') {
     if (!this.enabled) return [];
     try {

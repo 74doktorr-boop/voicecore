@@ -88,6 +88,29 @@ async function removeAppointmentEvent(businessId, eventId, deps = {}) {
 }
 
 /**
+ * Mueve/actualiza el evento de Google Calendar de una cita REPROGRAMADA (cambio
+ * de fecha/hora en el portal). Sin esto el evento quedaba en la hora vieja.
+ * Fail-open. @returns {Promise<boolean>} true si se actualizó.
+ */
+async function updateAppointmentEvent(businessId, eventId, appointment, deps = {}) {
+  const { db, cal, getConfig } = _resolve(deps);
+  try {
+    if (!eventId) return false;
+    const t = await _freshTokens(db, cal, businessId);
+    if (!t) return false;
+    const cfg = getConfig(businessId);
+    const ev = await cal.updateEvent(t.fresh, eventId, appointment, {
+      calendarId: t.calendarId,
+      timezone:   cfg?.timezone || 'Europe/Madrid',
+    });
+    return !!ev;
+  } catch (e) {
+    log.warn(`updateAppointmentEvent(${businessId}): ${e.message}`);
+    return false;
+  }
+}
+
+/**
  * Cancela en Google Calendar el evento de una cita cancelada, VENGA DE DONDE
  * VENGA (WhatsApp, voz o portal): borra el evento y limpia el id guardado, para
  * que no quede de fantasma en el calendario del dueño. Fail-open, fire-and-forget.
@@ -107,4 +130,4 @@ async function syncCancelToCalendar(apt, deps = {}) {
   return ok;
 }
 
-module.exports = { pushAppointmentEvent, removeAppointmentEvent, syncCancelToCalendar };
+module.exports = { pushAppointmentEvent, removeAppointmentEvent, updateAppointmentEvent, syncCancelToCalendar };

@@ -968,6 +968,7 @@ function setupPortalRoutes(app, pipeline, config) {
     if (!apt) return res.status(404).json({ error: 'Cita no encontrada' });
     if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
     if (apt.status === 'cancelled') return res.status(409).json({ error: 'La cita ya está cancelada' });
+    const prevDate = apt.date, prevTime = apt.time;  // para detectar reprogramación
 
     // Validación de tipos y formatos (auditoría 2026-07-07): antes un objeto
     // en 'date' o una hora basura se guardaban tal cual y rompían aguas abajo.
@@ -992,6 +993,15 @@ function setupPortalRoutes(app, pipeline, config) {
       const { appointmentsStore } = require('../db/appointments-store');
       appointmentsStore.upsert(apt);
     } catch (_) {}
+
+    // Reprogramación: si cambió la fecha/hora y la cita tiene evento en Google
+    // Calendar, MOVERLO (antes se quedaba de fantasma en la hora vieja). Fail-open.
+    if (apt.googleEventId && (apt.date !== prevDate || apt.time !== prevTime)) {
+      try {
+        require('../integrations/calendar-sync')
+          .updateAppointmentEvent(businessId, apt.googleEventId, apt).catch(() => {});
+      } catch (_) {}
+    }
 
     res.json({ ok: true, appointment: apt });
   });
