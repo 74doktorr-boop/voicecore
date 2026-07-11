@@ -50,7 +50,9 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
     if (!value || !DATE_RE.test(String(value))) continue;
 
     const base        = entityServiceKey(entityType.key, f.key);
-    const multi       = avisos.length > 1;
+    const isBiz       = (r) => r.recipient === 'business' || r.recipient === 'negocio';
+    const clientCount = avisos.filter(r => !isBiz(r)).length;
+    const bizCount    = avisos.length - clientCount;
     const fechaBonita = new Date(`${value}T12:00:00`).toLocaleDateString('es-ES');
     const displayName = entity.display_name
       || computeDisplayName(entityType.label_template, attrs, entityType.label_singular);
@@ -65,14 +67,16 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
 
       // Destinatario: al cliente (por defecto) o al NEGOCIO (aviso interno al
       // dueño: "mañana viene X", "el bono se agota"). Fase 2B.
-      const toBusiness = rem.recipient === 'business' || rem.recipient === 'negocio';
+      const toBusiness = isBiz(rem);
 
-      // Con varias antelaciones, cada una necesita un serviceKey distinto (o el
-      // dedupe (entidad+serviceKey+día) colapsaría a una). Con una sola al
-      // cliente, el serviceKey queda como siempre (compat). Los avisos al
-      // negocio llevan ':biz' (no chocan con el mismo aviso al cliente, y el
-      // dispatch los enruta al WhatsApp del dueño).
-      let serviceKey = multi ? `${base}:o${Math.abs(off)}` : base;
+      // serviceKey distinto por aviso (o el dedupe (entidad+serviceKey+día) los
+      // colapsaría). Sufijo ':oN' SOLO si hay varios del MISMO destinatario: así,
+      // al añadir un aviso al negocio a un campo que ya tenía uno al cliente, el
+      // del cliente CONSERVA su clave (no se re-materializa). Los avisos al
+      // negocio llevan ':biz' → el dispatch los enruta al WhatsApp del dueño.
+      const groupMulti = toBusiness ? bizCount > 1 : clientCount > 1;
+      let serviceKey = base;
+      if (groupMulti) serviceKey += `:o${Math.abs(off)}`;
       if (toBusiness) serviceKey += ':biz';
 
       // message_hint es una FRASE completa → marcador 'TXT:' (el scheduler la
@@ -259,7 +263,8 @@ async function materializeEntityReminders(opts = {}) {
       }
 
       for (const type of orgTypes) {
-        const hasReminderField = (type.fields || []).some(f => f.type === 'date' && f.reminder);
+        const hasReminderField = (type.fields || []).some(f => f.type === 'date'
+          && (f.reminder || (Array.isArray(f.reminders) && f.reminders.length)));
         if (!hasReminderField) continue;
 
         const { data: entities } = await db.client

@@ -529,7 +529,15 @@ const ENTITY_TEMPLATES = {
       // ── Derivados (se calculan solos si hay cadencia; editables si no) ──
       { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 6 },
       { key: 'proxima_sesion',     type: 'date',   label: 'Próxima sesión', show_in_list: true, position: 7,
-        reminder: { offset_days: -2, campaign_kind: 'sesion', message_hint: 'Tu próxima sesión de {{entity}} es el {{value}} — la constancia es la que cura. Te espero, ¿confirmas?' } },
+        // DOS avisos sobre la misma fecha: uno al CLIENTE (2 días antes, con
+        // confirmación) y uno al NEGOCIO (la víspera, "mañana viene X"). Demuestra
+        // en producción 2A (varias antelaciones) + 2B (destinatario negocio).
+        reminders: [
+          { offset_days: -2, recipient: 'client',   campaign_kind: 'sesion',
+            message_hint: 'Tu próxima sesión de {{entity}} es el {{value}} — la constancia es la que cura. Te espero, ¿confirmas?' },
+          { offset_days: -1, recipient: 'business', campaign_kind: 'sesion_negocio',
+            message_hint: 'Mañana viene {{entity}} — su próxima sesión es el {{value}}.' },
+        ] },
       { key: 'caducidad_bono',     type: 'date',   label: 'Caducidad del bono', position: 8,
         reminder: { offset_days: -14, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} y aún te quedan sesiones' } },
       { key: 'proxima_revision',   type: 'date',   label: 'Próxima revisión', position: 9,
@@ -1060,7 +1068,7 @@ function emptyStateVocabulary(templateOrType) {
   // sesión"). Si ninguno tiene aviso, caemos a todos los campos-fecha para no
   // quedarnos sin vocabulario.
   const dateFields   = (t.fields || []).filter(f => f.type === 'date');
-  const withReminder = dateFields.filter(f => f.reminder);
+  const withReminder = dateFields.filter(f => f.reminder || (Array.isArray(f.reminders) && f.reminders.length));
   for (const f of (withReminder.length ? withReminder : dateFields)) {
     const c = clean(f.label);
     if (c && !seen.has(c)) { seen.add(c); dateExamples.push(c); }
