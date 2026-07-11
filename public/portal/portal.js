@@ -7638,10 +7638,10 @@ function renderFieldEditor() {
   var type = _entType(); if (!type) return;
   var rows = _fldEdit.map(function (f, i) { return fieldEditorRow(f, i); }).join('');
   openModal(
-    '<div class="modal-title">⚙️ Personalizar «' + esc(type.label_plural || 'ficha') + '»</div>' +
-    '<div style="font-size:12.5px;color:var(--dim);line-height:1.5;margin-bottom:14px">Diseña tu ficha: añade tus propios campos. Un campo <strong>Fecha</strong> puede mandar un WhatsApp automático a tu cliente — tú eliges cuántos días antes y el mensaje.</div>' +
+    '<div class="modal-title">⚙️ ¿Qué guardas de cada ' + esc(type.label_singular || 'cliente') + '?</div>' +
+    '<div style="font-size:13px;color:var(--ink);line-height:1.55;margin-bottom:14px">Elige los datos que quieres guardar de cada cliente. Cualquier dato que sea una <strong>Fecha</strong> puede mandarle un <strong>WhatsApp él solo</strong> — tú decides cuántos días antes y qué le dices. Abajo verás el mensaje tal cual le llega.</div>' +
     '<div id="fldList">' + rows + '</div>' +
-    '<button class="btn btn-d u-mt-2" style="width:100%" onclick="fldAdd()">+ Añadir campo</button>' +
+    '<button class="btn btn-d u-mt-2" style="width:100%" onclick="fldAdd()">+ Añadir otro dato</button>' +
     '<div class="modal-actions" style="margin-top:16px">' +
       '<button class="btn btn-d" onclick="closeModal()">Cancelar</button>' +
       '<button class="btn btn-accent" onclick="saveFieldEditor()">Guardar ficha</button>' +
@@ -7660,12 +7660,18 @@ function fieldEditorRow(f, i) {
   var msg = hasRem ? (f.reminder.message_hint || '') : '';
   var isSel = f.type === 'select' || f.type === 'multiselect';
 
-  var dateBox = '<div id="fld-' + i + '-datebox" style="display:' + (f.type === 'date' ? 'block' : 'none') + ';margin-top:8px">' +
-    '<label class="fld-check"><input type="checkbox" id="fld-' + i + '-hasrem" ' + (hasRem ? 'checked' : '') + ' onchange="_fldRemToggle(' + i + ')"> 📲 Aviso automático por WhatsApp</label>' +
-    '<div id="fld-' + i + '-rembox" style="display:' + (hasRem ? 'block' : 'none') + ';margin-top:6px">' +
-      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><input class="form-input" type="number" min="0" id="fld-' + i + '-days" value="' + days + '" style="width:84px" oninput="_fldAvisoPreview(' + i + ')"><span style="font-size:12px;color:var(--dim)">días antes de la fecha</span></div>' +
-      '<textarea class="form-input" id="fld-' + i + '-msg" rows="2" placeholder="Mensaje al cliente… usa {{entity}} (la ficha) y {{value}} (la fecha)" oninput="_fldAvisoPreview(' + i + ')">' + esc(msg) + '</textarea>' +
-      '<div id="fld-' + i + '-prev" class="ent-aviso-prev" style="margin-top:6px"></div>' +
+  var dateBox = '<div id="fld-' + i + '-datebox" style="display:' + (f.type === 'date' ? 'block' : 'none') + ';margin-top:10px;border-top:1px solid var(--line);padding-top:10px">' +
+    '<label class="fld-check"><input type="checkbox" id="fld-' + i + '-hasrem" ' + (hasRem ? 'checked' : '') + ' onchange="_fldRemToggle(' + i + ')"> 📲 Enviarle un WhatsApp automático</label>' +
+    '<div id="fld-' + i + '-rembox" style="display:' + (hasRem ? 'block' : 'none') + ';margin-top:8px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13.5px;color:var(--ink);flex-wrap:wrap"><span>Se lo mando</span><input class="form-input" type="number" min="0" id="fld-' + i + '-days" value="' + days + '" style="width:60px;text-align:center" oninput="_fldAvisoPreview(' + i + ')"><span>días antes.</span></div>' +
+      '<div style="font-size:13.5px;color:var(--ink);margin-bottom:5px">¿Qué le escribo?</div>' +
+      '<textarea class="form-input" id="fld-' + i + '-msg" rows="2" placeholder="Ej: Hola, toca tu revisión. ¿La reservamos?" oninput="_fldAvisoPreview(' + i + ')">' + esc(_msgToDisplay(msg)) + '</textarea>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px">' +
+        '<span style="font-size:12px;color:var(--dim)">Toca para añadir:</span>' +
+        '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',\'[fecha]\')">📅 la fecha</button>' +
+        '<button type="button" class="btn btn-d btn-sm" onclick="_fldInsertToken(' + i + ',\'[nombre]\')">🏷️ el nombre</button>' +
+      '</div>' +
+      '<div id="fld-' + i + '-prev" class="ent-aviso-prev" style="margin-top:8px"></div>' +
     '</div></div>';
 
   var optBox = '';
@@ -7679,14 +7685,14 @@ function fieldEditorRow(f, i) {
 
   return '<div class="fld-card">' +
     '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-      '<input class="form-input" id="fld-' + i + '-label" value="' + esc(f.label || '') + '" placeholder="Nombre del campo" style="flex:1;min-width:120px">' +
+      '<input class="form-input" id="fld-' + i + '-label" value="' + esc(f.label || '') + '" placeholder="Nombre del dato (ej: Próxima revisión)" style="flex:1;min-width:120px">' +
       '<select class="form-input" id="fld-' + i + '-type" style="width:150px" onchange="_fldTypeChange(' + i + ')"' + (isProtected ? ' disabled title="Campo identificador"' : '') + '>' + typeOpts + '</select>' +
       '<button class="btn btn-d btn-sm" onclick="fldMove(' + i + ',-1)" aria-label="Subir">↑</button>' +
       '<button class="btn btn-d btn-sm" onclick="fldMove(' + i + ',1)" aria-label="Bajar">↓</button>' +
       (isProtected ? '<span style="width:30px;text-align:center" title="Campo clave, no se borra">🔑</span>'
                    : '<button class="btn btn-r btn-sm" onclick="fldDel(' + i + ')" aria-label="Borrar">🗑</button>') +
     '</div>' +
-    '<label class="fld-check" style="margin-top:6px"><input type="checkbox" id="fld-' + i + '-list" ' + (f.show_in_list ? 'checked' : '') + '> Mostrar en la lista de fichas</label>' +
+    '<label class="fld-check" style="margin-top:6px"><input type="checkbox" id="fld-' + i + '-list" ' + (f.show_in_list ? 'checked' : '') + '> Que se vea en la lista de clientes</label>' +
     dateBox + optBox +
   '</div>';
 }
@@ -7704,7 +7710,7 @@ function _fldSync() {
         var d = document.getElementById('fld-' + i + '-days');
         var m = document.getElementById('fld-' + i + '-msg');
         var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
-        f.reminder = { offset_days: -days, message_hint: (m && m.value) || '' };
+        f.reminder = { offset_days: -days, message_hint: _msgToCanonical((m && m.value) || '') };
       } else { delete f.reminder; }
     } else { delete f.reminder; }
     if (f.type === 'select' || f.type === 'multiselect') {
@@ -7723,18 +7729,49 @@ function _fldRemToggle(i)  { _fldSync(); renderFieldEditor(); }
 function fldOptAdd(i) { _fldSync(); if (!_fldEdit[i].options) _fldEdit[i].options = []; _fldEdit[i].options.push({ label: '' }); renderFieldEditor(); }
 function fldOptDel(i, j) { _fldSync(); if (_fldEdit[i].options) _fldEdit[i].options.splice(j, 1); renderFieldEditor(); }
 
+// El dueño nunca ve {{value}}/{{entity}} (jerga): en el editor se muestran
+// como [fecha]/[nombre]. Se convierte a la forma canónica solo al guardar.
+function _msgToDisplay(s) {
+  return String(s || '').replace(/\{\{\s*value\s*\}\}/gi, '[fecha]').replace(/\{\{\s*entity\s*\}\}/gi, '[nombre]');
+}
+function _msgToCanonical(s) {
+  return String(s || '').replace(/\[\s*fecha\s*\]/gi, '{{value}}').replace(/\[\s*nombre\s*\]/gi, '{{entity}}');
+}
+// Inserta [fecha]/[nombre] en la posición del cursor (o al final) sin que el
+// dueño teclee corchetes ni jerga; refresca la burbuja al instante.
+function _fldInsertToken(i, token) {
+  var ta = document.getElementById('fld-' + i + '-msg'); if (!ta) return;
+  var s = (ta.selectionStart != null) ? ta.selectionStart : ta.value.length;
+  var e = (ta.selectionEnd != null) ? ta.selectionEnd : ta.value.length;
+  var before = ta.value.slice(0, s);
+  var need = before.length && !/\s$/.test(before);
+  var ins = (need ? ' ' : '') + token + ' ';
+  ta.value = before + ins + ta.value.slice(e);
+  ta.focus();
+  var pos = (before + ins).length;
+  try { ta.setSelectionRange(pos, pos); } catch (_) {}
+  _fldAvisoPreview(i);
+}
+
 function _fldAvisoPreview(i) {
   var box = document.getElementById('fld-' + i + '-prev'); if (!box) return;
   var d = document.getElementById('fld-' + i + '-days');
   var m = document.getElementById('fld-' + i + '-msg');
   var days = Math.abs(parseInt((d && d.value) || '0', 10) || 0);
   var type = _entType();
-  // Placeholder de {{entity}}: como el mensaje real usa el display_name (sin
-  // artículo), aquí usamos el nombre del tipo a secas (no "tu vehículo" → evita
-  // el doble "tu" cuando el mensaje ya dice "tu {{entity}}").
   var entName = String((type && type.label_singular) || 'ficha').toLowerCase();
-  box.innerHTML = '📲 <strong>' + _avisoDias(-days) + '</strong> NodeFlow enviará: «' +
-    esc(_resolveHint((m && m.value) || '', entName, '')) + '»';
+  var raw = (m && m.value || '').trim();
+  if (!raw) { box.innerHTML = ''; return; }   // sin mensaje, sin burbuja
+  // Fecha de ejemplo (dentro de 2 semanas) para que la burbuja se vea REAL,
+  // no un «esa fecha» abstracto. Convertimos [fecha]/[nombre] → canónico antes.
+  var sample = new Date(); sample.setDate(sample.getDate() + 14);
+  var text = _resolveHint(_msgToCanonical(raw), entName, sample.toISOString().slice(0, 10));
+  box.innerHTML =
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:5px">Así le llegará a tu cliente por WhatsApp, ' + esc(_avisoDias(-days)) + ':</div>' +
+    '<div style="background:#dcf8c6;color:#0b141a;border-radius:12px;border-top-left-radius:4px;padding:9px 13px;max-width:92%;font-size:13.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.25)">' +
+      esc(text) +
+      '<span style="display:block;text-align:right;font-size:10px;color:#4a6b4a;margin-top:3px">✓✓ 12:30</span>' +
+    '</div>';
 }
 
 async function saveFieldEditor() {
