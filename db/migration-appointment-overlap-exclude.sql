@@ -55,10 +55,25 @@ JOIN nf_appointments b
 -- DROP INDEX IF EXISTS uniq_active_slot;
 
 
--- ── PASO 3 — El EXCLUDE constraint (la red de verdad) ────────────────────────
+-- ── PASO 3a — Función IMMUTABLE que calcula el intervalo de una cita ─────────
+-- Postgres exige que las expresiones de un índice/EXCLUDE usen SOLO funciones
+-- IMMUTABLE (si no: ERROR 42P17). La expresión inline no se lo garantiza, así
+-- que la encapsulamos aquí. Es determinista de verdad: NO usa zona horaria ni
+-- now() → marcarla IMMUTABLE es correcto y seguro. Idempotente (OR REPLACE).
+CREATE OR REPLACE FUNCTION nf_appt_range(d date, t text, dur integer)
+RETURNS tsrange
+LANGUAGE sql
+IMMUTABLE
+AS $func$
+  SELECT tsrange(
+    d + t::time,
+    d + t::time + (COALESCE(dur, 30)::text || ' minutes')::interval
+  );
+$func$;
+
+-- ── PASO 3b — El EXCLUDE constraint usando la función (la red de verdad) ─────
 -- Rechaza dos citas ACTIVAS del mismo negocio cuyos intervalos [inicio, fin)
--- se solapen. El intervalo = fecha+hora hasta fecha+hora+duración (30 min si
--- la duración es NULL). Se compara como timestamp SIN zona (hora local de pared,
+-- se solapen. Se compara como timestamp SIN zona (hora local de pared,
 -- consistente porque todas las citas de un negocio se guardan igual).
 DO $$
 BEGIN
@@ -69,10 +84,7 @@ BEGIN
       ADD CONSTRAINT nf_appointments_no_overlap
       EXCLUDE USING gist (
         organization_id WITH =,
-        tsrange(
-          date + time::time,
-          date + time::time + (COALESCE(duration, 30)::text || ' minutes')::interval
-        ) WITH &&
+        nf_appt_range(date, time, duration) WITH &&
       )
       WHERE (status <> 'cancelled');
     RAISE NOTICE 'Constraint nf_appointments_no_overlap creado.';
@@ -90,6 +102,7 @@ WHERE conname = 'nf_appointments_no_overlap';
 
 -- ── ROLLBACK (si hiciera falta deshacerlo) ───────────────────────────────────
 -- ALTER TABLE nf_appointments DROP CONSTRAINT IF EXISTS nf_appointments_no_overlap;
+-- DROP FUNCTION IF EXISTS nf_appt_range(date, text, integer);
 -- -- y, si lo eliminaste en el PASO 2, recrear el antiguo:
 -- CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_slot
 --   ON nf_appointments (organization_id, date, time)
