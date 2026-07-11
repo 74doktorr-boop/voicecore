@@ -17,6 +17,8 @@ class AppointmentsStore {
   constructor() {
     this._client = null;
     this._enabled = false;
+    this._retryDelayMs = 400;   // backoff base entre reintentos (test lo baja a 0)
+    this._notify = null;        // notificador inyectable (test); si null → _notifyOwner real
   }
 
   // ── Inicialización ────────────────────────────────────────
@@ -118,28 +120,58 @@ class AppointmentsStore {
   }
 
   // ── Persistir (upsert) ────────────────────────────────────
-  // Fire-and-forget: no bloquea el scheduler
+  // Fire-and-forget para el llamante (no bloquea el scheduler), pero por dentro
+  // REINTENTA los fallos transitorios y, si aun así no persiste, AVISA al dueño.
+  // Antes era un solo intento tragado: un hipo de Supabase = cita fantasma que
+  // el bot confirmó al cliente y desaparecía en el siguiente deploy, en silencio.
+  // Devuelve una promesa (por si algún día se quiere await antes de confirmar).
   upsert(apt) {
-    if (!this._enabled) return;
-    const row = this._toRow(apt);
-    this._client
-      .from('nf_appointments')
-      .upsert(row, { onConflict: 'id' })
-      .then(({ error }) => {
-        if (!error) return;
-        // 23505 = unique_violation → el índice uniq_active_slot rechazó una
-        // colisión de hueco (otra instancia/proceso ya tenía esa cita activa).
-        // Es una RED DE SEGURIDAD funcionando: la validación en memoria no la
-        // pilló (multi-instancia). Se registra aparte para visibilidad.
-        if (error.code === '23505') {
-          log.warn(`⚠️ Slot collision rechazada por DB para ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado`);
-        } else {
-          // Cita NO persistida = el negocio puede perder una reserva real.
-          // ERROR, no WARN: esto tiene que saltar en cualquier revisión de logs.
-          log.error(`❌ CITA NO PERSISTIDA ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}): ${error.message}`);
-        }
-      })
-      .catch(e => log.error(`❌ CITA NO PERSISTIDA (exception) ${apt.id}: ${e.message}`));
+    if (!this._enabled) return Promise.resolve(false);
+    return this._persistWithRetry(this._toRow(apt), apt, 1);
+  }
+
+  async _persistWithRetry(row, apt, attempt) {
+    const MAX = 3;
+    try {
+      const { error } = await this._client
+        .from('nf_appointments')
+        .upsert(row, { onConflict: 'id' });
+      if (!error) return true;
+      // 23505 = unique_violation → el índice uniq_active_slot rechazó una
+      // colisión de hueco (otra instancia ya tenía esa cita). NO se reintenta —
+      // el hueco está ocupado. Pero el bot pudo confirmar un doble → avisar.
+      if (error.code === '23505') {
+        log.warn(`⚠️ Slot collision ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado`);
+        this._alertLostAppointment(apt, 'ese hueco ya estaba ocupado (posible doble reserva)');
+        return false;
+      }
+      throw new Error(error.message);
+    } catch (e) {
+      if (attempt < MAX) {
+        await new Promise(r => setTimeout(r, this._retryDelayMs * attempt));
+        return this._persistWithRetry(row, apt, attempt + 1);
+      }
+      log.error(`❌ CITA NO PERSISTIDA ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) tras ${MAX} intentos: ${e.message}`);
+      this._alertLostAppointment(apt, 'no se pudo guardar por un error técnico');
+      return false;
+    }
+  }
+
+  // Una cita que no se guarda deja de ser SILENCIOSA: el dueño recibe un aviso
+  // para apuntarla a mano y llamar al cliente. Nunca lanza.
+  _alertLostAppointment(apt, reason) {
+    const msg =
+      `⚠️ *Cita que no se pudo guardar — NodeFlow*\n` +
+      `━━━━━━━━━━━━\n` +
+      `Se registró una cita en la llamada pero ${reason}.\n` +
+      `👤 ${apt.patientName || '—'}   📞 ${apt.phone || 'sin número'}\n` +
+      `📅 ${apt.date} a las ${apt.time}${apt.service ? ' · ' + apt.service : ''}\n` +
+      `━━━━━━━━━━━━\n` +
+      `Apúntala a mano y llama al cliente para confirmar. NodeFlow`;
+    try {
+      if (this._notify) return this._notify(msg, apt.businessId);
+      require('../tools/executor')._notifyOwner(msg, apt.businessId);
+    } catch (_) {}
   }
 
   // ── Actualización parcial ─────────────────────────────────
@@ -178,4 +210,4 @@ class AppointmentsStore {
 
 // Singleton
 const appointmentsStore = new AppointmentsStore();
-module.exports = { appointmentsStore };
+module.exports = { appointmentsStore, AppointmentsStore };
