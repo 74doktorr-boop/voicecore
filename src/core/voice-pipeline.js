@@ -334,9 +334,9 @@ class VoicePipeline {
       : provider === 'telnyx' ? (mediaEncoding || 'alaw')
       : (mediaEncoding || 'mulaw');
 
-    // Create STT session via router
-    const sttProvider = this.sttRouter.getProvider(assistant.sttProvider);
-    const sttSession = sttProvider.createSession(callId, {
+    // Create STT session via router (createSession, NO getProvider().createSession):
+    // así pasa por el failover — si el proveedor no abre, salta al siguiente.
+    const sttSession = this.sttRouter.createSession(callId, {
       language: assistant.language || 'es',
       model: assistant.sttModel || 'nova-3',
       utteranceEndMs: assistant.utteranceEndMs || 1000, // mínimo de Deepgram — 800 lo desactivaba (llamada muda)

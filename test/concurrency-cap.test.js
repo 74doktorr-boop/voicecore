@@ -12,6 +12,7 @@ const { VoicePipeline } = require('../src/core/voice-pipeline');
 function makePipeline(opts = {}) {
   const sttRouter = {
     getProvider: () => ({ createSession: () => ({}) }),
+    createSession: () => ({}),
     closeSession: () => {},
     sendAudio: () => {},
     resetTranscript: () => {},

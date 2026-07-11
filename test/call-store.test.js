@@ -156,6 +156,7 @@ describe('cableado en el pipeline', () => {
   function makePipeline(callStore) {
     const sttRouter = {
       getProvider: () => ({ createSession: () => ({}) }),
+      createSession: () => ({}),
       closeSession: () => {},
       sendAudio: () => {},
       resetTranscript: () => {},

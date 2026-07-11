@@ -13,6 +13,7 @@ const { VoicePipeline } = require('../src/core/voice-pipeline');
 function makePipeline(synthCounter) {
   const sttRouter = {
     getProvider: () => ({ createSession: () => ({}) }),
+    createSession: () => ({}),
     closeSession: () => {}, sendAudio: () => {}, resetTranscript: () => {},
   };
   const ttsRouter = {

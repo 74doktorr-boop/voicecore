@@ -93,6 +93,7 @@ describe('escalera de confianza del STT (4 niveles)', () => {
     const llmCalls = [];
     const sttRouter = {
       getProvider: () => ({ createSession: () => ({}) }),
+      createSession: () => ({}),
       closeSession: () => {},
       sendAudio: () => {},
       resetTranscript: () => {},
@@ -223,6 +224,7 @@ describe('barge-in inmune a voces de fondo', () => {
     let sttCallbacks = {};
     const sttRouter = {
       getProvider: () => ({ createSession: () => sttCallbacks }),
+      createSession: () => sttCallbacks,
       closeSession: () => {},
       sendAudio: () => {},
       resetTranscript: () => {},
@@ -268,6 +270,7 @@ describe('Conversation Success Score v1', () => {
   function makePipeline() {
     const sttRouter = {
       getProvider: () => ({ createSession: () => ({}) }),
+      createSession: () => ({}),
       closeSession: () => {},
       sendAudio: () => {},
       resetTranscript: () => {},

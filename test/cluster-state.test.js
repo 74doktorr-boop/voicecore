@@ -148,6 +148,7 @@ describe('cluster-state — flag ON + Redis (contador de clúster real)', () => 
 function makePipeline(opts = {}) {
   const sttRouter = {
     getProvider: () => ({ createSession: () => ({}) }),
+    createSession: () => ({}),
     closeSession: () => {},
     sendAudio: () => {},
     resetTranscript: () => {},

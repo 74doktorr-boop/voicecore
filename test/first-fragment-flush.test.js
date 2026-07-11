@@ -12,6 +12,7 @@ const { VoicePipeline } = require('../src/core/voice-pipeline');
 function makePipeline(chunks, spoken) {
   const sttRouter = {
     getProvider: () => ({ createSession: () => ({}) }),
+    createSession: () => ({}),
     closeSession: () => {}, sendAudio: () => {}, resetTranscript: () => {},
   };
   const ttsRouter = { synthesize: async ({ text }) => { spoken.push(text); return Buffer.alloc(160); } };
