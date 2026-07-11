@@ -13,8 +13,6 @@ const { runAutomations, getCronStats } = require('../scheduling/cron');
 const { generateWhatsAppConfirmation, sendAppointmentReminder, sendReviewRequest } = require('../notifications/reminders');
 const { adminAuth }          = require('./routes-admin');
 const { appointmentsStore }  = require('../db/appointments-store');
-const { getGoogleCalendar }  = require('../integrations/google-calendar');
-const { getDatabase }        = require('../db/database');
 
 const log = new Logger('AUTO');
 
@@ -170,26 +168,11 @@ function setupAutomationRoutes(app) {
       const config  = scheduler.getBusinessConfig(businessId);
       const waLink  = generateWhatsAppConfirmation(result.appointment, config, process.env.OWNER_PHONE);
 
-      // Best-effort Google Calendar sync (non-blocking)
+      // Best-effort Google Calendar sync (non-blocking). Vía compartida: crea el
+      // evento Y guarda su google_event_id en la cita → si luego se cancela, el
+      // evento se borra (antes esta vía tiraba el id y dejaba fantasmas).
       if (result.appointment) {
-        (async () => {
-          try {
-            const db  = getDatabase();
-            const cal = getGoogleCalendar();
-            if (!db.enabled || !cal.enabled) return;
-            const org = await db.getOrg(businessId);
-            if (!org?.google_refresh_token) return;
-            const tokens = await cal.refreshIfNeeded({
-              access_token:  org.google_access_token,
-              refresh_token: org.google_refresh_token,
-              expiry_date:   org.google_token_expiry,
-            });
-            await cal.createEvent(tokens, result.appointment, {
-              calendarId: org.google_calendar_id || 'primary',
-              timezone:   config?.timezone || 'Europe/Madrid',
-            });
-          } catch (_) {}
-        })();
+        try { require('../tools/executor').syncAppointmentToCalendar(businessId, result.appointment); } catch (_) {}
       }
 
       log.info(`External booking: ${result.appointment.id} — ${patientName} — ${date} ${time}`);
