@@ -100,8 +100,8 @@ describe('FIX 3 — emptyStateVocabulary: cada sector con SUS palabras', () => {
     const v = emptyStateVocabulary(ENTITY_TEMPLATES.fisioterapia[0]);
     assert.strictEqual(v.labelPlural, 'Planes de tratamiento');
     // Toma los 3 primeros campos-fecha del sector (catálogo enriquecido).
-    assert.deepStrictEqual(v.dateExamples, ['revisión', 'caducidad del bono', 'sesión']);
-    assert.strictEqual(v.examplesText, 'revisión, caducidad del bono, sesión');
+    assert.deepStrictEqual(v.dateExamples, ['sesión', 'caducidad del bono', 'revisión']);
+    assert.strictEqual(v.examplesText, 'sesión, caducidad del bono, revisión');
     assert.ok(!/itv|vacuna/i.test(v.examplesText), 'nunca vocabulario de otro sector');
   });
 

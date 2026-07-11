@@ -107,4 +107,39 @@ function derivedAttrs(input = {}) {
   };
 }
 
-module.exports = { computePlan, markSessionDone, derivedAttrs };
+// ── Puente con la ficha de entidad (plan_tratamiento / programa) ────────────
+// Claves de attrs del plan por sesiones. Si el dueño rellena la CADENCIA + la
+// primera sesión + el total, se CALCULAN solos próxima sesión, restantes y
+// caducidad (ritmo). Si NO usa la cadencia, no tocamos sus fechas manuales
+// (retrocompatible con las fichas que ya rellenan a mano). PURO/determinista.
+const PLAN_KEYS = {
+  total: 'sesiones_totales',
+  cadence: 'cadencia_dias',
+  start: 'primera_sesion',
+  used: 'sesiones_hechas',
+  remaining: 'sesiones_restantes',
+  next: 'proxima_sesion',
+  expiry: 'caducidad_bono',
+};
+
+function reconcilePlanAttrs(attrs = {}, opts = {}) {
+  const k = { ...PLAN_KEYS, ...(opts.keys || {}) };
+  const usesCadence = attrs[k.cadence] && attrs[k.start] && attrs[k.total];
+  const out = { ...attrs };
+  if (!usesCadence) return out;   // ritmo no configurado → respetar lo manual
+
+  const plan = computePlan({
+    totalSessions: attrs[k.total],
+    cadenceDays:   attrs[k.cadence],
+    startDate:     attrs[k.start],
+    sessionsUsed:  attrs[k.used],
+    graceDays:     opts.graceDays != null ? opts.graceDays : 15, // margen tras la última sesión
+    today:         opts.today,
+  });
+  out[k.remaining] = plan.sessionsRemaining;
+  if (plan.nextSessionDate) out[k.next] = plan.nextSessionDate; else delete out[k.next];
+  if (plan.expiryDate) out[k.expiry] = plan.expiryDate;
+  return out;
+}
+
+module.exports = { computePlan, markSessionDone, derivedAttrs, reconcilePlanAttrs, PLAN_KEYS };

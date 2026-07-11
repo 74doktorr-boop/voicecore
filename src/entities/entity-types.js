@@ -521,16 +521,22 @@ const ENTITY_TEMPLATES = {
     fields: [
       { key: 'motivo',             type: 'text',   label: 'Motivo / zona (lumbar, hombro…)', required: true, show_in_list: true, position: 1 },
       { key: 'sesiones_totales',   type: 'number', label: 'Sesiones del bono', position: 2 },
-      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 3 },
-      { key: 'proxima_revision',   type: 'date',   label: 'Próxima revisión', show_in_list: true, position: 4,
-        reminder: { offset_days: -3, campaign_kind: 'revision', message_hint: 'Toca revisión de tu {{entity}} el {{value}} — así vemos cómo evoluciona' } },
-      { key: 'caducidad_bono',     type: 'date',   label: 'Caducidad del bono', position: 5,
-        reminder: { offset_days: -14, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} y aún te quedan sesiones' } },
-      { key: 'proxima_sesion',     type: 'date',   label: 'Próxima sesión', position: 6,
+      // ── El ritmo: con estos 3 el sistema calcula solo próxima sesión,
+      //    restantes y caducidad (session-plan.reconcilePlanAttrs al guardar).
+      { key: 'cadencia_dias',      type: 'number', label: 'Cada cuántos días viene (ej. 30)', position: 3 },
+      { key: 'primera_sesion',     type: 'date',   label: 'Primera sesión', position: 4 },
+      { key: 'sesiones_hechas',    type: 'number', label: 'Sesiones ya hechas', position: 5 },
+      // ── Derivados (se calculan solos si hay cadencia; editables si no) ──
+      { key: 'sesiones_restantes', type: 'number', label: 'Sesiones restantes', show_in_list: true, position: 6 },
+      { key: 'proxima_sesion',     type: 'date',   label: 'Próxima sesión', show_in_list: true, position: 7,
         reminder: { offset_days: -2, campaign_kind: 'sesion', message_hint: 'Tu próxima sesión de {{entity}} es el {{value}} — la constancia es la que cura. Te espero, ¿confirmas?' } },
-      { key: 'revision_alta',      type: 'date',   label: 'Revisión tras el alta', position: 7,
+      { key: 'caducidad_bono',     type: 'date',   label: 'Caducidad del bono', position: 8,
+        reminder: { offset_days: -14, campaign_kind: 'caducidad_bono', message_hint: 'Tu {{entity}} caduca el {{value}} y aún te quedan sesiones' } },
+      { key: 'proxima_revision',   type: 'date',   label: 'Próxima revisión', position: 9,
+        reminder: { offset_days: -3, campaign_kind: 'revision', message_hint: 'Toca revisión de tu {{entity}} el {{value}} — así vemos cómo evoluciona' } },
+      { key: 'revision_alta',      type: 'date',   label: 'Revisión tras el alta', position: 10,
         reminder: { offset_days: -5, campaign_kind: 'seguimiento', message_hint: 'Ya pasó un tiempo desde tu alta de {{entity}} ({{value}}) — pásate para una revisión y nos aseguramos de que la mejora se mantiene.' } },
-      { key: 'notas',              type: 'note',   label: 'Notas', position: 8 },
+      { key: 'notas',              type: 'note',   label: 'Notas', position: 11 },
     ],
   }],
 
@@ -1049,8 +1055,13 @@ function emptyStateVocabulary(templateOrType) {
     .replace(/\s+/g, ' ').trim().toLowerCase();
   const seen = new Set();
   const dateExamples = [];
-  for (const f of (t.fields || [])) {
-    if (f.type !== 'date') continue;
+  // El vocabulario son los AVISOS del sector → preferimos los campos-fecha que
+  // disparan recordatorio (excluye fechas de solo-entrada como "primera
+  // sesión"). Si ninguno tiene aviso, caemos a todos los campos-fecha para no
+  // quedarnos sin vocabulario.
+  const dateFields   = (t.fields || []).filter(f => f.type === 'date');
+  const withReminder = dateFields.filter(f => f.reminder);
+  for (const f of (withReminder.length ? withReminder : dateFields)) {
     const c = clean(f.label);
     if (c && !seen.has(c)) { seen.add(c); dateExamples.push(c); }
     if (dateExamples.length >= 3) break;

@@ -19,7 +19,7 @@ describe('buildEntitySummaryMessage', () => {
     const type = tpl('fisioterapia');
     const entity = {
       display_name: 'Plan Hombro · 10/10',
-      attrs: { motivo: 'Hombro', sesiones_totales: 10, sesiones_restantes: 10, proxima_revision: '2026-12-07' },
+      attrs: { motivo: 'Hombro', sesiones_totales: 10, sesiones_restantes: 10, proxima_sesion: '2026-12-07' },
     };
     const msg = buildEntitySummaryMessage(type, entity, { name: 'Raúl García' });
     assert.ok(msg.startsWith('Hola Raúl 👋'), msg);

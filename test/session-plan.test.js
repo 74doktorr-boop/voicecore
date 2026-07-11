@@ -7,7 +7,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { computePlan, markSessionDone, derivedAttrs } = require('../src/entities/session-plan');
+const { computePlan, markSessionDone, derivedAttrs, reconcilePlanAttrs } = require('../src/entities/session-plan');
 
 describe('computePlan — cálculo del ritmo', () => {
   test('bono nuevo: 10 sesiones cada 30 días desde el 1 de julio', () => {
@@ -114,6 +114,42 @@ describe('markSessionDone — avanzar tras una sesión', () => {
   test('no pasa de total al marcar de más', () => {
     const p = markSessionDone({ totalSessions: 3, cadenceDays: 30, startDate: '2026-07-01', sessionsUsed: 3 });
     assert.strictEqual(p.sessionsUsed, 3);
+  });
+});
+
+describe('reconcilePlanAttrs — puente con la ficha', () => {
+  test('con cadencia: calcula próxima sesión, restantes y caducidad', () => {
+    const out = reconcilePlanAttrs({
+      motivo: 'lumbar', sesiones_totales: 10, cadencia_dias: 30,
+      primera_sesion: '2026-07-01', sesiones_hechas: 3,
+    });
+    assert.strictEqual(out.sesiones_restantes, 7);
+    assert.strictEqual(out.proxima_sesion, '2026-09-29');
+    assert.strictEqual(out.caducidad_bono, '2027-04-12'); // última sesión (+270) + gracia 15 = +285
+    assert.strictEqual(out.motivo, 'lumbar');             // no toca lo demás
+  });
+
+  test('SIN cadencia: respeta las fechas manuales (retrocompatible)', () => {
+    const manual = { sesiones_totales: 10, proxima_sesion: '2026-08-15', caducidad_bono: '2026-12-01' };
+    const out = reconcilePlanAttrs(manual);
+    assert.deepStrictEqual(out, manual);   // no cambia nada
+  });
+
+  test('bono agotado: quita la próxima sesión', () => {
+    const out = reconcilePlanAttrs({
+      sesiones_totales: 3, cadencia_dias: 30, primera_sesion: '2026-07-01', sesiones_hechas: 3,
+    });
+    assert.strictEqual(out.sesiones_restantes, 0);
+    assert.ok(!('proxima_sesion' in out) || out.proxima_sesion == null);
+  });
+
+  test('claves inyectables (para otras plantillas, ej. programa)', () => {
+    const out = reconcilePlanAttrs(
+      { total_s: 5, cada: 7, inicio: '2026-07-01', hechas: 1 },
+      { keys: { total: 'total_s', cadence: 'cada', start: 'inicio', used: 'hechas', remaining: 'restan', next: 'prox', expiry: 'cad' } },
+    );
+    assert.strictEqual(out.restan, 4);
+    assert.strictEqual(out.prox, '2026-07-08');
   });
 });
 

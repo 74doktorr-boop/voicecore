@@ -256,6 +256,10 @@ async function createEntity({ orgId, entityType, attrs, contactId, actor = 'staf
   const v = validateAttrs(entityType.fields || [], attrs, { partial: false });
   if (!v.ok) return { ok: false, errors: v.errors };
 
+  // Plan por sesiones: si el dueño puso la CADENCIA (+ primera sesión + total),
+  // se calculan solos próxima sesión / restantes / caducidad. No-op si no la usa.
+  v.attrs = require('./session-plan').reconcilePlanAttrs(v.attrs);
+
   const display = computeDisplayName(entityType.label_template, v.attrs, entityType.label_singular);
   const { data, error } = await db.client.from('nf_entities').insert({
     organization_id: orgId,
@@ -298,6 +302,9 @@ async function updateEntity({ orgId, entityType, entityId, attrs, contactId, act
     merged = { ...merged, ...v.attrs };
     // null = borrar el valor
     for (const k of Object.keys(merged)) { if (merged[k] === null) delete merged[k]; }
+    // Recalcular los derivados del plan por sesiones con el estado completo
+    // (cadencia + primera sesión + hechas). No-op si no se usa la cadencia.
+    merged = require('./session-plan').reconcilePlanAttrs(merged);
     // Borrador de la IA que se completa: al tener todos los required, el
     // badge «completar ficha» se apaga SOLO (regla en código, no en la UI).
     if (merged.is_draft) {
