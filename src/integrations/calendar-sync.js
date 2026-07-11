@@ -87,4 +87,24 @@ async function removeAppointmentEvent(businessId, eventId, deps = {}) {
   }
 }
 
-module.exports = { pushAppointmentEvent, removeAppointmentEvent };
+/**
+ * Cancela en Google Calendar el evento de una cita cancelada, VENGA DE DONDE
+ * VENGA (WhatsApp, voz o portal): borra el evento y limpia el id guardado, para
+ * que no quede de fantasma en el calendario del dueño. Fail-open, fire-and-forget.
+ * Deps inyectables (removeAppointmentEvent, appointmentsStore) para tests.
+ * @returns {Promise<boolean>} true si se borró el evento.
+ */
+async function syncCancelToCalendar(apt, deps = {}) {
+  if (!apt || !apt.googleEventId || !apt.businessId) return false;
+  const remove = deps.removeAppointmentEvent || removeAppointmentEvent;
+  const store  = deps.appointmentsStore
+    || (() => { try { return require('../db/appointments-store').appointmentsStore; } catch (_) { return null; } })();
+  const ok = await remove(apt.businessId, apt.googleEventId, deps);
+  if (ok) {
+    apt.googleEventId = null;
+    if (store && store.patch) store.patch(apt.id, { googleEventId: null });
+  }
+  return ok;
+}
+
+module.exports = { pushAppointmentEvent, removeAppointmentEvent, syncCancelToCalendar };

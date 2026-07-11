@@ -1035,6 +1035,12 @@ function setupPortalRoutes(app, pipeline, config) {
       });
     } catch (_) {}
 
+    // Fase 3: borra el evento del Google Calendar del dueño (si lo había) para
+    // que no quede de fantasma — mismo helper que WhatsApp/voz.
+    try {
+      require('../integrations/calendar-sync').syncCancelToCalendar(apt).catch(() => {});
+    } catch (_) {}
+
     // Hueco liberado desde el portal → oferta automática a la lista de espera
     // (mismo motor que la cancelación por WhatsApp; gateado por env + plantilla).
     try {

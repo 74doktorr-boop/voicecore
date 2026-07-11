@@ -151,18 +151,11 @@ async function ensureCalendarEvent(apt, deps = {}) {
   return eventId;
 }
 
-// Al CANCELAR: borra el evento del calendario (si lo había) y limpia el id, para
-// que no quede de fantasma. Deps inyectables para tests.
+// Al CANCELAR: borra el evento del calendario (si lo había) y limpia el id.
+// Delega en el helper CANÓNICO de calendar-sync (compartido con las
+// cancelaciones por voz y por portal). Deps inyectables para tests.
 async function removeCalendarEvent(apt, deps = {}) {
-  if (!apt || !apt.googleEventId || !apt.businessId) return false;
-  const remove = deps.removeAppointmentEvent || require('../integrations/calendar-sync').removeAppointmentEvent;
-  const store  = deps.appointmentsStore       || appointmentsStore;
-  const ok = await remove(apt.businessId, apt.googleEventId);
-  if (ok) {
-    apt.googleEventId = null;
-    store.patch(apt.id, { googleEventId: null });
-  }
-  return ok;
+  return require('../integrations/calendar-sync').syncCancelToCalendar(apt, deps);
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────

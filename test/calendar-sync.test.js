@@ -8,7 +8,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { pushAppointmentEvent, removeAppointmentEvent } = require('../src/integrations/calendar-sync');
+const { pushAppointmentEvent, removeAppointmentEvent, syncCancelToCalendar } = require('../src/integrations/calendar-sync');
 
 function fakeDeps(over = {}) {
   const calls = { createEvent: [], deleteEvent: [], updateOrg: [] };
@@ -99,5 +99,41 @@ describe('removeAppointmentEvent', () => {
   test('org no conectada → false', async () => {
     const { deps } = fakeDeps({ org: { google_refresh_token: null } });
     assert.strictEqual(await removeAppointmentEvent('org-1', 'evt_1', deps), false);
+  });
+});
+
+describe('syncCancelToCalendar (canónico: WhatsApp / voz / portal)', () => {
+  function store() { const patches = []; return { patches, patch: (id, f) => patches.push({ id, f }) }; }
+
+  test('cita con evento → lo borra y limpia el id en memoria + store', async () => {
+    const s = store();
+    const apt = { id: 'a1', businessId: 'org-1', googleEventId: 'evt_9' };
+    const ok = await syncCancelToCalendar(apt, {
+      removeAppointmentEvent: async (biz, ev) => { assert.strictEqual(ev, 'evt_9'); return true; },
+      appointmentsStore: s,
+    });
+    assert.strictEqual(ok, true);
+    assert.strictEqual(apt.googleEventId, null);
+    assert.deepStrictEqual(s.patches, [{ id: 'a1', f: { googleEventId: null } }]);
+  });
+
+  test('cita sin evento (o sin businessId) → no toca Google', async () => {
+    const s = store();
+    let called = 0;
+    const r1 = await syncCancelToCalendar({ id: 'a1', businessId: 'org-1' }, { removeAppointmentEvent: async () => { called++; return true; }, appointmentsStore: s });
+    const r2 = await syncCancelToCalendar({ id: 'a2', googleEventId: 'e' }, { removeAppointmentEvent: async () => { called++; return true; }, appointmentsStore: s });
+    assert.strictEqual(r1, false);
+    assert.strictEqual(r2, false);
+    assert.strictEqual(called, 0);
+    assert.strictEqual(s.patches.length, 0);
+  });
+
+  test('el borrado falla → conserva el id (se reintentará)', async () => {
+    const s = store();
+    const apt = { id: 'a1', businessId: 'org-1', googleEventId: 'evt_9' };
+    const ok = await syncCancelToCalendar(apt, { removeAppointmentEvent: async () => false, appointmentsStore: s });
+    assert.strictEqual(ok, false);
+    assert.strictEqual(apt.googleEventId, 'evt_9');
+    assert.strictEqual(s.patches.length, 0);
   });
 });

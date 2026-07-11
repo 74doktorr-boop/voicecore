@@ -410,6 +410,12 @@ class SchedulingSystem {
       appointmentsStore.patch(apt.id, { status: 'cancelled', cancelledAt: apt.cancelledAt, updatedAt: apt.updatedAt });
     } catch (_) {}
 
+    // Fase 3: borra el evento del Google Calendar del dueño (si lo había) para
+    // que no quede de fantasma — igual que la cancelación por WhatsApp/portal.
+    try {
+      require('../integrations/calendar-sync').syncCancelToCalendar(apt).catch(() => {});
+    } catch (_) {}
+
     return {
       success: true,
       message: `Cita cancelada correctamente.`,
