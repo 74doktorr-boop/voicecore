@@ -63,10 +63,17 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
       target.setDate(target.getDate() + off);
       if (target <= now) continue; // nunca programar en pasado
 
+      // Destinatario: al cliente (por defecto) o al NEGOCIO (aviso interno al
+      // dueño: "mañana viene X", "el bono se agota"). Fase 2B.
+      const toBusiness = rem.recipient === 'business' || rem.recipient === 'negocio';
+
       // Con varias antelaciones, cada una necesita un serviceKey distinto (o el
-      // dedupe (entidad+serviceKey+día) colapsaría a una). Con una sola, el
-      // serviceKey queda como siempre (compat con lo ya materializado).
-      const serviceKey = multi ? `${base}:o${Math.abs(off)}` : base;
+      // dedupe (entidad+serviceKey+día) colapsaría a una). Con una sola al
+      // cliente, el serviceKey queda como siempre (compat). Los avisos al
+      // negocio llevan ':biz' (no chocan con el mismo aviso al cliente, y el
+      // dispatch los enruta al WhatsApp del dueño).
+      let serviceKey = multi ? `${base}:o${Math.abs(off)}` : base;
+      if (toBusiness) serviceKey += ':biz';
 
       // message_hint es una FRASE completa → marcador 'TXT:' (el scheduler la
       // envía íntegra vía plantilla-portadora nodeflow_aviso). Sin hint:
@@ -78,7 +85,7 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
             .slice(0, 240)
         : `${f.label || f.key} — ${displayName} (${fechaBonita})`;
 
-      plan.push({ serviceKey, fieldKey: f.key, scheduledFor: target, messagePreview });
+      plan.push({ serviceKey, fieldKey: f.key, scheduledFor: target, messagePreview, recipient: toBusiness ? 'business' : 'client' });
     }
   }
   return plan;
@@ -96,17 +103,25 @@ function _dayKey(iso) { return String(iso || '').slice(0, 10); }
  * @param pending Map `${entityId}|${serviceKey}` → { id, day } (se muta)
  */
 async function _applyEntityPlan({ db, orgId, type, entity, pending, now, out }) {
-  const plan = buildEntityReminderPlan(type, entity, now);
+  let plan = buildEntityReminderPlan(type, entity, now);
   if (!plan.length) return;
 
-  // Opt-out / cooling-off del dueño: una vez por entidad
+  // Opt-out / cooling-off del CLIENTE: una vez por entidad. Bloquea los avisos
+  // AL CLIENTE, pero NO los internos al negocio (recipient=business): el dueño
+  // debe seguir recibiendo su "mañana viene X" aunque el cliente no quiera
+  // recibir mensajes.
   let blocked = false;
   try {
     const { getContactMemory, isCoolingOff } = require('../lifecycle/call-memory');
     const memory = await getContactMemory(entity.contact_id, orgId);
     blocked = !!(memory && (memory.no_whatsapp || isCoolingOff(memory)));
   } catch (_) {}
-  if (blocked) { out.skipped += plan.length; return; }
+  if (blocked) {
+    const bizOnly = plan.filter(i => i.recipient === 'business');
+    out.skipped += (plan.length - bizOnly.length);
+    plan = bizOnly;
+    if (!plan.length) return;
+  }
 
   for (const item of plan) {
     const dedupeKey = `${entity.id}|${item.serviceKey}`;

@@ -231,9 +231,45 @@ async function mapWithConcurrency(items, limit, fn) {
   await Promise.all(workers);
 }
 
+/**
+ * Aviso INTERNO al dueño (Fase 2B): recordatorios cuyo service_key acaba en
+ * ':biz' no van al cliente sino al WhatsApp del dueño (org.phone). No aplica
+ * el do_not_contact del cliente, ni "cita futura", ni el tope de frecuencia —
+ * es un aviso de gestión que el negocio pidió recibir. Reutiliza dispatch()
+ * poniendo al DUEÑO como destinatario. Nunca lanza.
+ */
+async function _dispatchBusinessReminder(reminder, db) {
+  try {
+    const { data: org } = await db.client.from('organizations')
+      .select('name, phone').eq('id', reminder.org_id).maybeSingle();
+    const ownerPhone = org && org.phone;
+    if (!ownerPhone) {
+      await db.client.from('scheduled_reminders')
+        .update({ status: 'cancelled', failed_reason: 'no_owner_phone', updated_at: new Date().toISOString() })
+        .eq('id', reminder.id).then(undefined, () => {});
+      log.warn(`Aviso al negocio ${reminder.id}: la org ${reminder.org_id} no tiene teléfono del dueño`);
+      return;
+    }
+    // El "contacto" del envío es el DUEÑO. memory {} → sin opt-out (es él mismo).
+    const ownerContact = { name: org.name || '', phone: ownerPhone, email: null, _orgName: org.name || '' };
+    const result = await dispatch(reminder, ownerContact, {});
+    const patch = result.ok
+      ? { status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+      : { status: 'failed', failed_reason: 'dispatch_business', updated_at: new Date().toISOString() };
+    await db.client.from('scheduled_reminders').update(patch).eq('id', reminder.id).then(undefined, () => {});
+  } catch (e) {
+    log.warn(`_dispatchBusinessReminder(${reminder.id}): ${e.message}`);
+  }
+}
+
 /** Procesa un único recordatorio (claim ya hecho). Nunca lanza. */
 async function processOneReminder(reminder, db) {
   try {
+    // Fase 2B — aviso interno al dueño (:biz): rama propia, va a su WhatsApp y
+    // se salta las reglas pensadas para el cliente (opt-out, cita futura, tope).
+    if (String(reminder.service_key || '').endsWith(':biz')) {
+      return await _dispatchBusinessReminder(reminder, db);
+    }
     // Re-check do_not_contact (may have changed since scheduling)
     const memory = await getContactMemory(reminder.contact_id, reminder.org_id);
     const ch = reminder.channel;

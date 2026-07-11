@@ -70,3 +70,34 @@ describe('buildEntityReminderPlan — varias antelaciones', () => {
     assert.strictEqual(plan.length, 0);
   });
 });
+
+describe('buildEntityReminderPlan — destinatario negocio (Fase 2B)', () => {
+  test('aviso al NEGOCIO → serviceKey acaba en :biz y recipient=business', () => {
+    const plan = buildEntityReminderPlan(typeWith({
+      reminder: { offset_days: -1, recipient: 'business', message_hint: 'Mañana viene {{entity}}' },
+    }), entity, NOW);
+    assert.strictEqual(plan.length, 1);
+    assert.ok(plan[0].serviceKey.endsWith(':biz'), plan[0].serviceKey);
+    assert.strictEqual(plan[0].recipient, 'business');
+  });
+
+  test('mismo campo: aviso al cliente Y al negocio → keys distintas, recipients correctos', () => {
+    const plan = buildEntityReminderPlan(typeWith({ reminders: [
+      { offset_days: -3, recipient: 'client',   message_hint: 'Te espero el {{value}}' },
+      { offset_days: -1, recipient: 'business',  message_hint: 'Mañana viene {{entity}}' },
+    ] }), entity, NOW);
+    assert.strictEqual(plan.length, 2);
+    const biz = plan.find(p => p.recipient === 'business');
+    const cli = plan.find(p => p.recipient === 'client');
+    assert.ok(biz && cli, 'uno de cada');
+    assert.ok(biz.serviceKey.endsWith(':biz'));
+    assert.ok(!cli.serviceKey.endsWith(':biz'));
+    assert.notStrictEqual(biz.serviceKey, cli.serviceKey);
+  });
+
+  test('client por defecto (sin recipient) → recipient=client, sin :biz', () => {
+    const plan = buildEntityReminderPlan(typeWith({ reminder: { offset_days: -3, message_hint: 'x' } }), entity, NOW);
+    assert.strictEqual(plan[0].recipient, 'client');
+    assert.ok(!plan[0].serviceKey.endsWith(':biz'));
+  });
+});
