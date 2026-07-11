@@ -56,29 +56,20 @@ async function _calendarBusy(businessId, fromDate, toDate) {
 }
 
 // ── Push a calendar event after a successful booking (non-blocking) ───────────
+// Guarda el id del evento en la cita (google_event_id) para poder BORRARLO si
+// luego se cancela (antes el id se tiraba → evento fantasma). El patch del id va
+// aislado: si la columna aún no existe (migración sin aplicar) solo falla ese
+// patch, no la persistencia del resto de la cita.
 async function _syncToCalendar(businessId, appointment) {
   try {
-    const db  = getDatabase();
-    const cal = getGoogleCalendar();
-    if (!db.enabled || !cal.enabled) return;
-    const org = await db.getOrg(businessId);
-    if (!org?.google_refresh_token) return;
-    const freshTokens = await cal.refreshIfNeeded({
-      access_token:  org.google_access_token,
-      refresh_token: org.google_refresh_token,
-      expiry_date:   org.google_token_expiry,
-    });
-    if (freshTokens.access_token !== org.google_access_token) {
-      await db.updateOrg(businessId, {
-        google_access_token: freshTokens.access_token,
-        google_token_expiry: freshTokens.expiry_date,
-      }).catch(() => {});
+    const { pushAppointmentEvent } = require('../integrations/calendar-sync');
+    const eventId = await pushAppointmentEvent(businessId, appointment);
+    if (eventId) {
+      appointment.googleEventId = eventId;
+      try {
+        require('../db/appointments-store').appointmentsStore.patch(appointment.id, { googleEventId: eventId });
+      } catch (_) {}
     }
-    const config = scheduler.getBusinessConfig(businessId);
-    await cal.createEvent(freshTokens, appointment, {
-      calendarId: org.google_calendar_id || 'primary',
-      timezone:   config?.timezone || 'Europe/Madrid',
-    });
   } catch (e) {
     log.warn(`_syncToCalendar failed for ${businessId}: ${e.message}`);
   }

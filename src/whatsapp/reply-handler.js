@@ -136,6 +136,35 @@ async function alertOwner(apt, action, credentials = null) {
   }
 }
 
+// ── Sincronización con Google Calendar (Fase 3) ──────────────────────────────
+// Al CONFIRMAR: si la cita aún no tiene evento en el calendario del dueño, se
+// crea y se guarda el id. Deps inyectables para tests.
+async function ensureCalendarEvent(apt, deps = {}) {
+  if (!apt || apt.googleEventId || !apt.businessId) return null;
+  const push  = deps.pushAppointmentEvent || require('../integrations/calendar-sync').pushAppointmentEvent;
+  const store = deps.appointmentsStore     || appointmentsStore;
+  const eventId = await push(apt.businessId, apt);
+  if (eventId) {
+    apt.googleEventId = eventId;
+    store.patch(apt.id, { googleEventId: eventId });
+  }
+  return eventId;
+}
+
+// Al CANCELAR: borra el evento del calendario (si lo había) y limpia el id, para
+// que no quede de fantasma. Deps inyectables para tests.
+async function removeCalendarEvent(apt, deps = {}) {
+  if (!apt || !apt.googleEventId || !apt.businessId) return false;
+  const remove = deps.removeAppointmentEvent || require('../integrations/calendar-sync').removeAppointmentEvent;
+  const store  = deps.appointmentsStore       || appointmentsStore;
+  const ok = await remove(apt.businessId, apt.googleEventId);
+  if (ok) {
+    apt.googleEventId = null;
+    store.patch(apt.id, { googleEventId: null });
+  }
+  return ok;
+}
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 async function handleReply({ from, type, payload }) {
   const apt = findNextAppointment(from);
@@ -169,6 +198,11 @@ async function handleReply({ from, type, payload }) {
     appointmentsStore.patch(apt.id, { wa_confirmed: true, updatedAt: new Date().toISOString() });
     log.info(`Appointment ${apt.id} confirmed by client via WA`);
 
+    // Fase 3: si la cita aún no está en Google Calendar (reservada antes de
+    // conectar Google, o el sync de la reserva falló), la creamos AHORA al
+    // confirmar → queda en Citas Y en el calendario del dueño. Fail-open.
+    ensureCalendarEvent(apt).catch(() => {});
+
     await sendText(from,
       `¡Perfecto, ${name}! ✅ Tu cita en *${bizName}* está confirmada.\n\n` +
       `📅 *${humanDate(apt.date)}* · *${apt.time}h*\n` +
@@ -198,6 +232,10 @@ async function handleReply({ from, type, payload }) {
     // Persist cancellation so it survives server restarts
     appointmentsStore.patch(apt.id, { status: 'cancelled', cancelledAt, cancelledBy: 'client_whatsapp', updatedAt: cancelledAt });
     log.info(`Appointment ${apt.id} cancelled by client via WA`);
+
+    // Fase 3: borra el evento del Google Calendar del dueño (si lo había) — así
+    // no queda de FANTASMA tras la cancelación. Fail-open, no bloquea la respuesta.
+    removeCalendarEvent(apt).catch(() => {});
 
     await sendText(from,
       `Entendido, ${name}. ❌ Tu cita del *${humanDate(apt.date)}* a las *${apt.time}h* en *${bizName}* ha sido cancelada.\n\n` +
@@ -514,4 +552,4 @@ async function handleWaitlistResponse({ from, businessId, payload }, deps = {}) 
   return true;
 }
 
-module.exports = { handleReply, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton, waitlistReplyKind, handleWaitlistResponse };
+module.exports = { handleReply, ensureCalendarEvent, removeCalendarEvent, normalizePhone, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, isNegativeFeedback, handleCheckinFeedback, checkinButtonKind, handleCheckinButton, waitlistReplyKind, handleWaitlistResponse };

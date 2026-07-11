@@ -85,6 +85,9 @@ class AppointmentsStore {
       noShowNotified:   row.no_show_notified || false,
       cancelledAt:  row.cancelled_at  || null,
       cancelledBy:  row.cancelled_by  || null,
+      // Enlace con el evento de Google Calendar (Fase 3). Si la columna aún no
+      // existe (migración sin aplicar), row.google_event_id es undefined → null.
+      googleEventId: row.google_event_id || null,
       createdAt:    row.created_at,
       updatedAt:    row.updated_at,
     };
@@ -196,6 +199,7 @@ class AppointmentsStore {
     if (fields.noShowNotified   !== undefined) dbFields.no_show_notified = fields.noShowNotified;
     if (fields.cancelledAt  !== undefined) dbFields.cancelled_at  = fields.cancelledAt;
     if (fields.cancelledBy  !== undefined) dbFields.cancelled_by  = fields.cancelledBy;
+    if (fields.googleEventId !== undefined) dbFields.google_event_id = fields.googleEventId;
     if (fields.updatedAt    !== undefined) dbFields.updated_at    = fields.updatedAt;
 
     if (!Object.keys(dbFields).length) return;
