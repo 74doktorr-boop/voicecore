@@ -19,6 +19,7 @@ class AppointmentsStore {
     this._enabled = false;
     this._retryDelayMs = 400;   // backoff base entre reintentos (test lo baja a 0)
     this._notify = null;        // notificador inyectable (test); si null → _notifyOwner real
+    this._hydrated = false;     // true tras cargar el histórico de citas al arranque
   }
 
   // ── Inicialización ────────────────────────────────────────
@@ -98,29 +99,29 @@ class AppointmentsStore {
   // Solo carga citas no canceladas de los últimos 90 días + futuras.
   async loadAll() {
     if (!this._enabled) return [];
-    try {
-      const cutoff = new Date(Date.now() - 90 * 86400000)
-        .toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 90 * 86400000)
+      .toISOString().slice(0, 10);
 
-      const { data, error } = await this._client
-        .from('nf_appointments')
-        .select('*')
-        .gte('date', cutoff)
-        .order('date', { ascending: true });
+    const { data, error } = await this._client
+      .from('nf_appointments')
+      .select('*')
+      .gte('date', cutoff)
+      .order('date', { ascending: true });
 
-      if (error) {
-        log.warn(`loadAll error: ${error.message}`);
-        return [];
-      }
+    // LANZA en fallo (antes devolvía [] en silencio): un array vacío por ERROR
+    // era indistinguible de "no hay citas" → el Map quedaba vacío, las citas se
+    // volvían invisibles y el bot podía re-reservar el mismo hueco. Ahora el
+    // llamante (server) distingue el fallo, reintenta y avisa.
+    if (error) throw new Error(`loadAll: ${error.message}`);
 
-      const apts = (data || []).map(r => this._fromRow(r));
-      log.info(`Loaded ${apts.length} appointments from Supabase`);
-      return apts;
-    } catch (e) {
-      log.warn(`loadAll exception: ${e.message}`);
-      return [];
-    }
+    const apts = (data || []).map(r => this._fromRow(r));
+    this._hydrated = true;
+    log.info(`Loaded ${apts.length} appointments from Supabase`);
+    return apts;
   }
+
+  // ¿Se cargó el histórico de citas al arranque? false hasta una carga OK.
+  isHydrated() { return !!this._hydrated; }
 
   // ── Persistir (upsert) ────────────────────────────────────
   // Fire-and-forget para el llamante (no bloquea el scheduler), pero por dentro

@@ -449,25 +449,41 @@ require('./src/sectors/sector-store').hydrateFromDb(db).catch(() => {});
 const { appointmentsStore } = require('./src/db/appointments-store');
 appointmentsStore.init(db.client);
 // Cargar citas persistidas al Map del scheduler (fire-and-forget)
-appointmentsStore.loadAll().then(apts => {
-  if (!apts.length) return;
-  const { scheduler } = require('./src/scheduling/scheduler');
-  let loaded = 0;
-  for (const apt of apts) {
-    if (!scheduler.appointments.has(apt.id)) {
-      scheduler.appointments.set(apt.id, apt);
-      loaded++;
-      // Sincronizar el nextId para evitar colisiones
-      const num = parseInt(apt.id.replace('APT-', ''), 10);
-      if (!isNaN(num) && num >= scheduler.nextId) scheduler.nextId = num + 1;
+// Rehidrata las citas al arranque con REINTENTOS. Un fallo de Supabase aquí
+// dejaba el Map vacío en silencio → citas invisibles y riesgo de doble-reserva.
+// Ahora se reintenta y, si tras 3 intentos falla, se avisa FUERTE (no un warn
+// perdido) — el constraint anti-solape de la BD sigue siendo la red final.
+(async () => {
+  const { Logger } = require('./src/utils/logger');
+  const slog = new Logger('SERVER');
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const apts = await appointmentsStore.loadAll();
+      const { scheduler } = require('./src/scheduling/scheduler');
+      let loaded = 0;
+      for (const apt of apts) {
+        if (!scheduler.appointments.has(apt.id)) {
+          scheduler.appointments.set(apt.id, apt);
+          loaded++;
+          const num = parseInt(apt.id.replace('APT-', ''), 10);
+          if (!isNaN(num) && num >= scheduler.nextId) scheduler.nextId = num + 1;
+        }
+      }
+      slog.info(`Appointments restored: ${loaded} citas cargadas desde Supabase`);
+      return;
+    } catch (e) {
+      slog.warn(`Appointments load intento ${attempt}/3 falló: ${e.message}`);
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500));
     }
   }
-  const { Logger } = require('./src/utils/logger');
-  new Logger('SERVER').info(`Appointments restored: ${loaded} citas cargadas desde Supabase`);
-}).catch(e => {
-  const { Logger } = require('./src/utils/logger');
-  new Logger('SERVER').warn(`Appointments restore failed: ${e.message}`);
-});
+  slog.error('Appointments load FALLÓ tras 3 intentos — el Map puede estar INCOMPLETO (citas invisibles / riesgo de doble-reserva). La red de BD (constraint anti-solape) sigue activa. Revisar Supabase.');
+  try {
+    require('./src/tools/executor')._notifyOwner(
+      '🚨 *NodeFlow* — No se pudieron cargar las citas al arrancar (Supabase). ' +
+      'Las citas existentes pueden no verse hasta reiniciar con la BD sana. Revisa Supabase.'
+    );
+  } catch (_) {}
+})();
 
 // ─── Initialize Webhook Dispatcher ───
 webhookDispatcher.init(db);

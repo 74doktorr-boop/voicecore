@@ -162,7 +162,14 @@ function setupAutomationRoutes(app) {
         return res.status(400).json({ error: 'Campos requeridos: businessId, patientName, service, date, time' });
       }
 
-      const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time });
+      // Disponibilidad real del Google Calendar del dueño (fail-open): no reservar
+      // encima de un evento suyo — igual que la reserva por voz y el portal.
+      let busy = [];
+      try {
+        const busyByDate = await require('../tools/executor').calendarBusyByDate(businessId, date, date);
+        busy = busyByDate[date] || [];
+      } catch (_) {}
+      const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time }, busy);
       if (!result.success) return res.status(409).json({ error: result.error });
 
       const config  = scheduler.getBusinessConfig(businessId);

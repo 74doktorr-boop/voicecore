@@ -896,13 +896,21 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ── POST /api/portal/appointments ─────────────────────────
-  app.post('/api/portal/appointments', portalAuth, (req, res) => {
+  app.post('/api/portal/appointments', portalAuth, async (req, res) => {
     const { businessId } = req;
     const { patientName, phone, email, service, date, time, notes } = req.body;
     if (!patientName || !service || !date || !time) {
       return res.status(400).json({ error: 'patientName, service, date y time son obligatorios' });
     }
-    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes });
+    // Disponibilidad real del Google Calendar del dueño (fail-open): evita
+    // reservar ENCIMA de un evento suyo (comida, otra cita) — igual que la
+    // reserva por voz. Antes el portal reservaba a ciegas sobre el calendario.
+    let busy = [];
+    try {
+      const busyByDate = await require('../tools/executor').calendarBusyByDate(businessId, date, date);
+      busy = busyByDate[date] || [];
+    } catch (_) {}
+    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, busy);
     if (!result.success) return res.status(409).json({ error: result.error });
     log.info(`Portal: appointment created ${result.appointment.id} for ${patientName}`);
     // (C) Empuja la cita al Google Calendar del negocio si está conectado. No

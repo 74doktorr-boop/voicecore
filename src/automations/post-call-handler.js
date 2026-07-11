@@ -212,32 +212,45 @@ async function handle(callData) {
           .then(({ error }) => { if (error) log.warn(`contact name upgrade: ${error.message}`); },
                 (e) => log.warn(`contact name upgrade: ${e.message}`));
       }
-      // ── 9. Async transcript analysis (fires after upsert committed) ──────────
-      if (callData.transcript?.length > 0) {
-        db.client.from('contacts')
-          .select('id')
-          .eq('org_id', businessId)
-          .eq('phone', callData.callerNumber)
-          .maybeSingle()
-          .then(({ data: contact }) => {
-            if (contact?.id) {
-              // ¿Se ejecutó register_lead DE VERDAD durante la llamada? La red
-              // de seguridad solo actúa si el tool jamás corrió (caso real
-              // 2026-07-04: el asistente lo verbalizó sin invocarlo).
-              const leadRegistered = (callData.metrics?.turns || []).some(t =>
-                (t.tools || []).some(x => x && (x.name === 'register_lead' || x.name === 'register_prospect')));
-              processCallAsync({
-                callSessionId: callData.id         || null,
-                contactId:     contact.id,
-                orgId:         businessId,
-                transcript:    callData.transcript || [],
-                callerNumber:  callData.callerNumber || null,
-                leadRegistered,
-              }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
-            }
-          })
-          .catch(e => log.warn('contact lookup for transcript analysis failed', { err: e.message }));
-      }
+      // ── 9. Tras cada llamada con contacto resuelto: (a) reprogramar sus
+      // seguimientos de sector, (b) analizar el transcript. El lookup del id se
+      // hace UNA vez, fuera del guard de transcript, para que (a) corra SIEMPRE.
+      db.client.from('contacts')
+        .select('id')
+        .eq('org_id', businessId)
+        .eq('phone', callData.callerNumber)
+        .maybeSingle()
+        .then(({ data: contact }) => {
+          if (!contact?.id) return;
+          // (a) Reprogramar los seguimientos de fidelización de este cliente.
+          // ANTES esto SOLO ocurría al editar la ficha en el portal → un negocio
+          // que solo recibía llamadas jamás generaba un aviso automático ("vuelve
+          // a por tu corte a los 24 días", pre-ITV, "¿qué tal fue?"). Ahora se
+          // dispara solo tras cada llamada. Idempotente (cancela pendientes dup
+          // por contacto+servicio, solo programa a futuro) y fail-open.
+          try {
+            require('../lifecycle/reminder-engine').recalculate(contact.id, businessId)
+              .catch(e => log.warn(`recalculate follow-ups failed: ${e.message}`));
+          } catch (e) { log.warn(`recalculate init: ${e.message}`); }
+
+          // (b) Análisis async del transcript (solo si hubo conversación).
+          if (callData.transcript?.length > 0) {
+            // ¿Se ejecutó register_lead DE VERDAD durante la llamada? La red
+            // de seguridad solo actúa si el tool jamás corrió (caso real
+            // 2026-07-04: el asistente lo verbalizó sin invocarlo).
+            const leadRegistered = (callData.metrics?.turns || []).some(t =>
+              (t.tools || []).some(x => x && (x.name === 'register_lead' || x.name === 'register_prospect')));
+            processCallAsync({
+              callSessionId: callData.id         || null,
+              contactId:     contact.id,
+              orgId:         businessId,
+              transcript:    callData.transcript || [],
+              callerNumber:  callData.callerNumber || null,
+              leadRegistered,
+            }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
+          }
+        })
+        .catch(e => log.warn('contact lookup failed', { err: e.message }));
     }).catch(e => log.warn('contact upsert failed', { err: e.message }));
   }
 }

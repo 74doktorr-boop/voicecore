@@ -127,6 +127,13 @@ async function sendPromo(orgId, { text, tag, bizName, service, inactiveDays, bir
   out.recipients = recipients.length;
   if (!recipients.length) return { ...out, aborted: 'No hay destinatarios elegibles' };
 
+  // Credenciales WA del negocio (multi-tenant): la promo debe salir del número
+  // PROPIO del negocio si lo tiene, no del global de NodeFlow (bug de auditoría:
+  // sin esto el cliente no reconoce el remitente y quema el número compartido).
+  // Se resuelven UNA vez para todo el lote. null → cae al número global.
+  const getWaCreds = deps.getWaCredentials || require('../whatsapp/accounts').getWaCredentials;
+  const credentials = await getWaCreds(orgId).catch(() => null);
+
   const nowISO = new Date().toISOString();
   for (const c of recipients) {
     try {
@@ -137,7 +144,7 @@ async function sendPromo(orgId, { text, tag, bizName, service, inactiveDays, bir
           { type: 'text', text: String(bizName || 'el negocio').replace(/\s+/g, ' ').trim() },
           { type: 'text', text: promoText },
         ],
-      }]);
+      }], credentials);
       if (r && r.ok) {
         out.sent++;
         // Ledger unificado: cuenta para el paquete, sale en la ficha y en el ROI.

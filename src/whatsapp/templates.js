@@ -45,20 +45,19 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // La URL de reseña viaja en el CUERPO como {{3}} (no como botón URL dinámico:
+    // ese exige un componente `button` aparte y una URL con formato g.page fijo,
+    // y el envío se rompía en Meta — auditoría lanzamiento). Cuerpo con 3 vars =
+    // los 3 parámetros que ya manda sendWaReview (nombre, negocio, url). No
+    // termina en variable (regla de Meta).
     name: 'nodeflow_resena',
     category: 'UTILITY',
     language: 'es',
     components: [
       {
         type: 'BODY',
-        text: '¡Hola {{1}}! ¿Qué tal tu experiencia en {{2}}? Tu opinión nos ayuda mucho. Déjanos una reseña, solo te llevará un momento.',
-        example: { body_text: [['María', 'Clínica Osakin']] },
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          { type: 'URL', text: 'Dejar reseña', url: 'https://g.page/r/{{1}}', example: ['example/review'] },
-        ],
+        text: '¡Hola {{1}}! ¿Qué tal tu experiencia en {{2}}? Tu opinión nos ayuda muchísimo. Si tienes un momento, déjanos tu reseña aquí: {{3}} ¡Gracias!',
+        example: { body_text: [['María', 'Clínica Osakin', 'https://g.page/r/xxxx/review']] },
       },
     ],
   },
