@@ -62,7 +62,12 @@ function setupAdminRoutes(app, config, assistantManager) {
       return res.status(429).json({ error: 'Demasiados intentos fallidos. Espera 15 minutos.' });
     }
     const { password } = req.body;
-    if (!password || password !== PASS) {
+    // Comparación en tiempo constante (timingSafeEqual sobre hashes de longitud
+    // fija) — el `!==` filtraba el password por timing. Auditoría 20/07.
+    const _crypto = require('crypto');
+    const _hash = (s) => _crypto.createHash('sha256').update(String(s || '')).digest();
+    const passOk = !!password && _crypto.timingSafeEqual(_hash(password), _hash(PASS));
+    if (!passOk) {
       const { count } = await recordFailedLogin(ip);
       log.warn(`Admin login fallido desde ${ip} (intento ${count})`);
       return res.status(401).json({ error: 'Contraseña incorrecta' });

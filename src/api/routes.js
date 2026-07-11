@@ -9,6 +9,7 @@ const { generateNCCO } = require('../telephony/vonage-handler');
 const { generateTeXML } = require('../telephony/telnyx-handler');
 const { requireAuth, rateLimit, checkUsageLimits, PLAN_LIMITS } = require('../auth/middleware');
 const { getDatabase } = require('../db/database');
+const { verifyTelnyxRequest } = require('../utils/telnyx-signature');
 
 const log = new Logger('API');
 
@@ -223,6 +224,9 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   //
   // Optional: set TELNYX_API_KEY in .env to enable outbound calls via API
   app.post('/voice/telnyx', async (req, res) => {
+    // Firma Telnyx (opt-in: solo si TELNYX_PUBLIC_KEY está puesta). Sin la clave
+    // no verifica → no cambia nada. Con ella, rechaza webhooks no firmados.
+    if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx firma inválida — 403'); return res.sendStatus(403); }
     const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     const calledNumber = req.body?.To   || req.body?.to   || 'unknown';
@@ -246,6 +250,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   });
 
   app.post('/voice/telnyx/:assistantId', (req, res) => {
+    if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx/:id firma inválida — 403'); return res.sendStatus(403); }
     const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     log.call(`[Telnyx] Inbound call from ${callerNumber} → assistant: ${req.params.assistantId}`);
@@ -254,6 +259,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
 
   // Telnyx status webhook (call state changes)
   app.post('/telnyx/status', (req, res) => {
+    if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /telnyx/status firma inválida — 403'); return res.sendStatus(403); }
     const payload = req.body?.data || req.body;
     log.call(`[Telnyx] Status: ${payload?.event_type || 'unknown'}`, {
       call_control_id: payload?.payload?.call_control_id,

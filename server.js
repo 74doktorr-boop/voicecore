@@ -165,7 +165,12 @@ app.use(express.json({
   limit: '512kb',
   verify: (req, _res, buf) => { req.rawBody = buf; },
 }));
-app.use(express.urlencoded({ extended: true, limit: '512kb' }));
+app.use(express.urlencoded({
+  extended: true,
+  limit: '512kb',
+  // rawBody también para el webhook TeXML de Telnyx (form-encoded) → verificar firma.
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 
 // ─── GitHub Raw Page Server ───────────────────────────────────────────────────
 // Todas las páginas HTML se sirven desde GitHub raw con TTL 60s.
