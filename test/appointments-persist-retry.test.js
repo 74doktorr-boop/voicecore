@@ -74,6 +74,16 @@ describe('AppointmentsStore.upsert — reintento y aviso', () => {
     assert.match(alerts[0].msg, /doble reserva|ocupado/i);
   });
 
+  test('solape parcial rechazado por el EXCLUDE (23P01) → false sin reintento + aviso', async () => {
+    const client = fakeClient([{ error: { code: '23P01', message: 'conflicting key value violates exclusion constraint' } }]);
+    const { store, alerts } = makeStore(client);
+    const ok = await store.upsert(APT);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(client.calls(), 1, 'no reintenta un solape');
+    assert.strictEqual(alerts.length, 1);
+    assert.match(alerts[0].msg, /doble reserva|ocupado/i);
+  });
+
   test('store deshabilitado → false, sin tocar el cliente', async () => {
     const store = new AppointmentsStore(); // sin init → deshabilitado
     const ok = await store.upsert(APT);

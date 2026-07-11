@@ -137,11 +137,14 @@ class AppointmentsStore {
         .from('nf_appointments')
         .upsert(row, { onConflict: 'id' });
       if (!error) return true;
-      // 23505 = unique_violation → el índice uniq_active_slot rechazó una
-      // colisión de hueco (otra instancia ya tenía esa cita). NO se reintenta —
-      // el hueco está ocupado. Pero el bot pudo confirmar un doble → avisar.
-      if (error.code === '23505') {
-        log.warn(`⚠️ Slot collision ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado`);
+      // Colisión de hueco rechazada por la BD. NO se reintenta — el hueco está
+      // ocupado. Dos códigos posibles:
+      //   23505 = unique_violation    → índice uniq_active_slot (misma hora exacta)
+      //   23P01 = exclusion_violation → constraint nf_appointments_no_overlap
+      //           (SOLAPE parcial por duración: 10:00+45min vs 10:30)
+      // El bot pudo confirmar un doble → avisar al dueño.
+      if (error.code === '23505' || error.code === '23P01') {
+        log.warn(`⚠️ Slot collision ${apt.id} (${apt.businessId} ${apt.date} ${apt.time}) — hueco ya ocupado [${error.code}]`);
         this._alertLostAppointment(apt, 'ese hueco ya estaba ocupado (posible doble reserva)');
         return false;
       }
