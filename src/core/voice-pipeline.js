@@ -37,6 +37,30 @@ const FIXED_AUDIO_MAX = 120;
 
 const log = new Logger('PIPELINE');
 
+// ── Acumular lo que el cliente dice MIENTRAS procesamos el turno anterior ──
+// Antes se hacía `session.pendingUtterance = text` (sobrescribía): si el
+// cliente decía dos frases seguidas, la PRIMERA se perdía. Aquí se concatenan
+// en orden. Cap alto para no acumular sin fin ante un atasco (conserva la cola,
+// que es lo más reciente/relevante).
+function mergePendingUtterance(existing, incoming, maxLen = 2000) {
+  const add = String(incoming || '').trim();
+  if (!add) return existing || null;
+  const base = String(existing || '').trim();
+  const merged = base ? `${base} ${add}` : add;
+  return merged.length > maxLen ? merged.slice(merged.length - maxLen) : merged;
+}
+
+// Al fusionar dos frases pendientes, conservamos la confianza MÁS BAJA: así la
+// escalera de confianza del turno reprocesado sigue siendo prudente (si una de
+// las dos frases se oyó mal, el turno se trata como dudoso, no como fiable).
+function lowerConfidenceMeta(a, b) {
+  if (!a) return b || null;
+  if (!b) return a || null;
+  const ca = typeof a.confidence === 'number' ? a.confidence : Infinity;
+  const cb = typeof b.confidence === 'number' ? b.confidence : Infinity;
+  return cb < ca ? b : a;
+}
+
 class VoicePipeline {
   constructor(config) {
     // Use routers if provided, otherwise create from config
@@ -117,6 +141,17 @@ class VoicePipeline {
   // Re-enganche tras interrupción sin continuación: si cortaron al asistente
   // y en 2,5s no llegó ninguna frase (ruido, arrepentimiento), retoma la
   // palabra brevemente — como haría una recepcionista humana.
+  // Cancela el colgado automático por despedida mutua. Se llama tanto al
+  // principio de _processTurn (frase COMPLETA) como en el barge-in
+  // (onSpeechStart, señal TEMPRANA): si el cliente vuelve a hablar tras el
+  // "adiós", jamás se le cuelga a media frase. Idempotente y seguro con null.
+  _cancelPendingHangup(session) {
+    if (!session || !session._farewellTimer) return false;
+    clearTimeout(session._farewellTimer);
+    session._farewellTimer = null;
+    return true;
+  }
+
   _armInterruptWatchdog(callId) {
     const session = this.activeCalls.get(callId);
     if (!session) return;
@@ -320,8 +355,11 @@ class VoicePipeline {
       if (session.isProcessing) {
         // El cliente habló mientras procesábamos el turno anterior (típico tras
         // una interrupción). Antes se DESCARTABA y la llamada quedaba muda;
-        // ahora se guarda y se procesa en cuanto termine el turno en curso.
-        session.pendingUtterance = text;
+        // luego se GUARDABA pero sobrescribiendo (dos frases → se perdía la
+        // 1ª). Ahora se ACUMULAN en orden y se conserva la confianza más baja,
+        // y se procesa todo en cuanto termine el turno en curso.
+        session.pendingUtterance = mergePendingUtterance(session.pendingUtterance, text);
+        session.pendingMeta = lowerConfidenceMeta(session.pendingMeta, meta);
         return;
       }
       await this._processTurn(callId, text, meta);
@@ -342,6 +380,14 @@ class VoicePipeline {
         log.info(`[${callId}] Interim con confianza baja (${interimConf.toFixed(2)}) — NO interrumpe (voz de fondo)`);
         return;
       }
+      // El cliente vuelve a hablar tras una despedida mutua: cancelar el colgado
+      // automático AQUÍ (señal temprana), no esperar a la frase completa. Antes
+      // solo lo cancelaba _processTurn (utteranceEnd, ~1s más tarde) → el timer
+      // colgaba a media frase. Se hace aunque el asistente ya no esté hablando
+      // (tras el "adiós" la cola está vacía pero el colgado sigue armado).
+      if (session._farewellTimer && this._cancelPendingHangup(session)) {
+        log.info(`[${callId}] Cliente sigue hablando tras la despedida — colgado cancelado`);
+      }
       if (session.isSpeakingNow()) {
         session.handleInterruption();
         session.clearTwilioBuffer();
@@ -351,6 +397,35 @@ class VoicePipeline {
         this._armInterruptWatchdog(callId);
       }
     };
+
+    // Vigilante de fin de llamada: (a) 75s sin turnos ni voz del asistente →
+    // despedida y cierre; (b) duración máxima (MAX_CALL_MINUTES, 15 por
+    // defecto) → cierre educado. Una línea que queda abierta se come
+    // Deepgram/€ y deja filas 'active' huérfanas (caso real 2026-07-03).
+    // Se arma ANTES del saludo: si el TTS del saludo se atasca (proveedor
+    // lento, red), había una ventana SIN vigilante y la llamada podía colgar
+    // del proveedor sin que la limpiásemos. El check de silencio usa
+    // max(lastTurnAt, playbackEndsAt), así que durante el saludo no cierra.
+    session.lastTurnAt = Date.now();
+    session._lifeguard = setInterval(() => {
+      if (session._closing) return;
+      const idleMs = Date.now() - Math.max(session.lastTurnAt || 0, session.playbackEndsAt || 0);
+      const ageMs = Date.now() - session.startTime;
+      const maxMs = (Number(process.env.MAX_CALL_MINUTES) || 15) * 60000;
+      if (idleMs > 75000 || ageMs > maxMs) {
+        session._closing = true;
+        const porSilencio = idleMs > 75000;
+        log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
+        const bye = farewell(assistant && assistant.language, porSilencio ? 'silence' : 'maxlen');
+        this._speakText(callId, bye, { cache: true })
+          .then(() => session.addAssistantMessage(bye))
+          .catch(() => {})
+          .finally(() => setTimeout(() => {
+            try { (session.twilioWs || session.vonageWs)?.close(); } catch (_) {}
+          }, 6000));
+      }
+    }, 10000);
+    if (session._lifeguard.unref) session._lifeguard.unref();
 
     // Send first message if configured
     if (assistant.firstMessage) {
@@ -381,31 +456,6 @@ class VoicePipeline {
       session.addAssistantMessage(firstMsg);
       session._greeted = true; // el LLM ya no debe re-saludar (lo dice el prompt)
     }
-
-    // Vigilante de fin de llamada: (a) 75s sin turnos ni voz del asistente →
-    // despedida y cierre; (b) duración máxima (MAX_CALL_MINUTES, 15 por
-    // defecto) → cierre educado. Una línea que queda abierta se come
-    // Deepgram/€ y deja filas 'active' huérfanas (caso real 2026-07-03).
-    session.lastTurnAt = Date.now();
-    session._lifeguard = setInterval(() => {
-      if (session._closing) return;
-      const idleMs = Date.now() - Math.max(session.lastTurnAt || 0, session.playbackEndsAt || 0);
-      const ageMs = Date.now() - session.startTime;
-      const maxMs = (Number(process.env.MAX_CALL_MINUTES) || 15) * 60000;
-      if (idleMs > 75000 || ageMs > maxMs) {
-        session._closing = true;
-        const porSilencio = idleMs > 75000;
-        log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
-        const bye = farewell(assistant && assistant.language, porSilencio ? 'silence' : 'maxlen');
-        this._speakText(callId, bye, { cache: true })
-          .then(() => session.addAssistantMessage(bye))
-          .catch(() => {})
-          .finally(() => setTimeout(() => {
-            try { (session.twilioWs || session.vonageWs)?.close(); } catch (_) {}
-          }, 6000));
-      }
-    }, 10000);
-    if (session._lifeguard.unref) session._lifeguard.unref();
 
     // Fire webhook
     this._fireWebhook('call.started', session.toJSON());
@@ -459,8 +509,7 @@ class VoicePipeline {
     session.lastTurnAt = Date.now(); // vigilante de silencio: hay conversación viva
     clearTimeout(session._interruptWatchdog); // llegó frase real — sin re-enganche
     // El cliente siguió hablando: cancelar el colgado por despedida
-    clearTimeout(session._farewellTimer);
-    session._farewellTimer = null;
+    this._cancelPendingHangup(session);
     const turnStart = Date.now();
     let turnMetrics = {};
     // Reloj del turno para medir el tiempo hasta el PRIMER audio (lo que el
@@ -724,11 +773,14 @@ class VoicePipeline {
       log.error(`[${callId}] Turn processing error`, { error: error.message });
     } finally {
       session.isProcessing = false;
-      // Procesar lo que el cliente dijo mientras estábamos ocupados
+      // Procesar lo que el cliente dijo mientras estábamos ocupados, con su
+      // confianza (para que la escalera de STT proteja también ese turno).
       const pending = session.pendingUtterance;
+      const pendingMeta = session.pendingMeta;
       if (pending && this.activeCalls.has(callId)) {
         session.pendingUtterance = null;
-        setImmediate(() => this._processTurn(callId, pending).catch(() => {}));
+        session.pendingMeta = null;
+        setImmediate(() => this._processTurn(callId, pending, pendingMeta || {}).catch(() => {}));
       }
     }
   }
@@ -1164,4 +1216,4 @@ class VoicePipeline {
   }
 }
 
-module.exports = { VoicePipeline };
+module.exports = { VoicePipeline, mergePendingUtterance, lowerConfidenceMeta };
