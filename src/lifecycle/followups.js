@@ -31,13 +31,18 @@ function _firstName(name) {
  * (es/gl/eu; los bilingües es+gl / es+eu usan la lengua propia — el dueño
  * siempre puede editarlo antes de enviar).
  */
-function draftMessage({ name, reason, bizName, lang } = {}) {
+function draftMessage({ name, reason, bizName, lang, assistantName } = {}) {
   const fn = _firstName(name);
   const base = String(lang || 'es').includes('gl') ? 'gl' : String(lang || 'es').includes('eu') ? 'eu' : 'es';
+  // El asistente se presenta por SU nombre y el del negocio: «Soy Laura de
+  // Fisioterapia Unai» — no «Soy Fisioterapia Unai» (un negocio no se llama a sí
+  // mismo por su nombre al escribir). Si no hay nombre de asistente, se cae al
+  // formato anterior (solo negocio) para no romper nada.
+  const asst = String(assistantName || '').trim();
   const soy = {
-    es: bizName ? ` Soy ${bizName}.` : '',
-    gl: bizName ? ` Son ${bizName}.` : '',
-    eu: bizName ? ` ${bizName} naiz.` : '',
+    es: asst && bizName ? ` Soy ${asst} de ${bizName}.` : (bizName ? ` Soy ${bizName}.` : ''),
+    gl: asst && bizName ? ` Son ${asst} de ${bizName}.` : (bizName ? ` Son ${bizName}.` : ''),
+    eu: asst && bizName ? ` ${asst} naiz, ${bizName}-ekoa.` : (bizName ? ` ${bizName} naiz.` : ''),
   }[base];
   const hola = {
     es: fn ? `Hola ${fn}` : 'Hola',
@@ -135,6 +140,7 @@ async function getCandidates(orgId, opts = {}) {
   if (!db.enabled || !orgId) return [];
   const limit = opts.limit || 40;
   const bizName = opts.bizName || null;
+  const assistantName = opts.assistantName || null;
   const lang = opts.lang || 'es';
   const since = new Date(Date.now() - 21 * 864e5).toISOString();
 
@@ -179,7 +185,7 @@ async function getCandidates(orgId, opts = {}) {
       reason,
       when: c.started_at,
       score: (c.metrics && c.metrics.audit && typeof c.metrics.audit.score === 'number') ? c.metrics.audit.score : null,
-      draft: draftMessage({ name, reason, bizName, lang }),
+      draft: draftMessage({ name, reason, bizName, lang, assistantName }),
     };
   });
 }

@@ -52,6 +52,22 @@ describe('draftMessage (pura)', () => {
     assert.doesNotMatch(m, /undefined/);
   });
 
+  test('se presenta como «Soy [asistente] de [negocio]», no «Soy [negocio]»', () => {
+    const m = draftMessage({ name: 'María', reason: 'info', bizName: 'Fisioterapia Unai', assistantName: 'Laura' });
+    assert.match(m, /Soy Laura de Fisioterapia Unai\./);
+    assert.doesNotMatch(m, /Soy Fisioterapia Unai\./);
+  });
+
+  test('sin nombre de asistente → cae al formato anterior (solo negocio)', () => {
+    const m = draftMessage({ name: 'María', reason: 'info', bizName: 'Fisioterapia Unai' });
+    assert.match(m, /Soy Fisioterapia Unai\./);
+  });
+
+  test('gallego con asistente: «Son [asistente] de [negocio]»', () => {
+    const m = draftMessage({ reason: 'info', bizName: 'Clínica Mareas', assistantName: 'Antía', lang: 'gl' });
+    assert.match(m, /Son Antía de Clínica Mareas\./);
+  });
+
   test('callback_requested habla de agendar', () => {
     assert.match(draftMessage({ reason: 'callback_requested' }), /agend/i);
   });

@@ -293,6 +293,7 @@ async function portalAuth(req, res, next) {
             ownerPhone:   data.phone,
             plan:         data.plan,
             sector:       (data.assistant_config && data.assistant_config.sector) || null,
+            assistantName:(data.assistant_config && data.assistant_config.assistantName) || null,
             language:     data.language || 'es',
             automations:  data.automation_config || {},
             registeredAt: data.registered_at || data.created_at,
@@ -3030,7 +3031,7 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/followups', portalAuth, async (req, res) => {
     try {
       const { getCandidates } = require('../lifecycle/followups');
-      const items = await getCandidates(req.businessId, { bizName: req.flowConfig.name, lang: req.flowConfig.language });
+      const items = await getCandidates(req.businessId, { bizName: req.flowConfig.name, assistantName: req.flowConfig.assistantName, lang: req.flowConfig.language });
       res.json({ ok: true, followups: items });
     } catch (e) { log.warn(`followups list: ${e.message}`); res.json({ ok: true, followups: [] }); }
   });

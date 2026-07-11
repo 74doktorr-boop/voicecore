@@ -7611,8 +7611,17 @@ function entAvisoPreview(key) {
   var hint = decodeURIComponent(box.getAttribute('data-hint') || '');
   var ent = decodeURIComponent(box.getAttribute('data-ent') || '');
   var off = parseInt(box.getAttribute('data-off') || '0', 10);
-  box.innerHTML = '📲 <strong>' + _avisoDias(off) + '</strong> NodeFlow enviará: «' +
-    esc(_resolveHint(hint, ent, input.value)) + '»';
+  // Fecha de ejemplo si aún no han puesto una: evita el «el esa fecha» roto y
+  // enseña una fecha real. En cuanto escriben la fecha, la burbuja se actualiza.
+  var dv = input.value;
+  if (!dv) { var s = new Date(); s.setDate(s.getDate() + 14); dv = s.toISOString().slice(0, 10); }
+  var text = _resolveHint(hint, ent, dv);
+  box.innerHTML =
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:5px">Así le llegará a tu cliente por WhatsApp, ' + esc(_avisoDias(off)) + ':</div>' +
+    '<div style="background:#dcf8c6;color:#0b141a;border-radius:12px;border-top-left-radius:4px;padding:9px 13px;max-width:92%;font-size:13.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.25)">' +
+      esc(text) +
+      '<span style="display:block;text-align:right;font-size:10px;color:#4a6b4a;margin-top:3px">✓✓ 12:30</span>' +
+    '</div>';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
