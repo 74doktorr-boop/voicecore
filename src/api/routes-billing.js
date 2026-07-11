@@ -510,6 +510,22 @@ function setupBillingRoutes(app, config) {
           }
 
           if (cancelledOrgId) {
+            // Capturamos dueño + número ANTES de liberar, para poder avisarle
+            // (auditoría 2026-07: el número se liberaba en silencio y el negocio
+            // perdía su línea sin enterarse — reasignable = pérdida irreversible).
+            let ownerEmail = null, ownerName = '', releasedNumber = null;
+            try {
+              const { data: org } = await db.client.from('organizations')
+                .select('owner_email, owner_name').eq('id', cancelledOrgId)
+                .single().then(r => r, () => ({ data: null }));
+              ownerEmail = org?.owner_email || null;
+              ownerName  = org?.owner_name || '';
+              const { data: pool } = await db.client.from('nf_phone_pool')
+                .select('phone_number').eq('org_id', cancelledOrgId)
+                .maybeSingle().then(r => r, () => ({ data: null }));
+              releasedNumber = pool?.phone_number || null;
+            } catch (_) {}
+
             // Sin plan gratis: al cancelar la suscripción se DESACTIVA la org
             // (no hay tier gratuito al que degradar). Recupera el servicio
             // volviendo a suscribirse.
@@ -526,6 +542,19 @@ function setupBillingRoutes(app, config) {
               if (released) log.info(`Número liberado al pool — org ${cancelledOrgId} canceló suscripción`);
             } catch (poolErr) {
               log.warn(`Error liberando número al pool: ${poolErr.message}`);
+            }
+
+            // AVISAR AL DUEÑO — nunca perder el número en silencio.
+            try {
+              const { sendSubscriptionCancelled } = require('../notifications/email');
+              if (ownerEmail) {
+                await sendSubscriptionCancelled({ email: ownerEmail, name: ownerName, number: releasedNumber });
+                log.info(`Aviso de cancelación enviado a ${ownerEmail}`);
+              } else {
+                log.warn(`Org ${cancelledOrgId} cancelada pero sin owner_email — no se pudo avisar`);
+              }
+            } catch (notifyErr) {
+              log.warn(`No se pudo avisar de la cancelación: ${notifyErr.message}`);
             }
           }
         }

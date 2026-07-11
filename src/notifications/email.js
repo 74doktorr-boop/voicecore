@@ -783,6 +783,40 @@ async function sendReferralReward(referrerEmail, refereeName) {
   return sendEmail({ to: referrerEmail, subject: '🎉 Tu recomendación de NodeFlow ha funcionado', html, text });
 }
 
+// ── Aviso de suscripción cancelada ────────────────────────────────────────
+// Auditoría 2026-07: al cancelar la suscripción se desactiva la org y se
+// LIBERA su número al pool (reasignable = pérdida irreversible), pero no se
+// avisaba al dueño (a diferencia de payment_failed). Un negocio perdía su
+// número en silencio. Este aviso cierra ese agujero.
+
+/** Contenido del email de cancelación. PURO (testeable). */
+function cancelledEmailContent(name, number) {
+  const first = String(name || '').split(' ')[0] || '';
+  const num = number ? esc(number) : 'tu número';
+  const subject = '⚠️ Tu suscripción a NodeFlow se ha cancelado';
+  const html =
+    '<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;">' +
+      '<h2 style="color:#e17055;">Tu suscripción se ha cancelado</h2>' +
+      '<p>Hola ' + (esc(first) || 'cliente') + ',</p>' +
+      '<p>Tu suscripción a NodeFlow se ha cancelado, así que tu asistente ha dejado de atender llamadas y <strong>tu número ' + num + ' ha quedado libre</strong>.</p>' +
+      '<p>Si ha sido un error o quieres volver, escríbenos cuanto antes y lo reactivamos. Date prisa: pasado un tiempo el número puede reasignarse y ya no podríamos recuperarlo.</p>' +
+      '<a href="https://wa.me/34666351319" style="background:#6c5ce7;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px;">Reactivar por WhatsApp →</a>' +
+      '<p style="margin-top:24px;font-size:12px;color:#999;">NodeFlow · unai@nodeflow.es</p>' +
+    '</div>';
+  const text = 'Hola ' + first + ', tu suscripción a NodeFlow se ha cancelado y tu número ' + (number || '') +
+    ' ha quedado libre. Si quieres reactivarlo, escríbenos cuanto antes: +34 666 351 319';
+  return { subject, html, text };
+}
+
+/** Envía el aviso de cancelación al dueño. Nunca lanza. sendEmail inyectable en tests. */
+async function sendSubscriptionCancelled({ email, name, number }, deps = {}) {
+  if (!email) return false;
+  const send = deps.sendEmail || sendEmail;
+  const { subject, html, text } = cancelledEmailContent(name, number);
+  try { await send({ to: email, subject, html, text }); return true; }
+  catch (e) { return false; }
+}
+
 module.exports = {
   sendEmail,
   notifyNuevoCliente,
@@ -793,4 +827,5 @@ module.exports = {
   sendWelcomePortalEmail,
   sendMagicLinkEmail,
   sendReferralReward,
+  cancelledEmailContent, sendSubscriptionCancelled,
 };
