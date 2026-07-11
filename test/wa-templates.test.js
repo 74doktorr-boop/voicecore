@@ -70,6 +70,22 @@ describe('lote de plantillas de entidades (2026-07-08)', () => {
   }
 });
 
+describe('nodeflow_cita_recordatorio — botones que el webhook empareja (Fase 3)', () => {
+  test('existe con botones QUICK_REPLY CONFIRMAR y CANCELAR exactos', () => {
+    const t = WA_TEMPLATES.find(x => x.name === 'nodeflow_cita_recordatorio');
+    assert.ok(t, 'debe existir (la envía sendWaReminder)');
+    assert.strictEqual(t.category, 'UTILITY');
+    const btns = t.components.find(c => c.type === 'BUTTONS');
+    assert.ok(btns, 'debe llevar BUTTONS');
+    const texts = btns.buttons.map(b => b.text);
+    // El webhook empareja por texto (payload.includes('CONFIRMAR'/'CANCELAR')):
+    // si estos cambian, el confirmar/cancelar entrante deja de funcionar.
+    assert.ok(texts.includes('CONFIRMAR'), 'botón CONFIRMAR');
+    assert.ok(texts.includes('CANCELAR'), 'botón CANCELAR');
+    assert.ok(btns.buttons.every(b => b.type === 'QUICK_REPLY'), 'ambos QUICK_REPLY');
+  });
+});
+
 describe('templateLanguage — clamp de idioma', () => {
   // Meta NO admite eu/gl en WhatsApp (verificado por API 2026-07-07): el
   // clamp DEBE caer a 'es' para no enrutar a una plantilla inexistente
