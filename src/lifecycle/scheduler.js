@@ -170,7 +170,19 @@ async function dispatch(reminder, contact, memory) {
 
   // 1. WhatsApp (primary) — skip if contact has opted out
   if (phone && waConfigured() && !memory?.no_whatsapp) {
-    const result = await sendTemplate(phone, waTemplateName, language, waComponents);
+    // Multi-tenant: si el negocio tiene su PROPIO WhatsApp conectado, el
+    // seguimiento sale desde SU número (el cliente reconoce al remitente).
+    // Sin credenciales propias → null → número global de NodeFlow (igual que
+    // antes). Bug de auditoría: este motor no resolvía credenciales, así que
+    // TODOS los seguimientos salían del número global aunque el negocio tuviera
+    // el suyo — el cliente no reconocía el remitente y degradaba el número
+    // compartido para todas las orgs. reminders.js (el gemelo) ya lo hacía bien.
+    let credentials = null;
+    if (reminder.org_id) {
+      try { credentials = await require('../whatsapp/accounts').getWaCredentials(reminder.org_id); }
+      catch (_) { credentials = null; }
+    }
+    const result = await sendTemplate(phone, waTemplateName, language, waComponents, credentials);
     if (result.ok) return { ok: true, channel: 'whatsapp' };
     log.warn(`WA failed for reminder ${reminder.id}: ${result.error} — trying SMS`);
   }
@@ -443,11 +455,35 @@ async function processCampaigns() {
 let _cronInterval    = null;
 let _campaignLastRun = null;
 
+// Ventana de cortesía: solo se despachan seguimientos entre las 9:00 y las
+// 21:00 (hora de Madrid). Un WhatsApp a las 3 de la madrugada = queja
+// instantánea + reporte de spam a Meta que degrada el número. El cron sigue
+// corriendo cada 30 min; de noche simplemente NO despacha — los avisos esperan
+// al primer tick diurno. La materialización nocturna (crear los recordatorios)
+// es aparte y no manda nada. PURA, testeable.
+function _isQuietHours(now) {
+  try {
+    let h = parseInt(new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false,
+    }).format(now || new Date()), 10);
+    if (!isFinite(h)) return false;
+    h = h % 24;
+    return h < 9 || h >= 21;
+  } catch (_) { return false; }   // ante cualquier problema, no bloquear (fail-open)
+}
+
 function startLifecycleCron() {
   if (_cronInterval) return; // Already started — idempotent
   log.info('Lifecycle cron started (30 min interval)');
 
   _cronInterval = setInterval(async () => {
+    // Solo el líder despacha (multi-réplica: evita campañas/recordatorios
+    // duplicados — los demás crons ya lo hacen, este y rebooking se olvidaron).
+    if (!require('../utils/leader').isLeader()) return;
+    // No molestar de madrugada. Se sale ANTES de tocar _campaignLastRun para
+    // que una campaña pendiente de noche se dispare en el primer tick de día.
+    if (_isQuietHours()) return;
+
     await processReminders().catch(e => log.error('processReminders error', { err: e.message }));
 
     // Campaigns run once per day (check >23h since last run)
@@ -462,9 +498,10 @@ function startLifecycleCron() {
   // Set _campaignLastRun before startup so campaigns don't re-fire if process restarts mid-day
   _campaignLastRun = Date.now();
   setTimeout(() => {
+    if (!require('../utils/leader').isLeader() || _isQuietHours()) return;
     processReminders().catch(() => {});
     processCampaigns().catch(() => {});
   }, 5000);
 }
 
-module.exports = { startLifecycleCron, processReminders, processCampaigns, mapWithConcurrency };
+module.exports = { startLifecycleCron, processReminders, processCampaigns, mapWithConcurrency, _isQuietHours };

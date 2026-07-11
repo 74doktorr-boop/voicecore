@@ -294,6 +294,10 @@ function startRebookingCron() {
   // Use sv-SE locale (ISO-style "HH:mm:ss") to avoid locale-dependent suffixes
   // like the " h" that es-ES appends in some ICU versions.
   _interval = setInterval(() => {
+    // Solo el líder envía (el anti-spam vive en Maps EN MEMORIA, no compartidos:
+    // sin este gate, en multi-réplica cada réplica manda la reactivación al
+    // mismo cliente el mismo día). Se olvidó este cron; el resto ya lo tenían.
+    if (!require('../utils/leader').isLeader()) return;
     const madridHHMM = new Intl.DateTimeFormat('sv-SE', {
       timeZone: 'Europe/Madrid',
       hour:   '2-digit',
