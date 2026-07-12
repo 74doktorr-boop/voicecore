@@ -8,7 +8,7 @@ process.env.NODE_ENV = 'test';
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { buildNoShowBlock, isNoShowEnqueueWindow } = require('../src/campaigns/enqueuers');
+const { buildNoShowBlock, isNoShowEnqueueWindow, enqueueRecoveryBatch } = require('../src/campaigns/enqueuers');
 
 describe('buildNoShowBlock', () => {
   const apt = { id: 'APT-77', patientName: 'María', service: 'Corte', time: '10:30' };
@@ -42,4 +42,41 @@ describe('franja de encolado anti no-show (16-19h Madrid)', () => {
   test('17:30 → dentro', () => assert.strictEqual(isNoShowEnqueueWindow(madrid(17)), true));
   test('12:30 → fuera', () => assert.strictEqual(isNoShowEnqueueWindow(madrid(12)), false));
   test('19:30 → fuera', () => assert.strictEqual(isNoShowEnqueueWindow(madrid(19)), false));
+});
+
+describe('enqueueRecoveryBatch — anti-duplicado', () => {
+  function deps(over = {}) {
+    const enqueued = [];
+    return {
+      enqueued,
+      d: {
+        contactInfo: async () => ({ blocked: false, contactId: 'c1', name: 'Ana' }),
+        enqueue: async (job) => { enqueued.push(job.phone); return 'job-' + enqueued.length; },
+        alreadyQueued: async () => false,
+        ...over,
+      },
+    };
+  }
+
+  test('teléfono SIN recuperación en curso → se encola', async () => {
+    const { enqueued, d } = deps();
+    const r = await enqueueRecoveryBatch('org1', 'Peluquería', ['+34600111222'], d);
+    assert.strictEqual(r.queued, 1);
+    assert.strictEqual(enqueued.length, 1);
+  });
+
+  test('teléfono que YA tiene recuperación en curso → se salta (no doble llamada)', async () => {
+    const { enqueued, d } = deps({ alreadyQueued: async () => true });
+    const r = await enqueueRecoveryBatch('org1', 'Peluquería', ['+34600111222'], d);
+    assert.strictEqual(r.queued, 0);
+    assert.strictEqual(r.skipped, 1);
+    assert.strictEqual(enqueued.length, 0);
+  });
+
+  test('cliente de baja (do_not_contact) → se salta', async () => {
+    const { enqueued, d } = deps({ contactInfo: async () => ({ blocked: true, contactId: 'c1', name: 'Ana' }) });
+    const r = await enqueueRecoveryBatch('org1', 'Peluquería', ['+34600111222'], d);
+    assert.strictEqual(r.queued, 0);
+    assert.strictEqual(enqueued.length, 0);
+  });
 });

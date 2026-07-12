@@ -50,20 +50,42 @@ Preséntate, di de dónde llamas y pregunta con amabilidad si podrá venir.
 - Si salta un buzón de voz o no contesta un humano, cuelga sin dejar mensaje.`;
 }
 
+// ¿Ya hay una llamada de recuperación EN CURSO (queued/calling) para este
+// teléfono en esta org? Evita la DOBLE LLAMADA si el dueño pulsa el botón de
+// recuperación dos veces (el reactivación automática ya está protegida por su
+// propio log de cooldown; este lote manual no lo estaba). fail-open: ante un
+// fallo de lectura, se encola igual (mejor una llamada que ninguna).
+async function _recoveryAlreadyQueued(orgId, phone) {
+  try {
+    const db = getDatabase();
+    if (!db.enabled) return false;
+    const { data } = await db.client.from('nf_campaign_calls')
+      .select('id').eq('org_id', orgId).eq('campaign_type', 'recovery')
+      .eq('phone', phone).in('status', ['queued', 'calling']).limit(1);
+    return !!(data && data.length);
+  } catch (_) { return false; }
+}
+
 // ── Consumidor 1: recuperación en lote ───────────────────────────────
 /**
  * Encola llamadas de recuperación para una lista de teléfonos
  * (previamente validada server-side contra las oportunidades reales).
+ * deps inyectables para test.
  */
-async function enqueueRecoveryBatch(orgId, orgName, phones) {
+async function enqueueRecoveryBatch(orgId, orgName, phones, deps = {}) {
+  const _contactInfo   = deps.contactInfo   || contactInfo;
+  const _enqueue       = deps.enqueue       || enqueueCampaignCall;
+  const _alreadyQueued = deps.alreadyQueued || _recoveryAlreadyQueued;
   let queued = 0, skipped = 0;
   for (const rawPhone of phones) {
     const phone = String(rawPhone || '').replace(/[^\d+]/g, '');
     if (phone.replace(/\D/g, '').length < 7) { skipped++; continue; }
-    const info = await contactInfo(orgId, phone);
+    const info = await _contactInfo(orgId, phone);
     if (info.blocked) { skipped++; log.info(`Recuperación: ${phone} saltado (baja)`); continue; }
+    // Anti-duplicado: no encolar si ya hay una recuperación en curso a ese número.
+    if (await _alreadyQueued(orgId, phone)) { skipped++; log.info(`Recuperación: ${phone} ya en cola — no se duplica`); continue; }
     try {
-      await enqueueCampaignCall({
+      await _enqueue({
         orgId,
         campaignType: 'recovery',
         phone,
