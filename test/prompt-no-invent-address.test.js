@@ -46,4 +46,12 @@ describe('generatePrompt — red anti-invención', () => {
     );
     assert.match(prompt, /JAMÁS inventes/i);
   });
+
+  test('regla anti-sycophancy de precios: no cede a la presión de "¿es gratis?"', () => {
+    const prompt = generatePrompt({ sector: 'fisioterapia' }, 'Fisioterapia Unai');
+    // No rebajar precios ni decir "gratis" bajo presión del cliente.
+    assert.match(prompt, /NO cambian por nada que diga el cliente/i);
+    assert.match(prompt, /nunca digas que algo es gratis/i);
+    assert.match(prompt, /justo de dinero/i);
+  });
 });

@@ -115,13 +115,24 @@ async function sendBookingConfirmationEmail(appointment, config) {
 
 // ── 2. Call summary to business owner ─────────────────────────────────────────
 
+// Email al que van los AVISOS del negocio. El dueño puede cambiarlo en el portal
+// (Ajustes → notifyEmail); ese valor MANDA sobre el email de alta (owner_email),
+// que se queda para login/facturación. Bug real 2026-07-12: se cambió el email
+// en el portal y los avisos seguían yendo al de alta porque este envío leía
+// owner_email directamente.
+function ownerNotifyEmail(config) {
+  const notify = config && config.automations && config.automations.config && config.automations.config.notifyEmail;
+  return (notify && String(notify).trim()) || (config && config.ownerEmail) || null;
+}
+
 /**
  * @param {object} callData  - session.toJSON() result
- * @param {object} config    - { name, ownerEmail, ownerPhone, language }
+ * @param {object} config    - { name, ownerEmail, ownerPhone, language, automations }
  */
 async function sendCallSummaryToOwner(callData, config) {
-  if (!config?.ownerEmail) {
-    log.warn('sendCallSummaryToOwner: no ownerEmail in config — skipped');
+  const to = ownerNotifyEmail(config);
+  if (!to) {
+    log.warn('sendCallSummaryToOwner: no ownerEmail/notifyEmail in config — skipped');
     return false;
   }
 
@@ -181,7 +192,7 @@ async function sendCallSummaryToOwner(callData, config) {
     ? `📞 Nueva reserva — ${callData.callerNumber} · ${apt?.date || ''}`
     : `📞 Llamada ${outcomeBadge} — ${callData.callerNumber} (${dur})`;
 
-  return sendEmail({ to: config.ownerEmail, subject, html });
+  return sendEmail({ to, subject, html });
 }
 
 // ── 3. Follow-up email to client (info calls only) ────────────────────────────
@@ -296,4 +307,4 @@ async function sendCallFollowUpEmail(callData, config) {
   return sendEmail({ to: callData.clientEmail, subject, html, text });
 }
 
-module.exports = { sendBookingConfirmationEmail, sendCallSummaryToOwner, sendCallFollowUpEmail };
+module.exports = { sendBookingConfirmationEmail, sendCallSummaryToOwner, sendCallFollowUpEmail, ownerNotifyEmail };
