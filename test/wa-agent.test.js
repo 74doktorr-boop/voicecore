@@ -132,4 +132,18 @@ describe('buildSystemPrompt', () => {
     assert.match(p, /50€/);
     assert.match(p, /check_availability/);
   });
+
+  test('SIN dirección: lleva la regla anti-invención y NO cuelga un bloque vacío', () => {
+    const p = buildSystemPrompt({ bizName: 'Fisio Unai', language: 'es', serviceList: [], todayMadrid: 'lunes 12 de julio' });
+    assert.match(p, /JAMÁS te inventes/i);
+    assert.match(p, /aparcamiento/i);
+    assert.doesNotMatch(p, /Dirección del negocio \(dato EXACTO/);
+  });
+
+  test('CON dirección: la incluye como dato exacto', () => {
+    const p = buildSystemPrompt({ bizName: 'Fisio Unai', language: 'es', serviceList: [], todayMadrid: 'lunes 12 de julio', address: 'Calle Real 5, Andoain' });
+    assert.match(p, /Dirección del negocio \(dato EXACTO/);
+    assert.match(p, /Calle Real 5, Andoain/);
+    assert.match(p, /JAMÁS te inventes/i);
+  });
 });

@@ -46,21 +46,26 @@ function _resetConvos() { /* el hilo vive en nf_wa_messages; no-op (compat tests
 function isEnabled() { return process.env.WA_AI_BOOKING_OFF !== '1'; }
 
 // ── Prompt del sistema (recepcionista por WhatsApp) ──────────────────────────
-function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMadrid }) {
+function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMadrid, address }) {
   const langName = language === 'eu' ? 'euskera' : language === 'gl' ? 'galego' : 'español';
   const svc = (serviceList && serviceList.length)
     ? 'Servicios y precios:\n' + serviceList.map(s =>
         `- ${s.name || s.service || 'servicio'}${s.price ? ` (${s.price})` : ''}${s.duration ? `, ${s.duration} min` : ''}`).join('\n')
     : '';
+  const addr = address
+    ? `Dirección del negocio (dato EXACTO — dísela tal cual si pregunta dónde estáis o cómo llegar): ${address}`
+    : '';
   return [
     `Eres la recepcionista de ${bizName} y atiendes a los clientes por WhatsApp. Hoy es ${todayMadrid} (Europe/Madrid).`,
     clientName ? `El cliente que te escribe se llama ${clientName} — resérvale a su nombre y no se lo preguntes.` : '',
     svc,
+    addr,
     'Tu trabajo por WhatsApp:',
     '- Si quiere RESERVAR/CAMBIAR una cita o pregunta por un hueco: llama a check_availability para ver los huecos REALES, dile las opciones y, cuando te dé un día y una hora concretos y esté de acuerdo, reserva con book_appointment (confirmed_with_customer=true). Confirma SIEMPRE en tu respuesta el día y la hora exactos.',
     '- Nunca inventes horarios: usa check_availability antes de reservar. Si no hay hueco a esa hora, ofrece alternativas cercanas.',
     '- Si quiere CANCELAR o REPROGRAMAR una cita: usa lookup_appointments para ver sus citas, confirma cuál con él, y usa cancel_appointment (para reprogramar: cancela la vieja y reserva la nueva con book_appointment). Confirma el cambio.',
-    '- Si pregunta por precios, servicios o dirección, respóndele con lo que sabes.',
+    '- Si pregunta por precios, servicios o dirección, respóndele con los datos EXACTOS que tienes arriba.',
+    '- JAMÁS te inventes datos que no figuren arriba: dirección, calle, número, cómo llegar, aparcamiento, precios, horarios ni servicios. Si no tienes el dato, dilo con honestidad y ofrece que el equipo se lo confirme (usa register_lead si hace falta). Nunca una dirección ni un precio inventados.',
     '- Si es una QUEJA, una duda que no sabes resolver, o pide que le llamen: usa register_lead para que el equipo le contacte, y díselo con amabilidad. Así el dueño se entera.',
     `Sé BREVE, cálido y natural (es WhatsApp, no un email). Responde SIEMPRE en ${langName}.`,
   ].filter(Boolean).join('\n');
@@ -81,17 +86,32 @@ async function _defaultLlm(messages, tools, callId) {
 }
 
 async function _loadConfig(businessId) {
-  const out = { name: 'el negocio', language: 'es', serviceList: [] };
+  const out = { name: 'el negocio', language: 'es', serviceList: [], address: '' };
   try {
     const { scheduler } = require('../scheduling/scheduler');
     const c = scheduler.getBusinessConfig(businessId);
-    if (c) { out.name = c.name || out.name; out.language = c.language || out.language; if (Array.isArray(c.serviceList)) out.serviceList = c.serviceList; }
+    if (c) { out.name = c.name || out.name; out.language = c.language || out.language; if (Array.isArray(c.serviceList)) out.serviceList = c.serviceList; if (c.address) out.address = String(c.address).trim(); }
   } catch (_) {}
   try {
     const { getOrgAssistant } = require('../assistants/org-assistant');
     const a = await getOrgAssistant(businessId);
     if (a) { if (a.language) out.language = a.language; if (!out.serviceList.length && Array.isArray(a.serviceList)) out.serviceList = a.serviceList; }
   } catch (_) {}
+  // Dirección: mismo almacén canónico que la voz (automation_config.config.address,
+  // donde la guarda el portal). Sin esto el agente inventaba la dirección (misma
+  // clase de bug que en voz, auditoría 2026-07-12).
+  if (!out.address) {
+    try {
+      const { getDatabase } = require('../db/database');
+      const db = getDatabase();
+      if (db.enabled) {
+        const { data: org } = await db.client.from('organizations')
+          .select('automation_config').eq('id', businessId).maybeSingle();
+        const addr = org && org.automation_config && org.automation_config.config && org.automation_config.config.address;
+        if (addr) out.address = String(addr).trim();
+      }
+    } catch (_) {}
+  }
   return out;
 }
 
@@ -125,7 +145,7 @@ async function handleWaBooking({ from, businessId, text }, deps = {}) {
   const cfg = deps.config || await _loadConfig(businessId);
   const clientName = deps.clientName !== undefined ? deps.clientName : await _clientName(businessId, phone);
   const todayMadrid = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-  const systemPrompt = buildSystemPrompt({ bizName: cfg.name, language: cfg.language, serviceList: cfg.serviceList, clientName, todayMadrid });
+  const systemPrompt = buildSystemPrompt({ bizName: cfg.name, language: cfg.language, serviceList: cfg.serviceList, clientName, todayMadrid, address: cfg.address });
 
   // El HILO se reconstruye desde nf_wa_messages (persistente → sobrevive a
   // reinicios/deploys, ya no vive solo en memoria). Los mensajes tool/tool_calls
