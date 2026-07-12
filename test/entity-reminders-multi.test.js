@@ -69,6 +69,17 @@ describe('buildEntityReminderPlan — varias antelaciones', () => {
     const plan = buildEntityReminderPlan(typeWith({ reminders: [null, undefined] }), entity, NOW);
     assert.strictEqual(plan.length, 0);
   });
+
+  test('reminder SIN message_hint → frase coherente TXT: (no etiqueta seca)', () => {
+    const plan = buildEntityReminderPlan(typeWith({ reminder: { offset_days: -7 } }), entity, NOW);
+    assert.strictEqual(plan.length, 1);
+    // Debe viajar por nodeflow_aviso (TXT:), no caer en la plantilla-servicio
+    // con "…te recordamos tu {etiqueta seca}".
+    assert.match(plan[0].messagePreview, /^TXT:/);
+    assert.match(plan[0].messagePreview, /Plan Hombro/);           // display name
+    assert.match(plan[0].messagePreview, /caducidad del bono/);    // label en minúscula, en frase
+    assert.match(plan[0].messagePreview, /1\/12\/2026/);           // fecha
+  });
 });
 
 describe('buildEntityReminderPlan — destinatario negocio (Fase 2B)', () => {

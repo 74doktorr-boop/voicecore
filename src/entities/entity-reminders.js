@@ -82,12 +82,17 @@ function buildEntityReminderPlan(entityType, entity, now = new Date()) {
       // message_hint es una FRASE completa → marcador 'TXT:' (el scheduler la
       // envía íntegra vía plantilla-portadora nodeflow_aviso). Sin hint:
       // fragmento-etiqueta.
+      // Con frase del dueño → viaja íntegra por nodeflow_aviso (TXT:). SIN
+      // frase (campo personalizado sin hint): en vez de una etiqueta seca que
+      // el motor mete en "…te recordamos tu {etiqueta}" (queda robótico y
+      // redundante: "…tu Próxima ITV — Coche de Juan (20/7)"), generamos una
+      // frase coherente que también viaja por nodeflow_aviso (con saludo+negocio).
       const messagePreview = rem.message_hint
         ? 'TXT:' + rem.message_hint
             .replace(/\{\{\s*entity\s*\}\}/gi, displayName)
             .replace(/\{\{\s*value\s*\}\}/gi, fechaBonita)
             .slice(0, 240)
-        : `${f.label || f.key} — ${displayName} (${fechaBonita})`;
+        : ('TXT:' + `Un aviso sobre ${displayName}: ${String(f.label || f.key).toLowerCase()} el ${fechaBonita}.`).slice(0, 240);
 
       plan.push({ serviceKey, fieldKey: f.key, scheduledFor: target, messagePreview, recipient: toBusiness ? 'business' : 'client' });
     }
