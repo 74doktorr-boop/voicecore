@@ -10,7 +10,7 @@ const crypto            = require('crypto');
 const { Logger }        = require('../utils/logger');
 const { handleReply, isOptOut, handleOptOut, isCourtesy, notifyOwnerFreeText, handleCheckinFeedback, handleCheckinButton, handleWaitlistResponse } = require('../whatsapp/reply-handler');
 const { handleTemplateStatusUpdate } = require('../whatsapp/template-alerts');
-const { getBusinessIdByPhoneNumberId }        = require('../whatsapp/accounts');
+const { getBusinessIdByPhoneNumberId, resolveInboundBusiness } = require('../whatsapp/accounts');
 
 const log = new Logger('WA-WEBHOOK');
 
@@ -93,11 +93,14 @@ function setupWhatsAppWebhook(app) {
           const value = change.value || {};
           const messages = value.messages || [];
 
-          // Negocio que recibe el mensaje (para honrar bajas en su contacto).
-          const businessId = await getBusinessIdByPhoneNumberId(value?.metadata?.phone_number_id).catch(() => null);
+          const phoneNumberId = value?.metadata?.phone_number_id;
 
           for (const msg of messages) {
             const from = msg.from; // phone number sin +: "34612345678"
+            // Negocio de ESTE mensaje. Se resuelve por el teléfono del cliente
+            // (quien le escribió por WhatsApp) + su número propio/contacto — no
+            // solo por el número que recibe (el global compartido no distingue).
+            const businessId = await resolveInboundBusiness(phoneNumberId, from).catch(() => null);
 
             // ── Opt-out / BAJA (prioritario, cumplimiento WhatsApp) ──────────
             const _optText = msg.type === 'text' ? (msg.text?.body || '')

@@ -265,4 +265,44 @@ async function getBusinessIdByPhoneNumberId(phoneNumberId) {
   }
 }
 
-module.exports = { getWaCredentials, saveWaCredentials, updateWaAccessToken, revokeWaCredentials, invalidateCache, getBusinessIdByPhoneNumberId };
+// ── Resolver el negocio de un mensaje ENTRANTE ──────────────────────────────
+// El phone_number_id solo distingue negocio si tiene NÚMERO PROPIO. Con el
+// número GLOBAL compartido (varios negocios), una respuesta no se puede
+// atribuir por el número que la recibe. La clave: una RESPUESTA es para quien
+// le escribió a ese cliente. Orden: (1) el negocio que le mandó el último
+// WhatsApp (nf_wa_messages), (2) su número propio (phone_number_id), (3) su
+// contacto. Así "responde al número compartido" cae en el negocio correcto.
+function _canonPhone(p) { const d = String(p || '').replace(/\D/g, ''); return d ? '+' + d : ''; }
+
+async function _bizByRecentOutbound(fromPhone) {
+  try {
+    const canon = _canonPhone(fromPhone);
+    if (canon.length < 6) return null;
+    const sb = getSupabase();
+    const cutoff = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+    const { data } = await sb.from('nf_wa_messages').select('org_id')
+      .eq('phone', canon).eq('direction', 'out').gte('created_at', cutoff)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return (data && data.org_id) || null;
+  } catch (_) { return null; }  // fail-open (tabla puede no existir)
+}
+
+async function _bizByContact(fromPhone) {
+  try {
+    const sb = getSupabase();
+    const { phoneVariants } = require('../utils/phone');
+    const { data } = await sb.from('contacts').select('org_id, created_at')
+      .in('phone', phoneVariants(fromPhone)).order('created_at', { ascending: false }).limit(1);
+    return (data && data[0] && data[0].org_id) || null;
+  } catch (_) { return null; }
+}
+
+async function resolveInboundBusiness(phoneNumberId, fromPhone) {
+  const byRecent = await _bizByRecentOutbound(fromPhone);
+  if (byRecent) return byRecent;
+  const byNumber = await getBusinessIdByPhoneNumberId(phoneNumberId);
+  if (byNumber) return byNumber;
+  return await _bizByContact(fromPhone);
+}
+
+module.exports = { getWaCredentials, saveWaCredentials, updateWaAccessToken, revokeWaCredentials, invalidateCache, getBusinessIdByPhoneNumberId, resolveInboundBusiness };
