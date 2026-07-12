@@ -62,7 +62,7 @@ function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMa
     '- Si quiere RESERVAR/CAMBIAR una cita o pregunta por un hueco: llama a check_availability para ver los huecos REALES, dile las opciones y, cuando te dé un día y una hora concretos y esté de acuerdo, reserva con book_appointment (confirmed_with_customer=true). Confirma SIEMPRE en tu respuesta el día y la hora exactos.',
     '- Nunca inventes horarios: usa check_availability antes de reservar. Si no hay hueco a esa hora, ofrece alternativas cercanas.',
     '- Si pregunta por precios, servicios o dirección, respóndele con lo que sabes.',
-    '- Si es una queja o algo que no puedes resolver, dile con amabilidad que el equipo le contactará.',
+    '- Si es una QUEJA, una duda que no sabes resolver, o pide que le llamen: usa register_lead para que el equipo le contacte, y díselo con amabilidad. Así el dueño se entera.',
     `Sé BREVE, cálido y natural (es WhatsApp, no un email). Responde SIEMPRE en ${langName}.`,
   ].filter(Boolean).join('\n');
 }
@@ -140,7 +140,7 @@ async function handleWaBooking({ from, businessId, text }, deps = {}) {
   convo.messages.push({ role: 'user', content: text.trim() });
 
   const { ToolExecutor } = require('../tools/executor');
-  const tools = ToolExecutor.toOpenAITools(['check_availability', 'book_appointment']);
+  const tools = ToolExecutor.toOpenAITools(['check_availability', 'book_appointment', 'register_lead']);
   const callId = `wa-${key}`;
 
   let turn = await llm(convo.messages, tools, callId);
