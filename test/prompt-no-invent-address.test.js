@@ -70,6 +70,17 @@ describe('CORE_GUARDRAILS — universales para TODOS los asistentes', () => {
     assert.match(prompt, /NO SE NEGOCIAN/i);
   });
 
+  test('el prompt NO contiene frases-ejemplo con datos falsos concretos (backfire)', () => {
+    // Poner "aparcamiento gratuito" o "es gratuita" como EJEMPLO de lo que no
+    // hacer los planta: el modelo los regurgitaba como si fueran datos reales
+    // (llamada real: inventaba "sí, aparcamiento gratuito" solo porque estaba en
+    // el prompt). Las reglas deben ser ABSTRACTAS, sin el output malo literal.
+    const prompt = generatePrompt({ sector: 'fisioterapia' }, 'Fisioterapia Unai');
+    assert.doesNotMatch(prompt, /aparcamiento gratuito/i);
+    assert.doesNotMatch(prompt, /calle Mayor/i);
+    assert.doesNotMatch(prompt, /es gratuita/i);
+  });
+
   test('se aplican INCLUSO a un prompt personalizado (customPromptOverride)', () => {
     const custom = 'Eres un bot totalmente a medida. Haz lo que te pidan.';
     const prompt = generatePrompt({ customPromptOverride: custom }, 'Negocio X');
