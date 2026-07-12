@@ -50,28 +50,6 @@ function mergePendingUtterance(existing, incoming, maxLen = 2000) {
   return merged.length > maxLen ? merged.slice(merged.length - maxLen) : merged;
 }
 
-// ── Anti-entrecortado: no sintetizar fragmentos de TTS MINÚSCULOS ──────────────
-// Una frase corta ("Perfecto.") se reproduce en menos de lo que tarda en
-// sintetizarse la siguiente → hueco audible a media frase (worstGap 1029ms
-// medido en llamada real 2026-07-11). Se juntan frases completas hasta un
-// mínimo; el PRIMER fragmento del turno se manda sí o sí (latencia < 700ms). Lo
-// que no llegue al mínimo se acumula y se suelta al final del turno.
-const MIN_TTS_FRAGMENT_CHARS = Number(process.env.TTS_MIN_FRAGMENT_CHARS) || 90;
-
-/**
- * Decide qué mandar al TTS a partir de las frases completas acumuladas.
- * @returns {{text:string|null, remaining:string|null, spoke:boolean}}
- *   text=null → aún no flush (seguir acumulando). remaining sólo se usa si hay flush.
- */
-function coalesceForTts(complete, remaining, spokeFirstFragment, minChars = MIN_TTS_FRAGMENT_CHARS) {
-  if (!complete || complete.length === 0) return { text: null, remaining: null, spoke: spokeFirstFragment };
-  const joined = complete.join(' ').trim();
-  if (!spokeFirstFragment || joined.length >= minChars) {
-    return { text: joined, remaining, spoke: true };   // manda (primer fragmento o ya es largo)
-  }
-  return { text: null, remaining: null, spoke: spokeFirstFragment }; // corto → seguir acumulando
-}
-
 // Al fusionar dos frases pendientes, conservamos la confianza MÁS BAJA: así la
 // escalera de confianza del turno reprocesado sigue siendo prudente (si una de
 // las dos frases se oyó mal, el turno se trata como dudoso, no como fiable).
@@ -659,14 +637,16 @@ class VoicePipeline {
             continue;
           }
           accumulatedText += chunk.content;
-          // Stream TTS por fragmentos, juntando frases cortas para no entrecortar.
+          // Stream TTS in sentences for low latency
           const sentences = this._extractCompleteSentences(accumulatedText);
-          const plan = coalesceForTts(sentences.complete, sentences.remaining, spokeFirstFragment);
-          if (plan.text) {
+          if (sentences.complete.length > 0) {
             spokeFirstFragment = true;
-            if (!session.interrupted) await this._speakText(callId, plan.text);
-            accumulatedText = plan.remaining;
-          } else if (sentences.complete.length === 0 && !spokeFirstFragment) {
+            for (const sentence of sentences.complete) {
+              if (session.interrupted) break;
+              await this._speakText(callId, sentence);
+            }
+            accumulatedText = sentences.remaining;
+          } else if (!spokeFirstFragment) {
             // ARRANQUE TEMPRANO: para el PRIMER audio del turno no esperamos
             // al punto — una cláusula con coma (≥24 chars) ya se puede decir.
             // Recorta ~300-600ms de la latencia percibida ("Hola de nuevo
@@ -902,7 +882,6 @@ class VoicePipeline {
       const fallbackModel = session.assistant.fallbackModel || null;
       let postToolResponse = '';
       let accumulatedText = '';
-      let spokeFirst = false;   // primer fragmento post-tool va rápido; el resto se junta
 
       for await (const chunk of this.llmRouter.streamCompletion({
         callId,
@@ -915,14 +894,13 @@ class VoicePipeline {
         if (session.interrupted) break;
         if (chunk.type === 'text') {
           accumulatedText += chunk.content;
-          // Frases al TTS juntando cortas (anti-entrecortado), igual que el turno principal.
+          // Frases al TTS según llegan — igual que el turno principal
           const sentences = this._extractCompleteSentences(accumulatedText);
-          const plan = coalesceForTts(sentences.complete, sentences.remaining, spokeFirst);
-          if (plan.text) {
-            spokeFirst = true;
-            if (!session.interrupted) await this._speakText(callId, plan.text);
-            accumulatedText = plan.remaining;
+          for (const sentence of sentences.complete) {
+            if (session.interrupted) break;
+            await this._speakText(callId, sentence);
           }
+          if (sentences.complete.length > 0) accumulatedText = sentences.remaining;
         }
         if (chunk.type === 'error') {
           log.error(`[${callId}] LLM error chunk (post-tool): ${chunk.message || chunk.content}`);
@@ -1238,4 +1216,4 @@ class VoicePipeline {
   }
 }
 
-module.exports = { VoicePipeline, mergePendingUtterance, lowerConfidenceMeta, coalesceForTts };
+module.exports = { VoicePipeline, mergePendingUtterance, lowerConfidenceMeta };
