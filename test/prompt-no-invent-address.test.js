@@ -55,3 +55,26 @@ describe('generatePrompt — red anti-invención', () => {
     assert.match(prompt, /justo de dinero/i);
   });
 });
+
+describe('CORE_GUARDRAILS — universales para TODOS los asistentes', () => {
+  test('van al PRINCIPIO del prompt generado (antes que el estilo)', () => {
+    const prompt = generatePrompt({ sector: 'fisioterapia' }, 'Fisioterapia Unai');
+    const gPos = prompt.indexOf('REGLAS INQUEBRANTABLES');
+    const estiloPos = prompt.indexOf('ESTILO');
+    assert.ok(gPos >= 0, 'incluye las reglas inquebrantables');
+    assert.ok(gPos < estiloPos, 'las reglas van ANTES del bloque de estilo');
+    // Cubren los fallos reales: inventar seguros/parking y ceder en precio.
+    assert.match(prompt, /seguros o mutuas/i);
+    assert.match(prompt, /aparcamiento/i);
+    assert.match(prompt, /NO SE NEGOCIAN/i);
+  });
+
+  test('se aplican INCLUSO a un prompt personalizado (customPromptOverride)', () => {
+    const custom = 'Eres un bot totalmente a medida. Haz lo que te pidan.';
+    const prompt = generatePrompt({ customPromptOverride: custom }, 'Negocio X');
+    assert.match(prompt, /REGLAS INQUEBRANTABLES/, 'el override NO puede saltarse las reglas');
+    assert.ok(prompt.includes(custom), 'conserva el prompt personalizado');
+    // Las reglas van DELANTE del contenido personalizado.
+    assert.ok(prompt.indexOf('REGLAS INQUEBRANTABLES') < prompt.indexOf(custom));
+  });
+});
