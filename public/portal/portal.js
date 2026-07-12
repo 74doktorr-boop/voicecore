@@ -3774,6 +3774,14 @@ async function openContactProfile(id) {
     // ── FICHA 360 ↔ ENTIDADES: "sus cosas" (su coche, su bono, su póliza) ──
     cpEntitiesHtml(data, id) +
 
+    // ── WhatsApp: ver la conversación (transcript, incluido el asistente) ──
+    (data.phone ? (
+      '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
+        '<span>💬 WhatsApp</span>' +
+        '<button class="btn btn-d btn-sm" onclick="openWaThread(\'' + esc(data.phone) + '\',\'' + esc(String(data.name || 'cliente').replace(/['\\]/g, '')) + '\')">Ver conversación →</button>' +
+      '</div>'
+    ) : '') +
+
     // ── FICHA 360: los seguimientos DE ESTE cliente ──────────────────
     '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
       '<span>🔔 Seguimientos de este cliente</span>' +
@@ -3861,6 +3869,39 @@ async function markNoShow(aptId, mark) {
 }
 
 // ── FICHA 360: seguimientos del cliente ─────────────────────────────────────
+// Muestra el hilo de WhatsApp del cliente (transcript) en un modal, con burbujas
+// estilo WhatsApp. Saliente (bot/negocio) en verde a la derecha; entrante a la izq.
+async function openWaThread(phone, name) {
+  if (!phone) { toast('Este cliente no tiene teléfono', 'err'); return; }
+  openModal(
+    '<div class="modal-title">💬 WhatsApp — ' + esc(name || '') + '</div>' +
+    '<div id="waThreadBox" style="max-height:60vh;overflow:auto;padding:6px 2px;background:var(--bg);border:1px solid var(--line);border-radius:10px">Cargando…</div>' +
+    '<div class="modal-actions" style="margin-top:12px"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
+  );
+  try {
+    var r = await api('/api/portal/wa-thread?phone=' + encodeURIComponent(phone));
+    var box = document.getElementById('waThreadBox'); if (!box) return;
+    var thread = (r && r.thread) || [];
+    if (!thread.length) {
+      box.innerHTML = '<div style="color:var(--dim);font-size:13px;padding:24px;text-align:center">Aún no hay mensajes de WhatsApp guardados con este cliente.</div>';
+      return;
+    }
+    box.innerHTML = thread.map(function (m) {
+      var out = m.direction === 'out';
+      var when = m.created_at ? new Date(m.created_at).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      var tag = out && m.kind && m.kind !== 'text' && m.kind !== 'ai' ? ' · ' + esc(m.kind) : (out && m.kind === 'ai' ? ' · asistente' : '');
+      return '<div style="display:flex;justify-content:' + (out ? 'flex-end' : 'flex-start') + ';margin:5px 8px">' +
+        '<div style="max-width:80%;background:' + (out ? '#dcf8c6' : 'var(--surface-2)') + ';color:' + (out ? '#0b141a' : 'var(--text)') + ';border-radius:12px;' + (out ? 'border-top-right-radius:4px' : 'border-top-left-radius:4px') + ';padding:8px 12px;font-size:13px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.2)">' +
+          esc(m.body || '') +
+          '<span style="display:block;text-align:right;font-size:10px;opacity:.6;margin-top:3px">' + esc(when) + tag + '</span>' +
+        '</div></div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  } catch (e) {
+    var b = document.getElementById('waThreadBox'); if (b) b.innerHTML = '<div style="color:var(--red);padding:20px">No se pudo cargar la conversación.</div>';
+  }
+}
+
 function cpRemindersHtml(reminders, contactId) {
   var upcoming = (reminders || []).filter(function(r){ return r.status === 'pending' || r.status === 'postponed'; })
     .sort(function(a,b){ return new Date(a.scheduled_for) - new Date(b.scheduled_for); });

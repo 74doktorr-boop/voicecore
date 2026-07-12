@@ -172,6 +172,8 @@ async function handleWaBooking({ from, businessId, text }, deps = {}) {
   if (reply) {
     const credentials = await getCreds(businessId).catch(() => null);
     await sendText(phone, reply, credentials).catch(e => log.warn(`wa send (${phone}): ${e.message}`));
+    // Transcript: registra la respuesta del asistente.
+    try { require('./wa-log').logWaMessage({ orgId: businessId, phone, direction: 'out', body: reply, kind: 'ai' }); } catch (_) {}
   }
 
   // Reserva hecha → avisar al dueño (como en las llamadas).

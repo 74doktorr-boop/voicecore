@@ -1121,6 +1121,20 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({ ok: true, status: newStatus });
   });
 
+  // ── GET /api/portal/wa-thread?phone=... ───────────────────
+  // Hilo de WhatsApp de un cliente (transcript): entrantes + salientes (incluido
+  // lo que responde el asistente). Requiere la tabla nf_wa_messages.
+  app.get('/api/portal/wa-thread', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const phone = req.query.phone;
+    if (!phone) return res.status(400).json({ error: 'Falta el parámetro phone' });
+    try {
+      const { getWaThread } = require('../whatsapp/wa-log');
+      const thread = await getWaThread(businessId, String(phone), 200);
+      res.json({ ok: true, thread });
+    } catch (e) { log.warn(`wa-thread: ${e.message}`); res.json({ ok: true, thread: [] }); }
+  });
+
   // ── GET /api/portal/reports ───────────────────────────────
   // Panel analítico "cerebro del negocio". UNA llamada eficiente:
   // llamadas del periodo + del periodo anterior (para deltas) + citas +

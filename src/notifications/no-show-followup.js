@@ -98,7 +98,11 @@ async function sendNoShowRebooking(apt, config = {}, deps = {}) {
       }).then(() => {}, () => {});
     } catch (_) {}
   }
-  if (res && res.ok) log.info(`no-show: reproposición enviada a ${apt.phone}`);
+  if (res && res.ok) {
+    log.info(`no-show: reproposición enviada a ${apt.phone}`);
+    // Transcript: registra el mensaje saliente.
+    try { require('../whatsapp/wa-log').logWaMessage({ orgId: apt.businessId, phone: apt.phone, contactId: contact && contact.id, direction: 'out', body: msg, kind: 'no_show' }); } catch (_) {}
+  }
   return res || { ok: false, reason: 'no_result' };
 }
 

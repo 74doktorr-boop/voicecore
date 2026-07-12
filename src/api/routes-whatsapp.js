@@ -104,6 +104,10 @@ function setupWhatsAppWebhook(app) {
                            : msg.type === 'button' ? (msg.button?.payload || msg.button?.text || '')
                            : msg.type === 'interactive' ? (msg.interactive?.button_reply?.title || msg.interactive?.button_reply?.id || '')
                            : '';
+            // Transcript: registra el mensaje ENTRANTE del cliente.
+            if (_optText && businessId) {
+              try { require('../whatsapp/wa-log').logWaMessage({ orgId: businessId, phone: from, direction: 'in', body: _optText, kind: msg.type }); } catch (_) {}
+            }
             if (isOptOut(_optText)) {
               log.info(`Opt-out from ${from}: "${_optText.slice(0, 40)}"`);
               await handleOptOut({ from, businessId }).catch(e =>
