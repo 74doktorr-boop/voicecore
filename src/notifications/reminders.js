@@ -526,12 +526,39 @@ async function sendWaReminder(apt, config) {
 // ── WhatsApp: envía solicitud de reseña via Meta template ────────────────────
 // Template: nodeflow_resena (botón Dejar reseña)
 // Variables: {{1}}=nombre, {{2}}=negocio, {{3}}=url_resena
-async function sendWaReview(apt, config) {
+// ¿El cliente de esta cita dijo NO a WhatsApp? Resuelve el contacto por teléfono
+// (la cita no siempre trae contact_id) y mira contact_memory.no_whatsapp.
+// fail-open (si el lookup falla, no bloquea) — mismo criterio que el resto del motor.
+async function _reviewOptedOut(apt) {
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (!db.enabled || !apt.businessId || !apt.phone) return false;
+    const { phoneVariants } = require('../utils/phone');
+    const { data: c } = await db.client.from('contacts')
+      .select('id').eq('org_id', apt.businessId).in('phone', phoneVariants(apt.phone)).limit(1).maybeSingle();
+    if (!c || !c.id) return false;
+    const { getContactMemory } = require('../lifecycle/call-memory');
+    const mem = await getContactMemory(c.id, apt.businessId);
+    return !!(mem && mem.no_whatsapp);
+  } catch (_) { return false; }
+}
+
+async function sendWaReview(apt, config, deps = {}) {
+  const _sendTemplate   = deps.sendTemplate    || sendTemplate;
+  const _getWaCreds     = deps.getWaCredentials || getWaCredentials;
+  const _waIsConfigured = deps.waIsConfigured   || waIsConfigured;
+
   if (!apt.phone) return false;
 
   // Obtener credenciales del negocio (multi-tenant) o caer en globales
-  const credentials = apt.businessId ? await getWaCredentials(apt.businessId) : null;
-  if (!credentials && !waIsConfigured()) return false;
+  const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
+  if (!credentials && !_waIsConfigured()) return false;
+
+  // Opt-out de WhatsApp: no se pide reseña por WA a quien dijo que no. El email
+  // de reseña (respaldo) va por su propia vía. deps.optedOut permite testearlo.
+  const optedOut = deps.optedOut !== undefined ? !!deps.optedOut : await _reviewOptedOut(apt);
+  if (optedOut) { log.info(`WA review: ${apt.phone} opt-out — no se envía`); return false; }
 
   const name         = firstName(apt.patientName);
   const businessName = config?.name || 'el negocio';
@@ -539,27 +566,48 @@ async function sendWaReview(apt, config) {
   const reviewUrl    = config?.automations?.config?.reviewUrl
     || (config?.googlePlaceId ? `${GOOGLE_REVIEW_BASE}${config.googlePlaceId}` : null)
     || `https://www.google.com/search?q=${encodeURIComponent(businessName + ' opiniones')}`;
-  const templateName = 'nodeflow_resena';
   const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
+  // 1) Plantilla dedicada nodeflow_resena (bonita, con botón cuando Meta la apruebe).
   try {
-    const result = await sendTemplate(apt.phone, templateName, langCode, [
-      {
-        type: 'body',
-        parameters: [
-          { type: 'text', text: name },
-          { type: 'text', text: businessName },
-          { type: 'text', text: reviewUrl },
-        ],
-      },
+    const result = await _sendTemplate(apt.phone, 'nodeflow_resena', langCode, [
+      { type: 'body', parameters: [
+        { type: 'text', text: name }, { type: 'text', text: businessName }, { type: 'text', text: reviewUrl },
+      ] },
     ], credentials);
     if (result?.ok) {
       log.info(`WA review sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+      _logWaOut(apt, 'resena', `Petición de reseña: ${reviewUrl}`);
       return true;
     }
-    log.warn(`WA review not ok for ${apt.id}: ${result?.error}`);
+    log.warn(`WA review nodeflow_resena not ok for ${apt.id}: ${result?.error} — probando portadora`);
   } catch (e) {
-    log.warn(`WA review failed for ${apt.id}: ${e.message}`);
+    log.warn(`WA review nodeflow_resena failed for ${apt.id}: ${e.message}`);
+  }
+
+  // 2) Fallback a la portadora nodeflow_aviso (SÍ aprobada) con el texto de reseña.
+  // nodeflow_resena puede no estar aprobada en Meta (mismatch de parámetros #132000,
+  // descubierto en envío real 2026-07-12); así el aviso de reseña no se pierde —
+  // mismo patrón que no-show y avisos de entidad. Un cliente solo-teléfono también
+  // la recibe (antes solo salía por email).
+  try {
+    const { templateLanguage } = require('../whatsapp/templates');
+    const reviewMsg = `¿Qué tal fue tu visita? Si te ha gustado, ¿nos dejas una reseña en Google? Nos ayudas muchísimo y solo lleva 30 segundos: ${reviewUrl}`;
+    const params = [{ type: 'body', parameters: [
+      { type: 'text', text: name }, { type: 'text', text: businessName }, { type: 'text', text: reviewMsg },
+    ] }];
+    let r = await _sendTemplate(apt.phone, 'nodeflow_aviso', templateLanguage('nodeflow_aviso', lang), params, credentials);
+    if (!r?.ok && credentials && _waIsConfigured()) {
+      r = await _sendTemplate(apt.phone, 'nodeflow_aviso', templateLanguage('nodeflow_aviso', lang), params, null);
+    }
+    if (r?.ok) {
+      log.info(`WA review (portadora nodeflow_aviso) sent → ${apt.id} (${apt.phone})`);
+      _logWaOut(apt, 'resena', `Petición de reseña: ${reviewUrl}`);
+      return true;
+    }
+    log.warn(`WA review portadora not ok for ${apt.id}: ${r?.error}`);
+  } catch (e) {
+    log.warn(`WA review portadora failed for ${apt.id}: ${e.message}`);
   }
   return false;
 }

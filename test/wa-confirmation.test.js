@@ -12,7 +12,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { sendWaConfirmation } = require('../src/notifications/reminders');
+const { sendWaConfirmation, sendWaReview } = require('../src/notifications/reminders');
 
 function fakeDeps() {
   const calls = { template: null, credsFor: null };
@@ -116,5 +116,51 @@ describe('sendWaConfirmation', () => {
     const ok = await sendWaConfirmation(APT, CFG, deps);
     assert.strictEqual(ok, false);
     assert.strictEqual(n, 1, 'sin compartido, no hay reintento');
+  });
+});
+
+const CFG_REVIEW = { name: 'Peluquería HHR', language: 'es', automations: { config: { reviewUrl: 'https://g.page/r/XYZ/review' } } };
+
+describe('sendWaReview', () => {
+  test('plantilla nodeflow_resena aprobada → la usa con nombre/negocio/enlace', async () => {
+    const deps = fakeDeps();
+    deps.optedOut = false;
+    const ok = await sendWaReview(APT, CFG_REVIEW, deps);
+    assert.strictEqual(ok, true);
+    assert.strictEqual(deps.calls.template.name, 'nodeflow_resena');
+    const params = deps.calls.template.components[0].parameters.map(p => p.text);
+    assert.deepStrictEqual(params, ['Unai', 'Peluquería HHR', 'https://g.page/r/XYZ/review']);
+  });
+
+  test('nodeflow_resena falla (#132000) → cae a la portadora nodeflow_aviso con el enlace', async () => {
+    const deps = fakeDeps();
+    deps.optedOut = false;
+    const usados = [];
+    deps.sendTemplate = async (phone, name, lang, comp, creds) => {
+      usados.push(name);
+      if (name === 'nodeflow_resena') return { ok: false, error: '(#132000) Number of parameters does not match' };
+      return { ok: true, messageId: 'wamid.AVISO' };
+    };
+    const ok = await sendWaReview(APT, CFG_REVIEW, deps);
+    assert.strictEqual(ok, true, 'la reseña sale por la portadora');
+    assert.deepStrictEqual(usados, ['nodeflow_resena', 'nodeflow_aviso']);
+    // el texto de la portadora lleva el enlace de reseña
+    const last = usados.lastIndexOf('nodeflow_aviso');
+    assert.ok(last >= 0);
+  });
+
+  test('cliente con opt-out (no_whatsapp) → NO se envía reseña por WhatsApp', async () => {
+    const deps = fakeDeps();
+    deps.optedOut = true;
+    const ok = await sendWaReview(APT, CFG_REVIEW, deps);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(deps.calls.template, null, 'no se llamó a ninguna plantilla');
+  });
+
+  test('sin teléfono → no envía', async () => {
+    const deps = fakeDeps();
+    deps.optedOut = false;
+    const ok = await sendWaReview({ ...APT, phone: '' }, CFG_REVIEW, deps);
+    assert.strictEqual(ok, false);
   });
 });
