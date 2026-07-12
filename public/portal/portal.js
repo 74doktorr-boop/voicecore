@@ -68,6 +68,50 @@ function closeModal() {
   document.getElementById('modalBox').innerHTML = '';
 }
 
+// ── Confirm / Prompt propios (sustituyen a los diálogos nativos feos del
+// navegador). Devuelven una Promise y viven en una CAPA aparte (confirmOverlay,
+// z-index por encima del modal) para no pisar un modal que ya esté abierto
+// (p.ej. borrar una ficha desde dentro de su propio modal).
+function _closeConfirm() {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  document.getElementById('confirmBox').innerHTML = '';
+}
+function nfConfirm(message, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    window._nfConfirmCb = function (v) { _closeConfirm(); window._nfConfirmCb = null; resolve(v); };
+    document.getElementById('confirmBox').innerHTML =
+      (opts.title ? '<div class="modal-title">' + esc(opts.title) + '</div>' : '') +
+      '<p style="font-size:14px;color:var(--text);line-height:1.6;margin:0 0 20px">' + esc(message) + '</p>' +
+      '<div class="modal-actions">' +
+        '<button class="btn btn-d" onclick="_nfConfirmCb(false)">' + esc(opts.cancelLabel || 'Cancelar') + '</button>' +
+        '<button class="btn btn-accent" onclick="_nfConfirmCb(true)">' + esc(opts.okLabel || 'Confirmar') + '</button>' +
+      '</div>';
+    document.getElementById('confirmOverlay').style.display = 'flex';
+  });
+}
+function nfPrompt(label, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    window._nfPromptCb = function (ok) {
+      var v = (document.getElementById('nfPromptInput') || {}).value || '';
+      _closeConfirm(); window._nfPromptCb = null;
+      resolve(ok ? v.trim() : null);
+    };
+    document.getElementById('confirmBox').innerHTML =
+      (opts.title ? '<div class="modal-title">' + esc(opts.title) + '</div>' : '') +
+      '<div class="form-group"><label class="form-label">' + esc(label) + '</label>' +
+      '<input class="form-input" id="nfPromptInput" placeholder="' + esc(opts.placeholder || '') + '" ' +
+        'value="' + esc(opts.value || '') + '" onkeydown="if(event.key===\'Enter\')_nfPromptCb(true)"></div>' +
+      '<div class="modal-actions">' +
+        '<button class="btn btn-d" onclick="_nfPromptCb(false)">Cancelar</button>' +
+        '<button class="btn btn-accent" onclick="_nfPromptCb(true)">' + esc(opts.okLabel || 'Guardar') + '</button>' +
+      '</div>';
+    document.getElementById('confirmOverlay').style.display = 'flex';
+    setTimeout(function () { var el = document.getElementById('nfPromptInput'); if (el) el.focus(); }, 60);
+  });
+}
+
 // ── Mobile sidebar ────────────────────────────────────────────
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
@@ -665,10 +709,11 @@ async function deleteTask(id) {
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 // Crear tarea desde el perfil de un contacto
-function newTaskForContact(contactId, contactName) {
-  var title = prompt('Nueva tarea para ' + (contactName || 'este cliente') + ':');
-  if (!title || !title.trim()) return;
-  api('/api/portal/tasks', 'POST', { title: title.trim(), contactId: contactId, contactName: contactName })
+async function newTaskForContact(contactId, contactName) {
+  var title = await nfPrompt('Nueva tarea para ' + (contactName || 'este cliente'),
+    { title: 'Nueva tarea', placeholder: 'Ej. Llamar a ' + (contactName || 'cliente'), okLabel: 'Crear tarea' });
+  if (!title) return;
+  api('/api/portal/tasks', 'POST', { title: title, contactId: contactId, contactName: contactName })
     .then(function(){ toast('Tarea creada'); })
     .catch(function(e){ toast('Error: ' + e.message, 'err'); });
 }
@@ -983,7 +1028,8 @@ async function setPortalPassword() {
 
 // Quitar la contraseña de acceso (vuelve a solo-enlace). Confirma antes.
 async function clearPortalPassword() {
-  if (!confirm('¿Quitar la contraseña de acceso? Volverás a entrar solo con el enlace por email.')) return;
+  if (!(await nfConfirm('¿Quitar la contraseña de acceso? Volverás a entrar solo con el enlace por email.',
+    { title: 'Quitar contraseña', okLabel: 'Quitar', cancelLabel: 'Cancelar' }))) return;
   try {
     await api('/api/portal/password/clear', 'POST', {});
     toast('Contraseña eliminada — entrarás con el enlace por email');
@@ -5339,7 +5385,8 @@ async function buyVoicePack(kind) {
   } catch (e) { toast('❌ ' + e.message, 'err'); }
 }
 async function addonAction(key, action) {
-  if (action === 'cancel' && !confirm('¿Cancelar este complemento? Dejará de cobrarse desde tu próxima factura.')) return;
+  if (action === 'cancel' && !(await nfConfirm('¿Cancelar este complemento? Dejará de cobrarse desde tu próxima factura.',
+    { title: 'Cancelar complemento', okLabel: 'Sí, cancelar', cancelLabel: 'No, mantener' }))) return;
   try {
     var d = await api('/api/portal/addons/' + key + '/' + action, 'POST', {});
     if (d && d.ok) {
@@ -8755,7 +8802,8 @@ async function saveEntity(id) {
 
 async function deleteEntity(id) {
   var type = _entType();
-  if (!confirm('¿Eliminar esta ficha' + (type ? ' de ' + type.label_plural.toLowerCase() : '') + '? Sus avisos pendientes se cancelarán.')) return;
+  if (!(await nfConfirm('¿Eliminar esta ficha' + (type ? ' de ' + type.label_plural.toLowerCase() : '') + '? Sus avisos pendientes se cancelarán.',
+    { title: 'Eliminar ficha', okLabel: 'Eliminar', cancelLabel: 'Cancelar' }))) return;
   try {
     await api('/api/portal/entities/' + id, 'DELETE');
     toast('Ficha eliminada');

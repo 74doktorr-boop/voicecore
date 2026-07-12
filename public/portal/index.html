@@ -510,6 +510,10 @@
 <div id="modalOverlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal-box" id="modalBox"></div>
 </div>
+<!-- Confirm/prompt overlay: capa propia por encima del modal (no lo pisa) -->
+<div id="confirmOverlay" class="modal-overlay" style="display:none" onclick="if(event.target===this){if(window._nfConfirmCb)_nfConfirmCb(false);else if(window._nfPromptCb)_nfPromptCb(false);}">
+  <div class="modal-box" id="confirmBox" style="max-width:420px"></div>
+</div>
 
 <!-- Command palette (Ctrl+K) -->
 <div class="cmdk-overlay" id="cmdkOverlay" onclick="if(event.target===this)cmdkClose()">

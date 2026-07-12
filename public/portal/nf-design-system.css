@@ -104,6 +104,7 @@
   --z-sidebar:  160;
   --z-topbar:   200;
   --z-modal:    300;
+  --z-confirm:  350;
   --z-toast:    400;
   --z-cmdk:     500;
   --z-tooltip:  600;
@@ -516,6 +517,8 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
   z-index: var(--z-modal); display: flex; align-items: center; justify-content: center;
   padding: var(--sp-5); animation: nf-fade var(--dur-2) var(--ease-out);
 }
+/* La capa de confirm/prompt se apila por encima del modal principal. */
+#confirmOverlay { z-index: var(--z-confirm); }
 .modal-box {
   background: var(--surface-2); border: 1px solid var(--border-2);
   border-radius: var(--r-4); padding: var(--sp-8);
