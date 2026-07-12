@@ -173,6 +173,16 @@ function setupWhatsAppWebhook(app) {
                   handledText = await handleCheckinFeedback({ from, businessId, text })
                     .catch(e => { log.error(`checkin feedback error: ${e.message}`); return false; });
                 }
+                // Agente de reserva por WhatsApp: el asistente entiende la
+                // petición, consulta disponibilidad y RESERVA (misma maquinaria
+                // que la voz). Si no produce respuesta útil → cae al humano.
+                if (!handledText) {
+                  try {
+                    const { handleWaBooking } = require('../whatsapp/wa-agent');
+                    const r = await handleWaBooking({ from, businessId, text }).catch(() => ({ handled: false }));
+                    handledText = r && r.handled;
+                  } catch (e) { log.error(`wa-agent error: ${e.message}`); }
+                }
                 if (!handledText) {
                   await notifyOwnerFreeText({ from, businessId, text }).catch(e =>
                     log.error(`freeText handler error: ${e.message}`)
