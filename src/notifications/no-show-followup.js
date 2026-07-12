@@ -53,6 +53,27 @@ async function _lookupContact(businessId, phone) {
   } catch (_) { return null; } // fail-open: no bloquear por un fallo de lookup
 }
 
+// Idempotencia BLINDADA (bug real 2026-07-12: el cliente recibió DOS veces el
+// mismo "no viniste"). El guard de estado de la cita (no_show_notified) es
+// frágil: se pierde si el proceso reinicia entre marcados, o si se desmarca y
+// re-marca. Aquí, antes de enviar, miramos el LEDGER de WhatsApp por un aviso de
+// plantón IDÉNTICO (mismo cuerpo → misma cita) ya enviado a este teléfono. El
+// cuerpo lleva fecha+hora+servicio, así que un plantón de OTRA cita no se
+// suprime por error. Fail-open: ante un fallo de lectura, mejor enviar.
+async function _alreadySentNoShow(businessId, phone, body, deps = {}) {
+  if (deps.alreadySent !== undefined) return deps.alreadySent; // inyectable en tests
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (!db.enabled) return false;
+    const { phoneVariants } = require('../utils/phone');
+    const { data } = await db.client.from('nf_wa_messages')
+      .select('id').eq('org_id', businessId).eq('kind', 'no_show')
+      .eq('direction', 'out').in('phone', phoneVariants(phone)).eq('body', body).limit(1);
+    return Array.isArray(data) && data.length > 0;
+  } catch (_) { return false; }
+}
+
 /**
  * Envía el WhatsApp de reproposición tras un plantón. Deps inyectables para tests.
  * @returns {Promise<{ok:boolean, reason?:string, messageId?:string}>}
@@ -74,6 +95,12 @@ async function sendNoShowRebooking(apt, config = {}, deps = {}) {
   const name     = String(apt.patientName || 'cliente').split(' ')[0] || 'cliente';
   const langCode = config.language === 'eu' ? 'eu' : config.language === 'gl' ? 'gl' : 'es';
   const msg      = buildNoShowMessage(apt, { humanDate: _humanDate(apt.date) });
+
+  // Blindaje anti-reenvío: si ya se mandó este mismo aviso, no repetir.
+  if (await _alreadySentNoShow(apt.businessId, apt.phone, msg, deps)) {
+    log.info(`no-show: aviso idéntico ya enviado a ${apt.phone} — se omite (idempotente)`);
+    return { ok: false, reason: 'already_sent' };
+  }
 
   let res;
   try {

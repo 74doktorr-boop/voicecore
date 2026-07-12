@@ -1102,11 +1102,15 @@ function setupPortalRoutes(app, pipeline, config) {
     const alreadyNoShow = apt.status === 'no_show' || apt.no_show_notified === true; // ya se avisó antes
     const newStatus = mark ? 'no_show' : 'completed';
     apt.status = newStatus;
+    // no_show_notified es PEGAJOSO: una vez avisado el cliente, nunca se resetea
+    // (antes se persistía `no_show_notified: mark` → al DESMARCAR volvía a false y
+    // re-marcar reenviaba el aviso). El envío real es idempotente igualmente
+    // (ledger en sendNoShowRebooking), esto es defensa en profundidad.
     if (mark) apt.no_show_notified = true;
     apt.updatedAt = new Date().toISOString();
     try {
       const { appointmentsStore } = require('../db/appointments-store');
-      appointmentsStore.patch(apt.id, { status: newStatus, no_show_notified: mark, updatedAt: apt.updatedAt });
+      appointmentsStore.patch(apt.id, { status: newStatus, no_show_notified: apt.no_show_notified === true, updatedAt: apt.updatedAt });
     } catch (_) {}
     log.info(`Portal: cita ${apt.id} marcada ${newStatus}`);
 

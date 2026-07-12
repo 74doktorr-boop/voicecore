@@ -53,6 +53,23 @@ describe('sendNoShowRebooking', () => {
     assert.deepStrictEqual(sent[0].creds, { phoneNumberId: 'pn', accessToken: 'tok' }); // número del negocio
   });
 
+  test('aviso idéntico YA enviado (ledger) → NO reenvía (idempotente)', async () => {
+    const { sent, d } = deps();
+    d.alreadySent = true; // el ledger dice que este mismo aviso ya salió
+    const r = await sendNoShowRebooking(APT, { name: 'Fisio Unai', language: 'es' }, d);
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.reason, 'already_sent');
+    assert.strictEqual(sent.length, 0);
+  });
+
+  test('ledger sin aviso previo → sí envía', async () => {
+    const { sent, d } = deps();
+    d.alreadySent = false;
+    const r = await sendNoShowRebooking(APT, { name: 'Fisio Unai', language: 'es' }, d);
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(sent.length, 1);
+  });
+
   test('cliente con opt-out (no_whatsapp) → NO envía', async () => {
     const { sent, d } = deps({ contact: { id: 'c1', no_whatsapp: true } });
     const r = await sendNoShowRebooking(APT, {}, d);
