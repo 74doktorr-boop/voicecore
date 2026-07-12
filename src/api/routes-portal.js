@@ -1107,6 +1107,17 @@ function setupPortalRoutes(app, pipeline, config) {
       appointmentsStore.patch(apt.id, { status: newStatus, no_show_notified: mark, updatedAt: apt.updatedAt });
     } catch (_) {}
     log.info(`Portal: cita ${apt.id} marcada ${newStatus}`);
+
+    // Al marcar PLANTÓN: WhatsApp en nombre del negocio ofreciendo reprogramar
+    // (recupera al cliente que no vino). Fire-and-forget, respeta opt-out y usa
+    // la plantilla aprobada nodeflow_aviso. Solo al MARCAR (no al desmarcar).
+    if (mark) {
+      try {
+        require('../notifications/no-show-followup')
+          .sendNoShowRebooking(apt, req.flowConfig || {}).catch(() => {});
+      } catch (_) {}
+    }
+
     res.json({ ok: true, status: newStatus });
   });
 
