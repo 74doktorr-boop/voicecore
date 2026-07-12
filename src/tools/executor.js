@@ -334,7 +334,10 @@ class ToolExecutor {
       date:        normalizedDate,
       time:        normalizedTime,
       notes:       args.notes || args.vehicle || '',
-    }, busyByDate[normalizedDate] || []);
+      // skipClientWa: la confirmación al cliente la manda el post-call-handler al
+      // colgar (con el toggle waConfirm). Sin esto se enviaban DOS: una durante
+      // la llamada + otra al colgar.
+    }, busyByDate[normalizedDate] || [], { skipClientWa: true });
 
     if (result.success && result.appointment && context.session) {
       context.session.bookedAppointment = result.appointment;

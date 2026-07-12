@@ -222,7 +222,7 @@ class SchedulingSystem {
   }
 
   // ─── Book an appointment ───
-  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, extraBusy = []) {
+  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, extraBusy = [], opts = {}) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -310,8 +310,12 @@ class SchedulingSystem {
 
     // ── WhatsApp: confirmación inmediata al cliente ───────────────────────────
     // Template: nodeflow_cita_confirmada (sin botones — solo información)
-    // Fire-and-forget: no bloquea la respuesta de reserva
-    if (appointment.phone && process.env.NODE_ENV !== 'test') {
+    // Fire-and-forget: no bloquea la respuesta de reserva.
+    // opts.skipClientWa: en reservas por VOZ la manda el post-call-handler (con
+    // el toggle waConfirm) → aquí se salta para no enviar DOS confirmaciones
+    // (una durante la llamada + otra al colgar). En manual/portal/externa NO se
+    // salta: esta es la única confirmación al cliente.
+    if (appointment.phone && !opts.skipClientWa && process.env.NODE_ENV !== 'test') {
       setImmediate(async () => {
         try {
           const { sendTemplate, isConfigured } = require('../notifications/client-whatsapp');
