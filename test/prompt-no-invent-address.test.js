@@ -64,8 +64,9 @@ describe('CORE_GUARDRAILS — universales para TODOS los asistentes', () => {
     assert.ok(gPos >= 0, 'incluye las reglas inquebrantables');
     assert.ok(gPos < estiloPos, 'las reglas van ANTES del bloque de estilo');
     // Cubren los fallos reales: inventar seguros/parking y ceder en precio.
-    assert.match(prompt, /seguros o mutuas/i);
+    assert.match(prompt, /seguro o mutua/i);
     assert.match(prompt, /aparcamiento/i);
+    assert.match(prompt, /NO ASUMAS/i);
     assert.match(prompt, /NO SE NEGOCIAN/i);
   });
 
