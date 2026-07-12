@@ -167,8 +167,15 @@ class AssistantManager {
    * Build the system message for an assistant
    */
   buildSystemMessage(assistant) {
-    let systemPrompt = assistant.systemPrompt || assistant.system_prompt || '';
-    
+    // Guardrails de seguridad al PRINCIPIO, también para los asistentes de ARCHIVO
+    // (assistants/*.json) que NO pasan por generatePrompt() y por tanto no los
+    // llevaban (auditoría 2026-07-12: ganaban prioridad en la voz sin la red).
+    const { CORE_GUARDRAILS } = require('./prompt-generator');
+    const rawPrompt = assistant.systemPrompt || assistant.system_prompt || '';
+    let systemPrompt = rawPrompt.includes('REGLAS INQUEBRANTABLES')
+      ? rawPrompt                                   // ya los trae (vino de generatePrompt)
+      : CORE_GUARDRAILS + '\n\n' + rawPrompt;
+
     // Add current date/time context (BUG-47: always use Madrid timezone — server runs UTC)
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES', {

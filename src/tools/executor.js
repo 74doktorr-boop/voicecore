@@ -590,7 +590,7 @@ class ToolExecutor {
     // Normalise date for display
     let displayDate = nDate;
     try {
-      displayDate = new Date(nDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      displayDate = new Date(nDate + 'T12:00:00Z').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
     } catch (_) {}
 
     // Día relativo correcto: no decir "mañana" si la cita no es mañana (antes se
@@ -604,6 +604,9 @@ class ToolExecutor {
     const reminderLine = rel
       ? `Te recordamos que ${rel}tienes cita${petName} en nuestro centro:`
       : `Te recordamos tu cita${petName} en nuestro centro:`;
+    // Cierre relativo coherente (antes hardcodeado "¡Hasta mañana!" aunque la cita
+    // fuera otro día → plantilla contradictoria).
+    const closing = nDate === todayMadrid ? '¡Nos vemos hoy!' : nDate === tomorrowISO ? '¡Hasta mañana!' : '¡Nos vemos pronto!';
 
     const text =
       `Hola ${name} 👋\n\n` +
@@ -611,7 +614,7 @@ class ToolExecutor {
       `📅 ${displayDate} a las ${nTime}h\n` +
       `📋 ${service}` +
       address +
-      `\n\nSi necesitas cambiarla, llámanos. ¡Hasta mañana!`;
+      `\n\nSi necesitas cambiarla, llámanos. ${closing}`;
 
     // Try client WhatsApp (Meta API) first, fallback to owner notification
     const clientWA = _clientWA();

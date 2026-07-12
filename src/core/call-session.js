@@ -94,7 +94,13 @@ class CallSession {
     const dateStr   = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' });
     const timeStr   = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
     const label     = lang === 'eu' ? 'Uneko data eta ordua' : lang === 'gl' ? 'Data e hora actual' : 'Fecha y hora actual';
-    this.messages.push({ role: 'system', content: `${systemMsg}\n\n[${label}: ${dateStr}, ${timeStr}]` });
+    // Sustituir los placeholders que generatePrompt deja en la plantilla. Antes
+    // llegaban LITERALES a la voz: el LLM veía "FECHA DE HOY: {{DATE}}" y podía
+    // razonar "mañana/el jueves" contra basura → día equivocado (auditoría 2026-07-12).
+    const madridHour = parseInt(now.toLocaleTimeString('es-ES', { hour: '2-digit', hour12: false, timeZone: 'Europe/Madrid' }), 10);
+    const greeting   = madridHour >= 6 && madridHour < 14 ? 'Buenos días' : madridHour >= 14 && madridHour < 21 ? 'Buenas tardes' : 'Buenas noches';
+    const rendered   = systemMsg.replace(/\{\{\s*DATE\s*\}\}/g, dateStr).replace(/\{\{\s*GREETING\s*\}\}/g, greeting);
+    this.messages.push({ role: 'system', content: `${rendered}\n\n[${label}: ${dateStr}, ${timeStr}]` });
   }
 
   addUserMessage(text) {

@@ -79,6 +79,11 @@ describe('CORE_GUARDRAILS — universales para TODOS los asistentes', () => {
     assert.doesNotMatch(prompt, /aparcamiento gratuito/i);
     assert.doesNotMatch(prompt, /calle Mayor/i);
     assert.doesNotMatch(prompt, /es gratuita/i);
+    // Marcas de seguro y precio de ejemplo: el modelo los regurgitaba como datos
+    // reales ("sí, aceptamos Adeslas y Sanitas"). Las reglas deben ser abstractas.
+    assert.doesNotMatch(prompt, /Adeslas/i);
+    assert.doesNotMatch(prompt, /Sanitas/i);
+    assert.doesNotMatch(prompt, /cincuenta euros/i);
   });
 
   test('se aplican INCLUSO a un prompt personalizado (customPromptOverride)', () => {

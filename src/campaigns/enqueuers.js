@@ -17,8 +17,13 @@ const { Logger }              = require('../utils/logger');
 const log = new Logger('CAMPAIGN:ENQUEUE');
 
 // ── Dominio: bajas y nombre del contacto ─────────────────────────────
-// El analyzer marca do_not_contact poniendo no_whatsapp+no_email+no_sms.
-// Si las tres están, el cliente pidió que no le contacten: NO se le llama.
+// TODOS los consumidores de contactInfo() son campañas de VOZ (recuperación,
+// reactivación, anti no-show, avisos de entidades). Un contacto queda bloqueado
+// para esas llamadas si:
+//  · do-not-contact TOTAL: no_whatsapp+no_email+no_sms a la vez (el analyzer lo
+//    marca con outcome=do_not_contact), o
+//  · opt-out de VOZ dedicado: no_calls=true ("no me llames por teléfono", aunque
+//    siga queriendo WhatsApp/email). Lo marca el analyzer o el dueño en el portal.
 async function contactInfo(orgId, phone) {
   const db = getDatabase();
   if (!db.enabled) return { blocked: false, contactId: null, name: null };
@@ -27,10 +32,11 @@ async function contactInfo(orgId, phone) {
       .select('id, name').eq('org_id', orgId).eq('phone', phone).maybeSingle();
     if (!contact) return { blocked: false, contactId: null, name: null };
     const { data: mem } = await db.client.from('contact_memory')
-      .select('no_whatsapp, no_email, no_sms')
+      .select('no_whatsapp, no_email, no_sms, no_calls')
       .eq('org_id', orgId).eq('contact_id', contact.id).maybeSingle();
-    const blocked = !!(mem && mem.no_whatsapp && mem.no_email && mem.no_sms);
-    return { blocked, contactId: contact.id, name: contact.name || null };
+    const total   = !!(mem && mem.no_whatsapp && mem.no_email && mem.no_sms);
+    const noCalls = !!(mem && mem.no_calls);
+    return { blocked: total || noCalls, noCalls, contactId: contact.id, name: contact.name || null };
   } catch (e) {
     log.warn(`contactInfo(${orgId}, ${phone}): ${e.message}`);
     return { blocked: false, contactId: null, name: null };
@@ -42,12 +48,14 @@ function buildNoShowBlock(bizName, apt) {
   return `
 
 ## LLAMADA SALIENTE DE CONFIRMACIÓN DE CITA
-Llamas TÚ en nombre de ${bizName} para confirmar la cita de MAÑANA de ${apt.patientName || 'un cliente'}: ${apt.service || 'su cita'} a las ${apt.time}. El identificador de la cita es ${apt.id}.
-Preséntate, di de dónde llamas y pregunta con amabilidad si podrá venir.
-- Si CONFIRMA: agradece y despídete («perfecto, le esperamos mañana a las ${apt.time}»).
-- Si quiere CAMBIARLA: busca hueco con check_availability, cancela la actual con cancel_appointment (id ${apt.id}) y reserva la nueva.
-- Si CANCELA: cancélala con cancel_appointment y despídete con amabilidad, sin insistir.
-- Si salta un buzón de voz o no contesta un humano, cuelga sin dejar mensaje.`;
+Llamas TÚ en nombre de ${bizName} por una cita de MAÑANA. La cita (id ${apt.id}) es de ${apt.patientName || 'un cliente'}: ${apt.service || 'su cita'} a las ${apt.time}.
+PRIMERO verifica con quién hablas, SIN revelar todavía los detalles: preséntate ("Le llamo de ${bizName}") y pregunta si hablas con ${String(apt.patientName || 'la persona de la cita').split(' ')[0]}.
+- Si contesta OTRA persona (familiar, compañero…) o no confirma que es ${String(apt.patientName || 'esa persona').split(' ')[0]}: NO des detalles de la cita (servicio, hora) NI la canceles ni la cambies. Di solo que llamas por un tema de una cita y pide que ${String(apt.patientName || 'la persona').split(' ')[0]} os devuelva la llamada, o pregunta si puede ponerse. Nunca cancelar/reprogramar hablando con quien no es el titular.
+- Solo cuando CONFIRME que es ${String(apt.patientName || 'la persona de la cita').split(' ')[0]}: recuérdale su cita (${apt.service || 'su cita'} a las ${apt.time}) y pregunta con amabilidad si podrá venir.
+  - Si CONFIRMA: agradece y despídete («perfecto, le esperamos mañana a las ${apt.time}»).
+  - Si quiere CAMBIARLA: busca hueco con check_availability, cancela la actual con cancel_appointment (id ${apt.id}) y reserva la nueva.
+  - Si CANCELA: cancélala con cancel_appointment (id ${apt.id}) y despídete con amabilidad, sin insistir.
+- Si salta un buzón de voz o no contesta un humano, cuelga sin dejar mensaje ni datos de la cita.`;
 }
 
 // ¿Ya hay una llamada de recuperación EN CURSO (queued/calling) para este

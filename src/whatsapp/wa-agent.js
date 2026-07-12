@@ -47,6 +47,10 @@ function isEnabled() { return process.env.WA_AI_BOOKING_OFF !== '1'; }
 
 // ── Prompt del sistema (recepcionista por WhatsApp) ──────────────────────────
 function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMadrid, address }) {
+  // Mismas reglas de seguridad que la voz (precios no se negocian, no inventar/
+  // no asumir "sí", no prometer plazos, transparencia IA). Antes WhatsApp no las
+  // tenía (auditoría 2026-07-12): se podía presionar el precio POR ESCRITO.
+  const { CORE_GUARDRAILS } = require('../assistants/prompt-generator');
   const langName = language === 'eu' ? 'euskera' : language === 'gl' ? 'galego' : 'español';
   const svc = (serviceList && serviceList.length)
     ? 'Servicios y precios:\n' + serviceList.map(s =>
@@ -57,6 +61,7 @@ function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMa
     : '';
   return [
     `Eres la recepcionista de ${bizName} y atiendes a los clientes por WhatsApp. Hoy es ${todayMadrid} (Europe/Madrid).`,
+    CORE_GUARDRAILS,
     clientName ? `El cliente que te escribe se llama ${clientName} — resérvale a su nombre y no se lo preguntes.` : '',
     svc,
     addr,

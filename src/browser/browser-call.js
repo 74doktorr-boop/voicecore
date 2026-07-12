@@ -65,10 +65,14 @@ class BrowserCallHandler {
       _madridHour >= 14 && _madridHour < 21 ? 'Buenas tardes' :
                                               'Buenas noches';
 
-    const systemPrompt = (assistant.systemPrompt || assistant.system_prompt || '')
+    const { CORE_GUARDRAILS } = require('../assistants/prompt-generator');
+    let systemPrompt = (assistant.systemPrompt || assistant.system_prompt || '')
       // BUG-47: pin to Europe/Madrid — server runs UTC
       .replace('{{DATE}}', _now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' }))
       .replace(/\{\{GREETING\}\}/g, _greeting);
+    // Guardrails de seguridad también en llamadas de navegador (asistentes de
+    // archivo que no pasan por generatePrompt). Dedup si ya los trae.
+    if (systemPrompt && !systemPrompt.includes('REGLAS INQUEBRANTABLES')) systemPrompt = CORE_GUARDRAILS + '\n\n' + systemPrompt;
     if (systemPrompt) session.conversation.push({ role: 'system', content: systemPrompt });
 
     if (assistant.firstMessage) {
