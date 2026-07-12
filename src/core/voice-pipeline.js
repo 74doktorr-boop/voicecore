@@ -594,7 +594,13 @@ class VoicePipeline {
       // Sin modelo explícito, el router elige el proveedor MÁS RÁPIDO disponible
       // (groq ~80ms TTFT > openai > anthropic) con auto-fallback si falla.
       // Forzar gpt-4o-mini aquí ignoraba Groq y costaba ~4s por turno al teléfono.
-      const modelSpec = session.assistant.model || null;
+      // DEFAULT_LLM_MODEL (env): palanca global de proveedor por defecto. Sin él,
+      // comportamiento idéntico (null → router elige groq). Puente anti-entrecortado
+      // (2026-07-12): mientras Groq free-tier (12k TPM) se agota a mitad de llamada
+      // y provoca 429→failover a trompicones, poner 'gpt-4o-mini' fuerza OpenAI de
+      // principio a fin (sin thrash, ~300ms constante). Al abrir Groq de pago, se
+      // quita el env y vuelve a groq. La config por-org (assistant.model) manda.
+      const modelSpec = session.assistant.model || process.env.DEFAULT_LLM_MODEL || null;
       const fallbackModel = session.assistant.fallbackModel || null;
 
       // Stream LLM response via router
@@ -878,7 +884,10 @@ class VoicePipeline {
       // router elige el proveedor más rápido con auto-fallback. Forzar
       // gpt-4o-mini aquí costaba ~4s por turno y, sin OpenAI, el turno
       // moría en silencio JUSTO después de consultar la disponibilidad.
-      const modelSpec = session.assistant.model || null;
+      // DEFAULT_LLM_MODEL (env): misma palanca que el turno principal (puente
+      // anti-entrecortado 2026-07-12) — ambos turnos deben ir por el mismo
+      // proveedor o el post-herramienta volvería a hacer thrash.
+      const modelSpec = session.assistant.model || process.env.DEFAULT_LLM_MODEL || null;
       const fallbackModel = session.assistant.fallbackModel || null;
       let postToolResponse = '';
       let accumulatedText = '';
