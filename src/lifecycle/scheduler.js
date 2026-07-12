@@ -183,7 +183,11 @@ async function dispatch(reminder, contact, memory) {
       catch (_) { credentials = null; }
     }
     const result = await sendTemplate(phone, waTemplateName, language, waComponents, credentials);
-    if (result.ok) return { ok: true, channel: 'whatsapp' };
+    if (result.ok) {
+      // Transcript de WhatsApp: el `text` es la versión legible del aviso.
+      try { require('../whatsapp/wa-log').logWaMessage({ orgId: reminder.org_id, contactId: reminder.contact_id, phone, direction: 'out', body: text, kind: reminder.service_key || 'aviso' }); } catch (_) {}
+      return { ok: true, channel: 'whatsapp' };
+    }
     log.warn(`WA failed for reminder ${reminder.id}: ${result.error} — trying SMS`);
   }
 

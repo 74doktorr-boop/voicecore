@@ -21,6 +21,7 @@ function harness(over = {}) {
     sendText: async (phone, text, creds) => { sent.push({ phone, text, creds }); return { ok: true }; },
     getWaCredentials: async () => ({ phoneNumberId: 'pn', accessToken: 'tok' }),
     notifyOwner: (msg) => owner.push(msg),
+    getWaThread: over.getWaThread || (async () => over.thread || []),
     execute: over.execute || (async (name, args, ctx) => {
       execd.push({ name, args, session: ctx.session });
       if (name === 'check_availability') { ctx.session.availabilityChecked = true; return { success: true, slots: ['12:00', '13:00'] }; }
@@ -102,17 +103,24 @@ describe('handleWaBooking — otros casos', () => {
     } finally { if (prev === undefined) delete process.env.WA_AI_BOOKING_OFF; else process.env.WA_AI_BOOKING_OFF = prev; }
   });
 
-  test('mantiene el hilo: 2º mensaje reutiliza la conversación', async () => {
-    const h = harness();
-    h.deps.llm = fakeLlm([
-      { text: '¿Para qué día?', toolCalls: [] },
-      { text: 'Vale, miro el jueves.', toolCalls: [tc('t1', 'check_availability', { from_date: '2026-07-16' })] },
-      { text: 'Tengo hueco a las 10 o a las 12.', toolCalls: [] },
-    ]);
-    await handleWaBooking({ from: '34600', businessId: 'org-1', text: 'quiero cita' }, h.deps);
+  test('mantiene el hilo: reconstruye desde el transcript (sobrevive a reinicios)', async () => {
+    // Simula un hilo previo guardado en nf_wa_messages.
+    const h = harness({ thread: [
+      { direction: 'in',  body: 'quiero cita',   kind: 'text' },
+      { direction: 'out', body: '¿Para qué día?', kind: 'ai' },
+    ]});
+    h.deps.llm = fakeLlm([{ text: 'Vale, miro el jueves.', toolCalls: [] }]);
     await handleWaBooking({ from: '34600', businessId: 'org-1', text: 'el jueves' }, h.deps);
-    // el 2º turno arrancó con historial (system + user1 + assistant1 + user2 = 4)
-    assert.ok(h.deps.llm.calls[h.deps.llm.calls.length - 1] >= 4, 'reutiliza el hilo');
+    // el LLM recibió: system + 2 previos + el actual = 4 mensajes → hay contexto
+    assert.ok(h.deps.llm.calls[0] >= 4, 'reconstruye el hilo desde el transcript');
+  });
+
+  test('dedupe: si el mensaje actual ya está en el transcript, no se duplica', async () => {
+    const h = harness({ thread: [{ direction: 'in', body: 'hola', kind: 'text' }] });
+    h.deps.llm = fakeLlm([{ text: '¡Hola! ¿En qué te ayudo?', toolCalls: [] }]);
+    await handleWaBooking({ from: '34600', businessId: 'org-1', text: 'hola' }, h.deps);
+    // system + el 'hola' del transcript (no se re-añade) = 2, no 3
+    assert.strictEqual(h.deps.llm.calls[0], 2);
   });
 });
 

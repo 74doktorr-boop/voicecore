@@ -13,6 +13,15 @@ const { getWaCredentials } = require('../whatsapp/accounts');
 
 const log = new Logger('REMINDERS');
 
+// Transcript de WhatsApp: registra un saliente (fail-open). Resumen legible por
+// plantilla (el texto exacto lo renderiza Meta). apt trae businessId + phone.
+function _logWaOut(apt, kind, body) {
+  try {
+    if (!apt || !apt.businessId || !apt.phone) return;
+    require('../whatsapp/wa-log').logWaMessage({ orgId: apt.businessId, phone: apt.phone, direction: 'out', body, kind });
+  } catch (_) {}
+}
+
 const GOOGLE_REVIEW_BASE = 'https://search.google.com/local/writereview?placeid=';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -450,6 +459,7 @@ async function sendWaConfirmation(apt, config, deps = {}) {
     const result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, components, credentials);
     if (result?.ok) {
       log.info(`WA confirmation sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+      _logWaOut(apt, 'confirmacion', `Confirmación de cita: ${apt.service || 'tu cita'} — ${apt.date} ${apt.time}h`);
       return true;
     }
     log.warn(`WA confirmation not ok for ${apt.id}: ${result?.error}`);
@@ -503,6 +513,7 @@ async function sendWaReminder(apt, config) {
     ], credentials);
     if (result?.ok) {
       log.info(`WA reminder sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+      _logWaOut(apt, 'recordatorio', `Recordatorio de cita: ${apt.service || 'tu cita'} — ${dateStr} ${apt.time}h`);
       return true;
     }
     log.warn(`WA reminder not ok for ${apt.id}: ${result?.error}`);

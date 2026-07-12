@@ -20,10 +20,9 @@ const { stripTextualToolCalls } = require('../llm/textual-tool-filter');
 
 const log = new Logger('WA-AGENT');
 
-// Conversaciones vivas: `${businessId}|${phone}` → { messages, session, updatedAt }
-const _convos = new Map();
-const CONVO_TTL_MS = 2 * 60 * 60 * 1000; // 2h — una reserva por WhatsApp es corta
-const MAX_HISTORY  = 14;                  // pares user/assistant que retenemos
+// El hilo se reconstruye desde nf_wa_messages (persistente); ya no hay estado en
+// memoria. MAX_HISTORY = cuántos mensajes previos se cargan para dar contexto.
+const MAX_HISTORY = 20;
 
 let _llmSingleton = null, _execSingleton = null;
 function _router() {
@@ -42,8 +41,7 @@ function _executor() {
   return _execSingleton;
 }
 
-function _gc(now) { for (const [k, v] of _convos) if (now - v.updatedAt > CONVO_TTL_MS) _convos.delete(k); }
-function _resetConvos() { _convos.clear(); }   // para tests
+function _resetConvos() { /* el hilo vive en nf_wa_messages; no-op (compat tests) */ }
 
 function isEnabled() { return process.env.WA_AI_BOOKING_OFF !== '1'; }
 
@@ -61,6 +59,7 @@ function buildSystemPrompt({ bizName, language, serviceList, clientName, todayMa
     'Tu trabajo por WhatsApp:',
     '- Si quiere RESERVAR/CAMBIAR una cita o pregunta por un hueco: llama a check_availability para ver los huecos REALES, dile las opciones y, cuando te dé un día y una hora concretos y esté de acuerdo, reserva con book_appointment (confirmed_with_customer=true). Confirma SIEMPRE en tu respuesta el día y la hora exactos.',
     '- Nunca inventes horarios: usa check_availability antes de reservar. Si no hay hueco a esa hora, ofrece alternativas cercanas.',
+    '- Si quiere CANCELAR o REPROGRAMAR una cita: usa lookup_appointments para ver sus citas, confirma cuál con él, y usa cancel_appointment (para reprogramar: cancela la vieja y reserva la nueva con book_appointment). Confirma el cambio.',
     '- Si pregunta por precios, servicios o dirección, respóndele con lo que sabes.',
     '- Si es una QUEJA, una duda que no sabes resolver, o pide que le llamen: usa register_lead para que el equipo le contacte, y díselo con amabilidad. Así el dueño se entera.',
     `Sé BREVE, cálido y natural (es WhatsApp, no un email). Responde SIEMPRE en ${langName}.`,
@@ -115,64 +114,63 @@ async function _clientName(businessId, phone) {
 async function handleWaBooking({ from, businessId, text }, deps = {}) {
   if (!isEnabled() || !businessId || !text || !text.trim()) return { handled: false };
   const phone = String(from).startsWith('+') ? String(from) : '+' + String(from);
-  const now = Date.now(); _gc(now);
 
   const llm         = deps.llm         || _defaultLlm;
   const execute     = deps.execute     || ((name, args, ctx) => _executor().execute(name, args, businessId, ctx));
   const sendText    = deps.sendText    || require('../notifications/client-whatsapp').sendText;
   const getCreds    = deps.getWaCredentials || require('./accounts').getWaCredentials;
   const notifyOwner = deps.notifyOwner || ((msg) => { try { require('../tools/executor')._notifyOwner(msg, businessId); } catch (_) {} });
+  const getThread   = deps.getWaThread || require('./wa-log').getWaThread;
 
-  const key = `${businessId}|${phone}`;
-  let convo = _convos.get(key);
-  if (!convo) {
-    const cfg = deps.config || await _loadConfig(businessId);
-    const clientName = deps.clientName !== undefined ? deps.clientName : await _clientName(businessId, phone);
-    const todayMadrid = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-    const session = { callerNumber: phone, businessId, orgId: businessId, availabilityChecked: false, serviceList: cfg.serviceList, bookedAppointments: [] };
-    convo = {
-      messages: [{ role: 'system', content: buildSystemPrompt({ bizName: cfg.name, language: cfg.language, serviceList: cfg.serviceList, clientName, todayMadrid }) }],
-      session, updatedAt: now,
-    };
-    _convos.set(key, convo);
+  const cfg = deps.config || await _loadConfig(businessId);
+  const clientName = deps.clientName !== undefined ? deps.clientName : await _clientName(businessId, phone);
+  const todayMadrid = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  const systemPrompt = buildSystemPrompt({ bizName: cfg.name, language: cfg.language, serviceList: cfg.serviceList, clientName, todayMadrid });
+
+  // El HILO se reconstruye desde nf_wa_messages (persistente → sobrevive a
+  // reinicios/deploys, ya no vive solo en memoria). Los mensajes tool/tool_calls
+  // son transitorios dentro de UN turno; entre mensajes basta el texto.
+  const prior = await getThread(businessId, phone, MAX_HISTORY).catch(() => []);
+  const messages = [{ role: 'system', content: systemPrompt }];
+  for (const m of (prior || [])) {
+    if (!m.body) continue;
+    messages.push({ role: m.direction === 'in' ? 'user' : 'assistant', content: m.body });
   }
-  convo.updatedAt = now;
-  convo.messages.push({ role: 'user', content: text.trim() });
+  // El mensaje actual al final (dedupe: el webhook puede haberlo logueado ya).
+  const last = messages[messages.length - 1];
+  if (!(last && last.role === 'user' && last.content === text.trim())) messages.push({ role: 'user', content: text.trim() });
 
+  const session = { callerNumber: phone, businessId, orgId: businessId, availabilityChecked: false, serviceList: cfg.serviceList, bookedAppointments: [] };
   const { ToolExecutor } = require('../tools/executor');
-  const tools = ToolExecutor.toOpenAITools(['check_availability', 'book_appointment', 'register_lead']);
-  const callId = `wa-${key}`;
+  const tools = ToolExecutor.toOpenAITools(['check_availability', 'book_appointment', 'lookup_appointments', 'cancel_appointment', 'register_lead']);
+  const callId = `wa-${businessId}|${phone}`;
 
-  let turn = await llm(convo.messages, tools, callId);
+  let turn = await llm(messages, tools, callId);
   let booked = null;
 
-  for (let round = 0; round < 2 && turn.toolCalls && turn.toolCalls.length; round++) {
-    convo.messages.push({
+  for (let round = 0; round < 3 && turn.toolCalls && turn.toolCalls.length; round++) {
+    messages.push({
       role: 'assistant', content: turn.text || null,
       tool_calls: turn.toolCalls.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.function.name, arguments: tc.function.arguments } })),
     });
     for (const tc of turn.toolCalls) {
       let args = {};
       try { args = typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments || '{}') : (tc.function.arguments || {}); } catch (_) {}
-      const result = await execute(tc.function.name, args, { callId, session: convo.session });
+      const result = await execute(tc.function.name, args, { callId, session });
       if (tc.function.name === 'book_appointment' && result && result.success) booked = result.appointment || true;
-      convo.messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+      messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
     }
-    turn = await llm(convo.messages, tools, callId);
+    turn = await llm(messages, tools, callId);
   }
 
   const reply = (turn.text || '').trim();
-  if (reply) convo.messages.push({ role: 'assistant', content: reply });
-  // Recorte de historial (conserva el system).
-  if (convo.messages.length > MAX_HISTORY + 1) convo.messages = [convo.messages[0], ...convo.messages.slice(-MAX_HISTORY)];
-
-  if (!reply && !booked) { _convos.set(key, convo); return { handled: false }; } // sin respuesta útil → humano
+  if (!reply && !booked) return { handled: false }; // sin respuesta útil → humano
 
   // Enviar la respuesta por WhatsApp (texto libre dentro de la ventana de 24h).
   if (reply) {
     const credentials = await getCreds(businessId).catch(() => null);
     await sendText(phone, reply, credentials).catch(e => log.warn(`wa send (${phone}): ${e.message}`));
-    // Transcript: registra la respuesta del asistente.
+    // Transcript: registra la respuesta del asistente (y así el hilo persiste).
     try { require('./wa-log').logWaMessage({ orgId: businessId, phone, direction: 'out', body: reply, kind: 'ai' }); } catch (_) {}
   }
 

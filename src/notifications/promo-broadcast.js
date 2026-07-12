@@ -147,6 +147,8 @@ async function sendPromo(orgId, { text, tag, bizName, service, inactiveDays, bir
       }], credentials);
       if (r && r.ok) {
         out.sent++;
+        // Transcript de WhatsApp: registra la promo enviada.
+        try { require('../whatsapp/wa-log').logWaMessage({ orgId, contactId: c.id, phone: c.phone, direction: 'out', body: promoText, kind: 'promo' }); } catch (_) {}
         // Ledger unificado: cuenta para el paquete, sale en la ficha y en el ROI.
         // Si el insert falla, el contador y el ledger se descuadran: se loguea
         // y se cuenta (auditoría 2026-07-07) — nunca más en silencio.

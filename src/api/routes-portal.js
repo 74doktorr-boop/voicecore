@@ -1099,8 +1099,10 @@ function setupPortalRoutes(app, pipeline, config) {
     const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     if (mark && apt.date > todayStr) return res.status(409).json({ error: 'La cita aún no ha pasado' });
 
+    const alreadyNoShow = apt.status === 'no_show' || apt.no_show_notified === true; // ya se avisó antes
     const newStatus = mark ? 'no_show' : 'completed';
     apt.status = newStatus;
+    if (mark) apt.no_show_notified = true;
     apt.updatedAt = new Date().toISOString();
     try {
       const { appointmentsStore } = require('../db/appointments-store');
@@ -1110,8 +1112,9 @@ function setupPortalRoutes(app, pipeline, config) {
 
     // Al marcar PLANTÓN: WhatsApp en nombre del negocio ofreciendo reprogramar
     // (recupera al cliente que no vino). Fire-and-forget, respeta opt-out y usa
-    // la plantilla aprobada nodeflow_aviso. Solo al MARCAR (no al desmarcar).
-    if (mark) {
+    // la plantilla aprobada nodeflow_aviso. Solo al MARCAR y SOLO la primera vez
+    // (guard anti-reenvío: re-marcar no vuelve a mandar el WhatsApp).
+    if (mark && !alreadyNoShow) {
       try {
         require('../notifications/no-show-followup')
           .sendNoShowRebooking(apt, req.flowConfig || {}).catch(() => {});

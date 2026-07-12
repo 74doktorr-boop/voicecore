@@ -203,6 +203,7 @@ async function handleReply({ from, type, payload }) {
       `Te esperamos. Si surge algo y necesitas cancelar, escríbenos aquí mismo. ¡Hasta pronto! 👋`,
       credentials
     ).catch(e => log.warn(`WA confirm reply error: ${e.message}`));
+    try { require('./wa-log').logWaMessage({ orgId: apt.businessId, phone: from, direction: 'out', kind: 'confirmar', body: `Cita confirmada: ${apt.service || 'tu cita'} — ${humanDate(apt.date)} ${apt.time}h` }); } catch (_) {}
 
     await alertOwner(apt, 'confirmed', credentials);
     return;
@@ -235,6 +236,7 @@ async function handleReply({ from, type, payload }) {
       `Cuando quieras volver a reservar, llámanos o escríbenos aquí. ¡Hasta pronto! 👋`,
       credentials
     ).catch(e => log.warn(`WA cancel reply error: ${e.message}`));
+    try { require('./wa-log').logWaMessage({ orgId: apt.businessId, phone: from, direction: 'out', kind: 'cancelar', body: `Cita cancelada: ${humanDate(apt.date)} ${apt.time}h` }); } catch (_) {}
 
     await alertOwner(apt, 'cancelled', credentials);
     return;
