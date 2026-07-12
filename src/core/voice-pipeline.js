@@ -275,8 +275,11 @@ class VoicePipeline {
             // Dirección del negocio: si el dueño la configuró, la IA debe
             // saber decirla ("¿dónde estáis?") — antes no llegaba al prompt
             // (feedback real 2026-07-03).
+            // Dedupe: el prompt base puede traer ya la dirección (generatePrompt
+            // la incluye si vive en assistant_config). Solo se añade si el texto
+            // exacto no está ya, para no inyectarla dos veces.
             const address = org?.automation_config?.config?.address;
-            if (address) sys.content += `\n\nDIRECCIÓN DEL NEGOCIO: ${address}. Dásela al cliente si pregunta dónde está el negocio o cómo llegar.`;
+            if (address && !sys.content.includes(String(address))) sys.content += `\n\nDIRECCIÓN DEL NEGOCIO: ${address}. Dásela al cliente si pregunta dónde está el negocio o cómo llegar.`;
           }
         } catch (e) { log.warn(`[${callId}] price-list inject fail-open: ${e.message}`); }
         // 2) Base de conocimiento libre (RAG)

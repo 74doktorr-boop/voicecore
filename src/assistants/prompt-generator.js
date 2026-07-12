@@ -202,6 +202,10 @@ function generatePrompt(config, orgName) {
   const services      = config.services || '';
   const serviceListStr = formatServiceList(config.serviceList);
   const extraInfo     = config.extraInfo || '';
+  // Dirección / cómo llegar: dato EXACTO configurable. "¿Dónde estáis?" es de
+  // las preguntas más comunes a una recepcionista; sin este campo el LLM se
+  // inventaba calle, número y aparcamiento (llamada real 2026-07-12, fisio unai).
+  const address       = String(config.address || config.direccion || '').trim();
   const langInstr     = formatLanguage(language);
   const sectorStr     = sectorBlock(sector, config.sectorData || {}, !!serviceListStr);
   // Normas de COMPORTAMIENTO propias del sector (registro canónico, 2026-07-04):
@@ -230,6 +234,7 @@ CÓMO GESTIONAR LA CONVERSACIÓN:
 ${sectorNorms}
 
 HORARIO: ${scheduleStr}
+${address ? `DIRECCIÓN Y CÓMO LLEGAR (dato EXACTO — úsalo tal cual si preguntan dónde estáis; no añadas calles, números ni aparcamiento que no figuren aquí): ${address}` : ''}
 ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
 ${sectorStr}
 ${extraInfo ? `INFORMACIÓN ADICIONAL: ${extraInfo}` : ''}
@@ -260,6 +265,7 @@ DICCIÓN TELEFÓNICA (esto se LEE EN VOZ ALTA por teléfono):
 - Confirma los datos importantes repitiéndolos: «Perfecto, María, el jueves a las diez y media».
 
 PROHIBIDO:
+- JAMÁS inventes datos que no tengas configurados arriba: dirección, calle, número, cómo llegar, aparcamiento, servicios, precios, horarios o cualquier detalle. Si NO está en tu información, para ti NO EXISTE. En concreto, si te preguntan dónde estáis o cómo llegar y NO tienes una DIRECCIÓN configurada, dilo con naturalidad ("No tengo la dirección exacta a mano; el equipo se la confirma sin problema") y ofrece anotarlo — nunca te inventes una calle, un número ni un aparcamiento. (Llamada real 2026-07-12: sin dirección configurada, la asistente se inventó "calle Mayor número diez con aparcamiento gratuito".)
 - No hables en otro idioma.
 - No repitas preguntas ya respondidas NI vuelvas a pedir o confirmar datos que el cliente ya te dio (su nombre, el servicio que le interesa). Cuando ya sabes su nombre, úsalo con moderación — no lo repitas en cada frase.
 - No hagas preguntas innecesarias de clarificación: si el cliente ya ha dicho qué quiere, no le vuelvas a preguntar el tipo de servicio.
