@@ -781,7 +781,21 @@ async function sendMagicLinkEmail(email, magicToken) {
 
   const text = `Accede a tu portal NodeFlow:\n\n${portalLink}\n\nEste enlace expira en 7 días.\n\nSi no lo solicitaste, ignora este email.`;
 
-  return sendEmail({ to: email, subject: 'Tu enlace de acceso a NodeFlow', html, text });
+  // Asunto ÚNICO por envío. Con un asunto idéntico, Gmail agrupa todos los
+  // enlaces en el MISMO hilo (el usuario no ve los nuevos) y manda los
+  // repetidos a Spam/Promociones. La marca de hora, además, deja claro cuál es
+  // el más reciente — que es el único válido (los enlaces son de un solo uso).
+  let sello;
+  try {
+    sello = new Date().toLocaleString('es-ES', {
+      timeZone: 'Europe/Madrid', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  } catch (_) {
+    sello = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  }
+  const subject = `Tu enlace de acceso a NodeFlow · ${sello}`;
+
+  return sendEmail({ to: email, subject, html, text });
 }
 
 // ── Recompensa de referido: un negocio que refirió consiguió una conversión ──
