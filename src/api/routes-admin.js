@@ -590,6 +590,22 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Digest matinal: probarlo a mano desde el panel ──────────────────────────
+  // ?send=1 envía de verdad; sin él, dry-run (devuelve los avisos sin email).
+  app.post('/api/admin/founder-digest', adminAuth, async (req, res) => {
+    try {
+      const { runFounderDigest, collectDigestItems } = require('../monitoring/founder-digest');
+      if (req.query.send === '1') {
+        const r = await runFounderDigest();
+        return res.json({ ok: true, ...r });
+      }
+      const items = await collectDigestItems();
+      res.json({ ok: true, dryRun: true, items });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Leads accionables ───────────────────────────────────────────────────────
   // Reenviar enlace de pago: genera un checkout fresco del registro y se lo
   // manda por email al lead (además de devolver la URL para copiarla a mano).
