@@ -44,9 +44,25 @@
     "recepcionista-ia-fisioterapia-vitoria",
     "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
     "recepcionista-ia-veterinaria-bilbao",
-    "asistente-ia-gimnasio-donostia"
+    "asistente-ia-gimnasio-donostia",
+    "recepcionista-ia-peluqueria-vitoria"
   ],
   "posts": [
+    {
+      "slug": "recepcionista-ia-peluqueria-vitoria",
+      "title": "Revoluciona tu Peluquería en Vitoria con una Recepcionista IA",
+      "metaTitle": "Recepcionista IA Peluquería Vitoria: Automatiza Citas",
+      "description": "Descubre cómo la recepcionista IA en peluquería Vitoria optimiza reservas y atención. Automatiza tu negocio hoy con NodeFlow.",
+      "date": "2026-07-13",
+      "keywords": [
+        "recepcionista IA peluquería Vitoria",
+        "automatizar citas peluquería Gasteiz",
+        "asistente virtual barbería Álava"
+      ],
+      "sector": "peluquerias",
+      "city": "vitoria",
+      "readingMinutes": 7
+    },
     {
       "slug": "asistente-ia-gimnasio-donostia",
       "title": "Asistente IA para Gimnasios en Donostia: Automatiza y Crece",
