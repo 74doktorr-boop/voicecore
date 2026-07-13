@@ -546,6 +546,49 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Explorador GLOBAL de llamadas (nf_calls, persistente) ───────────────────
+  // La pestaña Llamadas del admin dejaba de ver nada tras cada deploy (datos en
+  // memoria). Esto consulta el registro persistente con filtros: fundamental
+  // para auditar transcripciones y QA de llamadas reales sin tocar la BD a mano.
+  // GET /api/admin/calls-db?org=&outcome=&direction=&days=7&limit=50
+  app.get('/api/admin/calls-db', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ calls: [], total: 0 });
+    try {
+      const days  = Math.min(parseInt(req.query.days || '7', 10) || 7, 90);
+      const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
+      const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      let q = db.client.from('nf_calls')
+        .select('id, org_id, direction, caller_number, status, outcome, started_at, duration_ms, turn_count, metrics, booked_appointment', { count: 'exact' })
+        .gte('started_at', since)
+        .order('started_at', { ascending: false })
+        .limit(limit);
+      if (req.query.org)       q = q.eq('org_id', req.query.org);
+      if (req.query.outcome)   q = q.eq('outcome', req.query.outcome);
+      if (req.query.direction) q = q.eq('direction', req.query.direction);
+      const { data, count, error } = await q;
+      if (error) throw new Error(error.message);
+      res.json({ calls: data || [], total: count || 0 });
+    } catch (e) {
+      log.error('Admin calls-db error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Llamada completa (con transcripción) para el visor del admin.
+  app.get('/api/admin/calls-db/:id', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      const { data, error } = await db.client.from('nf_calls')
+        .select('*').eq('id', req.params.id).single();
+      if (error || !data) return res.status(404).json({ error: 'Llamada no encontrada' });
+      res.json({ call: data });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── KPIs de negocio + analíticas + gestión (derivado de la BD) ──────────────
   app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     try {

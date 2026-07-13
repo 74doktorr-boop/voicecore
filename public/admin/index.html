@@ -441,18 +441,41 @@
     <!-- Llamadas -->
     <div class="tab-panel" id="tab-llamadas">
       <div class="section-hd">
-        <div><h2>Llamadas IA</h2><p>Datos en memoria — se reinician con el servidor</p></div>
-        <button class="refresh-btn" onclick="loadCalls()">↻ Actualizar</button>
+        <div><h2>Llamadas IA</h2><p>Registro persistente — clic en una llamada para leer la transcripción</p></div>
+        <button class="refresh-btn" onclick="loadCalls();loadCallsDb()">↻ Actualizar</button>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
         <div class="kpi-card"><div class="kpi-label">Llamadas hoy</div><div class="kpi-value" id="cCallsToday">—</div><div class="kpi-sub">en lo que va del día</div></div>
         <div class="kpi-card"><div class="kpi-label">Minutos hoy</div><div class="kpi-value" id="cMinsToday">—</div><div class="kpi-sub">tiempo de IA</div></div>
         <div class="kpi-card"><div class="kpi-label">Llamadas este mes</div><div class="kpi-value" id="cCallsMonth">—</div><div class="kpi-sub">acumulado mes</div></div>
       </div>
+      <div class="filter-bar" style="margin-bottom:14px">
+        <select id="cxOrg" onchange="loadCallsDb()" class="form-select" style="width:auto"><option value="">Todos los negocios</option></select>
+        <select id="cxOutcome" onchange="loadCallsDb()" class="form-select" style="width:auto">
+          <option value="">Todos los resultados</option>
+          <option value="booked">✅ Reservó</option>
+          <option value="info">💬 Solo info</option>
+          <option value="abandoned">🚪 Abandonó</option>
+          <option value="failed">⚠️ Fallo</option>
+        </select>
+        <select id="cxDir" onchange="loadCallsDb()" class="form-select" style="width:auto">
+          <option value="">Entrantes y salientes</option>
+          <option value="inbound">📥 Entrantes</option>
+          <option value="outbound">📤 Salientes</option>
+          <option value="browser">🖥 Demo navegador</option>
+        </select>
+        <select id="cxDays" onchange="loadCallsDb()" class="form-select" style="width:auto">
+          <option value="1">Hoy</option>
+          <option value="7" selected>7 días</option>
+          <option value="30">30 días</option>
+          <option value="90">90 días</option>
+        </select>
+        <span id="cxCount" class="u-dim u-text-sm"></span>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Hora</th><th>Duración</th><th>Sentimiento</th><th>Resultado</th><th>Latencia avg</th><th>Herramientas</th></tr></thead>
-          <tbody id="callsBody"><tr class="empty-row"><td colspan="6">Cargando…</td></tr></tbody>
+          <thead><tr><th>Fecha</th><th>Negocio</th><th>Dir.</th><th>Teléfono</th><th>Duración</th><th>Turnos</th><th>Resultado</th><th></th></tr></thead>
+          <tbody id="callsDbBody"><tr class="empty-row"><td colspan="8">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -587,7 +610,7 @@ function switchTab(name,btn) {
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='citas') loadCitasOrgs().then(loadCitas);
-  if(name==='llamadas') loadCalls();
+  if(name==='llamadas') { loadCalls(); loadCallsDb(); }
   if(name==='analiticas') loadAnalytics();
   if(name==='auditoria') loadAudit();
   if(name==='automatizaciones') loadAutoStats();
@@ -700,7 +723,7 @@ function _ckBase() {
   ];
   const orgs = (window._orgsCache || []).map(o => ({
     ic:'🏪', label: o.name || o.owner_email || o.id, sub: o.owner_email || '',
-    kind:'Cliente', run: () => { switchTab('clientes'); toast('Cliente: ' + (o.name || o.id)); },
+    kind:'Cliente', run: () => openOrgSheet(o.id),
   }));
   return tabs.concat(actions, orgs);
 }
@@ -751,6 +774,134 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowUp')   { e.preventDefault(); _ckSel = Math.max(_ckSel - 1, 0); _ckPaint(); }
   if (e.key === 'Enter')     { e.preventDefault(); _ckGo(_ckSel); }
 });
+
+// ── Explorador de llamadas (nf_calls persistente) ────────────────────────────
+function _orgLabel(orgId){
+  const o = (window._orgsCache||[]).find(x=>x.id===orgId);
+  return o ? (o.name||o.owner_email||orgId) : (orgId ? String(orgId).slice(0,8)+'…' : '—');
+}
+function _fmtMs(ms){ if(!ms&&ms!==0) return '—'; const s=Math.round(ms/1000), m=Math.floor(s/60); return m? m+'m '+(s%60)+'s' : s+'s'; }
+function _fmtWhen(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+const _OUTCOME_BADGE = { booked:'<span class="badge bg">✅ Reservó</span>', info:'<span class="badge bd">💬 Info</span>', abandoned:'<span class="badge by">🚪 Abandonó</span>', failed:'<span class="badge br">⚠️ Fallo</span>' };
+
+function _fillCxOrgs(){
+  const sel=document.getElementById('cxOrg'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Todos los negocios</option>'+(window._orgsCache||[]).map(o=>
+    '<option value="'+o.id+'"'+(o.id===cur?' selected':'')+'>'+_attEsc(o.name||o.owner_email||o.id)+'</option>').join('');
+}
+
+async function loadCallsDb(){
+  const b=document.getElementById('callsDbBody'); if(!b) return;
+  _fillCxOrgs();
+  b.innerHTML='<tr class="empty-row"><td colspan="8">Cargando…</td></tr>';
+  try{
+    const p=new URLSearchParams();
+    const org=document.getElementById('cxOrg').value;         if(org) p.set('org',org);
+    const out=document.getElementById('cxOutcome').value;     if(out) p.set('outcome',out);
+    const dir=document.getElementById('cxDir').value;         if(dir) p.set('direction',dir);
+    p.set('days', document.getElementById('cxDays').value||'7');
+    p.set('limit','100');
+    const d=await api('/api/admin/calls-db?'+p.toString());
+    const calls=d.calls||[];
+    document.getElementById('cxCount').textContent = calls.length ? calls.length+' de '+(d.total||calls.length)+' llamadas' : '';
+    if(!calls.length){ b.innerHTML='<tr class="empty-row"><td colspan="8">Sin llamadas con estos filtros</td></tr>'; return; }
+    b.innerHTML=calls.map(c=>{
+      const dirIc = c.direction==='outbound'?'📤':c.direction==='browser'?'🖥':'📥';
+      const booked = c.booked_appointment ? ' <span title="Cita creada en esta llamada">📅</span>' : '';
+      return '<tr style="cursor:pointer" onclick="openCallView(\''+c.id+'\')">'+
+        '<td class="u-nowrap">'+_fmtWhen(c.started_at)+'</td>'+
+        '<td><strong>'+_attEsc(_orgLabel(c.org_id))+'</strong></td>'+
+        '<td>'+dirIc+'</td>'+
+        '<td class="u-dim u-text-sm">'+_attEsc(c.caller_number||'—')+'</td>'+
+        '<td>'+_fmtMs(c.duration_ms)+'</td>'+
+        '<td class="u-center">'+(c.turn_count??'—')+'</td>'+
+        '<td>'+(_OUTCOME_BADGE[c.outcome]||'<span class="badge bd">'+_attEsc(c.outcome||c.status||'—')+'</span>')+booked+'</td>'+
+        '<td class="u-dim">📖</td></tr>';
+    }).join('');
+  }catch(e){ b.innerHTML='<tr class="empty-row"><td colspan="8">Error: '+_attEsc(e.message||e)+'</td></tr>'; }
+}
+
+// Visor de transcripción — la llamada completa en formato chat, con métricas.
+async function openCallView(id){
+  adminModal('<div class="modal-title">📖 Llamada</div><div class="u-dim">Cargando transcripción…</div>');
+  try{
+    const d=await api('/api/admin/calls-db/'+encodeURIComponent(id));
+    const c=d.call||{};
+    const m=c.metrics||{};
+    const lat = m.avgFirstAudioMs||m.avgLatencyMs||m.firstAudioMs||null;
+    const chips = [
+      _fmtWhen(c.started_at), _orgLabel(c.org_id), _fmtMs(c.duration_ms),
+      (c.turn_count??'—')+' turnos', lat?('~'+Math.round(lat)+'ms voz'):null,
+      c.caller_number||null,
+    ].filter(Boolean).map(x=>'<span class="badge bd" style="margin:2px">'+_attEsc(x)+'</span>').join('');
+    const t=Array.isArray(c.transcript)?c.transcript:[];
+    const bubbles = t.length ? t.map(turn=>{
+      const role=(turn.role||turn.speaker||'').toLowerCase();
+      const isUser = role==='user'||role==='caller'||role==='cliente';
+      const text=turn.content||turn.text||turn.message||'';
+      if(!text||role==='system'||role==='tool') return '';
+      return '<div style="display:flex;justify-content:'+(isUser?'flex-start':'flex-end')+';margin-bottom:8px">'+
+        '<div style="max-width:78%;padding:9px 13px;border-radius:12px;font-size:13.5px;line-height:1.5;'+
+        (isUser?'background:rgba(255,255,255,.06);color:var(--text);border-bottom-left-radius:4px'
+               :'background:rgba(196,245,70,.1);color:var(--text);border:1px solid rgba(196,245,70,.18);border-bottom-right-radius:4px')+
+        '"><div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">'+
+        (isUser?'📞 Cliente':'🤖 Asistente')+'</div>'+_attEsc(text)+'</div></div>';
+    }).join('') : '<div class="u-dim" style="padding:12px 0">Sin transcripción guardada para esta llamada.</div>';
+    const booked = c.booked_appointment
+      ? '<div style="background:rgba(33,192,138,.08);border:1px solid rgba(33,192,138,.25);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px">📅 <strong>Cita creada:</strong> '+_attEsc(JSON.stringify(c.booked_appointment).slice(0,180))+'</div>'
+      : '';
+    adminModal(
+      '<div class="modal-title">📖 Llamada — '+(_OUTCOME_BADGE[c.outcome]||_attEsc(c.outcome||c.status||''))+'</div>'+
+      '<div style="margin-bottom:10px">'+chips+'</div>'+booked+
+      '<div style="max-height:52vh;overflow-y:auto;padding:6px 2px">'+bubbles+'</div>'+
+      '<div class="modal-actions"><button class="btn btn-d" onclick="adminCloseModal()">Cerrar</button></div>'
+    );
+  }catch(e){ adminModal('<div class="modal-title">📖 Llamada</div><div class="u-red">Error: '+_attEsc(e.message||e)+'</div><div class="modal-actions"><button class="btn btn-d" onclick="adminCloseModal()">Cerrar</button></div>'); }
+}
+
+// ── Ficha rápida de cliente ───────────────────────────────────────────────────
+// Todo lo del cliente en un vistazo + acciones, sin bucear por pestañas.
+async function openOrgSheet(orgId){
+  adminModal('<div class="modal-title">🏪 Cliente</div><div class="u-dim">Cargando ficha…</div>');
+  try{
+    const [od, cd] = await Promise.all([
+      api('/api/admin/orgs/'+encodeURIComponent(orgId)),
+      api('/api/admin/calls-db?org='+encodeURIComponent(orgId)+'&days=30&limit=5').catch(()=>({calls:[]})),
+    ]);
+    const o=od.org||{};
+    const cfg=(o.automation_config&&o.automation_config.config)||{};
+    const used=parseFloat(o.monthly_minutes_used||0), limit=parseFloat(o.monthly_minutes_limit||500);
+    const pct=Math.min(100,Math.round(used/limit*100));
+    const plan=o.plan==='pro'?'<span class="badge bp">Pro 99€</span>':o.plan==='negocio'?'<span class="badge bg">Negocio 49€</span>':'<span class="badge bd">'+_attEsc(o.plan||'—')+'</span>';
+    const row=(l,v)=>'<div style="display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--dim)">'+l+'</span><span style="text-align:right">'+v+'</span></div>';
+    const calls=(cd.calls||[]);
+    const callRows = calls.length ? calls.map(c=>
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer" onclick="openCallView(\''+c.id+'\')">'+
+      '<span class="u-dim" style="white-space:nowrap">'+_fmtWhen(c.started_at)+'</span>'+
+      '<span style="flex:1">'+(_OUTCOME_BADGE[c.outcome]||'<span class="badge bd">'+_attEsc(c.outcome||'—')+'</span>')+'</span>'+
+      '<span class="u-dim">'+_fmtMs(c.duration_ms)+' · 📖</span></div>').join('')
+      : '<div class="u-dim" style="font-size:12.5px;padding:6px 0">Sin llamadas en 30 días.</div>';
+    adminModal(
+      '<div class="modal-title">🏪 '+_attEsc(o.name||'Cliente')+' '+plan+'</div>'+
+      row('Email', _attEsc(o.owner_email||'—'))+
+      row('Número NodeFlow', _attEsc(cfg.nodeflowNumber||'⚠️ sin asignar'))+
+      row('Teléfono del dueño', _attEsc(o.phone||'—'))+
+      row('Minutos este mes', used.toFixed(0)+' / '+limit+' ('+pct+'%)')+
+      row('Cerebro (A/B)', _attEsc((o.assistant_config&&o.assistant_config.model)||'⚙️ Auto'))+
+      row('Alta', o.created_at?new Date(o.created_at).toLocaleDateString('es-ES'):'—')+
+      '<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:14px 0 4px">📞 Últimas llamadas</div>'+
+      callRows+
+      '<div class="modal-actions" style="flex-wrap:wrap">'+
+        '<button class="btn btn-g" onclick="sendMagicLink(\''+o.id+'\',\''+_attEsc(o.owner_email||'')+'\',this)">🔗 Enviar acceso</button>'+
+        '<button class="btn btn-y" onclick="resetOrgPassword(\''+o.id+'\',\''+_attEsc(o.owner_email||'')+'\',this)">🔑 Reset contraseña</button>'+
+        '<button class="btn btn-d" onclick="adminCloseModal();switchTab(\'flujos\')">⚡ Flujos</button>'+
+        '<button class="btn btn-d" onclick="adminCloseModal();switchTab(\'citas\')">📅 Citas</button>'+
+        '<button class="btn btn-d" onclick="adminCloseModal()">Cerrar</button>'+
+      '</div>'
+    );
+  }catch(e){ adminModal('<div class="modal-title">🏪 Cliente</div><div class="u-red">Error: '+_attEsc(e.message||e)+'</div><div class="modal-actions"><button class="btn btn-d" onclick="adminCloseModal()">Cerrar</button></div>'); }
+}
 
 // ── Mejora: reglas aprendidas (aprobar → aplicar) ──
 function _lrEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -981,7 +1132,7 @@ async function loadOrgs() {
         <td>${minsCell}</td>
         <td>${active}</td>
         <td>${modelSel}</td>
-        <td class="u-nowrap"><button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
+        <td class="u-nowrap"><button class="btn btn-d" style="font-size:11px;padding:4px 10px" onclick="openOrgSheet('${o.id}')" title="Ficha completa: datos, llamadas y acciones">👁 Ficha</button> <button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="sendMagicLink('${o.id}','${o.owner_email}',this)">🔗 Enviar acceso</button> <button class="btn btn-y" style="font-size:11px;padding:4px 10px" onclick="resetOrgPassword('${o.id}','${o.owner_email}',this)" title="Borra su contraseña y le envía un enlace para crear una nueva">🔑 Reset</button></td>
       </tr>`;
     }).join('');
     // Cargar estado de onboarding en paralelo
@@ -1476,8 +1627,11 @@ async function loadCalls(){
     document.getElementById('cCallsToday').textContent=d.today?.calls??0;
     document.getElementById('cMinsToday').textContent=(d.today?.minutes??0).toFixed(1);
     document.getElementById('cCallsMonth').textContent=d.thisMonth?.calls??0;
+    // La tabla de sesión fue sustituida por el explorador persistente (nf_calls);
+    // este endpoint queda solo para los KPIs de "hoy" en memoria.
     const calls=(d.recentCalls||[]).slice(0,50);
     const b=document.getElementById('callsBody');
+    if(!b) return;
     if(!calls.length){b.innerHTML='<tr class="empty-row"><td colspan="6">Sin llamadas registradas en esta sesión</td></tr>';return;}
     const sentEmoji=s=>s==='positive'?'😊 positivo':s==='negative'?'😔 negativo':'😐 neutral';
     const fmtDur=s=>{const m=Math.floor(s/60);const sec=s%60;return m?`${m}m ${sec}s`:`${sec}s`;};
