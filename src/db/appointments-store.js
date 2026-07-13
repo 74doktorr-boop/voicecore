@@ -89,6 +89,9 @@ class AppointmentsStore {
       // Enlace con el evento de Google Calendar (Fase 3). Si la columna aún no
       // existe (migración sin aplicar), row.google_event_id es undefined → null.
       googleEventId: row.google_event_id || null,
+      // Enlace con el evento de Outlook (integración Outlook). Mismo criterio:
+      // columna ausente → undefined → null (no rompe si la migración no está).
+      outlookEventId: row.outlook_event_id || null,
       createdAt:    row.created_at,
       updatedAt:    row.updated_at,
     };
@@ -201,6 +204,7 @@ class AppointmentsStore {
     if (fields.cancelledAt  !== undefined) dbFields.cancelled_at  = fields.cancelledAt;
     if (fields.cancelledBy  !== undefined) dbFields.cancelled_by  = fields.cancelledBy;
     if (fields.googleEventId !== undefined) dbFields.google_event_id = fields.googleEventId;
+    if (fields.outlookEventId !== undefined) dbFields.outlook_event_id = fields.outlookEventId;
     if (fields.updatedAt    !== undefined) dbFields.updated_at    = fields.updatedAt;
 
     if (!Object.keys(dbFields).length) return;

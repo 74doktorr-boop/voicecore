@@ -10,6 +10,7 @@ const { sendEmail } = require('./email');
 const { sendTemplate, sendText, isConfigured: waIsConfigured } = require('./client-whatsapp');
 const { appointmentsStore } = require('../db/appointments-store');
 const { getWaCredentials } = require('../whatsapp/accounts');
+const { sendSMS, isConfigured: smsIsConfigured } = require('./sms');
 
 const log = new Logger('REMINDERS');
 
@@ -612,9 +613,56 @@ async function sendWaReview(apt, config, deps = {}) {
   return false;
 }
 
+// ── SMS: recordatorio de cita (canal de respaldo, OFF por defecto) ───────────
+// Rellena el hueco del cliente CON teléfono pero SIN WhatsApp ni email (típico
+// del cliente mayor). No-op inmediato salvo que el servidor active SMS
+// (SMS_ENABLED=true + credenciales Telnyx). Respeta el opt-out no_sms del
+// contacto. Fail-open. deps inyectable para test.
+async function _smsOptedOut(apt) {
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (!db.enabled || !apt.businessId || !apt.phone) return false;
+    const { phoneVariants } = require('../utils/phone');
+    const { data: c } = await db.client.from('contacts')
+      .select('id').eq('org_id', apt.businessId).in('phone', phoneVariants(apt.phone)).limit(1).maybeSingle();
+    if (!c || !c.id) return false;
+    const { getContactMemory } = require('../lifecycle/call-memory');
+    const mem = await getContactMemory(c.id, apt.businessId);
+    return !!(mem && mem.no_sms);
+  } catch (_) { return false; }
+}
+
+async function sendSmsReminder(apt, config, deps = {}) {
+  const _isConfigured = deps.isConfigured || smsIsConfigured;
+  const _sendSMS      = deps.sendSMS      || sendSMS;
+  if (!apt.phone || !_isConfigured()) return false;
+
+  const optedOut = deps.optedOut !== undefined ? !!deps.optedOut : await _smsOptedOut(apt);
+  if (optedOut) return false;
+
+  const lang    = config?.language || 'es';
+  const name    = firstName(apt.patientName);
+  const bizName = config?.name || (lang === 'gl' ? 'o teu negocio' : lang === 'eu' ? 'zure negozioa' : 'tu negocio');
+  const dateStr = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
+  const text = lang === 'gl'
+    ? `Ola ${name}, lémbrasche a túa cita en ${bizName}: ${dateStr} ás ${apt.time}h. Se non podes, chámanos.`
+    : lang === 'eu'
+    ? `Kaixo ${name}, ${bizName}-ko hitzordua: ${dateStr} ${apt.time}etan. Ezin baduzu, deitu iezaguzu.`
+    : `Hola ${name}, te recordamos tu cita en ${bizName}: ${dateStr} a las ${apt.time}h. Si no puedes, llámanos.`;
+
+  const r = await _sendSMS(apt.phone, text);
+  if (r?.ok) {
+    log.info(`SMS reminder sent → ${apt.id} (${apt.phone})`);
+    return true;
+  }
+  return false;
+}
+
 // ── Cron check: reminders ─────────────────────────────────────────────────────
 // Canal primario: WhatsApp (template con botones CONFIRMAR/CANCELAR)
 // Canal secundario: Email (fallback si WA no configurado o cliente sin teléfono)
+// Canal terciario: SMS (respaldo OFF por defecto — cliente sin WA ni email)
 // flowManager is optional — if omitted, defaults apply for all businesses
 
 async function checkAndSendReminders(scheduler, flowManager = null) {
@@ -649,6 +697,12 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
       if (apt.email) {
         const emailOk = await sendAppointmentReminder(apt, config);
         ok = ok || emailOk;
+      }
+      // Canal 3: SMS (respaldo). Sólo si aún no salió por WA/email y el cliente
+      // tiene teléfono. No-op salvo que el servidor active SMS (OFF por defecto).
+      if (!ok && apt.phone) {
+        const smsOk = await sendSmsReminder(apt, config);
+        ok = ok || smsOk;
       }
       if (ok) {
         apt.reminder_sent = true;
@@ -716,6 +770,7 @@ module.exports = {
   sendWaConfirmation,
   sendWaReminder,
   sendWaReview,
+  sendSmsReminder,
   generateWhatsAppConfirmation,
   checkAndSendReminders,
   checkAndSendReviews,

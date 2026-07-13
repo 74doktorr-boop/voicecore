@@ -32,6 +32,7 @@ const { setupDemoRoutes }         = require('./src/api/routes-demo');
 const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
+const { setupOutlookRoutes }      = require('./src/api/routes-outlook');
 const { setupAuthRoutes }         = require('./src/api/routes-auth');
 const { setupWebhookRoutes }      = require('./src/api/routes-webhooks');
 const { webhookDispatcher }       = require('./src/webhooks/dispatcher');
@@ -544,6 +545,7 @@ setupDemoRoutes(app, ttsRouter);
 setupAutomationRoutes(app);
 setupFlowRoutes(app);
 setupCalendarRoutes(app, config);
+setupOutlookRoutes(app, config);
 setupWebhookRoutes(app);
 
 // Setup WhatsApp bidireccional webhook (Meta Cloud API)

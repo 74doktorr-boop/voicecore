@@ -994,12 +994,14 @@ function setupPortalRoutes(app, pipeline, config) {
       appointmentsStore.upsert(apt);
     } catch (_) {}
 
-    // Reprogramación: si cambió la fecha/hora y la cita tiene evento en Google
-    // Calendar, MOVERLO (antes se quedaba de fantasma en la hora vieja). Fail-open.
-    if (apt.googleEventId && (apt.date !== prevDate || apt.time !== prevTime)) {
+    // Reprogramación: si cambió la fecha/hora y la cita tiene evento en el
+    // calendario (Google y/o Outlook), MOVERLO (antes se quedaba de fantasma en
+    // la hora vieja). Fail-open, e independiente por proveedor.
+    if (apt.date !== prevDate || apt.time !== prevTime) {
       try {
-        require('../integrations/calendar-sync')
-          .updateAppointmentEvent(businessId, apt.googleEventId, apt).catch(() => {});
+        const sync = require('../integrations/calendar-sync');
+        if (apt.googleEventId)  sync.updateAppointmentEvent(businessId, apt.googleEventId, apt).catch(() => {});
+        if (apt.outlookEventId) sync.updateOutlookEvent(businessId, apt.outlookEventId, apt).catch(() => {});
       } catch (_) {}
     }
 
