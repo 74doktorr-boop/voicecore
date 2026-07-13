@@ -470,12 +470,14 @@
           <option value="30">30 días</option>
           <option value="90">90 días</option>
         </select>
+        <input id="cxQ" type="search" class="form-ctrl" style="width:230px" placeholder="🔎 Buscar en transcripciones…"
+               oninput="clearTimeout(window._cxQT);window._cxQT=setTimeout(loadCallsDb,400)">
         <span id="cxCount" class="u-dim u-text-sm"></span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Fecha</th><th>Negocio</th><th>Dir.</th><th>Teléfono</th><th>Duración</th><th>Turnos</th><th>Resultado</th><th></th></tr></thead>
-          <tbody id="callsDbBody"><tr class="empty-row"><td colspan="8">Cargando…</td></tr></tbody>
+          <thead><tr><th>Fecha</th><th>Negocio</th><th>Dir.</th><th>Teléfono</th><th>Duración</th><th>Turnos</th><th>Resultado</th><th>Coste</th><th></th></tr></thead>
+          <tbody id="callsDbBody"><tr class="empty-row"><td colspan="9">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -794,21 +796,26 @@ function _fillCxOrgs(){
 async function loadCallsDb(){
   const b=document.getElementById('callsDbBody'); if(!b) return;
   _fillCxOrgs();
-  b.innerHTML='<tr class="empty-row"><td colspan="8">Cargando…</td></tr>';
+  b.innerHTML='<tr class="empty-row"><td colspan="9">Cargando…</td></tr>';
   try{
     const p=new URLSearchParams();
     const org=document.getElementById('cxOrg').value;         if(org) p.set('org',org);
     const out=document.getElementById('cxOutcome').value;     if(out) p.set('outcome',out);
     const dir=document.getElementById('cxDir').value;         if(dir) p.set('direction',dir);
+    const qtx=(document.getElementById('cxQ').value||'').trim(); if(qtx) p.set('q',qtx);
+    window._cxLastQ = qtx; // el visor resalta lo buscado
     p.set('days', document.getElementById('cxDays').value||'7');
     p.set('limit','100');
     const d=await api('/api/admin/calls-db?'+p.toString());
     const calls=d.calls||[];
-    document.getElementById('cxCount').textContent = calls.length ? calls.length+' de '+(d.total||calls.length)+' llamadas' : '';
-    if(!calls.length){ b.innerHTML='<tr class="empty-row"><td colspan="8">Sin llamadas con estos filtros</td></tr>'; return; }
+    document.getElementById('cxCount').textContent = calls.length
+      ? (d.searched ? calls.length+' llamadas mencionan «'+qtx+'»' : calls.length+' de '+(d.total||calls.length)+' llamadas')
+      : '';
+    if(!calls.length){ b.innerHTML='<tr class="empty-row"><td colspan="9">'+(qtx?'Ninguna llamada menciona «'+_attEsc(qtx)+'» en este periodo':'Sin llamadas con estos filtros')+'</td></tr>'; return; }
     b.innerHTML=calls.map(c=>{
       const dirIc = c.direction==='outbound'?'📤':c.direction==='browser'?'🖥':'📥';
       const booked = c.booked_appointment ? ' <span title="Cita creada en esta llamada">📅</span>' : '';
+      const cost = (c.cost&&typeof c.cost.total==='number') ? (c.cost.total*100).toFixed(1)+'¢' : '—';
       return '<tr style="cursor:pointer" onclick="openCallView(\''+c.id+'\')">'+
         '<td class="u-nowrap">'+_fmtWhen(c.started_at)+'</td>'+
         '<td><strong>'+_attEsc(_orgLabel(c.org_id))+'</strong></td>'+
@@ -817,9 +824,10 @@ async function loadCallsDb(){
         '<td>'+_fmtMs(c.duration_ms)+'</td>'+
         '<td class="u-center">'+(c.turn_count??'—')+'</td>'+
         '<td>'+(_OUTCOME_BADGE[c.outcome]||'<span class="badge bd">'+_attEsc(c.outcome||c.status||'—')+'</span>')+booked+'</td>'+
+        '<td class="u-dim u-nowrap" title="Coste estimado de proveedor (telefonía+STT+LLM+TTS)">'+cost+'</td>'+
         '<td class="u-dim">📖</td></tr>';
     }).join('');
-  }catch(e){ b.innerHTML='<tr class="empty-row"><td colspan="8">Error: '+_attEsc(e.message||e)+'</td></tr>'; }
+  }catch(e){ b.innerHTML='<tr class="empty-row"><td colspan="9">Error: '+_attEsc(e.message||e)+'</td></tr>'; }
 }
 
 // Visor de transcripción — la llamada completa en formato chat, con métricas.
@@ -836,6 +844,15 @@ async function openCallView(id){
       c.caller_number||null,
     ].filter(Boolean).map(x=>'<span class="badge bd" style="margin:2px">'+_attEsc(x)+'</span>').join('');
     const t=Array.isArray(c.transcript)?c.transcript:[];
+    // Si se llegó desde una búsqueda, resaltar el término en las burbujas.
+    const hl = (window._cxLastQ||'').trim();
+    const mark = (safe) => {
+      if(!hl) return safe;
+      try{
+        const rx=new RegExp('('+hl.replace(/[.*+?^\${}()|[\]\\]/g,'\\$&')+')','gi');
+        return safe.replace(rx,'<mark style="background:rgba(196,245,70,.35);color:inherit;border-radius:3px;padding:0 2px">$1</mark>');
+      }catch(_){ return safe; }
+    };
     const bubbles = t.length ? t.map(turn=>{
       const role=(turn.role||turn.speaker||'').toLowerCase();
       const isUser = role==='user'||role==='caller'||role==='cliente';
@@ -846,7 +863,7 @@ async function openCallView(id){
         (isUser?'background:rgba(255,255,255,.06);color:var(--text);border-bottom-left-radius:4px'
                :'background:rgba(196,245,70,.1);color:var(--text);border:1px solid rgba(196,245,70,.18);border-bottom-right-radius:4px')+
         '"><div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">'+
-        (isUser?'📞 Cliente':'🤖 Asistente')+'</div>'+_attEsc(text)+'</div></div>';
+        (isUser?'📞 Cliente':'🤖 Asistente')+'</div>'+mark(_attEsc(text))+'</div></div>';
     }).join('') : '<div class="u-dim" style="padding:12px 0">Sin transcripción guardada para esta llamada.</div>';
     const booked = c.booked_appointment
       ? '<div style="background:rgba(33,192,138,.08);border:1px solid rgba(33,192,138,.25);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px">📅 <strong>Cita creada:</strong> '+_attEsc(JSON.stringify(c.booked_appointment).slice(0,180))+'</div>'

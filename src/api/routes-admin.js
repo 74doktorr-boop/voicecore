@@ -550,25 +550,40 @@ function setupAdminRoutes(app, config, assistantManager) {
   // La pestaña Llamadas del admin dejaba de ver nada tras cada deploy (datos en
   // memoria). Esto consulta el registro persistente con filtros: fundamental
   // para auditar transcripciones y QA de llamadas reales sin tocar la BD a mano.
-  // GET /api/admin/calls-db?org=&outcome=&direction=&days=7&limit=50
+  // GET /api/admin/calls-db?org=&outcome=&direction=&days=7&limit=50&q=aparcamiento
+  // `q` busca DENTRO de las transcripciones — la herramienta de QA: encontrar en
+  // segundos todas las llamadas donde se habló de X (precios, seguros, lo que sea).
   app.get('/api/admin/calls-db', adminAuth, async (req, res) => {
     const db = getDatabase();
     if (!db.enabled) return res.json({ calls: [], total: 0 });
     try {
-      const days  = Math.min(parseInt(req.query.days || '7', 10) || 7, 90);
-      const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
-      const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      const days   = Math.min(parseInt(req.query.days || '7', 10) || 7, 90);
+      const limit  = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
+      const search = String(req.query.q || '').trim().toLowerCase();
+      const since  = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      const fields = 'id, org_id, direction, caller_number, status, outcome, started_at, duration_ms, turn_count, metrics, cost, booked_appointment';
       let q = db.client.from('nf_calls')
-        .select('id, org_id, direction, caller_number, status, outcome, started_at, duration_ms, turn_count, metrics, booked_appointment', { count: 'exact' })
+        // Con búsqueda hace falta el transcript para filtrar; sin ella, ahorramos payload.
+        .select(search ? fields + ', transcript' : fields, { count: 'exact' })
         .gte('started_at', since)
         .order('started_at', { ascending: false })
-        .limit(limit);
+        // PostgREST no filtra substring dentro de jsonb: con búsqueda traemos una
+        // ventana amplia y filtramos aquí. Con el volumen actual (<500/rango) va
+        // sobrado; si algún día duele, se pasa a una RPC con índice GIN.
+        .limit(search ? 500 : limit);
       if (req.query.org)       q = q.eq('org_id', req.query.org);
       if (req.query.outcome)   q = q.eq('outcome', req.query.outcome);
       if (req.query.direction) q = q.eq('direction', req.query.direction);
       const { data, count, error } = await q;
       if (error) throw new Error(error.message);
-      res.json({ calls: data || [], total: count || 0 });
+      let rows = data || [];
+      if (search) {
+        rows = rows.filter(r => JSON.stringify(r.transcript || []).toLowerCase().includes(search)).slice(0, limit);
+        // El transcript completo no viaja en el listado (pesa); el visor lo pide aparte.
+        rows = rows.map(({ transcript, ...rest }) => rest);
+        return res.json({ calls: rows, total: rows.length, searched: true });
+      }
+      res.json({ calls: rows, total: count || 0 });
     } catch (e) {
       log.error('Admin calls-db error', { error: e.message });
       res.status(500).json({ error: e.message });
