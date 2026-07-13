@@ -514,7 +514,10 @@
     <div class="tab-panel" id="tab-pool">
       <div class="section-hd">
         <div><h2>Pool de números</h2><p>Números NodeFlow disponibles para asignar a clientes</p></div>
-        <button class="refresh-btn" onclick="loadPool()">↻ Actualizar</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-p" onclick="poolTopup(this)" title="Compra números en Telnyx automáticamente hasta tener 3 disponibles (~1€/mes por número). También valida que la auto-provisión funciona antes del lanzamiento.">🪄 Auto-comprar (Telnyx)</button>
+          <button class="refresh-btn" onclick="loadPool()">↻ Actualizar</button>
+        </div>
       </div>
 
       <!-- Stats -->
@@ -1815,6 +1818,22 @@ async function loadCalls(){
 }
 
 // Pool de números
+// Auto-compra por Telnyx hasta 3 disponibles. Doble función: llena el pool Y
+// valida la auto-provisión de extremo a extremo ANTES de que la necesite un
+// pago real (si Telnyx exige requirement group regulatorio, aquí se ve el error).
+async function poolTopup(btn){
+  if(!confirm('¿Comprar números en Telnyx automáticamente hasta tener 3 disponibles?\n\nCoste aprox.: ~1€/mes por número. Es la misma ruta que usa un alta con el pool vacío — sirve también de prueba de la auto-provisión.')) return;
+  if(btn){ btn.disabled=true; btn.textContent='Comprando…'; }
+  try{
+    const r=await api('/api/admin/phone-pool/topup',{method:'POST',body:JSON.stringify({target:3})});
+    if(r&&r.error) throw new Error(r.error);
+    if(r.added>0) toast(`✅ ${r.added} número(s) comprados y añadidos — disponibles: ${r.stats?.available??'?'}`);
+    else toast('⚠️ No se compró ningún número — mira los logs del servidor (posible requisito regulatorio: TELNYX_REQUIREMENT_GROUP_ID)','err');
+    loadPool();
+  }catch(e){ toast('Error: '+(e.message||e),'err'); }
+  if(btn){ btn.disabled=false; btn.textContent='🪄 Auto-comprar (Telnyx)'; }
+}
+
 async function loadPool(){
   try{
     const d=await api('/api/admin/phone-pool');
