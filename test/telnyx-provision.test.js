@@ -23,8 +23,12 @@ function fetchMock({ search = OK([{ phone_number: '+34843000111' }]), order = OK
 }
 
 describe('telnyx-provision', () => {
-  beforeEach(() => { process.env.TELNYX_API_KEY = 'k'; process.env.TELNYX_APP_ID = 'app123'; delete process.env.TELNYX_REQUIREMENT_GROUP_ID; orderBody = null; });
-  afterEach(() => { delete process.env.TELNYX_API_KEY; delete process.env.TELNYX_APP_ID; delete process.env.TELNYX_REQUIREMENT_GROUP_ID; });
+  beforeEach(() => {
+    process.env.TELNYX_API_KEY = 'k'; process.env.TELNYX_APP_ID = 'app123';
+    process.env.TELNYX_NUMBER_AREACODE = '843'; // INCIDENTE 2026-07-14: prefijo OBLIGATORIO
+    delete process.env.TELNYX_REQUIREMENT_GROUP_ID; orderBody = null;
+  });
+  afterEach(() => { delete process.env.TELNYX_API_KEY; delete process.env.TELNYX_APP_ID; delete process.env.TELNYX_REQUIREMENT_GROUP_ID; delete process.env.TELNYX_NUMBER_AREACODE; });
 
   test('isConfigured refleja las env', () => {
     assert.strictEqual(prov.isConfigured(), true);
@@ -32,9 +36,31 @@ describe('telnyx-provision', () => {
     assert.strictEqual(prov.isConfigured(), false);
   });
 
-  test('findAvailableNumber devuelve el primer número de voz', async () => {
+  test('findAvailableNumber devuelve el primer número de voz DEL PREFIJO', async () => {
     const n = await prov.findAvailableNumber({ fetchImpl: fetchMock() });
     assert.strictEqual(n, '+34843000111');
+  });
+
+  // ── Reglas del incidente 2026-07-14 (compró 822 Canarias con dinero real) ──
+  test('INCIDENTE: sin TELNYX_NUMBER_AREACODE → NO se compra nada (null, cero fetch)', async () => {
+    delete process.env.TELNYX_NUMBER_AREACODE;
+    let fetched = 0;
+    const n = await prov.findAvailableNumber({ fetchImpl: async () => { fetched++; return OK([{ phone_number: '+34822000999' }]); } });
+    assert.strictEqual(n, null);
+    assert.strictEqual(fetched, 0, 'ni siquiera consulta el stock: sin prefijo no hay compra');
+  });
+
+  test('INCIDENTE: si el proveedor devuelve un número de OTRO prefijo → se descarta (null)', async () => {
+    // El filtro de Telnyx podría ignorar el NDC: no confiar a ciegas.
+    const n = await prov.findAvailableNumber({ fetchImpl: fetchMock({ search: OK([{ phone_number: '+34822000999' }]) }) });
+    assert.strictEqual(n, null);
+  });
+
+  test('sin stock del prefijo → null, SIN fallback a cualquier número ES', async () => {
+    let calls = 0;
+    const n = await prov.findAvailableNumber({ fetchImpl: async (url) => { calls++; return OK([]); } });
+    assert.strictEqual(n, null);
+    assert.strictEqual(calls, 1, 'una sola búsqueda (la del prefijo): el fallback genérico ya no existe');
   });
 
   test('provisionNumber compra y apunta a la App de voz (connection_id)', async () => {

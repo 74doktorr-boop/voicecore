@@ -46,28 +46,38 @@ async function _fetch(fetchImpl, url, opts = {}, ms = 15000) {
 }
 
 /**
- * Busca UN número ES de voz disponible. Prefiere el prefijo indicado; si no
- * hay stock en ese prefijo, cae a cualquier número local ES de voz.
+ * Busca UN número ES de voz disponible, SOLO del prefijo configurado.
+ *
+ * INCIDENTE 2026-07-14: la versión anterior tenía un fallback silencioso a
+ * "cualquier número local ES" cuando faltaba el prefijo o no había stock —
+ * compró números 822 (Canarias) en vez de 843 (Gipuzkoa) con dinero real.
+ * Regla nueva e innegociable: sin TELNYX_NUMBER_AREACODE configurado NO se
+ * compra nada; y con prefijo, SOLO ese prefijo (si no hay stock → null y que
+ * decida un humano). Nunca más comprar a ciegas.
  * @returns {Promise<string|null>} número en E.164 (+34…) o null.
  */
 async function findAvailableNumber({ areaCode, fetchImpl } = {}) {
   const f = fetchImpl || fetch;
-  const tries = [];
   const ac = areaCode || process.env.TELNYX_NUMBER_AREACODE;
-  if (ac) tries.push(`filter[country_code]=ES&filter[phone_number_type]=local&filter[features][]=voice&filter[national_destination_code]=${encodeURIComponent(ac)}&filter[limit]=10`);
-  tries.push(`filter[country_code]=ES&filter[phone_number_type]=local&filter[features][]=voice&filter[limit]=10`);
-
-  for (const qs of tries) {
-    try {
-      const res = await _fetch(f, `${BASE}/available_phone_numbers?${qs}`, { headers: _headers() });
-      if (!res.ok) { log.warn(`búsqueda de números HTTP ${res.status}`); continue; }
-      const body = await res.json();
-      const list = (body && body.data) || [];
-      const pick = list.find(n => n && n.phone_number);
-      if (pick) return pick.phone_number;
-    } catch (e) { log.warn(`búsqueda de números falló: ${e.message}`); }
+  if (!ac) {
+    log.error('auto-provisión BLOQUEADA: falta TELNYX_NUMBER_AREACODE (prefijo deseado, p.ej. 843) — no se compran números sin prefijo explícito');
+    return null;
   }
-  return null;
+  const qs = `filter[country_code]=ES&filter[phone_number_type]=local&filter[features][]=voice&filter[national_destination_code]=${encodeURIComponent(ac)}&filter[limit]=10`;
+  try {
+    const res = await _fetch(f, `${BASE}/available_phone_numbers?${qs}`, { headers: _headers() });
+    if (!res.ok) { log.warn(`búsqueda de números HTTP ${res.status}`); return null; }
+    const body = await res.json();
+    const list = (body && body.data) || [];
+    // Cinturón y tirantes: valida que el número devuelto empieza por +34<prefijo>
+    // (no confiar a ciegas en el filtro del proveedor).
+    const pick = list.find(n => n && n.phone_number && String(n.phone_number).startsWith(`+34${ac}`));
+    if (!pick) { log.warn(`sin stock de números +34${ac} en Telnyx ahora mismo — no se compra nada`); return null; }
+    return pick.phone_number;
+  } catch (e) {
+    log.warn(`búsqueda de números falló: ${e.message}`);
+    return null;
+  }
 }
 
 /**
