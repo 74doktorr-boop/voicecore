@@ -38,7 +38,30 @@ function getResend() {
   }
 }
 
-async function sendEmail({ to, subject, html, text }) {
+// ── Adjunto: guía de bienvenida en PDF ───────────────────────────────────────
+// El PDF estático se pre-genera desde public/guia.html con:
+//   node scripts/generate-guia-pdf.js   (npm run guia:pdf)
+// Regenéralo cada vez que cambie guia.html. Aquí lo leemos una vez y lo cacheamos
+// como base64 para adjuntarlo en el email de bienvenida vía Resend.
+const fs   = require('fs');
+const path = require('path');
+const GUIA_PDF_PATH = path.join(__dirname, '..', '..', 'public', 'guia-nodeflow.pdf');
+let _guiaPdfAttachment; // undefined = sin intentar; null = no disponible
+
+function getGuiaPdfAttachment() {
+  if (_guiaPdfAttachment !== undefined) return _guiaPdfAttachment;
+  try {
+    const content = fs.readFileSync(GUIA_PDF_PATH).toString('base64');
+    _guiaPdfAttachment = { filename: 'Guia-NodeFlow.pdf', content };
+    log.info('Adjunto guía PDF cargado para emails de bienvenida');
+  } catch (e) {
+    _guiaPdfAttachment = null;
+    log.warn(`Guía PDF no disponible (${GUIA_PDF_PATH}): ${e.message} — el email irá solo con enlace`);
+  }
+  return _guiaPdfAttachment;
+}
+
+async function sendEmail({ to, subject, html, text, attachments }) {
   const resend = getResend();
 
   if (!resend) {
@@ -48,13 +71,17 @@ async function sendEmail({ to, subject, html, text }) {
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const payload = {
       from: 'NodeFlow <unai@nodeflow.es>',
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
       text,
-    });
+    };
+    if (Array.isArray(attachments) && attachments.length) {
+      payload.attachments = attachments;
+    }
+    const { data, error } = await resend.emails.send(payload);
 
     if (error) {
       log.error(`Resend error a ${to}: ${error.message}`);
@@ -550,7 +577,7 @@ async function sendWelcomePortalEmail(registro, magicToken) {
       <div style="text-align:center;margin:22px 0 4px;">
         <a href="${publicUrl}/guia.html" style="display:inline-block;background:rgba(255,255,255,0.06);border:1px solid rgba(168,85,247,0.45);color:#c9a8ff;padding:12px 26px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">📖 Ver tu guía de bienvenida</a>
       </div>
-      <p style="color:#6060a0;font-size:12px;text-align:center;margin-top:2px;">Todo lo que hace tu asistente y cómo usar el portal, explicado fácil — con opción de descargarla en PDF.</p>
+      <p style="color:#6060a0;font-size:12px;text-align:center;margin-top:2px;">Todo lo que hace tu asistente y cómo usar el portal, explicado fácil. La tienes también <strong style="color:#c9a8ff;">adjunta en PDF</strong> en este correo.</p>
 
       <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;text-align:center;">
         <p style="color:#6060a0;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
@@ -563,9 +590,13 @@ async function sendWelcomePortalEmail(registro, magicToken) {
     </div>
   `;
 
-  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n(Este enlace es válido 7 días.)\n\nTu guía de bienvenida (todo explicado fácil, con opción de descargar en PDF):\n${publicUrl}/guia.html\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n(Este enlace es válido 7 días.)\n\nTu guía de bienvenida va adjunta en PDF, y también la tienes online:\n${publicUrl}/guia.html\n\n¿Dudas? WhatsApp: +34 666 351 319`;
 
-  return sendEmail({ to: registro.email, subject, html, text });
+  // Adjuntamos la guía en PDF además de mantener el enlace web (si el PDF existe).
+  const guiaPdf = getGuiaPdfAttachment();
+  const attachments = guiaPdf ? [guiaPdf] : undefined;
+
+  return sendEmail({ to: registro.email, subject, html, text, attachments });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

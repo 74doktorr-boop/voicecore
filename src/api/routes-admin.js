@@ -590,6 +590,73 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Economía por cliente: ingreso vs coste de proveedor → margen ───────────
+  // La pregunta de fundador: qué cliente me gana dinero y cuál me lo quema.
+  // Ingreso = plan + overage estimado (0,10€/min sobre el límite mensual).
+  // Coste = suma de nf_calls.cost.total del periodo (estimación por tarifas
+  // por minuto de telefonía+STT+LLM+TTS que graba cada llamada al colgar).
+  // GET /api/admin/economics?days=30
+  app.get('/api/admin/economics', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ clients: [], totals: {} });
+    try {
+      const days  = Math.min(parseInt(req.query.days || '30', 10) || 30, 90);
+      const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      const { PLAN_PRICES } = require('../analytics/kpis');
+      const OVERAGE_EUR_MIN = 0.10;
+
+      const [{ data: orgs }, { data: calls }] = await Promise.all([
+        db.client.from('organizations')
+          .select('id, name, plan, monthly_minutes_used, monthly_minutes_limit, is_active')
+          .eq('is_active', true),
+        db.client.from('nf_calls')
+          .select('org_id, duration_ms, cost')
+          .gte('started_at', since),
+      ]);
+
+      const byOrg = {};
+      for (const c of (calls || [])) {
+        if (!c.org_id) continue;
+        const o = (byOrg[c.org_id] = byOrg[c.org_id] || { calls: 0, minutes: 0, providerCost: 0 });
+        o.calls++;
+        o.minutes += (c.duration_ms || 0) / 60000;
+        const t = c.cost && typeof c.cost.total === 'number' ? c.cost.total : 0;
+        o.providerCost += t;
+      }
+
+      const clients = (orgs || []).map(org => {
+        const u = byOrg[org.id] || { calls: 0, minutes: 0, providerCost: 0 };
+        const planEur    = PLAN_PRICES[org.plan] || 0;
+        const used       = parseFloat(org.monthly_minutes_used || 0);
+        const limit      = parseFloat(org.monthly_minutes_limit || 500);
+        const overageEur = Math.max(0, used - limit) * OVERAGE_EUR_MIN;
+        const revenue    = planEur + overageEur;
+        const margin     = revenue - u.providerCost;
+        return {
+          orgId: org.id, name: org.name, plan: org.plan,
+          planEur, overageEur: +overageEur.toFixed(2),
+          calls: u.calls, minutes: +u.minutes.toFixed(1),
+          providerCost: +u.providerCost.toFixed(2),
+          revenue: +revenue.toFixed(2),
+          margin: +margin.toFixed(2),
+          marginPct: revenue > 0 ? Math.round((margin / revenue) * 100) : (u.providerCost > 0 ? -100 : 0),
+        };
+      }).sort((a, b) => a.margin - b.margin); // los que queman dinero, primero
+
+      const totals = clients.reduce((t, c) => ({
+        revenue: t.revenue + c.revenue, providerCost: t.providerCost + c.providerCost,
+        margin: t.margin + c.margin, calls: t.calls + c.calls, minutes: t.minutes + c.minutes,
+      }), { revenue: 0, providerCost: 0, margin: 0, calls: 0, minutes: 0 });
+      totals.marginPct = totals.revenue > 0 ? Math.round((totals.margin / totals.revenue) * 100) : 0;
+      for (const k of ['revenue', 'providerCost', 'margin', 'minutes']) totals[k] = +totals[k].toFixed(2);
+
+      res.json({ clients, totals, days });
+    } catch (e) {
+      log.error('Admin economics error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Llamada completa (con transcripción) para el visor del admin.
   app.get('/api/admin/calls-db/:id', adminAuth, async (req, res) => {
     const db = getDatabase();

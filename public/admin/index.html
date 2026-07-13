@@ -263,6 +263,23 @@
       <div class="an-card" style="margin-bottom:20px"><h3>Crecimiento — MRR y altas por mes <span style="font-weight:400;color:var(--dim);font-size:11px">· reconstruido desde las fechas de alta</span></h3><div id="an-growth"></div></div>
 
       <div class="an-card" id="an-ab-card" style="margin-bottom:20px"><h3>A/B de cerebro — modelos de IA <span class="u-text-xs u-dim">· Llama vs gpt-4o-mini · veredicto con ≥20 llamadas/brazo</span></h3><div id="an-ab" class="u-text-sm u-dim">Cargando…</div></div>
+
+      <!-- 💶 Economía: ingreso vs coste de proveedor → margen por cliente -->
+      <div class="an-card" style="margin-bottom:20px">
+        <h3>💶 Economía por cliente <span class="u-text-xs u-dim">· ingreso (plan + overage) vs coste estimado de proveedor (telefonía+STT+LLM+TTS) · últimos 30 días</span></h3>
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin:12px 0">
+          <div class="kpi-card"><div class="kpi-label">Ingreso</div><div class="kpi-value" id="ecoRev">—</div><div class="kpi-sub">planes + overage</div></div>
+          <div class="kpi-card"><div class="kpi-label">Coste proveedor</div><div class="kpi-value" id="ecoCost">—</div><div class="kpi-sub" id="ecoCostSub">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Margen bruto</div><div class="kpi-value" id="ecoMargin">—</div><div class="kpi-sub">antes de fijos</div></div>
+          <div class="kpi-card"><div class="kpi-label">Margen %</div><div class="kpi-value" id="ecoPct">—</div><div class="kpi-sub">sobre ingreso</div></div>
+        </div>
+        <div class="table-wrap" style="margin:0">
+          <table>
+            <thead><tr><th>Cliente</th><th>Plan €/mes</th><th>Overage</th><th>Llamadas</th><th>Minutos</th><th>Coste prov.</th><th>Margen</th><th>%</th></tr></thead>
+            <tbody id="ecoBody"><tr class="empty-row"><td colspan="8">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
       <div class="an-charts">
         <div class="an-card"><h3>Llamadas y reservas por día</h3><div id="an-series"></div>
           <div class="an-legend"><span><i style="background:var(--cyan)"></i>Llamadas</span><span><i style="background:var(--accent)"></i>Reservas</span></div></div>
@@ -613,7 +630,7 @@ function switchTab(name,btn) {
   btn.classList.add('active');
   if(name==='citas') loadCitasOrgs().then(loadCitas);
   if(name==='llamadas') { loadCalls(); loadCallsDb(); }
-  if(name==='analiticas') loadAnalytics();
+  if(name==='analiticas') { loadAnalytics(); loadEconomics(); }
   if(name==='auditoria') loadAudit();
   if(name==='automatizaciones') loadAutoStats();
   if(name==='flujos') loadFlows();
@@ -776,6 +793,38 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowUp')   { e.preventDefault(); _ckSel = Math.max(_ckSel - 1, 0); _ckPaint(); }
   if (e.key === 'Enter')     { e.preventDefault(); _ckGo(_ckSel); }
 });
+
+// ── 💶 Economía por cliente (ingreso vs coste → margen) ──────────────────────
+async function loadEconomics(){
+  const b=document.getElementById('ecoBody'); if(!b) return;
+  try{
+    const d=await api('/api/admin/economics?days=30');
+    const t=d.totals||{};
+    const eur=v=>(v==null?'—':(v<0?'-':'')+Math.abs(v).toFixed(2).replace('.',',')+' €');
+    document.getElementById('ecoRev').textContent   = eur(t.revenue);
+    document.getElementById('ecoCost').textContent  = eur(t.providerCost);
+    document.getElementById('ecoCostSub').textContent = (t.calls||0)+' llamadas · '+Math.round(t.minutes||0)+' min';
+    const mEl=document.getElementById('ecoMargin');
+    mEl.textContent = eur(t.margin);
+    mEl.style.color = (t.margin||0) < 0 ? 'var(--red)' : 'var(--green2)';
+    document.getElementById('ecoPct').textContent = (t.marginPct!=null?t.marginPct+'%':'—');
+    const rows=(d.clients||[]);
+    if(!rows.length){ b.innerHTML='<tr class="empty-row"><td colspan="8">Sin clientes activos</td></tr>'; return; }
+    b.innerHTML=rows.map(c=>{
+      const neg = c.margin<0;
+      const planTxt = c.planEur ? c.planEur+' €' : '<span class="u-dim">0 € ('+_attEsc(c.plan||'—')+')</span>';
+      return '<tr'+(neg?' style="background:rgba(240,100,90,.05)"':'')+'>'+
+        '<td><strong style="cursor:pointer" onclick="openOrgSheet(\''+c.orgId+'\')" title="Abrir ficha">'+_attEsc(c.name||'—')+'</strong></td>'+
+        '<td>'+planTxt+'</td>'+
+        '<td>'+(c.overageEur? '+'+eur(c.overageEur) : '<span class="u-dim">—</span>')+'</td>'+
+        '<td class="u-center">'+c.calls+'</td>'+
+        '<td>'+Math.round(c.minutes)+'</td>'+
+        '<td>'+eur(c.providerCost)+'</td>'+
+        '<td style="font-weight:800;color:'+(neg?'var(--red)':'var(--green2)')+'">'+eur(c.margin)+'</td>'+
+        '<td style="color:'+(neg?'var(--red)':'var(--dim)')+'">'+c.marginPct+'%</td></tr>';
+    }).join('');
+  }catch(e){ b.innerHTML='<tr class="empty-row"><td colspan="8">Error: '+_attEsc(e.message||e)+'</td></tr>'; }
+}
 
 // ── Explorador de llamadas (nf_calls persistente) ────────────────────────────
 function _orgLabel(orgId){

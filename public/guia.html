@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guía de NodeFlow — Tu recepcionista que nunca falla</title>
-<meta name="description" content="Guía sencilla de NodeFlow: qué hace tu asistente por ti y cómo usar tu portal, paso a paso.">
+<title>Guía completa de NodeFlow — Tu recepcionista que nunca falla</title>
+<meta name="description" content="Manual paso a paso de NodeFlow: qué hace tu asistente, cómo ponerlo en marcha y qué hay en cada rincón de tu portal, con capturas reales.">
 <style>
   :root{
     --lima:#c4f546; --lima-dark:#5a7a00; --ink:#1a1d16; --ink-soft:#4a4f42;
@@ -16,20 +16,22 @@
   body{
     margin:0; background:var(--paper); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    font-size:19px; line-height:1.65; -webkit-font-smoothing:antialiased;
+    font-size:18px; line-height:1.65; -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:820px; margin:0 auto; padding:0 22px 80px}
+  .wrap{max-width:860px; margin:0 auto; padding:0 22px 80px}
   a{color:var(--lima-dark)}
   h1,h2,h3{line-height:1.2; letter-spacing:-.02em}
   h1{font-size:2.4rem; margin:.2em 0 .1em}
-  h2{font-size:1.75rem; margin:2.4rem 0 .8rem; padding-top:1.2rem; border-top:2px solid var(--line)}
-  h3{font-size:1.2rem; margin:0 0 .3rem}
+  h2{font-size:1.7rem; margin:2.6rem 0 .6rem; padding-top:1.3rem; border-top:2px solid var(--line)}
+  h3{font-size:1.22rem; margin:1.6rem 0 .3rem}
+  h4{font-size:1.02rem; margin:1rem 0 .2rem; text-transform:uppercase; letter-spacing:.04em; color:var(--lima-dark)}
   p{margin:.5em 0 1em}
-  .lead{font-size:1.25rem; color:var(--ink-soft)}
+  .lead{font-size:1.22rem; color:var(--ink-soft)}
   .em{color:var(--lima-dark); font-weight:700}
+  .kbd{font-family:ui-monospace,Menlo,Consolas,monospace; background:#eef4dd; border:1px solid #d9e8a6; border-radius:6px; padding:1px 7px; font-size:.92em; font-weight:700; color:#3f5600; white-space:nowrap}
 
   /* Cabecera */
-  header{background:var(--ink); color:#fff; padding:34px 0 30px; margin-bottom:8px}
+  header{background:var(--ink); color:#fff; padding:36px 0 32px; margin-bottom:8px}
   header .wrap{padding-bottom:0}
   .logo{font-weight:800; font-size:1.5rem; letter-spacing:-.03em}
   .logo b{color:var(--lima)}
@@ -37,7 +39,7 @@
   header .lead{color:#c9d1bf}
   .wave{color:var(--lima); font-size:1.5rem; letter-spacing:3px; margin-top:6px}
 
-  /* Botón imprimir */
+  /* Barra imprimir */
   .toolbar{position:sticky; top:0; z-index:5; background:rgba(251,253,247,.92);
     backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 0; margin-bottom:8px}
   .toolbar .wrap{display:flex; gap:12px; align-items:center; justify-content:space-between; padding-bottom:0; padding-top:0}
@@ -47,7 +49,17 @@
     cursor:pointer; text-decoration:none}
   .btn:hover{filter:brightness(.96)}
 
-  /* Tarjetas de "lo que hace por ti" */
+  /* Índice */
+  .toc{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:20px 26px; margin:1.4rem 0 .5rem; box-shadow:var(--shadow)}
+  .toc h4{margin:0 0 .5rem}
+  .toc ol{margin:0; padding-left:1.1rem; columns:2; column-gap:32px}
+  .toc li{margin:.28em 0; break-inside:avoid}
+  .toc a{text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  .part-tag{display:inline-block; font-size:.72rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--lima-dark); background:#eef4dd; border:1px solid #d9e8a6; border-radius:999px; padding:4px 12px}
+
+  /* Tarjetas "lo que hace" */
   .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin:1rem 0 1.5rem}
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:22px; box-shadow:var(--shadow)}
   .card .ico{font-size:2rem; line-height:1; margin-bottom:8px}
@@ -55,52 +67,87 @@
 
   /* Pasos numerados */
   .steps{list-style:none; padding:0; margin:1rem 0; counter-reset:s}
-  .steps li{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  .steps>li{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
     padding:20px 22px 20px 68px; margin-bottom:14px; position:relative; box-shadow:var(--shadow)}
-  .steps li::before{counter-increment:s; content:counter(s); position:absolute; left:18px; top:18px;
+  .steps>li::before{counter-increment:s; content:counter(s); position:absolute; left:18px; top:18px;
     width:34px; height:34px; background:var(--lima); color:#243100; border-radius:50%;
     display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem}
   .steps h3{margin-top:2px}
-  .steps p{margin:.2em 0 0; color:var(--ink-soft); font-size:1.02rem}
+  .steps p{margin:.35em 0 .2em; color:var(--ink-soft); font-size:1.02rem}
+  .steps ul{margin:.4em 0 .2em; padding-left:1.1rem; color:var(--ink-soft); font-size:1rem}
+  .steps ul li{margin:.2em 0}
 
-  /* Secciones del portal */
-  .portal-item{display:flex; gap:16px; padding:16px 0; border-bottom:1px solid var(--line); align-items:flex-start}
-  .portal-item:last-child{border-bottom:none}
-  .portal-item .ico{font-size:1.7rem; flex:none; width:40px; text-align:center}
-  .portal-item h3{margin-bottom:.15em}
-  .portal-item p{margin:0; color:var(--ink-soft); font-size:1.02rem}
+  /* Captura de pantalla */
+  .shot{margin:1.1rem 0 1.7rem}
+  .shot img{width:100%; border:1px solid #cfd6c2; border-radius:12px; box-shadow:0 8px 30px rgba(30,40,10,.14); display:block}
+  .shot figcaption{font-size:.9rem; color:var(--ink-soft); margin-top:9px; text-align:center}
+  .path{display:inline-flex; align-items:center; gap:6px; font-size:.82rem; font-weight:700; color:var(--ink-soft);
+    background:#f1f5e4; border:1px solid var(--line); border-radius:999px; padding:4px 12px; margin:.2rem 0 .1rem}
+  .path b{color:var(--lima-dark)}
+
+  /* Referencia de sección */
+  .ref{margin:1.4rem 0 0}
+  .ref h3{display:flex; align-items:center; gap:10px; margin-bottom:.1rem}
+  .ref .tag{font-size:.9rem}
+  .dolist{margin:.3rem 0 .6rem; padding-left:1.15rem}
+  .dolist li{margin:.25em 0; color:var(--ink-soft)}
+  .dolist li b{color:var(--ink)}
+
+  /* Avisos */
+  .tip,.warn,.note{border-radius:var(--r); padding:15px 20px; margin:1.1rem 0; font-size:1rem}
+  .tip{background:#f2f8dd; border:1px solid #d9e8a6}
+  .tip b{color:var(--lima-dark)}
+  .warn{background:#fff7e6; border:1px solid #f3d999}
+  .warn b{color:#8a5a00}
+  .note{background:#eef4fb; border:1px solid #cddcf0}
+  .note b{color:#2b5591}
+
+  /* Bloque de códigos de desvío */
+  .codes{background:var(--card); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; margin:1rem 0 .5rem; box-shadow:var(--shadow)}
+  .codes .row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 20px; border-bottom:1px solid var(--line)}
+  .codes .row:last-child{border-bottom:none}
+  .codes .row .lbl{font-weight:700}
+  .codes .row .lbl small{display:block; font-weight:400; color:var(--ink-soft); font-size:.86rem; margin-top:2px}
+  .codes .row .code{font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800; font-size:1.12rem; color:var(--lima-dark); white-space:nowrap}
+  .codes .row.reco{background:#f6fbe7}
+  .pill{display:inline-block; font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#243100; background:var(--lima); border-radius:999px; padding:2px 9px; margin-left:8px; vertical-align:middle}
 
   /* FAQ */
   .faq{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:6px 22px; box-shadow:var(--shadow)}
   .faq details{border-bottom:1px solid var(--line); padding:14px 0}
   .faq details:last-child{border-bottom:none}
-  .faq summary{font-weight:700; font-size:1.1rem; cursor:pointer; list-style:none}
+  .faq summary{font-weight:700; font-size:1.08rem; cursor:pointer; list-style:none}
   .faq summary::-webkit-details-marker{display:none}
   .faq summary::before{content:"＋ "; color:var(--lima-dark); font-weight:800}
   .faq details[open] summary::before{content:"− "}
   .faq p{margin:.6em 0 .2em; color:var(--ink-soft)}
 
-  .tip{background:#f2f8dd; border:1px solid #d9e8a6; border-radius:var(--r); padding:16px 20px; margin:1.2rem 0}
-  .tip b{color:var(--lima-dark)}
-
-  .help{background:var(--ink); color:#fff; border-radius:var(--r); padding:26px; text-align:center; margin-top:2.5rem}
+  .help{background:var(--ink); color:#fff; border-radius:var(--r); padding:28px; text-align:center; margin-top:2.6rem}
   .help a{color:var(--lima); font-weight:800}
   footer{text-align:center; color:var(--ink-soft); font-size:.9rem; margin-top:2rem}
 
-  @media (max-width:600px){ body{font-size:18px} h1{font-size:2rem} .steps li{padding-left:64px} }
+  @media (max-width:640px){
+    body{font-size:17px} h1{font-size:2rem} .steps>li{padding-left:62px}
+    .toc ol{columns:1}
+    .codes .row{flex-direction:column; align-items:flex-start; gap:6px}
+  }
 
   /* Impresión / Guardar como PDF */
   @media print{
     .toolbar{display:none}
-    body{background:#fff; font-size:12pt}
+    body{background:#fff; font-size:11.5pt}
+    .wrap{max-width:100%}
     header{background:#fff; color:var(--ink); padding:0 0 8pt; border-bottom:3px solid var(--lima)}
     header h1,header .lead{color:var(--ink)}
     .logo b{color:var(--lima-dark)}
-    .card,.steps li,.faq,.help,.tip{box-shadow:none; break-inside:avoid}
+    .card,.steps>li,.faq,.help,.tip,.warn,.note,.codes,.toc,.shot img{box-shadow:none !important}
     .help{background:#f2f8dd; color:var(--ink)}
     .help a{color:var(--lima-dark)}
-    h2{break-after:avoid}
-    .faq details{ } .faq details:not([open]) > *:not(summary){display:block}
+    h2{break-after:avoid; break-inside:avoid}
+    h3,h4{break-after:avoid}
+    .shot,.card,.steps>li,.codes .row,.ref{break-inside:avoid}
+    .toc ol{columns:2}
+    .faq details:not([open]) > *:not(summary){display:block}
     a{color:var(--ink); text-decoration:none}
   }
 </style>
@@ -111,8 +158,8 @@
   <div class="wrap">
     <div class="logo">node<b>flow</b></div>
     <div class="wave">|•|•|</div>
-    <h1>Tu recepcionista que nunca falla</h1>
-    <p class="lead">Bienvenido a NodeFlow. En esta guía te contamos, sin líos, todo lo que tu asistente hace por ti y cómo manejar tu portal. Tardas 5 minutos en leerla.</p>
+    <h1>Guía completa de tu asistente</h1>
+    <p class="lead">Todo lo que hace NodeFlow por ti, cómo ponerlo en marcha en 15 minutos y qué encontrarás en cada rincón de tu portal — explicado fácil y con imágenes reales.</p>
   </div>
 </header>
 
@@ -125,15 +172,37 @@
 
 <div class="wrap">
 
-  <h2>¿Qué es tu asistente?</h2>
-  <p>Es una <span class="em">recepcionista con inteligencia artificial</span> que contesta el teléfono de tu negocio <span class="em">las 24 horas, todos los días</span>. Habla con voz natural, entiende a tus clientes, les da información y les <span class="em">agenda las citas solo</span>. Nunca se cansa, nunca está comunicando y nunca pierde una llamada.</p>
-  <p>Tú no tienes que hacer nada mientras trabajas: si suena el teléfono y no puedes cogerlo, lo coge ella. Y luego te lo cuenta todo en tu portal.</p>
-
-  <div class="tip">
-    <b>Lo más importante:</b> tu asistente solo dice lo que TÚ le cuentas. Si no le has dicho algo (un precio, si aceptas un seguro, si tienes parking…), responde con honestidad “eso se lo confirma el equipo” — <b>nunca se inventa nada</b>. Por eso vale la pena rellenar bien su información.
+  <!-- ÍNDICE -->
+  <div class="toc">
+    <h4>Qué vas a encontrar</h4>
+    <ol>
+      <li><a href="#parte1">Tu asistente en 2 minutos</a></li>
+      <li><a href="#regla">La regla de oro</a></li>
+      <li><a href="#hace">Lo que hace por ti</a></li>
+      <li><a href="#parte2">Puesta en marcha (paso a paso)</a></li>
+      <li><a href="#p-portal">1 · Entra en tu portal</a></li>
+      <li><a href="#p-asistente">2 · Cuéntale tu negocio</a></li>
+      <li><a href="#p-conocimiento">3 · Base de conocimiento</a></li>
+      <li><a href="#p-calendario">4 · Conecta tu calendario</a></li>
+      <li><a href="#p-desvio">5 · Desvía tu teléfono</a></li>
+      <li><a href="#p-prueba">6 · Llamada de prueba</a></li>
+      <li><a href="#p-avisos">7 · Enciende los avisos</a></li>
+      <li><a href="#parte3">Tu portal por dentro</a></li>
+      <li><a href="#faq">Preguntas frecuentes</a></li>
+    </ol>
   </div>
 
-  <h2>Lo que hace por ti</h2>
+  <!-- ══════════ PARTE 1 ══════════ -->
+  <span class="part-tag" id="parte1">Parte 1 · Entender</span>
+  <h2 style="border-top:none;padding-top:.6rem">Tu asistente en 2 minutos</h2>
+  <p>NodeFlow es una <span class="em">recepcionista con inteligencia artificial</span> que contesta el teléfono de tu negocio <span class="em">las 24 horas, todos los días</span>. Habla con voz natural, entiende a tus clientes, les da información y les <span class="em">agenda las citas sola</span>. Nunca se cansa, nunca está comunicando y nunca pierde una llamada.</p>
+  <p>Tú no tienes que hacer nada mientras trabajas: si suena el teléfono y no puedes cogerlo, lo coge ella. Después te lo cuenta todo en tu portal — el panel web desde el que lo controlas todo y que verás en detalle en esta guía.</p>
+
+  <div class="tip" id="regla">
+    <b>La regla de oro:</b> tu asistente solo dice lo que TÚ le cuentas. Si no le has dado un dato (un precio, si aceptas un seguro, si tienes parking…), responde con honestidad “eso se lo confirma el equipo” — <b>nunca se inventa nada</b>. Por eso la parte más importante de esta guía es enseñarle bien tu negocio (pasos 2 y 3).
+  </div>
+
+  <h3 id="hace">Lo que hace por ti</h3>
   <div class="grid">
     <div class="card"><div class="ico">📞</div><h3>Contesta 24/7</h3><p>Atiende cada llamada al instante, de día, de noche y en festivos. Ningún cliente se queda sin respuesta.</p></div>
     <div class="card"><div class="ico">📅</div><h3>Agenda citas sola</h3><p>Consulta tus huecos reales y reserva la cita, con día y hora, sin que tú toques nada.</p></div>
@@ -143,48 +212,301 @@
     <div class="card"><div class="ico">📲</div><h3>Te avisa de todo</h3><p>Cada llamada, cada cita y cada recado te llega a tu móvil y a tu portal. Tú siempre al mando.</p></div>
   </div>
 
-  <h2>Tu portal, paso a paso</h2>
-  <p>El portal es tu panel de control. Se abre desde el enlace de tu correo o en <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>. Estas son las zonas que vas a usar:</p>
+  <!-- ══════════ PARTE 2 ══════════ -->
+  <span class="part-tag" id="parte2">Parte 2 · Puesta en marcha</span>
+  <h2 style="border-top:none;padding-top:.6rem">Déjalo listo en 15 minutos</h2>
+  <p>Haz estos siete pasos con calma. No hace falta que lo hagas todo el primer día: con el paso 2 (contarle tu negocio) tu asistente ya empieza a atender de maravilla; el resto lo afinas cuando quieras.</p>
 
-  <div class="portal-item"><div class="ico">🏠</div><div><h3>Panel de inicio</h3><p>De un vistazo: cuántas llamadas ha atendido tu asistente, cuántas citas ha reservado y qué tienes pendiente. Es lo primero que ves al entrar.</p></div></div>
-  <div class="portal-item"><div class="ico">📅</div><div><h3>Agenda</h3><p>Todas tus citas, ordenadas por día. Puedes ver, añadir o cambiar citas a mano cuando quieras.</p></div></div>
-  <div class="portal-item"><div class="ico">👥</div><div><h3>Clientes</h3><p>La ficha de cada cliente: su historial, sus citas y sus datos. Tu asistente los va guardando sola según llaman.</p></div></div>
-  <div class="portal-item"><div class="ico">🤖</div><div><h3>Tu asistente</h3><p>Aquí la configuras: su nombre, su voz, el saludo, y tus <b>servicios y precios</b>. Cuanto mejor lo rellenes, mejor atiende.</p></div></div>
-  <div class="portal-item"><div class="ico">📚</div><div><h3>Base de conocimiento</h3><p>Un cuadro de texto donde le cuentas todo lo demás de tu negocio (horarios, cómo llegar, seguros que aceptas, políticas…). <b>Pon solo lo que sea verdad</b>: se lo dirá tal cual a tus clientes.</p></div></div>
-  <div class="portal-item"><div class="ico">💬</div><div><h3>Seguimientos y oportunidades</h3><p>Los avisos automáticos que tu asistente envía para recuperar clientes y recordar citas. Tú los enciendes y ella se encarga.</p></div></div>
-  <div class="portal-item"><div class="ico">🎧</div><div><h3>Llamadas</h3><p>Puedes leer (y escuchar) lo que habló tu asistente en cada llamada. Ideal para ver que todo va como quieres.</p></div></div>
-  <div class="portal-item"><div class="ico">🔗</div><div><h3>Integraciones</h3><p>Conecta tu <b>Google Calendar</b> para que las citas aparezcan también en tu calendario de siempre.</p></div></div>
-  <div class="portal-item"><div class="ico">💳</div><div><h3>Facturación</h3><p>Tu plan, tus facturas y tus datos de pago. Todo claro y en un sitio.</p></div></div>
-  <div class="portal-item"><div class="ico">🎁</div><div><h3>Recomienda y gana</h3><p>Si recomiendas NodeFlow a otro negocio y se da de alta, te llevas un mes a mitad de precio.</p></div></div>
-
-  <h2>Primeros pasos (empieza por aquí)</h2>
-  <p>Para dejarlo todo a punto, haz estas cinco cosas. No tardas ni 15 minutos:</p>
   <ol class="steps">
-    <li><h3>Cuéntale a tu asistente sobre tu negocio</h3><p>Entra en <b>Tu asistente</b> y en <b>Base de conocimiento</b> y rellena tus servicios, precios, horarios y todo lo importante. Solo datos reales.</p></li>
-    <li><h3>Conecta tu Google Calendar</h3><p>En <b>Integraciones</b>, pulsa “Conectar Google Calendar”. Así las citas aparecen también en tu calendario de siempre.</p></li>
-    <li><h3>Desvía tu teléfono</h3><p>Sigue la guía del portal para desviar las llamadas que no cojas hacia tu asistente. Es un código sencillo que marcas una vez.</p></li>
-    <li><h3>Haz una llamada de prueba</h3><p>Llama tú mismo a tu número y habla con tu asistente como si fueras un cliente. Verás lo bien que responde.</p></li>
-    <li><h3>Enciende los avisos</h3><p>En <b>Seguimientos</b>, activa los recordatorios de cita y la recuperación de clientes. A partir de ahí, trabaja sola.</p></li>
+
+    <li id="p-portal">
+      <h3>Entra en tu portal</h3>
+      <p>Abre el enlace del email de bienvenida, o entra en <a href="https://nodeflow.es/portal">nodeflow.es/portal</a>. La primera vez entrarás con un <b>enlace mágico</b> (sin contraseña); el portal te ofrecerá crear una contraseña para las próximas veces — te recomendamos hacerlo.</p>
+      <ul>
+        <li>Guárdate <span class="kbd">nodeflow.es/portal</span> en favoritos: es tu puerta de entrada a todo.</li>
+        <li>Funciona en el móvil y en el ordenador, igual de bien.</li>
+      </ul>
+    </li>
+
+    <li id="p-asistente">
+      <h3>Cuéntale a tu asistente sobre tu negocio</h3>
+      <p>En el menú, entra en <b>Asistente</b>. Aquí decides cómo habla y qué sabe hacer. Rellénalo con calma — cuanto mejor lo hagas, mejor atiende.</p>
+      <div class="path">📍 Menú lateral ▸ <b>Asistente</b></div>
+      <figure class="shot">
+        <img src="guia-img/asistente.jpg" alt="Pantalla Asistente del portal NodeFlow: nombre, idioma, qué hace, mensaje de bienvenida e información adicional, con pestañas Básico, Horario, Contenido y Voz.">
+        <figcaption>La pantalla <b>Asistente</b>: aquí configuras nombre, idioma, saludo y qué sabe hacer.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Nombre e idioma:</b> ponle un nombre (p. ej. “Ainara”) y elige el idioma en el que atenderá.</li>
+        <li><b>¿Qué hace tu asistente?</b> Elige <b>Agendar citas</b> (consulta tu agenda y reserva sola) o <b>Recados</b> (registra al interesado y te avisa para que le devuelvas la llamada).</li>
+        <li><b>Mensaje de bienvenida:</b> la primera frase que oirá tu cliente. Ej.: “Clínica Dental Bidasoa, buenos días, ¿en qué puedo ayudarle?”.</li>
+        <li><b>Información adicional:</b> lo esencial de tu negocio (dónde estás, seguros que aceptas, parking…). <b>Solo datos reales.</b></li>
+        <li><b>Pestañas de arriba:</b> en <b>Horario</b> pones cuándo estás abierto; en <b>Contenido</b> tus servicios y precios; en <b>Voz</b> eliges cómo suena. Termina siempre con <b>Guardar asistente</b>.</li>
+      </ul>
+      <div class="tip"><b>Truco:</b> el botón <b>“Llámame ahora”</b> de esta pantalla hace que tu asistente te llame al instante para que lo escuches tal y como está configurado. Úsalo cada vez que cambies algo.</div>
+    </li>
+
+    <li id="p-conocimiento">
+      <h3>Rellena la Base de conocimiento</h3>
+      <p>En <b>Base de conocimiento</b> le cuentas por escrito todo lo demás de tu negocio: horarios especiales, cómo llegar, formas de pago, políticas, promociones… Tu asistente lo usará para responder a tus clientes, <b>al pie de la letra</b>.</p>
+      <div class="path">📍 Menú lateral ▸ <b>Base de conocimiento</b></div>
+      <figure class="shot">
+        <img src="guia-img/conocimiento.jpg" alt="Pantalla Base de conocimiento del portal NodeFlow, con el cuadro de texto donde el negocio describe toda su información.">
+        <figcaption>La <b>Base de conocimiento</b>: cuanto más y mejor la rellenes, menos veces dirá “eso lo confirma el equipo”.</figcaption>
+      </figure>
+      <div class="warn"><b>Importante:</b> escribe solo lo que sea verdad. Si pones “aparcamiento gratuito”, tu asistente se lo dirá a todo el que pregunte. Es tu voz — cuídala.</div>
+    </li>
+
+    <li id="p-calendario">
+      <h3>Conecta tu calendario</h3>
+      <p>En <b>Integraciones</b> conecta tu <b>Google Calendar</b> (o tu <b>Outlook</b>) para que las citas que reserve tu asistente aparezcan también en el calendario que ya usas, y para que nunca ofrezca un hueco que tú tienes ocupado.</p>
+      <div class="path">📍 Menú lateral ▸ <b>Integraciones</b></div>
+      <figure class="shot">
+        <img src="guia-img/integraciones.jpg" alt="Pantalla Integraciones del portal NodeFlow con las opciones para conectar Google Calendar, Outlook y WhatsApp.">
+        <figcaption><b>Integraciones</b>: pulsa <em>Conectar</em> y sigue los pasos de Google. Tarda 30 segundos.</figcaption>
+      </figure>
+      <ul>
+        <li>Pulsa <b>Conectar Google Calendar</b> e inicia sesión con la cuenta de tu negocio.</li>
+        <li>Acepta los permisos. Verás el estado cambiar a <b>Conectado</b>.</li>
+        <li>A partir de ahí, cada cita entra sola en tu calendario de siempre.</li>
+      </ul>
+    </li>
+
+    <li id="p-desvio">
+      <h3>Desvía tu teléfono al asistente</h3>
+      <p>Este es el paso que “enchufa” tu asistente a tu línea. Marca <b>una sola vez</b>, desde el teléfono de tu negocio, el código de desvío. Oirás un tono de confirmación y listo.</p>
+      <div class="note"><b>Lo más fácil:</b> en el email <em>“Tu asistente está listo”</em> tienes botones que abren el marcador con el código ya puesto — solo le das a llamar. Si prefieres marcarlo a mano, aquí tienes los códigos (sustituye <span class="kbd">TU-NÚMERO</span> por tu número NodeFlow, el que aparece en ese email):</p>
+      <div class="codes">
+        <div class="row reco">
+          <div class="lbl">Cuando no llegues a cogerlo <span class="pill">Recomendado</span><small>Tu teléfono suena primero; el asistente coge solo lo que tú no puedas atender. No pierdes ninguna llamada.</small></div>
+          <div class="code">**004*TU-NÚMERO#</div>
+        </div>
+        <div class="row">
+          <div class="lbl">Todas las llamadas al asistente<small>El asistente atiende todo desde el primer tono. Ideal si no quieres que suene tu teléfono.</small></div>
+          <div class="code">**21*TU-NÚMERO#</div>
+        </div>
+        <div class="row">
+          <div class="lbl">Desactivar el desvío<small>Vuelves a recibir tú las llamadas al instante. Borra cualquier desvío.</small></div>
+          <div class="code">##002#</div>
+        </div>
+      </div>
+      <p style="font-size:.92rem;color:var(--ink-soft);margin-top:.4rem">Funciona en Movistar, Vodafone, Orange, Yoigo, MásMóvil, Euskaltel, R y demás operadores.</p>
+      <div class="warn"><b>¿Tienes fijo de empresa (DECT o centralita)?</b> El desvío se configura desde el menú de la centralita, no desde el teléfono. Escríbenos por WhatsApp y lo dejamos listo contigo en 5 minutos.</div>
+    </li>
+
+    <li id="p-prueba">
+      <h3>Haz una llamada de prueba</h3>
+      <p>Llama tú mismo a tu número y habla con tu asistente como si fueras un cliente: pide una cita, pregunta un precio. Así compruebas que todo suena y funciona como quieres antes de que llamen tus clientes de verdad.</p>
+      <ul>
+        <li>¿Algo no te encaja? Vuelve a <b>Asistente</b> o a <b>Base de conocimiento</b>, ajústalo y prueba otra vez.</li>
+        <li>También puedes usar el botón <b>“Probar asistente” / “Llámame ahora”</b> de la pantalla Asistente.</li>
+      </ul>
+    </li>
+
+    <li id="p-avisos">
+      <h3>Enciende los avisos</h3>
+      <p>En <b>Seguimientos</b> activas los mensajes automáticos que trabajan por ti: recordatorios de cita (para que no falten), recuperación de clientes que hace tiempo que no vienen y peticiones de reseña. Tú los enciendes una vez y el asistente se encarga.</p>
+      <div class="path">📍 Menú lateral ▸ <b>Seguimientos</b> · y ajustes finos en <b>Automatizaciones</b></div>
+      <figure class="shot">
+        <img src="guia-img/seguimientos.jpg" alt="Pantalla Seguimientos del portal NodeFlow con las reglas de avisos automáticos y su alcance.">
+        <figcaption><b>Seguimientos</b>: enciende cada aviso con un clic. Verás a cuánta gente llega cada uno.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="guia-img/automatizaciones.jpg" alt="Pantalla Automatizaciones del portal NodeFlow con los interruptores de recordatorios, reseñas y confirmaciones.">
+        <figcaption><b>Automatizaciones</b>: los interruptores finos (recordatorios, reseñas, confirmaciones…). Déjalos como quieras.</figcaption>
+      </figure>
+    </li>
+
   </ol>
 
-  <div class="tip">
-    <b>Consejo:</b> no hace falta que lo hagas todo el primer día. Con el paso 1 (contarle tu negocio) ya empieza a atender de maravilla. El resto lo vas afinando con calma.
+  <div class="tip">✅ <b>¡Y ya está!</b> Con estos pasos tu asistente está atendiendo llamadas de clientes reales. Lo demás de esta guía es una referencia para que conozcas cada rincón de tu portal cuando lo necesites.</div>
+
+  <!-- ══════════ PARTE 3 ══════════ -->
+  <span class="part-tag" id="parte3">Parte 3 · Referencia</span>
+  <h2 style="border-top:none;padding-top:.6rem">Tu portal por dentro, sección a sección</h2>
+  <p>Estas son todas las zonas del menú. No necesitas usarlas todas desde el primer día — entra a cada una cuando te haga falta.</p>
+
+  <div class="ref">
+    <h3><span class="tag">🏠</span> Dashboard</h3>
+    <p>Tu página de inicio. De un vistazo ves lo que tu asistente ha hecho hoy por ti: llamadas atendidas, citas reservadas, avisos enviados y el dinero estimado que ha movido. Arriba tienes el <b>copiloto</b>, que te sugiere las 2 o 3 cosas más útiles que puedes hacer ahora.</p>
+    <figure class="shot">
+      <img src="guia-img/dashboard.jpg" alt="Dashboard del portal NodeFlow con el resumen del día, el copiloto y el panel de minutos.">
+      <figcaption>El <b>Dashboard</b>: lo primero que ves al entrar. Un resumen de que todo va bien, sin líos.</figcaption>
+    </figure>
+    <ul class="dolist">
+      <li><b>Resumen del día:</b> lo que ha trabajado tu asistente mientras tú estabas a lo tuyo.</li>
+      <li><b>“Lo que recuperé por ti”:</b> el valor estimado de las llamadas y seguimientos que se habrían perdido sin el asistente.</li>
+      <li><b>Minutos del mes:</b> cuántos llevas usados de los incluidos en tu plan.</li>
+    </ul>
   </div>
 
-  <h2>Preguntas frecuentes</h2>
+  <div class="ref">
+    <h3><span class="tag">📞</span> Llamadas</h3>
+    <p>El registro de todas las llamadas que ha atendido tu asistente: cuándo, cuánto duraron, en qué acabaron (reserva, información, recado…) y de qué contacto. Puedes abrir cada una y <b>leer la conversación completa</b> (el transcript).</p>
+    <figure class="shot">
+      <img src="guia-img/llamadas.jpg" alt="Listado de Llamadas en el portal NodeFlow con duración, resultado, detalles y contacto de cada llamada.">
+      <figcaption><b>Llamadas</b>: aquí compruebas, cuando quieras, que tu asistente habla como tú quieres.</figcaption>
+    </figure>
+    <ul class="dolist">
+      <li><b>Filtra</b> por resultado o por fechas para encontrar una llamada concreta.</li>
+      <li>Pulsa el icono de <b>transcript</b> para leer todo lo que se dijo.</li>
+      <li>Devuelve la llamada o manda un WhatsApp desde los botones de <b>Acciones</b>.</li>
+    </ul>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">📅</span> Citas</h3>
+    <p>Todas tus citas, en vista de <b>semana</b> o de <b>lista</b>. Las que reserva el asistente aparecen solas; y tú puedes añadir, mover o cancelar a mano cuando quieras.</p>
+    <figure class="shot">
+      <img src="guia-img/citas.jpg" alt="Vista semanal de Citas en el portal NodeFlow con las reservas de cada día.">
+      <figcaption><b>Citas</b>: tu agenda de la semana, siempre al día.</figcaption>
+    </figure>
+    <ul class="dolist">
+      <li>Botón <b>+ Nueva cita</b> para apuntar una a mano.</li>
+      <li>Busca por cliente, teléfono o servicio en la barra de arriba.</li>
+    </ul>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">👥</span> Clientes</h3>
+    <p>La ficha de cada cliente: sus datos, su historial y sus citas. Tu asistente los va guardando solo según van llamando, así que tu lista de clientes crece sola.</p>
+    <figure class="shot">
+      <img src="guia-img/clientes.jpg" alt="Listado de Clientes en el portal NodeFlow con fichas, datos de contacto e historial.">
+      <figcaption><b>Clientes</b>: tu agenda de contactos, que se llena sola con cada llamada.</figcaption>
+    </figure>
+    <ul class="dolist">
+      <li><b>Importa</b> tus clientes de siempre desde un Excel o CSV.</li>
+      <li>Abre una ficha para ver todo lo que sabes de esa persona.</li>
+    </ul>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">💡</span> Oportunidades</h3>
+    <p>Clientes que llamaron y se quedaron <b>sin cerrar cita</b>. Son dinero a punto de escaparse: desde aquí los recuperas con un clic (una llamada o un mensaje del asistente) antes de que se enfríen.</p>
+    <figure class="shot">
+      <img src="guia-img/oportunidades.jpg" alt="Pantalla Oportunidades del portal NodeFlow con clientes que llamaron y no reservaron.">
+      <figcaption><b>Oportunidades</b>: la lista de “casi clientes” para rematar.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">⏳</span> Lista de espera</h3>
+    <p>Cuando no tienes hueco para alguien, entra aquí. Si luego se libera un hueco, tu asistente puede avisar automáticamente a quien estaba esperando. Ninguna cancelación se queda en un hueco vacío.</p>
+    <figure class="shot">
+      <img src="guia-img/espera.jpg" alt="Pantalla Lista de espera del portal NodeFlow.">
+      <figcaption><b>Lista de espera</b>: convierte cancelaciones en citas.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">✅</span> Mis tareas</h3>
+    <p>Tu lista de pendientes dentro del portal. El asistente añade tareas solo (“devuelve la llamada a…”, “confirma la cita de…”) y tú puedes añadir las tuyas. Nada se te olvida.</p>
+    <figure class="shot">
+      <img src="guia-img/tareas.jpg" alt="Pantalla Mis tareas del portal NodeFlow con la lista de pendientes.">
+      <figcaption><b>Mis tareas</b>: lo que conviene que hagas tú, en un solo sitio.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">🔔</span> Seguimientos</h3>
+    <p>El motor de avisos automáticos (lo encendiste en el paso 7). Aquí ves y ajustas cada regla: recordatorios de cita, recuperación de clientes, reseñas… y a cuánta gente llega cada una.</p>
+    <p style="color:var(--ink-soft);font-size:.96rem;margin-top:-.4rem">👆 La captura de esta sección está arriba, en el <a href="#p-avisos">paso 7</a>.</p>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">📈</span> Informes</h3>
+    <p>El crecimiento de tu negocio en números: llamadas, reservas, conversión, horas que te has ahorrado e ingresos estimados, con su tendencia mes a mes. Puedes descargar el informe.</p>
+    <figure class="shot">
+      <img src="guia-img/informes.jpg" alt="Pantalla Informes del portal NodeFlow con indicadores y gráfica de tendencia de llamadas y reservas.">
+      <figcaption><b>Informes</b>: para ver, con datos, cuánto te está aportando el asistente.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">✨</span> Insights</h3>
+    <p>Lo que aprende tu asistente de las conversaciones: qué preguntan más tus clientes, qué no supo responder, en qué horas llaman más… Ideas para mejorar tu negocio y tu Base de conocimiento.</p>
+    <figure class="shot">
+      <img src="guia-img/insights.jpg" alt="Pantalla Insights del portal NodeFlow con patrones y aprendizajes de las llamadas.">
+      <figcaption><b>Insights</b>: lo que tus clientes te cuentan sin darse cuenta.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">🎁</span> Recomienda y gana</h3>
+    <p>Tu programa de referidos. Si recomiendas NodeFlow a otro negocio y se da de alta, te llevas una recompensa. Aquí tienes tu enlace para compartir.</p>
+    <figure class="shot">
+      <img src="guia-img/referidos.jpg" alt="Pantalla Recomienda y gana del portal NodeFlow con el código y enlace de referido.">
+      <figcaption><b>Recomienda y gana</b>: comparte tu enlace y ahorra en tu cuota.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">🌐</span> Widget para tu web</h3>
+    <p>Un botón que puedes poner en tu página web para que quien te visite pueda hablar con tu asistente o pedir cita sin llamar. Aquí lo configuras y copias el código.</p>
+    <figure class="shot">
+      <img src="guia-img/widget.jpg" alt="Pantalla Widget para tu web del portal NodeFlow.">
+      <figcaption><b>Widget</b>: lleva tu asistente también a tu página web.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">📚</span> Base de conocimiento</h3>
+    <p>Donde le cuentas por escrito todo lo demás de tu negocio (la rellenaste en el paso 3). Vuelve aquí cada vez que cambie algo: precios, horarios, una promoción nueva…</p>
+    <p style="color:var(--ink-soft);font-size:.96rem;margin-top:-.4rem">👆 La captura está arriba, en el <a href="#p-conocimiento">paso 3</a>.</p>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">🤖</span> Automatizaciones</h3>
+    <p>Los interruptores finos de todo lo automático: qué avisos manda, cuándo confirma citas, si pide reseñas… Déjalo a tu gusto. Para la mayoría, lo de fábrica ya va perfecto.</p>
+    <p style="color:var(--ink-soft);font-size:.96rem;margin-top:-.4rem">👆 La captura está arriba, en el <a href="#p-avisos">paso 7</a>.</p>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">🔗</span> Integraciones</h3>
+    <p>Conecta tu Google Calendar, tu Outlook y WhatsApp (lo viste en el paso 4). Vuelve aquí si cambias de calendario o quieres conectar algo nuevo.</p>
+    <p style="color:var(--ink-soft);font-size:.96rem;margin-top:-.4rem">👆 La captura está arriba, en el <a href="#p-calendario">paso 4</a>.</p>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">💳</span> Facturación</h3>
+    <p>Tu plan, tus minutos del mes, tus complementos y tus facturas. Todo claro y en un sitio. Desde aquí gestionas tu suscripción y descargas tus facturas en PDF.</p>
+    <figure class="shot">
+      <img src="guia-img/facturacion.jpg" alt="Pantalla Facturación del portal NodeFlow con plan actual, minutos, complementos e historial de facturas.">
+      <figcaption><b>Facturación</b>: tu plan y tus facturas, sin sorpresas.</figcaption>
+    </figure>
+    <ul class="dolist">
+      <li>Ves cuántos <b>minutos</b> llevas usados y cuántos te quedan.</li>
+      <li>Añade <b>complementos</b> (voz premium, campañas de crecimiento…) cuando los necesites.</li>
+      <li>Descarga cualquier <b>factura</b> en PDF.</li>
+    </ul>
+  </div>
+
+  <div class="ref">
+    <h3><span class="tag">⚙️</span> Configuración</h3>
+    <p>Los datos de tu cuenta y negocio: nombre, contacto, contraseña y preferencias. Entra aquí de vez en cuando para mantener todo al día.</p>
+    <figure class="shot">
+      <img src="guia-img/configuracion.jpg" alt="Pantalla Configuración del portal NodeFlow con los datos de la cuenta y del negocio.">
+      <figcaption><b>Configuración</b>: los datos de tu cuenta, siempre a mano.</figcaption>
+    </figure>
+  </div>
+
+  <!-- ══════════ FAQ ══════════ -->
+  <h2 id="faq">Preguntas frecuentes</h2>
   <div class="faq">
-    <details><summary>¿Tengo que cambiar mi número de teléfono?</summary><p>No. Sigues con tu número de siempre. Solo desvías a tu asistente las llamadas que no puedas coger tú.</p></details>
-    <details><summary>¿Y si prefiero contestar yo?</summary><p>Perfecto. Tu asistente solo entra cuando tú no coges. Tú mandas siempre.</p></details>
-    <details><summary>¿Se puede equivocar con los precios o inventarse cosas?</summary><p>No se inventa nada. Solo dice lo que tú le has configurado. Si le preguntan algo que no le has contado, responde con honestidad que el equipo lo confirmará.</p></details>
-    <details><summary>¿Necesito saber de ordenadores?</summary><p>No. El portal está pensado para que cualquiera lo use. Y si te atascas, escríbenos y te ayudamos.</p></details>
-    <details><summary>¿Puedo escuchar lo que ha dicho en una llamada?</summary><p>Sí. En la sección <b>Llamadas</b> tienes el resumen de cada conversación.</p></details>
-    <details><summary>¿Cómo cancelo o cambio mi plan?</summary><p>Desde <b>Facturación</b>, en cualquier momento. Sin permanencia.</p></details>
+    <details><summary>¿Tengo que cambiar mi número de teléfono?</summary><p>No. Sigues con tu número de siempre. Solo desvías a tu asistente las llamadas que no puedas coger tú (paso 5).</p></details>
+    <details><summary>¿Y si prefiero contestar yo?</summary><p>Perfecto. Con el desvío recomendado, tu asistente solo entra cuando tú no coges. Tú mandas siempre. Y puedes desactivar el desvío marcando <span class="kbd">##002#</span> cuando quieras.</p></details>
+    <details><summary>¿Se puede equivocar con los precios o inventarse cosas?</summary><p>No se inventa nada. Solo dice lo que tú le has configurado en <b>Asistente</b> y en <b>Base de conocimiento</b>. Si le preguntan algo que no le has contado, responde con honestidad que el equipo lo confirmará.</p></details>
+    <details><summary>¿Necesito saber de ordenadores?</summary><p>No. El portal está pensado para que cualquiera lo use. Y si te atascas, nos escribes y lo hacemos juntos.</p></details>
+    <details><summary>¿Puedo escuchar o leer lo que ha dicho en una llamada?</summary><p>Sí. En la sección <b>Llamadas</b> tienes el registro de cada conversación y su transcripción completa.</p></details>
+    <details><summary>¿Las citas entran en mi calendario de siempre?</summary><p>Sí, si conectas tu Google Calendar u Outlook en <b>Integraciones</b> (paso 4). Cada cita aparece sola en el calendario que ya usas.</p></details>
+    <details><summary>¿Qué pasa si me quedo sin minutos del mes?</summary><p>No se corta nada: los minutos de más se cobran a 0,10 €/min, y siempre ves tu consumo en <b>Facturación</b> y en el Dashboard. Puedes ampliar tu plan cuando quieras.</p></details>
+    <details><summary>¿Cómo cancelo o cambio mi plan?</summary><p>Desde <b>Facturación</b>, en cualquier momento y sin permanencia.</p></details>
   </div>
 
   <div class="help">
     <h3 style="color:#fff;margin:0 0 6px">¿Te ayudamos a ponerlo en marcha?</h3>
-    <p style="color:#c9d1bf;margin:0 0 10px">Estamos a un mensaje. Escríbenos y lo dejamos todo listo contigo.</p>
-    <p style="margin:0"><a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a> · <a href="https://nodeflow.es">nodeflow.es</a></p>
+    <p style="color:#c9d1bf;margin:0 0 10px">Estamos a un mensaje. Escríbenos y lo dejamos todo listo contigo, paso a paso.</p>
+    <p style="margin:0"><a href="https://wa.me/34666351319">WhatsApp directo</a> · <a href="mailto:hola@nodeflow.es">hola@nodeflow.es</a> · <a href="https://nodeflow.es">nodeflow.es</a></p>
   </div>
 
   <footer>NodeFlow · Tu negocio, cuidando a sus clientes solo.</footer>
