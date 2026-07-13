@@ -547,6 +547,11 @@ async function sendWelcomePortalEmail(registro, magicToken) {
       </div>
       <p style="color:#6060a0;font-size:12px;text-align:center;margin-top:4px;">Este enlace es válido durante 7 días</p>
 
+      <div style="text-align:center;margin:22px 0 4px;">
+        <a href="${publicUrl}/guia.html" style="display:inline-block;background:rgba(255,255,255,0.06);border:1px solid rgba(168,85,247,0.45);color:#c9a8ff;padding:12px 26px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">📖 Ver tu guía de bienvenida</a>
+      </div>
+      <p style="color:#6060a0;font-size:12px;text-align:center;margin-top:2px;">Todo lo que hace tu asistente y cómo usar el portal, explicado fácil — con opción de descargarla en PDF.</p>
+
       <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;text-align:center;">
         <p style="color:#6060a0;font-size:13px;margin-bottom:10px;">¿Tienes alguna duda?</p>
         <a href="https://wa.me/34666351319?text=Hola%2C%20acabo%20de%20activar%20NodeFlow%20para%20${encodeURIComponent(registro.negocio||'mi negocio')}" style="background:#25d366;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">💬 WhatsApp →</a>
@@ -558,7 +563,7 @@ async function sendWelcomePortalEmail(registro, magicToken) {
     </div>
   `;
 
-  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n\nEste enlace es válido 7 días.\n\n¿Dudas? WhatsApp: +34 666 351 319`;
+  const text = `¡Bienvenido a NodeFlow, ${nombre}!\n\nTu pago está confirmado. En pocos minutos recibirás tu número NodeFlow y las instrucciones de desvío.\n\nNegocio: ${registro.negocio}\nPlan: ${plan}\n\nAccede a tu portal:\n${portalLink}\n(Este enlace es válido 7 días.)\n\nTu guía de bienvenida (todo explicado fácil, con opción de descargar en PDF):\n${publicUrl}/guia.html\n\n¿Dudas? WhatsApp: +34 666 351 319`;
 
   return sendEmail({ to: registro.email, subject, html, text });
 }
