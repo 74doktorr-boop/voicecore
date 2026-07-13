@@ -590,6 +590,65 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Leads accionables ───────────────────────────────────────────────────────
+  // Reenviar enlace de pago: genera un checkout fresco del registro y se lo
+  // manda por email al lead (además de devolver la URL para copiarla a mano).
+  // El caso real: alguien se registró, no pagó, y le reactivas sin perseguirle.
+  app.post('/api/admin/leads/:id/payment-link', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      const { data: reg } = await db.client.from('registros')
+        .select('id, negocio, email, contacto, status').eq('id', req.params.id).single();
+      if (!reg) return res.status(404).json({ error: 'Registro no encontrado' });
+      if (reg.status === 'active') return res.status(400).json({ error: 'Este lead ya es cliente activo' });
+      if (!reg.email) return res.status(400).json({ error: 'El registro no tiene email' });
+
+      const { getBilling } = require('../billing/stripe');
+      const out = await getBilling().createRegistroCheckout({ registroId: reg.id, email: reg.email });
+
+      let emailed = false;
+      try {
+        const { sendEmail } = require('../notifications/email');
+        const name = (reg.contacto || '').split(' ')[0] || 'Hola';
+        emailed = await sendEmail({
+          to: reg.email,
+          subject: `Tu asistente para ${reg.negocio || 'tu negocio'} te está esperando — NodeFlow`,
+          text: `${name}, tu registro en NodeFlow sigue reservado. Completa el pago cuando quieras y tu asistente queda activo en el día: ${out.url}\n\n¿Dudas? Responde a este email y te ayudamos.`,
+          html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+            <h2>${name}, tu asistente te está esperando 👋</h2>
+            <p>Tu registro de <strong>${reg.negocio || 'tu negocio'}</strong> en NodeFlow sigue reservado. Completa el alta cuando quieras y lo activamos en el día:</p>
+            <p style="margin:24px 0"><a href="${out.url}" style="background:#c4f546;color:#243100;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:800">Completar mi alta →</a></p>
+            <p style="color:#888;font-size:13px">¿Dudas? Responde a este email y te ayudamos.</p>
+          </div>`,
+        });
+      } catch (e) { log.warn(`payment-link email failed: ${e.message}`); }
+
+      recordAudit({ action: 'lead_payment_link', targetType: 'registro', targetId: reg.id, ip: ipOf(req), details: { email: reg.email, emailed } });
+      res.json({ ok: true, url: out.url, emailed });
+    } catch (e) {
+      log.error('Admin payment-link error', { error: e.message });
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Descartar lead: lo saca del embudo sin borrarlo (status='discarded').
+  app.post('/api/admin/leads/:id/discard', adminAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      const { data: reg } = await db.client.from('registros')
+        .select('id, status').eq('id', req.params.id).single();
+      if (!reg) return res.status(404).json({ error: 'Registro no encontrado' });
+      if (reg.status === 'active') return res.status(400).json({ error: 'No se descarta un cliente activo' });
+      await db.client.from('registros').update({ status: 'discarded' }).eq('id', reg.id);
+      recordAudit({ action: 'lead_discard', targetType: 'registro', targetId: reg.id, ip: ipOf(req) });
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Economía por cliente: ingreso vs coste de proveedor → margen ───────────
   // La pregunta de fundador: qué cliente me gana dinero y cuál me lo quema.
   // Ingreso = plan + overage estimado (0,10€/min sobre el límite mensual).

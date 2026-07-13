@@ -333,8 +333,18 @@
     <div class="tab-panel" id="tab-leads">
       <div class="section-hd">
         <div><h2>Leads / Registros</h2><p id="leadsCount"></p></div>
-        <button class="refresh-btn" onclick="loadLeads()">↻ Actualizar</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="leadsFilter" onchange="renderLeadsFiltered()" class="form-select" style="width:auto">
+            <option value="">Todos</option>
+            <option value="pending">⏳ Pendientes de pago</option>
+            <option value="active">✅ Activos</option>
+            <option value="discarded">🗑 Descartados</option>
+          </select>
+          <button class="refresh-btn" onclick="loadLeads()">↻ Actualizar</button>
+        </div>
       </div>
+      <!-- Embudo: registro → pago. La conversión del negocio en una línea. -->
+      <div id="leadsFunnel" style="margin-bottom:18px"></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Negocio</th><th>Sector</th><th>Contacto</th><th>Email</th><th>Teléfono</th><th>Plan</th><th>Cupón</th><th>Estado</th><th>Fecha</th></tr></thead>
@@ -1115,8 +1125,69 @@ async function loadLeads() {
     const rows=data.registros||[];
     window._leadRows=rows;
     document.getElementById('leadsCount').textContent=rows.length+' registros';
-    render(rows,'leadsBody',false); render(rows.slice(0,5),'recentLeads',true);
+    renderLeadsFiltered();
+    render(rows.slice(0,5),'recentLeads',true);
+    renderLeadsFunnel(rows);
   } catch(e){if(e.message!=='401')console.error(e);}
+}
+
+// Filtro por estado de la tabla grande de Leads (la mini del Resumen no filtra).
+function renderLeadsFiltered(){
+  const f=(document.getElementById('leadsFilter')||{}).value||'';
+  const rows=window._leadRows||[];
+  const match = r => !f
+    || (f==='active' && r.status==='active')
+    || (f==='discarded' && r.status==='discarded')
+    || (f==='pending' && r.status!=='active' && r.status!=='discarded');
+  render(rows.filter(match),'leadsBody',false);
+}
+
+// Embudo registro → pago: la conversión del negocio en una línea.
+function renderLeadsFunnel(rows){
+  const el=document.getElementById('leadsFunnel'); if(!el) return;
+  const total=rows.length;
+  const active=rows.filter(r=>r.status==='active').length;
+  const discarded=rows.filter(r=>r.status==='discarded').length;
+  const pending=total-active-discarded;
+  const conv=total?Math.round(active/total*100):0;
+  if(!total){ el.innerHTML=''; return; }
+  const seg=(n,color,label)=> n?'<div style="flex:'+Math.max(n,0.001)+';background:'+color+';height:26px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#10140a;min-width:'+(n?'54px':'0')+'" title="'+label+': '+n+'">'+n+'</div>':'';
+  el.innerHTML=
+    '<div style="display:flex;border-radius:9px;overflow:hidden;border:1px solid var(--border)">'+
+      seg(active,'var(--accent)','Pagados')+
+      seg(pending,'rgba(246,197,68,.85)','Pendientes')+
+      seg(discarded,'rgba(255,255,255,.25)','Descartados')+
+    '</div>'+
+    '<div style="display:flex;gap:16px;margin-top:6px;font-size:11.5px;color:var(--dim)">'+
+      '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--accent);margin-right:5px"></i>Pagados '+active+'</span>'+
+      '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(246,197,68,.85);margin-right:5px"></i>Pendientes '+pending+'</span>'+
+      '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(255,255,255,.25);margin-right:5px"></i>Descartados '+discarded+'</span>'+
+      '<span style="margin-left:auto;font-weight:800;color:var(--text)">Conversión: '+conv+'%</span>'+
+    '</div>';
+}
+
+// ── Acciones sobre leads ──────────────────────────────────────────────────────
+// Reenviar enlace de pago: checkout fresco + email al lead + URL al portapapeles.
+async function leadPaymentLink(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='Generando…';}
+  try{
+    const r=await api('/api/admin/leads/'+id+'/payment-link',{method:'POST'});
+    if(r&&r.error) throw new Error(r.error);
+    try{ await navigator.clipboard.writeText(r.url); }catch(_){}
+    toast(r.emailed?'💳 Enlace enviado por email al lead (y copiado)':'💳 Enlace copiado al portapapeles (email no salió)');
+  }catch(e){ toast('Error: '+(e.message||e),'err'); }
+  if(btn){btn.disabled=false;btn.textContent='💳 Pago';}
+}
+
+async function leadDiscard(id,btn){
+  if(!confirm('¿Descartar este lead? Sale del embudo (no se borra).')) return;
+  if(btn) btn.disabled=true;
+  try{
+    const r=await api('/api/admin/leads/'+id+'/discard',{method:'POST'});
+    if(r&&r.error) throw new Error(r.error);
+    toast('Lead descartado');
+    loadLeads();
+  }catch(e){ if(btn) btn.disabled=false; toast('Error: '+(e.message||e),'err'); }
 }
 
 function langBadge(lang) {
@@ -1131,12 +1202,17 @@ function render(rows,id,mini) {
   if(!rows.length){b.innerHTML=`<tr class="empty-row"><td colspan="${mini?5:9}">Sin datos</td></tr>`;return;}
   b.innerHTML=rows.map(r=>{
     const plan=r.plan==='pro'?'<span class="badge bp">Pro</span>':r.plan==='negocio'?'<span class="badge bg">Negocio</span>':`<span class="badge bd">${r.plan||'—'}</span>`;
-    const st=r.status==='active'?'<span class="badge bg">Activo</span>':r.status==='pending_payment'?'<span class="badge by">Pendiente</span>':`<span class="badge bd">${r.status||'—'}</span>`;
+    const st=r.status==='active'?'<span class="badge bg">Activo</span>':r.status==='pending_payment'?'<span class="badge by">Pendiente</span>':r.status==='discarded'?'<span class="badge bd" style="opacity:.6">🗑 Descartado</span>':`<span class="badge bd">${r.status||'—'}</span>`;
     const lang=langBadge(r.idioma||r.language||'es');
     const src=r.source==='galiza'?'<span class="badge bl-gl" style="margin-left:4px">galiza</span>':r.source==='hementxe'?'<span class="badge by" style="margin-left:4px">hementxe</span>':'';
     const d=(r.created_at||'').split('T')[0];
-    const canCreate = r.status!=='active' && r.email && r.id;
-    const action = canCreate ? `<button class="btn btn-g" style="font-size:10px;padding:3px 8px;margin-left:6px" onclick="crearClienteDesdeRegistro('${r.id}',this)">➕ Crear cliente</button>` : '';
+    const canCreate = r.status!=='active' && r.status!=='discarded' && r.email && r.id;
+    const btnS='style="font-size:10px;padding:3px 8px;margin-left:6px"';
+    const action = canCreate
+      ? `<button class="btn btn-g" ${btnS} onclick="crearClienteDesdeRegistro('${r.id}',this)">➕ Crear cliente</button>`+
+        (mini?'':`<button class="btn btn-y" ${btnS} onclick="leadPaymentLink('${r.id}',this)" title="Genera un checkout fresco, se lo envía por email y copia la URL">💳 Pago</button>`+
+        `<button class="btn btn-r" ${btnS} onclick="leadDiscard('${r.id}',this)" title="Sacar del embudo sin borrar">🗑</button>`)
+      : '';
     if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
     return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td class="u-dim">${r.email||'—'}</td><td class="u-dim">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
   }).join('');
