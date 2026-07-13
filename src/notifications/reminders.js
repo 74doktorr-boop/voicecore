@@ -569,21 +569,32 @@ async function sendWaReview(apt, config, deps = {}) {
     || `https://www.google.com/search?q=${encodeURIComponent(businessName + ' opiniones')}`;
   const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
-  // 1) Plantilla dedicada nodeflow_resena (bonita, con botón cuando Meta la apruebe).
-  try {
-    const result = await _sendTemplate(apt.phone, 'nodeflow_resena', langCode, [
-      { type: 'body', parameters: [
-        { type: 'text', text: name }, { type: 'text', text: businessName }, { type: 'text', text: reviewUrl },
-      ] },
-    ], credentials);
-    if (result?.ok) {
-      log.info(`WA review sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
-      _logWaOut(apt, 'resena', `Petición de reseña: ${reviewUrl}`);
-      return true;
+  // 1) Plantilla dedicada nodeflow_resena. CONTRATO REAL de la versión APROBADA
+  // en Meta (verificado contra la API 2026-07-13): cuerpo con 2 variables
+  // (nombre, negocio) + botón URL dinámico "https://g.page/r/{{1}}" — el enlace
+  // viaja como SUFIJO del botón, no como 3ª variable del cuerpo (mandar 3
+  // provocaba el #132000). Solo aplica si el negocio tiene enlace g.page/r/…;
+  // si no (placeid o búsqueda), saltamos directos a la portadora con URL entera.
+  const gpageSuffix = (String(reviewUrl).match(/g\.page\/r\/(.+)$/) || [])[1] || null;
+  if (gpageSuffix) {
+    try {
+      const result = await _sendTemplate(apt.phone, 'nodeflow_resena', langCode, [
+        { type: 'body', parameters: [
+          { type: 'text', text: name }, { type: 'text', text: businessName },
+        ] },
+        { type: 'button', sub_type: 'url', index: '0', parameters: [
+          { type: 'text', text: gpageSuffix },
+        ] },
+      ], credentials);
+      if (result?.ok) {
+        log.info(`WA review sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+        _logWaOut(apt, 'resena', `Petición de reseña: ${reviewUrl}`);
+        return true;
+      }
+      log.warn(`WA review nodeflow_resena not ok for ${apt.id}: ${result?.error} — probando portadora`);
+    } catch (e) {
+      log.warn(`WA review nodeflow_resena failed for ${apt.id}: ${e.message}`);
     }
-    log.warn(`WA review nodeflow_resena not ok for ${apt.id}: ${result?.error} — probando portadora`);
-  } catch (e) {
-    log.warn(`WA review nodeflow_resena failed for ${apt.id}: ${e.message}`);
   }
 
   // 2) Fallback a la portadora nodeflow_aviso (SÍ aprobada) con el texto de reseña.

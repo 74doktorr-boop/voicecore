@@ -122,14 +122,31 @@ describe('sendWaConfirmation', () => {
 const CFG_REVIEW = { name: 'Peluquería HHR', language: 'es', automations: { config: { reviewUrl: 'https://g.page/r/XYZ/review' } } };
 
 describe('sendWaReview', () => {
-  test('plantilla nodeflow_resena aprobada → la usa con nombre/negocio/enlace', async () => {
+  test('plantilla nodeflow_resena aprobada → CONTRATO REAL: 2 params de cuerpo + sufijo g.page en el botón', async () => {
+    // La versión aprobada en Meta (verificado 2026-07-13) lleva el enlace como
+    // botón URL dinámico https://g.page/r/{{1}} — NO como 3ª variable del cuerpo
+    // (eso provocaba el #132000).
     const deps = fakeDeps();
     deps.optedOut = false;
     const ok = await sendWaReview(APT, CFG_REVIEW, deps);
     assert.strictEqual(ok, true);
     assert.strictEqual(deps.calls.template.name, 'nodeflow_resena');
-    const params = deps.calls.template.components[0].parameters.map(p => p.text);
-    assert.deepStrictEqual(params, ['Unai', 'Peluquería HHR', 'https://g.page/r/XYZ/review']);
+    const body = deps.calls.template.components.find(c => c.type === 'body');
+    assert.deepStrictEqual(body.parameters.map(p => p.text), ['Unai', 'Peluquería HHR']);
+    const btn = deps.calls.template.components.find(c => c.type === 'button');
+    assert.strictEqual(btn.sub_type, 'url');
+    assert.deepStrictEqual(btn.parameters.map(p => p.text), ['XYZ/review']); // sufijo tras g.page/r/
+  });
+
+  test('sin enlace g.page (placeid o búsqueda) → NO usa la dedicada, va directo a la portadora', async () => {
+    const deps = fakeDeps();
+    deps.optedOut = false;
+    const usados = [];
+    deps.sendTemplate = async (phone, name, lang, comp) => { usados.push(name); return { ok: true }; };
+    const cfg = { name: 'Peluquería HHR', language: 'es', googlePlaceId: 'PLACE123' }; // sin reviewUrl g.page
+    const ok = await sendWaReview(APT, cfg, deps);
+    assert.strictEqual(ok, true);
+    assert.deepStrictEqual(usados, ['nodeflow_aviso'], 'salta la dedicada (su botón solo admite g.page/r/…)');
   });
 
   test('nodeflow_resena falla (#132000) → cae a la portadora nodeflow_aviso con el enlace', async () => {

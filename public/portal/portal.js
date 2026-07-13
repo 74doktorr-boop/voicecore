@@ -2972,6 +2972,12 @@ async function loadConfig() {
           ' value="' + esc(c.reviewUrl || '') + '">' +
         '<small class="form-hint">Se incluye en los mensajes automáticos post-cita para pedir reseña. <strong>Cómo conseguirlo:</strong> entra en <a href="https://business.google.com" target="_blank" class="u-accent">business.google.com</a> con la cuenta de tu negocio → botón <em>«Pedir reseñas»</em> (o <em>«Comparte tu perfil»</em>) → copia el enlace corto (empieza por g.page/r/…) y pégalo aquí.</small></div>' +
 
+      '<div class="form-section-title">SMS a tus clientes</div>' +
+      '<div class="form-group"><label class="form-label">Remitente de los SMS <span class="u-normal">(opcional)</span></label>' +
+        '<input class="form-input" id="cfgSmsSender" maxlength="11" placeholder="' + esc((c.name || 'TuNegocio').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 11) || 'TuNegocio') + '"' +
+          ' value="' + esc(c.smsSenderId || '') + '">' +
+        '<small class="form-hint">El nombre que ven tus clientes como remitente cuando les llega un SMS (máx. 11 letras/números, sin tildes ni espacios — es el límite del estándar). Si lo dejas vacío, usamos el nombre de tu negocio abreviado.</small></div>' +
+
       '<div class="form-section-title">Notificaciones al propietario</div>' +
       '<div class="form-row">' +
         '<div class="form-group"><label class="form-label">Tu WhatsApp personal <span class="u-normal">(confirmaciones y cancelaciones)</span></label>' +
@@ -3112,6 +3118,7 @@ async function saveConfig() {
     alertPhone:     document.getElementById('cfgAlertPhone')?.value?.trim()  || '',
     notifyEmail:    document.getElementById('cfgNotifyEmail')?.value?.trim() || '',
     address:        document.getElementById('cfgAddress')?.value?.trim()     || '',
+    smsSenderId:    document.getElementById('cfgSmsSender')?.value?.trim()   || '',
   };
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {

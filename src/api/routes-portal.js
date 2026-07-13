@@ -1396,6 +1396,7 @@ function setupPortalRoutes(app, pipeline, config) {
         alertPhone:     src.alertPhone         || '',   // teléfono personal dueño para alertas WA
         notifyEmail:    src.notifyEmail        || flowConfig.ownerEmail || '',
         address:        src.address            || '',
+        smsSenderId:    src.smsSenderId        || '',   // remitente SMS de marca (11 chars GSM)
         serviceList:    Array.isArray(src.serviceList) ? src.serviceList : [],
       },
     });
@@ -1638,10 +1639,22 @@ function setupPortalRoutes(app, pipeline, config) {
   // ── PATCH /api/portal/config ──────────────────────────────
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
-    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList } = req.body;
+    const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList, smsSenderId } = req.body;
 
     if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl'].includes(language)) {
       return res.status(400).json({ error: "language debe ser 'es', 'eu', 'gl', 'es+eu' o 'es+gl'" });
+    }
+
+    // Remitente SMS de marca (máx 11, letras+dígitos — estándar GSM). Vacío =
+    // quitar el override (vuelve a derivarse del nombre del negocio). Inválido → 400.
+    let smsSenderClean;
+    if (smsSenderId !== undefined) {
+      if (String(smsSenderId).trim() === '') smsSenderClean = '';
+      else {
+        const { senderIdFromName } = require('../notifications/sms');
+        smsSenderClean = senderIdFromName(smsSenderId);
+        if (!smsSenderClean) return res.status(400).json({ error: 'Remitente SMS no válido: 3-11 letras/números, sin tildes ni espacios (p.ej. "PeluqAna")' });
+      }
     }
 
     // Update top-level fields via patch
@@ -1676,6 +1689,7 @@ function setupPortalRoutes(app, pipeline, config) {
       ...(alertPhone     !== undefined && { alertPhone }),
       ...(notifyEmail    !== undefined && { notifyEmail }),
       ...(address        !== undefined && { address }),
+      ...(smsSenderClean !== undefined && { smsSenderId: smsSenderClean }),
       // Lista estructurada de servicios+precios (la IA la usa para ser experta en el negocio)
       ...(Array.isArray(serviceList) && { serviceList: serviceList
         .filter(s => s && s.name)
@@ -1770,6 +1784,7 @@ function setupPortalRoutes(app, pipeline, config) {
         alertPhone:     custom.alertPhone      || '',
         notifyEmail:    custom.notifyEmail     || flow.ownerEmail || '',
         address:        custom.address         || '',
+        smsSenderId:    custom.smsSenderId     || '',
       },
     });
   });
