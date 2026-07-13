@@ -8,7 +8,7 @@
 
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
-const { sendSMS, isConfigured, _isAlphanumericSender } = require('../src/notifications/sms');
+const { sendSMS, isConfigured, senderIdFromName, _isAlphanumericSender } = require('../src/notifications/sms');
 
 const SNAP = { ...process.env };
 function reset() {
@@ -56,6 +56,20 @@ describe('_isAlphanumericSender', () => {
     assert.equal(_isAlphanumericSender('NodeFlow'), true);
     assert.equal(_isAlphanumericSender('+34843000000'), false);
     assert.equal(_isAlphanumericSender(''), false);
+  });
+});
+
+describe('senderIdFromName — remitente por negocio', () => {
+  test('sanea tildes, ñ y espacios; corta a 11', () => {
+    assert.equal(senderIdFromName('Clínica Sonrisas'), 'ClinicaSonr');
+    assert.equal(senderIdFromName('Peña Zaldi'), 'PenaZaldi');
+    assert.equal(senderIdFromName('Peluquería Ana'), 'PeluqueriaA');
+  });
+  test('rechaza lo que no da un sender válido', () => {
+    assert.equal(senderIdFromName('123 456'), null);  // sin letras
+    assert.equal(senderIdFromName('Ab'), null);        // muy corto
+    assert.equal(senderIdFromName(''), null);
+    assert.equal(senderIdFromName(null), null);
   });
 });
 
@@ -113,6 +127,26 @@ describe('sendSMS', () => {
     let body = null;
     await sendSMS('666351319', 'hola', { fetch: async (u, o) => { body = JSON.parse(o.body); return { ok: true, json: async () => ({ data: {} }) }; } });
     assert.equal(body.messaging_profile_id, 'mp_9');
+    assert.equal(body.from, 'NodeFlow');
+  });
+
+  test('deps.from (marca del negocio) tiene prioridad sobre SMS_FROM global', async () => {
+    process.env.SMS_ENABLED = 'true';
+    process.env.TELNYX_API_KEY = 'k';
+    process.env.SMS_FROM = 'NodeFlow';
+    process.env.SMS_MESSAGING_PROFILE_ID = 'mp_9';
+    let body = null;
+    await sendSMS('666351319', 'hola', { from: 'ClinicaSonr', fetch: async (u, o) => { body = JSON.parse(o.body); return { ok: true, json: async () => ({ data: {} }) }; } });
+    assert.equal(body.from, 'ClinicaSonr');
+  });
+
+  test('deps.from vacío/undefined cae al SMS_FROM global', async () => {
+    process.env.SMS_ENABLED = 'true';
+    process.env.TELNYX_API_KEY = 'k';
+    process.env.SMS_FROM = 'NodeFlow';
+    process.env.SMS_MESSAGING_PROFILE_ID = 'mp_9';
+    let body = null;
+    await sendSMS('666351319', 'hola', { from: undefined, fetch: async (u, o) => { body = JSON.parse(o.body); return { ok: true, json: async () => ({ data: {} }) }; } });
     assert.equal(body.from, 'NodeFlow');
   });
 });

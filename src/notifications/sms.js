@@ -37,6 +37,26 @@ function _isAlphanumericSender(from) {
 }
 
 /**
+ * Remitente alfanumérico a partir del NOMBRE DEL NEGOCIO — cada cliente envía
+ * como su propia marca ("PeluqAna", "ClinicaSonr"), no como NodeFlow. España
+ * permite alpha senders dinámicos sin registro previo, así que basta sanear:
+ * sin tildes/ñ (GSM), solo letras+dígitos, máx. 11 caracteres (límite del
+ * estándar), al menos una letra y mínimo 3 útiles. Si el nombre no da para un
+ * remitente válido → null (el que llama cae al SMS_FROM global).
+ * @param {string} name  nombre del negocio tal cual (puede traer tildes/espacios)
+ * @returns {string|null}
+ */
+function senderIdFromName(name) {
+  if (!name) return null;
+  const clean = String(name)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')    // tildes/dieresis (n con tilde -> n)
+    .replace(/[^A-Za-z0-9]/g, '')                       // solo GSM seguro
+    .slice(0, 11);
+  if (clean.length < 3 || !/[A-Za-z]/.test(clean)) return null;
+  return clean;
+}
+
+/**
  * ¿Está el canal SMS activo en este servidor? OFF salvo opt-in explícito.
  * @returns {boolean}
  */
@@ -55,7 +75,9 @@ function isConfigured() {
  * cualquier problema. No-op inmediato si el canal no está activo.
  * @param {string} phone teléfono destino, cualquier formato (se normaliza a E.164)
  * @param {string} text  cuerpo del mensaje (texto plano)
- * @param {object} [deps] inyección para test: { fetch }
+ * @param {object} [deps] inyección: { fetch, from } — `from` permite que cada
+ *   negocio envíe con SU marca como remitente (senderIdFromName); si falta o
+ *   no es válido, cae al SMS_FROM global del servidor.
  * @returns {Promise<{ok:boolean, sid?:string, error?:string}>}
  */
 async function sendSMS(phone, text, deps = {}) {
@@ -68,7 +90,7 @@ async function sendSMS(phone, text, deps = {}) {
   if (!text || !String(text).trim()) return { ok: false, error: 'texto vacío' };
 
   const apiKey    = process.env.TELNYX_API_KEY;
-  const from      = process.env.SMS_FROM;
+  const from      = deps.from || process.env.SMS_FROM;
   const profileId = process.env.SMS_MESSAGING_PROFILE_ID || null;
   const _fetch    = deps.fetch || fetch;
 
@@ -100,4 +122,4 @@ async function sendSMS(phone, text, deps = {}) {
 const isSmsEnabled = isConfigured;
 const sendSms      = sendSMS;
 
-module.exports = { sendSMS, isConfigured, sendSms, isSmsEnabled, _isAlphanumericSender };
+module.exports = { sendSMS, isConfigured, sendSms, isSmsEnabled, senderIdFromName, _isAlphanumericSender };

@@ -651,9 +651,15 @@ async function sendSmsReminder(apt, config, deps = {}) {
     ? `Kaixo ${name}, ${bizName}-ko hitzordua: ${dateStr} ${apt.time}etan. Ezin baduzu, deitu iezaguzu.`
     : `Hola ${name}, te recordamos tu cita en ${bizName}: ${dateStr} a las ${apt.time}h. Si no puedes, llámanos.`;
 
-  const r = await _sendSMS(apt.phone, text);
+  // Remitente = la MARCA del negocio ("ClinicaSonr"), no NodeFlow: el cliente
+  // reconoce quién le escribe. Override manual (automations.config.smsSenderId)
+  // → derivado del nombre → SMS_FROM global si nada da un sender válido.
+  const { senderIdFromName } = require('./sms');
+  const from = senderIdFromName(config?.automations?.config?.smsSenderId) || senderIdFromName(config?.name) || undefined;
+
+  const r = await _sendSMS(apt.phone, text, { from });
   if (r?.ok) {
-    log.info(`SMS reminder sent → ${apt.id} (${apt.phone})`);
+    log.info(`SMS reminder sent → ${apt.id} (${apt.phone})${from ? ' [como ' + from + ']' : ''}`);
     return true;
   }
   return false;

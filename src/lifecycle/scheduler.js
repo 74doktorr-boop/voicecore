@@ -193,7 +193,10 @@ async function dispatch(reminder, contact, memory) {
 
   // 2. SMS (fallback) — skip if contact has opted out
   if (phone && smsConfigured() && !memory?.no_sms) {
-    const result = await sendSMS(phone, text);
+    // Remitente = la marca del negocio (alpha sender dinámico), no NodeFlow.
+    const { senderIdFromName } = require('../notifications/sms');
+    const from = senderIdFromName(contact?._orgName) || undefined;
+    const result = await sendSMS(phone, text, { from });
     if (result.ok) return { ok: true, channel: 'sms' };
     log.warn(`SMS failed for reminder ${reminder.id}: ${result.error} — trying email`);
   }
