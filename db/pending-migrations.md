@@ -1,6 +1,40 @@
 # Migraciones pendientes de ejecutar en Supabase
 
-**Estado: 0 pendientes ✅ — nf_callbacks + audit_log aplicadas 2026-07-01.**
+**Estado (verificado contra la BD 2026-07-13): 2 pendientes ⚠️**
+1. `contact_memory.no_calls` (opt-out de voz)
+2. `nf_appointments.outlook_event_id` — la 1ª versión de migration-outlook.sql
+   decía `appointments` (tabla legacy) y se aplicó ahí; falta en `nf_appointments`:
+
+```sql
+ALTER TABLE contact_memory
+  ADD COLUMN IF NOT EXISTS no_calls boolean NOT NULL DEFAULT false;
+ALTER TABLE nf_appointments
+  ADD COLUMN IF NOT EXISTS outlook_event_id TEXT;
+```
+
+⚠️ Además (no es migración, es DATO): `nf_phone_pool` tiene **0 números disponibles**
+— sin pool no hay onboarding de clientes nuevos el día 20.
+
+Verificado también ✅: nf_campaign_calls, nf_entities(+templates), magic_tokens,
+audit_log, nf_calls, knowledge_chunks, nf_learned_rules, organizations.outlook_*,
+nf_appointments.google_event_id.
+
+---
+
+## contact_memory.no_calls — opt-out de LLAMADAS de voz ⚠️ PENDIENTE
+**Por qué:** hasta ahora un contacto solo se libraba de las llamadas salientes
+(recuperación / reactivación / anti no-show / avisos de entidades) si tenía las
+TRES bajas a la vez (`no_whatsapp`+`no_email`+`no_sms`). No había baja dedicada de
+"no me llames por teléfono": un opt-out solo de WhatsApp seguía recibiendo voz.
+Esta columna la añade; `contactInfo()` (`src/campaigns/enqueuers.js`) bloquea las
+campañas de voz cuando `no_calls=true`, aunque no estén las otras bajas. Sin la
+columna el código NO rompe (fail-open: el `select` de esa columna daría error y se
+captura, o simplemente no bloquea por voz). SQL también en `db/migration-no-calls.sql`.
+
+```sql
+ALTER TABLE contact_memory
+  ADD COLUMN IF NOT EXISTS no_calls boolean NOT NULL DEFAULT false;
+```
 
 ---
 
