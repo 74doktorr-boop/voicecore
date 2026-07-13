@@ -5687,7 +5687,7 @@ async function loadIntegraciones() {
     '<div class="section-header">' +
       '<div>' +
         '<div class="kicker">Tu asistente</div><div class="section-title">Integraciones</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tus herramientas: WhatsApp, Google Calendar, Outlook y más</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin-top:4px">Conecta tus herramientas: WhatsApp, Google Calendar y más</div>' +
       '</div>' +
     '</div>' +
 
@@ -5787,6 +5787,10 @@ async function disconnectCalendar() {
 function renderOutlookCard(cal) {
   var enabled   = cal && cal.enabled;
   var connected = cal && cal.connected;
+  // Sin credenciales MS en el servidor la integración no existe para el
+  // usuario: NO pintamos la tarjeta (nada de "muy pronto" que meta ruido).
+  // El día que se configure Azure, aparece sola.
+  if (!enabled && !connected) return '';
   var statusBadge = connected
     ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
     : (enabled ? '<span class="badge by" style="font-size:11px">Sin conectar</span>'
