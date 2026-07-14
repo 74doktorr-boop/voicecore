@@ -1970,7 +1970,8 @@ function renderCitas() {
       var q = _citasSearch.toLowerCase();
       if (!(a.patientName || '').toLowerCase().includes(q) &&
           !(a.phone || '').includes(q) &&
-          !(a.service || '').toLowerCase().includes(q)) return false;
+          !(a.service || '').toLowerCase().includes(q) &&
+          !(a.location || '').toLowerCase().includes(q)) return false;   // multi-sede: buscar por centro
     }
     return true;
   });
@@ -2002,7 +2003,9 @@ function renderCitas() {
       '<td><strong>' + esc(a.time) + '</strong></td>' +
       '<td>' + esc(a.patientName) + '</td>' +
       '<td>' + esc(a.phone || '—') + '</td>' +
-      '<td>' + esc(a.service) + (a.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ' + esc(a.notes) + '</div>' : '') + '</td>' +
+      '<td>' + esc(a.service) +
+        (a.location ? ' <span class="badge bd" style="font-size:10px" title="Centro">📍 ' + esc(a.location) + '</span>' : '') +
+        (a.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:2px">📝 ' + esc(a.notes) + '</div>' : '') + '</td>' +
       '<td>' + badge + '</td>' +
       '<td style="white-space:nowrap">' + actions + '</td></tr>';
   };
@@ -2144,12 +2147,28 @@ function dashConfirmAttendance(appts) {
     '</div>';
 }
 
-function openNewCita() {
+// Multi-sede: centros de la org (cache de sesión; [] = mono-sede, lo normal).
+async function _orgLocationsCached() {
+  if (window._locsCache !== undefined) return window._locsCache;
+  try { var d = await api('/api/portal/config'); window._locsCache = (d.config && d.config.locations) || []; }
+  catch (e) { window._locsCache = []; }
+  return window._locsCache;
+}
+
+async function openNewCita() {
   var today = new Date().toISOString().slice(0, 10);
   // Ejemplo de servicio SEGÚN EL SECTOR (un fisio no ve "Corte de pelo").
   var svcEx = _svcExamples((_orgInfo && _orgInfo.sector) || '').name;
+  // Multi-sede: selector de centro solo si la org tiene centros configurados.
+  var locs = await _orgLocationsCached();
+  var locField = locs.length
+    ? '<div class="form-group"><label class="form-label">Centro *</label>' +
+      '<select class="form-input" id="mLocation">' +
+      locs.map(function (l) { return '<option value="' + esc(l) + '">' + esc(l) + '</option>'; }).join('') +
+      '</select></div>'
+    : '';
   openModal(
-    '<div class="modal-title">+ Nueva cita</div>' +
+    '<div class="modal-title">+ Nueva cita</div>' + locField +
     '<div class="form-group"><label class="form-label">Nombre del cliente *</label>' +
       '<input class="form-input" id="mPatientName" placeholder="Ana García"></div>' +
     '<div class="form-group"><label class="form-label">Teléfono</label>' +
@@ -2180,6 +2199,7 @@ async function submitNewCita() {
     date:        document.getElementById('mDate').value,
     time:        document.getElementById('mTime').value,
     notes:       document.getElementById('mNotes').value.trim() || undefined,
+    location:    (document.getElementById('mLocation') || {}).value || undefined,   // multi-sede
   };
   if (!body.patientName || !body.service || !body.date || !body.time) {
     toast('Rellena todos los campos obligatorios', 'err');

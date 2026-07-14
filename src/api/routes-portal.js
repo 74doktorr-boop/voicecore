@@ -902,6 +902,14 @@ function setupPortalRoutes(app, pipeline, config) {
     if (!patientName || !service || !date || !time) {
       return res.status(400).json({ error: 'patientName, service, date y time son obligatorios' });
     }
+    // Multi-sede: centro de la cita manual. Solo se acepta si coincide con los
+    // centros configurados de la org; sin centros, se ignora (gate).
+    let location = null;
+    const _locs = (req.flowConfig && req.flowConfig.automations && req.flowConfig.automations.config && req.flowConfig.automations.config.locations) || [];
+    if (Array.isArray(_locs) && _locs.length && req.body.location) {
+      location = _locs.find(l => String(l).toLowerCase() === String(req.body.location).toLowerCase()) || null;
+      if (!location) return res.status(400).json({ error: `Centro no válido. Centros: ${_locs.join(', ')}` });
+    }
     // Disponibilidad real del Google Calendar del dueño (fail-open): evita
     // reservar ENCIMA de un evento suyo (comida, otra cita) — igual que la
     // reserva por voz. Antes el portal reservaba a ciegas sobre el calendario.
@@ -1397,6 +1405,7 @@ function setupPortalRoutes(app, pipeline, config) {
         notifyEmail:    src.notifyEmail        || flowConfig.ownerEmail || '',
         address:        src.address            || '',
         smsSenderId:    src.smsSenderId        || '',   // remitente SMS de marca (11 chars GSM)
+        locations:      Array.isArray(src.locations) ? src.locations : [],   // multi-sede
         serviceList:    Array.isArray(src.serviceList) ? src.serviceList : [],
       },
     });
@@ -1785,6 +1794,7 @@ function setupPortalRoutes(app, pipeline, config) {
         notifyEmail:    custom.notifyEmail     || flow.ownerEmail || '',
         address:        custom.address         || '',
         smsSenderId:    custom.smsSenderId     || '',
+        locations:      Array.isArray(custom.locations) ? custom.locations : [],
       },
     });
   });
