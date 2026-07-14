@@ -918,7 +918,7 @@ function setupPortalRoutes(app, pipeline, config) {
       const busyByDate = await require('../tools/executor').calendarBusyByDate(businessId, date, date);
       busy = busyByDate[date] || [];
     } catch (_) {}
-    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, busy);
+    const result = scheduler.bookAppointment(businessId, { patientName, phone, email, service, date, time, notes, location }, busy);
     if (!result.success) return res.status(409).json({ error: result.error });
     log.info(`Portal: appointment created ${result.appointment.id} for ${patientName}`);
     // (C) Empuja la cita al Google Calendar del negocio si está conectado. No
