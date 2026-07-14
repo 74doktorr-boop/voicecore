@@ -78,6 +78,7 @@ class GoogleCalendar {
 
       const desc = [
         appointment.service ? `Servicio: ${appointment.service}` : '',
+        appointment.location ? `Centro: ${appointment.location}` : '',   // multi-sede
         appointment.phone   ? `Teléfono: ${appointment.phone}` : '',
         appointment.email   ? `Email: ${appointment.email}` : '',
         appointment.notes   ? `Notas: ${appointment.notes}` : '',

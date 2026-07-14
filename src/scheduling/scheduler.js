@@ -112,7 +112,9 @@ class SchedulingSystem {
   // ─── Get available slots for a date range ───
   // busyByDate: { 'YYYY-MM-DD': [{startMin,endMin}] } de bloques ocupados
   // EXTERNOS (p.ej. Google Calendar). Por defecto {} → comportamiento idéntico.
-  getAvailableSlots(businessId, fromDate, toDate, serviceId, busyByDate = {}) {
+  // location (multi-sede): huecos del CENTRO indicado — las citas de otros
+  // centros no restan disponibilidad. null → todos (comportamiento clásico).
+  getAvailableSlots(businessId, fromDate, toDate, serviceId, busyByDate = {}, location = null) {
     const config = this.getBusinessConfig(businessId);
     if (!config) return { error: 'Business not configured' };
     // Never show slots in the past — clamp fromDate to today
@@ -139,13 +141,13 @@ class SchedulingSystem {
 
       // Morning slots
       if (daySchedule.open && daySchedule.close) {
-        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy);
+        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy, location);
         daySlots.push(...morningSlots);
       }
 
       // Afternoon slots
       if (daySchedule.afternoon_open && daySchedule.afternoon_close) {
-        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy);
+        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy, location);
         daySlots.push(...afternoonSlots);
       }
 
@@ -179,7 +181,7 @@ class SchedulingSystem {
     };
   }
 
-  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = []) {
+  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = [], location = null) {
     const slots = [];
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
@@ -191,7 +193,7 @@ class SchedulingSystem {
       const slotEnd = `${String(Math.floor((m + duration) / 60)).padStart(2, '0')}:${String((m + duration) % 60).padStart(2, '0')}`;
 
       // Check if slot is taken
-      const isTaken = this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy);
+      const isTaken = this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy, location);
       if (!isTaken) {
         slots.push({ time: slotStart, endTime: slotEnd });
       }
@@ -201,13 +203,18 @@ class SchedulingSystem {
 
   // extraBusy: bloques ocupados EXTERNOS (Google Calendar) para esta fecha,
   // en minutos del día [{startMin,endMin}]. Por defecto [] → sin cambios.
-  _isSlotTaken(businessId, date, time, duration, extraBusy = []) {
+  // location: MULTI-SEDE — si se indica, las citas de OTRO centro no bloquean
+  // este hueco (que Tolosa esté llena no cierra Villabona). Las citas SIN
+  // centro (legado / mono-sede) bloquean siempre, por prudencia. Sin location
+  // → comportamiento idéntico al de siempre (cero cambios para orgs sin centros).
+  _isSlotTaken(businessId, date, time, duration, extraBusy = [], location = null) {
     const [h, m] = time.split(':').map(Number);
     const slotStart = h * 60 + m;
     const slotEnd = slotStart + duration;
 
     for (const [, apt] of this.appointments) {
       if (apt.businessId !== businessId || apt.date !== date || apt.status === 'cancelled') continue;
+      if (location && apt.location && apt.location !== location) continue; // otro centro no bloquea
       const [ah, am] = apt.time.split(':').map(Number);
       const aptStart = ah * 60 + am;
       const aptEnd = aptStart + apt.duration;
@@ -222,7 +229,9 @@ class SchedulingSystem {
   }
 
   // ─── Book an appointment ───
-  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes }, extraBusy = [], opts = {}) {
+  // location (multi-sede): centro donde es la cita. Solo llega cuando la org
+  // tiene centros configurados; sin él, todo funciona exactamente como antes.
+  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes, location }, extraBusy = [], opts = {}) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -290,13 +299,15 @@ class SchedulingSystem {
       duration: serviceObj ? serviceObj.duration : 30,
       price: serviceObj ? serviceObj.price : 0,
       notes: notes || null,
+      location: location || null,   // multi-sede: centro de la cita
       status: 'confirmed',
       createdAt: new Date().toISOString()
     };
 
-    // Verify slot is available (incluye eventos externos de Google Calendar)
-    if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy)) {
-      return { success: false, error: 'Esa hora ya está ocupada. Por favor elige otra.' };
+    // Verify slot is available (incluye eventos externos de Google Calendar).
+    // Con centro: solo bloquean las citas de ESE centro (o sin centro).
+    if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy, location || null)) {
+      return { success: false, error: `Esa hora ya está ocupada${location ? ' en ' + location : ''}. Por favor elige otra.` };
     }
 
     this.appointments.set(id, appointment);
@@ -373,6 +384,7 @@ class SchedulingSystem {
         endTime:  this._addMinutes(time, appointment.duration),
         duration: appointment.duration,
         price:    appointment.price,
+        location: appointment.location || null,   // multi-sede: centro
       }
     };
   }

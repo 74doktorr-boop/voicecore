@@ -53,6 +53,7 @@ class AppointmentsStore {
         return m ? parseFloat(m[1]) : 0;
       })(),
       notes:           apt.notes     || null,
+      location:        apt.location  || null,   // multi-sede: centro de la cita
       status:          apt.status    || 'confirmed',
       wa_confirmed:     apt.wa_confirmed     || false,
       reminder_sent:     apt.reminder_sent     || false,
@@ -79,6 +80,7 @@ class AppointmentsStore {
       duration:     row.duration  || 30,
       price:        row.price     || 0,
       notes:        row.notes     || null,
+      location:     row.location  || null,   // multi-sede (columna ausente → null)
       status:       row.status    || 'confirmed',
       wa_confirmed:     row.wa_confirmed     || false,
       reminder_sent:    row.reminder_sent    || false,
@@ -197,6 +199,7 @@ class AppointmentsStore {
     if (fields.date         !== undefined) dbFields.date          = fields.date;
     if (fields.time         !== undefined) dbFields.time          = fields.time;
     if (fields.notes        !== undefined) dbFields.notes         = fields.notes;
+    if (fields.location     !== undefined) dbFields.location      = fields.location;
     if (fields.wa_confirmed     !== undefined) dbFields.wa_confirmed     = fields.wa_confirmed;
     if (fields.reminder_sent    !== undefined) dbFields.reminder_sent    = fields.reminder_sent;
     if (fields.review_requested !== undefined) dbFields.review_requested = fields.review_requested;

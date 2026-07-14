@@ -19,6 +19,27 @@ function _memory()     { return require('../lifecycle/call-memory');         }
 function _critDates()  { return require('../scheduling/critical-dates');      }
 function _flowMgr()    { return require('../automations/flow-manager').flowManager; }
 
+// ── Multi-sede (centros) ──────────────────────────────────────────────────────
+// Un negocio con varios centros (Osakin: Andoain/Villabona/Tolosa) los declara
+// en automations.config.locations = ['Andoain', …]. Si la lista NO existe,
+// todo el camino de citas se comporta EXACTAMENTE igual que siempre (gate).
+function _orgLocations(businessId) {
+  try {
+    const flow = _flowMgr().get(businessId);
+    const locs = flow && flow.automations && flow.automations.config && flow.automations.config.locations;
+    return Array.isArray(locs) ? locs.filter(l => typeof l === 'string' && l.trim()).map(l => l.trim()) : [];
+  } catch (_) { return []; }
+}
+
+// Normaliza lo que dijo el cliente ("en tolosa", "el de Villabona") contra la
+// lista de centros — sin tildes, sin mayúsculas, por inclusión en ambos sentidos.
+function _matchLocation(input, locations) {
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const q = norm(input);
+  if (!q) return null;
+  return locations.find(l => { const n = norm(l); return n === q || q.includes(n) || n.includes(q); }) || null;
+}
+
 // ── Disponibilidad real de Google Calendar ────────────────────────────────────
 // Caché corta (TTL 45s) por negocio+rango: evita pegar a Google (freebusy) en
 // cada consulta durante la llamada de voz. También cachea el "no conectado".
@@ -237,11 +258,26 @@ class ToolExecutor {
       const d = new Date(fromDate); d.setDate(d.getDate() + 5);
       return d.toISOString().split('T')[0];
     })();
+    // MULTI-SEDE: si el negocio tiene centros, la disponibilidad ES del centro
+    // — sin saber cuál, no se puede responder. Candado determinista (mismo
+    // patrón que confirmed_with_customer): el modelo pregunta y reintenta.
+    const locations = _orgLocations(businessId);
+    let location = null;
+    if (locations.length > 0) {
+      location = _matchLocation(args.location, locations);
+      if (!location) {
+        return {
+          success: false,
+          error: `Este negocio tiene ${locations.length} centros: ${locations.join(', ')}. Pregunta al cliente EN QUÉ CENTRO quiere la cita y vuelve a consultar con location=<centro>.`,
+        };
+      }
+      if (context.session) context.session.lastLocation = location; // para book_appointment
+    }
     // Disponibilidad REAL: cruza los huecos de NodeFlow con lo ocupado en el
     // Google Calendar del negocio (comida, reunión personal…), para no ofrecer
     // huecos que en realidad no lo están.
     const busyByDate = await _calendarBusy(businessId, fromDate, toDate);
-    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate);
+    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate, location);
 
     if (result.availableDays) {
       let lang = 'es';
@@ -264,7 +300,7 @@ class ToolExecutor {
         if (afternoon.length > 0) desc += ` ${lbl.afternoon} de ${afternoon[0].time} a ${afternoon[afternoon.length-1].endTime} (${afternoon.length} huecos libres, por ejemplo ${spread(afternoon).join(', ')})`;
         return desc;
       });
-      return { available: result.totalSlots > 0, service: result.service, duration: result.duration, totalSlots: result.totalSlots, days: summary };
+      return { available: result.totalSlots > 0, service: result.service, duration: result.duration, totalSlots: result.totalSlots, ...(location ? { location } : {}), days: summary };
     }
     return result;
   }
@@ -318,6 +354,21 @@ class ToolExecutor {
         error: `No he podido interpretar la fecha "${args.date || ''}". Pregunta al cliente el día concreto (por ejemplo: "el martes", "mañana" o "el 15") y vuelve a intentarlo.`,
       };
     }
+    // MULTI-SEDE: con centros configurados, la cita DEBE llevar centro. Se
+    // acepta el del argumento o el último consultado en check_availability
+    // (misma llamada); sin ninguno, candado determinista y a preguntar.
+    const bookLocations = _orgLocations(businessId);
+    let bookLocation = null;
+    if (bookLocations.length > 0) {
+      bookLocation = _matchLocation(args.location, bookLocations)
+        || (context.session && context.session.lastLocation) || null;
+      if (!bookLocation) {
+        return {
+          success: false,
+          error: `RESERVA BLOQUEADA: este negocio tiene ${bookLocations.length} centros (${bookLocations.join(', ')}). Pregunta al cliente en qué centro quiere la cita y vuelve a llamar con location=<centro>.`,
+        };
+      }
+    }
     // "¿Le aviso a este número?" — la promesa es DETERMINISTA: el servidor
     // conoce el número del llamante; el LLM no. Sin esto, TODAS las citas
     // se guardaban con phone null (verificado en prod 2026-07-03) y los
@@ -333,6 +384,7 @@ class ToolExecutor {
       service:     args.service || args.treatment || args.activity || args.reason || '',
       date:        normalizedDate,
       time:        normalizedTime,
+      location:    bookLocation,
       notes:       args.notes || args.vehicle || '',
       // skipClientWa: la confirmación al cliente la manda el post-call-handler al
       // colgar (con el toggle waConfirm). Sin esto se enviaban DOS: una durante
@@ -1375,6 +1427,7 @@ class ToolExecutor {
               service:   { type: 'string', description: 'Tipo de servicio o tratamiento' },
               from_date: { type: 'string', description: 'Fecha inicio (YYYY-MM-DD)' },
               to_date:   { type: 'string', description: 'Fecha fin (YYYY-MM-DD)' },
+              location:  { type: 'string', description: 'Centro o sede donde quiere la cita (SOLO negocios con varios centros — pregúntalo antes de consultar)' },
             },
             required: [],
           },
@@ -1394,6 +1447,7 @@ class ToolExecutor {
               service:      { type: 'string' },
               date:         { type: 'string', description: 'YYYY-MM-DD' },
               time:         { type: 'string', description: 'HH:MM' },
+              location:     { type: 'string', description: 'Centro o sede de la cita (SOLO negocios con varios centros)' },
               confirmed_with_customer: { type: 'boolean', description: 'true SOLO si has dicho al cliente el día y la hora exactos y ha respondido que sí. Si no ha confirmado, NO llames a esta función: pregunta primero.' },
             },
             required: ['patient_name', 'service', 'date', 'time', 'confirmed_with_customer'],
