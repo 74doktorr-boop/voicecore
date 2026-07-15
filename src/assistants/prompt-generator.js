@@ -29,6 +29,9 @@ function formatServiceList(list) {
     if (s.price)    l += `: ${s.price}`;
     if (s.duration) l += ` (${s.duration})`;
     if (s.notes)    l += ` — ${s.notes}`;
+    // Multi-sede: si el servicio no está en todos los centros, decláralo — la
+    // IA debe avisar y ofrecer el centro correcto, no reservar donde no hay.
+    if (Array.isArray(s.locations) && s.locations.length) l += ` [SOLO en: ${s.locations.join(', ')}]`;
     return l;
   });
   if (!lines.length) return '';

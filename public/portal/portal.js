@@ -3058,7 +3058,10 @@ async function loadConfig() {
           '¿Necesitas ayuda? <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20mi%20n%C3%BAmero%20NodeFlow%20a%C3%BAn%20no%20aparece" target="_blank" class="u-accent">Escríbenos →</a></p>' +
         '</div>');
 
-  // Render de servicios+precios existentes (o una fila vacía para empezar)
+  // Render de servicios+precios existentes (o una fila vacía para empezar).
+  // Multi-sede: cachear los centros ANTES de pintar filas (cada fila pinta
+  // sus casillas de centro solo si la org tiene centros).
+  window._locsCache = Array.isArray(c.locations) ? c.locations : [];
   (Array.isArray(c.serviceList) && c.serviceList.length ? c.serviceList : [{}]).forEach(addServiceRow);
 
   // Bucle de mejora (#5): lo que los clientes preguntaron y el asistente no
@@ -3142,18 +3145,43 @@ function addServiceRow(s) {
     '<input class="form-input svc-dur" placeholder="Ej. ' + esc(ex.dur) + '" value="' + esc(s.duration || '') + '">' +
     '<input class="form-input svc-notes" placeholder="Ej. ' + esc(ex.notes) + '" value="' + esc(s.notes || '') + '">' +
     '<button type="button" class="btn btn-r btn-sm svc-del" title="Quitar">✕</button>';
+  // Multi-sede: ¿en qué centros se ofrece este servicio? Todas marcadas =
+  // en todos (no se guarda restricción). Solo se pinta si la org tiene centros.
+  var locs = window._locsCache || [];
+  if (locs.length > 0) {
+    var sel = Array.isArray(s.locations) && s.locations.length ? s.locations : null; // null = todos
+    var chips = locs.map(function (l) {
+      var on = !sel || sel.indexOf(l) !== -1;
+      return '<label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:12px;cursor:pointer;color:var(--dim)">' +
+        '<input type="checkbox" class="svc-loc" value="' + esc(l) + '"' + (on ? ' checked' : '') + ' style="accent-color:var(--accent)">' + esc(l) + '</label>';
+    }).join('');
+    var locsDiv = document.createElement('div');
+    locsDiv.className = 'svc-locs';
+    locsDiv.style.cssText = 'grid-column:1/-1;padding:2px 0 6px 2px';
+    locsDiv.innerHTML = '<span style="font-size:11px;color:var(--dim);margin-right:8px">📍 Se ofrece en:</span>' + chips;
+    row.appendChild(locsDiv);
+  }
   row.querySelector('.svc-del').onclick = function () { row.remove(); };
   box.appendChild(row);
 }
 function collectServiceList() {
   var rows = document.querySelectorAll('#svcList .svc-row');
   return Array.prototype.map.call(rows, function (r) {
-    return {
+    var svc = {
       name:     r.querySelector('.svc-name').value.trim(),
       price:    r.querySelector('.svc-price').value.trim(),
       duration: r.querySelector('.svc-dur').value.trim(),
       notes:    r.querySelector('.svc-notes').value.trim(),
     };
+    // Multi-sede: solo se guarda restricción si es un subconjunto REAL de
+    // centros (todas o ninguna marcada = se ofrece en todos → sin campo).
+    var boxes = r.querySelectorAll('.svc-loc');
+    if (boxes.length > 0) {
+      var marked = Array.prototype.filter.call(boxes, function (b) { return b.checked; })
+        .map(function (b) { return b.value; });
+      if (marked.length > 0 && marked.length < boxes.length) svc.locations = marked;
+    }
+    return svc;
   }).filter(function (s) { return s.name; });
 }
 

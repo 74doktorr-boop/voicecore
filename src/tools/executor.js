@@ -40,6 +40,23 @@ function _matchLocation(input, locations) {
   return locations.find(l => { const n = norm(l); return n === q || q.includes(n) || n.includes(q); }) || null;
 }
 
+// ¿El servicio pedido NO se ofrece en el centro elegido? Devuelve los centros
+// donde SÍ, o null si no hay conflicto (servicio sin restricción, o no
+// identificado — en ese caso decide el prompt, no bloqueamos por exceso).
+function _serviceLocationConflict(businessId, serviceName, location) {
+  if (!location || !serviceName) return null;
+  try {
+    const flow = _flowMgr().get(businessId);
+    const list = flow && flow.automations && flow.automations.config && flow.automations.config.serviceList;
+    if (!Array.isArray(list)) return null;
+    const q = String(serviceName).toLowerCase();
+    const svc = list.find(s => s && s.name && (s.name.toLowerCase().includes(q) || q.includes(s.name.toLowerCase())));
+    if (!svc || !Array.isArray(svc.locations) || !svc.locations.length) return null;
+    if (_matchLocation(location, svc.locations)) return null;
+    return { service: svc.name, offeredAt: svc.locations };
+  } catch (_) { return null; }
+}
+
 // ── Disponibilidad real de Google Calendar ────────────────────────────────────
 // Caché corta (TTL 45s) por negocio+rango: evita pegar a Google (freebusy) en
 // cada consulta durante la llamada de voz. También cachea el "no conectado".
@@ -272,6 +289,14 @@ class ToolExecutor {
         };
       }
       if (context.session) context.session.lastLocation = location; // para book_appointment
+      // ¿Ese servicio se ofrece en ese centro?
+      const conflict = _serviceLocationConflict(businessId, args.service, location);
+      if (conflict) {
+        return {
+          success: false,
+          error: `«${conflict.service}» NO se ofrece en ${location}: solo en ${conflict.offeredAt.join(', ')}. Díselo al cliente y ofrécele esos centros (o otro servicio en ${location}).`,
+        };
+      }
     }
     // Disponibilidad REAL: cruza los huecos de NodeFlow con lo ocupado en el
     // Google Calendar del negocio (comida, reunión personal…), para no ofrecer
@@ -366,6 +391,14 @@ class ToolExecutor {
         return {
           success: false,
           error: `RESERVA BLOQUEADA: este negocio tiene ${bookLocations.length} centros (${bookLocations.join(', ')}). Pregunta al cliente en qué centro quiere la cita y vuelve a llamar con location=<centro>.`,
+        };
+      }
+      // Candado servicio↔centro también al reservar (por si el modelo saltó la consulta).
+      const svcConflict = _serviceLocationConflict(businessId, args.service || args.treatment || '', bookLocation);
+      if (svcConflict) {
+        return {
+          success: false,
+          error: `RESERVA BLOQUEADA: «${svcConflict.service}» NO se ofrece en ${bookLocation}, solo en ${svcConflict.offeredAt.join(', ')}. Ofrece al cliente uno de esos centros.`,
         };
       }
     }
