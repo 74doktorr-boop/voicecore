@@ -30,10 +30,17 @@ function pacerFramesDue(elapsedMs, framesSent, queueLen, leadMs = PACE_LEAD_MS, 
   return Math.max(0, Math.min(target - framesSent, queueLen, PACE_MAX_BURST));
 }
 
+// Tarifas €/min APROXIMADAS por proveedor (precios públicos; actualizar si
+// cambian). Sirven para estimar el margen en el panel — NO se cobra al cliente
+// con esto. Auditoría 2026-07-16: antes se aplicaba SIEMPRE twilio + openai
+// aunque la llamada corriera por Telnyx y el turno lo sirviera Groq → el coste
+// del panel era ficción. Ahora getCost elige la tarifa por el proveedor real.
 const COST_RATES = {
-  twilio: 0.018,
-  deepgram: 0.0077,
-  openai_llm: 0.005,
+  telnyx: 0.0045,      // Telnyx voz + media streaming (proveedor ACTIVO)
+  twilio: 0.018,       // legado (por si alguna llamada histórica fue Twilio)
+  deepgram: 0.0043,    // STT (alineado con src/stt/router.js)
+  openai_llm: 0.005,   // gpt-4o-mini por minuto de voz aprox
+  groq_llm: 0.0015,    // llama-3.3-70b en Groq — bastante más barato
   openai_tts: 0.02,
   elevenlabs_tts: 0.10,
   cartesia_tts: 0.015,
@@ -272,18 +279,29 @@ class CallSession {
       local:      COST_RATES.local_tts,
     }[ttsProvider] ?? COST_RATES.openai_tts;
 
-    const twilio  = mins * COST_RATES.twilio;
-    const stt     = mins * COST_RATES.deepgram;
-    const llm     = mins * COST_RATES.openai_llm;
-    const tts     = mins * ttsRate;
-    const total   = twilio + stt + llm + tts;
+    // Telefonía: por el proveedor REAL de la llamada (Telnyx en prod).
+    const telRate = this.provider === 'twilio' ? COST_RATES.twilio
+      : this.provider === 'browser' ? 0
+      : COST_RATES.telnyx;
+    // LLM: por el proveedor del modelo configurado (groq/… vs openai/…).
+    const isGroq  = String(this.assistant?.model || '').toLowerCase().startsWith('groq');
+    const llmRate = isGroq ? COST_RATES.groq_llm : COST_RATES.openai_llm;
+
+    const telephony = mins * telRate;
+    const stt       = mins * COST_RATES.deepgram;
+    const llm       = mins * llmRate;
+    const tts       = mins * ttsRate;
+    const total     = telephony + stt + llm + tts;
 
     return {
-      twilio,
+      telephony,
+      twilio: telephony,   // alias legado (algún panel podría leer .twilio)
       deepgram: stt,
       llm,
+      llmProvider: isGroq ? 'groq' : 'openai',
       tts,
       ttsProvider: ttsProvider || 'openai',
+      telephonyProvider: this.provider || 'telnyx',
       total,
       durationMinutes: Math.round(mins * 100) / 100,
     };
