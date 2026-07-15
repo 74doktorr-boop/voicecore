@@ -1,5 +1,15 @@
 # Migraciones pendientes de ejecutar en Supabase
 
+## ⚠️ NUEVA 2026-07-16 — `migration-appointment-location-overlap.sql` (MULTI-SEDE, importante para Osakin)
+El constraint anti-solape `nf_appointments_no_overlap` NO incluía `location`
+→ dos citas legítimas a la misma hora en centros distintos (Tolosa 10:00 y
+Villabona 10:00) chocaban: la 2ª la rechazaba la BD (23P01), quedaba solo en
+memoria y desaparecía en el siguiente deploy tras confirmársela al paciente.
+Verificado contra la BD real. La migración recrea el EXCLUDE con
+`COALESCE(location,'')`. Segura (más permisiva) e idempotente. **Aplicar antes
+de que Osakin opere dos centros a la vez.** Fichero: `db/migration-appointment-location-overlap.sql`.
+
+
 **Estado (verificado contra la BD 2026-07-13): 2 pendientes ⚠️**
 1. `contact_memory.no_calls` (opt-out de voz)
 2. `nf_appointments.outlook_event_id` — la 1ª versión de migration-outlook.sql
