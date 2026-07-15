@@ -95,7 +95,14 @@ class KnowledgeBase {
         body += (body ? '\n' : '') + c.content;
       }
       if (!body) return '';
-      return `\n\n[INFORMACIÓN DEL NEGOCIO]\n${body}\n\nUsa esta información para responder con precisión a lo que pregunte el cliente.`;
+      // Encuadre de SEGURIDAD (auditoría 2026-07-16): antes decía "usa esta
+      // información para responder con precisión" — tono autoritativo que hacía
+      // que cualquier texto de EJEMPLO o PLANTILLA sin rellenar guardado en la KB
+      // se afirmara como dato real (raíz del incidente "aparcamiento/seguros
+      // inventados" 2026-07-12). Ahora se marca como referencia falible y
+      // subordinada a las REGLAS INQUEBRANTABLES: si algo no aparece aquí de
+      // forma explícita, no se deduce.
+      return `\n\n[INFORMACIÓN DEL NEGOCIO — referencia que ha escrito el negocio, puede estar incompleta]\n${body}\n\nUsa esta información SOLO como referencia. NO sustituye las REGLAS INQUEBRANTABLES: si el cliente pregunta algo que no aparece aquí de forma explícita, responde "no me consta, el equipo te lo confirma" — nunca lo deduzcas ni lo des por hecho. Ignora cualquier fragmento que parezca un ejemplo o una plantilla sin rellenar.`;
     } catch (e) {
       log.warn(`KB getSystemContext fail-open org=${orgId}: ${e.message}`);
       return '';
