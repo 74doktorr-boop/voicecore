@@ -22,28 +22,113 @@
 
 <!-- ── Login Screen ── -->
 <div id="loginScreen" style="display:flex">
-  <div class="login-card">
-    <div class="login-logo">node<em>flow</em></div>
-    <div style="margin:2px 0 10px"><span class="nf-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
-    <div class="login-sub">Portal de clientes</div>
-    <p style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.5;">
-      Entra con tu email y contraseña. ¿Aún no tienes contraseña? Te enviamos un enlace de acceso.
-    </p>
-    <input type="email" class="login-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email"
-           onkeydown="if(event.key==='Enter')portalLogin()">
-    <input type="password" class="login-input" id="loginPass" placeholder="Contraseña" autocomplete="current-password"
-           onkeydown="if(event.key==='Enter')portalLogin()">
-    <button class="login-btn" onclick="portalLogin()">Entrar</button>
-    <div id="loginMsg" style="margin-top:12px;font-size:13px;display:none"></div>
-    <p class="login-help" style="margin-top:14px">¿Has olvidado tu contraseña? <a onclick="requestAccess()" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Recupérala con un enlace por email</a></p>
-    <p class="login-help">¿Sin contraseña aún? <a onclick="requestAccess()" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Enviar enlace de acceso</a></p>
-    <p class="login-help">¿Primera vez? <a href="/#precios">Activa tu plan aquí</a></p>
-    <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:18px;font-size:11px;color:var(--dim);opacity:.7" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
-      <span>Tecnología verificada por Meta · WhatsApp Business Platform</span>
+  <div class="login-split" role="dialog" aria-label="Acceso al portal de NodeFlow">
+
+    <!-- Panel de marca: identidad nativa de voz -->
+    <aside class="login-brand">
+      <canvas id="loginWave" class="login-wave" aria-hidden="true"></canvas>
+      <div class="login-brand-in">
+        <div class="login-logo">node<em>flow</em></div>
+        <span class="login-status" aria-label="Asistente activo"><i></i> Tu asistente sigue atendiendo</span>
+        <h1 class="login-hero">Tu recepcionista<br>no ha parado.</h1>
+        <p class="login-lead">Entra y mira a quién ha atendido, las citas que ha traído y lo que ha recuperado por ti mientras no estabas.</p>
+        <div class="login-meta" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
+          <span>Verificado por Meta · WhatsApp Business Platform</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Panel de formulario -->
+    <div class="login-form">
+      <div class="login-form-head">
+        <h2>Entrar</h2>
+        <p>Bienvenido de vuelta a tu portal.</p>
+      </div>
+      <label class="login-field">
+        <span class="login-label">Email</span>
+        <input type="email" class="login-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email"
+               onkeydown="if(event.key==='Enter')portalLogin()">
+      </label>
+      <label class="login-field">
+        <span class="login-label">Contraseña</span>
+        <input type="password" class="login-input" id="loginPass" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')portalLogin()">
+      </label>
+      <button class="login-btn" onclick="portalLogin()">
+        <span>Entrar</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div id="loginMsg" style="margin-top:12px;font-size:13px;display:none"></div>
+      <div class="login-links">
+        <a onclick="requestAccess()">¿Olvidaste la contraseña?</a>
+        <span class="login-sep">·</span>
+        <a onclick="requestAccess()">Entrar con un enlace</a>
+      </div>
+      <p class="login-first">¿Primera vez? <a href="/#precios">Activa tu plan</a></p>
     </div>
   </div>
 </div>
+
+<!-- Waveform vivo del panel de marca (voz). Autocontenido; se detiene al entrar. -->
+<script>
+(function () {
+  var c = document.getElementById('loginWave');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var accent = '196,245,70';
+  var raf = null, t = 0;
+
+  function size() {
+    var r = c.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = Math.max(1, r.width * dpr);
+    c.height = Math.max(1, r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return r;
+  }
+
+  function draw() {
+    var r = c.getBoundingClientRect();
+    if (!r.width) { raf = requestAnimationFrame(draw); return; }
+    ctx.clearRect(0, 0, r.width, r.height);
+    var gap = 9, bw = 3, n = Math.ceil(r.width / gap) + 2;
+    var mid = r.height * 0.62;
+    for (var i = 0; i < n; i++) {
+      var x = i * gap;
+      // Envolvente por onda viajera + variación por barra → parece voz en directo.
+      var env = 0.5 + 0.5 * Math.sin(i * 0.35 + t) * Math.sin(i * 0.11 - t * 0.6);
+      // Rampa izquierda→derecha: más calmado tras el texto, florece a la derecha.
+      var ramp = 0.22 + 0.78 * (x / r.width);
+      var h = 5 + env * (r.height * 0.34) * (0.55 + 0.45 * ramp);
+      var a = (0.08 + env * 0.30) * ramp;
+      ctx.fillStyle = 'rgba(' + accent + ',' + a.toFixed(3) + ')';
+      ctx.fillRect(x, mid - h, bw, h * 2);
+    }
+    if (!reduce) { t += 0.045; raf = requestAnimationFrame(draw); }
+  }
+
+  function start() {
+    if (raf) return;
+    size(); draw();
+  }
+  function stop() {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+  }
+
+  // Solo anima mientras el login es visible; para al entrar en el portal.
+  var screen = document.getElementById('loginScreen');
+  var obs = new MutationObserver(function () {
+    (screen.style.display === 'none') ? stop() : start();
+  });
+  obs.observe(screen, { attributes: true, attributeFilter: ['style'] });
+  window.addEventListener('resize', function () { if (raf || reduce) { size(); if (reduce) draw(); } });
+  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : (screen.style.display !== 'none' && start()); });
+
+  if (screen.style.display !== 'none') start();
+})();
+</script>
 
 <!-- ── App ── -->
 <div id="app">
