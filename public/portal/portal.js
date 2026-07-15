@@ -764,6 +764,7 @@ async function initAuth() {
       localStorage.setItem(SESSION_KEY, data.session_token);
       window.history.replaceState({}, '', '/portal');
       _token = data.session_token;
+      _resetOrgScopedCache();   // otra org puede haber usado esta misma página
       // Quien entra por enlace suele haber olvidado su contraseña →
       // ofrecer cambiarla al llegar (obligatorio si no existe ninguna).
       _viaMagicLink = true;
@@ -920,10 +921,20 @@ function showApp() {
   navigate('dashboard');
 }
 
+// Caches ligados a la ORG que hay que vaciar al cambiar de sesión (bug real
+// 15-jul-2026: el dueño salió del portal de Osakin y entró en el de su fisio
+// SIN recargar la página — los CENTROS de Osakin seguían cacheados en
+// window._locsCache y el dashboard de la fisio pintaba "Por centro").
+function _resetOrgScopedCache() {
+  window._locsCache = undefined;
+  _citasFilterLoc = '';
+}
+
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   _token   = null;
   _orgInfo = null;
+  _resetOrgScopedCache();
   showLogin();
 }
 
@@ -974,6 +985,7 @@ async function portalLogin() {
     if (!resp.ok || !data.session_token) throw new Error(data.error || 'No se pudo entrar');
     localStorage.setItem(SESSION_KEY, data.session_token);
     _token = data.session_token;
+    _resetOrgScopedCache();   // otra org puede haber usado esta misma página
     _orgInfo = await api('/api/portal/me');
     if (!_orgInfo || !_orgInfo.id) throw new Error('Sin negocio asociado');
     showApp();
