@@ -30,13 +30,18 @@ const log = new Logger('WA-REPLY');
 const { normalizePhone, phoneVariants } = require('../utils/phone');
 
 // ── Encuentra la cita más próxima de un cliente por teléfono ─────────────────
-function findNextAppointment(rawPhone) {
+// businessId (auditoría 2026-07-16): SI se conoce el negocio (el webhook lo
+// resuelve por el phone_number_id de Meta), se acota la búsqueda a ESA org. Sin
+// él, barre todas (compat). Antes, un cliente de dos negocios NodeFlow podía
+// cancelar la cita del negocio equivocado (la más próxima cross-tenant).
+function findNextAppointment(rawPhone, businessId = null) {
   const phone9 = normalizePhone(rawPhone);
   const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
 
   let best = null;
   for (const [, apt] of scheduler.appointments) {
     if (apt.status === 'cancelled') continue;
+    if (businessId && apt.businessId !== businessId) continue; // acotar a la org del webhook
     if (normalizePhone(apt.phone) !== phone9) continue;
     if (apt.date < todayStr) continue; // pasadas, no cuentan
 
@@ -159,20 +164,24 @@ async function removeCalendarEvent(apt, deps = {}) {
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
-async function handleReply({ from, type, payload }) {
+async function handleReply({ from, businessId = null, type, payload }) {
   // CITA EXACTA por payload (bug real 2026-07-15): el recordatorio ahora manda
   // "CONFIRMAR:APT-x" / "CANCELAR:APT-x" en el botón. Si viene el id, se actúa
   // sobre ESA cita — no sobre "la más próxima" (con dos citas, confirmaba/
   // cancelaba la equivocada). Seguridad: el id debe pertenecer al MISMO
-  // teléfono que responde. Sin id (texto libre, plantillas viejas) → fallback.
+  // teléfono que responde Y (si se conoce) a la MISMA org del webhook; además
+  // no se acepta una cita ya cancelada (auditoría 2026-07-16). Sin id → fallback.
   let apt = null;
   const idMatch = String(payload || '').match(/\b(APT-[A-Za-z0-9_-]+)\b/);
   if (idMatch) {
     const cand = scheduler.appointments.get(idMatch[1]);
-    if (cand && normalizePhone(cand.phone) === normalizePhone(from)) apt = cand;
-    else log.warn(`Reply con id ${idMatch[1]} que no casa con ${from} — fallback a cita más próxima`);
+    const okPhone = cand && normalizePhone(cand.phone) === normalizePhone(from);
+    const okOrg   = cand && (!businessId || cand.businessId === businessId);
+    const okAlive = cand && cand.status !== 'cancelled';
+    if (okPhone && okOrg && okAlive) apt = cand;
+    else log.warn(`Reply con id ${idMatch[1]} descartado (phone:${okPhone} org:${okOrg} viva:${okAlive}) — fallback`);
   }
-  if (!apt) apt = findNextAppointment(from);
+  if (!apt) apt = findNextAppointment(from, businessId);
 
   if (!apt) {
     log.warn(`Reply from ${from} but no upcoming appointment found`);

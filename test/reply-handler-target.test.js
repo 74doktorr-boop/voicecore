@@ -79,6 +79,38 @@ describe('handleReply — cita EXACTA por payload (incidente 2026-07-15)', () =>
   });
 });
 
+// Auditoría 2026-07-16
+describe('handleReply — scope de negocio y cita cancelada', () => {
+  beforeEach(() => {
+    for (const [k, a] of scheduler.appointments) {
+      if (a.businessId === 'org-t' || a.businessId === 'org-otro') scheduler.appointments.delete(k);
+    }
+  });
+
+  test('cross-tenant: con businessId, NO cancela la cita de otro negocio (misma persona/teléfono)', async () => {
+    const ajena  = seed('APT-X1', HOY_MAS_1, '09:00', { businessId: 'org-otro' }); // más próxima, otra org
+    const propia = seed('APT-X2', HOY_MAS_2, '10:00', { businessId: 'org-t' });
+    // Texto libre "CANCELAR" (sin id) llegando por el webhook de org-t
+    await handleReply({ from: PHONE, businessId: 'org-t', type: 'button', payload: 'CANCELAR' });
+    assert.strictEqual(ajena.status, 'confirmed', 'la cita de la otra org NO se toca');
+    assert.strictEqual(propia.status, 'cancelled', 'se cancela la de la org del webhook');
+  });
+
+  test('id de OTRA org → se descarta y cae al fallback de la org del webhook', async () => {
+    const ajena  = seed('APT-X3', HOY_MAS_1, '09:00', { businessId: 'org-otro' });
+    const propia = seed('APT-X4', HOY_MAS_2, '10:00', { businessId: 'org-t' });
+    await handleReply({ from: PHONE, businessId: 'org-t', type: 'button', payload: 'CONFIRMAR:APT-X3' });
+    assert.strictEqual(ajena.wa_confirmed, false, 'no se confirma la cita de otra org por su id');
+    assert.strictEqual(propia.wa_confirmed, true, 'cae al fallback de la org del webhook');
+  });
+
+  test('CONFIRMAR:<id> de una cita CANCELADA → no la confirma (se descarta el id)', async () => {
+    const cancelada = seed('APT-X5', HOY_MAS_1, '09:00', { status: 'cancelled' });
+    await handleReply({ from: PHONE, businessId: 'org-t', type: 'button', payload: 'CONFIRMAR:APT-X5' });
+    assert.strictEqual(cancelada.wa_confirmed, false, 'una cita cancelada no se "confirma"');
+  });
+});
+
 describe('sendWaReminder — botones con payload del id de la cita', () => {
   test('los quick replies llevan CONFIRMAR:<id> y CANCELAR:<id>', async () => {
     let captured = null;

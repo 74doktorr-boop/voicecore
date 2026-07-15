@@ -131,7 +131,7 @@ function setupWhatsAppWebhook(app) {
                   .catch(e => { log.error(`checkin button error: ${e.message}`); return false; });
               }
               if (!handled) {
-                await handleReply({ from, type: 'button', payload }).catch(e =>
+                await handleReply({ from, businessId, type: 'button', payload }).catch(e =>
                   log.error(`reply-handler error: ${e.message}`)
                 );
               }
@@ -147,7 +147,7 @@ function setupWhatsAppWebhook(app) {
                 let handled = await handleWaitlistResponse({ from, businessId, payload }).catch(() => false);
                 if (!handled) handled = await handleCheckinButton({ from, businessId, payload }).catch(() => false);
                 if (!handled) {
-                  await handleReply({ from, type: 'button', payload }).catch(e =>
+                  await handleReply({ from, businessId, type: 'button', payload }).catch(e =>
                     log.error(`reply-handler error: ${e.message}`)
                   );
                 }
@@ -159,14 +159,20 @@ function setupWhatsAppWebhook(app) {
             if (msg.type === 'text') {
               const text = msg.text?.body?.trim() || '';
               log.info(`Text from ${from}: "${text.slice(0, 60)}"`);
-              // Detectar CONFIRMAR / CANCELAR escritos a mano también
+              // Detectar CONFIRMAR / CANCELAR escritos a mano también.
+              // CANCELAR se evalúa PRIMERO (auditoría 2026-07-16): antes
+              // "no puedo confirmar" entraba por la rama CONFIRMAR porque
+              // includes('CONFIRMAR') se comprobaba antes → cita confirmada
+              // sin querer. La intención de cancelar siempre gana.
               const upper = text.toUpperCase();
-              if (upper.includes('CONFIRMAR') || upper.includes('CONFIRMO') || upper === 'SI' || upper === 'SÍ' || upper === 'OK') {
-                await handleReply({ from, type: 'button', payload: 'CONFIRMAR' }).catch(e =>
+              const cancelIntent = upper.includes('CANCELAR') || upper.includes('CANCELO') || upper.includes('ANULAR') || upper.includes('NO PUEDO');
+              const confirmIntent = upper.includes('CONFIRMAR') || upper.includes('CONFIRMO') || upper === 'SI' || upper === 'SÍ' || upper === 'OK';
+              if (cancelIntent) {
+                await handleReply({ from, businessId, type: 'button', payload: 'CANCELAR' }).catch(e =>
                   log.error(`reply-handler error: ${e.message}`)
                 );
-              } else if (upper.includes('CANCELAR') || upper.includes('CANCELO') || upper.includes('ANULAR') || upper.includes('NO PUEDO')) {
-                await handleReply({ from, type: 'button', payload: 'CANCELAR' }).catch(e =>
+              } else if (confirmIntent) {
+                await handleReply({ from, businessId, type: 'button', payload: 'CONFIRMAR' }).catch(e =>
                   log.error(`reply-handler error: ${e.message}`)
                 );
               } else if (text && !isCourtesy(text)) {
