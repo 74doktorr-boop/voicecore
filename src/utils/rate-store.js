@@ -130,7 +130,19 @@ async function del(key) {
   }
   kv.delete(key);
 }
+// Consume-una-vez atómico: devuelve el valor y lo borra en la misma operación.
+async function take(key) {
+  if (redis && redisReady) {
+    try {
+      if (typeof redis.getdel === 'function') return await redis.getdel(key);
+      const v = await redis.get(key); if (v !== null) await redis.del(key); return v;
+    } catch (e) { log.warn(`take Redis falló (${e.message}) — fallback memoria`); }
+  }
+  const e = kv.get(key);
+  if (!e || Date.now() > e.resetAt) { kv.delete(key); return null; }
+  kv.delete(key); return e.value;
+}
 
 function isRedisEnabled() { return !!(redis && redisReady); }
 
-module.exports = { hit, peek, reset, put, get, del, isRedisEnabled };
+module.exports = { hit, peek, reset, put, get, del, take, isRedisEnabled };

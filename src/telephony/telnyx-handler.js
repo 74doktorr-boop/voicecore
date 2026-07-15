@@ -86,7 +86,7 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
             let outCtx = null;
             try {
               const { consumeOutboundContext } = require('./outbound');
-              outCtx = consumeOutboundContext(callerNumber, calledNumber);
+              outCtx = await consumeOutboundContext(callerNumber, calledNumber);
             } catch (e) { log.warn(`[${callId}] outbound context: ${e.message}`); }
 
             // Resolve assistant: SALIENTE (org del contexto) → archivo → org por

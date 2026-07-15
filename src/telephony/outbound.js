@@ -18,8 +18,14 @@ const { Logger }      = require('../utils/logger');
 const log = new Logger('OUTBOUND');
 
 // ── Registro de salientes pendientes: callee normalizado → contexto ──
+// Doble escritura (auditoría 2026-07-16): Map en memoria (rápido, misma réplica)
+// + rateStore/Redis (para cuando el WEBHOOK DE RETORNO de la saliente cae en OTRA
+// réplica que no la originó → antes se atendía SIN su prompt/propósito). Con una
+// sola réplica funciona igual que antes (memoria); Redis solo aporta al escalar.
 const _pending = new Map(); // numKey → { businessId, purpose, ref, promptBlock, expiresAt }
 const PENDING_TTL_MS = 5 * 60 * 1000;
+const _rateStore = require('../utils/rate-store');
+const _ctxKey = (k) => `outctx:${k}`;
 
 function _numKey(n) { return String(n || '').replace(/\D/g, '').replace(/^0+/, ''); }
 
@@ -32,26 +38,36 @@ function _gc() {
  * Registra el propósito de una saliente. El WS handler lo consumirá al
  * arrancar el stream (matching por número) e inyectará promptBlock.
  */
-function registerOutboundContext(calleeNumber, { businessId, purpose, ref = null, promptBlock = '' }) {
+async function registerOutboundContext(calleeNumber, { businessId, purpose, ref = null, promptBlock = '' }) {
   _gc();
   const key = _numKey(calleeNumber);
   if (!key) return;
-  _pending.set(key, { businessId, purpose, ref, promptBlock, expiresAt: Date.now() + PENDING_TTL_MS });
+  const ctx = { businessId, purpose, ref, promptBlock, expiresAt: Date.now() + PENDING_TTL_MS };
+  _pending.set(key, ctx);
+  try { await _rateStore.put(_ctxKey(key), JSON.stringify(ctx), PENDING_TTL_MS); } catch (_) {}
 }
 
 /**
  * Consume (una sola vez) el contexto de una saliente en curso.
  * Se llama con ambos números del stream (from/to) — uno será el callee.
+ * Mira primero la memoria (misma réplica) y luego Redis (cruce de réplicas).
  */
-function consumeOutboundContext(...numbers) {
+async function consumeOutboundContext(...numbers) {
   _gc();
   for (const n of numbers) {
     const key = _numKey(n);
-    if (key && _pending.has(key)) {
+    if (!key) continue;
+    if (_pending.has(key)) {
       const ctx = _pending.get(key);
       _pending.delete(key);
+      try { await _rateStore.del(_ctxKey(key)); } catch (_) {} // limpia la copia compartida
       return ctx;
     }
+    // No estaba en esta réplica: ¿la originó otra? (get+del atómico)
+    try {
+      const raw = await _rateStore.take(_ctxKey(key));
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
   }
   return null;
 }
@@ -124,7 +140,7 @@ async function startOutboundCall({ businessId, to, from = null, publicUrl = null
 
   const base = publicUrl || process.env.PUBLIC_URL || 'https://nodeflow.es';
 
-  if (context) registerOutboundContext(safeTo, { businessId, ...context });
+  if (context) await registerOutboundContext(safeTo, { businessId, ...context });
 
   const resp = await fetch(`https://api.telnyx.com/v2/texml/calls/${encodeURIComponent(appId)}`, {
     method: 'POST',

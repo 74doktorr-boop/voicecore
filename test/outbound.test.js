@@ -40,29 +40,29 @@ const {
 } = require('../src/telephony/outbound');
 
 describe('registro de contexto de salientes', () => {
-  test('registra y consume con formatos distintos del mismo número', () => {
-    registerOutboundContext('+34 666 35 13 19', { businessId: 'org1', purpose: 'test_call', promptBlock: 'X' });
-    const ctx = consumeOutboundContext('34666351319');
+  test('registra y consume con formatos distintos del mismo número', async () => {
+    await registerOutboundContext('+34 666 35 13 19', { businessId: 'org1', purpose: 'test_call', promptBlock: 'X' });
+    const ctx = await consumeOutboundContext('34666351319');
     assert.ok(ctx);
     assert.strictEqual(ctx.businessId, 'org1');
     assert.strictEqual(ctx.purpose, 'test_call');
   });
 
-  test('consumo es de un solo uso', () => {
-    registerOutboundContext('+34600000001', { businessId: 'org1', purpose: 'recovery' });
-    assert.ok(consumeOutboundContext('+34600000001'));
-    assert.strictEqual(consumeOutboundContext('+34600000001'), null);
+  test('consumo es de un solo uso', async () => {
+    await registerOutboundContext('+34600000001', { businessId: 'org1', purpose: 'recovery' });
+    assert.ok(await consumeOutboundContext('+34600000001'));
+    assert.strictEqual(await consumeOutboundContext('+34600000001'), null);
   });
 
-  test('matching prueba ambos números del stream (from y to)', () => {
-    registerOutboundContext('+34600000002', { businessId: 'org2', purpose: 'test_call' });
-    const ctx = consumeOutboundContext('+34843700849', '+34600000002'); // (nuestro, callee)
+  test('matching prueba ambos números del stream (from y to)', async () => {
+    await registerOutboundContext('+34600000002', { businessId: 'org2', purpose: 'test_call' });
+    const ctx = await consumeOutboundContext('+34843700849', '+34600000002'); // (nuestro, callee)
     assert.ok(ctx);
     assert.strictEqual(ctx.businessId, 'org2');
   });
 
-  test('sin registro → null', () => {
-    assert.strictEqual(consumeOutboundContext('+34999999999'), null);
+  test('sin registro → null', async () => {
+    assert.strictEqual(await consumeOutboundContext('+34999999999'), null);
   });
 });
 

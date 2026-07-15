@@ -134,6 +134,23 @@ function makeRateLimit({ windowMs = 60000, max = 20, keyFn = (req) => req.ip } =
   };
 }
 
+// Rate limiter COMPARTIDO (Redis vía rate-store, con fallback a memoria).
+// Para endpoints que cuestan dinero (TTS de pago): con el limitador en memoria,
+// el tope efectivo se multiplicaba por nº de réplicas → amplificación de coste
+// (auditoría 2026-07-16). rateStore.hit es atómico y compartido entre réplicas.
+function makeSharedRateLimit({ windowMs = 60000, max = 10, prefix = 'rl', keyFn = (req) => req.ip } = {}) {
+  const rateStore = require('./src/utils/rate-store');
+  return async (req, res, next) => {
+    try {
+      const { count, resetAt } = await rateStore.hit(`${prefix}:${keyFn(req)}`, windowMs);
+      if (count > max) {
+        return res.status(429).json({ error: 'Too many requests', retryAfter: Math.ceil((resetAt - Date.now()) / 1000) });
+      }
+    } catch (_) { /* fail-open: rate-store ya cae a memoria si Redis no responde */ }
+    next();
+  };
+}
+
 // Redirect www → apex (SEO canonical)
 app.use((req, res, next) => {
   if (req.headers.host?.startsWith('www.')) {
@@ -686,7 +703,7 @@ app.get('/api/voices', (req, res) => {
 });
 
 // ─── Voice preview rate limiter (shared by both preview endpoints) ───
-const _ttsPreviewLimit = makeRateLimit({ windowMs: 60000, max: 10 });
+const _ttsPreviewLimit = makeSharedRateLimit({ windowMs: 60000, max: 10, prefix: 'ttsprev' });
 
 app.get('/api/voices/:id/preview', _ttsPreviewLimit, async (req, res) => {
   try {
