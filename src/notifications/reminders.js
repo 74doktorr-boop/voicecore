@@ -370,7 +370,18 @@ function generateWhatsAppConfirmation(appointment, businessConfig, ownerPhone) {
     ].filter(l => l !== null).join('\n');
   }
 
-  const phone = (ownerPhone || process.env.OWNER_PHONE || '34666351319').replace(/\D/g, '');
+  // Teléfono del NEGOCIO al que el cliente escribe. Auditoría 2026-07-16: había
+  // un fallback hardcodeado al móvil PERSONAL del fundador (34666351319) → si un
+  // negocio no tenía OWNER_PHONE, sus clientes eran enrutados al WhatsApp de
+  // Unai. Sin número resoluble → null (el llamante no pinta enlace), nunca un
+  // número ajeno. Prioridad: arg explícito → alertPhone/nº del negocio → env.
+  const cfgPhone = businessConfig?.automations?.config?.alertPhone
+    || businessConfig?.automations?.config?.nodeflowNumber
+    || businessConfig?.phone;
+  const raw = ownerPhone || cfgPhone || process.env.OWNER_PHONE;
+  if (!raw) return null;
+  const phone = String(raw).replace(/\D/g, '');
+  if (!phone) return null;
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -767,6 +778,10 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
 
   for (const [, apt] of scheduler.appointments) {
     if (apt.status === 'cancelled' || apt.review_requested) continue;
+    // No pedir reseña a quien NO acudió (auditoría 2026-07-16): una cita marcada
+    // como plantón (noShowNotified) recibía "¿qué tal tu visita? déjanos reseña"
+    // de una visita que no ocurrió — incoherente y con riesgo de reseña negativa.
+    if (apt.noShowNotified || apt.status === 'no_show') continue;
     if (!apt.email && !apt.phone) continue;
 
     // Skip if reviews disabled for this business
