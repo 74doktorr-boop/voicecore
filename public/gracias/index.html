@@ -10,10 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#0c0a08; --card:#14141e;
-      --accent:#e0a23c; --accent-l:#f2bd5e;
-      --glow:rgba(224,162,60,0.3);
-      --green:#00cec9; --green2:#00b894;
+      --bg:#0a0b0d; --card:#14141e;
+      --accent:#c4f546; --accent-l:#d6ff5c;
+      --glow:rgba(196,245,70,0.3);
+      --green:#d6ff5c; --green2:#00b894;
       --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
       --border:rgba(255,255,255,0.07);
     }
@@ -29,8 +29,8 @@
 
     /* Fondo animado */
     .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
-    .orb-1{width:600px;height:600px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(224,162,60,0.25) 0%,transparent 70%);animation:drift1 22s ease-in-out infinite}
-    .orb-2{width:400px;height:400px;bottom:0;right:-100px;background:radial-gradient(circle,rgba(0,206,201,0.15) 0%,transparent 70%);animation:drift2 28s ease-in-out infinite}
+    .orb-1{width:600px;height:600px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(196,245,70,0.25) 0%,transparent 70%);animation:drift1 22s ease-in-out infinite}
+    .orb-2{width:400px;height:400px;bottom:0;right:-100px;background:radial-gradient(circle,rgba(196,245,70,0.15) 0%,transparent 70%);animation:drift2 28s ease-in-out infinite}
     @keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,80px)}}
     @keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-40px)}}
     .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -58,8 +58,8 @@
     /* Icono check animado */
     .check-wrap{
       width:80px;height:80px;border-radius:50%;
-      background:linear-gradient(135deg,rgba(0,206,201,0.2),rgba(0,184,148,0.1));
-      border:2px solid rgba(0,206,201,0.4);
+      background:linear-gradient(135deg,rgba(196,245,70,0.2),rgba(0,184,148,0.1));
+      border:2px solid rgba(196,245,70,0.4);
       display:flex;align-items:center;justify-content:center;
       margin:0 auto 28px;
       animation:checkPop .5s .3s cubic-bezier(.34,1.56,.64,1) both;
@@ -71,7 +71,7 @@
 
     .negocio-badge{
       display:inline-flex;align-items:center;gap:6px;
-      background:rgba(224,162,60,0.12);border:1px solid rgba(224,162,60,0.3);
+      background:rgba(196,245,70,0.12);border:1px solid rgba(196,245,70,0.3);
       border-radius:20px;padding:4px 14px;
       font-size:13px;font-weight:600;color:var(--accent-l);
       margin-bottom:20px;
@@ -90,15 +90,15 @@
       padding:16px 20px;
       transition:border-color .3s;
     }
-    .step.active{border-color:rgba(0,206,201,0.4);background:rgba(0,206,201,0.04)}
+    .step.active{border-color:rgba(196,245,70,0.4);background:rgba(196,245,70,0.04)}
     .step.done{border-color:rgba(0,184,148,0.35);background:rgba(0,184,148,0.04)}
     .step-num{
       width:36px;height:36px;border-radius:50%;
-      background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);
+      background:rgba(196,245,70,0.15);border:1px solid rgba(196,245,70,0.3);
       display:flex;align-items:center;justify-content:center;
       font-size:14px;font-weight:800;color:var(--accent-l);flex-shrink:0;
     }
-    .step.active .step-num{background:rgba(0,206,201,0.15);border-color:rgba(0,206,201,0.4);color:var(--green)}
+    .step.active .step-num{background:rgba(196,245,70,0.15);border-color:rgba(196,245,70,0.4);color:var(--green)}
     .step.done .step-num{background:rgba(0,184,148,0.15);border-color:rgba(0,184,148,0.4);color:#00b894}
     .step-body{}
     .step-title{font-size:14px;font-weight:700;margin-bottom:3px}
@@ -109,12 +109,12 @@
       vertical-align:middle;
     }
     .tag-done{background:rgba(0,184,148,0.15);color:#00b894;border:1px solid rgba(0,184,148,0.3)}
-    .tag-now{background:rgba(0,206,201,0.15);color:var(--green);border:1px solid rgba(0,206,201,0.3)}
+    .tag-now{background:rgba(196,245,70,0.15);color:var(--green);border:1px solid rgba(196,245,70,0.3)}
     .tag-next{background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid rgba(255,255,255,0.08)}
 
     /* Email info */
     .email-info{
-      background:rgba(224,162,60,0.08);border:1px solid rgba(224,162,60,0.2);
+      background:rgba(196,245,70,0.08);border:1px solid rgba(196,245,70,0.2);
       border-radius:12px;padding:14px 18px;margin-bottom:28px;
       font-size:13px;color:var(--dim);line-height:1.6;text-align:left;
     }
@@ -132,11 +132,11 @@
     .btn-wa:hover{background:#1dac55;transform:translateY(-2px)}
     .btn-portal{
       display:inline-flex;align-items:center;justify-content:center;gap:8px;
-      background:var(--accent);color:#241803;
+      background:var(--accent);color:#0a0b0d;
       padding:13px 28px;border-radius:12px;
       font-size:14px;font-weight:700;text-decoration:none;
       width:100%;margin-top:10px;transition:background .2s,transform .15s;
-      box-shadow:0 4px 20px rgba(224,162,60,0.25);
+      box-shadow:0 4px 20px rgba(196,245,70,0.25);
     }
     .btn-portal:hover{background:#c98a2a;transform:translateY(-2px)}
     .btn-home{
@@ -155,7 +155,7 @@
 
     /* Countdown */
     .countdown-box{
-      background:rgba(224,162,60,0.08);border:1px solid rgba(224,162,60,0.2);
+      background:rgba(196,245,70,0.08);border:1px solid rgba(196,245,70,0.2);
       border-radius:12px;padding:12px 16px;margin-bottom:20px;
       font-size:13px;color:var(--dim);text-align:center;
     }
@@ -164,13 +164,13 @@
     /* Extra action buttons */
     .btn-config{
       display:inline-flex;align-items:center;justify-content:center;gap:8px;
-      background:rgba(224,162,60,0.15);color:var(--accent-l);
-      border:1px solid rgba(224,162,60,0.35);
+      background:rgba(196,245,70,0.15);color:var(--accent-l);
+      border:1px solid rgba(196,245,70,0.35);
       padding:13px 28px;border-radius:12px;
       font-size:14px;font-weight:700;text-decoration:none;
       width:100%;margin-top:10px;transition:all .2s;
     }
-    .btn-config:hover{background:rgba(224,162,60,0.25);transform:translateY(-2px)}
+    .btn-config:hover{background:rgba(196,245,70,0.25);transform:translateY(-2px)}
 
     /* Confetti particles */
     .confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
@@ -184,7 +184,7 @@
       100%{transform:translateY(110vh) rotate(720deg);opacity:0}
     }
       h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#d6ff5c);outline-offset:3px;border-radius:6px;}
 
     @media (prefers-reduced-motion: reduce){
       *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
@@ -294,7 +294,7 @@ const NF_T = {
     s1_title: 'Pago procesado', s1_desc: 'Tu suscripción está activa. Recibirás factura en tu email.',
     s2_title: 'Asistente creado', s2_desc: 'Tu org y asistente IA se configuran automáticamente al confirmarse el pago.',
     s3_title: 'Número NodeFlow asignado', s3_desc: 'Tu número dedicado se asigna automáticamente. Recibirás un email con las instrucciones de desvío.',
-    s3_desc_num: 'Tu número NodeFlow es <strong style="color:#f2bd5e">{num}</strong>. Revisa el email con las instrucciones de desvío.',
+    s3_desc_num: 'Tu número NodeFlow es <strong style="color:#d6ff5c">{num}</strong>. Revisa el email con las instrucciones de desvío.',
     s4_title: '¡Tu negocio no pierde ninguna llamada más!', s4_desc: 'Activa el desvío según las instrucciones del email y el asistente empieza a trabajar 24/7.',
     tag_done: 'Hecho', tag_now: 'En curso', tag_pending: 'Pendiente', tag_soon: 'Muy pronto', tag_tocomplete: 'A completar',
     btn_portal: '⚡ Ir a mi portal de cliente →', btn_config: '⚙️ Mientras tanto, configura tu voz', btn_wa: '💬 Hablar con Unai ahora', btn_home: '← Volver a nodeflow.es',
@@ -307,7 +307,7 @@ const NF_T = {
     s1_title: 'Pagamento procesado', s1_desc: 'A túa subscrición está activa. Recibirás factura no teu email.',
     s2_title: 'Asistente creado', s2_desc: 'A túa organización e asistente IA configúranse automaticamente ao confirmarse o pagamento.',
     s3_title: 'Número NodeFlow asignado', s3_desc: 'O teu número dedicado asígnase automaticamente. Recibirás un email coas instrucións de desvío.',
-    s3_desc_num: 'O teu número NodeFlow é <strong style="color:#f2bd5e">{num}</strong>. Revisa o email coas instrucións de desvío.',
+    s3_desc_num: 'O teu número NodeFlow é <strong style="color:#d6ff5c">{num}</strong>. Revisa o email coas instrucións de desvío.',
     s4_title: 'O teu negocio non perde ningunha chamada máis!', s4_desc: 'Activa o desvío segundo as instrucións do email e o asistente comeza a traballar 24/7.',
     tag_done: 'Feito', tag_now: 'En curso', tag_pending: 'Pendente', tag_soon: 'Moi pronto', tag_tocomplete: 'Por completar',
     btn_portal: '⚡ Ir ao meu portal de cliente →', btn_config: '⚙️ Mentres tanto, configura a túa voz', btn_wa: '💬 Falar con Unai agora', btn_home: '← Volver a nodeflow.es',
@@ -320,7 +320,7 @@ const NF_T = {
     s1_title: 'Ordainketa prozesatuta', s1_desc: 'Zure harpidetza aktibo dago. Faktura zure emailean jasoko duzu.',
     s2_title: 'Laguntzailea sortuta', s2_desc: 'Zure erakundea eta IA laguntzailea automatikoki konfiguratzen dira ordainketa baieztatzean.',
     s3_title: 'NodeFlow zenbakia esleituta', s3_desc: 'Zure zenbaki dedikatua automatikoki esleitzen da. Desbideratze-argibideak dituen email bat jasoko duzu.',
-    s3_desc_num: 'Zure NodeFlow zenbakia <strong style="color:#f2bd5e">{num}</strong> da. Begiratu desbideratze-argibideak dituen emaila.',
+    s3_desc_num: 'Zure NodeFlow zenbakia <strong style="color:#d6ff5c">{num}</strong> da. Begiratu desbideratze-argibideak dituen emaila.',
     s4_title: 'Zure negozioak ez du dei bat ere galduko!', s4_desc: 'Aktibatu desbideratzea emaileko argibideen arabera eta laguntzaileak 24/7 lanean hasiko da.',
     tag_done: 'Eginda', tag_now: 'Abian', tag_pending: 'Zain', tag_soon: 'Laster', tag_tocomplete: 'Osatzeko',
     btn_portal: '⚡ Joan nire bezero-atarira →', btn_config: '⚙️ Bitartean, konfiguratu zure ahotsa', btn_wa: '💬 Hitz egin Unairekin orain', btn_home: '← Itzuli nodeflow.es-era',
@@ -498,7 +498,7 @@ function nfT(key){ return (NF_T[window.NF_LANG] || NF_T.es)[key]; }
 
 // ── Confetti ──
 (function () {
-  const colors = ['#e0a23c','#f2bd5e','#00cec9','#f9ca24','#e17055','#00b894','#fd79a8'];
+  const colors = ['#c4f546','#d6ff5c','#a8e02f','#f4f7f5','#00b894','#e9ecf3'];
   const wrap = document.getElementById('confetti');
   for (let i = 0; i < 60; i++) {
     const el = document.createElement('div');
