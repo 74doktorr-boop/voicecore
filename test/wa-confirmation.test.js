@@ -12,7 +12,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { sendWaConfirmation, sendWaReview } = require('../src/notifications/reminders');
+const { sendWaConfirmation, sendWaReview, sendWaReminder } = require('../src/notifications/reminders');
 
 function fakeDeps() {
   const calls = { template: null, credsFor: null };
@@ -32,6 +32,28 @@ const APT = {
   phone: '+34648122803', date: '2026-07-07', time: '13:00', service: 'Corte de pelo',
 };
 const CFG = { name: 'Peluquería HHR', language: 'es' };
+
+// Auditoría 2026-07-16: confirmación y recordatorio ignoraban no_whatsapp.
+describe('opt-out no_whatsapp (confirmación y recordatorio)', () => {
+  test('sendWaConfirmation con opt-out → NO envía nada', async () => {
+    const deps = fakeDeps(); deps.optedOut = true;
+    const ok = await sendWaConfirmation(APT, CFG, deps);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(deps.calls.template, null);
+  });
+  test('sendWaReminder con opt-out → NO envía nada', async () => {
+    const deps = fakeDeps(); deps.optedOut = true;
+    const ok = await sendWaReminder(APT, CFG, deps);
+    assert.strictEqual(ok, false);
+    assert.strictEqual(deps.calls.template, null);
+  });
+  test('sin opt-out (false) → sí envía (no rompe el camino normal)', async () => {
+    const deps = fakeDeps(); deps.optedOut = false;
+    assert.strictEqual(await sendWaConfirmation(APT, CFG, deps), true);
+    const deps2 = fakeDeps(); deps2.optedOut = false;
+    assert.strictEqual(await sendWaReminder(APT, CFG, deps2), true);
+  });
+});
 
 describe('sendWaConfirmation', () => {
   test('envía la plantilla nodeflow_cita_confirmada con los 5 parámetros', async () => {

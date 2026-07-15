@@ -437,6 +437,10 @@ async function sendWaConfirmation(apt, config, deps = {}) {
   const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
   if (!credentials && !_waIsConfigured()) return false;
 
+  // Opt-out: no se manda confirmación por WA a quien pidió la baja.
+  const optedOut = deps.optedOut !== undefined ? !!deps.optedOut : await _waOptedOut(apt);
+  if (optedOut) { log.info(`WA confirmación: ${apt.phone} opt-out — no se envía`); return false; }
+
   const lang         = config?.language || 'es';
   const name         = firstName(apt.patientName);
   const businessName = config?.name || 'el negocio';
@@ -495,6 +499,10 @@ async function sendWaReminder(apt, config, deps = {}) {
   const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
   if (!credentials && !_waIsConfigured()) return false;
 
+  // Opt-out: no se manda recordatorio por WA a quien pidió la baja.
+  const optedOut = deps.optedOut !== undefined ? !!deps.optedOut : await _waOptedOut(apt);
+  if (optedOut) { log.info(`WA recordatorio: ${apt.phone} opt-out — no se envía`); return false; }
+
   const lang         = config?.language || 'es';
   const name         = firstName(apt.patientName);
   const businessName = config?.name || 'el negocio';
@@ -539,7 +547,13 @@ async function sendWaReminder(apt, config, deps = {}) {
 // ¿El cliente de esta cita dijo NO a WhatsApp? Resuelve el contacto por teléfono
 // (la cita no siempre trae contact_id) y mira contact_memory.no_whatsapp.
 // fail-open (si el lookup falla, no bloquea) — mismo criterio que el resto del motor.
-async function _reviewOptedOut(apt) {
+// ¿El cliente de esta cita dijo NO a WhatsApp (contact_memory.no_whatsapp)?
+// Se usa en TODOS los envíos de WA al cliente (confirmación, recordatorio y
+// reseña). Auditoría 2026-07-16: confirmación y recordatorio NO lo miraban →
+// un cliente dado de baja seguía recibiendo mensajes = reportes de spam que
+// degradan el número compartido ante Meta. fail-open (si el lookup falla, no
+// bloquea — mismo criterio que el resto del motor).
+async function _waOptedOut(apt) {
   try {
     const { getDatabase } = require('../db/database');
     const db = getDatabase();
@@ -553,6 +567,8 @@ async function _reviewOptedOut(apt) {
     return !!(mem && mem.no_whatsapp);
   } catch (_) { return false; }
 }
+// Alias retro (algún test/importador podría referenciar el nombre viejo).
+const _reviewOptedOut = _waOptedOut;
 
 async function sendWaReview(apt, config, deps = {}) {
   const _sendTemplate   = deps.sendTemplate    || sendTemplate;
