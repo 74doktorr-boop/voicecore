@@ -100,10 +100,19 @@ function startMonitor(publicUrl) {
 
   log.info(`Monitor iniciado — check cada 5 min → ${url}/health`);
 
-  // Primera comprobación al arrancar (con delay de 30s para que el servidor esté listo)
-  _warmupTimer = setTimeout(() => checkHealth(url), 30000);
+  // Solo el líder monitoriza y ALERTA (auditoría 2026-07-16): con 2+ réplicas
+  // cada una enviaría su propio email de "CAÍDO/recuperado". No-op con una sola.
+  // (Limitación conocida: si TODA la flota cae, nadie alerta → hace falta un
+  //  vigilante externo tipo UptimeRobot; pendiente de Unai.)
+  const _checkIfLeader = () => {
+    try { if (!require('../utils/leader').isLeader()) return; } catch (_) {}
+    checkHealth(url);
+  };
 
-  monitorInterval = setInterval(() => checkHealth(url), CHECK_INTERVAL_MS);
+  // Primera comprobación al arrancar (con delay de 30s para que el servidor esté listo)
+  _warmupTimer = setTimeout(_checkIfLeader, 30000);
+
+  monitorInterval = setInterval(_checkIfLeader, CHECK_INTERVAL_MS);
 }
 
 function stopMonitor() {

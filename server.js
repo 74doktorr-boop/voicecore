@@ -583,9 +583,16 @@ hydrateSchedulerFromDB()
 // la fila queda 'active' para siempre y el portal muestra duraciones de
 // reloj corriendo (caso real: "1989 minutos"). Se cierran al arrancar y
 // cada hora.
+// Solo el líder cierra huérfanas (auditoría 2026-07-16): con 2+ réplicas
+// evita UPDATEs redundantes y cerrar una llamada viva en otra réplica. No-op
+// con una sola réplica.
 const { reapOrphanCalls } = require('./src/db/call-store');
-reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {});
-setInterval(() => reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {}), 3600000).unref();
+const _reapIfLeader = () => {
+  try { if (!require('./src/utils/leader').isLeader()) return; } catch (_) {}
+  reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {});
+};
+_reapIfLeader();
+setInterval(_reapIfLeader, 3600000).unref();
 
 // Drenaje elegante: al recibir SIGTERM (deploy/restart), esperar a que las
 // llamadas activas terminen (máx. 45s) antes de morir. Sin esto, el deploy

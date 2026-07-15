@@ -174,6 +174,10 @@ let _lastRunDate = null; // evita doble ejecución dentro del mismo minuto
 function startBackupCron() {
   if (_interval) return;
   _interval = setInterval(() => {
+    // Solo el líder respalda (auditoría 2026-07-16): era el único cron de
+    // ESCRITURA sin gate → con 2+ réplicas todas exportaban a la vez al mismo
+    // bucket. No-op con una sola réplica.
+    try { if (!require('../utils/leader').isLeader()) return; } catch (_) {}
     const now = new Date();
     const madrid = new Intl.DateTimeFormat('sv-SE', {
       timeZone: 'Europe/Madrid',
