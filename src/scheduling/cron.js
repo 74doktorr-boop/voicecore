@@ -355,6 +355,16 @@ async function runAutomations() {
     const weeklyReports    = await sendWeeklyReports(scheduler, flowManager);
     const recoveredFollowups = await recoverMissedFollowups();
 
+    // Rescate de altas atascadas (auditoría 2026-07-16): si el aprovisionamiento
+    // murió entre el claim y 'active' (OOM/redeploy), el fundador pagó y se quedó
+    // a medias en silencio. Se completa si ya hay org, o se reabre si no (seguro:
+    // sin org = sin número comprado). NO depende de horas de silencio (rescatar
+    // cuanto antes). No-op hasta aplicar la migración de provisioning_at.
+    try {
+      const { reconcileStuckProvisioning } = require('../api/routes-registro');
+      await reconcileStuckProvisioning({ thresholdMinutes: 15 });
+    } catch (e) { log.warn(`reconcile altas atascadas: ${e.message}`); }
+
     // ── ENTIDADES v0 — materializador nocturno (02-05h Madrid, 1×/día) ──
     // Campos-fecha con recordatorio (ITV, vacuna, renovación de póliza…) →
     // scheduled_reminders. NO-OPea si las tablas de entidades no existen aún

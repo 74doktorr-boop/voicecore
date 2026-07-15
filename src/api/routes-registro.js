@@ -139,6 +139,11 @@ async function claimRegistroForProvisioning(id) {
 
     if (Array.isArray(data) && data.length > 0) {
       if (_memStore.has(id)) _memStore.set(id, { ..._memStore.get(id), status: 'provisioning' });
+      // Marca de tiempo para la reconciliación de atascos (auditoría 2026-07-16).
+      // BEST-EFFORT y separada: si la columna aún no existe (pre-migración), falla
+      // en silencio sin afectar al claim, que es lo crítico. Nunca lanza.
+      db.client.from('registros').update({ provisioning_at: new Date().toISOString() })
+        .eq('id', id).then(undefined, () => {});
       return true;
     }
 
@@ -175,6 +180,66 @@ async function releaseRegistroProvisioning(id) {
     const r = _memStore.get(id);
     if (r.status === 'provisioning') _memStore.set(id, { ...r, status: 'pending_payment' });
   }
+}
+
+/**
+ * Reconciliación de altas atascadas (auditoría 2026-07-16). Si el proceso muere
+ * ENTRE claim y 'active' (OOM, redeploy de EasyPanel), el registro se queda en
+ * 'provisioning' para siempre: Stripe reintenta, el claim falla y el fundador
+ * pagó pero se quedó a medias, en silencio. Este barrido (leader-gated, en el
+ * cron) rescata esos casos de forma SEGURA — sin arriesgar doble org/número:
+ *   · Atascado + YA existe org (owner_email) → se marca 'active' (el proceso
+ *     creó la org pero no finalizó; la cabina de admin cubre número/emails).
+ *   · Atascado + NO existe org → murió antes de crearla, así que NO se compró
+ *     número: se reabre a 'pending_payment' para que el reintento de Stripe lo
+ *     complete limpio. Se avisa fuerte por log en ambos casos.
+ * Solo actúa sobre registros con provisioning_at ANTIGUO (thresholdMinutes) para
+ * no tocar altas en vuelo (que tardan segundos). provisioning_at null → se salta
+ * (conservador; pre-migración o timestamp best-effort que no cuajó).
+ */
+async function reconcileStuckProvisioning({ db, now = Date.now(), thresholdMinutes = 15 } = {}) {
+  db = db || getDatabase();
+  const out = { checked: 0, completed: 0, reopened: 0, skipped: 0 };
+  if (!db.enabled) return out;
+  const cutoff = new Date(now - thresholdMinutes * 60000).toISOString();
+
+  let stuck = [];
+  try {
+    const { data, error } = await db.client.from('registros')
+      .select('id, email, negocio, provisioning_at, status')
+      .eq('status', 'provisioning');
+    if (error) return out;               // columna ausente / error → no-op seguro
+    stuck = data || [];
+  } catch (_) { return out; }
+
+  for (const r of stuck) {
+    out.checked++;
+    // Sin marca de tiempo o aún dentro de la ventana normal → no tocar (en vuelo).
+    if (!r.provisioning_at || r.provisioning_at > cutoff) { out.skipped++; continue; }
+    try {
+      const { data: org } = await db.client.from('organizations')
+        .select('id').eq('owner_email', r.email).limit(1).maybeSingle();
+      if (org && org.id) {
+        // La org existe: finalizar el alta (Stripe deja de reintentar).
+        const { data: upd } = await db.client.from('registros')
+          .update({ status: 'active' }).eq('id', r.id).eq('status', 'provisioning').select('id');
+        if (Array.isArray(upd) && upd.length) {
+          out.completed++;
+          log.warn(`Reconcile: registro ${r.id} (${r.email}) tenía org ${org.id} pero seguía 'provisioning' → 'active'. REVISA que tenga número y que salieran los emails.`);
+        }
+      } else {
+        // No hay org: murió antes de crearla (no se compró número) → reabrir.
+        const { data: upd } = await db.client.from('registros')
+          .update({ status: 'pending_payment' }).eq('id', r.id).eq('status', 'provisioning').select('id');
+        if (Array.isArray(upd) && upd.length) {
+          out.reopened++;
+          log.error(`Reconcile: registro ${r.id} (${r.email} · ${r.negocio}) PAGÓ pero se quedó a medias SIN org → reabierto a 'pending_payment'. Si Stripe no reintenta, complétalo a mano.`);
+        }
+      }
+    } catch (e) { log.warn(`reconcile registro ${r.id}: ${e.message}`); }
+  }
+  if (out.completed || out.reopened) log.info(`Reconcile altas: ${out.completed} completadas, ${out.reopened} reabiertas de ${out.checked} en provisioning.`);
+  return out;
 }
 
 function setupRegistroRoutes(app) {
@@ -352,4 +417,4 @@ function setupRegistroRoutes(app) {
   log.info('Registro routes configured');
 }
 
-module.exports = { setupRegistroRoutes, getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning };
+module.exports = { setupRegistroRoutes, getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning, reconcileStuckProvisioning };
