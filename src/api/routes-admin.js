@@ -13,8 +13,16 @@ const { recordAudit, ipOf } = require('../audit/audit-log');
 
 const log = new Logger('ADMIN');
 
-// Token simple en memoria (se reinicia con el servidor — suficiente para admin privado)
-const _validTokens = new Set();
+// Tokens de admin en rateStore (Redis si REDIS_URL → sobreviven a los deploys y
+// se comparten entre réplicas; si no, memoria = comportamiento previo). Auditoría
+// 2026-07-16: antes eran un Set en memoria → cada deploy exigía re-login y con
+// 2+ réplicas el panel devolvía 401 en las que no emitieron el token.
+const ADMIN_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const _tokKey = (t) => `admintok:${t}`;
+async function isValidAdminToken(token) {
+  if (!token) return false;
+  try { return !!(await rateStore.get(_tokKey(token))); } catch (_) { return false; }
+}
 
 // Brute-force protection: max 10 intentos fallidos por IP / 15 min.
 // Vía rate-store (Redis si REDIS_URL → seguro multi-réplica; si no, memoria).
@@ -33,10 +41,10 @@ function resetLoginAttempts(ip) {
   return rateStore.reset(_failKey(ip));
 }
 
-function adminAuth(req, res, next) {
+async function adminAuth(req, res, next) {
   const header = req.headers['authorization'] || '';
   const token  = header.replace('Bearer ', '').trim();
-  if (!token || !_validTokens.has(token)) {
+  if (!(await isValidAdminToken(token))) {
     return res.status(401).json({ error: 'No autorizado' });
   }
   next();
@@ -74,9 +82,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
     await resetLoginAttempts(ip); // Reset on success
     const token = require('crypto').randomBytes(32).toString('hex');
-    _validTokens.add(token);
-    // Token expira en 24h
-    setTimeout(() => _validTokens.delete(token), 24 * 60 * 60 * 1000);
+    await rateStore.put(_tokKey(token), '1', ADMIN_TOKEN_TTL_MS); // persiste 24h (Redis o memoria)
     log.info(`Admin login OK desde ${ip}`);
     recordAudit({ action: 'admin_login', targetType: 'admin', ip });
     res.json({ token });
@@ -859,7 +865,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     const legacyKey = config.apiKey || process.env.API_KEY;
     if (!legacyKey) return res.status(500).json({ error: 'API_KEY no configurada en el servidor' });
 
-    const isAdminToken = token && _validTokens.has(token);
+    const isAdminToken = token && (await isValidAdminToken(token));
     const isLegacyKey  = apiKey && apiKey === legacyKey;
 
     if (!isAdminToken && !isLegacyKey) {
@@ -1478,9 +1484,9 @@ function setupAdminRoutes(app, config, assistantManager) {
 }
 
 // Export adminAuth so routes-flows and routes-automations can reuse it
-// (they share the same _validTokens set — admin login activates all protected routes)
-function isAdminToken(token) {
-  return !!(token && _validTokens.has(token));
+// (comparten la validación de token → el login de admin activa todas las rutas)
+async function isAdminToken(token) {
+  return await isValidAdminToken(token);
 }
 
 module.exports = { setupAdminRoutes, adminAuth, isAdminToken };

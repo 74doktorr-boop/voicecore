@@ -25,7 +25,7 @@ async function demoAuth(req, res, next) {
   const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return next(); // visitante anónimo del demo
 
-  if (isAdminToken(token)) {
+  if (await isAdminToken(token)) {
     req.isAdmin = true;
     return next();
   }

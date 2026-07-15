@@ -20,9 +20,12 @@ const log = new Logger('RATE-STORE');
 
 // ── Fallback en memoria: Map<key, {count, resetAt}> ──
 const mem = new Map();
+// KV en memoria para put/get (tokens, etc.): Map<key, {value, resetAt}>
+const kv = new Map();
 setInterval(() => {
   const now = Date.now();
   for (const [key, e] of mem) if (now > e.resetAt) mem.delete(key);
+  for (const [key, e] of kv)  if (now > e.resetAt) kv.delete(key);
 }, 10 * 60 * 1000).unref();
 
 function memHit(key, windowMs) {
@@ -103,6 +106,31 @@ async function reset(key) {
   mem.delete(key);
 }
 
+// ── KV con TTL (put/get/del): para sesiones/tokens, compartido multi-réplica.
+// Redis SET key value PX ttl → GET. Fallback a un Map en memoria con expiración.
+async function put(key, value, ttlMs) {
+  if (redis && redisReady) {
+    try { await redis.set(key, String(value), 'PX', Math.max(1, ttlMs | 0)); return; }
+    catch (e) { log.warn(`put Redis falló (${e.message}) — fallback memoria`); }
+  }
+  kv.set(key, { value: String(value), resetAt: Date.now() + ttlMs });
+}
+async function get(key) {
+  if (redis && redisReady) {
+    try { return await redis.get(key); }
+    catch (e) { log.warn(`get Redis falló (${e.message}) — fallback memoria`); }
+  }
+  const e = kv.get(key);
+  if (!e || Date.now() > e.resetAt) { kv.delete(key); return null; }
+  return e.value;
+}
+async function del(key) {
+  if (redis && redisReady) {
+    try { await redis.del(key); } catch (e) { log.warn(`del Redis falló (${e.message})`); }
+  }
+  kv.delete(key);
+}
+
 function isRedisEnabled() { return !!(redis && redisReady); }
 
-module.exports = { hit, peek, reset, isRedisEnabled };
+module.exports = { hit, peek, reset, put, get, del, isRedisEnabled };
