@@ -375,6 +375,20 @@ function setupAdminRoutes(app, config, assistantManager) {
         log.warn(`activar-cliente: no se pudo fijar phoneNumber en el asistente: ${e.message}`);
       }
 
+      // 1d. La config VIVA (flowManager) también — mismo bug que en
+      // phone-pool/assign: sin esto, el portal no ve el número hasta reiniciar.
+      try {
+        const { flowManager } = require('../automations/flow-manager');
+        const flow = flowManager.get(orgId);
+        if (flow) {
+          flow.automations = flow.automations || {};
+          flow.automations.config = { ...(flow.automations.config || {}), nodeflowNumber: numeroNodeflow, outboundNumber: numeroNodeflow };
+        }
+        require('../assistants/org-assistant').invalidateOrgAssistant(orgId);
+      } catch (e) {
+        log.warn(`activar-cliente: memoria no refrescada (${e.message}) — visible tras reinicio`);
+      }
+
       // 2. Enviar email de activación con guía de desvío
       const registro = {
         email:    org.owner_email,
@@ -1176,6 +1190,21 @@ function setupAdminRoutes(app, config, assistantManager) {
         else log.warn(`phone-pool/assign: org ${orgId} sin asistente propio — la entrante usará el default`);
       } catch (e) {
         log.warn(`phone-pool/assign: no se pudo fijar phoneNumber en el asistente: ${e.message}`);
+      }
+
+      // La config VIVA (flowManager) también — sin esto, el portal seguía
+      // enseñando "número pendiente" y había que REINICIAR el servidor para
+      // que se enterase (bug real, asignación de Osakin 2026-07-15).
+      try {
+        const { flowManager } = require('../automations/flow-manager');
+        const flow = flowManager.get(orgId);
+        if (flow) {
+          flow.automations = flow.automations || {};
+          flow.automations.config = { ...(flow.automations.config || {}), nodeflowNumber: assigned, outboundNumber: assigned };
+        }
+        require('../assistants/org-assistant').invalidateOrgAssistant(orgId);
+      } catch (e) {
+        log.warn(`phone-pool/assign: memoria no refrescada (${e.message}) — visible tras reinicio`);
       }
 
       log.info(`Número ${assigned} asignado manualmente a org ${orgId}`);
