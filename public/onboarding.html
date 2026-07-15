@@ -9,24 +9,26 @@
 <style>
 :root{--bg:#0a0b0d;--bg2:#0f1216;--card:rgba(255,255,255,.035);--border:rgba(232,242,238,.10);--accent:#c4f546;--accent-l:#d6ff5c;--text:rgba(226,232,231,.82);--white:#f4f7f5;--green:#2ea96f;--red:#f87171;--green-pos:#4ade80;--muted:#888;--display:'Fraunces',Georgia,serif;--radius:14px;}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 16px 80px;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 16px 80px;position:relative;}
+/* Atmósfera de marca (coherente con el login): resplandor lima sutil, sin distraer del formulario. */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(46rem 30rem at 50% -8%,rgba(196,245,70,.06),transparent 60%),radial-gradient(30rem 24rem at 88% 108%,rgba(46,225,200,.04),transparent 60%);}
 .logo{font-family:var(--display);font-size:1.4rem;font-weight:600;color:var(--white);margin-bottom:26px;text-decoration:none;letter-spacing:-.02em;}
 .logo span{color:var(--accent-l);}
-.plan-banner{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:40px;padding:7px 16px;margin-bottom:24px;font-size:.82rem;}
+.plan-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(196,245,70,.07),rgba(196,245,70,.02));border:1px solid rgba(196,245,70,.22);border-radius:40px;padding:7px 16px;margin-bottom:24px;font-size:.82rem;box-shadow:0 0 24px -8px rgba(196,245,70,.25);}
 .plan-banner .pb-name{color:var(--white);font-weight:700;}
 .plan-banner .pb-price{color:var(--accent-l);font-weight:800;}
-.progress{display:flex;gap:10px;margin-bottom:32px;}
-.prog-step{width:34px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);transition:background .3s;}
-.prog-step.active{background:var(--accent-l);}
+.progress{display:flex;gap:8px;margin-bottom:32px;}
+.prog-step{width:34px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);transition:background .3s,box-shadow .3s;}
+.prog-step.active{background:var(--accent-l);box-shadow:0 0 10px -1px rgba(196,245,70,.6);}
 .prog-step.done{background:var(--green);}
-.card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;}
+.card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;box-shadow:0 30px 90px -40px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.015) inset;}
 .card h1{font-family:var(--display);font-size:1.55rem;font-weight:600;letter-spacing:-.015em;color:var(--white);margin-bottom:6px;}
 .card p.sub{font-size:.9rem;color:var(--text);margin-bottom:28px;line-height:1.6;}
 .form-group{margin-bottom:18px;}
 label{display:block;font-size:.82rem;font-weight:600;color:var(--white);margin-bottom:7px;}
 input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:.9rem;font-family:inherit;outline:none;transition:border-color .25s;}
 input::placeholder{color:rgba(226,232,231,.3);}
-input:focus,select:focus{border-color:rgba(196,245,70,.5);}
+input:focus,select:focus{border-color:rgba(196,245,70,.6);background:rgba(255,255,255,.03);box-shadow:0 0 0 3px rgba(196,245,70,.13);}
 select option{background:var(--bg2);color:var(--white);}
 select optgroup{background:var(--bg);color:var(--accent-l);font-weight:700;font-style:normal;}
 select option{padding:6px 8px;}
