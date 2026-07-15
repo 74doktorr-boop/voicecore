@@ -214,6 +214,17 @@ class AssistantManager {
       // número", ofrecer enviar email/WhatsApp que no puede enviar en la llamada).
       '\n- Comprométete SOLO a lo que puedes hacer con tus herramientas: agendar una cita, registrar el recado o avisar al responsable. NO ofrezcas enviar información por email, WhatsApp o SMS, ni prometas plazos concretos ("muy pronto", "en cinco minutos"), ni que "llamarás tú": al registrar un aviso, di simplemente que un compañero se pondrá en contacto, sin garantizar cuándo ni cómo.]';
 
+    // Multi-idioma (auditoría 2026-07-16): las reglas de arriba traen frases
+    // ENTRE COMILLAS en español ("Ahora mismo estamos cerrados…", "Soy el
+    // asistente virtual…", "Por supuesto, le aviso…"). Para una org en euskera o
+    // galego, decirlas literalmente es una caída de idioma. Para 'es' no se toca
+    // nada; para el resto, se indica que esas frases son EJEMPLOS a decir en el
+    // idioma del asistente (que ya tiene la orden de responder en su idioma).
+    const _lang = (assistant.language || 'es').toLowerCase();
+    if (_lang !== 'es') {
+      systemPrompt += '\n\n[IDIOMA — IMPORTANTE: las frases entre comillas de las REGLAS GLOBALES están escritas en español solo como ejemplo. Dilas SIEMPRE en TU idioma (' + _lang + '), nunca en español. El sentido manda, no las palabras exactas.]';
+    }
+
     return { role: 'system', content: systemPrompt };
   }
 

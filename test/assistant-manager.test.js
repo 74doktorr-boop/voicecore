@@ -53,3 +53,29 @@ describe('buildSystemMessage — reglas globales de calidad', () => {
     assert.match(sys, /sin garantizar cuándo ni cómo/);
   });
 });
+
+// Auditoría 2026-07-16 — frases de las REGLAS GLOBALES en el idioma del asistente
+describe('buildSystemMessage — nota de idioma para orgs no-es', () => {
+  const m = new AssistantManager('/tmp/nf-test-assistants-nonexistent2');
+
+  test('org en euskera → recibe la nota de IDIOMA (di las frases en tu idioma)', () => {
+    const msg = m.buildSystemMessage({ language: 'eu', systemPrompt: 'REGLAS INQUEBRANTABLES\nHola' });
+    assert.match(msg.content, /\[IDIOMA/);
+    assert.match(msg.content, /\(eu\)/);
+  });
+
+  test('org en galego → recibe la nota', () => {
+    const msg = m.buildSystemMessage({ language: 'gl', systemPrompt: 'REGLAS INQUEBRANTABLES\nHola' });
+    assert.match(msg.content, /\[IDIOMA/);
+  });
+
+  test('org en español → NO recibe la nota (comportamiento intacto)', () => {
+    const msg = m.buildSystemMessage({ language: 'es', systemPrompt: 'REGLAS INQUEBRANTABLES\nHola' });
+    assert.doesNotMatch(msg.content, /\[IDIOMA/);
+  });
+
+  test('sin idioma declarado → por defecto es (sin nota)', () => {
+    const msg = m.buildSystemMessage({ systemPrompt: 'REGLAS INQUEBRANTABLES\nHola' });
+    assert.doesNotMatch(msg.content, /\[IDIOMA/);
+  });
+});
