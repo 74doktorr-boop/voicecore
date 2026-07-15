@@ -37,18 +37,29 @@ function getSupabase() {
 
 const ALGORITHM = 'aes-256-gcm';
 
+const _IS_PROD = process.env.NODE_ENV === 'production';
+
 function getEncryptionKey() {
   const raw = process.env.ENCRYPTION_KEY;
   if (!raw) return null;
-  // Acepta hex (64 chars) o base64 (44 chars) o texto plano (32 chars)
+  // Acepta hex (64 chars) o base64 (44 chars).
   if (raw.length === 64 && /^[0-9a-f]+$/i.test(raw)) return Buffer.from(raw, 'hex');
   if (raw.length === 44) return Buffer.from(raw, 'base64');
+  // Clave con longitud no válida: antes se rellenaba con ceros (clave AES débil
+  // y predecible — auditoría seguridad 2026-07-16). En producción se RECHAZA;
+  // en dev se tolera con relleno para no frenar el desarrollo local.
+  if (_IS_PROD) { log.error('ENCRYPTION_KEY inválida (usa 64-hex o 44-base64) — cifrado deshabilitado'); return null; }
   return Buffer.from(raw.padEnd(32, '0').slice(0, 32), 'utf8');
 }
 
 function encrypt(text) {
   const key = getEncryptionKey();
-  if (!key) return text; // dev mode — sin cifrar
+  if (!key) {
+    // FAIL-CLOSED en producción: nunca guardar un secreto en claro sin avisar
+    // (patrón "no fallbacks silenciosos", incidente previo). En dev, sin cifrar.
+    if (_IS_PROD) throw new Error('ENCRYPTION_KEY no configurada — no se cifra en producción (fail-closed)');
+    return text;
+  }
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -71,8 +82,11 @@ function decrypt(stored) {
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
   } catch (e) {
-    log.warn(`decrypt error: ${e.message} — returning raw`);
-    return stored;
+    // El valor PARECE cifrado (3 partes) pero el tag GCM no valida: clave
+    // equivocada o manipulación. Devolver el ciphertext crudo daría un token
+    // basura que rompe la API en silencio → mejor null (auditoría 2026-07-16).
+    log.warn(`decrypt error: ${e.message} — descartado`);
+    return null;
   }
 }
 

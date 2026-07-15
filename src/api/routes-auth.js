@@ -16,13 +16,17 @@ const TOKEN_TTL_MS   = 7   * 24 * 60 * 60 * 1000; // 7 días — coincide con lo
 const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 año — la sesión no se cae; reentrada = un email
 
 // ── JWT helpers (HMAC-SHA256, no external library) ─────────────────────────
+// Secretos débiles/públicos que NUNCA deben firmar sesiones: el default de
+// .env.example es de conocimiento público → cualquiera forjaría un JWT de
+// sesión de cualquier org (auditoría seguridad 2026-07-16).
+const _WEAK_SECRETS = new Set(['voicecore-dev', 'changeme', 'secret', 'admin', 'dev']);
 function jwtSecret() {
   const s = process.env.JWT_SECRET || process.env.API_KEY;
-  if (!s) {
-    // Hardcoded fallback would allow anyone with source access to forge tokens.
-    // Fail loudly so ops notices immediately.
-    log.error('⚠️  JWT_SECRET (and API_KEY) not configured — session tokens cannot be issued securely. Set JWT_SECRET in environment.');
-    throw new Error('JWT_SECRET not configured');
+  if (!s || _WEAK_SECRETS.has(s) || s.length < 16) {
+    // Sin secreto fuerte no se pueden emitir/verificar sesiones de forma segura.
+    // Fallar ruidosamente en vez de firmar con un secreto adivinable.
+    log.error('⚠️  JWT_SECRET ausente o débil — pon un JWT_SECRET fuerte (≥16 chars, no el default). Las sesiones NO se emiten con un secreto público.');
+    throw new Error('JWT_SECRET not configured or too weak');
   }
   return s;
 }
