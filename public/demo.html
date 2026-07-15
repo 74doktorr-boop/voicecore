@@ -810,6 +810,11 @@ Hoy es ${_hoy}.`
 // ── Estado ───────────────────────────────────────────────────────────────────
 let currentSector = 'dental';
 let conversationHistory = [];
+// Token de generación anti-carrera (bug real 15-jul-2026): una respuesta en
+// vuelo del sector ANTERIOR aterrizaba en el chat del nuevo (pediste
+// blanqueamiento en Dental, cambiaste a Abogado, y "Amaia" hablaba de dientes).
+// Cada cambio de sector invalida las respuestas pendientes.
+let chatGen = 0;
 let isTyping = false;
 let lastServiceKey = null;
 let userMsgCount = 0;        // rate-limit: max mensajes por sesión de sector
@@ -910,6 +915,9 @@ function setSector(btn, sector, emoji, name, biz) {
 }
 
 function _applySector(sector, emoji, name, biz) {
+  chatGen++;                      // invalida cualquier respuesta en vuelo del sector anterior
+  isTyping = false;               // y desbloquea el input si el cambio pilló una petición a medias
+  const _sb = document.getElementById('sendBtn'); if (_sb) _sb.disabled = false;
   currentSector = sector;
   lastServiceKey = null;
   conversationHistory = [];
@@ -1182,12 +1190,15 @@ async function sendMsg() {
   document.getElementById('sendBtn').disabled = true;
   showTyping();
 
+  const __gen = chatGen;   // anti-carrera: si el sector cambia en vuelo, descartar
   try {
     const reply = await getAIResponse(text);
+    if (__gen !== chatGen) return;   // el usuario cambió de sector: esta respuesta ya no es de aquí
     hideTyping();
     addBotMessage(reply);
     _updateLastServiceFromReply(reply);  // actualizar contexto para follow-ups
   } catch (e) {
+    if (__gen !== chatGen) return;
     hideTyping();
     if (e?.message === 'no_service') {
       addBotMessage('⚠️ Para usar la demo necesitas introducir el token de acceso en el panel de la derecha y verificar la conexión.');
