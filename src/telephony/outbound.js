@@ -57,12 +57,16 @@ function consumeOutboundContext(...numbers) {
 }
 
 /**
- * Resuelve el número saliente de una org: config en memoria → pool → env.
+ * Resuelve el número saliente de una org: config en memoria → POOL → env.
  * nf_phone_pool es la fuente de verdad de asignaciones.
+ *
+ * ORDEN CORREGIDO (bug real 2026-07-15, prueba de Osakin): el env global
+ * TELNYX_PHONE_NUMBER ganaba al número PROPIO de la org en el pool — si la
+ * config en memoria estaba estancada, la org llamaba desde el número de OTRO
+ * negocio (el global). Lo específico de la org gana SIEMPRE al global.
  */
 async function resolveOutboundNumber(businessId, flowConfig = null) {
-  let from = flowConfig?.automations?.config?.outboundNumber
-    || process.env.TELNYX_PHONE_NUMBER || null;
+  let from = flowConfig?.automations?.config?.outboundNumber || null;
   if (!from && businessId) {
     try {
       const db = getDatabase();
@@ -75,7 +79,7 @@ async function resolveOutboundNumber(businessId, flowConfig = null) {
       }
     } catch (e) { log.warn(`resolveOutboundNumber(${businessId}): ${e.message}`); }
   }
-  return from;
+  return from || process.env.TELNYX_PHONE_NUMBER || null;
 }
 
 /**
