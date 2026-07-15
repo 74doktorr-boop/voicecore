@@ -657,7 +657,13 @@ function switchTab(name,btn) {
 // Agrega en el Resumen todo lo accionable que vive repartido por las pestañas:
 // onboarding sin número, clientes en riesgo, pool bajo, config incompleta,
 // calidad de WhatsApp. Cada fuente es fail-open: si una API falla, se omite.
-function _attEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Escapa TODO (incl. comillas) — seguro para texto Y para atributos. Endurecido
+// tras la auditoría 2026-07-16: campos del formulario PÚBLICO de onboarding
+// (negocio, contacto, email…) y nombres dictados por quien llama al asistente
+// llegaban CRUDOS al innerHTML del admin → XSS almacenado que podía robar el
+// token de admin. Usar SIEMPRE al interpolar datos de usuario.
+function _attEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+var _e = _attEsc;   // alias corto
 
 async function loadAttention() {
   const box = document.getElementById('attention');
@@ -1239,8 +1245,8 @@ function render(rows,id,mini) {
         (mini?'':`<button class="btn btn-y" ${btnS} onclick="leadPaymentLink('${r.id}',this)" title="Genera un checkout fresco, se lo envía por email y copia la URL">💳 Pago</button>`+
         `<button class="btn btn-r" ${btnS} onclick="leadDiscard('${r.id}',this)" title="Sacar del embudo sin borrar">🗑</button>`)
       : '';
-    if(mini) return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}</td><td>${plan}</td><td>${r.ciudad||'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
-    return `<tr><td><strong>${r.negocio||'—'}</strong> ${lang}${src}</td><td>${r.sector||'—'}</td><td>${r.contacto||'—'}</td><td class="u-dim">${r.email||'—'}</td><td class="u-dim">${r.telefono||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${r.coupon_code}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
+    if(mini) return `<tr><td><strong>${_e(r.negocio)||'—'}</strong> ${lang}</td><td>${plan}</td><td>${_e(r.ciudad)||'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
+    return `<tr><td><strong>${_e(r.negocio)||'—'}</strong> ${lang}${src}</td><td>${_e(r.sector)||'—'}</td><td>${_e(r.contacto)||'—'}</td><td class="u-dim">${_e(r.email)||'—'}</td><td class="u-dim">${_e(r.telefono)||'—'}</td><td>${plan}</td><td>${r.coupon_code?`<span class="badge by">${_e(r.coupon_code)}</span>`:'—'}</td><td>${st}${action}</td><td>${d}</td></tr>`;
   }).join('');
 }
 
@@ -1286,7 +1292,7 @@ async function loadOrgs() {
       const pct=Math.min(100,Math.round(used/limit*100));
       const barClass=pct>=90?'danger':pct>=80?'warn':'';
       const minsCell=`<div>${used.toFixed(0)} / ${limit} min</div><div class="mins-bar"><div class="mins-bar-fill ${barClass}" style="width:${pct}%"></div></div>`;
-      const titleAttr=o.phone?`title="${o.phone}"`:'';
+      const titleAttr=o.phone?`title="${_e(o.phone)}"`:'';
       const model=(o.assistant_config&&o.assistant_config.model)||'';
       const modelSel=`<select class="form-ctrl" style="font-size:11px;padding:4px 8px;width:auto" onchange="setOrgModel('${o.id}',this.value,this)" title="Fuerza el modelo LLM de esta org para el A/B. Aplica en la siguiente llamada.">`
         +`<option value=""${model===''?' selected':''}>⚙️ Auto</option>`
@@ -1294,8 +1300,8 @@ async function loadOrgs() {
         +`<option value="openai/gpt-4o-mini"${model.startsWith('openai')?' selected':''}>🤖 gpt-4o-mini</option>`
         +`</select>`;
       return `<tr>
-        <td><strong ${titleAttr}>${o.name||'—'}</strong></td>
-        <td class="u-dim u-text-sm">${o.owner_email||'—'}</td>
+        <td><strong ${titleAttr}>${_e(o.name)||'—'}</strong></td>
+        <td class="u-dim u-text-sm">${_e(o.owner_email)||'—'}</td>
         <td>${plan}</td>
         <td>${minsCell}</td>
         <td>${active}</td>
@@ -1326,9 +1332,9 @@ async function loadOnboardingAlert() {
     if (!pending.length) { alertEl.style.display='none'; return; }
     alertEl.style.display = 'block';
     body.innerHTML = pending.map(c => `<tr>
-      <td><strong>${c.negocio||'—'}</strong></td>
-      <td class="u-text-sm u-dim">${c.email||'—'}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--dim)">${c.orgId||'—'}</td>
+      <td><strong>${_e(c.negocio)||'—'}</strong></td>
+      <td class="u-text-sm u-dim">${_e(c.email)||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--dim)">${_e(c.orgId)||'—'}</td>
       <td>
         ${c.orgId
           ? `<div class="u-flex u-gap-2 u-items-center">
@@ -1387,7 +1393,7 @@ async function loadCitasOrgs() {
       sel.innerHTML = '<option value="">Sin clientes activos aún</option>';
       return;
     }
-    sel.innerHTML = orgs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    sel.innerHTML = orgs.map(o => `<option value="${_e(o.id)}">${_e(o.name)}</option>`).join('');
   } catch(e) { console.error('loadCitasOrgs', e); }
 }
 
@@ -1409,11 +1415,11 @@ async function loadCitas() {
       const rem=a.reminder_sent?'<span class="badge bg">✓ Enviado</span>':a.email?`<button class="btn btn-g" onclick="sendReminder('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
       const rev=a.review_requested?'<span class="badge by">✓ Enviado</span>':a.email?`<button class="btn btn-y" onclick="sendReview('${a.id}',this)">Enviar</button>`:'<span class="badge bd">Sin email</span>';
       return `<tr>
-        <td><strong>${a.patientName}</strong><br><span class="u-dim u-text-xs">${a.phone||''}</span></td>
+        <td><strong>${_e(a.patientName)}</strong><br><span class="u-dim u-text-xs">${_e(a.phone)||''}</span></td>
         <td>${a.date}</td><td>${a.time}h</td>
-        <td class="u-text-sm">${a.service}</td>
+        <td class="u-text-sm">${_e(a.service)}</td>
         <td>${st}</td><td>${rem}</td><td>${rev}</td>
-        <td><button class="btn btn-wa" onclick="openWA(event,'${biz}','${a.id}')">💬 WA</button></td>
+        <td><button class="btn btn-wa" onclick="openWA(event,'${_e(biz)}','${_e(a.id)}')">💬 WA</button></td>
       </tr>`;
     }).join('');
   } catch(e){if(e.message!=='401')b.innerHTML='<tr class="empty-row"><td colspan="8">Error</td></tr>';}
