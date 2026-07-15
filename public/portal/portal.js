@@ -1564,6 +1564,49 @@ async function showVoiceModels() {
   );
 }
 
+// ── Multi-sede: desglose por centro (Portal Grupo V1) ────────────────────────
+// Cuenta SOLO citas — las llamadas no llevan centro y no se inventan métricas.
+// Fila "Sin centro" únicamente si existen citas activas sin etiqueta (legado o
+// creadas antes de configurar los centros). Gate: org mono-sede → nada.
+// Clic en un centro → Citas ya filtradas por ese centro.
+function dashCentros(appts) {
+  var locs = window._locsCache || [];
+  if (!locs.length) return '';
+  var today = new Date().toLocaleDateString('sv-SE');
+  var end = new Date(); end.setDate(end.getDate() + 7);
+  var endStr = end.toLocaleDateString('sv-SE');
+  var live = (appts || []).filter(function (a) { return a && a.status !== 'cancelled'; });
+  var mk = function (label, isLoc) {
+    var mine = live.filter(function (a) { return isLoc ? a.location === label : !a.location; });
+    return {
+      label: label, isLoc: isLoc,
+      hoy:    mine.filter(function (a) { return a.date === today; }).length,
+      semana: mine.filter(function (a) { return a.date > today && a.date <= endStr; }).length,
+    };
+  };
+  var rows = locs.map(function (l) { return mk(l, true); });
+  var sin = mk('Sin centro', false);
+  if (sin.hoy + sin.semana > 0) rows.push(sin);
+  var n = function (v) { return v > 0 ? '<b style="color:var(--text)">' + v + '</b>' : '<span style="color:var(--dim)">0</span>'; };
+  return '<div class="card" style="margin:0 0 14px;padding:14px 18px">' +
+    '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">📍 Por centro</div>' +
+    rows.map(function (r) {
+      // encodeURIComponent: un centro con apóstrofo ("L'Hospitalet") rompería
+      // el onclick — esc() entifica la comilla pero el navegador la decodifica
+      // de vuelta dentro del atributo. URI-encode no contiene comillas jamás.
+      var click = r.isLoc
+        ? ' style="cursor:pointer" onclick="_citasFilterLoc=decodeURIComponent(\'' + encodeURIComponent(r.label) + '\');navigate(\'citas\')" title="Ver las citas de ' + esc(r.label) + '"'
+        : ' title="Citas anteriores a la configuración de centros"';
+      return '<div' + click + '><div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:13px">' +
+        '<span style="flex:1;font-weight:600;' + (r.isLoc ? '' : 'color:var(--dim);font-style:italic') + '">' + esc(r.label) + '</span>' +
+        '<span style="color:var(--dim)">hoy ' + n(r.hoy) + '</span>' +
+        '<span style="color:var(--dim)">· próx. 7 días ' + n(r.semana) + '</span>' +
+        (r.isLoc ? '<span style="color:var(--dim)">→</span>' : '') +
+      '</div></div>';
+    }).join('') +
+  '</div>';
+}
+
 async function loadDashboard() {
   var sec = document.getElementById('sec-dashboard');
   sec.innerHTML = skeletonDashboard();
@@ -1591,6 +1634,8 @@ async function loadDashboard() {
       api('/api/portal/assistant', null, null, 6000).catch(function () { return null; }),
       api('/api/portal/at-risk-tomorrow', null, null, 6000).catch(function () { return {}; }),
       api('/api/portal/appointments', null, null, 6000).catch(function () { return {}; }),
+      // Multi-sede: centros para el desglose (cacheado — Citas lo reutiliza)
+      _orgLocationsCached().catch(function () { return []; }),
     ]);
     act.opps  = (r[0].opportunities || []).length;
     // Contador UNIFICADO: tareas manuales abiertas + sugerencias no descartadas
@@ -1605,6 +1650,7 @@ async function loadDashboard() {
     asisMode = (r[6] && r[6].config && r[6].config.mode) || 'citas';
     atRisk = (r[7] && r[7].atRisk) || [];
     apptsForReview = (r[8] && r[8].appointments) || [];
+    // r[9] = centros (ya quedan en window._locsCache vía _orgLocationsCached)
   } catch (e) {}
 
   sec.innerHTML =
@@ -1612,6 +1658,7 @@ async function loadDashboard() {
     '<div id="dash-briefing" style="margin:0 0 14px"></div>' +
     '<div id="dash-recovery" style="margin:0 0 14px"></div>' +
     dashMinutes(usage) +
+    dashCentros(apptsForReview) +
     dashSetup(d) +
     dashConfirmAttendance(apptsForReview) +
     dashCalendarNudge(cal, asisMode) +
