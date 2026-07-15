@@ -1813,6 +1813,7 @@ async function loadCalls(outcome, from, to) {
 var _citasData = [];
 var _gcalEvents = [];   // eventos del Google Calendar del negocio (solo lectura)
 var _citasFilterStatus = 'todas';
+var _citasFilterLoc = '';   // multi-sede: '' = todos los centros
 var _citasSearch = '';
 var _citasView = localStorage.getItem('nf_citas_view') || 'semana';
 var _citasWeekOffset = 0;
@@ -1903,6 +1904,10 @@ function citasWeekHtml(filtered, today) {
 
 async function loadCitas(statusFilter, search) {
   _citasFilterStatus = statusFilter || _citasFilterStatus || 'todas';
+  // Multi-sede: cargar los centros ANTES de pintar — si el dueño entra directo
+  // a Citas, _locsCache aún no existe y el filtro 📍 no se pintaría (autocrítica:
+  // el gate era correcto pero el orden de carga lo dejaba ciego).
+  await _orgLocationsCached();
   _citasSearch       = (search !== undefined) ? search : (_citasSearch || '');
 
   var sec = document.getElementById('sec-citas');
@@ -1966,6 +1971,7 @@ function renderCitas() {
 
   var filtered = _citasData.filter(function(a) {
     if (_citasFilterStatus !== 'todas' && a.status !== _citasFilterStatus) return false;
+    if (_citasFilterLoc && (a.location || '') !== _citasFilterLoc) return false;   // multi-sede
     if (_citasSearch) {
       var q = _citasSearch.toLowerCase();
       if (!(a.patientName || '').toLowerCase().includes(q) &&
@@ -2096,6 +2102,16 @@ function renderCitas() {
         '<option value="no_show"' + (_citasFilterStatus==='no_show'?' selected':'') + '>No vino</option>' +
         '<option value="cancelled"' + (_citasFilterStatus==='cancelled'?' selected':'') + '>Canceladas</option>' +
       '</select>' +
+      // Multi-sede: filtro por centro — solo se pinta si la org tiene centros
+      // (window._locsCache la carga la sección al arrancar; gate mono-sede intacto).
+      ((window._locsCache || []).length ? (
+        '<label style="font-size:12px;color:var(--dim)">📍 Centro:</label>' +
+        '<select id="citasLoc" onchange="_citasFilterLoc=this.value;renderCitas()">' +
+          '<option value=""' + (_citasFilterLoc===''?' selected':'') + '>Todos</option>' +
+          (window._locsCache || []).map(function (l) {
+            return '<option value="' + esc(l) + '"' + (_citasFilterLoc===l?' selected':'') + '>' + esc(l) + '</option>';
+          }).join('') +
+        '</select>') : '') +
     '</div>' +
     reviewHtml +
     viewHtml +
