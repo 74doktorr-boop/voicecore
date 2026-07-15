@@ -207,13 +207,16 @@ class SchedulingSystem {
   // este hueco (que Tolosa esté llena no cierra Villabona). Las citas SIN
   // centro (legado / mono-sede) bloquean siempre, por prudencia. Sin location
   // → comportamiento idéntico al de siempre (cero cambios para orgs sin centros).
-  _isSlotTaken(businessId, date, time, duration, extraBusy = [], location = null) {
+  // excludeId: id de una cita que NO cuenta como conflicto (para reprogramar
+  // sin que la cita choque consigo misma). null → cuenta todas.
+  _isSlotTaken(businessId, date, time, duration, extraBusy = [], location = null, excludeId = null) {
     const [h, m] = time.split(':').map(Number);
     const slotStart = h * 60 + m;
     const slotEnd = slotStart + duration;
 
     for (const [, apt] of this.appointments) {
       if (apt.businessId !== businessId || apt.date !== date || apt.status === 'cancelled') continue;
+      if (excludeId && apt.id === excludeId) continue; // no chocar consigo misma
       if (location && apt.location && apt.location !== location) continue; // otro centro no bloquea
       const [ah, am] = apt.time.split(':').map(Number);
       const aptStart = ah * 60 + am;
@@ -402,14 +405,22 @@ class SchedulingSystem {
     }
 
     if (!apt && patientName) {
-      // Search by name — scoped to businessId
+      // Búsqueda por nombre — acotada al negocio y a la cita PRÓXIMA.
+      // Auditoría 2026-07-16: antes cogía el PRIMER match del Map (hidratado en
+      // orden ascendente con hasta 90 días de histórico) → cancelaba la cita más
+      // ANTIGUA, incluso una ya pasada, dejando viva la de mañana (hueco no
+      // liberado + no-show). Ahora: solo futuras, la más próxima.
+      const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+      const q = patientName.toLowerCase();
+      let best = null;
       for (const [, a] of this.appointments) {
         const sameBusiness = !businessId || a.businessId === businessId;
-        if (sameBusiness && a.patientName.toLowerCase().includes(patientName.toLowerCase()) && a.status !== 'cancelled') {
-          apt = a;
-          break;
-        }
+        if (!sameBusiness || a.status === 'cancelled') continue;
+        if (!a.patientName || !a.patientName.toLowerCase().includes(q)) continue;
+        if (a.date < todayStr) continue; // pasadas no se cancelan
+        if (!best || a.date < best.date || (a.date === best.date && a.time < best.time)) best = a;
       }
+      apt = best;
     }
 
     if (!apt) return { success: false, error: 'No se ha encontrado ninguna cita con esos datos.' };

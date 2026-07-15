@@ -977,6 +977,7 @@ function setupPortalRoutes(app, pipeline, config) {
     if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
     if (apt.status === 'cancelled') return res.status(409).json({ error: 'La cita ya está cancelada' });
     const prevDate = apt.date, prevTime = apt.time;  // para detectar reprogramación
+    const _before = { ...apt };                      // por si hay que revertir
 
     // Validación de tipos y formatos (auditoría 2026-07-07): antes un objeto
     // en 'date' o una hora basura se guardaban tal cual y rompían aguas abajo.
@@ -992,6 +993,18 @@ function setupPortalRoutes(app, pipeline, config) {
       if (field === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return res.status(400).json({ error: 'Fecha no válida (AAAA-MM-DD)' });
       if (field === 'time' && !/^\d{1,2}:\d{2}$/.test(v)) return res.status(400).json({ error: 'Hora no válida (HH:MM)' });
       apt[field] = v.slice(0, MAXLEN[field] || 200);
+    }
+
+    // Reprogramación (auditoría 2026-07-16): antes se cambiaba fecha/hora SIN
+    // comprobar solape → dos citas encima en memoria (overbooking) y, si la
+    // BD rechaza el upsert por el constraint, divergencia memoria↔BD que
+    // "revive" la cita a la hora vieja en el siguiente deploy. Ahora se valida
+    // el hueco (excluyéndose a sí misma) y se revierte si está ocupado.
+    if (apt.date !== prevDate || apt.time !== prevTime) {
+      if (scheduler._isSlotTaken(businessId, apt.date, apt.time, apt.duration || 30, [], apt.location || null, apt.id)) {
+        Object.assign(apt, _before);   // revertir todos los campos
+        return res.status(409).json({ error: `Ya hay una cita a esa hora${apt.location ? ' en ' + apt.location : ''}. Elige otro hueco.` });
+      }
     }
     apt.updatedAt = new Date().toISOString();
     log.info(`Portal: appointment updated ${apt.id}`);
