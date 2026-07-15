@@ -285,24 +285,48 @@ function buildImportRows({ rows, mapping, fields }) {
  * @param {Map|null} existingIndex  identificador normalizado → entidad viva
  * @returns {{ inserts: [], updates: Array<{row, entity}>, skipped: [] }}
  */
-function resolveImportActions({ rows, idField, existingIndex }) {
+function resolveImportActions({ rows, idField, existingIndex, softKeyOf = null }) {
   const out = { inserts: [], updates: [], skipped: [] };
-  if (!idField) { out.inserts = (rows || []).slice(); return out; }
+  const rowsArr = rows || [];
 
-  const seen = new Map();   // identificador normalizado → nº de fila que lo trajo
-  for (const r of (rows || [])) {
-    const norm = normalizeIdentifier(r.attrs ? r.attrs[idField.key] : '');
+  // Clave de casado de cada fila:
+  //  · con identificador natural (matrícula, nº póliza…) → ese valor normalizado.
+  //  · sin identificador pero con softKeyOf (nombre) → clave "blanda" para que
+  //    reimportar el mismo archivo tampoco duplique en tipos sin id (auditoría
+  //    2026-07-16: membresía/tratamiento/… mandaban TODO a inserts → doble ficha
+  //    y doble WhatsApp). La ambigüedad se respeta: si en la BD ya hay 2+ fichas
+  //    con ese nombre, existingIndex marca __ambiguous y la fila se INSERTA (no
+  //    se fusiona a ciegas la equivocada).
+  const label = idField ? (idField.label || idField.key) : 'ficha';
+  const keyOf = idField
+    ? (r) => normalizeIdentifier(r.attrs ? r.attrs[idField.key] : '')
+    : (typeof softKeyOf === 'function' ? (r) => softKeyOf(r) : null);
+
+  if (!keyOf) { out.inserts = rowsArr.slice(); return out; }
+
+  const seen = new Map();   // clave normalizada → nº de fila que la trajo
+  for (const r of rowsArr) {
+    const norm = keyOf(r);
     if (!norm) { out.inserts.push(r); continue; }
     if (seen.has(norm)) {
-      out.skipped.push({ row: r.row, reason: `«${idField.label || idField.key}» repetido en el archivo (igual que la fila ${seen.get(norm)})` });
+      out.skipped.push({ row: r.row, reason: `«${label}» repetido en el archivo (igual que la fila ${seen.get(norm)})` });
       continue;
     }
     seen.set(norm, r.row);
     const existing = existingIndex ? existingIndex.get(norm) : null;
+    if (existing && existing.__ambiguous) { out.inserts.push(r); continue; } // nombre duplicado en BD → no fusionar
     if (existing) out.updates.push({ row: r, entity: existing });
     else out.inserts.push(r);
   }
   return out;
+}
+
+// Clave "blanda" para tipos SIN identificador: nombre sin acentos, minúsculas,
+// espacios colapsados. Sirve para no duplicar al reimportar por nombre.
+function normalizeSoftName(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 module.exports = {
@@ -313,4 +337,5 @@ module.exports = {
   convertCell,
   buildImportRows,
   resolveImportActions,
+  normalizeSoftName,
 };

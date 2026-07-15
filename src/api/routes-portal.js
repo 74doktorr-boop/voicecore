@@ -4213,30 +4213,44 @@ function setupPortalRoutes(app, pipeline, config) {
       //     por su valor normalizado y las filas que casan ACTUALIZAN en vez
       //     de insertar — reimportar el mismo Excel ya no duplica.
       const { identifierField } = require('../entities/entity-types');
-      const { resolveImportActions } = require('../entities/entity-import');
+      const { resolveImportActions, normalizeSoftName } = require('../entities/entity-import');
       const { normalizeIdentifier, updateEntity } = require('../entities/entities');
       const skipped = [...built.skipped];
       const idField = identifierField(type);
+      // Sin identificador natural, se usa el NOMBRE (display_name) como clave
+      // blanda para no duplicar al reimportar (auditoría 2026-07-16). softKeyOf
+      // deriva el mismo display_name que se escribirá, para casar consistente.
+      const softKeyOf = idField ? null
+        : (r) => normalizeSoftName(computeDisplayName(type.label_template, r.attrs, type.label_singular));
       let existingIndex = null;
-      if (idField) {
+      if (idField || softKeyOf) {
         existingIndex = new Map();
         const PAGE = 1000, MAX_SCAN = 10000;
         for (let from = 0; from < MAX_SCAN; from += PAGE) {
           const { data, error } = await db.client.from('nf_entities')
-            .select('id, contact_id, attrs')
+            .select('id, contact_id, attrs, display_name')
             .eq('organization_id', orgId)
             .eq('entity_type_id', type.id)
             .eq('is_archived', false)
             .range(from, from + PAGE - 1);
-          if (error) { log.warn(`entity import: índice de identificadores falló: ${error.message}`); break; }
+          if (error) { log.warn(`entity import: índice de existentes falló: ${error.message}`); break; }
           for (const en of (data || [])) {
-            const k = normalizeIdentifier((en.attrs || {})[idField.key]);
-            if (k && !existingIndex.has(k)) existingIndex.set(k, en);
+            const k = idField
+              ? normalizeIdentifier((en.attrs || {})[idField.key])
+              : normalizeSoftName(en.display_name);
+            if (!k) continue;
+            if (existingIndex.has(k)) {
+              // 2ª ficha con la misma clave: para el índice blando (nombre) es
+              // AMBIGUO → no fusionar; para el identificador natural la 1ª gana.
+              if (!idField) existingIndex.set(k, { __ambiguous: true });
+            } else {
+              existingIndex.set(k, en);
+            }
           }
           if (!data || data.length < PAGE) break;
         }
       }
-      const actions = resolveImportActions({ rows: built.rows, idField, existingIndex });
+      const actions = resolveImportActions({ rows: built.rows, idField, existingIndex, softKeyOf });
       skipped.push(...actions.skipped);
 
       // 3) Fichas NUEVAS en chunks (display_name desnormalizado al escribir,

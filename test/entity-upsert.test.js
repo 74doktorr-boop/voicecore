@@ -181,3 +181,42 @@ describe('resolveImportActions — reimportar NO duplica', () => {
     assert.strictEqual(second.skipped.length, 0);
   });
 });
+
+// Auditoría 2026-07-16 — tipos SIN identificador: clave blanda por nombre
+describe('resolveImportActions — dedupe blando por nombre (tipos sin id)', () => {
+  const { normalizeSoftName } = require('../src/entities/entity-import');
+  const nameRow = (n, nombre) => ({ row: n, attrs: { nombre }, isDraft: false, phone: null });
+  const softKeyOf = (r) => normalizeSoftName(r.attrs.nombre);
+
+  test('sin idField y sin softKeyOf → todo inserta (comportamiento intacto)', () => {
+    const r = resolveImportActions({ rows: [nameRow(2, 'Rex'), nameRow(3, 'Rex')], idField: null, existingIndex: null });
+    assert.strictEqual(r.inserts.length, 2);
+  });
+
+  test('reimportar por nombre → casa con la ficha existente (UPDATE, no duplica)', () => {
+    const existing = new Map([['rex', { id: 'ent-rex' }]]);
+    const r = resolveImportActions({ rows: [nameRow(2, 'REX'), nameRow(3, 'Michi')], idField: null, existingIndex: existing, softKeyOf });
+    assert.strictEqual(r.updates.length, 1);
+    assert.strictEqual(r.updates[0].entity.id, 'ent-rex');
+    assert.deepStrictEqual(r.inserts.map(x => x.row), [3]);
+  });
+
+  test('nombre AMBIGUO en BD (2+ fichas iguales) → inserta, NO fusiona a ciegas', () => {
+    const existing = new Map([['rex', { __ambiguous: true }]]);
+    const r = resolveImportActions({ rows: [nameRow(2, 'Rex')], idField: null, existingIndex: existing, softKeyOf });
+    assert.strictEqual(r.inserts.length, 1);
+    assert.strictEqual(r.updates.length, 0);
+  });
+
+  test('mismo nombre repetido en el archivo → la primera gana, la segunda se salta', () => {
+    const r = resolveImportActions({ rows: [nameRow(2, 'Rex'), nameRow(4, 'rex ')], idField: null, existingIndex: new Map(), softKeyOf });
+    assert.deepStrictEqual(r.inserts.map(x => x.row), [2]);
+    assert.strictEqual(r.skipped.length, 1);
+    assert.strictEqual(r.skipped[0].row, 4);
+  });
+
+  test('normalizeSoftName: acentos, mayúsculas y espacios', () => {
+    assert.strictEqual(normalizeSoftName('  José  Pérez '), 'jose perez');
+    assert.strictEqual(normalizeSoftName('MICHI'), 'michi');
+  });
+});
