@@ -160,7 +160,19 @@ async function removeCalendarEvent(apt, deps = {}) {
 
 // ── Handler principal ─────────────────────────────────────────────────────────
 async function handleReply({ from, type, payload }) {
-  const apt = findNextAppointment(from);
+  // CITA EXACTA por payload (bug real 2026-07-15): el recordatorio ahora manda
+  // "CONFIRMAR:APT-x" / "CANCELAR:APT-x" en el botón. Si viene el id, se actúa
+  // sobre ESA cita — no sobre "la más próxima" (con dos citas, confirmaba/
+  // cancelaba la equivocada). Seguridad: el id debe pertenecer al MISMO
+  // teléfono que responde. Sin id (texto libre, plantillas viejas) → fallback.
+  let apt = null;
+  const idMatch = String(payload || '').match(/\b(APT-[A-Za-z0-9_-]+)\b/);
+  if (idMatch) {
+    const cand = scheduler.appointments.get(idMatch[1]);
+    if (cand && normalizePhone(cand.phone) === normalizePhone(from)) apt = cand;
+    else log.warn(`Reply con id ${idMatch[1]} que no casa con ${from} — fallback a cita más próxima`);
+  }
+  if (!apt) apt = findNextAppointment(from);
 
   if (!apt) {
     log.warn(`Reply from ${from} but no upcoming appointment found`);
@@ -176,8 +188,14 @@ async function handleReply({ from, type, payload }) {
   const bizName = getBusinessName(apt.businessId);
   const name    = apt.patientName?.split(' ')[0] || 'cliente';
 
+  // Precedencia de intención (bug del repaso 2026-07-15): "NO PUEDO confirmar"
+  // entraba por CONFIRMAR (se evaluaba primero con includes). La intención de
+  // cancelar SIEMPRE gana sobre la palabra "confirmar" suelta.
+  const _up = String(payload || '').toUpperCase();
+  const _cancelIntent = _up.includes('CANCELAR') || _up.includes('ANULAR') || _up.includes('NO PUEDO');
+
   // ── CONFIRMAR ──────────────────────────────────────────────────────────────
-  if (payload.toUpperCase().includes('CONFIRMAR') || payload.toUpperCase() === 'SI' || payload.toUpperCase() === 'SÍ' || payload.toUpperCase() === 'OK') {
+  if (!_cancelIntent && (_up.includes('CONFIRMAR') || _up === 'SI' || _up === 'SÍ' || _up === 'OK')) {
     if (apt.wa_confirmed) {
       await sendText(from,
         `${name}, tu cita ya estaba confirmada 👍 Te esperamos el *${humanDate(apt.date)}* a las *${apt.time}h*. ¡Hasta pronto!`,
@@ -210,7 +228,7 @@ async function handleReply({ from, type, payload }) {
   }
 
   // ── CANCELAR ───────────────────────────────────────────────────────────────
-  if (payload.toUpperCase().includes('CANCELAR') || payload.toUpperCase().includes('ANULAR') || payload.toUpperCase().includes('NO PUEDO')) {
+  if (_cancelIntent) {
     if (apt.status === 'cancelled') {
       await sendText(from,
         `${name}, tu cita ya estaba cancelada. Si quieres reservar otra, llámanos o escríbenos. 😊`,

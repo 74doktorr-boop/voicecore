@@ -485,12 +485,15 @@ async function sendWaConfirmation(apt, config, deps = {}) {
 // ── WhatsApp: envía recordatorio de cita via Meta template ───────────────────
 // Template: nodeflow_cita_recordatorio (botones CONFIRMAR / CANCELAR)
 // Variables esperadas en el cuerpo: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
-async function sendWaReminder(apt, config) {
+async function sendWaReminder(apt, config, deps = {}) {
+  const _sendTemplate   = deps.sendTemplate     || sendTemplate;
+  const _getWaCreds     = deps.getWaCredentials || getWaCredentials;
+  const _waIsConfigured = deps.waIsConfigured   || waIsConfigured;
   if (!apt.phone) return false;
 
   // Obtener credenciales del negocio (multi-tenant) o caer en globales
-  const credentials = apt.businessId ? await getWaCredentials(apt.businessId) : null;
-  if (!credentials && !waIsConfigured()) return false;
+  const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
+  if (!credentials && !_waIsConfigured()) return false;
 
   const lang         = config?.language || 'es';
   const name         = firstName(apt.patientName);
@@ -500,7 +503,7 @@ async function sendWaReminder(apt, config) {
   const langCode     = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
 
   try {
-    const result = await sendTemplate(apt.phone, templateName, langCode, [
+    const result = await _sendTemplate(apt.phone, templateName, langCode, [
       {
         type: 'body',
         parameters: [
@@ -511,6 +514,12 @@ async function sendWaReminder(apt, config) {
           { type: 'text', text: apt.service },
         ],
       },
+      // PAYLOAD con el ID DE LA CITA en los botones (bug real 2026-07-15): sin
+      // esto, el botón llegaba como texto plano "CONFIRMAR" y el handler
+      // confirmaba/cancelaba "la cita más próxima" del teléfono — con dos citas,
+      // LA EQUIVOCADA. El webhook ya reenvía msg.button.payload tal cual.
+      { type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: `CONFIRMAR:${apt.id}` }] },
+      { type: 'button', sub_type: 'quick_reply', index: '1', parameters: [{ type: 'payload', payload: `CANCELAR:${apt.id}` }] },
     ], credentials);
     if (result?.ok) {
       log.info(`WA reminder sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);

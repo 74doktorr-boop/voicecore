@@ -340,9 +340,17 @@ async function runAutomations() {
     }
 
     log.info(`Running automations for ${flowManager.list().length} flows…`);
-    const reminders        = await checkAndSendReminders(scheduler, flowManager);
-    const reviews          = await checkAndSendReviews(scheduler, flowManager);
-    const criticalDates    = await checkAndSendCriticalDateReminders();
+    // HORAS DE SILENCIO (bug real 2026-07-15: recordatorio de cita por WhatsApp
+    // a las 6:35 AM). El motor de seguimientos ya respetaba la ventana 9-21
+    // Madrid (_isQuietHours) pero este cron de citas NO. Mismo criterio: de
+    // noche no se despacha nada al cliente; la ventana ±4h de los recordatorios
+    // absorbe el retraso y salen en el primer tick diurno.
+    const { _isQuietHours } = require('../lifecycle/scheduler');
+    const quiet = _isQuietHours();
+    if (quiet) log.info('Horas de silencio (21-9 Madrid): recordatorios/reseñas/fechas clave esperan al primer tick diurno');
+    const reminders        = quiet ? 0 : await checkAndSendReminders(scheduler, flowManager);
+    const reviews          = quiet ? 0 : await checkAndSendReviews(scheduler, flowManager);
+    const criticalDates    = quiet ? 0 : await checkAndSendCriticalDateReminders();
     const noShows          = await checkAndHandleNoShows(scheduler, flowManager);
     const weeklyReports    = await sendWeeklyReports(scheduler, flowManager);
     const recoveredFollowups = await recoverMissedFollowups();

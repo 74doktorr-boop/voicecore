@@ -183,7 +183,10 @@ function toSchedulerConfig(org) {
   const ac = org?.assistant_config || {};
   const serviceList = org?.automation_config?.config?.serviceList;
   return {
-    name: ac.assistantName || org?.name || 'Negocio',
+    // NOMBRE DEL NEGOCIO, no del asistente (bug real 2026-07-15: el WhatsApp
+    // de confirmación decía "tu cita en Unai" — el nombre del ASISTENTE de la
+    // fisio — en vez de "fisioterapia unai"). assistantName queda de respaldo.
+    name: org?.name || ac.assistantName || 'Negocio',
     timezone: 'Europe/Madrid',
     services: normalizeServices(serviceList, ac.services),
     schedule: normalizeSchedule(ac.schedule) || DEFAULT_SCHEDULE,
