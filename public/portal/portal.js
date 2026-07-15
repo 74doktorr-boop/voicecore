@@ -2080,11 +2080,15 @@ function renderCitas() {
   var apptRow = function(a) {
     var isToday  = a.date === today;
     var badge    = STATUS_BADGE[a.status] || STATUS_BADGE.pending;
+    // Solo se pasa el id (charset seguro) por el onclick; el nombre lo busca la
+    // función en _citasData. Auditoría 2026-07-16: pasar el nombre por el atributo
+    // rompía con apóstrofos ("O'Connor") — esc() lo convierte en &#39; y el
+    // navegador lo re-decodifica dentro del atributo → SyntaxError, la ✕ no hacía
+    // nada. Pasando solo el id se elimina el problema de raíz.
     var safeId   = esc(a.id);
-    var safeName = esc(a.patientName).replace(/'/g, "\\'");
     var actions  = a.status !== 'cancelled'
       ? '<button class="btn btn-d btn-sm" onclick="openEditCita(\'' + safeId + '\')">✏️</button> ' +
-        '<button class="btn btn-r btn-sm" onclick="cancelCitaConfirm(\'' + safeId + '\',\'' + safeName + '\')">✕</button>'
+        '<button class="btn btn-r btn-sm" onclick="cancelCitaConfirm(\'' + safeId + '\')">✕</button>'
       : '';
     return '<tr' + (isToday ? ' style="background:rgba(196,245,70,0.08)"' : '') + '>' +
       '<td><strong>' + esc(a.time) + '</strong></td>' +
@@ -2434,7 +2438,9 @@ async function submitEditCita(id) {
   }
 }
 
-function cancelCitaConfirm(id, name) {
+function cancelCitaConfirm(id) {
+  var a = (_citasData || []).find(function (x) { return x.id === id; });
+  var name = a ? a.patientName : '';
   openModal(
     '<div class="modal-title">Cancelar cita</div>' +
     '<p style="color:var(--dim);margin-bottom:20px">¿Seguro que quieres cancelar la cita de ' +
@@ -3490,7 +3496,7 @@ function nfTagChip(tag, removable) {
   var col = colors[h];
   return '<span style="display:inline-flex;align-items:center;gap:4px;background:' + col + '22;color:' + col +
     ';border:1px solid ' + col + '55;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;margin:2px">' +
-    esc(tag) + (removable ? '<span style="cursor:pointer;opacity:.7;font-size:13px" onclick="event.stopPropagation();removeContactTag(\'' + esc(tag) + '\')">×</span>' : '') + '</span>';
+    esc(tag) + (removable ? '<span style="cursor:pointer;opacity:.7;font-size:13px" data-tag="' + esc(tag) + '" onclick="event.stopPropagation();removeContactTag(this.dataset.tag)">×</span>' : '') + '</span>';
 }
 
 async function loadClientes(q) {
@@ -3574,7 +3580,7 @@ async function loadClientes(q) {
       '<span onclick="setClientesTag(\'\')" class="chip u-pointer' + (!_clientesTag ? ' chip-solid' : '') + '">Todos</span>' +
       data.allTags.map(function(t){
         var on = _clientesTag === t;
-        return '<span onclick="setClientesTag(\'' + esc(t) + '\')" class="chip u-pointer' + (on ? ' chip-solid' : '') + '">' + esc(t) + '</span>';
+        return '<span data-tag="' + esc(t) + '" onclick="setClientesTag(this.dataset.tag)" class="chip u-pointer' + (on ? ' chip-solid' : '') + '">' + esc(t) + '</span>';
       }).join('') + '</div>';
   }
 
