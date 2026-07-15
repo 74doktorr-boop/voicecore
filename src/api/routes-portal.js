@@ -1264,6 +1264,11 @@ function setupPortalRoutes(app, pipeline, config) {
   app.get('/api/portal/automations', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
     const automations = { ...(flowConfig.automations || {}) };
+    // NUNCA exponer secretos al navegador (auditoría seguridad 2026-07-16):
+    // automations traía el objeto auth {salt, hash} de la contraseña del cliente
+    // (y podría traer credenciales). /config ya lo filtra; aquí se saltaba.
+    delete automations.auth;
+    delete automations.credentials;
     // 📞 LA ENTIDAD LLAMA — opt-in fuera del whitelist del flow-manager:
     // vive en automation_config.config.entityCalls y se lee FRESCO de BD
     // (la copia en memoria pierde .config al reiniciar).
@@ -1906,9 +1911,14 @@ function setupPortalRoutes(app, pipeline, config) {
       .limit(5000);
     if (error) return res.status(500).json({ error: error.message });
 
-    // Escape CSV: comillas dobles + envolver si hay coma/comilla/salto
+    // Escape CSV: comillas dobles + envolver si hay coma/comilla/salto.
+    // Anti-inyección de fórmulas (auditoría seguridad 2026-07-16): una celda que
+    // empiece por = + - @ (tab/CR) la EJECUTA Excel/LibreOffice. contacts.name lo
+    // dicta quien LLAMA (cross-tenant a la máquina del dueño), así que se antepone
+    // un apóstrofo neutralizador.
     const esc = (v) => {
-      const s = v == null ? '' : String(v);
+      let s = v == null ? '' : String(v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
     const header = ['Nombre', 'Teléfono', 'Email', 'Llamadas', 'Última llamada', 'Etiquetas', 'Notas', 'Cliente desde'];
@@ -2802,8 +2812,12 @@ function setupPortalRoutes(app, pipeline, config) {
       return res.status(400).json({ error: 'Número de teléfono no válido' });
     }
 
-    // Resolve assistant: prefer explicit id, then fall back to businessId (org's own assistant)
-    const effAssistantId = assistantId || businessId;
+    // IDOR cerrado (auditoría seguridad 2026-07-16): antes se aceptaba
+    // assistantId del BODY (`assistantId || businessId`), así que un cliente
+    // podía lanzar una llamada con el asistente/knowledge de OTRA org e
+    // imputarle el coste. Una org = su propio asistente = su businessId de la
+    // sesión; se IGNORA cualquier assistantId que mande el cliente.
+    const effAssistantId = businessId;
 
     const publicUrl = config.publicUrl || process.env.PUBLIC_URL || '';
 

@@ -1669,7 +1669,10 @@ function _anDelta(id, v, unit){
   e.textContent=(up?'▲ +':'▼ ')+Math.abs(v)+(unit==='pts'?' pts':'%');
 }
 function _csvDownload(name, rows){
-  var csv=rows.map(function(r){return r.map(function(c){var s=String(c==null?'':c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(';');}).join('\n');
+  // Anti-inyección de fórmulas: una celda que empiece por = + - @ la EJECUTA la
+  // hoja de cálculo. El nombre de org/cliente lo controla el tenant → se antepone
+  // un apóstrofo (auditoría seguridad 2026-07-16).
+  var csv=rows.map(function(r){return r.map(function(c){var s=String(c==null?'':c);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(';');}).join('\n');
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
 }

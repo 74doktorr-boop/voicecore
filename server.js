@@ -60,6 +60,12 @@ for (const envVar of requiredEnvVars) {
 // ─── Express App ───
 const app = express();
 
+// Detrás de EasyPanel/Traefik (1 proxy): confiar en X-Forwarded-For para que
+// req.ip sea la IP REAL del cliente. Sin esto (auditoría seguridad 2026-07-16),
+// req.ip era la del proxy para TODO el tráfico y cada rate-limit "por IP"
+// colapsaba en un único bucket global — sin protección real por cliente.
+app.set('trust proxy', 1);
+
 // Ocultar fingerprint del servidor
 app.disable('x-powered-by');
 
