@@ -921,19 +921,41 @@ function showApp() {
   navigate('dashboard');
 }
 
-// Caches ligados a la ORG que hay que vaciar al cambiar de sesión (bug real
+// Estado ligado a la ORG que hay que vaciar al cambiar de sesión (bug real
 // 15-jul-2026: el dueño salió del portal de Osakin y entró en el de su fisio
-// SIN recargar la página — los CENTROS de Osakin seguían cacheados en
-// window._locsCache y el dashboard de la fisio pintaba "Por centro").
+// SIN recargar → los CENTROS de Osakin seguían cacheados y el dashboard de la
+// fisio pintaba "Por centro"). Auditoría 2026-07-16: había MÁS estado con el
+// mismo defecto — las CITAS (nombres/teléfonos de pacientes) y las cachés de
+// entidades (tipos, presets, contactos del selector "dueño") también se
+// filtraban unos segundos al cambiar de cuenta. Se limpian todos aquí + el DOM.
 function _resetOrgScopedCache() {
+  _stopPolls();          // los reinicia el dashboard de la nueva sesión
   window._locsCache = undefined;
   _citasFilterLoc = '';
+  _citasData = [];
+  _entTypes = null; _entTypeKey = null; _entPresets = null; _entContacts = null;
+  window._leadRows = undefined; window._orgsCache = undefined;
+  // Vaciar el DOM de las secciones con PII para que no queden datos pintados
+  // de la sesión anterior mientras cargan los nuevos.
+  ['sec-citas','sec-clientes','sec-dashboard','sec-entidades'].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.innerHTML = '';
+  });
+}
+
+// Detiene los polls de fondo (dashboard en vivo + notificaciones). Auditoría
+// 2026-07-16: seguían golpeando la API con _token=null desde la pantalla de
+// login, y podían disparar una notificación de "llamada atendida" de la org
+// anterior al entrar en otra.
+function _stopPolls() {
+  if (_dashLive) { clearInterval(_dashLive); _dashLive = null; }
+  if (_notifPoll) { clearInterval(_notifPoll); _notifPoll = null; }
 }
 
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   _token   = null;
   _orgInfo = null;
+  _stopPolls();
   _resetOrgScopedCache();
   showLogin();
 }
