@@ -1455,12 +1455,30 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (groups.telephony.telnyxApiKey && !groups.telephony.apiLive) warnings.push('La clave de Telnyx NO responde (¿caducada/rotada?) — la auto-provisión de números fallará cuando entre un cliente.');
     if (groups.telephony.apiLive && !groups.telephony.regulatoryGroup) warnings.push('Telnyx sin TELNYX_REQUIREMENT_GROUP_ID: España exige bundle regulatorio (dirección + CIF) — crea el bundle en el portal de Telnyx y pon su ID, o las COMPRAS de números fallarán.');
 
+    // Fundadores ATASCADOS en el alta (pagaron pero el aprovisionamiento murió a
+    // medias). La reconciliación del cron los rescata, pero se exponen aquí para
+    // que la cabina "Necesita tu atención" los muestre — visibilidad > log.
+    // Solo cuenta los viejos (>15 min); pre-migración de provisioning_at → [].
+    let stuckAltas = [];
+    try {
+      if (db.enabled) {
+        const cutoff = new Date(Date.now() - 15 * 60000).toISOString();
+        const { data } = await db.client.from('registros')
+          .select('id, email, negocio, provisioning_at').eq('status', 'provisioning');
+        stuckAltas = (data || [])
+          .filter(r => r.provisioning_at && r.provisioning_at < cutoff)
+          .map(r => ({ id: r.id, email: r.email, negocio: r.negocio || '(sin nombre)' }));
+      }
+    } catch (_) { /* columna ausente pre-migración → no-op */ }
+    if (stuckAltas.length) warnings.push(`🚨 ${stuckAltas.length} alta(s) atascada(s) en aprovisionamiento — fundador pagó pero se quedó a medias (la reconciliación intenta rescatarlas).`);
+
     res.json({
       env: process.env.NODE_ENV || 'development',
       uptimeSeconds: Math.round(process.uptime()),
       publicUrl: process.env.PUBLIC_URL || null,
       groups,
       warnings,
+      stuckAltas,
       ok: warnings.length === 0,
     });
   });

@@ -686,6 +686,15 @@ async function loadAttention() {
       sub: pendingOnb.slice(0,3).map(c=>c.negocio).join(', ') + (pendingOnb.length>3?'…':'') });
   }
 
+  // 1b) Fundadores ATASCADOS en el alta (pagaron pero el aprovisionamiento murió
+  //     a medias). La reconciliación los rescata, pero se muestran para que actúes.
+  const stuck = (diag && diag.stuckAltas) || [];
+  if (stuck.length) {
+    items.push({ sev:'crit', tab:'leads', cta:'Revisar',
+      txt: stuck.length + ' alta(s) atascada(s) — fundador pagó pero se quedó a medias',
+      sub: stuck.slice(0,3).map(s=>s.negocio).join(', ') + (stuck.length>3?'…':'') });
+  }
+
   // 2) Salud de clientes (monitoring semanal): críticos y avisos con plan de acción
   const det = (health && health.details) || [];
   const crits = det.filter(d => d.verdict === 'critical');
