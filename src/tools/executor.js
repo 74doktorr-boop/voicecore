@@ -301,7 +301,12 @@ class ToolExecutor {
     // Disponibilidad REAL: cruza los huecos de NodeFlow con lo ocupado en el
     // Google Calendar del negocio (comida, reunión personal…), para no ofrecer
     // huecos que en realidad no lo están.
-    const busyByDate = await _calendarBusy(businessId, fromDate, toDate);
+    // MULTI-SEDE (auditoría 2026-07-16): un ÚNICO Google Calendar no puede
+    // representar 3 centros — su freebusy marca ocupado sin saber de qué centro,
+    // así que una cita en Tolosa cerraría Villabona y Andoain (colapso a
+    // mono-sede). Con centros configurados NO aplicamos el busy externo: gobierna
+    // la agenda por centro de NodeFlow. El calendario por-centro es fase 2.
+    const busyByDate = locations.length > 0 ? {} : await _calendarBusy(businessId, fromDate, toDate);
     const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate, location);
 
     if (result.availableDays) {
@@ -409,7 +414,9 @@ class ToolExecutor {
     const callerPhone = context.session?.callerNumber;
     const defaultPhone = (callerPhone && callerPhone !== 'unknown') ? callerPhone : '';
     // Guard final: no reservar sobre un evento del Google Calendar del negocio.
-    const busyByDate = await _calendarBusy(businessId, normalizedDate, normalizedDate);
+    // Multi-sede: mismo criterio que check_availability — el busy de un único
+    // GCal no distingue centro, así que con centros configurados no se aplica.
+    const busyByDate = bookLocations.length > 0 ? {} : await _calendarBusy(businessId, normalizedDate, normalizedDate);
     const result = scheduler.bookAppointment(businessId, {
       patientName: name,
       phone:       args.phone  || defaultPhone,
