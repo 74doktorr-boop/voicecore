@@ -24,6 +24,13 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
     let streamSid = null;
     let callSid = null;
     let sessionStarted = false;
+    // wsEnded (auditoría 2026-07-16): el cliente puede COLGAR durante los ~2s
+    // que tarda startCall (BD+RAG+síntesis del saludo). En esa ventana
+    // sessionStarted aún es false, así que stop/close no llaman a endCall; luego
+    // startCall resuelve y registra la sesión en activeCalls → FUGA permanente
+    // (a ~10 fantasmas el asistente alcanza el cap y RECHAZA llamadas reales).
+    // Este flag lo marcan stop/close SIEMPRE; tras startCall se comprueba.
+    let wsEnded = false;
 
     log.call(`[${callId}] New Telnyx WebSocket connection`);
 
@@ -176,6 +183,15 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
             }
 
             sessionStarted = true;
+            // ¿El cliente colgó MIENTRAS arrancábamos? La sesión acaba de
+            // registrarse en activeCalls y nadie la limpiaría → ciérrala ya.
+            if (wsEnded) {
+              log.warn(`[${callId}] Cuelgue durante el arranque — cerrando la sesión recién creada`);
+              pipeline.endCall(callId);
+              sessionStarted = false;
+              try { ws.close(); } catch (_) {}
+              return;
+            }
             // Enlace Campaign Core: el post-call cerrará el job con el outcome real.
             if (campaignRef) {
               const s = pipeline.activeCalls?.get?.(callId);
@@ -197,6 +213,7 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
           case 'stop':
             log.call(`[${callId}] Stream stopped`);
+            wsEnded = true;   // marca la ventana de arranque (ver flag arriba)
             // Telnyx anuncia el fin del stream: cerrar la sesión YA. Esperar
             // solo al close del WS dejaba llamadas 'active' colgadas si el
             // socket no moría (caso real 2026-07-03, fila 6e70d935).
@@ -217,6 +234,8 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
 
     ws.on('close', () => {
       log.call(`[${callId}] WebSocket closed`);
+      wsEnded = true;   // si el close cae DURANTE el arranque, el chequeo
+                        // tras startCall limpiará la sesión recién creada.
       if (sessionStarted) {
         pipeline.endCall(callId);
       }
