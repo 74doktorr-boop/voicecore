@@ -12,15 +12,24 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { applyVoicePack, settleMonthlyPack, PACKS } = require('../src/billing/voice-packs');
 
-function fakeDb(orgRow) {
+// Mock encadenable (auditoría 2026-07-16): applyVoicePack/settleMonthlyPack
+// ahora hacen CAS → .update().eq().not()/.or()/.filter().select(). rowsOnUpdate
+// simula cuántas filas casó el update (1 = aplicado, 0 = otro ganó la carrera).
+function fakeDb(orgRow, opts = {}) {
   const saved = {};
+  const rows = opts.rowsOnUpdate !== undefined ? opts.rowsOnUpdate : [{ id: 'o1' }];
+  const readB  = { eq: () => readB, maybeSingle: async () => ({ data: orgRow }) };
+  const writeB = {
+    eq: () => writeB, not: () => writeB, or: () => writeB, filter: () => writeB,
+    select: async () => ({ data: rows, error: null }),
+  };
   return {
     _saved: saved,
     enabled: true,
     client: {
       from: () => ({
-        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: orgRow }) }) }),
-        update: (patch) => { saved.patch = patch; return { eq: async () => ({ error: null }) }; },
+        select: () => readB,
+        update: (patch) => { saved.patch = patch; return writeB; },
       }),
     },
   };
@@ -59,6 +68,13 @@ describe('applyVoicePack', () => {
   test('db apagada o sin minutos → no lanza', async () => {
     assert.strictEqual((await applyVoicePack('o1', { sessionId: 's', minutes: 50 }, { db: { enabled: false } })).ok, false);
     assert.strictEqual((await applyVoicePack('o1', { sessionId: 's', minutes: 0 }, { db: fakeDb({}) })).ok, false);
+  });
+
+  test('CAS: si el update no casa filas (carrera perdida sostenida) → no duplica, devuelve contención', async () => {
+    const db = fakeDb({ id: 'o1', automation_config: { config: { premiumExtraMinutes: 10 } } }, { rowsOnUpdate: [] });
+    const out = await applyVoicePack('o1', { sessionId: 'cs_x', minutes: 50 }, { db });
+    assert.strictEqual(out.ok, false);
+    assert.strictEqual(out.error, 'contention');
   });
 });
 

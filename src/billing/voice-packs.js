@@ -28,33 +28,62 @@ async function applyVoicePack(orgId, { sessionId, minutes } = {}, deps = {}) {
   const mins = Number(minutes) || 0;
   if (!db.enabled || !orgId || mins <= 0) return { ok: false };
 
-  try {
-    const { data: org } = await db.client
-      .from('organizations').select('automation_config').eq('id', orgId).maybeSingle();
-    const auto = (org && org.automation_config) || {};
-    const config = auto.config || {};
-    const seen = Array.isArray(config._voicePackSessions) ? config._voicePackSessions : [];
+  // CAS con reintentos (auditoría 2026-07-16): antes era un read-modify-write
+  // SIN candado sobre automation_config → dos reintentos del MISMO webhook de
+  // Stripe (o una escritura concurrente del portal) podían (a) sumar el pack
+  // DOS veces (doble cargo, dinero del cliente) o (b) perder el crédito recién
+  // sumado. El update solo aplica si el sessionId NO está ya presente (idempo-
+  // tencia atómica) y si premiumExtraMinutes sigue valiendo lo leído (no pisar
+  // un cambio concurrente). Verificado contra la BD real (not-contains + eq
+  // sobre JSON anidado).
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const { data: org } = await db.client
+        .from('organizations').select('automation_config').eq('id', orgId).maybeSingle();
+      if (!org) return { ok: false, error: 'org not found' };
+      const auto = org.automation_config || {};
+      const config = auto.config || {};
+      const seen = Array.isArray(config._voicePackSessions) ? config._voicePackSessions : [];
 
-    if (sessionId && seen.includes(sessionId)) {
-      return { ok: true, already: true }; // ya procesado — no duplicar
+      if (sessionId && seen.includes(sessionId)) {
+        return { ok: true, already: true }; // ya procesado — no duplicar
+      }
+
+      const current = Number(config.premiumExtraMinutes) || 0;
+      const newAuto = {
+        ...auto,
+        config: {
+          ...config,
+          premiumExtraMinutes: current + mins,
+          _voicePackSessions: sessionId ? [...seen, sessionId].slice(-50) : seen,
+        },
+      };
+
+      let q = db.client.from('organizations')
+        .update({ automation_config: newAuto }).eq('id', orgId);
+      // (a) idempotencia: el sessionId no debe estar ya en la lista.
+      if (sessionId) q = q.not('automation_config->config->_voicePackSessions', 'cs', JSON.stringify([sessionId]));
+      // (b) CAS sobre el contador: sigue valiendo lo que leímos (o ausente si 0).
+      q = current === 0
+        ? q.or('automation_config->config->premiumExtraMinutes.is.null,automation_config->config->>premiumExtraMinutes.eq.0')
+        : q.filter('automation_config->config->>premiumExtraMinutes', 'eq', String(current));
+
+      const { data: rows, error } = await q.select('id');
+      if (error) throw new Error(error.message);
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        log.info(`Pack de voz aplicado a ${orgId}: +${mins} min (total extra ${current + mins})`);
+        return { ok: true, extraMinutes: current + mins };
+      }
+      // 0 filas: o el reintento ya se aplicó (arriba se detecta al re-leer) o hubo
+      // un cambio concurrente → reintentar con valores frescos.
+    } catch (e) {
+      log.warn(`applyVoicePack(${orgId}) falló: ${e.message}`);
+      return { ok: false, error: e.message };
     }
-
-    const current = Number(config.premiumExtraMinutes) || 0;
-    auto.config = {
-      ...config,
-      premiumExtraMinutes: current + mins,
-      _voicePackSessions: sessionId ? [...seen, sessionId].slice(-50) : seen,
-    };
-    const { error } = await db.client.from('organizations')
-      .update({ automation_config: auto }).eq('id', orgId);
-    if (error) throw new Error(error.message);
-
-    log.info(`Pack de voz aplicado a ${orgId}: +${mins} min (total extra ${current + mins})`);
-    return { ok: true, extraMinutes: current + mins };
-  } catch (e) {
-    log.warn(`applyVoicePack(${orgId}) falló: ${e.message}`);
-    return { ok: false, error: e.message };
   }
+  log.warn(`applyVoicePack(${orgId}): no aplicado tras varios intentos (contención)`);
+  return { ok: false, error: 'contention' };
 }
 
 /**
@@ -83,11 +112,20 @@ async function settleMonthlyPack(orgRow, deps = {}) {
   });
   if (newExtra === extra) return { changed: false, extraMinutes: extra };
 
-  auto.config = { ...config, premiumExtraMinutes: newExtra };
+  const newAuto = { ...auto, config: { ...config, premiumExtraMinutes: newExtra } };
   try {
-    const { error } = await db.client.from('organizations')
-      .update({ automation_config: auto }).eq('id', orgRow.id);
+    // CAS (auditoría 2026-07-16): solo descuenta si premiumExtraMinutes sigue
+    // valiendo lo leído → no pisa un pack recién comprado ni un cambio del
+    // portal entre la lectura y la escritura.
+    const { data: rows, error } = await db.client.from('organizations')
+      .update({ automation_config: newAuto }).eq('id', orgRow.id)
+      .filter('automation_config->config->>premiumExtraMinutes', 'eq', String(extra))
+      .select('id');
     if (error) throw new Error(error.message);
+    if (!Array.isArray(rows) || rows.length === 0) {
+      log.info(`settleMonthlyPack(${orgRow.id}): premiumExtraMinutes cambió entre lectura y escritura — skip (se reintenta)`);
+      return { changed: false, extraMinutes: extra };
+    }
     log.info(`Cierre de mes org ${orgRow.id}: pack ${extra} → ${newExtra} min (gastado ${extra - newExtra})`);
     return { changed: true, extraMinutes: newExtra };
   } catch (e) {
