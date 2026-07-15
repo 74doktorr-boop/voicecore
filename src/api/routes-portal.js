@@ -1654,6 +1654,20 @@ function setupPortalRoutes(app, pipeline, config) {
       return res.status(400).json({ error: "language debe ser 'es', 'eu', 'gl', 'es+eu' o 'es+gl'" });
     }
 
+    // Multi-sede autoservicio: lista de centros editable desde el portal.
+    // Saneado: strings, sin vacíos, sin duplicados (case-insensitive), máx 10,
+    // 40 chars cada uno. [] = volver a mono-sede (gate off). Renombrar un centro
+    // no toca las citas ya creadas (conservan el nombre con el que se dieron).
+    let locationsClean;
+    if (req.body.locations !== undefined) {
+      if (!Array.isArray(req.body.locations)) return res.status(400).json({ error: 'locations debe ser una lista' });
+      const seen = new Set();
+      locationsClean = req.body.locations
+        .map(l => String(l || '').trim().slice(0, 40))
+        .filter(l => { const k = l.toLowerCase(); if (!l || seen.has(k)) return false; seen.add(k); return true; })
+        .slice(0, 10);
+    }
+
     // Remitente SMS de marca (máx 11, letras+dígitos — estándar GSM). Vacío =
     // quitar el override (vuelve a derivarse del nombre del negocio). Inválido → 400.
     let smsSenderClean;
@@ -1699,6 +1713,7 @@ function setupPortalRoutes(app, pipeline, config) {
       ...(notifyEmail    !== undefined && { notifyEmail }),
       ...(address        !== undefined && { address }),
       ...(smsSenderClean !== undefined && { smsSenderId: smsSenderClean }),
+      ...(locationsClean !== undefined && { locations: locationsClean }),
       // Lista estructurada de servicios+precios (la IA la usa para ser experta en el negocio)
       ...(Array.isArray(serviceList) && { serviceList: serviceList
         .filter(s => s && s.name)

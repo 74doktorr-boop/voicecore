@@ -2147,6 +2147,29 @@ function dashConfirmAttendance(appts) {
     '</div>';
 }
 
+// ── Multi-sede: editor de centros en Configuración ───────────────────────────
+function _cfgLocRow(value) {
+  return '<div class="cfg-loc-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">' +
+    '<input class="form-input cfg-loc-input" maxlength="40" placeholder="Nombre del centro (ej: Andoain)" value="' + esc(value || '') + '" style="flex:1">' +
+    '<button type="button" class="btn btn-r btn-sm" title="Quitar este centro" onclick="this.parentElement.remove()">✕</button></div>';
+}
+function addCfgLoc() {
+  var box = document.getElementById('cfgLocs');
+  if (!box) return;
+  if (box.querySelectorAll('.cfg-loc-row').length >= 10) { toast('Máximo 10 centros', 'err'); return; }
+  box.insertAdjacentHTML('beforeend', _cfgLocRow(''));
+  var inputs = box.querySelectorAll('.cfg-loc-input');
+  inputs[inputs.length - 1].focus();
+}
+function _collectCfgLocs() {
+  var box = document.getElementById('cfgLocs');
+  if (!box) return undefined; // sección no pintada → no tocar
+  var seen = {};
+  return Array.prototype.slice.call(box.querySelectorAll('.cfg-loc-input'))
+    .map(function (i) { return i.value.trim().slice(0, 40); })
+    .filter(function (v) { var k = v.toLowerCase(); if (!v || seen[k]) return false; seen[k] = 1; return true; });
+}
+
 // Multi-sede: centros de la org (cache de sesión; [] = mono-sede, lo normal).
 async function _orgLocationsCached() {
   if (window._locsCache !== undefined) return window._locsCache;
@@ -2992,6 +3015,14 @@ async function loadConfig() {
           ' value="' + esc(c.reviewUrl || '') + '">' +
         '<small class="form-hint">Se incluye en los mensajes automáticos post-cita para pedir reseña. <strong>Cómo conseguirlo:</strong> entra en <a href="https://business.google.com" target="_blank" class="u-accent">business.google.com</a> con la cuenta de tu negocio → botón <em>«Pedir reseñas»</em> (o <em>«Comparte tu perfil»</em>) → copia el enlace corto (empieza por g.page/r/…) y pégalo aquí.</small></div>' +
 
+      '<div class="form-section-title">Centros / sedes</div>' +
+      '<div class="form-group"><label class="form-label">¿Tu negocio tiene más de un centro? <span class="u-normal">(opcional)</span></label>' +
+        '<div id="cfgLocs">' +
+          (Array.isArray(c.locations) ? c.locations : []).map(function (l) { return _cfgLocRow(l); }).join('') +
+        '</div>' +
+        '<button type="button" class="btn btn-d btn-sm" onclick="addCfgLoc()">+ Añadir centro</button>' +
+        '<small class="form-hint">Si añades centros (ej: Andoain, Villabona…), tu asistente preguntará siempre <strong>en qué centro</strong> quiere la cita el cliente, y la agenda distinguirá las citas de cada centro con su etiqueta 📍. Si solo tienes un local, déjalo vacío.</small></div>' +
+
       '<div class="form-section-title">SMS a tus clientes</div>' +
       '<div class="form-group"><label class="form-label">Remitente de los SMS <span class="u-normal">(opcional)</span></label>' +
         '<input class="form-input" id="cfgSmsSender" maxlength="11" placeholder="' + esc((c.name || 'TuNegocio').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 11) || 'TuNegocio') + '"' +
@@ -3139,7 +3170,9 @@ async function saveConfig() {
     notifyEmail:    document.getElementById('cfgNotifyEmail')?.value?.trim() || '',
     address:        document.getElementById('cfgAddress')?.value?.trim()     || '',
     smsSenderId:    document.getElementById('cfgSmsSender')?.value?.trim()   || '',
+    locations:      _collectCfgLocs(),   // multi-sede (undefined si la sección no está)
   };
+  window._locsCache = undefined; // que Nueva cita relea los centros tras guardar
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {
     await api('/api/portal/config', 'PATCH', body);
