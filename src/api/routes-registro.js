@@ -142,8 +142,11 @@ async function claimRegistroForProvisioning(id) {
       // Marca de tiempo para la reconciliación de atascos (auditoría 2026-07-16).
       // BEST-EFFORT y separada: si la columna aún no existe (pre-migración), falla
       // en silencio sin afectar al claim, que es lo crítico. Nunca lanza.
-      db.client.from('registros').update({ provisioning_at: new Date().toISOString() })
-        .eq('id', id).then(undefined, () => {});
+      try {
+        Promise.resolve(
+          db.client.from('registros').update({ provisioning_at: new Date().toISOString() }).eq('id', id)
+        ).catch(() => {});
+      } catch (_) {}
       return true;
     }
 
