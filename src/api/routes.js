@@ -227,7 +227,9 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // Firma Telnyx (opt-in: solo si TELNYX_PUBLIC_KEY está puesta). Sin la clave
     // no verifica → no cambia nada. Con ella, rechaza webhooks no firmados.
     if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx firma inválida — 403'); return res.sendStatus(403); }
-    const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
+    // Token efímero: solo un stream nacido de ESTE webhook (firmado) podrá abrir
+    // el WS /telnyx-stream (auditoría seguridad 2026-07-16).
+    const wsUrl = `wss://${req.headers.host}/telnyx-stream?t=${require('../telephony/stream-token').mintStreamToken()}`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     const calledNumber = req.body?.To   || req.body?.to   || 'unknown';
     // Multi-tenant: todos los números comparten esta TeXML App, así que el
@@ -251,7 +253,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
 
   app.post('/voice/telnyx/:assistantId', (req, res) => {
     if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx/:id firma inválida — 403'); return res.sendStatus(403); }
-    const wsUrl = `wss://${req.headers.host}/telnyx-stream`;
+    const wsUrl = `wss://${req.headers.host}/telnyx-stream?t=${require('../telephony/stream-token').mintStreamToken()}`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     log.call(`[Telnyx] Inbound call from ${callerNumber} → assistant: ${req.params.assistantId}`);
     res.type('text/xml').send(generateTeXML(wsUrl, req.params.assistantId));

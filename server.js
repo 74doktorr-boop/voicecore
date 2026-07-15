@@ -407,20 +407,49 @@ const wssVonage = new WebSocketServer({ noServer: true });   // Vonage
 const wssTelnyx = new WebSocketServer({ noServer: true });   // Telnyx
 const wssBrowser = new WebSocketServer({ noServer: true });  // Browser demo
 
+// ── Gating del WS del demo de navegador (auditoría seguridad 2026-07-16) ──
+// /ws/talk no tenía auth ni límite → un atacante scripteaba miles de conexiones,
+// cada una gastando Deepgram+LLM+TTS (vaciado de cartera + DoS). Cap global de
+// concurrentes + rate-limit por IP (ahora req.ip es real gracias a trust proxy).
+const _browserIps = new Map(); // ip -> {count, resetAt}
+let _browserActive = 0;
+const BROWSER_MAX_CONCURRENT = Number(process.env.MAX_BROWSER_DEMO_CALLS) || 20;
+const BROWSER_PER_IP_MIN = Number(process.env.MAX_BROWSER_DEMO_PER_IP) || 5;
+function _browserGate(request) {
+  if (_browserActive >= BROWSER_MAX_CONCURRENT) return false;
+  const ip = (request.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || request.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  let e = _browserIps.get(ip);
+  if (!e || now > e.resetAt) { e = { count: 0, resetAt: now + 60000 }; _browserIps.set(ip, e); }
+  e.count++;
+  return e.count <= BROWSER_PER_IP_MIN;
+}
+setInterval(() => { const now = Date.now(); for (const [k, e] of _browserIps) if (now > e.resetAt) _browserIps.delete(k); }, 5 * 60 * 1000).unref();
+
 // Manual upgrade to support query params in paths
 server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const pathname = url.pathname;
 
-  if (pathname === '/media-stream') {
-    wss.handleUpgrade(request, socket, head, (ws) => { wss.emit('connection', ws, request); });
-  } else if (pathname === '/vonage-stream') {
-    wssVonage.handleUpgrade(request, socket, head, (ws) => { wssVonage.emit('connection', ws, request); });
-  } else if (pathname === '/telnyx-stream') {
+  if (pathname === '/telnyx-stream') {
+    // Solo streams nacidos de un webhook /voice/telnyx firmado (token efímero).
+    const { verifyStreamToken } = require('./src/telephony/stream-token');
+    if (!verifyStreamToken(url.searchParams.get('t'))) {
+      log.warn('[WS] /telnyx-stream rechazado: token de stream ausente o inválido');
+      socket.destroy(); return;
+    }
     wssTelnyx.handleUpgrade(request, socket, head, (ws) => { wssTelnyx.emit('connection', ws, request); });
   } else if (pathname === '/ws/talk') {
-    wssBrowser.handleUpgrade(request, socket, head, (ws) => { wssBrowser.emit('connection', ws, request); });
+    if (!_browserGate(request)) { socket.destroy(); return; }
+    wssBrowser.handleUpgrade(request, socket, head, (ws) => {
+      _browserActive++;
+      ws.on('close', () => { _browserActive = Math.max(0, _browserActive - 1); });
+      wssBrowser.emit('connection', ws, request);
+    });
   } else {
+    // /media-stream (Twilio) y /vonage-stream: proveedores DESCARTADOS y sin uso
+    // activo. Se rechazan para cerrar el mismo vector de arranque de pipeline.
     socket.destroy();
   }
 });
