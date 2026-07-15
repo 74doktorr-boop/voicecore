@@ -592,17 +592,32 @@ setInterval(() => reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {}), 360000
 // corta la conversación a mitad de frase y Telnyx reconecta contra el
 // contenedor nuevo → el cliente oye OTRA VEZ el saludo inicial (caso real
 // de Pablo pidiendo una cancelación, 2026-07-03 02:05).
-process.on('SIGTERM', async () => {
+// ÚNICO manejador de apagado (auditoría 2026-07-16): antes había DOS
+// process.on('SIGTERM') — este drenaje async y otro síncrono más abajo que
+// hacía process.exit(0) inmediato en cuanto este se suspendía en el primer
+// await → el drenaje NUNCA continuaba y la llamada se cortaba a mitad de frase
+// (el incidente de Pablo que este código venía a evitar). Ahora: drenar y
+// DESPUÉS limpiar y cerrar, en un solo sitio, para SIGTERM y SIGINT.
+let _shuttingDown = false;
+async function gracefulShutdown(signal) {
+  if (_shuttingDown) return;
+  _shuttingDown = true;
   const active = () => pipeline.activeCalls?.size || 0;
-  if (active() === 0) { log.info('SIGTERM — sin llamadas activas, cierre inmediato'); process.exit(0); }
-  log.warn(`SIGTERM — drenando ${active()} llamada(s) activa(s) antes de cerrar (máx. 45s)`);
-  const started = Date.now();
-  while (active() > 0 && Date.now() - started < 45000) {
-    await new Promise(r => setTimeout(r, 1000));
+  if (active() > 0) {
+    log.warn(`${signal} — drenando ${active()} llamada(s) activa(s) antes de cerrar (máx. 45s)`);
+    const started = Date.now();
+    while (active() > 0 && Date.now() - started < 45000) {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    if (active() > 0) log.warn(`${signal} — cierre con ${active()} llamada(s) aún activas tras el drenaje`);
+  } else {
+    log.info(`${signal} — sin llamadas activas, cierre inmediato`);
   }
-  log.warn(`SIGTERM — cierre con ${active()} llamada(s) aún activas tras el drenaje`);
+  try { assistantManager.destroy(); } catch (_) {}
+  try { server.close(); } catch (_) {}
   process.exit(0);
-});
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // System B: daily re-booking cron
 const { startRebookingCron }  = require('./src/scheduling/rebooking-cron');
@@ -783,16 +798,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── Graceful Shutdown ───
-process.on('SIGTERM', () => {
-  log.info('Shutting down...');
-  assistantManager.destroy();
-  server.close();
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  log.info('Shutting down...');
-  assistantManager.destroy();
-  server.close();
-  process.exit(0);
-});
+// SIGTERM lo registra el manejador único de arriba (con drenaje de llamadas).
+// SIGINT (Ctrl+C en desarrollo) usa la misma ruta.
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
