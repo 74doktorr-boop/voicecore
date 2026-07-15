@@ -907,7 +907,11 @@ function setupPortalRoutes(app, pipeline, config) {
     let location = null;
     const _locs = (req.flowConfig && req.flowConfig.automations && req.flowConfig.automations.config && req.flowConfig.automations.config.locations) || [];
     if (Array.isArray(_locs) && _locs.length && req.body.location) {
-      location = _locs.find(l => String(l).toLowerCase() === String(req.body.location).toLowerCase()) || null;
+      // Mismo matcher que la voz (auditoría 2026-07-16): antes el portal exigía
+      // igualdad exacta sin normalizar tildes, así que un centro como "Hernán"
+      // que la voz aceptaba ("hernan") el portal lo rechazaba con 400. Se unifica
+      // vía matchLocation (sin tildes, por inclusión) → resuelve al nombre canónico.
+      location = require('../tools/executor').matchLocation(req.body.location, _locs);
       if (!location) return res.status(400).json({ error: `Centro no válido. Centros: ${_locs.join(', ')}` });
     }
     // Disponibilidad real del Google Calendar del dueño (fail-open): evita

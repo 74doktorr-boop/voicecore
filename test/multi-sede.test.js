@@ -94,3 +94,21 @@ describe('multi-sede: candados del executor', () => {
     assert.ok(byName.book_appointment.parameters.properties.location, 'book_appointment sin location');
   });
 });
+
+// Auditoría 2026-07-16 — matchLocation compartido voz↔portal
+describe('matchLocation — mismo criterio en voz y portal', () => {
+  const { matchLocation } = require('../src/tools/executor');
+  const LOCS = ['Andoain', 'Villabona', 'Hernán'];
+
+  test('sin tildes / minúsculas → resuelve al nombre canónico', () => {
+    assert.strictEqual(matchLocation('hernan', LOCS), 'Hernán');   // el 400 del portal
+    assert.strictEqual(matchLocation('ANDOAIN', LOCS), 'Andoain');
+  });
+  test('por inclusión ("el de Villabona")', () => {
+    assert.strictEqual(matchLocation('el de villabona', LOCS), 'Villabona');
+  });
+  test('centro inexistente → null', () => {
+    assert.strictEqual(matchLocation('Bilbao', LOCS), null);
+    assert.strictEqual(matchLocation('', LOCS), null);
+  });
+});
