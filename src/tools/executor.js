@@ -530,12 +530,17 @@ class ToolExecutor {
     try {
       const db = getDatabase();
       if (db.enabled && phone) {
-        const normalizedPhone = phone.replace(/[\s\-+()]/g, '').replace(/^0034/, '').replace(/^34(?=\d{9}$)/, '');
-        const { data: contact } = await db.client.from('contacts')
+        // Sanitizar a SOLO DÍGITOS antes de interpolar en el filtro .or()
+        // (auditoría seguridad 2026-07-16): el phone viene de argumentos del LLM
+        // y la normalización dejaba pasar comas/puntos/letras → inyección de
+        // condiciones PostgREST (IDOR intra-tenant). Con solo dígitos no hay
+        // caracteres de control que inyectar.
+        const normalizedPhone = phone.replace(/[\s\-+()]/g, '').replace(/^0034/, '').replace(/^34(?=\d{9}$)/, '').replace(/\D/g, '');
+        const { data: contact } = normalizedPhone ? await db.client.from('contacts')
           .select('id')
           .eq('org_id', orgId)
           .or(`phone.eq.${normalizedPhone},phone.eq.+34${normalizedPhone},phone.eq.34${normalizedPhone}`)
-          .maybeSingle();
+          .maybeSingle() : { data: null };
         contactId = contact?.id || null;
       }
       // Fallback: name slug (legacy, only works if old-style contactId was used)

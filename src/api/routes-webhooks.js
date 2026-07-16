@@ -19,6 +19,32 @@ const log = new Logger('WEBHOOKS-API');
 // ─── Valid event types ─────────────────────────────────────────────────────────
 const VALID_EVENTS = Object.values(EVENTS).concat(['*']);
 
+// Anti-SSRF (auditoría seguridad 2026-07-16): el dueño configura la URL del
+// webhook y el endpoint "test" hace un fetch inmediato → sin este filtro podría
+// sondear la red interna (169.254.169.254 metadata, 127.x, 10.x, etc.). Bloquea
+// los destinos privados/loopback/link-local más evidentes.
+function _isPrivateHost(hostname) {
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!h || h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  if (h === '::1' || h === '0.0.0.0' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80:')) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 127 || a === 10 || a === 0 || (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
+        (a === 100 && b >= 64 && b <= 127)) return true;
+  }
+  return false;
+}
+// Valida la URL de un webhook: HTTPS + host público. Devuelve mensaje de error o null.
+function _validateWebhookUrl(url) {
+  let parsed;
+  try { parsed = new URL(url); } catch (_) { return 'url must be a valid HTTPS URL'; }
+  if (parsed.protocol !== 'https:') return 'url must use HTTPS';
+  if (_isPrivateHost(parsed.hostname)) return 'url must point to a public host';
+  return null;
+}
+
 // ─── In-memory fallback store (used when Supabase not configured) ───────────────
 // businessId → Map<id, config>
 const _memStore = new Map();
@@ -144,13 +170,9 @@ function setupWebhookRoutes(app) {
       return res.status(400).json({ error: 'url is required' });
     }
 
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'https:') {
-        return res.status(400).json({ error: 'url must use HTTPS' });
-      }
-    } catch (_) {
-      return res.status(400).json({ error: 'url must be a valid HTTPS URL' });
+    {
+      const err = _validateWebhookUrl(url);
+      if (err) return res.status(400).json({ error: err });
     }
 
     if (events !== undefined) {
@@ -183,14 +205,8 @@ function setupWebhookRoutes(app) {
     }
 
     if (patch.url) {
-      try {
-        const parsed = new URL(patch.url);
-        if (parsed.protocol !== 'https:') {
-          return res.status(400).json({ error: 'url must use HTTPS' });
-        }
-      } catch (_) {
-        return res.status(400).json({ error: 'url must be a valid HTTPS URL' });
-      }
+      const err = _validateWebhookUrl(patch.url);
+      if (err) return res.status(400).json({ error: err });
     }
 
     if (patch.events !== undefined) {
