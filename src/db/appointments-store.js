@@ -136,7 +136,21 @@ class AppointmentsStore {
   // Devuelve una promesa (por si algún día se quiere await antes de confirmar).
   upsert(apt) {
     if (!this._enabled) return Promise.resolve(false);
-    return this._persistWithRetry(this._toRow(apt), apt, 1);
+    const p = this._persistWithRetry(this._toRow(apt), apt, 1);
+    // Integraciones (conector): empuja el evento a los sistemas externos del
+    // negocio (webhook firmado). Fire-and-forget, fail-open y NO-OP si el
+    // negocio no tiene integración configurada — nunca afecta a la persistencia.
+    p.then(ok => {
+      if (!ok || !apt.businessId) return;
+      const event = apt.status === 'cancelled' ? 'appointment.cancelled' : 'appointment.saved';
+      require('../integrations/connector').emit(apt.businessId, event, {
+        id: apt.id, patientName: apt.patientName, phone: apt.phone || null,
+        service: apt.service, date: apt.date, time: apt.time,
+        duration: apt.duration || null, status: apt.status || 'confirmed',
+        location: apt.location || null,
+      });
+    }).catch(() => {});
+    return p;
   }
 
   async _persistWithRetry(row, apt, attempt) {
