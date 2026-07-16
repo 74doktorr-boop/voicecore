@@ -533,6 +533,15 @@ function setupBillingRoutes(app, config) {
               is_active: false,
               monthly_minutes_limit: 0,
             });
+            // Marcar el flow en MEMORIA como inactivo (auditoría seguridad
+            // 2026-07-16): loadFromDB no lo recarga tras reiniciar (filtra
+            // is_active), pero hasta el reinicio la copia en memoria conservaba
+            // acceso al portal. portalAuth ahora rechaza flows con inactive=true.
+            try {
+              const { flowManager } = require('../automations/flow-manager');
+              const f = flowManager.get(cancelledOrgId);
+              if (f) f.inactive = true;
+            } catch (_) {}
             log.warn(`Org ${cancelledOrgId} desactivada (suscripción cancelada — sin plan gratis)`);
 
             // Liberar número de teléfono al pool para reutilizarlo

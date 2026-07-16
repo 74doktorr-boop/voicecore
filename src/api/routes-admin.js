@@ -183,7 +183,17 @@ function setupAdminRoutes(app, config, assistantManager) {
       const { data } = await db.client
         .from('organizations').select('*').eq('id', req.params.id).single();
       if (!data) return res.status(404).json({ error: 'No encontrado' });
-      res.json({ org: data });
+      // No volcar secretos aunque sea admin (auditoría seguridad 2026-07-16):
+      // un token admin comprometido no debe entregar credenciales de clientes.
+      const org = { ...data };
+      delete org.api_key;
+      delete org.google_refresh_token; delete org.google_access_token;
+      delete org.outlook_refresh_token; delete org.outlook_access_token;
+      if (org.automation_config && org.automation_config.auth) {
+        org.automation_config = { ...org.automation_config };
+        delete org.automation_config.auth;
+      }
+      res.json({ org });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }

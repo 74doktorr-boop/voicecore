@@ -263,11 +263,18 @@ function setupAuthRoutes(app) {
     try {
       const org  = await findActiveOrgByEmail(email);
       const auth = org && org.automation_config && org.automation_config.auth;
+      // Mensaje NEUTRO idéntico en ambos fallos (auditoría seguridad 2026-07-16):
+      // antes "no hay contraseña" vs "incorrectos" revelaba qué emails existen.
+      // Sigue guiando al enlace de acceso sin confirmar si la cuenta existe.
+      const NEUTRAL = 'Email o contraseña incorrectos. Si no tienes contraseña, entra con el enlace de acceso.';
       if (!org || !auth || !auth.hash) {
-        return res.status(401).json({ error: 'No hay contraseña para esta cuenta. Entra con el enlace de acceso y créala.' });
+        // Equalizar el tiempo: el camino "sin cuenta" se saltaba el scrypt (más
+        // rápido) → enumeración por timing. Se gasta CPU equivalente.
+        try { require('crypto').scryptSync(String(password), 'nf-timing-equalizer', 64); } catch (_) {}
+        return res.status(401).json({ error: NEUTRAL });
       }
       if (!verifyPassword(password, auth.salt, auth.hash)) {
-        return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+        return res.status(401).json({ error: NEUTRAL });
       }
       const sessionToken = createSessionToken({ email: org.owner_email });
       log.info(`Sesión (password) creada para ${org.owner_email}`);

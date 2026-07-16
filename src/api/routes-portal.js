@@ -268,7 +268,9 @@ async function portalAuth(req, res, next) {
   let businessId = null;
   let flowConfig = null;
 
-  const inMemory = flowManager.list().find(f => f.ownerEmail === session.email);
+  // !f.inactive (auditoría seguridad 2026-07-16): una org cancelada conservaba
+  // acceso vía la copia en memoria (la cancelación marca inactive=true).
+  const inMemory = flowManager.list().find(f => f.ownerEmail === session.email && !f.inactive);
   if (inMemory) {
     businessId = inMemory.businessId;
     flowConfig  = inMemory;
