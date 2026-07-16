@@ -290,19 +290,25 @@ function setupBillingRoutes(app, config) {
                 const { defaultFirstMessage } = require('../assistants/i18n');
                 const defaultGreeting = defaultFirstMessage(lang, registro.negocio);
 
-                await db.createAssistant(org.id, {
-                  name:         `Asistente de ${registro.negocio}`,
-                  voice:        registro.voz || 'nova',
-                  language:     lang,
-                  firstMessage: registro.saludo || defaultGreeting,
-                  systemPrompt: `Eres el asistente virtual de ${registro.negocio}. Atiendes llamadas de clientes de forma amable y profesional. Responde siempre en ${langName}. Sé conciso y útil.`,
-                  // SIN modelo horneado: el router elige el proveedor MÁS RÁPIDO
-                  // disponible (groq ~80ms TTFT > openai) con auto-fallback.
-                  // Hardcodear 'gpt-4o-mini' aquí clavaba a TODOS los asistentes
-                  // nuevos en OpenAI (p50 1.5s/turno medido en prod) e ignoraba Groq.
-                  model:        null,
-                  tools:        [],
-                });
+                // El asistente se resuelve en runtime desde organizations.
+                // assistant_config (getOrgAssistant), NO de la tabla 'assistants'
+                // (vestigial). Bug 2026-07-16: db.createAssistant insertaba una
+                // columna 'speed' inexistente → LANZABA y ABORTABA el resto del
+                // alta (número + emails). Se siembra la config donde de verdad se
+                // lee, con merge y sin poder tumbar el alta.
+                try {
+                  const { data: curOrg } = await db.client.from('organizations')
+                    .select('assistant_config').eq('id', org.id).maybeSingle();
+                  const ac = (curOrg && curOrg.assistant_config) || {};
+                  await db.client.from('organizations').update({
+                    assistant_config: {
+                      ...ac,
+                      assistantName: `Asistente de ${registro.negocio}`,
+                      voice:         registro.voz || 'nova',
+                      firstMessage:  registro.saludo || defaultGreeting,
+                    },
+                  }).eq('id', org.id);
+                } catch (e) { log.warn(`Semilla de assistant_config falló (no bloquea el alta): ${e.message}`); }
 
                 log.info(`Org creada automáticamente: ${org.id} — ${registro.negocio} (${orgPlan})`);
 
