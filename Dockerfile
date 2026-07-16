@@ -7,6 +7,9 @@ COPY package*.json ./
 RUN node --max-old-space-size=512 $(which npm) ci --omit=dev --jobs=2
 
 COPY . .
+# SHA del commit → visible en /health para saber QUÉ versión corre (2026-07-16).
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 EXPOSE 3001
 ENV NODE_ENV=production
 

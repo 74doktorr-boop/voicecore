@@ -493,6 +493,9 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     res.json({
       status,
       version: '2.0.0',
+      // SHA del commit desplegado (build-arg GIT_SHA). Hace VERIFICABLE qué
+      // versión corre en producción — se acabó desplegar a ciegas (2026-07-16).
+      sha: (process.env.GIT_SHA || 'unknown').slice(0, 7),
       bootId: BOOT_ID,
       uptime: process.uptime(),
       activeCalls: pipeline.getActiveCalls().length,
