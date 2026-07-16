@@ -718,6 +718,12 @@ startFounderDigestCron();
 const { startMessageOverageCron } = require('./src/billing/message-usage');
 startMessageOverageCron();
 
+// Alerta de coste variable: avisa al dueño al 80%/100% de su umbral (default
+// COST_ALERT_THRESHOLD_EUR, override por-org). Mata el miedo a la factura
+// sorpresa (crítica sectorial 2026-07-17). Solo AVISA, no corta servicio.
+const { startCostAlertCron } = require('./src/billing/cost-alert');
+startCostAlertCron();
+
 // Renovación de tokens WA de número propio (Embedded Signup — caducan a 60 días)
 const { startWaTokenRefreshCron } = require('./src/whatsapp/token-refresh');
 startWaTokenRefreshCron();
