@@ -16,6 +16,10 @@ const log = new Logger('API');
 // Identifica ESTE arranque del proceso (ver /health): cambia con cada
 // deploy y el portal lo usa para auto-actualizarse en los clientes.
 const BOOT_ID = String(Date.now());
+// Marcador de build manual — verificable en /health. EasyPanel construye desde
+// el fuente (sin .git en el contexto), así que el runtime no puede leer su propio
+// commit; este tag SÍ es fiable. BUMPEAR en cada deploy crítico. (2026-07-16)
+const BUILD_TAG = 'f1c4863-activacion-fix';
 
 // BUG-21 FIX: Twilio webhook signature validation middleware.
 // Validates X-Twilio-Signature header when TWILIO_AUTH_TOKEN is configured.
@@ -496,6 +500,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       // SHA del commit desplegado (build-arg GIT_SHA). Hace VERIFICABLE qué
       // versión corre en producción — se acabó desplegar a ciegas (2026-07-16).
       sha: (process.env.GIT_SHA || 'unknown').slice(0, 7),
+      build: BUILD_TAG,
       bootId: BOOT_ID,
       uptime: process.uptime(),
       activeCalls: pipeline.getActiveCalls().length,
