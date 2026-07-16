@@ -25,6 +25,40 @@ function _logWaOut(apt, kind, body) {
 
 const GOOGLE_REVIEW_BASE = 'https://search.google.com/local/writereview?placeid=';
 
+// Tope de reseñas POR CONTACTO. Las reseñas NO pasan por scheduled_reminders,
+// así que el frequency-cap de seguimientos no las cubre. Sin esto: (1) dos citas
+// del mismo cliente en la misma ventana → dos "déjanos reseña" idénticos
+// (reportado 2026-07-16), y (2) un paciente recurrente (fisio/dental) recibía la
+// petición DESPUÉS DE CADA visita = spam → bajas. Se pide reseña como mucho una
+// vez cada REVIEW_CAP_DAYS por persona. 0 = desactivado.
+const REVIEW_CAP_DAYS = (() => {
+  const n = Math.round(Number(process.env.REVIEW_CAP_DAYS));
+  return Number.isFinite(n) && n >= 0 && n <= 365 ? n : 60;
+})();
+
+// ¿Ya se le pidió reseña a este contacto dentro de la ventana? Consulta el log
+// de WA saliente (kind='resena'). FAIL-OPEN: ante cualquier error devuelve false
+// (nunca bloquea una petición legítima). apt trae businessId + phone.
+async function _reviewRecentlyAsked(apt, capDays = REVIEW_CAP_DAYS) {
+  if (!capDays || capDays <= 0 || !apt || !apt.phone) return false;
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (!db.enabled || !apt.businessId) return false;
+    const { phoneVariants } = require('../utils/phone');
+    const since = new Date(Date.now() - capDays * 864e5).toISOString();
+    const { data } = await db.client.from('nf_wa_messages')
+      .select('id')
+      .eq('org_id', apt.businessId)
+      .eq('direction', 'out')
+      .eq('kind', 'resena')
+      .in('phone', phoneVariants(apt.phone))
+      .gte('created_at', since)
+      .limit(1);
+    return Array.isArray(data) && data.length > 0;
+  } catch (_) { return false; }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function esc(s) {
@@ -775,6 +809,9 @@ async function checkAndSendReminders(scheduler, flowManager = null) {
 async function checkAndSendReviews(scheduler, flowManager = null) {
   const now = Date.now();
   let sent = 0;
+  // Dedup por CONTACTO dentro de la pasada: dos citas del mismo cliente en la
+  // misma ventana no deben generar dos peticiones (bug 2026-07-16).
+  const askedThisRun = new Set();
 
   for (const [, apt] of scheduler.appointments) {
     if (apt.status === 'cancelled' || apt.review_requested) continue;
@@ -796,6 +833,19 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
     const elapsed = now - aptTime;
 
     if (elapsed >= WINDOW_START && elapsed <= WINDOW_END) {
+      // Dedup por CONTACTO (bug 2026-07-16): no pedir reseña dos veces a la misma
+      // persona — ni por dos citas en la misma ventana (Set de la pasada) ni a un
+      // paciente recurrente ya avisado hace poco (log WA). Se marca la cita como
+      // gestionada (no se reintenta) pero NO se reenvía.
+      const dedupKey = apt.phone || apt.email || null;
+      const skip = (dedupKey && askedThisRun.has(dedupKey)) || await _reviewRecentlyAsked(apt);
+      if (skip) {
+        apt.review_requested = true;
+        appointmentsStore.patch(apt.id, { review_requested: true, updatedAt: new Date().toISOString() });
+        if (dedupKey) askedThisRun.add(dedupKey);
+        continue;
+      }
+
       const schedulerCfg = scheduler.getBusinessConfig(apt.businessId);
       const config       = flowManager
         ? flowManager.mergeConfig(apt.businessId, schedulerCfg)
@@ -811,6 +861,7 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
       if (ok) {
         apt.review_requested = true;
         appointmentsStore.patch(apt.id, { review_requested: true, updatedAt: new Date().toISOString() });
+        if (dedupKey) askedThisRun.add(dedupKey);
         sent++;
       }
     }
