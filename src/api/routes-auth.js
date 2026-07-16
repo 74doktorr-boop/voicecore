@@ -99,17 +99,25 @@ async function getMagicToken(token) {
   return null;
 }
 
-async function incrementTokenUsage(token) {
-  const record = _tokens.get(token);
-  if (record) { record.usedCount += 1; _tokens.set(token, record); }
+// Consumo ATÓMICO del magic link (auditoría seguridad 2026-07-16): antes se leía
+// used_count, se comprobaba >=1 y luego se incrementaba sin CAS → dos usos
+// concurrentes del mismo enlace emitían DOS sesiones. Ahora UPDATE ... WHERE
+// used_count=0: solo el PRIMERO casa una fila. Devuelve true si reclamó el token.
+async function claimMagicToken(token) {
   const db = getDatabase();
   if (db.enabled) {
     try {
-      await db.client.from('magic_tokens')
-        .update({ used_count: (record?.usedCount || 1) })
-        .eq('token', token);
-    } catch (_) {}
+      const { data } = await db.client.from('magic_tokens')
+        .update({ used_count: 1 }).eq('token', token).eq('used_count', 0).select('id');
+      const claimed = Array.isArray(data) && data.length > 0;
+      const rec = _tokens.get(token);
+      if (rec && claimed) { rec.usedCount = 1; _tokens.set(token, rec); }
+      return claimed;
+    } catch (_) { /* fallback a memoria */ }
   }
+  const rec = _tokens.get(token);
+  if (rec && (rec.usedCount || 0) < 1) { rec.usedCount = 1; _tokens.set(token, rec); return true; }
+  return false;
 }
 
 // ── Public export: generate a new magic token ───────────────────────────────
@@ -174,10 +182,11 @@ function setupAuthRoutes(app) {
       const record = await getMagicToken(token);
       if (!record) return res.status(401).json({ error: 'Token inválido' });
       if (record.expiresAt < Date.now()) return res.status(401).json({ error: 'Token expirado. Solicita un nuevo acceso.' });
-      // Magic links are single-use: reject if already consumed
+      // Magic links are single-use: rechazo rápido si ya se consumió…
       if (record.usedCount >= 1) return res.status(401).json({ error: 'Este enlace ya fue utilizado. Solicita uno nuevo desde el portal.' });
-
-      await incrementTokenUsage(token);
+      // …y reclamo ATÓMICO (cierra la carrera de dos usos concurrentes).
+      const claimed = await claimMagicToken(token);
+      if (!claimed) return res.status(401).json({ error: 'Este enlace ya fue utilizado. Solicita uno nuevo desde el portal.' });
 
       const sessionToken = createSessionToken({ email: record.email, registroId: record.registroId });
       log.info(`Sesión creada para ${record.email}`);
@@ -292,8 +301,8 @@ function setupAuthRoutes(app) {
     let session;
     try { session = verifySessionToken(tk); } catch (_) { return res.status(401).json({ error: 'No autorizado' }); }
     const { password } = req.body || {};
-    if (!password || String(password).length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
     }
     try {
       const db = getDatabase();
