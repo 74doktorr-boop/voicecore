@@ -50,9 +50,11 @@ function setupCalendarRoutes(app, config) {
       const tokens = await cal.exchangeCode(code);
 
       if (db.enabled) {
+        const { encryptSecret } = require('../utils/crypto');
         await db.updateOrg(orgId, {
-          google_refresh_token:  tokens.refresh_token,
-          google_access_token:   tokens.access_token,
+          // Cifrados en reposo (auditoría seguridad + verificación OAuth Google).
+          google_refresh_token:  encryptSecret(tokens.refresh_token),
+          google_access_token:   encryptSecret(tokens.access_token),
           google_token_expiry:   tokens.expiry_date,
           google_calendar_id:    'primary',
         });
@@ -85,16 +87,18 @@ function setupCalendarRoutes(app, config) {
 
   // ── Helper: get fresh tokens (refreshes + persists if needed) ───────────────
   async function getFreshTokens(org) {
+    const { encryptSecret, decryptSecret } = require('../utils/crypto');
     const raw = {
-      access_token:  org.google_access_token,
-      refresh_token: org.google_refresh_token,
+      // Descifrado al leer (tolerante a tokens legacy en claro).
+      access_token:  decryptSecret(org.google_access_token),
+      refresh_token: decryptSecret(org.google_refresh_token),
       expiry_date:   org.google_token_expiry,
     };
     const fresh = await cal.refreshIfNeeded(raw);
     // Persist only if the access_token actually changed (avoid unnecessary writes)
     if (fresh.access_token !== raw.access_token && db.enabled) {
       await db.updateOrg(org.id, {
-        google_access_token: fresh.access_token,
+        google_access_token: encryptSecret(fresh.access_token),
         google_token_expiry: fresh.expiry_date,
       }).catch(() => {});
     }
