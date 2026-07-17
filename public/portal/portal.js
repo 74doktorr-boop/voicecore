@@ -3052,6 +3052,13 @@ function addStayUnitRow() {
   var box = document.getElementById('cfgStayUnits');
   if (box) box.insertAdjacentHTML('beforeend', _cfgStayRow({}));
 }
+function genInboundSecret() {
+  var el = document.getElementById('cfgIntInSecret');
+  if (!el) return;
+  var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', s = '';
+  for (var i = 0; i < 32; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+  el.value = 'nf_' + s;
+}
 function _collectStayUnits() {
   var out = [];
   document.querySelectorAll('#cfgStayUnits .cfg-stay-row').forEach(function (r) {
@@ -3080,6 +3087,8 @@ async function loadConfig() {
 
   var c = data.config || {};
   var hasPassword = !!data.hasPassword;
+  var _ig = c.integrations || {};
+  var _igOut = (Array.isArray(_ig.outbound) && _ig.outbound[0]) || {};
   // Sectores desde /api/sectors (fuente única). Primer paint con fallback; tras
   // cargar, se repuebla el <select> — así los sectores nuevos aparecen sin deploy.
   var sectorOpts = sectorOptionsHtml(c.sector);
@@ -3193,6 +3202,14 @@ async function loadConfig() {
         '<div id="cfgStayUnits">' + (Array.isArray(c.stayUnits) ? c.stayUnits : []).map(_cfgStayRow).join('') + '</div>' +
         '<button type="button" class="btn btn-d btn-sm u-mt-2" onclick="addStayUnitRow()">+ Añadir tipo de plaza</button>' +
         '<small class="form-hint">Cada tipo de plaza/habitación con su aforo (plazas por noche). Déjalo vacío si tu negocio no es de estancias.</small></div>' +
+      '<div class="form-group"><label class="form-label"><input type="checkbox" id="cfgIntEnabled"' + (_ig.enabled ? ' checked' : '') + '> Conectar con otro software <span class="u-normal">(webhooks)</span></label>' +
+        '<div class="u-mt-2"><label class="form-label u-text-sm">Enviar mis citas y leads a esta URL (salida)</label>' +
+          '<input class="form-input" id="cfgIntOutUrl" type="url" placeholder="https://hooks.zapier.com/… (Zapier, Make, tu sistema)" value="' + esc(_igOut.url || '') + '">' +
+          '<input class="form-input u-mt-2" id="cfgIntOutSecret" placeholder="Clave para firmar los envíos (opcional)" value="' + esc(_igOut.secret || '') + '"></div>' +
+        '<div class="u-mt-2"><label class="form-label u-text-sm">Clave para que TU sistema me envíe reservas (entrada)</label>' +
+          '<div class="form-row"><input class="form-input" id="cfgIntInSecret" placeholder="Clave de ingreso" value="' + esc(_ig.inboundSecret || '') + '">' +
+            '<button type="button" class="btn btn-d btn-sm u-nowrap" onclick="genInboundSecret()">Generar</button></div></div>' +
+        '<small class="form-hint">Empuja tus reservas a Zapier o a tu software (webhook firmado) y acepta las suyas para no duplicar agenda ni hacer overbooking. La URL de salida debe ser https.</small></div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
       '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +
@@ -3368,6 +3385,16 @@ async function saveConfig() {
     url:        (document.getElementById('cfgDepUrl').value || '').trim(),
   };
   if (document.getElementById('cfgStayUnits')) body.stayUnits = _collectStayUnits();
+  var _ie = document.getElementById('cfgIntEnabled');
+  if (_ie) {
+    var _outUrl = (document.getElementById('cfgIntOutUrl').value || '').trim();
+    var _outSec = (document.getElementById('cfgIntOutSecret').value || '').trim();
+    body.integrations = {
+      enabled:  !!_ie.checked,
+      outbound: _outUrl ? [{ url: _outUrl, secret: _outSec || undefined }] : [],
+      inboundSecret: (document.getElementById('cfgIntInSecret').value || '').trim() || undefined,
+    };
+  }
   window._locsCache = undefined; // que Nueva cita relea los centros tras guardar
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {
