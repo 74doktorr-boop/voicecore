@@ -356,7 +356,7 @@ class SchedulingSystem {
     // reservar" — se devuelve al cancelar). Fire-and-forget, NO-OP sin bono/tabla.
     // Guarda bonoId en la cita (memoria) para poder reembolsar al cancelar.
     if (appointment.phone && process.env.NODE_ENV !== 'test') {
-      Promise.resolve(require('../billing/bonos').consumeOne(businessId, appointment.phone, appointment.serviceId))
+      Promise.resolve(require('../billing/bonos').consumeOne(businessId, appointment.phone, appointment.serviceId, { appointmentId: id }))
         .then(r => { if (r && r.consumed) { appointment.bonoId = r.bonoId; log.info(`Bono consumido en ${id}: quedan ${r.remaining} sesiones`); } })
         .catch(() => {});
     }
@@ -488,10 +488,17 @@ class SchedulingSystem {
     // (modelo "al reservar + reembolso"). bonoId vive en memoria desde la reserva;
     // si el server se reinició entre reserva y cancelación no está y no se
     // reembolsa (edge raro; nunca reembolsa de más). Fire-and-forget.
-    if (apt.bonoId && apt.businessId) {
-      Promise.resolve(require('../billing/bonos').refundOne(apt.businessId, apt.bonoId))
-        .then(r => { if (r && r.refunded) log.info(`Bono reembolsado al cancelar ${apt.id}: quedan ${r.remaining} sesiones`); })
-        .catch(() => {});
+    if (apt.businessId) {
+      const bonos = require('../billing/bonos');
+      Promise.resolve(bonos.refundByAppointment(apt.businessId, apt.id))
+        .then(async r => {
+          if (r && r.refunded) { log.info(`Bono reembolsado (ledger) al cancelar ${apt.id}: quedan ${r.remaining} sesiones`); return; }
+          // Fallback mismo runtime (sin ledger): usa el bonoId en memoria.
+          if (apt.bonoId) {
+            const r2 = await bonos.refundOne(apt.businessId, apt.bonoId);
+            if (r2 && r2.refunded) log.info(`Bono reembolsado (memoria) al cancelar ${apt.id}: quedan ${r2.remaining} sesiones`);
+          }
+        }).catch(() => {});
     }
 
     // Fase 3: borra el evento del Google Calendar del dueño (si lo había) para

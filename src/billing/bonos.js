@@ -73,6 +73,16 @@ async function consumeOne(orgId, phone, serviceKey = null, opts = {}) {
         .select('id,total_sessions,used_sessions');
       if (error) { if (error.code === '42P01') return { consumed: false }; throw error; }
       if (Array.isArray(data) && data.length) {
+        // Ledger persistente (best-effort): enlaza cita↔bono para poder reembolsar
+        // con exactitud al cancelar aunque el server se reinicie. Sin la tabla
+        // (42P01) el reembolso cae al bonoId en memoria — no se pierde robustez.
+        if (opts.appointmentId) {
+          try {
+            const { error: le } = await db.client.from('nf_bono_consumptions')
+              .insert({ org_id: orgId, bono_id: b.id, appointment_id: opts.appointmentId });
+            if (le && le.code !== '42P01' && le.code !== '23505') log.warn(`ledger consumo: ${le.message}`);
+          } catch (_) {}
+        }
         return { consumed: true, bonoId: b.id, remaining: _left(data[0]) };
       }
       // colisión: otro proceso consumió; reintenta con datos frescos
@@ -106,6 +116,27 @@ async function refundOne(orgId, bonoId, opts = {}) {
   } catch (e) { log.warn(`refundOne: ${e.message}`); return { refunded: false }; }
 }
 
+/**
+ * Reembolsa la sesión que consumió una cita, localizándola en el ledger
+ * persistente (sobrevive a reinicios). Borra el registro para no reembolsar dos
+ * veces. Si no hay ledger/registro → {refunded:false} (el llamante puede caer al
+ * bonoId en memoria). @returns {Promise<{refunded:boolean, remaining?:number, reason?:string}>}
+ */
+async function refundByAppointment(orgId, appointmentId, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId || !appointmentId) return { refunded: false };
+  try {
+    const { data, error } = await db.client.from('nf_bono_consumptions')
+      .select('id,bono_id').eq('org_id', orgId).eq('appointment_id', appointmentId).limit(1);
+    if (error) { if (error.code === '42P01') return { refunded: false, reason: 'no_ledger' }; throw error; }
+    const row = data && data[0];
+    if (!row) return { refunded: false, reason: 'no_consumption' };
+    const r = await refundOne(orgId, row.bono_id, { db });
+    try { await db.client.from('nf_bono_consumptions').delete().eq('id', row.id); } catch (_) {}
+    return r;
+  } catch (e) { log.warn(`refundByAppointment: ${e.message}`); return { refunded: false }; }
+}
+
 /** Alta/recarga de un bono (uso admin/portal). */
 async function grantBono(orgId, { phone, contactId = null, serviceKey = null, label = null, sessions, expiresAt = null }, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
@@ -120,4 +151,4 @@ async function grantBono(orgId, { phone, contactId = null, serviceKey = null, la
   } catch (e) { log.warn(`grantBono: ${e.message}`); return { ok: false }; }
 }
 
-module.exports = { getBalance, consumeOne, refundOne, grantBono, _left, _notExpired };
+module.exports = { getBalance, consumeOne, refundOne, refundByAppointment, grantBono, _left, _notExpired };

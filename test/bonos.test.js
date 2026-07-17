@@ -7,12 +7,16 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { getBalance, consumeOne, refundOne, grantBono, _left, _notExpired } = require('../src/billing/bonos');
+const { getBalance, consumeOne, refundOne, refundByAppointment, grantBono, _left, _notExpired } = require('../src/billing/bonos');
 
-// ── Mock mínimo de la tabla nf_bonos (soporta las cadenas usadas) ────────────
-function makeDb(initialRows = []) {
-  const rows = initialRows.map((r, i) => ({ id: r.id || 'b' + i, used_sessions: 0, total_sessions: 0, service_key: null, expires_at: null, ...r }));
-  function table() {
+// ── Mock de Supabase por TABLA (nf_bonos + nf_bono_consumptions) ─────────────
+function makeDb(bonoRows = [], consRows = []) {
+  const tables = {
+    nf_bonos: bonoRows.map((r, i) => ({ id: r.id || 'b' + i, used_sessions: 0, total_sessions: 0, service_key: null, expires_at: null, ...r })),
+    nf_bono_consumptions: consRows.map((r, i) => ({ id: r.id || 'c' + i, ...r })),
+  };
+  function table(name) {
+    const rows = tables[name] || (tables[name] = []);
     let op = null, payload = null, single = false, limit = null;
     const filters = {}, inFilters = {};
     const exec = () => {
@@ -27,14 +31,16 @@ function makeDb(initialRows = []) {
         for (const r of rows) if (match(r)) { Object.assign(r, payload); upd.push(r); }
         return { data: upd.map(r => ({ id: r.id, total_sessions: r.total_sessions, used_sessions: r.used_sessions })), error: null };
       }
+      if (op === 'delete') { for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i])) rows.splice(i, 1); return { data: null, error: null }; }
       let out = rows.filter(match);
       if (limit) out = out.slice(0, limit);
       return single ? { data: out[0] || null, error: null } : { data: out, error: null };
     };
     const b = {
-      select() { if (op !== 'update' && op !== 'insert') op = 'select'; return b; },
+      select() { if (!['update', 'insert', 'delete'].includes(op)) op = 'select'; return b; },
       insert(p) { op = 'insert'; payload = p; return b; },
       update(p) { op = 'update'; payload = p; return b; },
+      delete() { op = 'delete'; return b; },
       eq(c, v) { filters[c] = v; return b; },
       in(c, v) { inFilters[c] = v; return b; },
       limit(n) { limit = n; return b; },
@@ -43,7 +49,7 @@ function makeDb(initialRows = []) {
     };
     return b;
   }
-  return { enabled: true, client: { from: () => table() }, _rows: rows };
+  return { enabled: true, client: { from: (n) => table(n) }, _rows: tables.nf_bonos, _cons: tables.nf_bono_consumptions };
 }
 
 describe('helpers puros', () => {
@@ -120,6 +126,43 @@ describe('refundOne (reembolso al cancelar)', () => {
     const r = await refundOne('o', c.bonoId, { db });
     assert.strictEqual(r.remaining, 10);
     assert.strictEqual(db._rows[0].used_sessions, 0);
+  });
+});
+
+describe('ledger — reembolso robusto por cita (sobrevive reinicios)', () => {
+  test('consumeOne con appointmentId registra el consumo en el ledger', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600111', total_sessions: 10, used_sessions: 0 }]);
+    await consumeOne('o', '+34600111', null, { db, appointmentId: 'APT-9' });
+    assert.strictEqual(db._cons.length, 1);
+    assert.strictEqual(db._cons[0].appointment_id, 'APT-9');
+    assert.strictEqual(db._cons[0].bono_id, 'B1');
+  });
+
+  test('refundByAppointment devuelve la sesión y borra el registro', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600', total_sessions: 10, used_sessions: 3 }],
+                      [{ id: 'C1', org_id: 'o', bono_id: 'B1', appointment_id: 'APT-9' }]);
+    const r = await refundByAppointment('o', 'APT-9', { db });
+    assert.strictEqual(r.refunded, true);
+    assert.strictEqual(r.remaining, 8);              // 10 - 2
+    assert.strictEqual(db._rows[0].used_sessions, 2);
+    assert.strictEqual(db._cons.length, 0);          // registro borrado (no doble reembolso)
+  });
+
+  test('sin registro (cita sin bono) → no reembolsa', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600', total_sessions: 5, used_sessions: 1 }], []);
+    const r = await refundByAppointment('o', 'APT-X', { db });
+    assert.strictEqual(r.refunded, false);
+    assert.strictEqual(r.reason, 'no_consumption');
+  });
+
+  test('ciclo real: consume (con cita) → refundByAppointment → saldo intacto', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600111', total_sessions: 10, used_sessions: 0 }]);
+    await consumeOne('o', '+34600111', null, { db, appointmentId: 'APT-7' });
+    assert.strictEqual(db._rows[0].used_sessions, 1);
+    const r = await refundByAppointment('o', 'APT-7', { db });
+    assert.strictEqual(r.refunded, true);
+    assert.strictEqual(db._rows[0].used_sessions, 0);   // devuelto
+    assert.strictEqual(db._cons.length, 0);
   });
 });
 
