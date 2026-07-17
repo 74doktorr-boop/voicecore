@@ -78,7 +78,21 @@ values ('<ORG_ID>', '+34600111222', 'wod', 'Bono 10 WODs', 10, '2026-12-31');
 caducidad. El bot consume/reembolsa solo; el saldo se puede consultar con
 `getBalance(orgId, phone, serviceKey)`.
 
-## 7. Integraciones (conector) — `integrations`
+## 7. Estancias por noches — `stayUnits` + tabla `nf_stays`
+
+Hotel, residencia de mascotas, guardería: reservar un RANGO de fechas con plazas
+por noche. Requiere `db/migration-stays.sql`, la config `stayUnits`, y añadir las
+tools `check_stay_availability` y `book_stay` a la lista de tools del asistente.
+
+```json
+"stayUnits": [ { "key": "suite", "label": "Suite", "capacity": 4 },
+               { "key": "estandar", "label": "Habitación estándar", "capacity": 10 } ]
+```
+
+`checkout` es exclusivo (01→04 = 3 noches). El bot consulta disponibilidad por
+noche contra el aforo y reserva si caben todas las noches.
+
+## 8. Integraciones (conector) — `integrations`
 
 Empuja los eventos de NodeFlow al software del negocio y acepta los suyos de
 vuelta (ver `docs/INTEGRACIONES.md`).
