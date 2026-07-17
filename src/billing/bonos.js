@@ -1,0 +1,98 @@
+'use strict';
+// ============================================================
+// NodeFlow — Bonos / paquetes prepagados de sesiones (2026-07-17)
+// Objeción nº3 de la crítica sectorial (~15 sectores: wellness, estética, láser,
+// fisio por sesiones): venden BONOS ("10 sesiones"), con saldo y caducidad.
+// DB-gated: si la tabla nf_bonos no existe (42P01) o la DB está off → NO-OP
+// (todo se comporta como hasta ahora). Consumo ATÓMICO (CAS por fila) para que
+// dos reservas simultáneas no gasten la misma sesión dos veces.
+// ============================================================
+
+const { Logger } = require('../utils/logger');
+const log = new Logger('BONOS');
+
+function _variants(phone) {
+  try { return require('../utils/phone').phoneVariants(phone); } catch (_) { return [phone]; }
+}
+function _todayMadrid() {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+}
+function _notExpired(b, today) { return !b.expires_at || b.expires_at >= today; }
+function _left(b) { return Math.max(0, (b.total_sessions || 0) - (b.used_sessions || 0)); }
+
+/** Bonos ACTIVOS (no caducados, con saldo) del contacto para un servicio. */
+async function _activeBonos(orgId, phone, serviceKey, db, today) {
+  let q = db.client.from('nf_bonos')
+    .select('id,total_sessions,used_sessions,expires_at,service_key,label')
+    .eq('org_id', orgId).in('phone', _variants(phone));
+  const { data, error } = await q;
+  if (error) { if (error.code === '42P01') return null; throw error; }
+  return (data || [])
+    .filter(b => _notExpired(b, today))
+    .filter(b => !serviceKey || !b.service_key || b.service_key === serviceKey)
+    .filter(b => _left(b) > 0);
+}
+
+/**
+ * Saldo total de sesiones del contacto para un servicio.
+ * @returns {Promise<number|null>} nº de sesiones, o null si NO tiene bono
+ *          (null ≠ 0: "sin bono" es distinto de "bono agotado").
+ */
+async function getBalance(orgId, phone, serviceKey = null, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId || !phone) return null;
+  try {
+    const rows = await _activeBonos(orgId, phone, serviceKey, db, opts.today || _todayMadrid());
+    if (rows === null) return null;                 // sin tabla
+    // ¿tiene ALGÚN bono (aunque agotado/caducado)? — para distinguir null vs 0
+    const all = await db.client.from('nf_bonos').select('id').eq('org_id', orgId).in('phone', _variants(phone)).limit(1);
+    const hasAny = Array.isArray(all.data) && all.data.length > 0;
+    const remaining = rows.reduce((s, b) => s + _left(b), 0);
+    return hasAny ? remaining : null;
+  } catch (e) { log.warn(`getBalance: ${e.message}`); return null; }
+}
+
+/**
+ * Consume UNA sesión del bono activo más próximo a caducar. ATÓMICO (CAS).
+ * @returns {Promise<{consumed:boolean, remaining?:number, bonoId?:string}>}
+ */
+async function consumeOne(orgId, phone, serviceKey = null, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId || !phone) return { consumed: false };
+  const today = opts.today || _todayMadrid();
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const rows = await _activeBonos(orgId, phone, serviceKey, db, today);
+      if (rows === null || !rows.length) return { consumed: false };
+      // el que antes caduca primero (los sin caducidad, al final)
+      rows.sort((a, b) => (a.expires_at || '9999').localeCompare(b.expires_at || '9999'));
+      const b = rows[0];
+      const { data, error } = await db.client.from('nf_bonos')
+        .update({ used_sessions: (b.used_sessions || 0) + 1, updated_at: new Date().toISOString() })
+        .eq('id', b.id).eq('used_sessions', b.used_sessions || 0) // CAS: solo si nadie lo tocó
+        .select('id,total_sessions,used_sessions');
+      if (error) { if (error.code === '42P01') return { consumed: false }; throw error; }
+      if (Array.isArray(data) && data.length) {
+        return { consumed: true, bonoId: b.id, remaining: _left(data[0]) };
+      }
+      // colisión: otro proceso consumió; reintenta con datos frescos
+    }
+    return { consumed: false };
+  } catch (e) { log.warn(`consumeOne: ${e.message}`); return { consumed: false }; }
+}
+
+/** Alta/recarga de un bono (uso admin/portal). */
+async function grantBono(orgId, { phone, contactId = null, serviceKey = null, label = null, sessions, expiresAt = null }, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId || !phone || !(sessions > 0)) return { ok: false };
+  try {
+    const { data, error } = await db.client.from('nf_bonos').insert({
+      org_id: orgId, contact_id: contactId, phone, service_key: serviceKey,
+      label, total_sessions: sessions, used_sessions: 0, expires_at: expiresAt,
+    }).select('id').single();
+    if (error) { if (error.code === '42P01') return { ok: false, reason: 'no_table' }; throw error; }
+    return { ok: true, id: data.id };
+  } catch (e) { log.warn(`grantBono: ${e.message}`); return { ok: false }; }
+}
+
+module.exports = { getBalance, consumeOne, grantBono, _left, _notExpired };
