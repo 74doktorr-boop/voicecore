@@ -3181,6 +3181,9 @@ async function loadConfig() {
       '</div>' +
 
       '<div class="form-section-title">Ajustes avanzados <span class="u-normal">(opcional)</span></div>' +
+      '<div class="form-group"><label class="form-label">Equipo / profesionales <span class="u-normal">(reserva por profesional)</span></label>' +
+        '<input class="form-input" id="cfgStaff" placeholder="Ej: Ana, Beto, Carla" value="' + esc((Array.isArray(c.staff) ? c.staff : []).join(', ')) + '">' +
+        '<small class="form-hint">Si reservas con un profesional concreto (peluquería, barbería…), lista aquí a tu equipo separado por comas. La IA preguntará con quién quiere la cita. Vacío = una sola agenda.</small></div>' +
       '<div class="form-group"><label class="form-label">Info extra que la IA puede confirmar <span class="u-normal">(guardarraíl)</span></label>' +
         '<input class="form-input" id="cfgGuardrailExtra" maxlength="400" placeholder="Ej: Sí trabajamos con Adeslas y Sanitas" value="' + esc(c.guardrailExtra || '') + '">' +
         '<small class="form-hint">La IA nunca inventa ni da consejo clínico/legal, y nunca cierra un precio no configurado. Aquí puedes permitirle confirmar un dato concreto de tu negocio.</small></div>' +
@@ -3383,6 +3386,8 @@ async function saveConfig() {
     locations:      _collectCfgLocs(),   // multi-sede (undefined si la sección no está)
   };
   // Ajustes avanzados (opt-in). Vacío en coste = no tocar (preserva el valor).
+  var _st = document.getElementById('cfgStaff');
+  if (_st) body.staff = _st.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
   var _gx = document.getElementById('cfgGuardrailExtra');
   if (_gx) body.guardrailExtra = _gx.value.trim();
   var _ca = document.getElementById('cfgCostAlert');
