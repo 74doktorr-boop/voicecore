@@ -305,4 +305,4 @@ function setupWebhookRoutes(app) {
   log.info('Webhook routes configured → /api/portal/webhooks/*');
 }
 
-module.exports = { setupWebhookRoutes };
+module.exports = { setupWebhookRoutes, _validateWebhookUrl };

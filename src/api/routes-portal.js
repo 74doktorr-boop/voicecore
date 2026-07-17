@@ -1431,6 +1431,13 @@ function setupPortalRoutes(app, pipeline, config) {
         smsSenderId:    src.smsSenderId        || '',   // remitente SMS de marca (11 chars GSM)
         locations:      Array.isArray(src.locations) ? src.locations : [],   // multi-sede
         serviceList:    Array.isArray(src.serviceList) ? src.serviceList : [],
+        // Config avanzada (motores de la crítica sectorial) — para el panel.
+        guardrailExtra:        src.guardrailExtra || '',
+        costAlertThresholdEur: src.costAlertThresholdEur ?? '',
+        costCapEur:            src.costCapEur ?? '',
+        deposit:               src.deposit || { enabled: false, amountText: '', url: '' },
+        stayUnits:             Array.isArray(src.stayUnits) ? src.stayUnits : [],
+        integrations:          src.integrations || { enabled: false, outbound: [], inboundSecret: '' },
       },
     });
   });
@@ -1673,9 +1680,47 @@ function setupPortalRoutes(app, pipeline, config) {
   app.patch('/api/portal/config', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
     const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList, smsSenderId } = req.body;
+    // Config avanzada (motores de la crítica sectorial). Todo opt-in.
+    const { guardrailExtra, costAlertThresholdEur, costCapEur, deposit, stayUnits, integrations } = req.body;
 
-    if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl'].includes(language)) {
-      return res.status(400).json({ error: "language debe ser 'es', 'eu', 'gl', 'es+eu' o 'es+gl'" });
+    if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl', 'en', 'fr', 'es+en', 'es+fr'].includes(language)) {
+      return res.status(400).json({ error: "language no válido (es, eu, gl, en, fr o combos es+eu/es+gl/es+en/es+fr)" });
+    }
+    // Saneado de la config avanzada (seguridad: URLs http(s), no internas; topes).
+    const advPatch = {};
+    if (guardrailExtra !== undefined) advPatch.guardrailExtra = String(guardrailExtra || '').slice(0, 400);
+    if (costAlertThresholdEur !== undefined) advPatch.costAlertThresholdEur = Math.min(100000, Math.max(0, Math.round(Number(costAlertThresholdEur) || 0)));
+    if (costCapEur !== undefined) advPatch.costCapEur = Math.min(100000, Math.max(0, Math.round(Number(costCapEur) || 0)));
+    if (deposit !== undefined) {
+      const d = deposit || {};
+      const url = String(d.url || '').trim();
+      if (d.enabled && !/^https?:\/\/.+/i.test(url)) return res.status(400).json({ error: 'El enlace de la señal debe ser una URL http(s) válida' });
+      advPatch.deposit = { enabled: !!d.enabled, amountText: String(d.amountText || '').slice(0, 30), url: url.slice(0, 300) };
+    }
+    if (Array.isArray(stayUnits)) {
+      advPatch.stayUnits = stayUnits.filter(u => u && u.key).slice(0, 20).map(u => ({
+        key: String(u.key).trim().slice(0, 40),
+        label: String(u.label || u.key).slice(0, 60),
+        capacity: Math.min(9999, Math.max(1, Math.round(Number(u.capacity) || 1))),
+      }));
+    }
+    if (integrations !== undefined) {
+      const ig = integrations || {};
+      const { _validateWebhookUrl } = require('./routes-webhooks');
+      const outbound = Array.isArray(ig.outbound) ? ig.outbound.slice(0, 10).filter(h => h && h.url) : [];
+      for (const h of outbound) {
+        const err = _validateWebhookUrl(String(h.url)); // null = válida; string = motivo
+        if (err) return res.status(400).json({ error: `URL de webhook no permitida (${err}): ${h.url}` });
+      }
+      advPatch.integrations = {
+        enabled: !!ig.enabled,
+        outbound: outbound.map(h => ({
+          url: String(h.url).slice(0, 500),
+          secret: h.secret ? String(h.secret).slice(0, 200) : undefined,
+          events: Array.isArray(h.events) ? h.events.map(e => String(e).slice(0, 40)).slice(0, 12) : undefined,
+        })),
+        inboundSecret: ig.inboundSecret ? String(ig.inboundSecret).slice(0, 200) : undefined,
+      };
     }
 
     // Multi-sede autoservicio: lista de centros editable desde el portal.
@@ -1752,6 +1797,8 @@ function setupPortalRoutes(app, pipeline, config) {
             ? { locations: s.locations.map(l => String(l).trim().slice(0, 40)).filter(Boolean).slice(0, 10) }
             : {}),
         })) }),
+      // Config avanzada saneada (aforo/bonos/estancias/señal/coste/integraciones)
+      ...advPatch,
     };
     flow.automations.config = { ...existingCustom, ...configPatch };
     flow.updatedAt = new Date().toISOString();
