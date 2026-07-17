@@ -81,6 +81,31 @@ async function consumeOne(orgId, phone, serviceKey = null, opts = {}) {
   } catch (e) { log.warn(`consumeOne: ${e.message}`); return { consumed: false }; }
 }
 
+/**
+ * Devuelve UNA sesión a un bono concreto (reembolso al cancelar la cita).
+ * ATÓMICO (CAS). No baja de 0. @returns {Promise<{refunded:boolean, remaining?:number}>}
+ */
+async function refundOne(orgId, bonoId, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId || !bonoId) return { refunded: false };
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: rows, error } = await db.client.from('nf_bonos')
+        .select('id,used_sessions,total_sessions').eq('id', bonoId).eq('org_id', orgId).limit(1);
+      if (error) { if (error.code === '42P01') return { refunded: false }; throw error; }
+      const b = rows && rows[0];
+      if (!b || (b.used_sessions || 0) <= 0) return { refunded: false };
+      const { data, error: e2 } = await db.client.from('nf_bonos')
+        .update({ used_sessions: b.used_sessions - 1, updated_at: new Date().toISOString() })
+        .eq('id', bonoId).eq('used_sessions', b.used_sessions) // CAS
+        .select('id,total_sessions,used_sessions');
+      if (e2) { if (e2.code === '42P01') return { refunded: false }; throw e2; }
+      if (Array.isArray(data) && data.length) return { refunded: true, remaining: _left(data[0]) };
+    }
+    return { refunded: false };
+  } catch (e) { log.warn(`refundOne: ${e.message}`); return { refunded: false }; }
+}
+
 /** Alta/recarga de un bono (uso admin/portal). */
 async function grantBono(orgId, { phone, contactId = null, serviceKey = null, label = null, sessions, expiresAt = null }, opts = {}) {
   const db = opts.db || require('../db/database').getDatabase();
@@ -95,4 +120,4 @@ async function grantBono(orgId, { phone, contactId = null, serviceKey = null, la
   } catch (e) { log.warn(`grantBono: ${e.message}`); return { ok: false }; }
 }
 
-module.exports = { getBalance, consumeOne, grantBono, _left, _notExpired };
+module.exports = { getBalance, consumeOne, refundOne, grantBono, _left, _notExpired };

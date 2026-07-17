@@ -352,6 +352,15 @@ class SchedulingSystem {
       appointmentsStore.upsert(appointment);
     } catch (_) {}
 
+    // Bonos: consume UNA sesión del bono del cliente si lo tiene (modelo "al
+    // reservar" — se devuelve al cancelar). Fire-and-forget, NO-OP sin bono/tabla.
+    // Guarda bonoId en la cita (memoria) para poder reembolsar al cancelar.
+    if (appointment.phone && process.env.NODE_ENV !== 'test') {
+      Promise.resolve(require('../billing/bonos').consumeOne(businessId, appointment.phone, appointment.serviceId))
+        .then(r => { if (r && r.consumed) { appointment.bonoId = r.bonoId; log.info(`Bono consumido en ${id}: quedan ${r.remaining} sesiones`); } })
+        .catch(() => {});
+    }
+
     // ── WhatsApp: confirmación inmediata al cliente ───────────────────────────
     // Template: nodeflow_cita_confirmada (sin botones — solo información)
     // Fire-and-forget: no bloquea la respuesta de reserva.
@@ -474,6 +483,16 @@ class SchedulingSystem {
       const { appointmentsStore } = require('../db/appointments-store');
       appointmentsStore.patch(apt.id, { status: 'cancelled', cancelledAt: apt.cancelledAt, updatedAt: apt.updatedAt });
     } catch (_) {}
+
+    // Bonos: si la cita consumió una sesión al reservar, la DEVUELVE al cancelar
+    // (modelo "al reservar + reembolso"). bonoId vive en memoria desde la reserva;
+    // si el server se reinició entre reserva y cancelación no está y no se
+    // reembolsa (edge raro; nunca reembolsa de más). Fire-and-forget.
+    if (apt.bonoId && apt.businessId) {
+      Promise.resolve(require('../billing/bonos').refundOne(apt.businessId, apt.bonoId))
+        .then(r => { if (r && r.refunded) log.info(`Bono reembolsado al cancelar ${apt.id}: quedan ${r.remaining} sesiones`); })
+        .catch(() => {});
+    }
 
     // Fase 3: borra el evento del Google Calendar del dueño (si lo había) para
     // que no quede de fantasma — igual que la cancelación por WhatsApp/portal.

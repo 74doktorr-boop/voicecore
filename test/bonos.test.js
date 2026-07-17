@@ -7,7 +7,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { getBalance, consumeOne, grantBono, _left, _notExpired } = require('../src/billing/bonos');
+const { getBalance, consumeOne, refundOne, grantBono, _left, _notExpired } = require('../src/billing/bonos');
 
 // ── Mock mínimo de la tabla nf_bonos (soporta las cadenas usadas) ────────────
 function makeDb(initialRows = []) {
@@ -94,6 +94,32 @@ describe('consumeOne (atómico)', () => {
     const db = makeDb([{ org_id: 'o', phone: '+34600111', total_sessions: 5, used_sessions: 0, service_key: 'masaje' }]);
     assert.strictEqual((await consumeOne('o', '+34600111', 'otro', { db })).consumed, false);
     assert.strictEqual((await consumeOne('o', '+34600111', 'masaje', { db })).consumed, true);
+  });
+});
+
+describe('refundOne (reembolso al cancelar)', () => {
+  test('devuelve una sesión al bono', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600111', total_sessions: 10, used_sessions: 4 }]);
+    const r = await refundOne('o', 'B1', { db });
+    assert.strictEqual(r.refunded, true);
+    assert.strictEqual(r.remaining, 7);            // 10 - 3
+    assert.strictEqual(db._rows[0].used_sessions, 3);
+  });
+  test('no baja de 0', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600', total_sessions: 5, used_sessions: 0 }]);
+    assert.strictEqual((await refundOne('o', 'B1', { db })).refunded, false);
+  });
+  test('no reembolsa un bono de otra org', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600', total_sessions: 5, used_sessions: 2 }]);
+    assert.strictEqual((await refundOne('otra-org', 'B1', { db })).refunded, false);
+  });
+  test('consume y luego reembolsa → saldo intacto', async () => {
+    const db = makeDb([{ id: 'B1', org_id: 'o', phone: '+34600111', total_sessions: 10, used_sessions: 0 }]);
+    const c = await consumeOne('o', '+34600111', null, { db });
+    assert.strictEqual(c.remaining, 9);
+    const r = await refundOne('o', c.bonoId, { db });
+    assert.strictEqual(r.remaining, 10);
+    assert.strictEqual(db._rows[0].used_sessions, 0);
   });
 });
 
