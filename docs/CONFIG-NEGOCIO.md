@@ -92,7 +92,16 @@ tools `check_stay_availability` y `book_stay` a la lista de tools del asistente.
 `checkout` es exclusivo (01→04 = 3 noches). El bot consulta disponibilidad por
 noche contra el aforo y reserva si caben todas las noches.
 
-## 8. Integraciones (conector) — `integrations`
+## 8. Idioma del asistente — `language`
+
+En `assistant_config.language` (o el idioma del flow):
+`es` (default) · `eu` · `gl` · `es+eu` · `es+gl` · **`en`** · **`fr`** · **`es+en`** · **`es+fr`**.
+
+Los bilingües responden en el idioma del cliente. `en`/`fr` y los combos con
+inglés/francés son para turismo/costa (hotel, restaurante). El saludo
+(`firstMessage`) conviene ponerlo en el idioma correspondiente.
+
+## 9. Integraciones (conector) — `integrations`
 
 Empuja los eventos de NodeFlow al software del negocio y acepta los suyos de
 vuelta (ver `docs/INTEGRACIONES.md`).
