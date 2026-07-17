@@ -45,10 +45,10 @@ describe('busyFromIcs — pared de Madrid', () => {
     assert.deepStrictEqual(r.busy['2026-07-20'], [{ startMin: 1380, endMin: 1440 }]);
     assert.deepStrictEqual(r.busy['2026-07-21'], [{ startMin: 0, endMin: 60 }]);
   });
-  test('all-day y RRULE se OMITEN (v1 consciente) y se cuentan', () => {
+  test('all-day y RRULE no soportada (MONTHLY) se OMITEN y se cuentan', () => {
     const r = busyFromIcs(ics([
       'DTSTART;VALUE=DATE:20260720',                                             // festivo
-      'DTSTART;TZID=Europe/Madrid:20260720T100000\nRRULE:FREQ=WEEKLY',           // clase recurrente
+      'DTSTART;TZID=Europe/Madrid:20260720T100000\nRRULE:FREQ=MONTHLY',          // aún no (v2 = DAILY/WEEKLY)
       'DTSTART;TZID=Europe/Madrid:20260720T120000\nDTEND;TZID=Europe/Madrid:20260720T123000',
     ]), '2026-07-20', '2026-07-20');
     assert.strictEqual(r.skipped.allDay, 1);
@@ -58,6 +58,57 @@ describe('busyFromIcs — pared de Madrid', () => {
   test('fuera de rango no aparece', () => {
     const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260801T100000\nDTEND;TZID=Europe/Madrid:20260801T110000']), '2026-07-20', '2026-07-25');
     assert.deepStrictEqual(r.busy, {});
+  });
+});
+
+describe('RRULE v2 — clases recurrentes (gimnasio/yoga/pilates)', () => {
+  // 2026-07-20 es LUNES. Ventana de prueba: semana del 20 al 26.
+  const W = ['2026-07-20', '2026-07-26'];
+
+  test('clase semanal (lunes 10:00) bloquea el lunes de la ventana', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY']), W[0], W[1]);
+    assert.deepStrictEqual(r.busy['2026-07-20'], [{ startMin: 600, endMin: 660 }]);
+    assert.strictEqual(r.busy['2026-07-21'], undefined);
+  });
+
+  test('BYDAY=MO,WE,FR bloquea lunes, miércoles y viernes', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T180000\nDTEND;TZID=Europe/Madrid:20260706T190000\nRRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR']), W[0], W[1]);
+    assert.ok(r.busy['2026-07-20'] && r.busy['2026-07-22'] && r.busy['2026-07-24']);
+    assert.strictEqual(r.busy['2026-07-21'], undefined);
+    assert.strictEqual(r.busy['2026-07-23'], undefined);
+  });
+
+  test('INTERVAL=2 (quincenal): la semana que no toca NO bloquea', () => {
+    // Empieza el lunes 6: toca semana del 6 y del 20; la del 13 y la del 27 no.
+    const r1 = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY;INTERVAL=2']), W[0], W[1]);
+    assert.ok(r1.busy['2026-07-20']);
+    const r2 = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY;INTERVAL=2']), '2026-07-27', '2026-08-02');
+    assert.strictEqual(r2.busy['2026-07-27'], undefined);
+  });
+
+  test('UNTIL corta la serie', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY;UNTIL=20260715T000000Z']), W[0], W[1]);
+    assert.deepStrictEqual(r.busy, {});   // la serie murió el 15
+  });
+
+  test('COUNT=2 solo genera 2 ocurrencias (6 y 13 de julio) → nada en la ventana', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY;COUNT=2']), W[0], W[1]);
+    assert.deepStrictEqual(r.busy, {});
+  });
+
+  test('EXDATE quita la ocurrencia (vacaciones del profe)', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260706T100000\nDTEND;TZID=Europe/Madrid:20260706T110000\nRRULE:FREQ=WEEKLY\nEXDATE;TZID=Europe/Madrid:20260720T100000']), W[0], W[1]);
+    assert.deepStrictEqual(r.busy, {});   // la del 20 estaba excluida
+  });
+
+  test('DAILY bloquea todos los días de la ventana', () => {
+    const r = busyFromIcs(ics(['DTSTART;TZID=Europe/Madrid:20260701T090000\nDTEND;TZID=Europe/Madrid:20260701T093000\nRRULE:FREQ=DAILY']), '2026-07-20', '2026-07-22');
+    assert.ok(r.busy['2026-07-20'] && r.busy['2026-07-21'] && r.busy['2026-07-22']);
+  });
+
+  test('recurrente en UTC convierte a pared Madrid (+2 en verano)', () => {
+    const r = busyFromIcs(ics(['DTSTART:20260706T080000Z\nDTEND:20260706T090000Z\nRRULE:FREQ=WEEKLY']), W[0], W[1]);
+    assert.deepStrictEqual(r.busy['2026-07-20'], [{ startMin: 600, endMin: 660 }]);  // 08:00Z = 10:00 Madrid
   });
 });
 

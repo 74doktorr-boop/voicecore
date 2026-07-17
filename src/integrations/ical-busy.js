@@ -68,22 +68,9 @@ function busyFromIcs(text, fromDate, toDate) {
   const busy = {};
   const skipped = { allDay: 0, rrule: 0, bad: 0 };
   let events = 0;
-  const blocks = unfoldIcs(text).split('BEGIN:VEVENT').slice(1);
-  for (const raw of blocks) {
-    const body = raw.split('END:VEVENT')[0];
-    if (/^RRULE[:;]/m.test(body)) { skipped.rrule++; continue; }
-    const ds = body.match(/^DTSTART([^:\n]*):([^\n]+)$/m);
-    const de = body.match(/^DTEND([^:\n]*):([^\n]+)$/m);
-    if (!ds) { skipped.bad++; continue; }
-    const start = parseIcsDate(ds[2], ds[1]);
-    const end = de ? parseIcsDate(de[2], de[1]) : null;
-    if (!start) { skipped.bad++; continue; }
-    if (start.allDay) { skipped.allDay++; continue; }
-    const s = icsPointToMadrid(start);
-    // Sin DTEND → 30 min por defecto (mejor bloquear algo que nada).
-    const e = end && !end.allDay ? icsPointToMadrid(end) : { date: s.date, min: Math.min(s.min + 30, 1440) };
-    events++;
-    // Repartir por días (recorta a [fromDate, toDate] y a los bordes del día).
+
+  // Reparte un bloque {date,min}→{date,min} por días, recortado a la ventana.
+  const pushRange = (s, e) => {
     for (let day = s.date; day <= e.date; day = _nextDay(day)) {
       if (day < fromDate || day > toDate) { if (day > toDate) break; continue; }
       const startMin = day === s.date ? s.min : 0;
@@ -91,6 +78,45 @@ function busyFromIcs(text, fromDate, toDate) {
       if (endMin > startMin) (busy[day] = busy[day] || []).push({ startMin, endMin });
       if (day === e.date) break;
     }
+  };
+
+  const blocks = unfoldIcs(text).split('BEGIN:VEVENT').slice(1);
+  for (const raw of blocks) {
+    const body = raw.split('END:VEVENT')[0];
+    const ds = body.match(/^DTSTART([^:\n]*):([^\n]+)$/m);
+    const de = body.match(/^DTEND([^:\n]*):([^\n]+)$/m);
+    if (!ds) { skipped.bad++; continue; }
+    const start = parseIcsDate(ds[2], ds[1]);
+    const end = de ? parseIcsDate(de[2], de[1]) : null;
+    if (!start) { skipped.bad++; continue; }
+    if (start.allDay) { skipped.allDay++; continue; }
+
+    // Duración en minutos sobre el reloj de pared original (fallback 30 min).
+    const durMin = end && !end.allDay
+      ? Math.max(1, Math.round((Date.UTC(end.y, end.mo - 1, end.d, end.h, end.mi) - Date.UTC(start.y, start.mo - 1, start.d, start.h, start.mi)) / 60000))
+      : 30;
+
+    const rr = body.match(/^RRULE[:;]([^\n]+)$/m);
+    if (rr) {
+      // v2: clases recurrentes (DAILY/WEEKLY). Cada ocurrencia hereda la hora
+      // de pared del DTSTART; EXDATE elimina excepciones (vacaciones).
+      const occs = expandRrule(parseRrule(rr[1]), start, fromDate, toDate);
+      if (occs === null) { skipped.rrule++; continue; }   // MONTHLY/YEARLY: aún no
+      const ex = exdateKeys(body);
+      for (const o of occs) {
+        if (ex.has(`${o.y}-${o.mo}-${o.d}-${start.h * 60 + start.mi}`)) continue;
+        const endDt = new Date(Date.UTC(o.y, o.mo - 1, o.d, start.h, start.mi + durMin));
+        const endComp = { utc: start.utc, y: endDt.getUTCFullYear(), mo: endDt.getUTCMonth() + 1, d: endDt.getUTCDate(), h: endDt.getUTCHours(), mi: endDt.getUTCMinutes() };
+        events++;
+        pushRange(icsPointToMadrid({ ...start, y: o.y, mo: o.mo, d: o.d }), icsPointToMadrid(endComp));
+      }
+      continue;
+    }
+
+    const s = icsPointToMadrid(start);
+    const e = end && !end.allDay ? icsPointToMadrid(end) : { date: s.date, min: Math.min(s.min + 30, 1440) };
+    events++;
+    pushRange(s, e);
   }
   return { busy, skipped, events };
 }
@@ -99,6 +125,86 @@ function _nextDay(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d + 1);
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+// ── RRULE v2: clases recurrentes (gimnasio/yoga/pilates viven de esto) ──────
+// Soporta FREQ=DAILY|WEEKLY con INTERVAL, BYDAY, UNTIL, COUNT y EXDATE — lo que
+// emiten los feeds reales. MONTHLY/YEARLY se siguen omitiendo (contados).
+
+const _DOW = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+
+/** "FREQ=WEEKLY;BYDAY=MO,WE;INTERVAL=2" → objeto en mayúsculas. PURA. */
+function parseRrule(line) {
+  const out = {};
+  for (const part of String(line || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i < 1) continue;
+    out[part.slice(0, i).toUpperCase()] = part.slice(i + 1);
+  }
+  return out;
+}
+
+const MAX_EXPANSION_DAYS = 4000; // tope duro anti feeds patológicos
+
+/**
+ * Expande una recurrencia en ocurrencias {y,mo,d} dentro de [fromDate,toDate].
+ * `start` = componentes del DTSTART. COUNT cuenta también las anteriores a la
+ * ventana (correcto según RFC). PURA.
+ */
+function expandRrule(rule, start, fromDate, toDate) {
+  const freq = String(rule.FREQ || '').toUpperCase();
+  if (freq !== 'DAILY' && freq !== 'WEEKLY') return null;   // no soportada (v2)
+  const interval = Math.max(1, parseInt(rule.INTERVAL, 10) || 1);
+  const count = rule.COUNT ? Math.max(1, parseInt(rule.COUNT, 10) || 1) : null;
+  let untilDate = null;
+  if (rule.UNTIL) {
+    const u = parseIcsDate(rule.UNTIL.replace(/Z$/, ''), '');
+    if (u) untilDate = `${u.y}-${String(u.mo).padStart(2, '0')}-${String(u.d).padStart(2, '0')}`;
+  }
+  const byday = rule.BYDAY
+    ? String(rule.BYDAY).split(',').map(s => _DOW[s.trim().slice(-2).toUpperCase()]).filter(n => n !== undefined)
+    : null;
+
+  const base = new Date(start.y, start.mo - 1, start.d);
+  const baseDow = base.getDay();
+  const days = byday && byday.length ? byday : [baseDow];
+  // Semana base (lunes) para el INTERVAL semanal
+  const baseMonday = new Date(base); baseMonday.setDate(base.getDate() - ((baseDow + 6) % 7));
+
+  const out = [];
+  let made = 0;
+  for (let i = 0; i < MAX_EXPANSION_DAYS; i++) {
+    const cur = new Date(base); cur.setDate(base.getDate() + i);
+    const curStr = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+    if (curStr > toDate) break;
+    if (untilDate && curStr > untilDate) break;
+    let match = false;
+    if (freq === 'DAILY') match = i % interval === 0;
+    else {
+      if (days.includes(cur.getDay())) {
+        const weeks = Math.floor((cur - baseMonday) / (7 * 864e5));
+        match = weeks % interval === 0;
+      }
+    }
+    if (!match) continue;
+    made++;
+    if (count && made > count) break;
+    if (curStr >= fromDate) out.push({ y: cur.getFullYear(), mo: cur.getMonth() + 1, d: cur.getDate() });
+  }
+  return out;
+}
+
+/** EXDATE(s) del evento → Set de claves "YYYY-M-D-min". PURA. */
+function exdateKeys(body) {
+  const keys = new Set();
+  const lines = String(body || '').match(/^EXDATE[^:\n]*:[^\n]+$/gm) || [];
+  for (const line of lines) {
+    for (const v of line.slice(line.indexOf(':') + 1).split(',')) {
+      const p = parseIcsDate(v.trim().replace(/Z$/, ''), '');
+      if (p) keys.add(`${p.y}-${p.mo}-${p.d}-${p.allDay ? 'all' : p.h * 60 + p.mi}`);
+    }
+  }
+  return keys;
 }
 
 /** Solo https hacia hosts públicos (anti-SSRF, mismo criterio que webhooks). PURA. */
@@ -157,4 +263,4 @@ async function icalBusyByDate(orgId, feeds, fromDate, toDate, opts = {}) {
 
 function _clearCache() { _feedCache.clear(); }
 
-module.exports = { unfoldIcs, parseIcsDate, icsPointToMadrid, busyFromIcs, isSafeFeedUrl, icalBusyByDate, _clearCache };
+module.exports = { unfoldIcs, parseIcsDate, icsPointToMadrid, busyFromIcs, isSafeFeedUrl, icalBusyByDate, parseRrule, expandRrule, exdateKeys, _clearCache };
