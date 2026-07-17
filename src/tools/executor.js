@@ -195,6 +195,10 @@ class ToolExecutor {
       book_visit:          this.bookVisit.bind(this),
       request_quote:       this.requestQuote.bind(this),
 
+      // ── Estancias por noches (hotel/residencia/guardería) ──
+      check_stay_availability: this.toolCheckStay.bind(this),
+      book_stay:               this.toolBookStay.bind(this),
+
       // ── Member management (gimnasio) ──
       request_freeze:      this.requestFreeze.bind(this),
       process_cancellation:this.processCancellation.bind(this),
@@ -1469,6 +1473,46 @@ class ToolExecutor {
   //   2. { name, ... } → looked up in DEFINITIONS
   //   3. { type: 'function', function: { name, ... } } → passed through as-is (JSON format)
   // ─────────────────────────────────────────────────────────────────────────
+  // ── Estancias por noches (hotel/residencia/guardería) ────────────────────
+  // Aforo por unidad desde la config del negocio (automation_config.config.
+  // stayUnits = [{key,label,capacity}]). Sin config → deriva al equipo.
+  _stayUnits(assistantId) {
+    const cfg = _getBizConfig(assistantId) || {};
+    const u = cfg.stayUnits
+      || (cfg.automations && cfg.automations.config && cfg.automations.config.stayUnits)
+      || (cfg.config && cfg.config.stayUnits);
+    return Array.isArray(u) ? u : [];
+  }
+  _stayUnitFor(assistantId, unitKey) {
+    const units = this._stayUnits(assistantId);
+    if (!units.length) return null;
+    if (!unitKey) return units[0];
+    const q = String(unitKey).toLowerCase();
+    return units.find(u => u.key === unitKey || String(u.label || '').toLowerCase().includes(q)) || units[0];
+  }
+  async toolCheckStay(args, assistantId) {
+    const unit = this._stayUnitFor(assistantId, args.unit || args.unit_key);
+    if (!unit) return { available: false, message: 'Para estancias, anota la solicitud y el equipo confirma la disponibilidad.' };
+    const r = await require('../scheduling/stays').checkStayAvailability(assistantId, {
+      unitKey: unit.key, checkin: args.checkin, checkout: args.checkout, units: args.units || 1, capacity: Number(unit.capacity) || 1,
+    });
+    if (r.available) return { available: true, unit: unit.label || unit.key };
+    if (r.reason === 'rango_invalido') return { available: false, message: 'Esas fechas no son válidas; pídelas de nuevo.' };
+    return { available: false, fullNights: r.fullNights || [], message: 'No hay plaza libre en todas esas noches. Ofrece otras fechas.' };
+  }
+  async toolBookStay(args, assistantId, context = {}) {
+    const unit = this._stayUnitFor(assistantId, args.unit || args.unit_key);
+    if (!unit) return { success: false, message: 'No puedo reservar la estancia ahora; anoto la solicitud para el equipo.' };
+    const callerPhone = context.session && context.session.callerNumber;
+    const phone = args.phone || ((callerPhone && callerPhone !== 'unknown') ? callerPhone : '');
+    const r = await require('../scheduling/stays').bookStay(assistantId, {
+      unitKey: unit.key, guestName: args.guest_name || args.name, phone,
+      checkin: args.checkin, checkout: args.checkout, units: args.units || 1, capacity: Number(unit.capacity) || 1,
+    });
+    if (r.success) return { success: true, id: r.id, message: `Estancia reservada del ${args.checkin} al ${args.checkout}.` };
+    return { success: false, fullNights: r.fullNights || [], message: 'Esas noches no tienen plaza. Ofrece otras fechas u otro tipo de plaza.' };
+  }
+
   static toOpenAITools(tools) {
     if (!tools || !Array.isArray(tools) || tools.length === 0) return [];
 
@@ -1640,6 +1684,43 @@ class ToolExecutor {
               notes:        { type: 'string' },
             },
             required: ['client_name', 'type', 'due_date'],
+          },
+        },
+      },
+      check_stay_availability: {
+        type: 'function',
+        function: {
+          name: 'check_stay_availability',
+          description: 'Consulta si hay plazas libres para una estancia por NOCHES (hotel, residencia de mascotas, guardería) en un rango de fechas. Úsala SIEMPRE antes de reservar una estancia.',
+          parameters: {
+            type: 'object',
+            properties: {
+              unit:     { type: 'string', description: 'Tipo de plaza/habitación (solo si el negocio tiene varios)' },
+              checkin:  { type: 'string', description: 'Fecha de entrada YYYY-MM-DD' },
+              checkout: { type: 'string', description: 'Fecha de salida YYYY-MM-DD (exclusiva: no se cobra esa noche)' },
+              units:    { type: 'integer', description: 'Nº de plazas/habitaciones (por defecto 1)' },
+            },
+            required: ['checkin', 'checkout'],
+          },
+        },
+      },
+      book_stay: {
+        type: 'function',
+        function: {
+          name: 'book_stay',
+          description: 'Reserva una estancia por noches tras confirmar las fechas con el cliente. SOLO si check_stay_availability dio disponible y el cliente aceptó.',
+          parameters: {
+            type: 'object',
+            properties: {
+              guest_name: { type: 'string' },
+              phone:      { type: 'string' },
+              unit:       { type: 'string', description: 'Tipo de plaza/habitación' },
+              checkin:    { type: 'string', description: 'YYYY-MM-DD' },
+              checkout:   { type: 'string', description: 'YYYY-MM-DD (exclusiva)' },
+              units:      { type: 'integer' },
+              confirmed_with_customer: { type: 'boolean', description: 'true SOLO si has dicho las fechas exactas y el cliente ha aceptado' },
+            },
+            required: ['checkin', 'checkout', 'confirmed_with_customer'],
           },
         },
       },
