@@ -4,8 +4,11 @@ Todas estas opciones viven en `organizations.automation_config.config` y están
 **APAGADAS por defecto** (cero riesgo). Se activan por negocio. Salieron de la
 crítica sectorial (128 clientes ficticios) y su ronda 2.
 
-> Mientras no exista panel en el portal, se ponen con un `UPDATE` en Supabase
-> (o el endpoint de admin de config de la org). Ejemplo al final.
+> **Panel:** guardarraíl extra, aviso/tope de gasto, señal, estancias e
+> integraciones se editan desde **Portal → Configuración → Ajustes avanzados**
+> (sin SQL). El aforo por servicio (`capacity`) y el idioma en/fr aún van por
+> SQL/Asistente. El `UPDATE` de Supabase de abajo sigue valiendo como
+> alternativa/para lo no cubierto.
 
 ## 1. Guardarraíl configurable — `guardrailExtra`
 
