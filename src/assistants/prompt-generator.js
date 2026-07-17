@@ -214,16 +214,20 @@ const CORE_GUARDRAILS = `REGLAS INQUEBRANTABLES (mandan sobre TODO lo demás de 
 const HEALTH_SECTORS = new Set(['dental', 'clinica', 'fisioterapia', 'psicologia', 'nutricion', 'veterinaria', 'podologia', 'estetica_avanzada', 'laser', 'farmacia', 'reconocimientos', 'optica']);
 const LEGAL_SECTORS  = new Set(['abogados', 'asesoria', 'notaria', 'arquitectura']);
 
-function clusterGuardrail(sector) {
+function clusterGuardrail(sector, config = {}) {
+  // Ajuste opcional por negocio (ronda 2 de la crítica sectorial: el guardarraíl
+  // debe ser CONFIGURABLE). Texto libre que el dueño permite/matiza para su caso.
+  const extra = config.guardrailExtra ? `\n- ${String(config.guardrailExtra).trim()}` : '';
   if (HEALTH_SECTORS.has(sector)) return `
 GUARDARRAÍL CLÍNICO (obligatorio, manda sobre todo lo demás):
-5. NUNCA des consejo médico, diagnóstico ni opinión clínica. Ante un síntoma, dolor, lesión, duda sobre medicación, embarazo, contraindicaciones, o si "necesita" un tratamiento: NO opines ni tranquilices ("no será nada", "eso se cura con…"). Di que eso lo valora el profesional en consulta y ofrece cita o que el equipo le llame.
-6. NUNCA cierres el precio de un TRATAMIENTO concreto que no figure EXACTAMENTE en tus servicios (p.ej. "¿cuánto cuesta una endodoncia / una sesión de X?"): responde "eso se valora en consulta". Los precios que SÍ tienes configurados (p.ej. primera consulta) sí los puedes decir tal cual.
-7. Ante una posible URGENCIA (mucho dolor, sangrado, algo que suene grave): no la gestiones tú — di que es importante y que el equipo/profesional le atienda cuanto antes, y toma sus datos.`;
+5. SÍ informas de los servicios, de cómo funciona la consulta a grandes rasgos, de qué traer, y AGENDAS la cita. Lo que NUNCA haces es dar consejo médico, diagnóstico ni opinión clínica: ante un síntoma, dolor, lesión, duda sobre medicación, embarazo, contraindicaciones o si "necesita" un tratamiento, NO opines ni tranquilices ("no será nada", "eso se cura con…") — di que eso lo valora el profesional en consulta y OFRÉCELE cita (ayuda a agendar, nunca te limites a "no puedo ayudarte").
+6. NUNCA cierres el precio de un TRATAMIENTO concreto que no figure EXACTAMENTE en tus servicios ("¿cuánto cuesta una endodoncia?"): responde "eso se valora en consulta" y ofrece cita. Los precios que SÍ tienes configurados (p.ej. primera consulta) los dices tal cual.
+7. Ante una posible URGENCIA (mucho dolor, sangrado, algo que suene grave): no la gestiones tú — di que es importante y que el profesional le atienda cuanto antes, y toma sus datos.${extra}`;
   if (LEGAL_SECTORS.has(sector)) return `
 GUARDARRAÍL PROFESIONAL (obligatorio, manda sobre todo lo demás):
-5. NUNCA des asesoramiento legal, fiscal, técnico ni de ningún tipo, ni interpretes un caso, plazo, trámite, normativa o documento. Solo agendas y tomas datos; cualquier consulta de fondo la deriva SIEMPRE a un profesional humano.
-6. NUNCA des un precio, arancel o presupuesto cerrado de un servicio que no figure EXACTAMENTE en tu información: di que se valora con el profesional.`;
+5. Eres la recepcionista y AYUDAS: SÍ informas de qué servicios/trámites ofrece el despacho, de cómo funciona el proceso a grandes rasgos, de qué documentación traer, y AGENDAS la cita o la visita. Ejemplo: "¿tramitáis herencias?" → "Sí, eso lo lleva el abogado; ¿le agendo una cita?".
+6. Lo que NUNCA haces es dar asesoramiento legal, fiscal o técnico sobre el CASO concreto del cliente, ni interpretar una norma, plazo, trámite o documento, ni valorar su situación: eso lo hace el profesional. Ante una consulta de fondo, recoge brevemente de qué va y ofrécele cita — NUNCA te limites a "no puedo ayudarte": tu trabajo es que consiga la cita.
+7. NUNCA des un precio, arancel o presupuesto cerrado de un servicio que no figure EXACTAMENTE en tu información: di que se valora con el profesional, y agéndalo.${extra}`;
   return '';
 }
 
@@ -231,7 +235,7 @@ function generatePrompt(config, orgName) {
   const sector        = config.sector || 'generico';
   // Guardarraíles = núcleo común + refuerzo por cluster. Se aplican SIEMPRE,
   // incluso a un prompt personalizado (van delante, no se pueden saltar).
-  const guardrails    = CORE_GUARDRAILS + clusterGuardrail(sector);
+  const guardrails    = CORE_GUARDRAILS + clusterGuardrail(sector, config);
 
   // Prompt personalizado del admin: se respeta su contenido, pero las reglas de
   // seguridad se aplican IGUAL (van delante — no se pueden saltar por un override).

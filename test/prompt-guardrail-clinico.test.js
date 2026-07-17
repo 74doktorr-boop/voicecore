@@ -19,9 +19,10 @@ describe('generatePrompt — guardarraíl clínico (cluster salud)', () => {
     test(`${sector}: incluye el guardarraíl clínico`, () => {
       const p = generatePrompt({ sector }, 'Clínica X');
       assert.match(p, /GUARDARRAÍL CLÍNICO/);
-      assert.match(p, /NUNCA des consejo m[eé]dico/i);
+      assert.match(p, /consejo m[eé]dico/i);
       assert.match(p, /se valora en consulta/i);          // precio de tratamiento no cerrado
       assert.match(p, /URGENCIA/i);
+      assert.match(p, /ofr[eé]cele cita|agenda/i);        // AYUDA y agenda, no solo rebota
     });
   }
 
@@ -33,13 +34,35 @@ describe('generatePrompt — guardarraíl clínico (cluster salud)', () => {
 
 describe('generatePrompt — guardarraíl profesional (cluster colegiados)', () => {
   for (const sector of ['abogados', 'asesoria', 'notaria', 'arquitectura']) {
-    test(`${sector}: incluye el guardarraíl profesional`, () => {
+    test(`${sector}: incluye el guardarraíl profesional Y ayuda a agendar`, () => {
       const p = generatePrompt({ sector }, 'Despacho X');
       assert.match(p, /GUARDARRAÍL PROFESIONAL/);
-      assert.match(p, /NUNCA des asesoramiento legal, fiscal/i);
+      assert.match(p, /asesoramiento legal, fiscal/i);      // sigue vetando el consejo de fondo
+      assert.match(p, /AGENDAS|agendo|cita/i);              // pero AYUDA y agenda (fix regresión r2)
       assert.doesNotMatch(p, /GUARDARRAÍL CLÍNICO/);
     });
   }
+
+  test('legal: NO se limita a rebotar — engancha y agenda (fix de la regresión r2)', () => {
+    const p = generatePrompt({ sector: 'asesoria' }, 'Gestoría X');
+    assert.match(p, /AYUDAS/);
+    assert.match(p, /consiga la cita|le agendo|ofr[eé]cele cita/i);
+  });
+});
+
+describe('generatePrompt — guardarraíl CONFIGURABLE por negocio (guardrailExtra)', () => {
+  test('el texto extra del dueño se añade al guardarraíl del cluster salud', () => {
+    const p = generatePrompt({ sector: 'dental', guardrailExtra: 'Sí puedes confirmar que trabajamos con Adeslas.' }, 'Clínica X');
+    assert.match(p, /trabajamos con Adeslas/);
+  });
+  test('sin guardrailExtra no aparece basura', () => {
+    const p = generatePrompt({ sector: 'dental' }, 'Clínica X');
+    assert.doesNotMatch(p, /undefined/);
+  });
+  test('guardrailExtra no afecta a sectores neutros (no tienen bloque de cluster)', () => {
+    const p = generatePrompt({ sector: 'peluqueria', guardrailExtra: 'texto X' }, 'Peluquería X');
+    assert.doesNotMatch(p, /texto X/);
+  });
 });
 
 describe('generatePrompt — sectores neutros no reciben refuerzo de cluster', () => {
