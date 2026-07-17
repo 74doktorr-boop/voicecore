@@ -95,6 +95,16 @@ tools `check_stay_availability` y `book_stay` a la lista de tools del asistente.
 `checkout` es exclusivo (01→04 = 3 noches). El bot consulta disponibilidad por
 noche contra el aforo y reserva si caben todas las noches.
 
+## 7b. Reserva por profesional — `staff`
+
+Peluquería, barbería, fisio…: reservar con un profesional concreto. En
+**Portal → Configuración → Ajustes avanzados → Equipo** (lista separada por
+comas), o `config.staff = ["Ana","Beto"]`. La IA pregunta con quién quiere la
+cita; dos profesionales comparten el mismo hueco (uno solo choca consigo mismo).
+Vacío = una sola agenda (como siempre). *Nota: el profesional se guarda en
+memoria; tras un reinicio del servidor las citas previas dejan de distinguir
+profesional hasta re-crearse (persistencia = follow-up con migración).*
+
 ## 8. Idioma del asistente — `language`
 
 En `assistant_config.language` (o el idioma del flow):
