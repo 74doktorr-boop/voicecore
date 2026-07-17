@@ -67,24 +67,43 @@ const _calBusyCache = new Map();
 // no tiene calendario conectado o Google falla — nunca bloquea una reserva.
 async function _calendarBusy(businessId, fromDate, toDate) {
   try {
-    const cal = getGoogleCalendar();
-    if (!cal.enabled) return {};
     const key = `${businessId}:${fromDate}:${toDate}`;
     const hit = _calBusyCache.get(key);
     if (hit && Date.now() - hit.at < 45000) return hit.data;
     const db = getDatabase();
     if (!db.enabled) return {};
     const org = await db.getOrg(businessId);
-    if (!org || !org.google_refresh_token) {
-      _calBusyCache.set(key, { at: Date.now(), data: {} });   // negativo: no conectado
-      return {};
-    }
-    const fresh = await cal.refreshIfNeeded({
-      access_token:  org.google_access_token,
-      refresh_token: org.google_refresh_token,
-      expiry_date:   org.google_token_expiry,
-    });
-    const data = await cal.getBusyByDate(fresh, fromDate, toDate, org.google_calendar_id || 'primary');
+    if (!org) { _calBusyCache.set(key, { at: Date.now(), data: {} }); return {}; }
+
+    // 1) Google Calendar (si está conectado)
+    let gBusy = {};
+    try {
+      const cal = getGoogleCalendar();
+      if (cal.enabled && org.google_refresh_token) {
+        const fresh = await cal.refreshIfNeeded({
+          access_token:  org.google_access_token,
+          refresh_token: org.google_refresh_token,
+          expiry_date:   org.google_token_expiry,
+        });
+        gBusy = await cal.getBusyByDate(fresh, fromDate, toDate, org.google_calendar_id || 'primary');
+      }
+    } catch (e) { log.warn(`_calendarBusy (gcal) ${businessId}: ${e.message}`); }
+
+    // 2) Feeds iCal del software vertical del negocio (Fresha, Booksy, Mews…):
+    //    sus citas reales bloquean huecos aquí → fin de la doble agenda /
+    //    overbooking (66% del churn en la simulación 2026-07-17). Funciona
+    //    AUNQUE no usen Google Calendar. Fail-open.
+    let iBusy = {};
+    try {
+      const feeds = org.automation_config && org.automation_config.config && org.automation_config.config.icalFeeds;
+      if (Array.isArray(feeds) && feeds.length) {
+        iBusy = await require('../integrations/ical-busy').icalBusyByDate(businessId, feeds, fromDate, toDate);
+      }
+    } catch (e) { log.warn(`_calendarBusy (ical) ${businessId}: ${e.message}`); }
+
+    // Merge por fecha
+    const data = { ...gBusy };
+    for (const [day, blocks] of Object.entries(iBusy)) data[day] = [...(data[day] || []), ...blocks];
     _calBusyCache.set(key, { at: Date.now(), data });
     return data;
   } catch (e) {
