@@ -119,6 +119,11 @@ async function collectOrgStats(db, org, range) {
     bookedCalls,
     totalApts: aptList.length,
     estValue: Math.round(estValue),
+    // Valor RESCATADO (honesto): solo las citas que agendó el BOT en llamada
+    // (outcome='booked') × ticket medio — no el total de la semana, que incluye
+    // citas que el negocio habría cogido igual. Es el número que piden a gritos
+    // ("enséñame: esta semana te he salvado 3 citas = X€"; simulación 2026-07-17).
+    rescuedValue: avgTicket > 0 ? Math.round(bookedCalls * avgTicket) : 0,
     topService,
     remindersSent,
     missingPhone,
@@ -243,6 +248,41 @@ function buildEmailHtml({ bizName, range, stats, lang, suggestions = [], roi = n
  * Genera y envía el informe semanal a todas las orgs activas (o a una sola).
  * @param {{ orgId?: string, dryRun?: boolean }} opts
  */
+/**
+ * Texto del WhatsApp semanal de ROI al dueño. PURA (testeable).
+ * Honesto: "citas salvadas" = las que agendó el BOT en llamada; el € solo se
+ * dice si hay ticket medio configurado (nunca inventamos un número).
+ */
+function buildRoiWhatsApp({ bizName, stats }) {
+  const n = stats.bookedCalls;
+  const eur = stats.rescuedValue > 0 ? ` = ~${stats.rescuedValue}€` : '';
+  const lines = [
+    `📊 Tu semana en ${bizName || 'tu negocio'}`,
+    '',
+    `Te he salvado ${n} cita${n === 1 ? '' : 's'} que se habrían perdido${eur}.`,
+    `${stats.totalCalls} llamada${stats.totalCalls === 1 ? '' : 's'} atendida${stats.totalCalls === 1 ? '' : 's'} · ${stats.totalMinutes} min de teléfono que no has cogido tú.`,
+  ];
+  if (stats.remindersSent > 0) lines.push(`${stats.remindersSent} aviso${stats.remindersSent === 1 ? '' : 's'} enviado${stats.remindersSent === 1 ? '' : 's'} a tus clientes.`);
+  lines.push('', 'Tienes el detalle en tu portal.');
+  return lines.join('\n');
+}
+
+/** Envía un WhatsApp al dueño (número del negocio; fallback global). Nunca lanza. */
+async function _waOwner(orgId, phone, text) {
+  try {
+    const { getWaCredentials } = require('../whatsapp/accounts');
+    const { sendText } = require('../notifications/client-whatsapp');
+    const creds = await getWaCredentials(orgId).catch(() => null);
+    const r = await sendText(phone, text, creds);
+    if (r && r.ok) return true;
+  } catch (e) { log.warn(`WA ROI (${orgId}): ${e.message}`); }
+  try {
+    const { sendWhatsApp } = require('../notifications/whatsapp');
+    await sendWhatsApp(text);
+    return true;
+  } catch (_) { return false; }
+}
+
 async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
   const db = getDatabase();
   if (!db.enabled) return { ok: false, error: 'DB no configurada' };
@@ -302,6 +342,17 @@ async function sendWeeklyReports({ orgId = null, dryRun = false } = {}) {
       await sendEmail({ to, subject: email.subject, html: email.html, text: email.text });
       results.push({ org: org.id, sent: true, to, stats });
       log.info(`Informe semanal enviado → ${to} (${bizName}: ${stats.totalCalls} llamadas, ${stats.totalApts} citas)`);
+
+      // WhatsApp semanal de ROI al DUEÑO — el email lo abre poca gente; el dato
+      // en la mano es lo que pidieron a gritos ("enséñame en un WhatsApp: esta
+      // semana te he salvado 3 citas = tantos euros"). Simulación de embudo
+      // 2026-07-17: el 23% del churn era "no vi resultados". Fire-and-forget:
+      // que un fallo de WA nunca tumbe el informe (que ya se envió).
+      if (cfg.alertPhone && stats.bookedCalls > 0) {
+        _waOwner(org.id, cfg.alertPhone, buildRoiWhatsApp({ bizName, stats }))
+          .then(ok => { if (ok) log.info(`WhatsApp de ROI enviado al dueño de ${bizName}`); })
+          .catch(() => {});
+      }
     } catch (e) {
       results.push({ org: org.id, sent: false, error: e.message });
       log.warn(`Informe semanal falló para ${org.id}: ${e.message}`);
@@ -341,4 +392,4 @@ function stopWeeklyReportCron() {
   if (_interval) { clearInterval(_interval); _interval = null; }
 }
 
-module.exports = { sendWeeklyReports, startWeeklyReportCron, stopWeeklyReportCron, lastWeekRange, buildEmailHtml };
+module.exports = { sendWeeklyReports, startWeeklyReportCron, stopWeeklyReportCron, lastWeekRange, buildEmailHtml, buildRoiWhatsApp };
