@@ -374,6 +374,14 @@ class SchedulingSystem {
       });
     }
 
+    // Solicitud de SEÑAL/depósito (opt-in por negocio, OFF por defecto): envía al
+    // cliente el enlace de pago PROPIO del negocio para dejar la señal. Anti-no-
+    // show de 16 sectores (crítica sectorial). Fire-and-forget, no-op sin config.
+    if (appointment.phone && process.env.NODE_ENV !== 'test') {
+      Promise.resolve(require('../billing/deposit-request').maybeRequestDeposit(appointment, businessId, {}))
+        .catch(() => {});
+    }
+
     return {
       success: true,
       appointment: {
