@@ -3038,6 +3038,34 @@ function _ensureSectors(cb) {
   }).catch(function () { if (cb) cb(); });
 }
 
+// ── Ajustes avanzados: filas de tipos de plaza (estancias por noches) ────────
+function _cfgStayRow(u) {
+  u = u || {};
+  return '<div class="form-row u-mt-2 cfg-stay-row">' +
+    '<input class="form-input cfg-stay-key" placeholder="clave (ej: suite)" value="' + esc(u.key || '') + '">' +
+    '<input class="form-input cfg-stay-label" placeholder="Nombre (ej: Suite)" value="' + esc(u.label || '') + '">' +
+    '<input class="form-input cfg-stay-cap" type="number" min="1" max="9999" placeholder="aforo" value="' + (u.capacity || '') + '" style="max-width:100px">' +
+    '<button type="button" class="btn btn-d btn-sm" onclick="this.parentNode.remove()" aria-label="Quitar">✕</button>' +
+  '</div>';
+}
+function addStayUnitRow() {
+  var box = document.getElementById('cfgStayUnits');
+  if (box) box.insertAdjacentHTML('beforeend', _cfgStayRow({}));
+}
+function _collectStayUnits() {
+  var out = [];
+  document.querySelectorAll('#cfgStayUnits .cfg-stay-row').forEach(function (r) {
+    var key = (r.querySelector('.cfg-stay-key').value || '').trim();
+    if (!key) return;
+    out.push({
+      key: key,
+      label: (r.querySelector('.cfg-stay-label').value || '').trim() || key,
+      capacity: parseInt(r.querySelector('.cfg-stay-cap').value, 10) || 1,
+    });
+  });
+  return out;
+}
+
 async function loadConfig() {
   var sec = document.getElementById('sec-configuracion');
   sec.innerHTML = skelPanel();
@@ -3076,7 +3104,7 @@ async function loadConfig() {
           '<input class="form-input" readonly value="' + esc(c.phone || '—') + '">' +
           '<small class="form-hint">Número provisionado — no editable</small></div>' +
         '<div class="form-group"><label class="form-label">Idioma de la IA</label>' +
-          '<div class="u-text-sm u-dim u-py-2" style="line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a> para no tenerlo en dos sitios. Actual: <strong class="u-text">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego', 'es+eu': 'Castellano + Euskera', 'es+gl': 'Castellano + Galego' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
+          '<div class="u-text-sm u-dim u-py-2" style="line-height:1.5">Se configura en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a> para no tenerlo en dos sitios. Actual: <strong class="u-text">' + ({ es: 'Castellano', eu: 'Euskera', gl: 'Galego', 'es+eu': 'Castellano + Euskera', 'es+gl': 'Castellano + Galego', en: 'Inglés', fr: 'Francés', 'es+en': 'Castellano + Inglés', 'es+fr': 'Castellano + Francés' }[c.language] || 'Castellano') + '</strong>.</div></div>' +
       '</div>' +
       '<div class="form-group"><label class="form-label">Sector</label>' +
         '<select class="form-input" id="cfgSector">' + sectorOpts + '</select></div>' +
@@ -3142,6 +3170,29 @@ async function loadConfig() {
           '<input class="form-input" id="cfgNotifyEmail" type="email" placeholder="tu@email.com"' +
             ' value="' + esc(c.notifyEmail || '') + '"></div>' +
       '</div>' +
+
+      '<div class="form-section-title">Ajustes avanzados <span class="u-normal">(opcional)</span></div>' +
+      '<div class="form-group"><label class="form-label">Info extra que la IA puede confirmar <span class="u-normal">(guardarraíl)</span></label>' +
+        '<input class="form-input" id="cfgGuardrailExtra" maxlength="400" placeholder="Ej: Sí trabajamos con Adeslas y Sanitas" value="' + esc(c.guardrailExtra || '') + '">' +
+        '<small class="form-hint">La IA nunca inventa ni da consejo clínico/legal, y nunca cierra un precio no configurado. Aquí puedes permitirle confirmar un dato concreto de tu negocio.</small></div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Aviso de gasto variable (€/mes)</label>' +
+          '<input class="form-input" id="cfgCostAlert" type="number" min="0" max="100000" placeholder="25" value="' + (c.costAlertThresholdEur != null && c.costAlertThresholdEur !== '' ? c.costAlertThresholdEur : '') + '">' +
+          '<small class="form-hint">Te avisamos al 80% y 100% de este importe. Vacío = por defecto.</small></div>' +
+        '<div class="form-group"><label class="form-label">Tope duro de gasto (€/mes)</label>' +
+          '<input class="form-input" id="cfgCostCap" type="number" min="0" max="100000" placeholder="0 = sin tope" value="' + (c.costCapEur ? c.costCapEur : '') + '">' +
+          '<small class="form-hint">Al superarlo, se pausan solo los envíos no esenciales (nunca llamadas ni recordatorios de cita). 0 = desactivado.</small></div>' +
+      '</div>' +
+      '<div class="form-group"><label class="form-label"><input type="checkbox" id="cfgDepEnabled"' + ((c.deposit && c.deposit.enabled) ? ' checked' : '') + '> Pedir señal / depósito al reservar</label>' +
+        '<div class="form-row u-mt-2">' +
+          '<input class="form-input" id="cfgDepAmount" placeholder="Importe (ej: 10 €)" value="' + esc((c.deposit && c.deposit.amountText) || '') + '">' +
+          '<input class="form-input" id="cfgDepUrl" type="url" placeholder="https://buy.stripe.com/… (tu enlace de pago)" value="' + esc((c.deposit && c.deposit.url) || '') + '">' +
+        '</div>' +
+        '<small class="form-hint">Al reservar, enviamos al cliente tu enlace de pago para dejar la señal. NodeFlow no cobra: usa tu Payment Link de Stripe, Bizum, etc.</small></div>' +
+      '<div class="form-group"><label class="form-label">Estancias por noches <span class="u-normal">(hotel, residencia, guardería)</span></label>' +
+        '<div id="cfgStayUnits">' + (Array.isArray(c.stayUnits) ? c.stayUnits : []).map(_cfgStayRow).join('') + '</div>' +
+        '<button type="button" class="btn btn-d btn-sm u-mt-2" onclick="addStayUnitRow()">+ Añadir tipo de plaza</button>' +
+        '<small class="form-hint">Cada tipo de plaza/habitación con su aforo (plazas por noche). Déjalo vacío si tu negocio no es de estancias.</small></div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
       '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +
@@ -3303,6 +3354,20 @@ async function saveConfig() {
     smsSenderId:    document.getElementById('cfgSmsSender')?.value?.trim()   || '',
     locations:      _collectCfgLocs(),   // multi-sede (undefined si la sección no está)
   };
+  // Ajustes avanzados (opt-in). Vacío en coste = no tocar (preserva el valor).
+  var _gx = document.getElementById('cfgGuardrailExtra');
+  if (_gx) body.guardrailExtra = _gx.value.trim();
+  var _ca = document.getElementById('cfgCostAlert');
+  if (_ca && _ca.value !== '') body.costAlertThresholdEur = parseInt(_ca.value, 10) || 0;
+  var _cc = document.getElementById('cfgCostCap');
+  if (_cc && _cc.value !== '') body.costCapEur = parseInt(_cc.value, 10) || 0;
+  var _de = document.getElementById('cfgDepEnabled');
+  if (_de) body.deposit = {
+    enabled:    !!_de.checked,
+    amountText: (document.getElementById('cfgDepAmount').value || '').trim(),
+    url:        (document.getElementById('cfgDepUrl').value || '').trim(),
+  };
+  if (document.getElementById('cfgStayUnits')) body.stayUnits = _collectStayUnits();
   window._locsCache = undefined; // que Nueva cita relea los centros tras guardar
   if (!body.name) { toast('El nombre no puede estar vacío', 'err'); return; }
   try {
