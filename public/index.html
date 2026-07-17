@@ -126,6 +126,16 @@ nav.stuck{border-bottom-color:var(--line)}
 @keyframes wv{from{height:16%;background:var(--line-2)}to{height:88%;background:var(--lime-d)}}
 .demo-status{font-family:var(--mono);font-size:.64rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
 .demo-status .d{display:none}
+.cc-callme{border-top:1px solid var(--line);padding:14px 20px;display:flex;flex-direction:column;gap:8px}
+.cc-callme-lbl{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.cc-callme form{display:flex;gap:8px;flex-wrap:wrap}
+.cc-callme input{min-width:180px}
+.cc-callme input{flex:1;background:transparent;border:1px solid var(--line);color:inherit;padding:10px 12px;font-size:.95rem;min-width:0;border-radius:0}
+.cc-callme input:focus{outline:none;border-color:var(--lime)}
+.cc-callme button{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--lime);color:#0a0b0d;border:none;padding:10px 16px;cursor:pointer;white-space:nowrap}
+.cc-callme button:disabled{opacity:.5;cursor:default}
+.cc-callme-note{font-family:var(--mono);font-size:.62rem;letter-spacing:.04em;color:var(--ink-3)}
+.cc-callme-note.ok{color:var(--lime)}
 
 /* ── stats ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr)}
@@ -313,6 +323,32 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
         <div class="cc-wave idle" id="ccWave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <span class="demo-status" id="ccStatus">Ejemplo real</span>
       </div>
+      <div class="cc-callme">
+        <span class="cc-callme-lbl">O mejor: pruébala en tu móvil</span>
+        <form id="cmForm" novalidate>
+          <input id="cmPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Tu móvil — te llama ahora" aria-label="Tu teléfono para la demo" required>
+          <button type="submit" id="cmBtn">Llámame</button>
+        </form>
+        <div class="cc-callme-note" id="cmNote">Gratis · de 9:00 a 21:00 · solo España · sin compromiso</div>
+      </div>
+      <script>
+      (function(){
+        var f=document.getElementById('cmForm'),p=document.getElementById('cmPhone'),b=document.getElementById('cmBtn'),n=document.getElementById('cmNote');
+        if(!f)return;
+        f.addEventListener('submit',async function(e){
+          e.preventDefault();
+          var tel=(p.value||'').trim();
+          if(!tel){n.textContent='Escribe tu teléfono y te llamamos.';return;}
+          b.disabled=true;n.classList.remove('ok');n.textContent='Lanzando la llamada…';
+          try{
+            var r=await fetch('/api/public/llamame',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono:tel})});
+            var d=await r.json().catch(function(){return{}});
+            if(r.ok){n.classList.add('ok');n.textContent='📞 Te estamos llamando — descuelga y pruébala.';p.value='';}
+            else{n.textContent=d.error||'No hemos podido llamarte ahora. Inténtalo en un minuto.';b.disabled=false;}
+          }catch(_){n.textContent='No hemos podido llamarte ahora. Inténtalo en un minuto.';b.disabled=false;}
+        });
+      })();
+      </script>
     </div>
   </div>
 </div></header>
