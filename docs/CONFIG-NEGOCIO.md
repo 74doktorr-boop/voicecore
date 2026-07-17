@@ -48,7 +48,37 @@ procesa el dinero (eso es v2, Stripe Connect). Anti-no-show.
 "deposit": { "enabled": true, "amountText": "15 €", "url": "https://buy.stripe.com/xxx" }
 ```
 
-## 5. Integraciones (conector) — `integrations`
+## 5. Aforo / clases — `capacity` en el servicio
+
+Un servicio con `capacity > 1` deja de ser cita 1:1: admite varias plazas en el
+mismo hueco hasta el aforo (clase de spinning, yoga, sesión de láser…). Sin
+`capacity` (o =1) el servicio sigue siendo 1:1 exclusivo, como siempre.
+
+En `automation_config.config.serviceList` (o donde estén los servicios):
+
+```json
+{ "name": "WOD", "duration": 60, "price": 10, "capacity": 12 }
+```
+
+La disponibilidad muestra `spotsLeft`; al llenarse, el hueco deja de ofrecerse.
+
+## 6. Bonos / paquetes prepagados — tabla `nf_bonos`
+
+Requiere ejecutar `db/migration-bonos.sql` en Supabase (sin ella todo es NO-OP).
+Modelo: **se descuenta una sesión AL RESERVAR y se devuelve si se cancela**.
+
+Alta de un bono (por ahora por SQL; luego panel):
+
+```sql
+insert into nf_bonos (org_id, phone, service_key, label, total_sessions, expires_at)
+values ('<ORG_ID>', '+34600111222', 'wod', 'Bono 10 WODs', 10, '2026-12-31');
+```
+
+`service_key` null = vale para cualquier servicio. `expires_at` null = sin
+caducidad. El bot consume/reembolsa solo; el saldo se puede consultar con
+`getBalance(orgId, phone, serviceKey)`.
+
+## 7. Integraciones (conector) — `integrations`
 
 Empuja los eventos de NodeFlow al software del negocio y acepta los suyos de
 vuelta (ver `docs/INTEGRACIONES.md`).
