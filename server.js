@@ -34,6 +34,7 @@ const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
 const { setupOutlookRoutes }      = require('./src/api/routes-outlook');
 const { setupIntegrationRoutes }  = require('./src/api/routes-integrations');
+const { setupLlamameRoutes }      = require('./src/api/routes-llamame');
 const { setupAuthRoutes }         = require('./src/api/routes-auth');
 const { setupWebhookRoutes }      = require('./src/api/routes-webhooks');
 const { webhookDispatcher }       = require('./src/webhooks/dispatcher');
@@ -602,6 +603,10 @@ setupOutlookRoutes(app, config);
 // Ingreso de integraciones: sistemas externos empujan sus reservas para evitar
 // overbooking (HMAC firmado, INERTE sin inboundSecret configurado por negocio).
 setupIntegrationRoutes(app);
+// Demo pública "Llámame": la IA llama al prospecto para que la pruebe en su
+// móvil (objeción nº1 del embudo: 74% no se fía sin oírla). INERTE sin
+// LLAMAME_ORG_ID; solo España, 9-21h, topes por teléfono/IP/día.
+setupLlamameRoutes(app);
 setupWebhookRoutes(app);
 
 // Setup WhatsApp bidireccional webhook (Meta Cloud API)

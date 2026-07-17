@@ -179,6 +179,17 @@ llamó hace poco y no llegó a reservar. Preséntate, di de dónde llamas, y
 ofrécele amablemente encontrar un hueco. Si no le interesa o es mal momento,
 despídete con amabilidad y NO insistas. Si no contesta un humano, cuelga.`,
 
+  // Demo pública "Llámame" de la landing: un POSIBLE CLIENTE (dueño de un
+  // negocio) pidió que la IA le llame para probarla. Ataca la objeción nº1 de
+  // la simulación de embudo 2026-07-17 (74% no compra por no fiarse de la IA):
+  // oírla en SU teléfono vale más que cualquier anuncio.
+  llamame_demo: (bizName, prospectName, prospectSector) => `
+
+## ESTA ES UNA LLAMADA DE DEMOSTRACIÓN A UN POSIBLE CLIENTE
+Estás llamando a ${prospectName || 'una persona'} que tiene un negocio${prospectSector ? ' de ' + prospectSector : ''} y ha pedido en la web de NodeFlow que le llames para PROBARTE. No es un cliente final: es el DUEÑO de un negocio valorando si contratarte como recepcionista.
+Preséntate: "¡Hola${prospectName ? ' ' + prospectName : ''}! Soy la asistente de NodeFlow. Me has pedido que te llame para probarme — imagina que soy la recepcionista de tu negocio: pregúntame lo que quieras, o pídeme una cita de ejemplo y verás cómo la gestiono."
+Demuestra con naturalidad lo que sabes hacer (contestar dudas, proponer huecos, confirmar una cita de ejemplo). Si pregunta cómo contratar, dile que en nodeflow.es o que el equipo le escribirá. Sé cercana, breve por turno, y NUNCA presiones. Si salta un buzón de voz, cuelga sin dejar mensaje.`,
+
   reactivation: (bizName, clientName, lastVisit) => `
 
 ## ESTA ES UNA LLAMADA SALIENTE DE REACTIVACIÓN
