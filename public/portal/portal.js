@@ -3213,6 +3213,9 @@ async function loadConfig() {
           '<div class="form-row"><input class="form-input" id="cfgIntInSecret" placeholder="Clave de ingreso" value="' + esc(_ig.inboundSecret || '') + '">' +
             '<button type="button" class="btn btn-d btn-sm u-nowrap" onclick="genInboundSecret()">Generar</button></div></div>' +
         '<small class="form-hint">Empuja tus reservas a Zapier o a tu software (webhook firmado) y acepta las suyas para no duplicar agenda ni hacer overbooking. La URL de salida debe ser https.</small></div>' +
+      '<div class="form-group"><label class="form-label">Calendario de tu otro software <span class="u-normal">(Fresha, Booksy, Doctoralia…)</span></label>' +
+        '<textarea class="form-input" id="cfgIcalFeeds" rows="2" placeholder="https://…/calendario.ics (uno por línea, máx. 3)">' + esc((Array.isArray(c.icalFeeds) ? c.icalFeeds : []).join('\n')) + '</textarea>' +
+        '<small class="form-hint">Pega el enlace de exportación de calendario (.ics) de tu software de siempre y tus citas de allí <strong>bloquearán huecos aquí</strong>: la IA no reservará encima. Se comprueba cada pocos minutos. En tu software búscalo como «exportar calendario», «suscribirse» o «iCal».</small></div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
       '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +
@@ -3388,6 +3391,8 @@ async function saveConfig() {
   // Ajustes avanzados (opt-in). Vacío en coste = no tocar (preserva el valor).
   var _st = document.getElementById('cfgStaff');
   if (_st) body.staff = _st.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+  var _if = document.getElementById('cfgIcalFeeds');
+  if (_if) body.icalFeeds = _if.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 3);
   var _gx = document.getElementById('cfgGuardrailExtra');
   if (_gx) body.guardrailExtra = _gx.value.trim();
   var _ca = document.getElementById('cfgCostAlert');

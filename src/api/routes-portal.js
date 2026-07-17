@@ -1438,6 +1438,7 @@ function setupPortalRoutes(app, pipeline, config) {
         deposit:               src.deposit || { enabled: false, amountText: '', url: '' },
         stayUnits:             Array.isArray(src.stayUnits) ? src.stayUnits : [],
         staff:                 Array.isArray(src.staff) ? src.staff : [],
+        icalFeeds:             Array.isArray(src.icalFeeds) ? src.icalFeeds : [],
         integrations:          src.integrations || { enabled: false, outbound: [], inboundSecret: '' },
       },
     });
@@ -1682,7 +1683,7 @@ function setupPortalRoutes(app, pipeline, config) {
     const { businessId, flowConfig } = req;
     const { name, language, sector, avgTicket, welcomeMessage, services, schedule, reviewUrl, alertPhone, notifyEmail, address, serviceList, smsSenderId } = req.body;
     // Config avanzada (motores de la crítica sectorial). Todo opt-in.
-    const { guardrailExtra, costAlertThresholdEur, costCapEur, deposit, stayUnits, integrations, staff } = req.body;
+    const { guardrailExtra, costAlertThresholdEur, costCapEur, deposit, stayUnits, integrations, staff, icalFeeds } = req.body;
 
     if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl', 'en', 'fr', 'es+en', 'es+fr'].includes(language)) {
       return res.status(400).json({ error: "language no válido (es, eu, gl, en, fr o combos es+eu/es+gl/es+en/es+fr)" });
@@ -1702,6 +1703,15 @@ function setupPortalRoutes(app, pipeline, config) {
       advPatch.staff = staff
         .map(s => String(typeof s === 'string' ? s : (s && s.name) || '').trim().slice(0, 40))
         .filter(Boolean).slice(0, 30);
+    }
+    if (Array.isArray(icalFeeds)) {
+      // Feeds iCal del software vertical (Fresha/Booksy/Mews…): solo https
+      // público (anti-SSRF, mismo criterio que ical-busy), máx 3.
+      const { isSafeFeedUrl } = require('../integrations/ical-busy');
+      const clean = icalFeeds.map(u => String(u || '').trim().slice(0, 300)).filter(Boolean);
+      const bad = clean.find(u => !isSafeFeedUrl(u));
+      if (bad) return res.status(400).json({ error: 'Los enlaces de calendario deben ser URLs https públicas (.ics)' });
+      advPatch.icalFeeds = clean.slice(0, 3);
     }
     if (Array.isArray(stayUnits)) {
       advPatch.stayUnits = stayUnits.filter(u => u && u.key).slice(0, 20).map(u => ({
