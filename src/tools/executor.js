@@ -311,7 +311,7 @@ class ToolExecutor {
     // mono-sede). Con centros configurados NO aplicamos el busy externo: gobierna
     // la agenda por centro de NodeFlow. El calendario por-centro es fase 2.
     const busyByDate = locations.length > 0 ? {} : await _calendarBusy(businessId, fromDate, toDate);
-    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate, location);
+    const result = scheduler.getAvailableSlots(businessId, fromDate, toDate, args.service || null, busyByDate, location, args.professional || args.staff || null);
 
     if (result.availableDays) {
       let lang = 'es';
@@ -429,6 +429,7 @@ class ToolExecutor {
       date:        normalizedDate,
       time:        normalizedTime,
       location:    bookLocation,
+      staff:       args.professional || args.staff || null,   // reserva por profesional
       notes:       args.notes || args.vehicle || '',
       // skipClientWa: la confirmación al cliente la manda el post-call-handler al
       // colgar (con el toggle waConfirm). Sin esto se enviaban DOS: una durante
@@ -1529,6 +1530,7 @@ class ToolExecutor {
               from_date: { type: 'string', description: 'Fecha inicio (YYYY-MM-DD)' },
               to_date:   { type: 'string', description: 'Fecha fin (YYYY-MM-DD)' },
               location:  { type: 'string', description: 'Centro o sede donde quiere la cita (SOLO negocios con varios centros — pregúntalo antes de consultar)' },
+              professional: { type: 'string', description: 'Profesional con quien quiere la cita (SOLO negocios que trabajan por profesional — pregúntalo antes)' },
             },
             required: [],
           },
@@ -1549,6 +1551,7 @@ class ToolExecutor {
               date:         { type: 'string', description: 'YYYY-MM-DD' },
               time:         { type: 'string', description: 'HH:MM' },
               location:     { type: 'string', description: 'Centro o sede de la cita (SOLO negocios con varios centros)' },
+              professional: { type: 'string', description: 'Profesional/miembro del equipo con quien es la cita (SOLO negocios que trabajan por profesional, p.ej. peluquería/barbería — pregúntalo antes)' },
               confirmed_with_customer: { type: 'boolean', description: 'true SOLO si has dicho al cliente el día y la hora exactos y ha respondido que sí. Si no ha confirmado, NO llames a esta función: pregunta primero.' },
             },
             required: ['patient_name', 'service', 'date', 'time', 'confirmed_with_customer'],

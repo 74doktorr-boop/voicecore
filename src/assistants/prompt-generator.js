@@ -265,6 +265,15 @@ function generatePrompt(config, orgName) {
   const sectorNorms   = secDef.norms.length
     ? `\nNORMAS DE TU SECTOR (${secDef.label}):\n${secDef.norms.map(n => `- ${n}`).join('\n')}\n`
     : '';
+  // Reserva por PROFESIONAL (peluquería/barbería, fisio…): si el negocio tiene
+  // equipo configurado, la IA pregunta con quién quiere la cita y lo pasa en
+  // 'professional'. Sin equipo → nada (comportamiento de siempre).
+  const staffList = Array.isArray(config.staff)
+    ? config.staff.map(s => (typeof s === 'string' ? s : (s && s.name) || '')).filter(Boolean)
+    : [];
+  const staffBlock = staffList.length
+    ? `\nEQUIPO (este negocio trabaja por profesional): ${staffList.join(', ')}. Pregunta SIEMPRE con qué profesional quiere la cita (o si le da igual) ANTES de buscar hueco, y pásalo en el campo 'professional' al consultar y reservar.\n`
+    : '';
 
   return `Eres ${assistantName}, la recepcionista de ${orgName}.
 Hablas por teléfono con clientes.
@@ -289,7 +298,7 @@ ${sectorNorms}
 HORARIO: ${scheduleStr}
 ${address ? `DIRECCIÓN Y CÓMO LLEGAR (dato EXACTO — úsalo tal cual si preguntan dónde estáis; no añadas calles, números ni aparcamiento que no figuren aquí): ${address}` : ''}
 ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
-${sectorStr}
+${sectorStr}${staffBlock}
 ${extraInfo ? `INFORMACIÓN ADICIONAL: ${extraInfo}` : ''}
 
 DATOS DEL CLIENTE (perfilado progresivo, con naturalidad):

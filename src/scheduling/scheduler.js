@@ -114,7 +114,7 @@ class SchedulingSystem {
   // EXTERNOS (p.ej. Google Calendar). Por defecto {} → comportamiento idéntico.
   // location (multi-sede): huecos del CENTRO indicado — las citas de otros
   // centros no restan disponibilidad. null → todos (comportamiento clásico).
-  getAvailableSlots(businessId, fromDate, toDate, serviceId, busyByDate = {}, location = null) {
+  getAvailableSlots(businessId, fromDate, toDate, serviceId, busyByDate = {}, location = null, staff = null) {
     const config = this.getBusinessConfig(businessId);
     if (!config) return { error: 'Business not configured' };
     // Never show slots in the past — clamp fromDate to today
@@ -141,13 +141,13 @@ class SchedulingSystem {
 
       // Morning slots
       if (daySchedule.open && daySchedule.close) {
-        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy, location, service);
+        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy, location, service, staff);
         daySlots.push(...morningSlots);
       }
 
       // Afternoon slots
       if (daySchedule.afternoon_open && daySchedule.afternoon_close) {
-        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy, location, service);
+        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy, location, service, staff);
         daySlots.push(...afternoonSlots);
       }
 
@@ -181,7 +181,7 @@ class SchedulingSystem {
     };
   }
 
-  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = [], location = null, service = null) {
+  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = [], location = null, service = null, staff = null) {
     const slots = [];
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
@@ -198,7 +198,7 @@ class SchedulingSystem {
       if (capacity > 1) {
         const taken = this._classTakenCount(businessId, dateStr, slotStart, service.id, location);
         if (taken < capacity) slots.push({ time: slotStart, endTime: slotEnd, spotsLeft: capacity - taken });
-      } else if (!this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy, location)) {
+      } else if (!this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy, location, null, staff)) {
         slots.push({ time: slotStart, endTime: slotEnd });
       }
     }
@@ -213,7 +213,7 @@ class SchedulingSystem {
   // → comportamiento idéntico al de siempre (cero cambios para orgs sin centros).
   // excludeId: id de una cita que NO cuenta como conflicto (para reprogramar
   // sin que la cita choque consigo misma). null → cuenta todas.
-  _isSlotTaken(businessId, date, time, duration, extraBusy = [], location = null, excludeId = null) {
+  _isSlotTaken(businessId, date, time, duration, extraBusy = [], location = null, excludeId = null, staff = null) {
     const [h, m] = time.split(':').map(Number);
     const slotStart = h * 60 + m;
     const slotEnd = slotStart + duration;
@@ -222,6 +222,9 @@ class SchedulingSystem {
       if (apt.businessId !== businessId || apt.date !== date || apt.status === 'cancelled') continue;
       if (excludeId && apt.id === excludeId) continue; // no chocar consigo misma
       if (location && apt.location && apt.location !== location) continue; // otro centro no bloquea
+      // Reserva por PROFESIONAL: pedir a "Ana" solo choca con las citas de Ana
+      // (dos barberos comparten hueco). Sin staff → comportamiento de siempre.
+      if (staff && apt.staff && apt.staff !== staff) continue;
       const [ah, am] = apt.time.split(':').map(Number);
       const aptStart = ah * 60 + am;
       const aptEnd = aptStart + apt.duration;
@@ -257,7 +260,7 @@ class SchedulingSystem {
   // ─── Book an appointment ───
   // location (multi-sede): centro donde es la cita. Solo llega cuando la org
   // tiene centros configurados; sin él, todo funciona exactamente como antes.
-  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes, location }, extraBusy = [], opts = {}) {
+  bookAppointment(businessId, { patientName, phone, email, service, date, time, notes, location, staff }, extraBusy = [], opts = {}) {
     const config = this.getBusinessConfig(businessId);
     const serviceObj = config?.services.find(s =>
       s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
@@ -326,6 +329,7 @@ class SchedulingSystem {
       price: serviceObj ? serviceObj.price : 0,
       notes: notes || null,
       location: location || null,   // multi-sede: centro de la cita
+      staff: staff || null,         // reserva por profesional (en memoria)
       status: 'confirmed',
       createdAt: new Date().toISOString()
     };
@@ -339,8 +343,8 @@ class SchedulingSystem {
       if (taken >= capacity) {
         return { success: false, error: `Esa clase ya está completa (${capacity} plazas${location ? ' en ' + location : ''}). Ofrece otra hora u otro día.` };
       }
-    } else if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy, location || null)) {
-      return { success: false, error: `Esa hora ya está ocupada${location ? ' en ' + location : ''}. Por favor elige otra.` };
+    } else if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy, location || null, null, staff || null)) {
+      return { success: false, error: `Esa hora ya está ocupada${staff ? ' con ' + staff : ''}${location ? ' en ' + location : ''}. Por favor elige otra${staff ? ' u otro profesional' : ''}.` };
     }
 
     this.appointments.set(id, appointment);
