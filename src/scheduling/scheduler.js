@@ -141,13 +141,13 @@ class SchedulingSystem {
 
       // Morning slots
       if (daySchedule.open && daySchedule.close) {
-        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy, location);
+        const morningSlots = this._generateSlots(dateStr, daySchedule.open, daySchedule.close, duration, config.slotInterval, businessId, extraBusy, location, service);
         daySlots.push(...morningSlots);
       }
 
       // Afternoon slots
       if (daySchedule.afternoon_open && daySchedule.afternoon_close) {
-        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy, location);
+        const afternoonSlots = this._generateSlots(dateStr, daySchedule.afternoon_open, daySchedule.afternoon_close, duration, config.slotInterval, businessId, extraBusy, location, service);
         daySlots.push(...afternoonSlots);
       }
 
@@ -181,20 +181,24 @@ class SchedulingSystem {
     };
   }
 
-  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = [], location = null) {
+  _generateSlots(dateStr, startTime, endTime, duration, interval, businessId, extraBusy = [], location = null, service = null) {
     const slots = [];
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
+    // AFORO: si el servicio tiene capacity>1, el hueco está libre mientras queden
+    // plazas (no lo bloquea la primera reserva). El resto sigue siendo 1:1.
+    const capacity = service && Number(service.capacity) > 1 ? Number(service.capacity) : 1;
 
     for (let m = startMinutes; m + duration <= endMinutes; m += interval) {
       const slotStart = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
       const slotEnd = `${String(Math.floor((m + duration) / 60)).padStart(2, '0')}:${String((m + duration) % 60).padStart(2, '0')}`;
 
-      // Check if slot is taken
-      const isTaken = this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy, location);
-      if (!isTaken) {
+      if (capacity > 1) {
+        const taken = this._classTakenCount(businessId, dateStr, slotStart, service.id, location);
+        if (taken < capacity) slots.push({ time: slotStart, endTime: slotEnd, spotsLeft: capacity - taken });
+      } else if (!this._isSlotTaken(businessId, dateStr, slotStart, duration, extraBusy, location)) {
         slots.push({ time: slotStart, endTime: slotEnd });
       }
     }
@@ -229,6 +233,25 @@ class SchedulingSystem {
       if (slotStart < b.endMin && slotEnd > b.startMin) return true;
     }
     return false;
+  }
+
+  // ── AFORO (clases/plazas) — objeción nº2 de la crítica sectorial ──────────
+  // Plazas OCUPADAS de una CLASE en un hueco concreto: cuenta las reservas
+  // activas del MISMO servicio a la MISMA hora exacta (misma clase). A diferencia
+  // de _isSlotTaken (1:1, bloquea por solape), aquí varias reservas COMPARTEN el
+  // hueco hasta llegar al aforo del servicio. Solo aplica a servicios con
+  // capacity>1; el resto sigue siendo 1:1 (cero cambio de comportamiento).
+  _classTakenCount(businessId, date, time, serviceId, location = null, excludeId = null) {
+    let count = 0;
+    for (const [, apt] of this.appointments) {
+      if (apt.businessId !== businessId || apt.date !== date || apt.status === 'cancelled') continue;
+      if (excludeId && apt.id === excludeId) continue;
+      if (apt.time !== time) continue;                              // misma clase = misma hora exacta
+      if (String(apt.serviceId) !== String(serviceId)) continue;    // misma clase = mismo servicio
+      if (location && apt.location && apt.location !== location) continue;
+      count++;
+    }
+    return count;
   }
 
   // ─── Book an appointment ───
@@ -307,9 +330,16 @@ class SchedulingSystem {
       createdAt: new Date().toISOString()
     };
 
-    // Verify slot is available (incluye eventos externos de Google Calendar).
-    // Con centro: solo bloquean las citas de ESE centro (o sin centro).
-    if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy, location || null)) {
+    // Verify slot is available. AFORO: los servicios con capacity>1 (clases,
+    // sesiones grupales) admiten varias plazas en el mismo hueco hasta el aforo;
+    // el resto es 1:1 por solape (incluye eventos de Google Calendar).
+    const capacity = serviceObj && Number(serviceObj.capacity) > 1 ? Number(serviceObj.capacity) : 1;
+    if (capacity > 1) {
+      const taken = this._classTakenCount(businessId, date, time, appointment.serviceId, location || null);
+      if (taken >= capacity) {
+        return { success: false, error: `Esa clase ya está completa (${capacity} plazas${location ? ' en ' + location : ''}). Ofrece otra hora u otro día.` };
+      }
+    } else if (this._isSlotTaken(businessId, date, time, appointment.duration, extraBusy, location || null)) {
       return { success: false, error: `Esa hora ya está ocupada${location ? ' en ' + location : ''}. Por favor elige otra.` };
     }
 
