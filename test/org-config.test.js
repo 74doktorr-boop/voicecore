@@ -13,8 +13,20 @@ const assert = require('node:assert');
 const {
   toSchedulerConfig, hydrateSchedulerFromDB, normalizeSchedule,
   parseDurationMinutes, parsePriceEuros, DEFAULT_SCHEDULE,
-  seedServiceListFromText, syncOrgRuntime,
+  seedServiceListFromText, syncOrgRuntime, normalizeServices,
 } = require('../src/scheduling/org-config');
+
+describe('normalizeServices — aforo (capacity)', () => {
+  test('un servicio con capacity>1 lo lleva a scheduler.services', () => {
+    const out = normalizeServices([{ name: 'WOD', duration: '60', price: '10', capacity: 12 }], null);
+    assert.strictEqual(out[0].capacity, 12);
+  });
+  test('capacity 1 o ausente → NO añade capacity (cita 1:1)', () => {
+    const out = normalizeServices([{ name: 'Corte', capacity: 1 }, { name: 'Tinte' }], null);
+    assert.strictEqual(out[0].capacity, undefined);
+    assert.strictEqual(out[1].capacity, undefined);
+  });
+});
 
 // La fila REAL de la org HHR tal y como está en producción
 const HHR = {

@@ -104,6 +104,9 @@ function normalizeServices(serviceList, assistantServices) {
     name: s.name || `Servicio ${i + 1}`,
     duration: parseDurationMinutes(s.duration),
     price: parsePriceEuros(s.price),
+    // AFORO: servicios de clase con varias plazas por hueco (capacity>1). Sin
+    // esto el aforo del scheduler nunca lo recibiría desde el serviceList.
+    ...(Number(s.capacity) > 1 ? { capacity: Math.round(Number(s.capacity)) } : {}),
   }));
 }
 

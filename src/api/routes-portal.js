@@ -1792,6 +1792,8 @@ function setupPortalRoutes(app, pipeline, config) {
           price:    s.price    ? String(s.price).slice(0, 30)    : '',
           duration: s.duration ? String(s.duration).slice(0, 30) : '',
           notes:    s.notes    ? String(s.notes).slice(0, 160)   : '',
+          // Aforo (clases): plazas por hueco. >1 = servicio de aforo.
+          ...(Number(s.capacity) > 1 ? { capacity: Math.min(9999, Math.round(Number(s.capacity))) } : {}),
           // Multi-sede: centros donde se ofrece ESTE servicio (ausente = todos)
           ...(Array.isArray(s.locations) && s.locations.length
             ? { locations: s.locations.map(l => String(l).trim().slice(0, 40)).filter(Boolean).slice(0, 10) }

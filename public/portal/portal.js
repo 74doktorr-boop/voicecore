@@ -3332,6 +3332,14 @@ function addServiceRow(s) {
     locsDiv.innerHTML = '<span style="font-size:11px;color:var(--dim);margin-right:8px">📍 Se ofrece en:</span>' + chips;
     row.appendChild(locsDiv);
   }
+  // Aforo (clases con varias plazas por hueco). Sub-línea a ancho completo para
+  // no romper el grid de la fila; vacío/1 = cita individual (comportamiento normal).
+  var capDiv = document.createElement('div');
+  capDiv.className = 'svc-capline';
+  capDiv.style.cssText = 'grid-column:1/-1;padding:0 0 6px 2px;font-size:12px;color:var(--dim)';
+  capDiv.innerHTML = 'Aforo <span style="opacity:.8">(plazas por hueco, solo clases/sesiones grupales)</span>: ' +
+    '<input type="number" min="1" max="9999" class="form-input svc-cap" style="width:90px;display:inline-block;height:30px" placeholder="1" value="' + (s.capacity && s.capacity > 1 ? s.capacity : '') + '">';
+  row.appendChild(capDiv);
   row.querySelector('.svc-del').onclick = function () { row.remove(); };
   box.appendChild(row);
 }
@@ -3344,6 +3352,9 @@ function collectServiceList() {
       duration: r.querySelector('.svc-dur').value.trim(),
       notes:    r.querySelector('.svc-notes').value.trim(),
     };
+    var capEl = r.querySelector('.svc-cap');
+    var cap = capEl ? parseInt(capEl.value, 10) : 0;
+    if (cap > 1) svc.capacity = cap;   // aforo (clases); vacío/1 = cita individual
     // Multi-sede: solo se guarda restricción si es un subconjunto REAL de
     // centros (todas o ninguna marcada = se ofrece en todos → sin campo).
     var boxes = r.querySelectorAll('.svc-loc');
