@@ -338,6 +338,25 @@ async function processOneReminder(reminder, db) {
       return;
     }
 
+    // Tope DURO de gasto (opt-in por negocio, OFF por defecto): si superó su
+    // costCapEur del mes, POSPONE los envíos NO esenciales al mes que viene (no
+    // se pierden). Solo afecta a seguimientos/campañas — los avisos manuales del
+    // dueño (isGreeting/aviso_*/:biz) y las llamadas/recordatorios de cita NO se
+    // tocan. Crítica sectorial ronda 2: "el tope debe poder cortar de verdad".
+    if (!isGreeting) {
+      let capped = false;
+      try { capped = await require('../billing/cost-alert').isSpendingCapped(reminder.org_id, { db }); } catch (_) {}
+      if (capped) {
+        const d = new Date();
+        const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1, 9, 0, 0);
+        await db.client.from('scheduled_reminders')
+          .update({ status: 'pending', scheduled_for: nextMonth.toISOString(), failed_reason: 'spend_cap', updated_at: new Date().toISOString() })
+          .eq('id', reminder.id);
+        log.info(`Reminder ${reminder.id} pospuesto por TOPE DE GASTO → ${nextMonth.toISOString().slice(0, 10)}`);
+        return;
+      }
+    }
+
     // Dispatch
     const result = await dispatch(reminder, contactWithOrg, memory);
 

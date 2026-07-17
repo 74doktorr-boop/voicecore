@@ -9,9 +9,12 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const {
-  resolveThreshold, levelFor, alreadyAlerted, monthlyVariableSpend, checkAndAlertOrg,
-  DEFAULT_THRESHOLD,
+  resolveThreshold, resolveCap, levelFor, alreadyAlerted, monthlyVariableSpend, checkAndAlertOrg,
+  isSpendingCapped, DEFAULT_THRESHOLD,
 } = require('../src/billing/cost-alert');
+
+const dbWithOrg = (org) => ({ enabled: true, client: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: org }) }) }) }) } });
+const noMsg = async () => ({ overageEur: 0 });
 
 const fakeDb = { enabled: true, client: { from: () => ({ update: () => ({ eq: async () => ({}) }) }) } };
 const noMsgs = async () => ({ overageEur: 0 });
@@ -25,6 +28,30 @@ describe('resolveThreshold', () => {
   });
   test('0 = desactivado', () => {
     assert.strictEqual(resolveThreshold({ automation_config: { config: { costAlertThresholdEur: 0 } } }), 0);
+  });
+});
+
+describe('resolveCap (tope duro, opt-in)', () => {
+  test('sin config → 0 (off)', () => assert.strictEqual(resolveCap({}), 0));
+  test('0 explícito → 0', () => assert.strictEqual(resolveCap({ automation_config: { config: { costCapEur: 0 } } }), 0));
+  test('valor positivo → ese valor', () => assert.strictEqual(resolveCap({ automation_config: { config: { costCapEur: 30 } } }), 30));
+});
+
+describe('isSpendingCapped', () => {
+  test('capped: gasto ≥ tope', async () => {
+    const org = { id: 'o', monthly_minutes_used: 600, monthly_minutes_limit: 500, automation_config: { config: { costCapEur: 5 } } };
+    const r = await isSpendingCapped('o', { db: dbWithOrg(org), usageSummary: noMsg, noCache: true });
+    assert.strictEqual(r, true);   // 100 min × 0,10 = 10€ ≥ 5€
+  });
+  test('no capped: por debajo del tope', async () => {
+    const org = { id: 'o', monthly_minutes_used: 510, monthly_minutes_limit: 500, automation_config: { config: { costCapEur: 50 } } };
+    const r = await isSpendingCapped('o', { db: dbWithOrg(org), usageSummary: noMsg, noCache: true });
+    assert.strictEqual(r, false);  // 1€ « 50€
+  });
+  test('no capped: tope desactivado (0)', async () => {
+    const org = { id: 'o', monthly_minutes_used: 9999, monthly_minutes_limit: 0, automation_config: { config: {} } };
+    const r = await isSpendingCapped('o', { db: dbWithOrg(org), usageSummary: noMsg, noCache: true });
+    assert.strictEqual(r, false);
   });
 });
 

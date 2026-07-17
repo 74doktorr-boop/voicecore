@@ -32,6 +32,15 @@ function resolveThreshold(org) {
   return Number.isFinite(n) && n >= 0 ? n : DEFAULT_THRESHOLD;
 }
 
+/** Tope DURO de gasto (€) de la org. Solo por-negocio, OFF por defecto (0). PURA.
+ *  Ojo: el corte NO afecta a llamadas entrantes ni a recordatorios de cita;
+ *  solo pospone seguimientos/campañas no esenciales (ver isSpendingCapped). */
+function resolveCap(org) {
+  const cfg = (org && org.automation_config && org.automation_config.config) || {};
+  const n = Number(cfg.costCapEur);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** Gasto variable del mes: overage de voz (min > incluidos) + overage de mensajes. */
 async function monthlyVariableSpend(org, opts = {}) {
   const db     = opts.db || require('../db/database').getDatabase();
@@ -133,6 +142,33 @@ async function checkAllOrgs(opts = {}) {
   return { checked: orgs.length, alerted };
 }
 
+// ¿Está el negocio por encima de su TOPE DURO de gasto variable este mes?
+// Usado para POSPONER envíos no esenciales (seguimientos/campañas), NUNCA para
+// cortar llamadas ni recordatorios de cita. Cache corto (TTL 60s) para no leer
+// la BD por cada recordatorio del lote. deps inyectables.
+const _capCache = new Map(); // orgId -> { capped, ts }
+async function isSpendingCapped(orgId, opts = {}) {
+  const db = opts.db || require('../db/database').getDatabase();
+  if (!db.enabled || !orgId) return false;
+  const now = opts.now || Date.now();
+  const hit = _capCache.get(orgId);
+  if (!opts.noCache && hit && now - hit.ts < 60000) return hit.capped;
+  let capped = false;
+  try {
+    const { data: org } = await db.client.from('organizations')
+      .select('id,monthly_minutes_used,monthly_minutes_limit,automation_config')
+      .eq('id', orgId).maybeSingle();
+    const cap = resolveCap(org || {});
+    if (cap > 0) {
+      const spend = await monthlyVariableSpend(org, opts);
+      capped = spend.totalEur >= cap;
+    }
+  } catch (e) { log.warn(`isSpendingCapped(${orgId}): ${e.message}`); }
+  _capCache.set(orgId, { capped, ts: now });
+  return capped;
+}
+function _clearCapCache() { _capCache.clear(); }
+
 let _interval = null;
 function startCostAlertCron() {
   if (_interval) return;
@@ -144,7 +180,8 @@ function startCostAlertCron() {
 function stopCostAlertCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
 module.exports = {
-  resolveThreshold, monthlyVariableSpend, levelFor, alreadyAlerted,
-  checkAndAlertOrg, checkAllOrgs, startCostAlertCron, stopCostAlertCron,
+  resolveThreshold, resolveCap, monthlyVariableSpend, levelFor, alreadyAlerted,
+  checkAndAlertOrg, checkAllOrgs, isSpendingCapped, _clearCapCache,
+  startCostAlertCron, stopCostAlertCron,
   DEFAULT_THRESHOLD, VOICE_OVERAGE_EUR,
 };
