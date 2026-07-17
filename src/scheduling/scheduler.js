@@ -500,6 +500,31 @@ class SchedulingSystem {
       require('../integrations/calendar-sync').syncCancelToCalendar(apt).catch(() => {});
     } catch (_) {}
 
+    // Lista de espera: ofrece la plaza liberada al siguiente candidato. Cubre 1:1
+    // y AFORO (una plaza de clase liberada se ofrece igual, por servicio). SOLO
+    // las cancelaciones por VOZ/externa pasan por aquí; portal y WhatsApp ya lo
+    // hacen por su lado → sin doble oferta. OFF salvo WA_WAITLIST_AUTOOFFER=1;
+    // NO-OP sin candidatos. Fire-and-forget.
+    if (apt.businessId && process.env.NODE_ENV !== 'test') {
+      setImmediate(async () => {
+        try {
+          const { offerFreedSlot } = require('../lifecycle/waitlist-offer');
+          const { getWaCredentials } = require('../whatsapp/accounts');
+          const { sendText } = require('../notifications/client-whatsapp');
+          const { sendWhatsApp } = require('../notifications/whatsapp');
+          const creds = await getWaCredentials(apt.businessId).catch(() => null);
+          const cfg = this.getBusinessConfig(apt.businessId);
+          const ownerPhone = cfg?.automations?.config?.alertPhone || cfg?.ownerPhone || process.env.OWNER_PHONE;
+          const [y, m, d] = String(apt.date).split('-').map(Number);
+          const humanDate = (y && m && d) ? new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : apt.date;
+          await offerFreedSlot(
+            { businessId: apt.businessId, date: apt.date, time: apt.time, service: apt.service, humanDate, bizName: cfg?.name || 'el negocio' },
+            { credentials: creds, notifyOwner: async (msg) => { if (ownerPhone) { try { const r = await sendText(ownerPhone, msg, creds); if (r?.ok) return; } catch (_) {} } await sendWhatsApp(msg).catch(() => {}); } }
+          );
+        } catch (e) { log.warn(`waitlist auto-offer (voz): ${e.message}`); }
+      });
+    }
+
     return {
       success: true,
       message: `Cita cancelada correctamente.`,
