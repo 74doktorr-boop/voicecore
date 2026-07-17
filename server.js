@@ -33,6 +33,7 @@ const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
 const { setupOutlookRoutes }      = require('./src/api/routes-outlook');
+const { setupIntegrationRoutes }  = require('./src/api/routes-integrations');
 const { setupAuthRoutes }         = require('./src/api/routes-auth');
 const { setupWebhookRoutes }      = require('./src/api/routes-webhooks');
 const { webhookDispatcher }       = require('./src/webhooks/dispatcher');
@@ -598,6 +599,9 @@ setupAutomationRoutes(app);
 setupFlowRoutes(app);
 setupCalendarRoutes(app, config);
 setupOutlookRoutes(app, config);
+// Ingreso de integraciones: sistemas externos empujan sus reservas para evitar
+// overbooking (HMAC firmado, INERTE sin inboundSecret configurado por negocio).
+setupIntegrationRoutes(app);
 setupWebhookRoutes(app);
 
 // Setup WhatsApp bidireccional webhook (Meta Cloud API)
