@@ -3052,6 +3052,46 @@ function addStayUnitRow() {
   var box = document.getElementById('cfgStayUnits');
   if (box) box.insertAdjacentHTML('beforeend', _cfgStayRow({}));
 }
+// ── Bonos de sesiones (gestión interna del dueño; el bot nunca los menciona) ──
+async function loadBonos() {
+  var box = document.getElementById('bonoList');
+  if (!box) return;
+  try {
+    var d = await api('/api/portal/bonos');
+    if (d.unavailable) { box.innerHTML = '<div class="u-text-sm u-dim">Los bonos aún no están activados en tu cuenta.</div>'; return; }
+    var items = (d.bonos || []).filter(function (b) { return !b.expired && b.left > 0; });
+    if (!items.length) { box.innerHTML = ''; return; }
+    box.innerHTML = items.map(function (b) {
+      return '<div class="u-flex u-gap-2 u-text-sm" style="align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
+        '<span class="u-flex-1">' + esc(b.label || 'Bono') + ' · ' + esc(b.phone) + (b.service_key ? ' · ' + esc(b.service_key) : '') + '</span>' +
+        '<strong>' + b.left + '/' + b.total_sessions + '</strong>' +
+        (b.expires_at ? '<span class="u-dim-2">hasta ' + esc(b.expires_at) + '</span>' : '') +
+        '<button type="button" class="btn btn-d btn-sm" onclick="expireBonoUI(\'' + b.id + '\')" title="Caducar este bono">✕</button>' +
+      '</div>';
+    }).join('');
+  } catch (_) {}
+}
+async function grantBonoUI() {
+  var phone = (document.getElementById('bonoPhone').value || '').trim();
+  var sessions = parseInt(document.getElementById('bonoSessions').value, 10);
+  if (!phone || !(sessions >= 1)) { toast('Teléfono y nº de sesiones', 'err'); return; }
+  try {
+    await api('/api/portal/bonos', 'POST', {
+      phone: phone, sessions: sessions,
+      label: (document.getElementById('bonoLabel').value || '').trim() || undefined,
+      expiresAt: (document.getElementById('bonoExpires').value || '') || undefined,
+    });
+    toast('Bono creado');
+    document.getElementById('bonoPhone').value = ''; document.getElementById('bonoSessions').value = '';
+    document.getElementById('bonoLabel').value = ''; document.getElementById('bonoExpires').value = '';
+    loadBonos();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+async function expireBonoUI(id) {
+  try { await api('/api/portal/bonos/' + id + '/expire', 'POST', {}); toast('Bono caducado'); loadBonos(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
 function genInboundSecret() {
   var el = document.getElementById('cfgIntInSecret');
   if (!el) return;
@@ -3216,6 +3256,18 @@ async function loadConfig() {
       '<div class="form-group"><label class="form-label">Calendario de tu otro software <span class="u-normal">(Fresha, Booksy, Doctoralia…)</span></label>' +
         '<textarea class="form-input" id="cfgIcalFeeds" rows="2" placeholder="https://…/calendario.ics (uno por línea, máx. 3)">' + esc((Array.isArray(c.icalFeeds) ? c.icalFeeds : []).join('\n')) + '</textarea>' +
         '<small class="form-hint">Pega el enlace de exportación de calendario (.ics) de tu software de siempre y tus citas de allí <strong>bloquearán huecos aquí</strong>: la IA no reservará encima. Se comprueba cada pocos minutos. En tu software búscalo como «exportar calendario», «suscribirse» o «iCal».</small></div>' +
+      '<div class="form-group"><label class="form-label">Bonos de sesiones <span class="u-normal">(solo lo ves tú — el asistente nunca los menciona)</span></label>' +
+        '<div class="form-row">' +
+          '<input class="form-input" id="bonoPhone" type="tel" placeholder="Teléfono del cliente">' +
+          '<input class="form-input" id="bonoSessions" type="number" min="1" max="500" placeholder="Sesiones (ej. 10)" style="max-width:150px">' +
+        '</div>' +
+        '<div class="form-row u-mt-2">' +
+          '<input class="form-input" id="bonoLabel" placeholder="Nombre (ej. Bono 10 fisio) — opcional">' +
+          '<input class="form-input" id="bonoExpires" type="date" title="Caducidad (opcional)" style="max-width:170px">' +
+          '<button type="button" class="btn btn-d btn-sm u-nowrap" onclick="grantBonoUI()">+ Dar bono</button>' +
+        '</div>' +
+        '<div id="bonoList" class="u-mt-2"></div>' +
+        '<small class="form-hint">Cada reserva del cliente descuenta una sesión; si cancela, se le devuelve. El saldo es gestión interna del negocio.</small></div>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
       '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +
@@ -3240,6 +3292,7 @@ async function loadConfig() {
   // sus casillas de centro solo si la org tiene centros).
   window._locsCache = Array.isArray(c.locations) ? c.locations : [];
   (Array.isArray(c.serviceList) && c.serviceList.length ? c.serviceList : [{}]).forEach(addServiceRow);
+  loadBonos();   // bonos de sesiones (async, tras el primer paint)
 
   // Bucle de mejora (#5): lo que los clientes preguntaron y el asistente no
   // supo responder, pintado donde se arregla. Fail-open: sin datos, nada.

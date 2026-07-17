@@ -2176,6 +2176,65 @@ function setupPortalRoutes(app, pipeline, config) {
   });
 
   // ════════ Lista de espera ═══════════════════════════════════════════════════
+  // ── Bonos de sesiones (alta/lista/caducar sin SQL) ─────────────────────────
+  // El modelo de ingresos de wellness/estética. INTERNOS: el bot jamás se los
+  // menciona al cliente (regla 5 del guardarraíl); esto es gestión del dueño.
+  // NO-OP elegante sin la tabla nf_bonos (42P01 → lista vacía / error claro).
+  app.get('/api/portal/bonos', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ bonos: [] });
+    const { data, error } = await db.client.from('nf_bonos')
+      .select('id, phone, label, service_key, total_sessions, used_sessions, expires_at, created_at')
+      .eq('org_id', req.businessId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) return res.json({ bonos: [], unavailable: error.code === '42P01' });
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+    res.json({ bonos: (data || []).map(b => ({
+      ...b,
+      left: Math.max(0, (b.total_sessions || 0) - (b.used_sessions || 0)),
+      expired: !!(b.expires_at && b.expires_at < today),
+    })) });
+  });
+
+  app.post('/api/portal/bonos', portalAuth, async (req, res) => {
+    const { normalizeE164 } = require('../telephony/outbound');
+    const phone = normalizeE164(req.body?.phone);
+    const sessions = Math.round(Number(req.body?.sessions));
+    if (!phone) return res.status(400).json({ error: 'Teléfono no válido' });
+    if (!(sessions >= 1 && sessions <= 500)) return res.status(400).json({ error: 'Sesiones: entre 1 y 500' });
+    const expiresAt = /^\d{4}-\d{2}-\d{2}$/.test(req.body?.expiresAt || '') ? req.body.expiresAt : null;
+    // Enlazar con el contacto si existe (best-effort)
+    let contactId = null;
+    try {
+      const db = getDatabase();
+      const { phoneVariants } = require('../utils/phone');
+      const { data: c } = await db.client.from('contacts')
+        .select('id').eq('org_id', req.businessId).in('phone', phoneVariants(phone)).limit(1).maybeSingle();
+      contactId = (c && c.id) || null;
+    } catch (_) {}
+    const r = await require('../billing/bonos').grantBono(req.businessId, {
+      phone, contactId, sessions,
+      serviceKey: String(req.body?.serviceKey || '').trim().slice(0, 40) || null,
+      label: String(req.body?.label || '').trim().slice(0, 60) || null,
+      expiresAt,
+    });
+    if (!r.ok) return res.status(r.reason === 'no_table' ? 409 : 500).json({ error: r.reason === 'no_table' ? 'Falta activar los bonos (migración pendiente)' : 'No se pudo crear el bono' });
+    res.status(201).json({ ok: true, id: r.id });
+  });
+
+  app.post('/api/portal/bonos/:id/expire', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'sin BD' });
+    const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const { data, error } = await db.client.from('nf_bonos')
+      .update({ expires_at: yesterday, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id).eq('org_id', req.businessId)
+      .select('id');
+    if (error || !data || !data.length) return res.status(404).json({ error: 'Bono no encontrado' });
+    res.json({ ok: true });
+  });
+
   app.get('/api/portal/waitlist', portalAuth, async (req, res) => {
     const db = getDatabase();
     if (!db.enabled) return res.json({ waitlist: [] });
