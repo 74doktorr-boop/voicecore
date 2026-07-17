@@ -95,6 +95,22 @@ tools `check_stay_availability` y `book_stay` a la lista de tools del asistente.
 `checkout` es exclusivo (01→04 = 3 noches). El bot consulta disponibilidad por
 noche contra el aforo y reserva si caben todas las noches.
 
+## 7a-bis. Calendario del software vertical — `icalFeeds`
+
+**La integración universal de lectura.** Fresha, Booksy, Treatwell, Doctoralia,
+Mews, Cloudbeds… exportan un feed iCal (.ics). En **Portal → Configuración →
+Ajustes avanzados → "Calendario de tu otro software"** el dueño pega esa URL
+(una por línea, máx 3) y sus citas de allí **bloquean huecos en NodeFlow** →
+la IA no reserva encima = fin de la doble agenda/overbooking.
+
+```json
+"icalFeeds": ["https://fresha.com/…/calendario.ics"]
+```
+
+Solo https público (anti-SSRF). Se consulta con caché de ~5 min. v1: eventos
+con hora (se omiten los de día completo y los recurrentes RRULE). Funciona
+aunque el negocio NO use Google Calendar.
+
 ## 7b. Reserva por profesional — `staff`
 
 Peluquería, barbería, fisio…: reservar con un profesional concreto. En
