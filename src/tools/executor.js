@@ -893,6 +893,18 @@ class ToolExecutor {
       }
     } catch (_) {}
 
+    // Integraciones (conector): empuja el lead al sistema/CRM externo del negocio
+    // (webhook firmado). Fire-and-forget, fail-open, NO-OP sin integración.
+    try {
+      require('../integrations/connector').emit(assistantId, 'lead.registered', {
+        name, phone,
+        goal: args.goal || null, need: args.need || null,
+        business_type: args.business_type || null,
+        operation: args.operation || null,
+        urgency: args.urgency || 'media', notes: args.notes || null,
+      });
+    } catch (_) {}
+
     // Notify owner
     const details = [
       args.goal          && `Objetivo: ${args.goal}`,
