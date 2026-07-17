@@ -3220,7 +3220,12 @@ async function loadConfig() {
             ' value="' + esc(c.notifyEmail || '') + '"></div>' +
       '</div>' +
 
-      '<div class="form-section-title">Ajustes avanzados <span class="u-normal">(opcional)</span></div>' +
+      '<details class="adv-settings">' +
+        '<summary class="adv-summary">' +
+          '<span class="adv-summary-t">Ajustes avanzados</span>' +
+          '<span class="adv-summary-s">Equipo, clases con aforo, bonos, calendario de tu otro programa, avisos de gasto… <strong>Si no sabes qué es algo, déjalo como está</strong> — lo dejamos listo contigo. No necesitas tocar nada de aquí para empezar.</span>' +
+        '</summary>' +
+        '<div class="adv-body">' +
       '<div class="form-group"><label class="form-label">Equipo / profesionales <span class="u-normal">(reserva por profesional)</span></label>' +
         '<input class="form-input" id="cfgStaff" placeholder="Ej: Ana, Beto, Carla" value="' + esc((Array.isArray(c.staff) ? c.staff : []).join(', ')) + '">' +
         '<small class="form-hint">Si reservas con un profesional concreto (peluquería, barbería…), lista aquí a tu equipo separado por comas. La IA preguntará con quién quiere la cita. Vacío = una sola agenda.</small></div>' +
@@ -3268,6 +3273,8 @@ async function loadConfig() {
         '</div>' +
         '<div id="bonoList" class="u-mt-2"></div>' +
         '<small class="form-hint">Cada reserva del cliente descuenta una sesión; si cancela, se le devuelve. El saldo es gestión interna del negocio.</small></div>' +
+        '</div>' +   /* .adv-body */
+      '</details>' +
 
       '<div class="form-section-title">Acceso al portal</div>' +
       '<div class="form-group" id="cfgPasswordSection">' + passwordSectionHtml(hasPassword) + '</div>' +

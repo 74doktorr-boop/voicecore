@@ -484,6 +484,21 @@ select.form-input, select.form-ctrl { cursor: pointer; }
 }
 .form-hint { display: block; margin-top: 6px; font-size: var(--fs-xs); color: var(--dim); line-height: 1.5; }
 
+/* Ajustes avanzados: plegado por defecto — el 90% no debe verlo ni asustarse.
+   Se abre solo si el dueño (digital) quiere, o lo abre NodeFlow en el alta. */
+.adv-settings { margin: var(--sp-6) 0 var(--sp-3); border: 1px solid var(--border-2); border-radius: var(--radius-md, 10px); background: var(--surface-2, rgba(255,255,255,.02)); }
+.adv-summary { list-style: none; cursor: pointer; padding: var(--sp-4); display: block; user-select: none; }
+.adv-summary::-webkit-details-marker { display: none; }
+.adv-summary-t { display: flex; align-items: center; gap: 8px; font-size: var(--fs-md); font-weight: 700; color: var(--accent-l); text-transform: uppercase; letter-spacing: .06em; }
+.adv-summary-t::before { content: "⚙"; font-size: 1.05em; }
+.adv-summary-t::after { content: "▸ mostrar"; margin-left: auto; font-size: var(--fs-xs); font-weight: 600; color: var(--dim); text-transform: none; letter-spacing: 0; }
+.adv-settings[open] .adv-summary-t::after { content: "▾ ocultar"; }
+.adv-summary-s { display: block; margin-top: 6px; font-size: var(--fs-xs); color: var(--dim); line-height: 1.55; font-weight: 400; }
+.adv-summary:hover .adv-summary-t { filter: brightness(1.15); }
+.adv-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-md, 10px); }
+.adv-body { padding: 0 var(--sp-4) var(--sp-4); border-top: 1px solid var(--border-2); margin-top: 2px; padding-top: var(--sp-4); }
+.adv-body .form-group:first-child { margin-top: 0; }
+
 .search-bar { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-5); }
 .search-bar .search-input { flex: 1; }
 .filter-bar { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-5); align-items: center; }
