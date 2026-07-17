@@ -50,6 +50,16 @@ describe('generatePrompt — guardarraíl profesional (cluster colegiados)', () 
   });
 });
 
+describe('generatePrompt — NO filtrar info interna (bonos/planes) al cliente', () => {
+  for (const sector of ['dental', 'abogados', 'peluqueria', 'gimnasio', 'generico']) {
+    test(`${sector}: prohíbe mencionar bonos/planes/sesiones restantes`, () => {
+      const p = generatePrompt({ sector }, 'Negocio X');
+      assert.match(p, /INFORMACIÓN INTERNA DEL NEGOCIO/);
+      assert.match(p, /nunca menciones al cliente bonos, planes/i);
+    });
+  }
+});
+
 describe('generatePrompt — guardarraíl CONFIGURABLE por negocio (guardrailExtra)', () => {
   test('el texto extra del dueño se añade al guardarraíl del cluster salud', () => {
     const p = generatePrompt({ sector: 'dental', guardrailExtra: 'Sí puedes confirmar que trabajamos con Adeslas.' }, 'Clínica X');
