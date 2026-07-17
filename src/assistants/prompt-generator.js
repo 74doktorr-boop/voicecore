@@ -41,6 +41,11 @@ function formatServiceList(list) {
 function formatLanguage(lang) {
   if (lang === 'es+eu') return 'Responde en el idioma en que te hablen: español o euskera. Si no estás segura del idioma, usa español.';
   if (lang === 'es+gl') return 'Responde en el idioma en que te hablen: español o gallego (galego). Si el cliente habla gallego, respóndele SIEMPRE en gallego; si habla castellano, en castellano. Si no estás seguro, usa gallego.';
+  // Turismo/costa (crítica sectorial): atender a clientela internacional.
+  if (lang === 'es+en') return 'Reply in the language the customer uses: Spanish or English. If they speak English, answer in English; if Spanish, in Spanish. When unsure, use Spanish. / Responde en el idioma del cliente: español o inglés.';
+  if (lang === 'es+fr') return 'Réponds dans la langue du client : espagnol ou français. S\'il parle français, réponds en français ; s\'il parle espagnol, en espagnol. En cas de doute, espagnol. / Responde en el idioma del cliente: español o francés.';
+  if (lang === 'en')    return 'Reply exclusively in English.';
+  if (lang === 'fr')    return 'Réponds exclusivement en français.';
   if (lang === 'eu')    return 'Responde exclusivamente en euskera.';
   if (lang === 'gl')    return 'Responde exclusivamente en gallego (galego), nunca en castellano. Usa un gallego natural y correcto.';
   return 'Responde exclusivamente en español de España.';

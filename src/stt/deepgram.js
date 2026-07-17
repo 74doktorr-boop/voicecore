@@ -16,6 +16,13 @@ function _recognitionLang(language) {
   if (!language) return 'es';
   const l = String(language).toLowerCase();
   if (l === 'eu') return 'eu';
+  if (l === 'en') return 'en';
+  if (l === 'fr') return 'fr';
+  // Bilingüe con inglés/francés (turismo/costa) → modelo MULTILINGÜE de Deepgram
+  // (nova-3 multi reconoce es/en/fr en una sola conexión, con cambio de idioma
+  // dentro de la llamada). Tarifa multilingüe.
+  if (l.indexOf('+') !== -1 && (l.indexOf('en') !== -1 || l.indexOf('fr') !== -1)) return 'multi';
+  // Bilingüe es+gl / es+eu → base español (lenguas muy próximas, mismo modelo).
   if (l.indexOf('gl') !== -1 || l.indexOf('+') !== -1) return 'es';
   return l;
 }
@@ -261,4 +268,4 @@ class DeepgramSTT {
   }
 }
 
-module.exports = { DeepgramSTT };
+module.exports = { DeepgramSTT, _recognitionLang };
