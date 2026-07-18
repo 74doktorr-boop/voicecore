@@ -80,9 +80,12 @@ async function _calendarBusy(businessId, fromDate, toDate) {
     try {
       const cal = getGoogleCalendar();
       if (cal.enabled && org.google_refresh_token) {
+        // Tokens cifrados en reposo → descifrar antes de usarlos con Google
+        // (decryptSecret tolera valores legacy en claro).
+        const { decryptSecret } = require('../utils/crypto');
         const fresh = await cal.refreshIfNeeded({
-          access_token:  org.google_access_token,
-          refresh_token: org.google_refresh_token,
+          access_token:  decryptSecret(org.google_access_token),
+          refresh_token: decryptSecret(org.google_refresh_token),
           expiry_date:   org.google_token_expiry,
         });
         gBusy = await cal.getBusyByDate(fresh, fromDate, toDate, org.google_calendar_id || 'primary');

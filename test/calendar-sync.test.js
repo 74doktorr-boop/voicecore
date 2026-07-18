@@ -81,6 +81,41 @@ describe('pushAppointmentEvent', () => {
   });
 });
 
+describe('tokens cifrados en reposo (auditoría 2026-07-16)', () => {
+  // Regresión del bug "cita manual no aparece en Google Calendar": el callback
+  // OAuth guarda los tokens cifrados, pero calendar-sync los pasaba a Google en
+  // crudo → invalid_grant silencioso y ninguna cita se sincronizaba.
+  test('descifra los tokens antes de llamar a Google y re-cifra al persistir', async () => {
+    const prev = process.env.ENCRYPTION_KEY;
+    process.env.ENCRYPTION_KEY = 'a'.repeat(64);
+    try {
+      const { encryptSecret, decryptSecret } = require('../src/utils/crypto');
+      const { deps, calls } = fakeDeps({
+        org: {
+          google_refresh_token: encryptSecret('refresh-1'),
+          google_access_token:  encryptSecret('access-1'),
+        },
+        refreshIfNeeded: async (t) => {
+          assert.strictEqual(t.refresh_token, 'refresh-1');
+          assert.strictEqual(t.access_token, 'access-1');
+          return { ...t, access_token: 'access-2', expiry_date: 2000 };
+        },
+      });
+      const id = await pushAppointmentEvent('org-1', APT, deps);
+      assert.strictEqual(id, 'evt_123');
+      assert.strictEqual(calls.createEvent[0].tokens.access_token, 'access-2');
+      // El token refrescado vuelve a la BD CIFRADO, nunca en claro.
+      assert.strictEqual(calls.updateOrg.length, 1);
+      const stored = calls.updateOrg[0].patch.google_access_token;
+      assert.notStrictEqual(stored, 'access-2');
+      assert.strictEqual(decryptSecret(stored), 'access-2');
+    } finally {
+      if (prev === undefined) delete process.env.ENCRYPTION_KEY;
+      else process.env.ENCRYPTION_KEY = prev;
+    }
+  });
+});
+
 describe('removeAppointmentEvent', () => {
   test('borra el evento por su id y devuelve true', async () => {
     const { deps, calls } = fakeDeps();

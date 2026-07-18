@@ -15,6 +15,7 @@
 // ============================================================
 
 const { Logger } = require('../utils/logger');
+const { encryptSecret, decryptSecret } = require('../utils/crypto');
 const log = new Logger('CAL-SYNC');
 
 function _resolve(deps) {
@@ -40,12 +41,15 @@ async function _freshOutlookTokens(db, ocal, businessId) {
   if (!db.enabled || !ocal || !ocal.enabled) return null;
   const org = await db.getOrg(businessId);
   if (!org?.outlook_refresh_token) return null;
-  const fresh = await ocal.refreshIfNeeded({
-    access_token:  org.outlook_access_token,
-    refresh_token: org.outlook_refresh_token,
+  // Descifrado al leer (decryptSecret tolera legacy en claro).
+  const raw = {
+    access_token:  decryptSecret(org.outlook_access_token),
+    refresh_token: decryptSecret(org.outlook_refresh_token),
     expiry_date:   org.outlook_token_expiry,
-  });
-  if (fresh.access_token !== org.outlook_access_token || fresh.refresh_token !== org.outlook_refresh_token) {
+  };
+  if (!raw.refresh_token) return null;
+  const fresh = await ocal.refreshIfNeeded(raw);
+  if (fresh.access_token !== raw.access_token || fresh.refresh_token !== raw.refresh_token) {
     await db.updateOrg(businessId, {
       outlook_access_token:  fresh.access_token,
       outlook_refresh_token: fresh.refresh_token,
@@ -61,16 +65,24 @@ async function _freshTokens(db, cal, businessId) {
   if (!db.enabled || !cal.enabled) return null;
   const org = await db.getOrg(businessId);
   if (!org?.google_refresh_token) return null;
-  const fresh = await cal.refreshIfNeeded({
-    access_token:  org.google_access_token,
-    refresh_token: org.google_refresh_token,
+  // Los tokens se guardan CIFRADOS en reposo (auditoría 2026-07-16); hay que
+  // descifrarlos antes de hablar con Google. Sin esto, el refresh recibía el
+  // blob cifrado → invalid_grant → la cita nunca llegaba al calendario (y como
+  // todo es fail-open, moría en silencio). decryptSecret tolera legacy en claro.
+  const raw = {
+    access_token:  decryptSecret(org.google_access_token),
+    refresh_token: decryptSecret(org.google_refresh_token),
     expiry_date:   org.google_token_expiry,
-  });
-  if (fresh.access_token !== org.google_access_token) {
-    await db.updateOrg(businessId, {
-      google_access_token: fresh.access_token,
-      google_token_expiry: fresh.expiry_date,
-    }).catch(() => {});
+  };
+  if (!raw.refresh_token) return null; // descifrado inválido (p.ej. clave rotada)
+  const fresh = await cal.refreshIfNeeded(raw);
+  if (fresh.access_token !== raw.access_token) {
+    try {
+      await db.updateOrg(businessId, {
+        google_access_token: encryptSecret(fresh.access_token),
+        google_token_expiry: fresh.expiry_date,
+      });
+    } catch (_) {}
   }
   return { fresh, calendarId: org.google_calendar_id || 'primary' };
 }
