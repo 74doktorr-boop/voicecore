@@ -3777,6 +3777,7 @@ async function loadClientes(q) {
         '<button class="btn btn-d btn-sm" onclick="openImportModal()">⬆ Importar</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportTodo(this)" title="Descarga TODOS tus datos (clientes + citas) en un ZIP. Son tuyos, sin ataduras.">⬇ Descargar todo</button>' +
+        '<button class="btn btn-d btn-sm" onclick="downloadInforme(this)" title="Informe auditado: cuántas citas cerró el asistente y su valor, cita a cita, para que lo compruebes.">📊 Informe de resultados</button>' +
       '</div>' +
     '</div>' +
     (_clientesSelectMode ? '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--dim)">📨 Toca los clientes a los que quieras enviar un aviso por WhatsApp <strong style="color:var(--text)">en nombre de tu negocio</strong>, y pulsa "Escribir aviso" abajo.</div>' : '') +
@@ -3884,6 +3885,27 @@ async function exportTodo(btn) {
     toast('Error al exportar: ' + e.message, 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬇ Descargar todo'; }
+  }
+}
+
+// Informe de resultados auditado: descarga el CSV con cada cita que cerró el
+// asistente y su valor. La prueba honesta que pidió la crítica ronda 3.
+async function downloadInforme(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+  try {
+    var res = await fetch('/api/portal/roi-report?days=28&format=csv', { headers: { 'Authorization': 'Bearer ' + _token } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'informe-resultados-nodeflow.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('Informe descargado');
+  } catch (e) {
+    toast('Error al generar el informe: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📊 Informe de resultados'; }
   }
 }
 

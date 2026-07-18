@@ -2005,6 +2005,42 @@ function setupPortalRoutes(app, pipeline, config) {
     res.send(csv);
   });
 
+  // ── GET /api/portal/roi-report ── Informe de resultados AUDITADO ────────────
+  // "Cuántas cité DE VERDAD, con nombres" (crítica ronda 3, nº1 de lo que haría
+  // pagar el tier alto). ?days=28 (7-90). ?format=csv para descargar.
+  app.get('/api/portal/roi-report', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    const days = Math.min(90, Math.max(7, parseInt(req.query.days, 10) || 28));
+    try {
+      const now = new Date();
+      const from = new Date(now.getTime() - days * 864e5);
+      const fromTs = from.toISOString(), toTs = now.toISOString();
+      const fromDate = fromTs.slice(0, 10), toDate = toTs.slice(0, 10);
+      const [{ data: calls }, { data: apts }] = await Promise.all([
+        db.client.from('nf_calls').select('outcome, duration_ms, started_at')
+          .eq('org_id', businessId).gte('started_at', fromTs).lt('started_at', toTs).limit(5000),
+        db.client.from('nf_appointments').select('patient_name, service, date, price, status, created_at')
+          .eq('organization_id', businessId).gte('created_at', fromTs).lte('created_at', toTs).limit(5000),
+      ]);
+      const avgTicket = parseFloat((req.flowConfig && req.flowConfig.automations && req.flowConfig.automations.config && req.flowConfig.automations.config.avgTicket)) || 0;
+      const report = require('../reports/trial-report').buildTrialReport({
+        calls: calls || [], appointments: apts || [], avgTicket, fromDate, toDate,
+      });
+      if (req.query.format === 'csv') {
+        const csv = require('../reports/trial-report').trialReportCsv(report);
+        res.set('Content-Type', 'text/csv; charset=utf-8');
+        res.set('Content-Disposition', `attachment; filename="informe-nodeflow-${toDate}.csv"`);
+        return res.send(csv);
+      }
+      res.json({ ok: true, report });
+    } catch (e) {
+      log.warn(`roi-report ${businessId}: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo generar el informe' });
+    }
+  });
+
   // ── GET /api/portal/export/all ── ZIP de portabilidad (todos los datos) ─────
   // La garantía de "sin lock-in" hecha producto (crítica ronda 3): el dueño se
   // descarga TODO (clientes + citas) en CSV abierto, self-service, sin soporte.
