@@ -531,6 +531,49 @@ async function sendWaConfirmation(apt, config, deps = {}) {
   return false;
 }
 
+// ── WhatsApp al DUEÑO: aviso de reserva nueva (Meta template) ────────────────
+// Template: nodeflow_nueva_reserva → al alertPhone del negocio, para que el
+// DUEÑO reciba la reserva en SU WhatsApp de forma fiable (business-initiated
+// fuera de la ventana 24h obliga plantilla). Fail-open: si la plantilla aún no
+// está aprobada o no hay alertPhone, devuelve false y el dueño sigue teniendo
+// el email + Unai el Callmebot. {{1}}=cliente {{2}}=servicio {{3}}=fecha {{4}}=hora.
+async function sendWaOwnerNewBooking(apt, config, deps = {}) {
+  const _sendTemplate   = deps.sendTemplate     || sendTemplate;
+  const _getWaCreds     = deps.getWaCredentials || getWaCredentials;
+  const _waIsConfigured = deps.waIsConfigured   || waIsConfigured;
+
+  const alertPhone = config?.automations?.config?.alertPhone || config?.alertPhone || null;
+  if (!alertPhone) return false;
+
+  const credentials = apt.businessId ? await _getWaCreds(apt.businessId) : null;
+  if (!credentials && !_waIsConfigured()) return false;
+
+  const lang     = config?.language || 'es';
+  const langCode = lang === 'eu' ? 'eu' : lang === 'gl' ? 'gl' : 'es';
+  const dateStr  = lang === 'gl' ? formatDateGl(apt.date) : lang === 'eu' ? formatDateEu(apt.date) : formatDate(apt.date);
+  const components = [{
+    type: 'body',
+    parameters: [
+      { type: 'text', text: apt.patientName || 'Cliente' },
+      { type: 'text', text: apt.service || 'cita' },
+      { type: 'text', text: dateStr },
+      { type: 'text', text: apt.time || '' },
+    ],
+  }];
+
+  try {
+    let r = await _sendTemplate(alertPhone, 'nodeflow_nueva_reserva', langCode, components, credentials);
+    if (!r?.ok && credentials && _waIsConfigured()) {
+      r = await _sendTemplate(alertPhone, 'nodeflow_nueva_reserva', langCode, components, null);
+    }
+    if (r?.ok) { log.info(`WA nueva-reserva al dueño → ${apt.id} (${alertPhone})`); return true; }
+    log.warn(`WA nueva-reserva no ok para ${apt.id}: ${r?.error}`);
+  } catch (e) {
+    log.warn(`WA nueva-reserva al dueño falló ${apt.id}: ${e.message}`);
+  }
+  return false;
+}
+
 // ── WhatsApp: envía recordatorio de cita via Meta template ───────────────────
 // Template: nodeflow_cita_recordatorio (botones CONFIRMAR / CANCELAR)
 // Variables esperadas en el cuerpo: {{1}}=nombre, {{2}}=negocio, {{3}}=fecha, {{4}}=hora, {{5}}=servicio
@@ -876,6 +919,7 @@ module.exports = {
   sendReviewRequest,
   sendWaReactivation,
   sendWaConfirmation,
+  sendWaOwnerNewBooking,
   sendWaReminder,
   sendWaReview,
   sendSmsReminder,

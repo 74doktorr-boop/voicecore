@@ -10,6 +10,24 @@
 
 const WA_TEMPLATES = [
   {
+    // Aviso al DUEÑO del negocio cuando entra una reserva nueva (por voz o WA).
+    // Hoy el "Nueva reserva" solo va por Callmebot a Unai (NodeFlow) o por email;
+    // con esta plantilla el DUEÑO real lo recibe en su WhatsApp de forma fiable
+    // (business-initiated fuera de la ventana de 24h → obliga plantilla Meta).
+    // {{1}}=cliente {{2}}=servicio {{3}}=fecha {{4}}=hora. No termina en variable.
+    name: 'nodeflow_nueva_reserva',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Nueva reserva en tu negocio: {{1}} — {{2}}, el {{3}} a las {{4}}. Ya está en tu agenda.',
+        example: { body_text: [['Ana García', 'Fisioterapia', '5 de julio', '10:00']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Aviso al negocio' },
+    ],
+  },
+  {
     name: 'nodeflow_cita_confirmada',
     category: 'UTILITY',
     language: 'es',

@@ -71,13 +71,14 @@ async function handle(callData) {
     } catch (e) { log.warn(`entity link: ${e.message}`); }
   }
   if (callData.outcome === 'booked') {
-    const { sendWaConfirmation } = require('../notifications/reminders');
+    const { sendWaConfirmation, sendWaOwnerNewBooking } = require('../notifications/reminders');
     for (const apt of bookedList) {
       // El businessId de la cita puede no venir sellado en el apt suelto —
       // lo necesita sendWaConfirmation para resolver el WABA del negocio.
       const aptWithBiz = { ...apt, businessId: apt.businessId || businessId };
 
-      // 1) Aviso al DUEÑO (Callmebot — su canal de siempre)
+      // 1a) Monitor de NodeFlow (Callmebot → Unai): firehose de TODAS las
+      //     reservas de la flota. Es el canal de Unai, NO el del dueño real.
       const msg = `📞 *Nueva reserva — ${config.name}*\n` +
                   `━━━━━━━━━━━━\n` +
                   `👤 ${apt.patientName}\n` +
@@ -86,6 +87,13 @@ async function handle(callData) {
                   (apt.phone ? `📞 ${apt.phone}` : '') +
                   `\n━━━━━━━━━━━━\nGestionado por NodeFlow IA`;
       sendWhatsApp(msg).catch(() => {});
+
+      // 1b) Aviso al DUEÑO REAL del negocio en SU WhatsApp (alertPhone), vía
+      //     plantilla Meta nodeflow_nueva_reserva. Fail-open: si la plantilla no
+      //     está aprobada aún o no hay alertPhone, no pasa nada (el dueño sigue
+      //     con el email). Antes el "Nueva reserva" solo llegaba a Unai (1a).
+      sendWaOwnerNewBooking(aptWithBiz, config)
+        .catch(e => log.warn('WA nueva-reserva al dueño falló', { err: e.message }));
 
       // 2) Confirmación al CLIENTE por WhatsApp desde el número del NEGOCIO,
       //    al instante de colgar (petición Unai 2026-07-04). Respeta el toggle
