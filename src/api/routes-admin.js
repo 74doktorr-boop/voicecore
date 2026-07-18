@@ -697,7 +697,8 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── Economía por cliente: ingreso vs coste de proveedor → margen ───────────
   // La pregunta de fundador: qué cliente me gana dinero y cuál me lo quema.
-  // Ingreso = plan + overage estimado (0,10€/min sobre el límite mensual).
+  // Ingreso = plan + overage estimado (0,15€/min sobre el límite mensual,
+  // = precio real de Stripe; antes 0,10 subestimaba el ingreso).
   // Coste = suma de nf_calls.cost.total del periodo (estimación por tarifas
   // por minuto de telefonía+STT+LLM+TTS que graba cada llamada al colgar).
   // GET /api/admin/economics?days=30
@@ -708,7 +709,7 @@ function setupAdminRoutes(app, config, assistantManager) {
       const days  = Math.min(parseInt(req.query.days || '30', 10) || 30, 90);
       const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
       const { PLAN_PRICES } = require('../analytics/kpis');
-      const OVERAGE_EUR_MIN = 0.10;
+      const OVERAGE_EUR_MIN = 0.15;
 
       const [{ data: orgs }, { data: calls }] = await Promise.all([
         db.client.from('organizations')

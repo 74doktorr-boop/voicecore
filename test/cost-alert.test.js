@@ -63,13 +63,13 @@ describe('levelFor', () => {
 });
 
 describe('monthlyVariableSpend', () => {
-  test('suma overage de voz (min > incluidos) × 0,10 + mensajes', async () => {
+  test('suma overage de voz (min > incluidos) × 0,15 + mensajes', async () => {
     const org = { id: 'o1', monthly_minutes_used: 560, monthly_minutes_limit: 500 };
     const s = await monthlyVariableSpend(org, { db: fakeDb, usageSummary: async () => ({ overageEur: 3 }) });
     assert.strictEqual(s.overageMin, 60);
-    assert.strictEqual(s.voiceOverageEur, 6);   // 60 × 0,10
+    assert.strictEqual(s.voiceOverageEur, 9);   // 60 × 0,15 = precio real de Stripe (antes 0,10 subestimaba)
     assert.strictEqual(s.messageOverageEur, 3);
-    assert.strictEqual(s.totalEur, 9);
+    assert.strictEqual(s.totalEur, 12);
   });
   test('sin pasar de los minutos incluidos → 0 de voz', async () => {
     const org = { id: 'o1', monthly_minutes_used: 100, monthly_minutes_limit: 500 };

@@ -3,7 +3,7 @@
 // NodeFlow — Alerta de coste variable (2026-07-17)
 // ------------------------------------------------------------
 // Objeción nº1 de PRECIO en la crítica sectorial (128 clientes ficticios): el
-// miedo a la FACTURA SORPRESA del coste variable (voz 0,10€/min + mensajes
+// miedo a la FACTURA SORPRESA del coste variable (voz 0,15€/min + mensajes
 // 0,10€/msg) sin tope, justo en los picos. Este motor calcula el gasto variable
 // del mes por negocio y AVISA al dueño al 80% y 100% de un umbral configurable
 // (por-org o env). Idempotente por (org, mes, nivel).
@@ -17,7 +17,11 @@ const { Logger } = require('../utils/logger');
 const { monthStartISO, usageSummary } = require('./message-usage');
 const log = new Logger('COST-ALERT');
 
-const VOICE_OVERAGE_EUR = Number(process.env.VOICE_OVERAGE_EUR) || 0.10;
+// Precio REAL de overage de voz = el que cobra Stripe (stripe.js: 0,15€/min,
+// "precio ÚNICO, decisión Unai 2026-07-04"). Antes estaba a 0,10 (copia-pega
+// del precio de MENSAJES) → la alerta/tope SUBESTIMABA el gasto = justo la
+// factura sorpresa que este motor debe evitar. Ahora coincide con la landing.
+const VOICE_OVERAGE_EUR = Number(process.env.VOICE_OVERAGE_EUR) || 0.15;
 const DEFAULT_THRESHOLD = (() => {
   const n = Number(process.env.COST_ALERT_THRESHOLD_EUR);
   return Number.isFinite(n) && n >= 0 ? n : 25;
