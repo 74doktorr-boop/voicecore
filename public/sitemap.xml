@@ -780,4 +780,74 @@
   <url><loc>https://nodeflow.es/gimnasios/bilbao</loc><lastmod>2026-06-10</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
   <url><loc>https://nodeflow.es/gimnasios/donostia</loc><lastmod>2026-06-10</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
   <url><loc>https://nodeflow.es/gimnasios/vitoria</loc><lastmod>2026-06-10</lastmod><changefreq>monthly</changefreq><priority>0.88</priority></url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/coste-real-llamada-perdida-negocio</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/novedades-nodeflow-verano-2026</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/seguridad-privacidad-ia-rgpd-negocios</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/telefono-whatsapp-email-un-solo-cerebro</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/negocio-que-atiende-euskera-galego-ia</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/ficha-viva-crm-que-se-escribe-solo</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/lo-que-recupere-por-ti-roi-medible-ia</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/fin-doble-agenda-overbooking-negocios</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/voces-ia-casi-humanas-por-que-nadie-cuelga</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/nodeflow-no-es-solo-recepcionista-ia-empleado-digital</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

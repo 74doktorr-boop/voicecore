@@ -598,6 +598,17 @@
     "generated": true
   },
   {
+    "slug": "como-funciona-recepcionista-ia-por-dentro",
+    "title": "Cómo funciona una recepcionista IA por dentro (explicado sin jerga)",
+    "keywords": [
+      "cómo funciona recepcionista IA",
+      "asistente de voz por dentro",
+      "tecnología IA llamadas"
+    ],
+    "focus": "Explicar a un dueño de negocio, sin tecnicismos, qué pasa en el segundo que tarda NodeFlow en responder: reconocimiento de voz en tiempo real, modelo de lenguaje que razona con la agenda real y síntesis de voz natural. Transmitir solidez de ingeniería (respuesta en menos de un segundo, proveedores con respaldo automático) y desmontar la idea de que es 'un contestador con truco'.",
+    "sector": "producto"
+  },
+  {
     "slug": "asistente-ia-clinica-dental-donostia",
     "title": "Asistente IA para clínicas dentales en Donostia-San Sebastián",
     "keywords": [
@@ -608,6 +619,17 @@
     "focus": "Cómo las clínicas dentales de Donostia-San Sebastián pueden reducir llamadas perdidas, automatizar triaje de urgencias y gestionar recordatorios con IA en euskera y castellano.",
     "sector": "clinicas",
     "city": "donostia"
+  },
+  {
+    "slug": "recepcionista-ia-vs-secretaria-virtual-humana",
+    "title": "Recepcionista IA vs. secretaria virtual humana: comparativa honesta",
+    "keywords": [
+      "recepcionista IA vs secretaria virtual",
+      "servicio secretaria externa precio",
+      "alternativa secretaria negocio"
+    ],
+    "focus": "Comparativa honesta de coste, horario, capacidad y límites: secretaria a media jornada (~1000€/mes, media jornada), servicio de secretaría externa (cientos de euros, toma recados) y NodeFlow (desde 49€/mes, 24/7, cierra citas en la agenda real y hace seguimientos). Reconocer lo que un humano hace mejor y explicar por qué la combinación óptima de muchos negocios es humano en mostrador + IA al teléfono.",
+    "sector": "producto"
   },
   {
     "slug": "recepcionista-ia-clinica-dental-vitoria",
@@ -622,6 +644,17 @@
     "city": "vitoria"
   },
   {
+    "slug": "guia-elegir-asistente-voz-negocio-2026",
+    "title": "Guía 2026 para elegir asistente de voz IA para tu negocio (checklist)",
+    "keywords": [
+      "elegir asistente de voz IA",
+      "mejor recepcionista virtual 2026",
+      "checklist IA negocio"
+    ],
+    "focus": "Checklist de compra: latencia inferior a un segundo, agenda unificada real (que consulte tu calendario, no una copia), idiomas incluidos euskera y galego, WhatsApp oficial verificado por Meta, RGPD y no-entrenamiento con tus datos, informe de resultados en euros y sin permanencia. Posicionar cada punto como pregunta que el lector debe hacer a cualquier proveedor, y responder cómo lo cumple NodeFlow.",
+    "sector": "producto"
+  },
+  {
     "slug": "recepcionista-ia-farmacia-bilbao",
     "title": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y más",
     "keywords": [
@@ -632,6 +665,17 @@
     "focus": "Cómo las farmacias de Bilbao pueden usar IA para informar sobre turnos de guardia, disponibilidad de medicamentos, horarios y derivar urgencias. Casos reales.",
     "sector": "farmacias",
     "city": "bilbao"
+  },
+  {
+    "slug": "recordatorios-whatsapp-reducir-no-shows-guia",
+    "title": "Recordatorios por WhatsApp: la guía definitiva para reducir no-shows",
+    "keywords": [
+      "reducir no-shows",
+      "recordatorios WhatsApp citas",
+      "clientes que no vienen a la cita"
+    ],
+    "focus": "Guía práctica: por qué se producen los no-shows, la cadencia de recordatorio que funciona (confirmación al reservar + recordatorio 24h antes), por qué WhatsApp supera al SMS y al email en confirmaciones, y cómo NodeFlow lo automatiza con plantillas oficiales aprobadas y horarios de silencio. Incluir el efecto de liberar el hueco cuando el cliente cancela y reofrecerlo.",
+    "sector": "producto"
   },
   {
     "slug": "asistente-ia-farmacia-donostia",
@@ -646,6 +690,17 @@
     "city": "donostia"
   },
   {
+    "slug": "reactivar-clientes-dormidos-guia-practica",
+    "title": "Clientes dormidos: el dinero que ya tienes y no estás cobrando",
+    "keywords": [
+      "reactivar clientes antiguos",
+      "recuperar clientes perdidos",
+      "campaña reactivación clientes"
+    ],
+    "focus": "Playbook de reactivación: qué es un cliente dormido según el ritmo de cada sector, por qué recuperar uno cuesta una fracción de captar uno nuevo, qué mensaje funciona (propuesta concreta, no 'te echamos de menos') y cómo NodeFlow lo detecta y ejecuta automáticamente por email y opcionalmente por voz, con reglas de cortesía y bajas respetadas. Cerrar con el informe de euros recuperados como prueba.",
+    "sector": "producto"
+  },
+  {
     "slug": "asistente-ia-taller-mecanico-donostia",
     "title": "Asistente IA para talleres mecánicos en Donostia y Gipuzkoa",
     "keywords": [
@@ -656,6 +711,17 @@
     "focus": "Cómo los talleres mecánicos de Donostia pueden gestionar citas, presupuestos y llamadas de seguimiento automáticamente con IA en euskera y castellano.",
     "sector": "talleres",
     "city": "donostia"
+  },
+  {
+    "slug": "resenas-google-automatizar-peticion-momento-justo",
+    "title": "Reseñas de Google en piloto automático: pedirlas en el momento justo",
+    "keywords": [
+      "conseguir reseñas Google",
+      "automatizar petición reseñas",
+      "reputación online negocio local"
+    ],
+    "focus": "Por qué las reseñas deciden a quién llama un cliente nuevo, por qué casi nadie las pide (da corte y se olvida), y cómo NodeFlow envía el mensaje de '¿qué tal fue?' tras la visita con el enlace directo a reseñar, solo a clientes con la visita completada. El momento justo multiplica la tasa de reseñas; la constancia automática construye reputación mes a mes.",
+    "sector": "producto"
   },
   {
     "slug": "recepcionista-ia-psicologos-terapeutas-espana",
@@ -671,6 +737,17 @@
     "generated": true
   },
   {
+    "slug": "atencion-fuera-horario-donde-se-pierden-clientes",
+    "title": "Fuera de horario: donde tu negocio pierde más clientes sin enterarse",
+    "keywords": [
+      "llamadas fuera de horario",
+      "atender clientes 24 horas",
+      "perder clientes por horario"
+    ],
+    "focus": "Las llamadas de tarde-noche y fin de semana existen y son de alta intención (la gente busca cuando libra); sin atención, van directas a la competencia. Explicar cómo NodeFlow atiende 24/7 con cita cerrada en la agenda real, y el matiz de que la venta ocurre aunque el negocio esté cerrado: el lunes te levantas con la agenda más llena.",
+    "sector": "producto"
+  },
+  {
     "slug": "asistente-ia-opticas-espana",
     "title": "Asistente IA para ópticas: automatiza citas, revisiones y pedidos de gafas",
     "keywords": [
@@ -682,6 +759,17 @@
     "sector": "opticas",
     "city": null,
     "generated": true
+  },
+  {
+    "slug": "irse-de-vacaciones-sin-cerrar-el-telefono",
+    "title": "Cómo irte de vacaciones sin cerrar el teléfono de tu negocio",
+    "keywords": [
+      "vacaciones negocio autónomo",
+      "cerrar por vacaciones clientes",
+      "atención clientes agosto"
+    ],
+    "focus": "El dilema de agosto del autónomo: desconectar de verdad o seguir cogiendo el teléfono desde la playa. Con NodeFlow el negocio informa de fechas de reapertura, agenda citas para la vuelta y avisa solo de urgencias reales según tus reglas. Volver con la agenda de septiembre hecha en vez de con un buzón lleno. Tono cercano, caso típico de peluquería o clínica.",
+    "sector": "producto"
   },
   {
     "slug": "recepcionista-ia-podologos-espana",
@@ -697,6 +785,17 @@
     "generated": true
   },
   {
+    "slug": "siete-mitos-ia-negocios-locales",
+    "title": "7 mitos sobre la IA en negocios locales (y lo que dicen los datos)",
+    "keywords": [
+      "mitos inteligencia artificial",
+      "IA para pymes verdad",
+      "miedos IA negocio"
+    ],
+    "focus": "Desmontar con datos los mitos: 'mis clientes colgarán a un robot' (voces naturales y latencia real), 'es caro' (49€/mes vs valor de una llamada), 'es complicado' (activo en minutos, sin hardware), 'la IA dirá barbaridades' (reglas de negocio fuera del LLM), 'mis datos entrenarán a otros' (compromiso de no-entrenamiento), 'quita trabajo a personas' (hace el trabajo que nadie hacía), 'no habla mi idioma' (euskera y galego nativos).",
+    "sector": "producto"
+  },
+  {
     "slug": "asistente-ia-centros-yoga-pilates",
     "title": "Asistente IA para centros de yoga y pilates: automatiza inscripciones y horarios",
     "keywords": [
@@ -708,6 +807,17 @@
     "sector": "yoga",
     "city": null,
     "generated": true
+  },
+  {
+    "slug": "checklist-rgpd-automatizar-comunicaciones-clientes",
+    "title": "RGPD y automatización: checklist para no meter la pata con tus clientes",
+    "keywords": [
+      "RGPD comunicaciones clientes",
+      "automatizar mensajes legal",
+      "consentimiento WhatsApp clientes"
+    ],
+    "focus": "Checklist práctico para negocios que automatizan comunicaciones: base legal, identificarse como asistente virtual, respetar bajas por canal, horarios de silencio, minimización de datos y derechos del cliente. Explicar cómo NodeFlow trae estas garantías de serie (encargado del tratamiento art. 28, bajas auditables, cifrado) para cumplir por defecto en lugar de a posteriori.",
+    "sector": "producto"
   },
   {
     "slug": "recepcionista-ia-autoescuelas-espana",
@@ -723,6 +833,17 @@
     "generated": true
   },
   {
+    "slug": "bonos-sesiones-gestion-automatica-fisio-estetica",
+    "title": "Bonos de sesiones sin Excel: gestión automática para fisios y estética",
+    "keywords": [
+      "gestionar bonos sesiones",
+      "bono 10 sesiones control",
+      "software bonos fisioterapia estética"
+    ],
+    "focus": "El caos típico del bono de 10 sesiones llevado en Excel o cartulina: sesiones sin descontar, bonos caducados sin avisar, discusiones incómodas. Cómo NodeFlow gestiona alta, consumo y caducidad de bonos desde el portal, integrado con las citas que da el asistente. Dirigido a fisioterapia, estética y bienestar, que viven del bono.",
+    "sector": "producto"
+  },
+  {
     "slug": "ia-multiidioma-turismo-pais-vasco",
     "title": "IA multiidioma para negocios turísticos del País Vasco: euskera, castellano, inglés y francés",
     "keywords": [
@@ -734,6 +855,17 @@
     "sector": null,
     "city": null,
     "generated": true
+  },
+  {
+    "slug": "reserva-online-o-telefono-datos-reales",
+    "title": "¿Reserva online o teléfono? Los datos reales de cómo reservan tus clientes",
+    "keywords": [
+      "reserva online vs teléfono",
+      "cómo reservan los clientes",
+      "canales de reserva negocio local"
+    ],
+    "focus": "Contra el dogma de 'todo online': en negocios locales el teléfono sigue siendo el canal principal de reserva, sobre todo en clientela de más edad y en servicios que generan dudas. La respuesta no es elegir canal sino unificarlos: la reserva web y la llamada de NodeFlow consultan la misma disponibilidad real, sin dobles agendas. Cada cliente reserva como quiere; el negocio no se entera de la diferencia.",
+    "sector": "producto"
   },
   {
     "slug": "como-reducir-tiempo-gestion-telefonica-negocio",
@@ -749,6 +881,17 @@
     "generated": true
   },
   {
+    "slug": "ia-para-negocios-varias-sedes-equipos",
+    "title": "IA para negocios con varias sedes y equipo: cada cita en su sitio",
+    "keywords": [
+      "gestión citas varias sedes",
+      "agenda equipo profesionales",
+      "centralita virtual multisede"
+    ],
+    "focus": "El salto de complejidad al pasar de un profesional a un equipo o a varias sedes: servicios distintos por sede, profesionales con horarios propios, clientes que piden 'con Marta el jueves en Andoain'. Cómo NodeFlow modela sedes, profesionales y servicios para ofrecer solo huecos coherentes, por teléfono y online. Dirigido a clínicas y grupos en expansión.",
+    "sector": "producto"
+  },
+  {
     "slug": "asistente-ia-centro-medico-privado",
     "title": "Asistente IA para centros médicos privados: gestión de citas y seguros",
     "keywords": [
@@ -759,6 +902,17 @@
     "focus": "Cómo los centros médicos privados pueden automatizar la gestión de primeras consultas, citas de especialistas, información sobre seguros aceptados y recordatorios con IA.",
     "sector": "medicos",
     "city": null
+  },
+  {
+    "slug": "primera-semana-con-nodeflow-que-esperar",
+    "title": "Tu primera semana con NodeFlow: qué esperar día a día",
+    "keywords": [
+      "empezar con recepcionista IA",
+      "configurar asistente virtual negocio",
+      "primera semana NodeFlow"
+    ],
+    "focus": "Bajar la barrera de entrada contando la primera semana real: día 1 alta guiada en minutos (sector, servicios, saludo, voz) y primera llamada de prueba; días 2-3 primeras llamadas reales y ajustes finos desde el panel; días 4-7 primeros recordatorios, primeras citas rescatadas y el primer informe 'Lo que recuperé por ti'. Sin hardware, sin cambiar de número, sin permanencia: probar cuesta minutos.",
+    "sector": "producto"
   },
   {
     "slug": "ia-voz-para-negocios-espana-tendencias-2026",

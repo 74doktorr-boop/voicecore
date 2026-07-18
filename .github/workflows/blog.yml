@@ -1,9 +1,10 @@
 name: Auto-publish Blog Post
 
 on:
-  # Cada lunes a las 9:00 hora España (UTC+1 → 08:00 UTC)
+  # Lunes, jueves y sábado a las ~9:00 hora España (08:00 UTC).
+  # Regla de la casa: NUNCA más de 3 días seguidos sin post nuevo.
   schedule:
-    - cron: '0 8 * * 1'
+    - cron: '0 8 * * 1,4,6'
 
   # Trigger manual desde GitHub Actions tab
   workflow_dispatch:

@@ -45,9 +45,169 @@
     "fisioterapia-seguros-adeslas-sanitas-asistente-ia",
     "recepcionista-ia-veterinaria-bilbao",
     "asistente-ia-gimnasio-donostia",
-    "recepcionista-ia-peluqueria-vitoria"
+    "recepcionista-ia-peluqueria-vitoria",
+    "coste-real-llamada-perdida-negocio",
+    "novedades-nodeflow-verano-2026",
+    "seguridad-privacidad-ia-rgpd-negocios",
+    "telefono-whatsapp-email-un-solo-cerebro",
+    "negocio-que-atiende-euskera-galego-ia",
+    "ficha-viva-crm-que-se-escribe-solo",
+    "lo-que-recupere-por-ti-roi-medible-ia",
+    "fin-doble-agenda-overbooking-negocios",
+    "voces-ia-casi-humanas-por-que-nadie-cuelga",
+    "nodeflow-no-es-solo-recepcionista-ia-empleado-digital"
   ],
   "posts": [
+    {
+      "slug": "nodeflow-no-es-solo-recepcionista-ia-empleado-digital",
+      "title": "NodeFlow no es (solo) una recepcionista IA: es tu primer empleado digital",
+      "metaTitle": "NodeFlow: mucho más que una recepcionista IA",
+      "description": "Coger llamadas es solo el 20% de lo que hace NodeFlow. Seguimientos, avisos, reactivación de clientes y una ficha que se escribe sola. Descúbrelo.",
+      "date": "2026-07-18",
+      "keywords": [
+        "empleado digital",
+        "recepcionista IA",
+        "automatización negocios locales"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "voces-ia-casi-humanas-por-que-nadie-cuelga",
+      "title": "Voces IA casi humanas: por qué a NodeFlow no le cuelgan el teléfono",
+      "metaTitle": "Voces IA casi humanas: por qué nadie cuelga a NodeFlow",
+      "description": "La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo y hasta euskera y galego nativos. Así se hace.",
+      "date": "2026-07-18",
+      "keywords": [
+        "voz IA natural",
+        "asistente de voz para negocios",
+        "recepcionista virtual voz humana"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "fin-doble-agenda-overbooking-negocios",
+      "title": "El fin de la doble agenda: cómo NodeFlow acabó con el overbooking",
+      "metaTitle": "Doble agenda y overbooking: cómo lo resuelve NodeFlow",
+      "description": "Dos clientes, una silla y las 10:30. La doble agenda mata la confianza en cualquier sistema de citas. Así la eliminó NodeFlow con agenda unificada real.",
+      "date": "2026-07-18",
+      "keywords": [
+        "doble agenda",
+        "overbooking citas",
+        "sincronizar agenda negocio"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "lo-que-recupere-por-ti-roi-medible-ia",
+      "title": "«Lo que recuperé por ti»: la IA que te enseña cuánto dinero te hace ganar",
+      "metaTitle": "ROI medible: la IA que muestra cuánto te hace ganar",
+      "description": "La mayoría del software promete. NodeFlow enseña: llamadas rescatadas, citas recuperadas y euros atribuidos, cada semana y sin humo. Así funciona.",
+      "date": "2026-07-18",
+      "keywords": [
+        "ROI inteligencia artificial",
+        "recuperar llamadas perdidas",
+        "medir resultados IA negocio"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "ficha-viva-crm-que-se-escribe-solo",
+      "title": "La ficha viva: el CRM que se escribe solo mientras tú trabajas",
+      "metaTitle": "La ficha viva: el CRM que se escribe solo | NodeFlow",
+      "description": "El coche del cliente, su mascota, su póliza: NodeFlow lo apunta solo y programa los avisos que te traen ventas. El CRM que ningún pequeño negocio rellena, por fin sin rellenar.",
+      "date": "2026-07-18",
+      "keywords": [
+        "CRM automático",
+        "ficha de cliente inteligente",
+        "avisos automáticos clientes"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 8
+    },
+    {
+      "slug": "negocio-que-atiende-euskera-galego-ia",
+      "title": "Kaixo, bos días: la IA que atiende tu negocio en euskera y galego",
+      "metaTitle": "IA en euskera y galego para tu negocio | NodeFlow",
+      "description": "La única recepcionista IA que atiende en euskera y galego con voces propias. Cercanía que las multinacionales no pueden copiar. Descubre cómo suena.",
+      "date": "2026-07-18",
+      "keywords": [
+        "IA en euskera",
+        "atención telefónica galego",
+        "recepcionista virtual euskera"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 6
+    },
+    {
+      "slug": "telefono-whatsapp-email-un-solo-cerebro",
+      "title": "Teléfono, WhatsApp y email: por qué tu negocio necesita un solo cerebro",
+      "metaTitle": "Teléfono, WhatsApp y email con un solo cerebro | NodeFlow",
+      "description": "El cliente llama, escribe y espera que te acuerdes de todo. NodeFlow unifica teléfono, WhatsApp y email en una sola memoria. Así se siente esa magia.",
+      "date": "2026-07-18",
+      "keywords": [
+        "atención omnicanal pymes",
+        "WhatsApp Business automatizado",
+        "centralizar comunicación clientes"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "seguridad-privacidad-ia-rgpd-negocios",
+      "title": "Sí, es IA. Y sí, tus datos están más seguros que en tu libreta",
+      "metaTitle": "IA, RGPD y seguridad: cómo protege NodeFlow tus datos",
+      "description": "¿Le confiarías tus clientes a una IA? Con cifrado AES-256, RGPD estricto y sin entrenar modelos con tus datos, NodeFlow responde con hechos. Léelos.",
+      "date": "2026-07-18",
+      "keywords": [
+        "IA y RGPD",
+        "seguridad datos clientes",
+        "privacidad inteligencia artificial negocios"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "novedades-nodeflow-verano-2026",
+      "title": "Novedades NodeFlow — verano 2026: todo lo que tu empleado digital aprendió",
+      "metaTitle": "Novedades NodeFlow verano 2026: nuevas funciones",
+      "description": "Agenda conectada con tu software de reservas, informe de euros recuperados, bonos, importación mágica y más. Lo nuevo de NodeFlow, explicado sin jerga.",
+      "date": "2026-07-18",
+      "keywords": [
+        "novedades NodeFlow",
+        "nuevas funciones recepcionista IA",
+        "actualizaciones IA negocios"
+      ],
+      "sector": "novedades",
+      "city": null,
+      "readingMinutes": 7
+    },
+    {
+      "slug": "coste-real-llamada-perdida-negocio",
+      "title": "Cada llamada perdida te cuesta 3 veces más de lo que crees (haz la cuenta)",
+      "metaTitle": "El coste real de cada llamada perdida (haz la cuenta)",
+      "description": "No es una llamada: es el cliente, su recurrencia y su reseña. Calcula lo que pierde tu negocio cada mes y compáralo con los 49€ de NodeFlow.",
+      "date": "2026-07-18",
+      "keywords": [
+        "coste llamadas perdidas",
+        "cuánto cuesta recepcionista IA",
+        "perder clientes por teléfono"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "recepcionista-ia-peluqueria-vitoria",
       "title": "Revoluciona tu Peluquería en Vitoria con una Recepcionista IA",
