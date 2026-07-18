@@ -75,6 +75,16 @@ function generateId() {
   return 'reg_' + crypto.randomBytes(8).toString('hex');
 }
 
+/**
+ * Marca el `source` almacenado de un alta de FUNDADOR con el prefijo 'founder:'
+ * preservando la atribución original (queryable con  source LIKE 'founder:%').
+ * No fundador → source intacto. Cap 60 (límite del campo). PURA.
+ */
+function markFounderSource(isFounder, effectiveSource) {
+  if (!isFounder) return effectiveSource;
+  return ('founder:' + (effectiveSource || 'directo')).slice(0, 60);
+}
+
 async function saveRegistro(data) {
   const id  = generateId();
   const row = { id, status: 'pending_payment', created_at: new Date().toISOString(), ...data };
@@ -250,6 +260,13 @@ function setupRegistroRoutes(app) {
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
       const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios } = req.body;
+      // Programa Fundadores (49€ para siempre, primeros 20): el alta llega con
+      // fundador:true desde /onboarding.html?...&fundador=1. Se marca en `source`
+      // con prefijo 'founder:' (columna que EXISTE seguro; NO se añade columna
+      // nueva → evita el footgun de que un insert falle y caiga a memoria en
+      // silencio). Consultable luego con  source LIKE 'founder:%'  para saber
+      // exactamente quiénes son los intocables cuando suba el precio público.
+      const isFounder = req.body?.fundador === true || req.body?.fundador === '1' || req.body?.fundador === 1;
 
       // Servicios que ofrece (chips del onboarding): personalizan reglas de
       // seguimiento y precios desde el DÍA 0. Saneado: máx 20, strings cortos.
@@ -313,6 +330,10 @@ function setupRegistroRoutes(app) {
         : null;
       const effectiveSource   = couponData?.source || cleanFormSource || null;
       const effectiveLanguage = formLanguage || efectivoIdioma;
+      // Fundador → prefijo en el source almacenado, preservando la atribución
+      // original tras los dos puntos (la lógica de referido usa effectiveSource
+      // sin tocar).
+      const storedSource = markFounderSource(isFounder, effectiveSource);
 
       const row = await saveRegistro({
         sector, negocio, contacto,
@@ -326,14 +347,14 @@ function setupRegistroRoutes(app) {
         horario:  typeof horario === 'object' ? horario : {},
         ...(serviciosClean.length ? { servicios: serviciosClean } : {}),
         language: effectiveLanguage,
-        ...(effectiveSource ? { source: effectiveSource } : {}),
+        ...(storedSource ? { source: storedSource } : {}),
         ...(couponData ? {
           coupon_code:      couponData.code,
           discount_percent: couponData.discount,
         } : {}),
       });
 
-      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}`);
+      log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}${isFounder ? ' 🏛️ FUNDADOR' : ''}`);
 
       // Si entró por un referido, registrar el signup (la conversión se marca al pagar)
       if (referralData) {
@@ -420,4 +441,4 @@ function setupRegistroRoutes(app) {
   log.info('Registro routes configured');
 }
 
-module.exports = { setupRegistroRoutes, getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning, reconcileStuckProvisioning };
+module.exports = { setupRegistroRoutes, getRegistro, updateRegistro, claimRegistroForProvisioning, releaseRegistroProvisioning, reconcileStuckProvisioning, markFounderSource };

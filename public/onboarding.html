@@ -238,6 +238,9 @@ const plan       = PLANS[planKey] || PLANS.negocio;
 const urlSector  = params.get('sector') || '';
 const urlCiudad  = params.get('ciudad') || '';
 const urlIdioma  = (params.get('idioma') || '').toLowerCase();
+// Programa Fundadores: el enlace /onboarding.html?...&fundador=1 marca el alta
+// como fundador (49€ para siempre, primeros 20) para poder identificarlos luego.
+const isFounder  = params.get('fundador') === '1';
 // Atribución: de qué landing vino el lead (sector/ciudad), o el referrer si no hay params.
 const landingSource = (function () {
   const sc = [urlSector, urlCiudad].filter(Boolean).join('/');
@@ -462,7 +465,7 @@ async function _submitRegistroInner() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices() }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices(), fundador: isFounder || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
