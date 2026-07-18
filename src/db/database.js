@@ -111,13 +111,21 @@ class Database {
       tts_strategy: config.ttsStrategy || 'latency',
       temperature: config.temperature || 0.7,
       max_tokens: config.maxTokens || 500,
-      speed: config.speed || 1.0,
       tools: config.tools || [],
       phone_number: config.phoneNumber,
       metadata: config.metadata || {},
     }).select().single();
 
-    if (error) throw new Error(`Create assistant failed: ${error.message}`);
+    if (error) {
+      // La tabla `assistants` es VESTIGIAL (0 filas; el runtime resuelve el
+      // asistente desde organizations.assistant_config vía getOrgAssistant). Un
+      // DRIFT de esquema en prod (la tabla se creó de una versión vieja — p.ej.
+      // faltaba la columna `speed`, 42703) NO debe tumbar al llamador con un 500
+      // latente (auditoría seguridad 2026-07-16). Se loguea y se devuelve un
+      // objeto sintético; el config real vive en la org.
+      log.warn(`createAssistant (tabla vestigial) no persistió: ${error.message}`);
+      return { id: this._uuid(), org_id: orgId, ...config };
+    }
     log.info(`Assistant created: ${data.id} — ${config.name}`);
     return data;
   }
