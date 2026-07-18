@@ -3776,6 +3776,7 @@ async function loadClientes(q) {
         '<button class="btn btn-accent btn-sm" onclick="openPromoModal()">📣 Promoción</button>' +
         '<button class="btn btn-d btn-sm" onclick="openImportModal()">⬆ Importar</button>' +
         '<button class="btn btn-d btn-sm" onclick="exportClientes(this)">⬇ Exportar CSV</button>' +
+        '<button class="btn btn-d btn-sm" onclick="exportTodo(this)" title="Descarga TODOS tus datos (clientes + citas) en un ZIP. Son tuyos, sin ataduras.">⬇ Descargar todo</button>' +
       '</div>' +
     '</div>' +
     (_clientesSelectMode ? '<div style="background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--dim)">📨 Toca los clientes a los que quieras enviar un aviso por WhatsApp <strong style="color:var(--text)">en nombre de tu negocio</strong>, y pulsa "Escribir aviso" abajo.</div>' : '') +
@@ -3862,6 +3863,27 @@ async function exportClientes(btn) {
     toast('Error al exportar: ' + e.message, 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar CSV'; }
+  }
+}
+
+// Portabilidad: TODOS los datos (clientes + citas) en un ZIP self-service.
+// La garantía "sin lock-in" hecha botón (crítica ronda 3).
+async function exportTodo(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+  try {
+    var res = await fetch('/api/portal/export/all', { headers: { 'Authorization': 'Bearer ' + _token } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'mis-datos-nodeflow.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('Descargado — todos tus datos son tuyos');
+  } catch (e) {
+    toast('Error al exportar: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Descargar todo'; }
   }
 }
 

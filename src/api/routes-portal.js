@@ -2005,6 +2005,34 @@ function setupPortalRoutes(app, pipeline, config) {
     res.send(csv);
   });
 
+  // ── GET /api/portal/export/all ── ZIP de portabilidad (todos los datos) ─────
+  // La garantía de "sin lock-in" hecha producto (crítica ronda 3): el dueño se
+  // descarga TODO (clientes + citas) en CSV abierto, self-service, sin soporte.
+  app.get('/api/portal/export/all', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'DB no disponible' });
+    try {
+      const { data: contacts, error } = await db.client
+        .from('contacts')
+        .select('name,phone,email,call_count,last_call_at,tags,notes,created_at')
+        .eq('org_id', businessId).is('deleted_at', null)
+        .order('last_call_at', { ascending: false, nullsFirst: false }).limit(20000);
+      if (error) return res.status(500).json({ error: error.message });
+      let appointments = [];
+      try { appointments = scheduler.getAppointments(businessId) || []; } catch (_) {}
+      const bizName = (req.flowConfig && req.flowConfig.name) || (req.org && req.org.name) || 'Tu negocio';
+      const stamp = new Date().toISOString().slice(0, 10);
+      const zip = await require('./data-export').buildExportZip({ bizName, contacts, appointments, stamp });
+      res.set('Content-Type', 'application/zip');
+      res.set('Content-Disposition', `attachment; filename="mis-datos-nodeflow-${stamp}.zip"`);
+      res.send(zip);
+    } catch (e) {
+      log.warn(`export/all ${businessId}: ${e.message}`);
+      res.status(500).json({ error: 'No se pudo generar la exportación' });
+    }
+  });
+
   // ── POST /api/portal/contacts/import ──────────────────────────
   // Importación masiva del export de la clínica (Nombre, Teléfono, Caduca_el, Tipo).
   // { csv, preview? }. Con preview:true solo analiza (no escribe) para revisar antes.
