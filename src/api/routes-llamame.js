@@ -30,9 +30,16 @@ function isAllowedSpanishDest(e164) {
   return /^\+34[6789]\d{8}$/.test(String(e164 || ''));
 }
 
-/** ¿Hora razonable para llamar? 9:00-20:59 Madrid. `hour` inyectable. PURA. */
-function inCallingHours(hour) {
-  return hour >= 9 && hour < 21;
+// Ventana horaria de la demo (Madrid). Amplia a propósito: la demo la PIDE el
+// propio interesado, así que no es una llamada en frío — si escribe su número a
+// las 22:30 es un lead caliente que la quiere ya. Solo se corta la madrugada
+// (anti-broma: meter el número de otro de noche). Configurable por env.
+const CALL_HOUR_START = Math.min(23, Math.max(0, Number(process.env.LLAMAME_HOUR_START) || 8));
+const CALL_HOUR_END   = Math.min(24, Math.max(1, Number(process.env.LLAMAME_HOUR_END)   || 23));
+
+/** ¿Hora razonable para llamar? [start,end) Madrid. `hour` inyectable. PURA. */
+function inCallingHours(hour, start = CALL_HOUR_START, end = CALL_HOUR_END) {
+  return hour >= start && hour < end;
 }
 
 function madridHour(now = new Date()) {
@@ -106,7 +113,7 @@ function setupLlamameRoutes(app, deps = {}) {
 
       const hour = deps.hour !== undefined ? deps.hour : madridHour();
       if (!inCallingHours(hour)) {
-        return res.status(409).json({ error: 'Solo llamamos de 9:00 a 21:00 — déjanos tu número por la mañana y te llamamos.' });
+        return res.status(409).json({ error: `Ahora mismo descansamos. Llamamos de ${CALL_HOUR_START}:00 a ${CALL_HOUR_END}:00 — déjanos tu número y te llamamos en cuanto abramos.` });
       }
 
       const today = deps.today || new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());

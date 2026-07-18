@@ -26,11 +26,16 @@ describe('helpers puros', () => {
     assert.strictEqual(isAllowedSpanishDest('+341234567890'), false);
     assert.strictEqual(isAllowedSpanishDest(''), false);
   });
-  test('inCallingHours: 9-20 sí, 8 y 21 no', () => {
-    assert.strictEqual(inCallingHours(9), true);
-    assert.strictEqual(inCallingHours(20), true);
-    assert.strictEqual(inCallingHours(8), false);
-    assert.strictEqual(inCallingHours(21), false);
+  test('inCallingHours: ventana amplia por defecto (8-22), corta la madrugada', () => {
+    assert.strictEqual(inCallingHours(8), true);    // 8:00 ya llama
+    assert.strictEqual(inCallingHours(22), true);   // 22:00 (lead nocturno caliente)
+    assert.strictEqual(inCallingHours(7), false);   // 7:00 aún no
+    assert.strictEqual(inCallingHours(23), false);  // 23:00 ya no (default end 23 → excluye 23)
+    assert.strictEqual(inCallingHours(3), false);   // madrugada nunca
+  });
+  test('inCallingHours: ventana configurable (bounds inyectables)', () => {
+    assert.strictEqual(inCallingHours(23, 0, 24), true);   // 24h si se abre del todo
+    assert.strictEqual(inCallingHours(9, 10, 20), false);  // ventana más estrecha
   });
   test('takeDailySlot: respeta el máximo y resetea al cambiar de día', () => {
     const store = new Map();
