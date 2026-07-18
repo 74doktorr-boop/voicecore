@@ -173,6 +173,10 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
               streamSid,
               provider: 'telnyx',
               mediaEncoding,     // códec real anunciado por Telnyx (alaw/mulaw)
+              // La demo pública Llámame se autocorta antes (6 min por defecto):
+              // una demo no necesita más y acota el gasto del endpoint público.
+              maxMinutes: (outCtx && outCtx.purpose === 'llamame_demo')
+                ? (Number(process.env.LLAMAME_MAX_MINUTES) || 6) : null,
             });
 
             // Rechazada por el cap de concurrentes → cerrar el stream.

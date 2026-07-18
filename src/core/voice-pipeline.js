@@ -61,6 +61,17 @@ function lowerConfidenceMeta(a, b) {
   return cb < ca ? b : a;
 }
 
+/**
+ * Duración máxima de una llamada en ms: el tope propio de la sesión (p.ej. demo
+ * Llámame = 6 min) manda sobre el global MAX_CALL_MINUTES; si ninguno, 15 min.
+ * PURA (env inyectable en tests). El lifeguard la usa para el cierre educado.
+ */
+function effectiveMaxMs(sessionMaxMinutes, envMaxMinutes) {
+  const perCall = Number(sessionMaxMinutes) > 0 ? Number(sessionMaxMinutes) : 0;
+  const global = Number(envMaxMinutes) > 0 ? Number(envMaxMinutes) : 0;
+  return (perCall || global || 15) * 60000;
+}
+
 class VoicePipeline {
   constructor(config) {
     // Use routers if provided, otherwise create from config
@@ -212,7 +223,7 @@ class VoicePipeline {
   /**
    * Start a new call session
    */
-  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio', mediaEncoding = null }) {
+  async startCall({ callId, assistant, callerNumber, calledNumber, direction, twilioWs, streamSid, vonageWs, provider = 'twilio', mediaEncoding = null, maxMinutes = null }) {
     // Cap GLOBAL del nodo: backstop de saturación (todos los asistentes juntos).
     // Rechaza ANTES de abrir STT (coste 0) → el handler cierra el WS limpio.
     if (this.maxConcurrentNode > 0 && this.activeCalls.size >= this.maxConcurrentNode) {
@@ -242,6 +253,9 @@ class VoicePipeline {
     }
 
     const session = new CallSession({ callId, assistant, callerNumber, calledNumber, direction });
+    // Tope de duración propio de ESTA llamada (p.ej. demo Llámame: 6 min basta y
+    // acota el gasto). Si es null, el lifeguard usa MAX_CALL_MINUTES global.
+    session.maxMinutes = (Number(maxMinutes) > 0) ? Number(maxMinutes) : null;
     session.twilioWs  = twilioWs;
     session.vonageWs  = vonageWs;
     session.streamSid = streamSid;
@@ -414,7 +428,7 @@ class VoicePipeline {
       if (session._closing) return;
       const idleMs = Date.now() - Math.max(session.lastTurnAt || 0, session.playbackEndsAt || 0);
       const ageMs = Date.now() - session.startTime;
-      const maxMs = (Number(process.env.MAX_CALL_MINUTES) || 15) * 60000;
+      const maxMs = effectiveMaxMs(session.maxMinutes, process.env.MAX_CALL_MINUTES);
       if (idleMs > 75000 || ageMs > maxMs) {
         session._closing = true;
         const porSilencio = idleMs > 75000;
@@ -1228,4 +1242,4 @@ class VoicePipeline {
   }
 }
 
-module.exports = { VoicePipeline, mergePendingUtterance, lowerConfidenceMeta };
+module.exports = { VoicePipeline, mergePendingUtterance, lowerConfidenceMeta, effectiveMaxMs };
