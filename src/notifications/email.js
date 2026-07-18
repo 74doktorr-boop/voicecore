@@ -132,7 +132,7 @@ async function notifyNuevoCliente(registro) {
   if (!registro) { log.warn('notifyNuevoCliente llamado con registro null'); return false; }
 
   const to      = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
-  const plan    = registro.plan === 'pro' ? 'Pro — 99€/mes' : 'Negocio — 49€/mes';
+  const plan    = 'Negocio — 49€/mes';
   const horario = formatHorario(registro.horario);
 
   // BUG-41 FIX: Escape all user-controlled data before inserting into HTML
@@ -204,7 +204,7 @@ async function notifyNuevoCliente(registro) {
 async function sendBienvenidaGl(registro) {
   // BUG-44 FIX: Guard null contacto
   if (!registro?.email) { log.warn('sendBienvenidaGl: email nulo'); return false; }
-  const plan    = registro.plan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
+  const plan    = 'Negocio (49€/mes)';
   const nome    = (registro.contacto || 'Cliente').split(' ')[0];
   const subject = `Benvido a NodeFlow, ${nome}! 🎉`;
 
@@ -261,7 +261,7 @@ async function sendBienvenidaGl(registro) {
 async function sendBienvenidaEu(registro) {
   // BUG-44 FIX: Guard null contacto
   if (!registro?.email) { log.warn('sendBienvenidaEu: email nulo'); return false; }
-  const plan  = registro.plan === 'pro' ? 'Pro (99€/hil)' : 'Negocio (49€/hil)';
+  const plan  = 'Negocio (49€/hil)';
   const izena = (registro.contacto || 'Bezeroa').split(' ')[0];
   const subject = `Ongi etorri NodeFlow-era, ${izena}! 🎉`;
 
@@ -329,7 +329,7 @@ async function sendBienvenida(registro) {
     return sendBienvenidaEu(registro);
   }
 
-  const plan = registro.plan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
+  const plan = 'Negocio (49€/mes)';
   // BUG-44 FIX: Safe split — contacto may be null for programmatic calls
   const nombre = (registro.contacto || 'Cliente').split(' ')[0];
 
@@ -390,7 +390,7 @@ async function sendAcknowledgement(registro) {
   // BUG-44 FIX: Guard null registro/fields
   if (!registro?.email) { log.warn('sendAcknowledgement: email nulo'); return false; }
   const nombre  = (registro.contacto || 'Cliente').split(' ')[0];
-  const plan    = registro.plan === 'pro' ? 'Pro — 99€/mes' : 'Negocio — 49€/mes';
+  const plan    = 'Negocio — 49€/mes';
   const subject = `✅ Recibido, ${nombre} — te contactamos antes de 24h`;
 
   const html = `
@@ -484,7 +484,7 @@ async function sendAcknowledgement(registro) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function notifyNuevoLead(registro) {
   const to      = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
-  const plan    = registro.plan === 'pro' ? 'Pro 99€/mes' : 'Negocio 49€/mes';
+  const plan    = 'Negocio 49€/mes';
   const emoji   = registro.plan === 'pro' ? '🚀' : '📞';
   const subject = `${emoji} Nuevo lead — ${registro.negocio} · ${registro.ciudad} [${plan}]`;
   const telLimpio = (registro.telefono || '').replace(/\D/g, '');
@@ -551,7 +551,7 @@ async function sendWelcomePortalEmail(registro, magicToken) {
   const portalLink = `${publicUrl}/portal?token=${encodeURIComponent(magicToken)}`;
   const nombre     = esc((registro.contacto || registro.email).split(' ')[0]);
   const eNegocio   = esc(registro.negocio || '');
-  const plan       = registro.plan === 'pro' ? 'Pro — 99€/mes' : 'Negocio — 49€/mes';
+  const plan       = 'Negocio — 49€/mes';
   const subject    = `¡Bienvenido a NodeFlow, ${nombre}! Tu asistente está casi listo 🎉`;
 
   const html = `
