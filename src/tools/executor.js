@@ -170,6 +170,16 @@ function _notifyOwner(message, businessId = null) {
   });
 }
 
+// Teléfono del CLIENTE de la llamada. INBOUND: quien llama (callerNumber).
+// OUTBOUND (demo Llámame, recontacto/rebooking): a quien llamamos (calledNumber).
+// Antes se usaba callerNumber SIEMPRE → en saliente la cita guardaba el número
+// de NodeFlow (el que marca) y la confirmación/recordatorio iban al sitio
+// equivocado (visto en prueba real 2026-07-18). PURA respecto a la sesión.
+function _clientPhoneOf(session) {
+  if (!session) return undefined;
+  return session.direction === 'outbound' ? session.calledNumber : session.callerNumber;
+}
+
 // ── Get business config merged from scheduler + flowManager ──────────────────
 function _getBizConfig(businessId) {
   try {
@@ -437,15 +447,20 @@ class ToolExecutor {
     // conoce el número del llamante; el LLM no. Sin esto, TODAS las citas
     // se guardaban con phone null (verificado en prod 2026-07-03) y los
     // recordatorios/WhatsApp no tenían destinatario.
-    const callerPhone = context.session?.callerNumber;
+    const callerPhone = _clientPhoneOf(context.session);
     const defaultPhone = (callerPhone && callerPhone !== 'unknown') ? callerPhone : '';
+    // El LLM a veces rellena args.phone con TEXTO ("Número confirmado", "el que
+    // llama"…) en vez de un número → la cita quedaba con basura de teléfono
+    // (visto en prod 2026-07-18). Solo se acepta args.phone si tiene pinta de
+    // teléfono (≥7 dígitos); si no, manda el número determinista del servidor.
+    const argPhone = (String(args.phone || '').replace(/\D/g, '').length >= 7) ? args.phone : '';
     // Guard final: no reservar sobre un evento del Google Calendar del negocio.
     // Multi-sede: mismo criterio que check_availability — el busy de un único
     // GCal no distingue centro, así que con centros configurados no se aplica.
     const busyByDate = bookLocations.length > 0 ? {} : await _calendarBusy(businessId, normalizedDate, normalizedDate);
     const result = scheduler.bookAppointment(businessId, {
       patientName: name,
-      phone:       args.phone  || defaultPhone,
+      phone:       argPhone || defaultPhone,
       email:       args.email  || null,
       service:     args.service || args.treatment || args.activity || args.reason || '',
       date:        normalizedDate,
@@ -896,7 +911,7 @@ class ToolExecutor {
     // El teléfono del llamante entra SOLO (caller ID) — jamás pedir email
     // por voz teniendo el mejor canal ya en la mano (llamada real d7adbdb7:
     // seis intentos de dictar un email y el lead casi se pierde).
-    const callerPhone = context.session?.callerNumber;
+    const callerPhone = _clientPhoneOf(context.session);
     const phone = args.phone || ((callerPhone && callerPhone !== 'unknown') ? callerPhone : '');
     const biz   = _getBizConfig(assistantId);
 
@@ -1340,7 +1355,7 @@ class ToolExecutor {
       // Dueño = el LLAMANTE, resuelto por caller ID (determinista, jamás
       // preguntar el teléfono teniendo el mejor canal ya en la mano).
       let contactId = null;
-      const callerPhone = context.session?.callerNumber;
+      const callerPhone = _clientPhoneOf(context.session);
       if (callerPhone && callerPhone !== 'unknown') {
         try {
           const { phoneVariants } = require('../utils/phone');
@@ -1526,7 +1541,7 @@ class ToolExecutor {
   async toolBookStay(args, assistantId, context = {}) {
     const unit = this._stayUnitFor(assistantId, args.unit || args.unit_key);
     if (!unit) return { success: false, message: 'No puedo reservar la estancia ahora; anoto la solicitud para el equipo.' };
-    const callerPhone = context.session && context.session.callerNumber;
+    const callerPhone = _clientPhoneOf(context.session);
     const phone = args.phone || ((callerPhone && callerPhone !== 'unknown') ? callerPhone : '');
     const r = await require('../scheduling/stays').bookStay(assistantId, {
       unitKey: unit.key, guestName: args.guest_name || args.name, phone,
@@ -1810,4 +1825,4 @@ class ToolExecutor {
 
 // _notifyOwner se exporta para la red de seguridad de leads (aviso al dueño
 // con las mismas credenciales multi-tenant que usa register_lead).
-module.exports = { ToolExecutor, _notifyOwner, syncAppointmentToCalendar: _syncToCalendar, calendarBusyByDate: _calendarBusy, matchLocation: _matchLocation };
+module.exports = { ToolExecutor, _notifyOwner, syncAppointmentToCalendar: _syncToCalendar, calendarBusyByDate: _calendarBusy, matchLocation: _matchLocation, _clientPhoneOf };
