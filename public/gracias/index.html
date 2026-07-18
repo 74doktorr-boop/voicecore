@@ -342,7 +342,10 @@ function nfT(key){ return (NF_T[window.NF_LANG] || NF_T.es)[key]; }
     badge.style.display = 'inline-flex';
 
     const regLang = localStorage.getItem('nf_reg_lang') || 'es';
-    const plan = regPlan === 'pro' ? 'Pro (99€/mes)' : 'Negocio (49€/mes)';
+    // Único plan comercial: Negocio 49€ (el backend fuerza 'negocio' e ignora
+    // cualquier ?plan=pro legacy). Antes un enlace viejo mostraba aquí "99€/mes"
+    // aunque el cobro real fuese 49€ — inconsistencia post-pago cara al cliente.
+    const plan = 'Negocio (49€/mes)';
 
     const i18n = {
       es: { title: '¡Pago confirmado!', welcome: 'Bienvenido a NodeFlow', sub: `Tu suscripción ${plan} para ${regNegocio} está activa. En pocos minutos recibirás el acceso a tu portal y las instrucciones para activar el desvío de llamadas.`, tagline: 'IA de voz para negocios · Hecho en Euskal Herria' },
