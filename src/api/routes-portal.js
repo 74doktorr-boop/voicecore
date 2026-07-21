@@ -1044,15 +1044,37 @@ function setupPortalRoutes(app, pipeline, config) {
     if (apt.businessId !== businessId) return res.status(403).json({ error: 'Acceso denegado' });
     if (apt.status === 'cancelled') return res.status(409).json({ error: 'La cita ya estaba cancelada' });
 
+    const _prevStatus = apt.status;
     apt.status      = 'cancelled';
     apt.cancelledAt = new Date().toISOString();
 
-    // Send cancellation email if client email is present (fire-and-forget)
+    // Persistir la cancelación en Supabase ESPERANDO y VERIFICANDO la escritura
+    // ANTES de decir al dueño que se canceló. Antes era fire-and-forget: el
+    // portal respondía "cancelada" aunque la BD no cambiara (redeploy a mitad,
+    // error de escritura…), y al re-hidratar en el siguiente arranque la cita
+    // REVIVÍA confirmada. Si la BD no confirma, revertimos y devolvemos error.
+    try {
+      const { appointmentsStore } = require('../db/appointments-store');
+      const r = await appointmentsStore.patch(apt.id, {
+        status:      'cancelled',
+        cancelledAt: apt.cancelledAt,
+        cancelledBy: 'portal',
+      });
+      if (r && r.ok === false) {
+        apt.status = _prevStatus; delete apt.cancelledAt;
+        return res.status(500).json({ error: 'No se pudo cancelar la cita ahora mismo. Vuelve a intentarlo.' });
+      }
+    } catch (e) {
+      apt.status = _prevStatus; delete apt.cancelledAt;
+      log.warn(`Portal cancel persist falló ${apt.id}: ${e.message}`);
+      return res.status(500).json({ error: 'No se pudo cancelar la cita ahora mismo. Vuelve a intentarlo.' });
+    }
+
+    log.info(`Portal: appointment cancelled ${apt.id}`);
+
+    // Email de cancelación al cliente (fire-and-forget; ya persistida la cancelación)
     if (apt.email) {
       try {
-        const { sendMagicLinkEmail } = require('../notifications/email');
-        // sendMagicLinkEmail is the generic transporter; use it for the cancellation
-        // (If a dedicated sendCancellationEmail is added later, swap it here)
         const { flowConfig } = req;
         const { sendEmail } = require('../notifications/email');
         if (typeof sendEmail === 'function') {
@@ -1068,19 +1090,6 @@ function setupPortalRoutes(app, pipeline, config) {
         // email module may not export sendEmail — silently skip
       }
     }
-
-    log.info(`Portal: appointment cancelled ${apt.id}`);
-
-    // Persistir cancelación en Supabase
-    try {
-      const { appointmentsStore } = require('../db/appointments-store');
-      appointmentsStore.patch(apt.id, {
-        status:      'cancelled',
-        cancelledAt: apt.cancelledAt,
-        cancelledBy: 'portal',
-        updatedAt:   new Date().toISOString(),
-      });
-    } catch (_) {}
 
     // Fase 3: borra el evento del Google Calendar del dueño (si lo había) para
     // que no quede de fantasma — mismo helper que WhatsApp/voz.
@@ -2533,12 +2542,13 @@ function setupPortalRoutes(app, pipeline, config) {
       }
     } catch (_) {}
 
-    let paused = false;
+    let paused = false, noCalls = false;
     try {
       const { data: mem } = await db.client.from('contact_memory')
-        .select('no_whatsapp, no_sms, no_email')
+        .select('no_whatsapp, no_sms, no_email, no_calls')
         .eq('org_id', businessId).eq('contact_id', id).maybeSingle();
-      paused = !!(mem && mem.no_whatsapp && mem.no_sms && mem.no_email);
+      paused  = !!(mem && mem.no_whatsapp && mem.no_sms && mem.no_email);
+      noCalls = !!(mem && mem.no_calls);
     } catch (_) {}
 
     // 5. FICHA 360 ↔ ENTIDADES (v1): "sus cosas" — el Golf, el bono, la
@@ -2592,6 +2602,7 @@ function setupPortalRoutes(app, pipeline, config) {
       reminders,
       sectorFields,
       paused,
+      noCalls,
       noShowRisk,
       entities:       contactEntities,
       hasEntityTypes,
@@ -2993,7 +3004,7 @@ function setupPortalRoutes(app, pipeline, config) {
       });
     }
 
-    const { to, assistantId, provider = 'auto' } = req.body;
+    const { to, provider = 'auto' } = req.body;
     if (!to) return res.status(400).json({ error: 'El campo "to" (número destino) es obligatorio' });
 
     // Sanitise: only digits, +, spaces, hyphens — no other chars
@@ -3719,6 +3730,27 @@ function setupPortalRoutes(app, pipeline, config) {
       }, { onConflict: 'org_id,contact_id' });
       if (error) return res.status(500).json({ error: error.message });
       res.json({ ok: true, paused });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── FICHA 360: opt-out de LLAMADAS de voz para un cliente ──
+  // "No me llames por teléfono" sin renunciar a WhatsApp/email. Bloquea las
+  // campañas de voz (recuperación, reactivación, anti no-show, avisos) vía
+  // contactInfo(). Independiente del pause total; el dueño puede alternarlo.
+  app.put('/api/portal/contacts/:id/no-calls', portalAuth, async (req, res) => {
+    try {
+      const db = getDatabase();
+      const noCalls = req.body && req.body.noCalls === true;
+      const { data: c } = await db.client.from('contacts')
+        .select('id').eq('id', req.params.id).eq('org_id', req.businessId).maybeSingle();
+      if (!c) return res.status(404).json({ error: 'Contacto no encontrado' });
+      const { error } = await db.client.from('contact_memory').upsert({
+        org_id: req.businessId, contact_id: req.params.id,
+        no_calls: noCalls,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'org_id,contact_id' });
+      if (error) return res.status(500).json({ error: error.message });
+      res.json({ ok: true, noCalls });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

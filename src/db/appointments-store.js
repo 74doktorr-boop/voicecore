@@ -201,8 +201,11 @@ class AppointmentsStore {
   }
 
   // ── Actualización parcial ─────────────────────────────────
+  // Devuelve una PROMESA {ok, count} para que quien lo necesite (p.ej. cancelar
+  // desde el portal) pueda ESPERAR y VERIFICAR la escritura. Los llamantes
+  // fire-and-forget siguen igual (ignoran el retorno).
   patch(id, fields) {
-    if (!this._enabled) return;
+    if (!this._enabled) return { ok: true, count: 0, skipped: true };
     // Convertir campos de camelCase a snake_case para la DB
     const dbFields = {};
     if (fields.status       !== undefined) dbFields.status        = fields.status;
@@ -224,16 +227,18 @@ class AppointmentsStore {
     if (fields.outlookEventId !== undefined) dbFields.outlook_event_id = fields.outlookEventId;
     if (fields.updatedAt    !== undefined) dbFields.updated_at    = fields.updatedAt;
 
-    if (!Object.keys(dbFields).length) return;
+    if (!Object.keys(dbFields).length) return { ok: true, count: 0, skipped: true };
 
-    this._client
+    return this._client
       .from('nf_appointments')
       .update(dbFields)
       .eq('id', id)
-      .then(({ error }) => {
-        if (error) log.warn(`patch ${id}: ${error.message}`);
+      .select('id')
+      .then(({ data, error }) => {
+        if (error) { log.warn(`patch ${id}: ${error.message}`); return { ok: false, count: 0, error: error.message }; }
+        return { ok: true, count: (data || []).length };
       })
-      .catch(e => log.warn(`patch exception ${id}: ${e.message}`));
+      .catch(e => { log.warn(`patch exception ${id}: ${e.message}`); return { ok: false, count: 0, error: e.message }; });
   }
 }
 
