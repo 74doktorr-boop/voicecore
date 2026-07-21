@@ -302,7 +302,7 @@ class VoicePipeline {
         // 3) Memoria del cliente que llama — aislada por negocio: el contacto
         // se resuelve por (org_id, phone), así el mismo teléfono en dos
         // negocios son dos historiales distintos que jamás se cruzan.
-        if (callerNumber && callerNumber !== 'unknown') {
+        if (session.clientPhone && session.clientPhone !== 'unknown') {
           try {
             const db = getDatabase();
             if (db.enabled) {
@@ -310,7 +310,7 @@ class VoicePipeline {
               const { data: contact } = await db.client.from('contacts')
                 .select('id')
                 .eq('org_id', orgId)
-                .in('phone', phoneVariants(callerNumber))
+                .in('phone', phoneVariants(session.clientPhone))
                 .limit(1)
                 .maybeSingle();
               if (contact?.id) {
@@ -458,7 +458,7 @@ class VoicePipeline {
       const lang = assistant.language || 'es';
       if (assistant.personalizedGreeting !== false && (lang === 'es' || lang === 'es+eu' || lang === 'es+gl')) {
         try {
-          const name = await this._resolveGreetingName(session.orgId, callerNumber);
+          const name = await this._resolveGreetingName(session.orgId, session.clientPhone);
           if (name) {
             firstMsg = personalizeGreeting(assistant.firstMessage, name, assistant.name);
             log.info(`[${callId}] Saludo personalizado: cliente reconocido (${name})`);
@@ -829,7 +829,7 @@ class VoicePipeline {
         `📞 *Llamada difícil de atender — NodeFlow*\n` +
         `━━━━━━━━━━━━\n` +
         `No se pudo atender bien al cliente por la línea. Le dijimos que le devolveríais la llamada.\n` +
-        `📞 ${session.callerNumber || 'número oculto'}\n` +
+        `📞 ${session.clientPhone || 'número oculto'}\n` +
         `━━━━━━━━━━━━\nMejor llamarle pronto. NodeFlow IA`,
         session.businessId
       );
@@ -841,7 +841,7 @@ class VoicePipeline {
         db.client.from('leads').insert({
           org_id:     session.businessId,
           name:       '',
-          phone:      session.callerNumber || '',
+          phone:      session.clientPhone || '',
           need:       'Llamada con mala calidad de audio: no se pudo atender bien. Devolver la llamada.',
           notes:      'Escalado en llamada: la IA no pudo atender bien al cliente varias veces seguidas y le prometió que le devolverían la llamada.',
           urgency:    'media',

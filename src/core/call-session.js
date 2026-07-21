@@ -55,6 +55,11 @@ class CallSession {
     this.callerNumber = callerNumber;
     this.calledNumber = calledNumber;
     this.direction = direction;
+    // Teléfono del CLIENTE de la llamada (para CRM, historial, leads). INBOUND:
+    // quien llama. OUTBOUND (demo Llámame, recontacto): a quien llamamos —
+    // callerNumber sería el nº de NodeFlow. Usar SIEMPRE clientPhone para
+    // identificar al cliente, nunca callerNumber crudo.
+    this.clientPhone = (direction === 'outbound') ? (calledNumber || callerNumber) : callerNumber;
     this.status = 'initializing';
     this.provider = 'twilio'; // 'twilio' | 'vonage' | 'browser'
     this.streamSid = null;
