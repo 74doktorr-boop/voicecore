@@ -154,6 +154,14 @@ async function handle(callData) {
     }).catch(e => log.warn('usage increment failed', { err: e.message }));
   }
 
+  // Teléfono del CLIENTE de la llamada (para el CRM, seguimientos y webhooks).
+  // INBOUND: quien llama. OUTBOUND (demo Llámame, recontacto): a quien llamamos.
+  // Antes se usaba callerNumber SIEMPRE → en saliente el contacto y los
+  // seguimientos se fichaban con el número de NodeFlow, no con el del cliente.
+  const clientPhone = (callData.direction === 'outbound')
+    ? (callData.calledNumber || callData.callerNumber)
+    : callData.callerNumber;
+
   // ── 7. Fire webhooks (call.completed / call.missed) — non-blocking ──────────
   const missedOutcomes = ['missed', 'abandoned', 'no-answer', 'unknown'];
   const webhookEvent = (!callData.outcome || missedOutcomes.includes(callData.outcome))
@@ -163,7 +171,7 @@ async function handle(callData) {
     callId:       callData.id,
     outcome:      callData.outcome      || 'unknown',
     duration:     callData.duration     || 0,
-    callerNumber: callData.callerNumber || null,
+    callerNumber: clientPhone || null,
     transcript:   callData.transcript   || [],
     bookedAppointment: callData.bookedAppointment || null,
   }).catch(() => {});
@@ -189,7 +197,7 @@ async function handle(callData) {
   } catch (e) { log.warn(`auditor init: ${e.message}`); }
 
   // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
-  if (db.enabled && callData.callerNumber) {
+  if (db.enabled && clientPhone) {
     // El contacto es QUIEN LLAMA. Con varias reservas de nombres distintos
     // ("una para mí y otra para mi novia") no se puede saber cuál es el del
     // llamante → no adivinar (el CRM progresivo lo preguntará). Bug real:
@@ -203,7 +211,7 @@ async function handle(callData) {
     const pEmail = apt?.email || callData.clientEmail || null;
     db.client.rpc('upsert_contact', {
       p_org_id:       businessId,
-      p_phone:        callData.callerNumber,
+      p_phone:        clientPhone,
       p_name:         pName,
       p_email:        pEmail,
       p_last_call_at: callData.endTime || new Date().toISOString(),
@@ -215,7 +223,7 @@ async function handle(callData) {
         db.client.from('contacts')
           .update({ name: pName })
           .eq('org_id', businessId)
-          .eq('phone', callData.callerNumber)
+          .eq('phone', clientPhone)
           .or('name.is.null,name.ilike.cliente,name.ilike.clienta,name.ilike.usuario,name.ilike.desconocido,name.ilike.desconocida,name.ilike.customer,name.ilike.unknown')
           .then(({ error }) => { if (error) log.warn(`contact name upgrade: ${error.message}`); },
                 (e) => log.warn(`contact name upgrade: ${e.message}`));
@@ -226,7 +234,7 @@ async function handle(callData) {
       db.client.from('contacts')
         .select('id')
         .eq('org_id', businessId)
-        .eq('phone', callData.callerNumber)
+        .eq('phone', clientPhone)
         .maybeSingle()
         .then(({ data: contact }) => {
           if (!contact?.id) return;
@@ -253,7 +261,7 @@ async function handle(callData) {
               contactId:     contact.id,
               orgId:         businessId,
               transcript:    callData.transcript || [],
-              callerNumber:  callData.callerNumber || null,
+              callerNumber:  clientPhone || null,
               leadRegistered,
             }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
           }
