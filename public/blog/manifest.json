@@ -56,9 +56,25 @@
     "fin-doble-agenda-overbooking-negocios",
     "voces-ia-casi-humanas-por-que-nadie-cuelga",
     "nodeflow-no-es-solo-recepcionista-ia-empleado-digital",
-    "como-funciona-recepcionista-ia-por-dentro"
+    "como-funciona-recepcionista-ia-por-dentro",
+    "asistente-ia-clinica-dental-donostia"
   ],
   "posts": [
+    {
+      "slug": "asistente-ia-clinica-dental-donostia",
+      "title": "Asistente IA para Clínicas Dentales en Donostia: La Solución Eficiente",
+      "metaTitle": "Asistente IA Clínica Dental Donostia: Revoluciona tu Consulta",
+      "description": "Descubre cómo un asistente IA en clínicas dentales de Donostia puede transformar tu negocio. ¡Automatiza y optimiza con NodeFlow!",
+      "date": "2026-07-23",
+      "keywords": [
+        "asistente IA clínica dental Donostia",
+        "recepcionista virtual dentista San Sebastián",
+        "automatizar citas dentista Gipuzkoa"
+      ],
+      "sector": "clinicas",
+      "city": "donostia",
+      "readingMinutes": 7
+    },
     {
       "slug": "como-funciona-recepcionista-ia-por-dentro",
       "title": "Cómo funciona una recepcionista IA: el secreto de NodeFlow",
