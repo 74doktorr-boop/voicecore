@@ -145,6 +145,15 @@ nav.stuck{border-bottom-color:var(--line)}
 .stat .fig{font-family:var(--disp);font-weight:600;font-size:clamp(2rem,3.4vw,2.9rem);color:var(--ink);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .stat .fig em{color:var(--lime);font-style:normal}
 .stat .lbl{font-size:.9rem;color:var(--ink-3);margin-top:12px;line-height:1.4;max-width:24ch}
+/* ── 4 pilares (tira "qué hace") ── */
+.pil4{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.pil4-c{padding:clamp(20px,2.3vw,30px);border-left:1px solid var(--line)}
+.pil4-c:first-child{border-left:none}
+.pil4-h{display:flex;align-items:baseline;gap:8px;font-family:var(--disp);font-weight:600;font-size:1.16rem;color:var(--lime);letter-spacing:-.01em;margin-bottom:9px}
+.pil4-h .k{font-family:var(--mono);font-size:.62rem;color:var(--ink-3);font-weight:500}
+.pil4-c p{font-size:.9rem;color:var(--ink-2);line-height:1.5;margin:0}
+.pil4-c b{color:var(--ink);font-weight:600}
+@media(max-width:720px){.pil4{grid-template-columns:1fr 1fr}.pil4-c{border-left:none;border-top:1px solid var(--line)}.pil4-c:first-child,.pil4-c:nth-child(2){border-top:none}.pil4-c:nth-child(odd){border-right:1px solid var(--line)}}
 
 /* ── problem ── */
 .split{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(40px,5vw,72px);align-items:start}
@@ -361,6 +370,16 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <div class="stat"><div class="fig"><em>0</em></div><div class="lbl">Llamadas sin atender</div></div>
     <div class="stat"><div class="fig">&lt;2 s</div><div class="lbl">Responde con naturalidad</div></div>
     <div class="stat"><div class="fig"><em>49€</em></div><div class="lbl">Al mes · todo incluido</div></div>
+  </div>
+</div></section>
+
+<!-- 4 PILARES -->
+<section class="section" style="padding-top:clamp(28px,3.5vw,42px)"><div class="wrap">
+  <div class="pil4">
+    <div class="pil4-c"><div class="pil4-h">Atiende <span class="k">01</span></div><p>Coge <b>cada llamada</b>, informa y reserva la cita. 24/7, sin fallar.</p></div>
+    <div class="pil4-c"><div class="pil4-h">Recuerda <span class="k">02</span></div><p>Un <b>CRM que se llena solo</b>. Conoce a cada cliente y su historia.</p></div>
+    <div class="pil4-c"><div class="pil4-h">Fideliza <span class="k">03</span></div><p><b>Recupera a los que se van</b>, pide reseñas y avisa de lo que toca.</p></div>
+    <div class="pil4-c"><div class="pil4-h">Mide <span class="k">04</span></div><p>Te dice <b>cuánto has recuperado</b> y qué hacer para crecer.</p></div>
   </div>
 </div></section>
 
