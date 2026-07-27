@@ -1515,13 +1515,20 @@ function setupPortalRoutes(app, pipeline, config) {
           .from('organizations').select('automation_config').eq('id', businessId).single();
         org = data;
       }
-      const { tierOf, hasPro, PRO_FEATURES } = require('../billing/plan');
+      const { tierOf, hasPro, PRO_FEATURES, BASICO_PRICE_EUR, PRO_PRICE_EUR } = require('../billing/plan');
       const isPro = hasPro(org || {});
+      // selfServe: el upgrade Pro está cableado a Stripe (add-on 'pro' con precio
+      // configurado) → el botón activa self-serve. Si no, el portal cae al CTA
+      // por WhatsApp (Unai lo sube a mano con el PATCH admin). Cero sorpresas.
+      const selfServeUpgrade = Boolean(process.env.STRIPE_ADDON_PRO_PRICE_ID) &&
+        Boolean(require('../billing/stripe').getBilling().enabled);
       res.json({
         ok: true,
         tier: tierOf(org || {}),
         isPro,
-        proPriceEur: 85,
+        basicoPriceEur: BASICO_PRICE_EUR,
+        proPriceEur: PRO_PRICE_EUR,
+        selfServeUpgrade,
         proFeatures: Object.entries(PRO_FEATURES).map(([key, label]) => ({ key, label, locked: !isPro })),
       });
     } catch (e) {

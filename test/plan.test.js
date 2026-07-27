@@ -34,6 +34,24 @@ describe('tierOf / hasPro — default PRO', () => {
   });
 });
 
+describe('hasPro vía add-on Pro (upgrade self-serve del Básico)', () => {
+  const withAddon = (tier, addons) => ({ automation_config: { config: { tier, addons } } });
+  test("Básico + add-on 'pro' → PRO (el add-on anula el cap)", () => {
+    assert.strictEqual(hasPro(withAddon('basico', { pro: { itemId: 'si_x', since: 'now' } })), true);
+  });
+  test('Básico + otros add-ons (no pro) → sigue capado', () => {
+    assert.strictEqual(hasPro(withAddon('basico', { voice_premium: { itemId: 'si_y' } })), false);
+  });
+  test('Básico sin add-ons → capado', () => {
+    assert.strictEqual(hasPro(withAddon('basico', {})), false);
+    assert.strictEqual(hasPro(withAddon('basico', undefined)), false);
+  });
+  test("cancelar el add-on (queda tier:'basico') vuelve a capar", () => {
+    // simula estado tras cancelAddon: addons.pro borrado, tier intacto
+    assert.strictEqual(hasPro(withAddon('basico', { wa_own_number: {} })), false);
+  });
+});
+
 describe('upgradeMessage', () => {
   test('nombra la feature Pro y apunta a Facturación', () => {
     const m = upgradeMessage('reviews');

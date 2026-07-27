@@ -40,6 +40,19 @@ const ADDONS = {
     envPriceVar: 'STRIPE_ADDON_WA_PRICE_ID',
     blurb: 'Los avisos a tus clientes (confirmación, recordatorio, reseña) salen desde el número de WhatsApp de tu propio negocio, no desde uno compartido.',
   },
+  // Salto de plan Básico→Pro implementado como subscription item (+36€ sobre
+  // la base de 49€ = 85€). Reutiliza toda la maquinaria de add-ons ya probada
+  // sin tocar el precio base — los fundadores conservan su 49€ intacto. Es el
+  // ENTITLEMENT de billing; el gating lo lee vía plan.hasPro (tier o este add-on).
+  // `hidden`: no aparece en la caja genérica de Complementos, tiene banner propio.
+  pro: {
+    key: 'pro',
+    label: 'Plan Pro',
+    monthlyCents: 3600,
+    envPriceVar: 'STRIPE_ADDON_PRO_PRICE_ID',
+    hidden: true,
+    blurb: 'Desbloquea el motor de seguimientos completo: reseñas, reactivación, plantones, avisos por entidad, informe completo e integraciones.',
+  },
 };
 
 function _orgAddons(org) {
@@ -54,7 +67,7 @@ function hasAddon(org, key) {
 /** Estado de todos los add-ons para el portal (activo + disponible para compra). */
 function listAddons(org) {
   const active = _orgAddons(org);
-  return Object.values(ADDONS).map(a => ({
+  return Object.values(ADDONS).filter(a => !a.hidden).map(a => ({
     key: a.key,
     label: a.label,
     monthlyCents: a.monthlyCents,

@@ -5769,15 +5769,42 @@ async function loadPlanBanner() {
     var feats = (d.proFeatures || []).map(function(f) {
       return '<div style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12.5px;color:var(--dim)"><span>🔒</span><span>' + esc(f.label) + '</span></div>';
     }).join('');
-    var wa = 'https://wa.me/34666351319?text=' + encodeURIComponent('Hola, quiero subir mi plan a Pro');
+    var price = d.proPriceEur || 85;
+    // Self-serve si Stripe tiene el precio Pro configurado; si no, CTA WhatsApp.
+    var cta;
+    if (d.selfServeUpgrade) {
+      cta = '<button type="button" class="btn btn-accent btn-sm" style="margin-top:12px" onclick="upgradeToPro(' + price + ')">Subir a Pro — €' + price + '/mes →</button>';
+    } else {
+      var wa = 'https://wa.me/34666351319?text=' + encodeURIComponent('Hola, quiero subir mi plan a Pro');
+      cta = '<a href="' + wa + '" target="_blank" class="btn btn-accent btn-sm" style="margin-top:12px;text-decoration:none">Subir a Pro →</a>';
+    }
     el.innerHTML =
       '<div class="card u-mt-4" style="border-color:rgba(196,245,70,.4)">' +
         '<div style="font-size:14px;font-weight:800">Estás en el plan Básico</div>' +
-        '<div style="font-size:12px;color:var(--dim);margin:6px 0 12px">Desbloquea el <b style="color:var(--accent-l)">motor de seguimientos</b> con Pro (€' + (d.proPriceEur || 85) + '/mes) y que tu negocio recupere clientes solo:</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin:6px 0 12px">Desbloquea el <b style="color:var(--accent-l)">motor de seguimientos</b> con Pro (€' + price + '/mes) y que tu negocio recupere clientes solo:</div>' +
         feats +
-        '<a href="' + wa + '" target="_blank" class="btn btn-accent btn-sm" style="margin-top:12px;text-decoration:none">Subir a Pro →</a>' +
+        cta +
       '</div>';
   } catch (_) {}
+}
+
+// Alta self-serve del plan Pro (add-on 'pro' → +36€ sobre la base, Stripe
+// prorratea). Confirmación explícita del precio antes de cobrar. Al terminar
+// recarga el banner y las secciones para que el motor de seguimientos aparezca.
+async function upgradeToPro(price) {
+  if (!confirm('Subir a Pro por €' + price + '/mes (se prorratea el mes en curso). ¿Confirmas?')) return;
+  try {
+    var r = await api('/api/portal/addons/pro/activate', 'POST');
+    if (r && r.ok) {
+      toast('¡Ya eres Pro! Motor de seguimientos desbloqueado.', 'ok');
+      loadPlanBanner();
+      if (typeof loadAddonsBox === 'function') loadAddonsBox();
+    } else {
+      toast((r && r.error) || 'No se pudo activar Pro. Inténtalo de nuevo o escríbenos.', 'err');
+    }
+  } catch (e) {
+    toast('No se pudo activar Pro ahora mismo.', 'err');
+  }
 }
 
 // ── Complementos de suscripción (voz Premium +10€, Crecimiento +39€) ──
