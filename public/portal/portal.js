@@ -5648,8 +5648,8 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
       '</div>';
   }
 
-  // Plan único Negocio €49 — sin upsell a Pro (plan retirado).
-  var proUpsell = '';
+  // Banner del plan (Básico vs Pro) — se rellena async con loadPlanBanner().
+  var proUpsell = '<div id="nfPlanBanner"></div>';
 
   // Invoices table rows
   var invRows = '';
@@ -5749,6 +5749,35 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
     referralCta('facturacion');
 
   loadAddonsBox();
+  loadPlanBanner();
+}
+
+// ── Banner del plan: Pro (todo) vs Básico (con candados + subir a Pro) ──
+async function loadPlanBanner() {
+  try {
+    var d = await api('/api/portal/plan');
+    var el = document.getElementById('nfPlanBanner');
+    if (!el || !d) return;
+    if (d.isPro) {
+      el.innerHTML =
+        '<div class="card u-mt-4" style="border-color:rgba(196,245,70,.35);background:rgba(196,245,70,.05)">' +
+          '<div style="font-size:13px;font-weight:800;color:var(--accent-l)">✓ Plan Pro — todo desbloqueado</div>' +
+          '<div style="font-size:12px;color:var(--dim);margin-top:4px">Tienes el motor de seguimientos completo: reseñas automáticas, reactivación de dormidos, recuperación de plantones, avisos por entidad e informe completo.</div>' +
+        '</div>';
+      return;
+    }
+    var feats = (d.proFeatures || []).map(function(f) {
+      return '<div style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12.5px;color:var(--dim)"><span>🔒</span><span>' + esc(f.label) + '</span></div>';
+    }).join('');
+    var wa = 'https://wa.me/34666351319?text=' + encodeURIComponent('Hola, quiero subir mi plan a Pro');
+    el.innerHTML =
+      '<div class="card u-mt-4" style="border-color:rgba(196,245,70,.4)">' +
+        '<div style="font-size:14px;font-weight:800">Estás en el plan Básico</div>' +
+        '<div style="font-size:12px;color:var(--dim);margin:6px 0 12px">Desbloquea el <b style="color:var(--accent-l)">motor de seguimientos</b> con Pro (€' + (d.proPriceEur || 85) + '/mes) y que tu negocio recupere clientes solo:</div>' +
+        feats +
+        '<a href="' + wa + '" target="_blank" class="btn btn-accent btn-sm" style="margin-top:12px;text-decoration:none">Subir a Pro →</a>' +
+      '</div>';
+  } catch (_) {}
 }
 
 // ── Complementos de suscripción (voz Premium +10€, Crecimiento +39€) ──

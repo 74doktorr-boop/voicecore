@@ -1504,6 +1504,31 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── Plan del negocio: Básico vs Pro (para pintar candados/upgrade) ──
+  app.get('/api/portal/plan', portalAuth, async (req, res) => {
+    const { businessId } = req;
+    const db = getDatabase();
+    try {
+      let org = null;
+      if (db.enabled) {
+        const { data } = await db.client
+          .from('organizations').select('automation_config').eq('id', businessId).single();
+        org = data;
+      }
+      const { tierOf, hasPro, PRO_FEATURES } = require('../billing/plan');
+      const isPro = hasPro(org || {});
+      res.json({
+        ok: true,
+        tier: tierOf(org || {}),
+        isPro,
+        proPriceEur: 85,
+        proFeatures: Object.entries(PRO_FEATURES).map(([key, label]) => ({ key, label, locked: !isPro })),
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post('/api/portal/addons/:key/activate', portalAuth, async (req, res) => {
     const { activateAddon } = require('../billing/addons');
     const out = await activateAddon(req.businessId, req.params.key);
