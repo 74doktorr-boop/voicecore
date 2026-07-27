@@ -1759,6 +1759,15 @@ function setupPortalRoutes(app, pipeline, config) {
     }
     if (integrations !== undefined) {
       const ig = integrations || {};
+      // GATING PRO: el conector (integraciones avanzadas / webhooks) es Pro.
+      // Básico puede APAGARLO (enabled:false, sin secretos) pero no activarlo.
+      const wantsConnector = !!(ig.enabled || ig.inboundSecret || (Array.isArray(ig.outbound) && ig.outbound.length));
+      if (wantsConnector) {
+        const { hasPro, upgradeMessage } = require('../billing/plan');
+        if (!hasPro({ automation_config: req.flowConfig?.automations })) {
+          return res.status(402).json({ error: upgradeMessage('connector'), proRequired: true });
+        }
+      }
       const { _validateWebhookUrl } = require('./routes-webhooks');
       const outbound = Array.isArray(ig.outbound) ? ig.outbound.slice(0, 10).filter(h => h && h.url) : [];
       for (const h of outbound) {
@@ -2065,11 +2074,20 @@ function setupPortalRoutes(app, pipeline, config) {
       const report = require('../reports/trial-report').buildTrialReport({
         calls: calls || [], appointments: apts || [], avgTicket, fromDate, toDate,
       });
+      // GATING PRO: el informe COMPLETO (detalle cita a cita + CSV) es Pro.
+      // Básico ve solo el RESUMEN (€ recuperado, nº llamadas/citas). Default Pro.
+      const { hasPro, upgradeMessage } = require('../billing/plan');
+      const pro = hasPro({ automation_config: req.flowConfig?.automations });
       if (req.query.format === 'csv') {
+        if (!pro) return res.status(402).json({ error: upgradeMessage('full_report'), proRequired: true });
         const csv = require('../reports/trial-report').trialReportCsv(report);
         res.set('Content-Type', 'text/csv; charset=utf-8');
         res.set('Content-Disposition', `attachment; filename="informe-nodeflow-${toDate}.csv"`);
         return res.send(csv);
+      }
+      if (!pro) {
+        const { appointments, ...summary } = report;
+        return res.json({ ok: true, report: { ...summary, appointments: [], proLocked: true, upgrade: upgradeMessage('full_report') } });
       }
       res.json({ ok: true, report });
     } catch (e) {
