@@ -229,6 +229,24 @@ nav.stuck{border-bottom-color:var(--line)}
 .addon p{font-size:.9rem;color:var(--ink-3);line-height:1.45}
 .price-foot{font-family:var(--mono);font-size:.8rem;letter-spacing:.04em;color:var(--ink-3);margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
 .price-foot b{color:var(--lime);font-weight:500}
+/* ── dos tiers (Básico / Pro) — se muestran solo cuando el precio Pro está activo ── */
+.tiers{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.tiers{grid-template-columns:1fr}}
+.tier{border:1px solid var(--line);border-radius:18px;padding:28px 26px;position:relative;display:flex;flex-direction:column}
+.tier.pro{border-color:rgba(196,245,70,.5);background:linear-gradient(180deg,rgba(196,245,70,.07),transparent 55%)}
+.tier .t-name{font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.tier.pro .t-name{color:var(--lime)}
+.tier .t-price{font-family:var(--disp);font-weight:600;font-size:clamp(2.8rem,6vw,3.6rem);line-height:.9;letter-spacing:-.03em;color:var(--ink);margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.tier .t-price .per{font-family:var(--sans);font-size:.9rem;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.tier .t-tag{font-size:.92rem;color:var(--ink-2);margin:0 0 18px}
+.tier ul{list-style:none;padding:0;margin:0 0 22px;border-top:1px solid var(--line)}
+.tier li{display:flex;align-items:baseline;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:.96rem;color:var(--ink-2)}
+.tier li .m{flex:none;width:15px;font-family:var(--mono);color:var(--lime)}
+.tier li.off{color:var(--ink-3)}
+.tier li.off .m{color:var(--ink-3)}
+.tier b{color:var(--ink);font-weight:600}
+.tier .btn{margin-top:auto}
+.tier .t-ribbon{position:absolute;top:20px;right:22px;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;color:var(--lime);border:1px solid rgba(196,245,70,.4);border-radius:999px;padding:3px 10px}
 
 /* ── faq ── */
 .faq-row{display:grid;grid-template-columns:1fr 1.5fr;gap:clamp(24px,4vw,64px);padding:clamp(24px,3vw,32px) 0;border-top:1px solid var(--line)}
@@ -478,7 +496,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <a href="/onboarding.html?plan=negocio&fundador=1" class="btn btn-fill">Quiero mi plaza de fundador →</a>
   </div>
 
-  <div class="price-split">
+  <!-- Vista de precio ÚNICO (hoy). El script de abajo la oculta y muestra
+       #priceTwoTier cuando /api/public/plans devuelve twoTier:true (precio Pro
+       configurado en Stripe). Sin JS o sin env → se ve esta, comportamiento actual. -->
+  <div class="price-split" id="priceSingle">
     <div>
       <div class="price-tag"><sup>€</sup>49<span class="per"> /mes</span></div>
       <p class="price-note">Tu asistente atendiendo cada llamada de tu negocio, 24 horas al día.</p>
@@ -493,6 +514,39 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <li><span class="m">✦</span><span>Recupera perdidas + lista de espera + reactivación</span></li>
       <li><span class="m">✓</span><span><b>500 min/mes</b> · sin permanencia</span></li>
     </ul>
+  </div>
+
+  <!-- Vista de DOS TIERS — oculta hasta que el precio Pro esté activo en Stripe. -->
+  <div class="tiers" id="priceTwoTier" hidden>
+    <div class="tier">
+      <div class="t-name">Básico</div>
+      <div class="t-price">49<span class="per"> €/mes</span></div>
+      <p class="t-tag">La recepcionista que no falla.</p>
+      <ul>
+        <li><span class="m">✓</span><span>Atiende tus llamadas <b>24/7</b></span></li>
+        <li><span class="m">✦</span><span>Agenda + recordatorios de cita</span></li>
+        <li><span class="m">✦</span><span>Memoria de clientes (CRM básico)</span></li>
+        <li><span class="m">✦</span><span>Google Calendar · <b>300 min/mes</b></span></li>
+        <li class="off"><span class="m">—</span><span>Motor de seguimientos</span></li>
+        <li class="off"><span class="m">—</span><span>Reseñas · reactivación · plantones</span></li>
+      </ul>
+      <a href="/onboarding.html?plan=basico" class="btn btn-line">Empezar en Básico →</a>
+    </div>
+    <div class="tier pro">
+      <span class="t-ribbon">RECOMENDADO</span>
+      <div class="t-name">Pro</div>
+      <div class="t-price">85<span class="per"> €/mes</span></div>
+      <p class="t-tag">El negocio que se cuida solo.</p>
+      <ul>
+        <li><span class="m">✓</span><span>Todo lo de Básico</span></li>
+        <li><span class="m">✦</span><span><b>Motor de seguimientos completo</b></span></li>
+        <li><span class="m">✦</span><span>Reseñas automáticas + reactivación</span></li>
+        <li><span class="m">✦</span><span>Plantones + lista de espera</span></li>
+        <li><span class="m">✦</span><span>Avisos por entidad (pre-ITV, vacuna…)</span></li>
+        <li><span class="m">✦</span><span>Informe completo + integraciones</span></li>
+      </ul>
+      <a href="/onboarding.html?plan=pro" class="btn btn-fill">Empezar en Pro →</a>
+    </div>
   </div>
   <p class="addons-head">Extras opcionales <span>— los activas desde tu panel cuando los necesites. No son necesarios para empezar.</span></p>
   <div class="addons">
@@ -622,6 +676,16 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   });
   audio.addEventListener('ended',()=>{ if(playing) playSeg(idx+1); });
   loadDemo('clinica');
+
+  // Dos tiers: si el precio Pro está activo en Stripe (twoTier), cambia la
+  // vista de precio única por las dos tarjetas Básico/Pro. Best-effort: si el
+  // fetch falla, se queda la vista única (comportamiento actual). Sin riesgo.
+  fetch('/api/public/plans').then(r=>r.json()).then(function(d){
+    if(!d||!d.twoTier) return;
+    var one=document.getElementById('priceSingle'), two=document.getElementById('priceTwoTier');
+    if(one) one.hidden=true;
+    if(two) two.hidden=false;
+  }).catch(function(){});
 </script>
 </body>
 </html>

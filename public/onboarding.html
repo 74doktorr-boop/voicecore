@@ -229,6 +229,25 @@ const PLANS = {
     features: ['Atiende tus llamadas 24/7', 'Castellano, euskera y galego', 'Agenda citas + memoria de clientes', 'Recordatorios y reseñas por WhatsApp', 'Widget web + insights + lista de espera', '500 min/mes · sin permanencia'],
     stripeUrl: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
   },
+  // Dos tiers. Básico = mismo pago de 49€ que 'negocio' (idéntico, riesgo cero);
+  // arranca capado por la provisión (registros.plan='basico' → config.tier).
+  basico: {
+    name: 'NodeFlow · Básico',
+    price: '49€<span>/mes</span>',
+    features: ['Atiende tus llamadas 24/7', 'Agenda + recordatorios de cita', 'Memoria de clientes (CRM básico)', 'Google Calendar · 300 min/mes'],
+    stripeUrl: 'https://buy.stripe.com/28E28sbWE0d76cK3EU24002',
+  },
+  // Pro = 49€ base + add-on +36€ = 85€. NO usa link estático: va por el
+  // backend (/api/registro/:id/checkout) que arma las 2 líneas. Gated por
+  // STRIPE_ADDON_PRO_PRICE_ID; sin él, el backend cae a solo-base (49€).
+  pro: {
+    name: 'NodeFlow · Pro',
+    price: '85€<span>/mes</span>',
+    features: ['Todo lo de Básico', 'Motor de seguimientos completo', 'Reseñas · reactivación · plantones', 'Avisos por entidad + informe completo', 'Integraciones avanzadas', '500 min/mes · sin permanencia'],
+    stripeUrl: null, // se resuelve por backend en redirectToStripe()
+    backendCheckout: true,
+    priceEur: 85,
+  },
 };
 
 // Read plan + sector + ciudad from URL
@@ -481,7 +500,7 @@ async function _submitRegistroInner() {
     localStorage.setItem('nf_reg_lang',    data.idioma || 'es');
 
     // Build summary
-    const basePrice  = PRICE_EUR;
+    const basePrice  = (typeof plan.priceEur === 'number') ? plan.priceEur : PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
     const idiomaLabels = { es: 'Castellano', eu: 'Euskera', gl: 'Galego' };
     const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Cristina';
@@ -514,6 +533,17 @@ async function _submitRegistroInner() {
 function redirectToStripe() {
   if (planKey === 'starter') {
     window.location.href = '/portal';
+    return;
+  }
+
+  // Pro: el checkout lo arma el backend (base 49€ + add-on 36€ = 85€) porque
+  // un Payment Link estático no puede llevar 2 líneas dinámicas. GET que
+  // redirige (302) a Stripe con el registroId ya guardado como 'pro'.
+  if (plan.backendCheckout && registroId) {
+    const btnP = document.getElementById('pay-btn');
+    btnP.disabled = true;
+    btnP.innerHTML = '<span class="spinner"></span> Redirigiendo a Stripe...';
+    window.location.href = '/api/registro/' + encodeURIComponent(registroId) + '/checkout';
     return;
   }
 
