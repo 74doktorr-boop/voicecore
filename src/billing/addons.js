@@ -51,7 +51,7 @@ const ADDONS = {
     monthlyCents: 3600,
     envPriceVar: 'STRIPE_ADDON_PRO_PRICE_ID',
     hidden: true,
-    blurb: 'Desbloquea el motor de seguimientos completo: reseñas, reactivación, plantones, avisos por entidad, informe completo e integraciones.',
+    blurb: 'Todo desbloqueado: motor de seguimientos completo (reseñas, reactivación, plantones, avisos por entidad), informe completo, integraciones y TODOS los complementos incluidos (voz premium, WhatsApp con tu número) sin coste extra.',
   },
 };
 
@@ -61,18 +61,27 @@ function _orgAddons(org) {
 
 /** ¿Tiene la org este add-on activo? */
 function hasAddon(org, key) {
-  return Boolean(_orgAddons(org)[key]);
+  if (_orgAddons(org)[key]) return true;
+  // El plan Pro INCLUYE todos los add-ons de capacidad (voz premium, WhatsApp
+  // propio, reactivación) sin coste extra — decisión de producto 2026-07-27.
+  // El propio 'pro' NO se auto-incluye (sería circular). require lazy: evita
+  // ciclo con plan.js (que lee addons.pro directamente, no vía esta función).
+  if (key !== 'pro' && org && require('./plan').hasPro(org)) return true;
+  return false;
 }
 
 /** Estado de todos los add-ons para el portal (activo + disponible para compra). */
 function listAddons(org) {
   const active = _orgAddons(org);
+  const pro = require('./plan').hasPro(org);
   return Object.values(ADDONS).filter(a => !a.hidden).map(a => ({
     key: a.key,
     label: a.label,
     monthlyCents: a.monthlyCents,
     blurb: a.blurb,
-    active: Boolean(active[a.key]),
+    // Pro los incluye todos → activos y sin botón de compra (includedInPro).
+    active: Boolean(active[a.key]) || pro,
+    includedInPro: pro && !active[a.key],
     available: Boolean(process.env[a.envPriceVar]),
   }));
 }
@@ -144,6 +153,11 @@ async function activateAddon(orgId, key, deps = {}) {
   try {
     const org = await _loadOrg(db, orgId);
     if (!org) return { ok: false, error: 'Negocio no encontrado.' };
+    // Anti doble-cobro: si ya es Pro, los add-ons de capacidad van INCLUIDOS →
+    // no se añade item Stripe. (El 'pro' sí sigue su camino: es el upgrade.)
+    if (key !== 'pro' && require('./plan').hasPro({ automation_config: org.automation_config })) {
+      return { ok: true, includedInPro: true };
+    }
     const addons = { ...(_orgAddons(org)) };
     if (addons[key]) return { ok: true, already: true };
     if (!org.stripe_subscription_id) {

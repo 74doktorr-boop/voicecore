@@ -89,8 +89,8 @@ describe('settleMonthlyPack — cierre de mes: los packs se gastan, no caducan',
 
   test('desbordó el base → descuenta solo lo del pack y persiste el resto', async () => {
     const db = fakeDb({});
-    const org = { id: 'o1', monthly_minutes_used: 60, automation_config: { config: { premiumExtraMinutes: 50 } } };
-    const out = await settleMonthlyPack(org, { db });        // base 40; 20 salieron del pack → 30
+    const org = { id: 'o1', monthly_minutes_used: 60, automation_config: { config: { tier: 'basico', premiumExtraMinutes: 50 } } };
+    const out = await settleMonthlyPack(org, { db });        // Básico: base 40; 20 salieron del pack → 30
     assert.strictEqual(out.changed, true);
     assert.strictEqual(out.extraMinutes, 30);
     assert.strictEqual(db._saved.patch.automation_config.config.premiumExtraMinutes, 30);

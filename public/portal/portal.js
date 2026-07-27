@@ -5762,7 +5762,7 @@ async function loadPlanBanner() {
       el.innerHTML =
         '<div class="card u-mt-4" style="border-color:rgba(196,245,70,.35);background:rgba(196,245,70,.05)">' +
           '<div style="font-size:13px;font-weight:800;color:var(--accent-l)">✓ Plan Pro — todo desbloqueado</div>' +
-          '<div style="font-size:12px;color:var(--dim);margin-top:4px">Tienes el motor de seguimientos completo: reseñas automáticas, reactivación de dormidos, recuperación de plantones, avisos por entidad e informe completo.</div>' +
+          '<div style="font-size:12px;color:var(--dim);margin-top:4px">Tienes el motor de seguimientos completo (reseñas, reactivación, plantones, avisos por entidad, informe completo) y <b style="color:var(--accent-l)">todos los complementos incluidos</b>: voz premium y WhatsApp con tu número, sin coste extra.</div>' +
         '</div>';
       return;
     }
@@ -5821,7 +5821,10 @@ async function loadAddonsBox() {
         d.addons.map(function (a) {
           var price = '+' + (a.monthlyCents / 100).toFixed(0) + '€/mes';
           var btn;
-          if (a.active) {
+          if (a.includedInPro) {
+            // Pro lo incluye: ni compra ni cancelación (no se cobra aparte).
+            btn = '<span style="font-size:11px;color:var(--accent-l);font-weight:700">✓ Incluido en tu plan Pro</span>';
+          } else if (a.active) {
             btn = '<button class="btn btn-d btn-sm" onclick="addonAction(\'' + a.key + '\',\'cancel\')">Cancelar</button>';
           } else if (a.available) {
             btn = '<button class="btn btn-accent btn-sm" onclick="addonAction(\'' + a.key + '\',\'activate\')">Activar ' + price + '</button>';
@@ -5831,7 +5834,9 @@ async function loadAddonsBox() {
           return '<div style="background:var(--card2);border:1px solid ' + (a.active ? 'rgba(196,245,70,.4)' : 'var(--border)') + ';border-radius:10px;padding:14px 16px">' +
             '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">' +
               '<strong style="font-size:13px">' + esc(a.label) + '</strong>' +
-              (a.active
+              (a.includedInPro
+                ? '<span style="font-size:10px;color:var(--accent-l);font-weight:800">INCLUIDO · Pro</span>'
+                : a.active
                 ? '<span style="font-size:10px;color:var(--accent-l);font-weight:800">ACTIVO · ' + price + '</span>'
                 : '<span style="font-size:11px;color:var(--dim)">' + price + '</span>') +
             '</div>' +

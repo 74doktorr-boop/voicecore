@@ -19,10 +19,12 @@ const RESOLVE = (id) => ({
   'estandar-1': { provider: 'cartesia', providerVoiceId: 'y', tier: 'estandar' },
 }[id] || null);
 
+// Básico por defecto: estos tests prueban el candado "sin el add-on". Un Pro
+// tendría todos los add-ons incluidos, así que el candado solo aplica a Básico.
 function org(addons, currentVoice) {
   return {
     assistant_config: { voice: currentVoice || '' },
-    automation_config: { config: { addons: addons || {} } },
+    automation_config: { config: { tier: 'basico', addons: addons || {} } },
   };
 }
 
@@ -114,9 +116,11 @@ describe('activateAddon / cancelAddon — subscription items de Stripe', () => {
 
   // Factoría: cada test recibe su propia fila (activateAddon persiste sobre
   // el objeto org y un ORG_ROW compartido contaminaba los tests siguientes)
+  // Básico: es el ÚNICO caso donde activar un add-on cobra de verdad. Un Pro
+  // los tiene incluidos, así que activateAddon corta antes (includedInPro).
   const ORG_ROW = () => ({
     id: 'org-1', stripe_subscription_id: 'sub_123',
-    automation_config: { config: { addons: {} } },
+    automation_config: { config: { tier: 'basico', addons: {} } },
   });
 
   test('activa: crea el item con el price del env y persiste el flag', async () => {
@@ -145,7 +149,7 @@ describe('activateAddon / cancelAddon — subscription items de Stripe', () => {
   });
 
   test('ya activo → idempotente, no duplica el item', async () => {
-    const deps = fakeDeps({ ...ORG_ROW(), automation_config: { config: { addons: { voice_premium: { itemId: 'si_old' } } } } });
+    const deps = fakeDeps({ ...ORG_ROW(), automation_config: { config: { tier: 'basico', addons: { voice_premium: { itemId: 'si_old' } } } } });
     const out = await activateAddon('org-1', 'voice_premium', deps);
     assert.strictEqual(out.ok, true);
     assert.strictEqual(out.already, true);
