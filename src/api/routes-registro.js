@@ -273,9 +273,13 @@ function setupRegistroRoutes(app) {
       const serviciosClean = Array.isArray(servicios)
         ? servicios.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 60)).slice(0, 20)
         : [];
-      // Único plan comercial: Negocio €49. Se ignora cualquier `plan` del form
-      // (incluido el legacy 'pro' de enlaces antiguos).
-      const plan = 'negocio';
+      // Elección de plan de la landing de dos tiers: 'basico' | 'pro' | 'negocio'.
+      // Se guarda en registros.plan (columna ya existente) y la provisión la
+      // traduce a tier/add-on. Fundador → 'negocio' (Pro gratis, no add-on).
+      // Sin dos-tiers en la landing todavía = llega 'negocio' → comportamiento
+      // actual intacto. Ver billing/signup-tier.js.
+      const { parseSignupPlan } = require('../billing/signup-tier');
+      const { choice: plan } = parseSignupPlan(req.body.plan, { isFounder });
       // Cupón estático primero; si no, comprobar si es un código de referido (DB)
       let couponData = validateCoupon(coupon);
       let referralData = null;
@@ -415,10 +419,12 @@ function setupRegistroRoutes(app) {
       }
 
       const { getBilling } = require('../billing/stripe');
+      const { parseSignupPlan } = require('../billing/signup-tier');
       const out = await getBilling().createRegistroCheckout({
         registroId: registro.id,
         email: registro.email,
         couponStripeCode: stripeCode,
+        proAddon: parseSignupPlan(registro.plan).wantsProAddon,
       });
       res.redirect(302, out.url);
     } catch (e) {
@@ -436,6 +442,22 @@ function setupRegistroRoutes(app) {
     } catch (e) {
       res.status(500).json({ error: 'Error interno' });
     }
+  });
+
+  // GET /api/public/plans — precios para la landing. `twoTier` = el precio del
+  // add-on Pro está configurado en Stripe → la landing muestra las DOS tarjetas
+  // (Básico/Pro) y el alta puede elegir. Sin él, `twoTier:false` → la landing
+  // sigue con el precio único de siempre. Así el salto a dos tiers se activa
+  // SOLO poniendo la env + redeploy, sin tocar HTML. Público, sin datos sensibles.
+  app.get('/api/public/plans', (req, res) => {
+    const { BASICO_PRICE_EUR, PRO_PRICE_EUR } = require('../billing/plan');
+    const twoTier = Boolean(process.env.STRIPE_ADDON_PRO_PRICE_ID);
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({
+      twoTier,
+      basico: { key: 'basico', priceEur: BASICO_PRICE_EUR, name: 'Básico' },
+      pro:    { key: 'pro',    priceEur: PRO_PRICE_EUR,    name: 'Pro' },
+    });
   });
 
   log.info('Registro routes configured');

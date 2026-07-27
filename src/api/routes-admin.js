@@ -661,13 +661,17 @@ function setupAdminRoutes(app, config, assistantManager) {
     if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
     try {
       const { data: reg } = await db.client.from('registros')
-        .select('id, negocio, email, contacto, status').eq('id', req.params.id).single();
+        .select('id, negocio, email, contacto, status, plan').eq('id', req.params.id).single();
       if (!reg) return res.status(404).json({ error: 'Registro no encontrado' });
       if (reg.status === 'active') return res.status(400).json({ error: 'Este lead ya es cliente activo' });
       if (!reg.email) return res.status(400).json({ error: 'El registro no tiene email' });
 
       const { getBilling } = require('../billing/stripe');
-      const out = await getBilling().createRegistroCheckout({ registroId: reg.id, email: reg.email });
+      const { parseSignupPlan } = require('../billing/signup-tier');
+      const out = await getBilling().createRegistroCheckout({
+        registroId: reg.id, email: reg.email,
+        proAddon: parseSignupPlan(reg.plan).wantsProAddon,
+      });
 
       let emailed = false;
       try {

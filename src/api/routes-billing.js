@@ -227,8 +227,12 @@ function setupBillingRoutes(app, config) {
                 .catch(e => log.warn(`No se pudo añadir item de mensajes: ${e.message}`));
             }
 
-            // Plan del formulario coincide directamente con el valor de DB ('starter'|'negocio'|'pro')
-            const orgPlan = registro.plan || 'negocio';
+            // La elección del alta ('basico'|'pro'|'negocio') se traduce a
+            // tier/add-on. La org SIEMPRE nace con el plan BASE Stripe ('negocio'
+            // 49€) — Básico y Pro comparten base; el tier vive en automation_config.
+            const { parseSignupPlan } = require('../billing/signup-tier');
+            const signup = parseSignupPlan(registro.plan);
+            const orgPlan = 'negocio';
 
             // ── Crear org + asistente automáticamente ──
             let apiKey         = null;
@@ -278,6 +282,39 @@ function setupBillingRoutes(app, config) {
                     }).eq('id', org.id);
                     log.info(`serviceList sembrada desde el onboarding: ${serviceList.length} servicios (${org.id})`);
                   } catch (e) { log.warn(`serviceList del onboarding falló: ${e.message}`); }
+                }
+
+                // ── Tier del alta (Básico vs Pro) ──────────────────────────
+                // Básico → tier:'basico' capa el motor de seguimientos.
+                // Pro → registra addons.pro (el checkout ya cobró +36€ en la 2ª
+                //   línea) para que el portal lo muestre y sea cancelable. tier
+                //   se deja sin poner (defecto = Pro), así aunque no se pueda
+                //   localizar el item Stripe, el cliente que PAGÓ Pro tiene acceso.
+                // Fundador/'negocio' → nada (Pro por defecto, precio base).
+                if (signup.tier === 'basico' || signup.wantsProAddon) {
+                  try {
+                    const { data: cur } = await db.client.from('organizations')
+                      .select('automation_config').eq('id', org.id).maybeSingle();
+                    const ac = (cur && cur.automation_config) || {};
+                    const cfg = { ...(ac.config || {}) };
+                    if (signup.tier === 'basico') cfg.tier = 'basico';
+                    if (signup.wantsProAddon) {
+                      let itemId = null;
+                      const proPriceId = process.env.STRIPE_ADDON_PRO_PRICE_ID;
+                      if (subscriptionId && proPriceId) {
+                        try {
+                          const sub = await billing.getSubscription(subscriptionId);
+                          const it = sub?.items?.data?.find(x => x.price?.id === proPriceId);
+                          itemId = it?.id || null;
+                        } catch (e) { log.warn(`localizar item Pro falló: ${e.message}`); }
+                      }
+                      cfg.addons = { ...(cfg.addons || {}), pro: { itemId, since: new Date().toISOString(), viaCheckout: true } };
+                    }
+                    await db.client.from('organizations').update({
+                      automation_config: { ...ac, config: cfg },
+                    }).eq('id', org.id);
+                    log.info(`Tier del alta sembrado (${org.id}): ${signup.tier === 'basico' ? 'BÁSICO (capado)' : 'PRO (add-on)'}`);
+                  } catch (e) { log.warn(`sembrar tier del alta falló: ${e.message}`); }
                 }
 
                 // Crear asistente por defecto. El saludo sale de la fuente única

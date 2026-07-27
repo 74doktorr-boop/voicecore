@@ -132,14 +132,21 @@ class StripeBilling {
    * el webhook (payment_link_completed) dispara la provisión automática
    * completa (org + asistente + número + email de activación).
    */
-  async createRegistroCheckout({ registroId, email, couponStripeCode }) {
+  async createRegistroCheckout({ registroId, email, couponStripeCode, proAddon }) {
     if (!this.enabled) throw new Error('Stripe no configurado');
     const priceId = this.plans.negocio.priceId;
     if (!priceId) throw new Error('Falta el precio del plan Negocio (STRIPE_PRO_PRICE_ID)');
     const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+    // Alta Pro (85€) = base 49€ + add-on 'pro' +36€ como SEGUNDA línea, para
+    // que pague 85€ desde la primera factura. Gated por el precio del add-on:
+    // sin STRIPE_ADDON_PRO_PRICE_ID cae a solo-base (= alta normal 49€), nunca
+    // rompe el checkout. La provisión registra addons.pro tras el pago.
+    const line_items = [{ price: priceId, quantity: 1 }];
+    const proPriceId = process.env.STRIPE_ADDON_PRO_PRICE_ID;
+    if (proAddon && proPriceId) line_items.push({ price: proPriceId, quantity: 1 });
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items,
       client_reference_id: registroId,
       customer_email: email || undefined,
       // Si trajo cupón validado, se aplica solo; si no, puede teclear uno.
