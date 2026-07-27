@@ -549,10 +549,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <a href="/onboarding.html?plan=pro" class="btn btn-fill">Empezar en Pro →</a>
     </div>
   </div>
-  <p class="addons-head">Extras opcionales <span>— los activas desde tu panel cuando los necesites. No son necesarios para empezar.</span></p>
+  <p class="addons-head" id="addonsHead">Extras opcionales <span>— los activas desde tu panel cuando los necesites. No son necesarios para empezar.</span></p>
   <div class="addons">
-    <div class="addon"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
-    <div class="addon"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
+    <div class="addon addon-proincl"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
+    <div class="addon addon-proincl"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
     <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si algún mes superas los 500 min, se añaden automáticamente. Sin cortes de servicio y siempre visibles.</p></div>
   </div>
   <div class="price-foot">Desde <b>49€ al mes</b> · IVA incluido · sin permanencia · cancela cuando quieras. Los extras, opcionales.</div>
@@ -686,6 +686,14 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     var one=document.getElementById('priceSingle'), two=document.getElementById('priceTwoTier');
     if(one) one.hidden=true;
     if(two) two.hidden=false;
+    // Coherencia: en dos tiers, voz premium y WhatsApp propio van INCLUIDOS en
+    // Pro → no listarlos como extras de pago. Se quedan solo como extras del
+    // Básico (el de minutos aplica a ambos). Reetiqueta la cabecera.
+    document.querySelectorAll('.addon-proincl').forEach(function(el){ el.hidden=true; });
+    var vis=document.querySelector('.addons .addon:not([hidden])');
+    if(vis){ vis.style.borderLeft='none'; vis.style.paddingLeft='0'; }
+    var h=document.getElementById('addonsHead');
+    if(h) h.innerHTML='Extras del Básico <span>— en Pro van incluidos. Los activas desde tu panel cuando los necesites.</span>';
   }).catch(function(){});
 </script>
 </body>
