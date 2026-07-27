@@ -235,7 +235,7 @@ function serveGitHubPage(publicPath, fallbackFile) {
 
 // Warm-up de las páginas más visitadas al arrancar
 [
-  '/index.html', '/onboarding.html',
+  '/index.html', '/recepcion/index.html', '/onboarding.html',
   '/hementxe/index.html', '/hementxe/anuncio.html',
   '/gracias/index.html', '/portal/index.html',
   '/galiza/index.html',
@@ -243,8 +243,22 @@ function serveGitHubPage(publicPath, fallbackFile) {
   '/bilbao/index.html', '/vitoria/index.html',
 ].forEach(p => getPage(p).catch(() => {}));
 
-// ─── Landing principal ───
-app.get('/', serveGitHubPage('/index.html', path.join(__dirname, 'public', 'index.html')));
+// ─── Home enrutado por HOST ───
+// nodeflow.es (apex)  → landing CORPORATIVA (empresa + cartera de productos).
+// app.nodeflow.es     → la APP: se entra por el portal.
+// Las APIs/webhooks (Telnyx, Stripe, Meta, OAuth) funcionan en TODOS los hosts
+// sin cambios → cero riesgo de telefonía/pagos. Solo cambia qué HTML se sirve.
+const _corpHome = serveGitHubPage('/index.html', path.join(__dirname, 'public', 'index.html'));
+app.get('/', (req, res) => {
+  const host = (req.hostname || '').toLowerCase();
+  if (host.startsWith('app.')) return res.redirect(302, '/portal');
+  return _corpHome(req, res);
+});
+
+// ─── NodeFlow Recepción — página de producto (antes era la home) ───
+// Conserva el SEO del producto en el apex; la home pasó a ser corporativa.
+app.get(['/recepcion', '/recepcion/'],
+  serveGitHubPage('/recepcion/index.html', path.join(__dirname, 'public', 'recepcion', 'index.html')));
 
 // ─── Hementxe (campaign) ───
 app.get(['/hementxe', '/hementxe/'],        serveGitHubPage('/hementxe/index.html',   path.join(__dirname, 'public', 'hementxe', 'index.html')));
