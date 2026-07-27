@@ -272,6 +272,24 @@ async function _dispatchBusinessReminder(reminder, db) {
 /** Procesa un único recordatorio (claim ya hecho). Nunca lanza. */
 async function processOneReminder(reminder, db) {
   try {
+    // GATING PRO: el motor PROACTIVO de seguimientos (avisos por entidad,
+    // seguimientos de sector, reactivación, avisos :biz al dueño) es del plan
+    // Pro. Una org BÁSICA no envía nada de esto — se cancela el aviso para que
+    // no reintente. Los recordatorios de CITA (confirmar/cancelar) van por OTRO
+    // cron y SÍ están en Básico. Default = Pro: no afecta a nadie salvo a quien
+    // esté marcado 'basico' explícitamente.
+    try {
+      const { hasPro } = require('../billing/plan');
+      const { data: orgTier } = await db.client
+        .from('organizations').select('automation_config').eq('id', reminder.org_id).maybeSingle();
+      if (orgTier && !hasPro(orgTier)) {
+        await db.client.from('scheduled_reminders')
+          .update({ status: 'cancelled', failed_reason: 'plan_basico', updated_at: new Date().toISOString() })
+          .eq('id', reminder.id);
+        return;
+      }
+    } catch (_) { /* fail-open: si no se puede leer el tier, se sigue (default Pro) */ }
+
     // Fase 2B — aviso interno al dueño (:biz): rama propia, va a su WhatsApp y
     // se salta las reglas pensadas para el cliente (opt-out, cita futura, tope).
     if (String(reminder.service_key || '').endsWith(':biz')) {

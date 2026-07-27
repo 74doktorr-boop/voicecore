@@ -1156,7 +1156,10 @@ function setupPortalRoutes(app, pipeline, config) {
     // (recupera al cliente que no vino). Fire-and-forget, respeta opt-out y usa
     // la plantilla aprobada nodeflow_aviso. Solo al MARCAR y SOLO la primera vez
     // (guard anti-reenvío: re-marcar no vuelve a mandar el WhatsApp).
-    if (mark && !alreadyNoShow) {
+    // GATING PRO: la recuperación de plantones (WhatsApp ofreciendo reprogramar)
+    // es del plan Pro. En Básico se marca el no-show pero no se envía el rescate.
+    const noShowRecoveryPro = require('../billing/plan').hasPro({ automation_config: req.flowConfig?.automations });
+    if (mark && !alreadyNoShow && noShowRecoveryPro) {
       try {
         require('../notifications/no-show-followup')
           .sendNoShowRebooking(apt, req.flowConfig || {}).catch(() => {});

@@ -866,6 +866,9 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
 
     // Skip if reviews disabled for this business
     if (flowManager && !flowManager.isEnabled(apt.businessId, 'reviews')) continue;
+    // GATING PRO: las reseñas automáticas son del plan Pro. Tier en memoria vía
+    // flowManager (flow.automations = automation_config). Default Pro.
+    if (flowManager && !require('../billing/plan').hasPro({ automation_config: flowManager.get(apt.businessId)?.automations })) continue;
 
     const hoursAfter   = flowManager ? flowManager.getHoursAfter(apt.businessId) : 24;
     const targetMs     = hoursAfter * 3600 * 1000;
