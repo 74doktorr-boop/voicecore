@@ -299,16 +299,30 @@ function setupBillingRoutes(app, config) {
                     const cfg = { ...(ac.config || {}) };
                     if (signup.tier === 'basico') cfg.tier = 'basico';
                     if (signup.wantsProAddon) {
-                      let itemId = null;
+                      // El entitlement Pro debe atarse al COBRO real: solo se
+                      // concede si el item +36€ está de verdad en la suscripción.
                       const proPriceId = process.env.STRIPE_ADDON_PRO_PRICE_ID;
+                      let itemId = null, lookupFailed = false;
                       if (subscriptionId && proPriceId) {
                         try {
                           const sub = await billing.getSubscription(subscriptionId);
-                          const it = sub?.items?.data?.find(x => x.price?.id === proPriceId);
-                          itemId = it?.id || null;
-                        } catch (e) { log.warn(`localizar item Pro falló: ${e.message}`); }
+                          itemId = sub?.items?.data?.find(x => x.price?.id === proPriceId)?.id || null;
+                        } catch (e) { lookupFailed = true; log.warn(`localizar item Pro falló: ${e.message}`); }
                       }
-                      cfg.addons = { ...(cfg.addons || {}), pro: { itemId, since: new Date().toISOString(), viaCheckout: true } };
+                      if (itemId) {
+                        // Cobrado y confirmado.
+                        cfg.addons = { ...(cfg.addons || {}), pro: { itemId, since: new Date().toISOString(), viaCheckout: true } };
+                      } else if (lookupFailed) {
+                        // No pudimos comprobar pero el checkout SÍ intentó cobrar
+                        // (había price) → fail-open para no capar a quien pagó;
+                        // marcar unverified para revisión manual del cobro.
+                        cfg.addons = { ...(cfg.addons || {}), pro: { itemId: null, since: new Date().toISOString(), viaCheckout: true, unverified: true } };
+                        log.warn(`⚠️ Pro concedido SIN verificar item Stripe (${org.id}) — revisar cobro manualmente`);
+                      } else {
+                        // Comprobamos y el item NO está (o no había price) → el
+                        // add-on NO se cobró → NO conceder Pro (evita Pro gratis).
+                        log.warn(`Alta 'pro' pero sin item Pro cobrado (${org.id}) — se queda en base, no se concede Pro`);
+                      }
                     }
                     await db.client.from('organizations').update({
                       automation_config: { ...ac, config: cfg },
