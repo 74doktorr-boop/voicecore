@@ -249,7 +249,7 @@ function setupAdminRoutes(app, config, assistantManager) {
 
   // ─── PATCH org fields ──────────────────────────────────────────────────────────
   app.patch('/api/admin/orgs/:id', adminAuth, async (req, res) => {
-    const { name, plan, sector, phone, status, outboundNumber, model } = req.body;
+    const { name, plan, sector, phone, status, outboundNumber, model, tier } = req.body;
     const db = getDatabase();
     const patch = {};
     if (name   !== undefined) patch.name   = name;
@@ -272,6 +272,22 @@ function setupAdminRoutes(app, config, assistantManager) {
         patch.automation_config = merged;
       } catch (_) { /* non-fatal — fall through */ }
     }
+    // tier: Básico vs Pro (JSONB merge en automation_config.config.tier). El
+    // gating del motor de seguimientos lee de aquí (billing/plan.hasPro). 'pro'
+    // o ausente = todo; 'basico' capa. Reutiliza el patch si outboundNumber ya
+    // lo tocó, para no pisarse.
+    if (tier !== undefined) {
+      if (!['basico','pro'].includes(tier)) return res.status(400).json({ error: 'tier inválido (basico|pro)' });
+      try {
+        let base = patch.automation_config;
+        if (!base) {
+          const { data: existing } = await db.client
+            .from('organizations').select('automation_config').eq('id', req.params.id).single();
+          base = existing?.automation_config || {};
+        }
+        patch.automation_config = { ...base, config: { ...(base.config || {}), tier } };
+      } catch (_) { /* non-fatal */ }
+    }
     // Brazo del A/B de cerebro: assistant_config.model ('proveedor/modelo').
     // '' / null → Auto (el router elige el más rápido). Merge JSONB + invalida
     // la caché del asistente → el modelo nuevo aplica en la siguiente llamada.
@@ -287,7 +303,7 @@ function setupAdminRoutes(app, config, assistantManager) {
     try {
       await db.client.from('organizations').update(patch).eq('id', req.params.id);
       if (model !== undefined) { try { require('../assistants/org-assistant').invalidateOrgAssistant(req.params.id); } catch (_) {} }
-      recordAudit({ action: model !== undefined ? 'ab_model_assign' : plan !== undefined ? 'plan_change' : 'org_update', targetType: 'org', targetId: req.params.id, ip: ipOf(req), details: patch });
+      recordAudit({ action: model !== undefined ? 'ab_model_assign' : tier !== undefined ? 'tier_change' : plan !== undefined ? 'plan_change' : 'org_update', targetType: 'org', targetId: req.params.id, ip: ipOf(req), details: patch });
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ error: e.message });
