@@ -183,6 +183,18 @@ async function tick() {
   // 3b. Estado de tope de gasto por org (guardarraíl anti factura sorpresa).
   const capState = await loadCapState(db, due.map(j => j.org_id), Date.now());
 
+  // 3c. TOPE DE GASTO EN € del dueño (config.costCapEur, opcional). Antes solo
+  // frenaba mensajes no esenciales; la voz saliente es el mayor coste, así que
+  // aquí también se respeta: una org por encima de su tope € POSPONE sus
+  // llamadas (no las cancela; se retoman al bajar el gasto o subir el tope).
+  const euroCapped = new Set();
+  try {
+    const { isSpendingCapped } = require('../billing/cost-alert');
+    for (const id of [...new Set(due.map(j => j.org_id))]) {
+      try { if (await isSpendingCapped(id, { db })) euroCapped.add(id); } catch (_) {}
+    }
+  } catch (_) { /* sin motor de coste → sin tope €, el de nº de llamadas sigue */ }
+
   let launched = 0, capped = 0;
   for (const job of due) {
     if (inFlight.has(job.org_id)) continue;
@@ -194,6 +206,8 @@ async function tick() {
     // trabajo sigue 'queued' y se reintenta cuando la BD responda. Mejor
     // posponer una campaña que arriesgar una factura sin techo.
     if (cs && cs.unknown) continue;
+    // Sobre el tope de gasto € del dueño → posponer (el job sigue 'queued').
+    if (euroCapped.has(job.org_id)) { capped++; continue; }
     if (cs && cs.used >= cs.cap) {
       await db.client.from('nf_campaign_calls')
         .update({ status: 'cancelled', error: 'tope mensual de llamadas salientes', finished_at: new Date().toISOString() })

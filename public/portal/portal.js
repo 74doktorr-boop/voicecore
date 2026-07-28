@@ -4249,12 +4249,18 @@ async function openContactProfile(id) {
     ) : '') +
 
     // ── FICHA 360: los seguimientos DE ESTE cliente ──────────────────
-    '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between">' +
+    '<div class="profile-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
       '<span>🔔 Seguimientos de este cliente</span>' +
-      '<button class="btn btn-d btn-sm" onclick="cpTogglePause(\'' + esc(id) + '\',' + (data.paused ? 'false' : 'true') + ')" ' +
-        (data.paused ? 'style="color:var(--red)"' : '') + '>' + (data.paused ? '⏸ En pausa — reanudar' : '⏸ Pausar avisos') + '</button>' +
+      '<span style="display:flex;gap:6px;flex-wrap:wrap">' +
+        '<button class="btn btn-d btn-sm" onclick="cpToggleNoCalls(\'' + esc(id) + '\',' + (data.noCalls ? 'false' : 'true') + ')" ' +
+          (data.noCalls ? 'style="color:var(--red)"' : '') + ' title="Bloquear solo las llamadas de voz (recuperación, reactivación, confirmaciones)">' +
+          (data.noCalls ? '📵 No llamar — permitir' : '📵 No llamar') + '</button>' +
+        '<button class="btn btn-d btn-sm" onclick="cpTogglePause(\'' + esc(id) + '\',' + (data.paused ? 'false' : 'true') + ')" ' +
+          (data.paused ? 'style="color:var(--red)"' : '') + '>' + (data.paused ? '⏸ En pausa — reanudar' : '⏸ Pausar avisos') + '</button>' +
+      '</span>' +
     '</div>' +
     (data.paused ? '<div style="font-size:12px;color:var(--red);margin-bottom:8px">Este cliente no recibe ningún aviso (whatsapp, sms ni email) hasta que lo reanudes.</div>' : '') +
+    (data.noCalls && !data.paused ? '<div style="font-size:12px;color:var(--red);margin-bottom:8px">Este cliente pidió que no le llamen por teléfono. Seguirá recibiendo WhatsApp/email, pero no llamadas de voz.</div>' : '') +
     cpRemindersHtml(data.reminders, id) +
     '<div style="display:flex;gap:6px;align-items:center;margin:10px 0 4px;flex-wrap:wrap">' +
       '<input type="date" id="cpPrDate" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px">' +
@@ -4440,6 +4446,14 @@ async function cpTogglePause(contactId, paused) {
   try {
     await api('/api/portal/contacts/' + contactId + '/pause', 'PUT', { paused: paused });
     toast(paused ? 'Avisos en pausa para este cliente' : 'Avisos reanudados');
+    openContactProfile(contactId);
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function cpToggleNoCalls(contactId, noCalls) {
+  try {
+    await api('/api/portal/contacts/' + contactId + '/no-calls', 'PUT', { noCalls: noCalls });
+    toast(noCalls ? 'Este cliente ya no recibirá llamadas de voz' : 'Llamadas de voz reactivadas');
     openContactProfile(contactId);
   } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
@@ -6597,6 +6611,7 @@ async function loadCampanas() {
     '</div>' : '';
 
   el.innerHTML =
+    '<div id="spending-card"></div>' +
     proBanner + capBox + actionsBox +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px">' + cards + '</div>' +
     '<div class="card" style="padding:18px 20px">' +
@@ -6604,6 +6619,58 @@ async function loadCampanas() {
       '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">Cada resultado, con tu cliente protegido. Los números respetan las bajas (quien pidió no ser llamado no recibe llamadas).</div>' +
       recentHtml +
     '</div>';
+  renderSpendingCard();   // control de gasto (transparencia + tope del dueño)
+}
+
+// ── Control de gasto del dueño: VE su gasto variable del mes y PONE su umbral de
+// aviso y su tope. Mata el bloqueo "coste sin tope". Se rellena aparte para no
+// bloquear el render de campañas.
+async function renderSpendingCard() {
+  var box = document.getElementById('spending-card');
+  if (!box) return;
+  var d;
+  try { d = await api('/api/portal/spending'); } catch (e) { return; }
+  if (!d || !d.available) { box.innerHTML = ''; return; }
+  var spend = d.spendEur || 0, thr = d.thresholdEur || 0, cap = d.capEur || 0;
+  var ref = cap > 0 ? cap : (thr > 0 ? thr : 0);
+  var pct = ref > 0 ? Math.min(100, Math.round((spend / ref) * 100)) : 0;
+  var over = cap > 0 && spend >= cap;
+  var warn = !over && thr > 0 && spend >= thr * 0.8;
+  var color = over ? '#ff6f5e' : (warn ? '#e0b341' : 'var(--accent-l)');
+  var inStyle = 'width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:var(--mono)';
+  box.innerHTML =
+    '<div class="card" style="padding:16px 18px;margin-bottom:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">' +
+        '<div style="font-size:13px;font-weight:700">Tu gasto variable este mes</div>' +
+        '<div style="font-family:var(--mono);font-size:15px;font-weight:700;color:' + color + '">' + spend.toFixed(2) + ' €</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin:6px 0 10px">Solo lo que va POR ENCIMA de tu cuota fija: voz (' + (d.overageMin || 0) + ' min extra → ' + (d.voiceOverageEur || 0).toFixed(2) + '€) + mensajes (' + (d.messageOverageEur || 0).toFixed(2) + '€). Tu cuota incluye ' + (d.includedMin || 0) + ' min.</div>' +
+      (ref > 0 ? '<div style="height:6px;border-radius:6px;background:var(--border);margin:0 0 10px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + color + '"></div></div>' : '') +
+      (over ? '<div style="font-size:12px;color:#ff6f5e;margin-bottom:8px">Has llegado a tu tope. Los seguimientos y campañas están en pausa hasta que subas el tope o empiece el mes que viene. <b>Las llamadas entrantes y los recordatorios de cita siguen funcionando siempre.</b></div>' : '') +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+        '<div><div style="font-size:11px;color:var(--dim);margin-bottom:4px">Avísame al llegar a (€)</div>' +
+          '<input id="spThr" type="number" min="0" max="100000" step="1" value="' + thr + '" style="' + inStyle + '"></div>' +
+        '<div><div style="font-size:11px;color:var(--dim);margin-bottom:4px">No gastes más de (€) <span style="opacity:.7">· 0 = sin tope</span></div>' +
+          '<input id="spCap" type="number" min="0" max="100000" step="1" value="' + cap + '" style="' + inStyle + '"></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-d btn-sm" onclick="saveSpending()">Guardar</button>' +
+        '<span style="font-size:11px;color:var(--dim)">El tope solo pausa seguimientos/campañas; nunca corta entrantes ni recordatorios de cita.</span></div>' +
+    '</div>';
+}
+
+async function saveSpending() {
+  var thrEl = document.getElementById('spThr'), capEl = document.getElementById('spCap');
+  var thr = thrEl ? parseFloat(thrEl.value) : NaN;
+  var cap = capEl ? parseFloat(capEl.value) : NaN;
+  var body = {};
+  if (thr >= 0) body.thresholdEur = thr;
+  if (cap >= 0) body.capEur = cap;
+  if (!Object.keys(body).length) { toast('Pon un número válido (0 o más)', 'err'); return; }
+  try {
+    var r = await api('/api/portal/spending', 'POST', body);
+    if (r && r.ok) { toast('Preferencias de gasto guardadas', 'ok'); renderSpendingCard(); }
+    else toast((r && r.error) || 'No se pudo guardar', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo guardar', 'err'); }
 }
 
 async function saveCampaignCap() {

@@ -80,12 +80,15 @@ describe('loadCapState — fail-CLOSED cuando no se puede verificar el gasto', (
     const st = await loadCapState(mockDb({ throwOnCount: true }), ['o1']);
     assert.strictEqual(st.o1.unknown, true);
   });
-  test('decisión del dispatcher: unknown → POSPONE (ni llama ni cancela)', () => {
-    // Réplica de la lógica de tick(): unknown se salta con `continue`.
-    const decide = (cs) => (cs && cs.unknown) ? 'defer'
+  test('decisión del dispatcher: unknown → POSPONE; tope € → POSPONE; nº de llamadas → CANCELA', () => {
+    // Réplica del orden de tick(): unknown y tope-€ posponen (continue); el tope
+    // por nº de llamadas cancela; si no, llama.
+    const decide = (cs, euroCapped) => (cs && cs.unknown) ? 'defer'
+      : euroCapped ? 'defer'
       : (cs && cs.used >= cs.cap) ? 'cancel' : 'call';
-    assert.strictEqual(decide({ cap: 200, used: 0, unknown: true }), 'defer');
-    assert.strictEqual(decide({ cap: 200, used: 5 }), 'call');
-    assert.strictEqual(decide({ cap: 200, used: 200 }), 'cancel');
+    assert.strictEqual(decide({ cap: 200, used: 0, unknown: true }, false), 'defer');
+    assert.strictEqual(decide({ cap: 200, used: 5 }, true),  'defer');  // sobre el tope € aunque el nº no llegue
+    assert.strictEqual(decide({ cap: 200, used: 5 }, false), 'call');
+    assert.strictEqual(decide({ cap: 200, used: 200 }, false), 'cancel');
   });
 });

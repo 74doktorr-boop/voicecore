@@ -2642,6 +2642,66 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`campaigns cap ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
+  // ── GET /api/portal/spending ── CONTROL DE GASTO del dueño (transparencia) ──
+  // Mata el bloqueo de venta nº1 ("coste sin tope / factura sorpresa"): el dueño
+  // VE su gasto variable del mes (voz+mensajes por encima de la cuota) y sus dos
+  // palancas — umbral de AVISO y TOPE duro. Read-only aquí. El cálculo reusa el
+  // motor ya existente (cost-alert.monthlyVariableSpend).
+  app.get('/api/portal/spending', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ available: false });
+    try {
+      const { data: org } = await db.client.from('organizations')
+        .select('id, monthly_minutes_used, monthly_minutes_limit, automation_config')
+        .eq('id', req.businessId).maybeSingle();
+      if (!org) return res.json({ available: false });
+      const { monthlyVariableSpend, resolveThreshold, resolveCap, DEFAULT_THRESHOLD } = require('../billing/cost-alert');
+      const spend = await monthlyVariableSpend(org, { db });
+      res.json({
+        available: true,
+        spendEur: spend.totalEur,
+        voiceOverageEur: spend.voiceOverageEur,
+        messageOverageEur: spend.messageOverageEur,
+        usedMin: spend.usedMin, includedMin: spend.limitMin, overageMin: spend.overageMin,
+        thresholdEur: resolveThreshold(org),   // aviso (0 = desactivado)
+        capEur: resolveCap(org),               // tope duro (0 = sin tope)
+        defaultThresholdEur: DEFAULT_THRESHOLD,
+      });
+    } catch (e) { log.warn(`spending GET ${req.businessId}: ${e.message}`); res.json({ available: false }); }
+  });
+
+  // ── POST /api/portal/spending ── el dueño ajusta su AVISO y su TOPE de gasto ──
+  // Ambos opcionales e independientes; 0 = desactivado. Al tocar el tope se
+  // invalida el cache para que el guardarraíl haga efecto sin esperar 60s.
+  app.post('/api/portal/spending', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const b = req.body || {};
+    const patch = {};
+    if (b.thresholdEur !== undefined) {
+      const t = Number(b.thresholdEur);
+      if (!Number.isFinite(t) || t < 0 || t > 100000) return res.status(400).json({ error: 'Umbral inválido (0–100000)' });
+      patch.costAlertThresholdEur = Math.round(t * 100) / 100;
+    }
+    if (b.capEur !== undefined) {
+      const c = Number(b.capEur);
+      if (!Number.isFinite(c) || c < 0 || c > 100000) return res.status(400).json({ error: 'Tope inválido (0–100000)' });
+      patch.costCapEur = Math.round(c * 100) / 100;
+    }
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'Nada que actualizar' });
+    try {
+      const { data: cur } = await db.client.from('organizations')
+        .select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      await db.client.from('organizations').update({
+        automation_config: { ...ac, config: { ...(ac.config || {}), ...patch } },
+      }).eq('id', req.businessId);
+      try { require('../billing/cost-alert')._clearCapCache(); } catch (_) {}
+      log.info(`Gasto: ajuste (${req.businessId}) ${JSON.stringify(patch)}`);
+      res.json({ ok: true, ...patch });
+    } catch (e) { log.warn(`spending POST ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ── POST /api/portal/campaigns/review-voice ── activar/desactivar reseña por voz
   // Opt-in: cuando está ON, el flujo de reseñas ADEMÁS llama al cliente tras la
   // visita (el enlace sigue yendo por WhatsApp). Pro (voz saliente = Pro).
