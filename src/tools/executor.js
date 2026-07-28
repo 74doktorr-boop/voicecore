@@ -12,6 +12,51 @@ const { getDatabase }        = require('../db/database');
 const { webhookDispatcher, EVENTS } = require('../webhooks/dispatcher');
 const log = new Logger('TOOLS');
 
+// ── CAJA NEGRA de la IA ──────────────────────────────────────────────────────
+// Cada decisión (tool) que toma el asistente en una llamada se acumula en la
+// sesión (coste cero, en memoria) para persistirla al final y enseñarle al dueño
+// EXACTAMENTE qué hizo su IA con cada cliente. Mata el bloqueo "no me fío de la
+// IA con mis clientes": no es una caja negra, es una decisión auditable por
+// llamada. La persistencia (post-call) y la vista (portal) usan session.aiDecisions.
+
+// Resumen legible por herramienta (cara al dueño; sin volcar args crudos).
+function _decisionSummary(tool, args = {}, result = {}) {
+  const a = args || {}, r = result || {};
+  switch (tool) {
+    case 'check_availability':  return `Consultó disponibilidad${a.service ? ` para «${a.service}»` : ''}${a.from_date ? ` (${a.from_date})` : ''}`;
+    case 'book_appointment': {
+      const ap = r.appointment || {};
+      return r.success === false ? 'Intentó reservar (no se pudo)'
+        : `Reservó cita${ap.patientName ? `: ${ap.patientName}` : ''}${ap.date ? `, ${ap.date}` : ''}${ap.time ? ` ${ap.time}` : ''}`;
+    }
+    case 'cancel_appointment':  return r.success === false ? 'Intentó cancelar una cita (no se pudo)' : 'Canceló una cita';
+    case 'reschedule_appointment': return 'Reprogramó una cita';
+    case 'lookup_appointments': return 'Consultó las citas del cliente';
+    case 'register_lead':       return `Registró un lead${a.name ? ` (${a.name})` : ''}${a.urgency ? ` — urgencia ${a.urgency}` : ''}`;
+    case 'lookup_entity':       return 'Consultó una ficha del cliente (vehículo, póliza, etc.)';
+    case 'update_entity_date':  return 'Anotó una fecha en la ficha del cliente';
+    case 'add_to_waitlist':     return 'Apuntó al cliente en lista de espera';
+    case 'flag_urgent':         return '⚠️ Marcó la llamada como URGENTE y avisó al responsable';
+    case 'transfer_call':       return 'Pasó la llamada a una persona';
+    default:                    return r.success === false ? `${tool} (no se pudo)` : tool.replace(/_/g, ' ');
+  }
+}
+
+function _recordDecision(context, tool, args, result, ran) {
+  try {
+    const s = context && context.session;
+    if (!s) return;
+    if (!Array.isArray(s.aiDecisions)) s.aiDecisions = [];
+    if (s.aiDecisions.length >= 60) return;   // techo de memoria por llamada
+    s.aiDecisions.push({
+      tool,
+      ok: !!ran && !(result && result.success === false),
+      at: Date.now(),
+      summary: _decisionSummary(tool, args, result),
+    });
+  } catch (_) { /* la caja negra NUNCA rompe una llamada */ }
+}
+
 // ── Lazy-loaded modules (avoid circular deps at startup) ──────────────────────
 function _wa()         { return require('../notifications/whatsapp');        } // owner-only (Callmebot)
 function _clientWA()   { return require('../notifications/client-whatsapp'); } // client-facing (Meta API)
@@ -289,9 +334,11 @@ class ToolExecutor {
     try {
       const result = await handler(args, assistantId, context);
       log.info(`Tool OK: ${functionName}`, result);
+      _recordDecision(context, functionName, args, result, true);   // caja negra
       return result;
     } catch (err) {
       log.error(`Tool error: ${functionName} — ${err.message}`);
+      _recordDecision(context, functionName, args, { success: false, error: err.message }, false);
       return { success: false, message: 'Error interno, continúa la conversación normalmente.' };
     }
   }
@@ -1836,4 +1883,4 @@ class ToolExecutor {
 
 // _notifyOwner se exporta para la red de seguridad de leads (aviso al dueño
 // con las mismas credenciales multi-tenant que usa register_lead).
-module.exports = { ToolExecutor, _notifyOwner, syncAppointmentToCalendar: _syncToCalendar, calendarBusyByDate: _calendarBusy, matchLocation: _matchLocation, _clientPhoneOf };
+module.exports = { ToolExecutor, _notifyOwner, syncAppointmentToCalendar: _syncToCalendar, calendarBusyByDate: _calendarBusy, matchLocation: _matchLocation, _clientPhoneOf, _decisionSummary, _recordDecision };
