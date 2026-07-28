@@ -19,6 +19,7 @@ let _lastMonthlyResetDay = null; // 'YYYY-MM-01' — prevents duplicate resets i
 let _lastWeeklyReportDay = null; // 'YYYY-MM-DD' (Monday) — prevents duplicate weekly reports
 let _lastImprovementDay  = null; // 'YYYY-MM-DD' (Monday) — dedupe del ciclo de mejora
 let _lastEntityRemindersDay = null; // 'YYYY-MM-DD' — dedupe del materializador de entidades
+let _lastContentDay = null;         // 'YYYY-MM-DD' — dedupe del piloto de contenido (1/día)
 
 async function checkAndSendCriticalDateReminders() {
   const { criticalDatesStore } = require('../scheduling/critical-dates');
@@ -298,6 +299,20 @@ async function runAutomations() {
       const { enqueueEntityDateCalls } = require('../entities/entity-calls');
       await enqueueEntityDateCalls();
     } catch (e) { log.warn(`la entidad llama: ${e.message}`); }
+
+    // ── Piloto automático de CONTENIDO (opt-in, defecto OFF): 1 artículo/día
+    // para las orgs que lo activaron, respetando el tope de coste. Franja de
+    // madrugada (05h Madrid) + dedupe diario → una sola corrida al día. Gasta
+    // GPT, por eso opt-in + cap + límite de lote (dentro de runAutoContent).
+    try {
+      const hourMadrid = parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false }).format(new Date()), 10);
+      const dayMadrid = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+      if (hourMadrid === 5 && _lastContentDay !== dayMadrid) {
+        _lastContentDay = dayMadrid;
+        const { runAutoContent } = require('../content/auto');
+        await runAutoContent();
+      }
+    } catch (e) { log.warn(`piloto de contenido: ${e.message}`); }
 
     // ── Monthly usage reset (1st of month, free/Starter orgs only) ──
     // Stripe-subscribed orgs are reset via invoice.paid webhook; only reset orgs without

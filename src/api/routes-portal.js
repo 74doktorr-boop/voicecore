@@ -457,6 +457,7 @@ function setupPortalRoutes(app, pipeline, config) {
         available: true, isPro, cap: _contentCap(cfg), used,
         micrositeUrl: `${base}/n/${org?.slug || ''}`,
         micrositeOn: isPro && cfg.micrositeOff !== true,
+        auto: cfg.contentAuto === true,
         articles: articles.map(a => ({ slug: a.slug, title: a.h1 || a.meta_title })),
       });
     } catch (e) { log.warn(`content GET ${req.businessId}: ${e.message}`); res.json({ available: false }); }
@@ -487,6 +488,23 @@ function setupPortalRoutes(app, pipeline, config) {
       log.info(`Contenido generado (${req.businessId}): ${r.article.slug}`);
       res.json({ ok: true, slug: r.article.slug, title: r.article.h1 });
     } catch (e) { log.warn(`content generate ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // POST piloto automático on/off (opt-in: 1 artículo/día respetando el tope).
+  app.post('/api/portal/content/auto', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const { hasPro } = require('../billing/plan');
+    if (!hasPro({ automation_config: req.flowConfig?.automations })) return res.status(402).json({ error: 'Contenido & SEO es del plan Pro', proRequired: true });
+    const on = !!(req.body && req.body.on);
+    try {
+      const { data: cur } = await db.client.from('organizations').select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      const cfg = { ...(ac.config || {}) };
+      if (on) cfg.contentAuto = true; else delete cfg.contentAuto;
+      await db.client.from('organizations').update({ automation_config: { ...ac, config: cfg } }).eq('id', req.businessId);
+      res.json({ ok: true, auto: on });
+    } catch (e) { log.warn(`content auto ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ── GET /api/portal/dashboard ──────────────────────────────

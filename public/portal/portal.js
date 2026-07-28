@@ -6652,6 +6652,14 @@ async function generateContent(btn) {
   finally { if (typeof loadWidget === 'function') loadWidget(); }
 }
 
+async function toggleContentAuto(on) {
+  try {
+    var r = await api('/api/portal/content/auto', 'POST', { on: !!on });
+    if (r && r.ok) toast(on ? 'Piloto automático activado' : 'Piloto automático desactivado', 'ok');
+    else toast((r && r.error) || 'No se pudo', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
+}
+
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──
 // targetId opcional (2026-07-08): la misma tarjeta se pinta en Seguimientos
 // (followup-roi) y en el DASHBOARD (dash-roi) — la cifra que renueva
@@ -8232,6 +8240,10 @@ async function loadWidget() {
           '<a href="' + esc(c.micrositeUrl || '#') + '" target="_blank" class="btn btn-d btn-sm" style="text-decoration:none">Ver mi micrositio ↗</a>' +
           '<button class="btn btn-accent btn-sm" onclick="generateContent(this)"' + (c.used >= c.cap ? ' disabled title="Tope mensual alcanzado"' : '') + '>✨ Generar artículo</button>' +
         '</div>' +
+        '<label style="display:flex;align-items:center;gap:9px;font-size:12.5px;cursor:pointer;margin-top:14px">' +
+          '<input type="checkbox" ' + (c.auto ? 'checked' : '') + ' onchange="toggleContentAuto(this.checked)">' +
+          '<span>Publicar en <b>piloto automático</b> <span style="color:var(--dim)">(un artículo al día, respetando tu tope)</span></span>' +
+        '</label>' +
         (c.articles && c.articles.length ? '<div style="font-size:12px;color:var(--dim);margin-top:12px;line-height:1.7">' + c.articles.slice(0, 8).map(function(a){ return '· ' + esc(a.title); }).join('<br>') + '</div>' : '') +
       '</div>'
     : '';
