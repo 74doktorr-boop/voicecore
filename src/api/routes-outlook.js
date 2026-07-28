@@ -10,6 +10,7 @@
 
 const { Logger } = require('../utils/logger');
 const { requireAuth } = require('../auth/middleware');
+const { issueOAuthState, consumeOAuthState } = require('../auth/oauth-state');
 const { getOutlookCalendar } = require('../integrations/outlook-calendar');
 const { getDatabase } = require('../db/database');
 
@@ -30,27 +31,38 @@ function setupOutlookRoutes(app, config) {
   });
 
   // ── Start OAuth flow ────────────────────────────────────────────────────────
-  app.get('/api/outlook/auth', auth, (req, res) => {
+  app.get('/api/outlook/auth', auth, async (req, res) => {
     if (!cal.enabled) return res.status(503).json({ error: 'Outlook no configurado en este servidor' });
-    res.json({ url: cal.getAuthUrl(req.org.id) });
+    // `state` = nonce de un solo uso ligado a ESTA org autenticada (ver oauth-state.js).
+    const state = await issueOAuthState(req.org.id, 'outlook');
+    res.json({ url: cal.getAuthUrl(state) });
   });
 
   // ── OAuth callback (Microsoft redirects here) ───────────────────────────────
   // Sin middleware de auth — es la URL de retorno del OAuth.
   app.get('/api/outlook/callback', async (req, res) => {
-    const { code, state: orgId, error: oauthError } = req.query;
+    const { code, state, error: oauthError } = req.query;
     if (oauthError) {
-      log.warn(`OAuth denied for org ${orgId}: ${oauthError}`);
+      log.warn(`OAuth denied: ${oauthError}`);
       return res.redirect('/portal/?outlook=denied');
     }
-    if (!code || !orgId) return res.status(400).send('Parámetros inválidos');
+    if (!code || !state) return res.status(400).send('Parámetros inválidos');
+
+    // El org destino sale del nonce, NUNCA de la query (hallazgo S1).
+    const orgId = await consumeOAuthState(state, 'outlook');
+    if (!orgId) {
+      log.warn('OAuth callback con state inválido, caducado o ya usado — rechazado');
+      return res.redirect('/portal/?outlook=error');
+    }
 
     try {
       const tokens = await cal.exchangeCode(code);
       if (db.enabled) {
+        const { encryptSecret } = require('../utils/crypto');
         await db.updateOrg(orgId, {
-          outlook_refresh_token: tokens.refresh_token,
-          outlook_access_token:  tokens.access_token,
+          // Cifrados en reposo, igual que Google (antes se guardaban en claro).
+          outlook_refresh_token: encryptSecret(tokens.refresh_token),
+          outlook_access_token:  encryptSecret(tokens.access_token),
           outlook_token_expiry:  tokens.expiry_date,
           outlook_calendar_id:   'primary',
         });
@@ -82,16 +94,18 @@ function setupOutlookRoutes(app, config) {
 
   // ── Helper: get fresh tokens (refresca + persiste si cambió) ─────────────────
   async function getFreshTokens(org) {
+    const { encryptSecret, decryptSecret } = require('../utils/crypto');
+    // Descifrado al leer / cifrado al escribir (decryptSecret tolera legacy en claro).
     const raw = {
-      access_token:  org.outlook_access_token,
-      refresh_token: org.outlook_refresh_token,
+      access_token:  decryptSecret(org.outlook_access_token),
+      refresh_token: decryptSecret(org.outlook_refresh_token),
       expiry_date:   org.outlook_token_expiry,
     };
     const fresh = await cal.refreshIfNeeded(raw);
     if ((fresh.access_token !== raw.access_token || fresh.refresh_token !== raw.refresh_token) && db.enabled) {
       await db.updateOrg(org.id, {
-        outlook_access_token:  fresh.access_token,
-        outlook_refresh_token: fresh.refresh_token,
+        outlook_access_token:  encryptSecret(fresh.access_token),
+        outlook_refresh_token: encryptSecret(fresh.refresh_token),
         outlook_token_expiry:  fresh.expiry_date,
       }).catch(() => {});
     }

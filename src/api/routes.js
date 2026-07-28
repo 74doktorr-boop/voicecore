@@ -494,6 +494,10 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // leader: ¿esta réplica ejecuta los crons? (con multi-réplica, solo una).
     let leader = true;
     try { leader = require('../utils/leader').isLeader(); } catch (_) {}
+    // Firma de webhooks de Telnyx: si no se exige, hay que poder VERLO. Estaba
+    // fail-open en silencio desde 2026-07-16 y nadie lo sabía (hallazgo S3).
+    let telnyxSignature = 'unknown';
+    try { telnyxSignature = require('../utils/telnyx-signature').telnyxSignatureStatus().enforced ? 'enforced' : 'UNVERIFIED'; } catch (_) {}
     res.json({
       status,
       version: '2.0.0',
@@ -508,6 +512,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       database,
       redis,
       leader,
+      telnyxSignature,
     });
   });
 

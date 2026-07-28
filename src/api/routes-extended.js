@@ -5,6 +5,7 @@
 
 const { Logger } = require('../utils/logger');
 const { requireAuth, rateLimit } = require('../auth/middleware');
+const { adminAuth } = require('./routes-admin');
 const { getAnalytics } = require('../analytics/engine');
 const { getKnowledgeBase } = require('../knowledge/base');
 
@@ -16,42 +17,50 @@ function setupExtendedRoutes(app, config, squadManager) {
   const analytics = getAnalytics();
   const kb = getKnowledgeBase();
 
-  // ─── Analytics ───
-  app.get('/api/analytics/dashboard', auth, (req, res) => {
+  // ─── Analytics (TELEMETRÍA INTERNA — adminAuth, no auth de cliente) ───
+  // Hallazgo S2 (auditoría 2026-07-29): el motor de analítica es un singleton de
+  // proceso SIN dimensión de tenant — getDashboard/getAssistantPerformance agregan
+  // TODA la flota. Con `auth` (que acepta el JWT del portal), cualquier cliente
+  // recibía llamadas, coste y conversión de todos los demás negocios, con sus
+  // UUID de org — que además son la munición del secuestro de OAuth (S1).
+  // Ningún frontend los consume (solo aparecen en public/docs.html), así que
+  // moverlos a adminAuth no rompe producto. Si algún día se quieren exponer al
+  // cliente, hay que añadir orgId al engine y filtrar, no relajar esto.
+  app.get('/api/analytics/dashboard', adminAuth, (req, res) => {
     res.json(analytics.getDashboard());
   });
 
-  app.get('/api/analytics/heatmap', auth, (req, res) => {
+  app.get('/api/analytics/heatmap', adminAuth, (req, res) => {
     // Cap days at 365 to prevent runaway in-memory scans
     const days = Math.min(Math.max(1, parseInt(req.query.days) || 7), 365);
     res.json(analytics.getHeatmap(days));
   });
 
-  app.get('/api/analytics/funnel', auth, (req, res) => {
+  app.get('/api/analytics/funnel', adminAuth, (req, res) => {
     const days = Math.min(Math.max(1, parseInt(req.query.days) || 30), 365);
     res.json(analytics.getFunnel(days));
   });
 
-  app.get('/api/analytics/assistants', auth, (req, res) => {
+  app.get('/api/analytics/assistants', adminAuth, (req, res) => {
     res.json(analytics.getAssistantPerformance());
   });
 
-  app.get('/api/analytics/providers', auth, (req, res) => {
+  app.get('/api/analytics/providers', adminAuth, (req, res) => {
     res.json(analytics.getProviderPerformance());
   });
 
-  // ─── Squads ───
-  app.get('/api/squads', auth, (req, res) => {
+  // ─── Squads (también sin filtro de org → adminAuth) ───
+  app.get('/api/squads', adminAuth, (req, res) => {
     res.json({ squads: squadManager.listSquads() });
   });
 
-  app.get('/api/squads/:id', auth, (req, res) => {
+  app.get('/api/squads/:id', adminAuth, (req, res) => {
     const squad = squadManager.getSquad(req.params.id);
     if (!squad) return res.status(404).json({ error: 'Squad not found' });
     res.json({ squad });
   });
 
-  app.post('/api/squads', auth, limit, (req, res) => {
+  app.post('/api/squads', adminAuth, limit, (req, res) => {
     try {
       const squad = squadManager.registerSquad(req.body);
       res.status(201).json({ squad });

@@ -912,6 +912,20 @@ server.listen(PORT, () => {
 ║  Voices:     ${String((() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'config', 'voices.json'), 'utf8')).voices.length; } catch(e) { return 0; } })()).padEnd(34)}║
 ╚══════════════════════════════════════════════════╝
   `);
+
+  // ── Avisos de configuración insegura: RUIDOSOS, nunca silenciosos ──
+  // (auditoría 2026-07-29). Un fail-open que nadie ve es un fail-open que dura
+  // meses: la firma de Telnyx llevaba abierta desde el 2026-07-16.
+  try {
+    const { telnyxSignatureStatus } = require('./src/utils/telnyx-signature');
+    const st = telnyxSignatureStatus();
+    if (!st.enforced) {
+      log.error(`⚠️  SEGURIDAD: ${st.reason}. Cualquiera puede POSTear a /voice/telnyx y arrancar llamadas a tu costa. Pon TELNYX_PUBLIC_KEY en EasyPanel (se ve en /health → telnyxSignature).`);
+    }
+  } catch (_) {}
+  if (!process.env.JWT_SECRET) {
+    log.error('⚠️  SEGURIDAD: JWT_SECRET ausente — las sesiones del portal NO se pueden emitir (ya no cae a API_KEY, que viajaba en cabeceras de cliente).');
+  }
 });
 
 // ─── Health Monitor (alertas por email si el servidor cae) ───

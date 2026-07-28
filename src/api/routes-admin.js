@@ -892,7 +892,10 @@ function setupAdminRoutes(app, config, assistantManager) {
     // Auth: admin token o API key legacy
     const header   = req.headers['authorization'] || '';
     const token    = header.replace('Bearer ', '').trim();
-    const apiKey   = req.headers['x-api-key'] || req.query.apiKey || '';
+    // Solo por cabecera (hallazgo S5): las keys en query string acaban en los
+    // access logs del proxy y en el historial del navegador. `resolveApiKey`
+    // ya lo eliminó en su día; aquí se había reintroducido.
+    const apiKey   = req.headers['x-api-key'] || '';
     const legacyKey = config.apiKey || process.env.API_KEY;
     if (!legacyKey) return res.status(500).json({ error: 'API_KEY no configurada en el servidor' });
 

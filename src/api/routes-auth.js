@@ -21,7 +21,12 @@ const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 año — la sesión no se
 // sesión de cualquier org (auditoría seguridad 2026-07-16).
 const _WEAK_SECRETS = new Set(['voicecore-dev', 'changeme', 'secret', 'admin', 'dev']);
 function jwtSecret() {
-  const s = process.env.JWT_SECRET || process.env.API_KEY;
+  // Sin fallback a API_KEY (hallazgo S4, auditoría 2026-07-29): API_KEY es una
+  // credencial que VIAJA en cabeceras de cliente (x-api-key). Si firmaba las
+  // sesiones, cualquiera que la obtuviera podía forjar un JWT con el email del
+  // dueño de cualquier org y entrar en su portal. Un secreto de firma nunca
+  // puede ser también un secreto de transporte.
+  const s = process.env.JWT_SECRET;
   if (!s || _WEAK_SECRETS.has(s) || s.length < 16) {
     // Sin secreto fuerte no se pueden emitir/verificar sesiones de forma segura.
     // Fallar ruidosamente en vez de firmar con un secreto adivinable.

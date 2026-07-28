@@ -9,6 +9,7 @@
 
 const { Logger } = require('../utils/logger');
 const { requireAuth } = require('../auth/middleware');
+const { issueOAuthState, consumeOAuthState } = require('../auth/oauth-state');
 const { getGoogleCalendar } = require('../integrations/google-calendar');
 const { getDatabase } = require('../db/database');
 
@@ -29,22 +30,31 @@ function setupCalendarRoutes(app, config) {
   });
 
   // ── Start OAuth flow ────────────────────────────────────────────────────────
-  app.get('/api/calendar/auth', auth, (req, res) => {
+  app.get('/api/calendar/auth', auth, async (req, res) => {
     if (!cal.enabled) return res.status(503).json({ error: 'Google Calendar not configured on this server' });
-    const url = cal.getAuthUrl(req.org.id);
-    res.json({ url });
+    // `state` = nonce de un solo uso ligado a ESTA org autenticada (ver oauth-state.js).
+    const state = await issueOAuthState(req.org.id, 'google');
+    res.json({ url: cal.getAuthUrl(state) });
   });
 
   // ── OAuth callback (Google redirects here) ──────────────────────────────────
   // No auth middleware — this is the OAuth return URL
   app.get('/api/calendar/callback', async (req, res) => {
-    const { code, state: orgId, error: oauthError } = req.query;
+    const { code, state, error: oauthError } = req.query;
 
     if (oauthError) {
-      log.warn(`OAuth denied for org ${orgId}: ${oauthError}`);
+      log.warn(`OAuth denied: ${oauthError}`);
       return res.redirect('/portal/?cal=denied');
     }
-    if (!code || !orgId) return res.status(400).send('Parámetros inválidos');
+    if (!code || !state) return res.status(400).send('Parámetros inválidos');
+
+    // El org destino sale del nonce, NUNCA de la query: si viniera de la query,
+    // cualquiera podría escribir sus tokens en la fila de otro negocio.
+    const orgId = await consumeOAuthState(state, 'google');
+    if (!orgId) {
+      log.warn('OAuth callback con state inválido, caducado o ya usado — rechazado');
+      return res.redirect('/portal/?cal=error');
+    }
 
     try {
       const tokens = await cal.exchangeCode(code);

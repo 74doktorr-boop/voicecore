@@ -50,9 +50,11 @@ async function _freshOutlookTokens(db, ocal, businessId) {
   if (!raw.refresh_token) return null;
   const fresh = await ocal.refreshIfNeeded(raw);
   if (fresh.access_token !== raw.access_token || fresh.refresh_token !== raw.refresh_token) {
+    // Cifrados al escribir, igual que Google: antes se descifraban al leer y se
+    // reescribían EN CLARO, así que el primer refresco deshacía el cifrado.
     await db.updateOrg(businessId, {
-      outlook_access_token:  fresh.access_token,
-      outlook_refresh_token: fresh.refresh_token,
+      outlook_access_token:  encryptSecret(fresh.access_token),
+      outlook_refresh_token: encryptSecret(fresh.refresh_token),
       outlook_token_expiry:  fresh.expiry_date,
     }).catch(() => {});
   }
