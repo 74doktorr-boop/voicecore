@@ -26,6 +26,27 @@ function setupChatRoutes(app) {
     res.sendStatus(204);
   });
 
+  // GET /api/chat/config?orgId= — la burbuja pregunta si mostrarse + nombre/saludo.
+  // Público. {ok:false} si la org no existe / no es Pro / el dueño lo apagó →
+  // el widget no se pinta. No revela nada sensible.
+  app.get('/api/chat/config', chatLimit, async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    const orgId = String(req.query.orgId || '').trim();
+    if (!orgId) return res.json({ ok: false });
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.json({ ok: false });
+      const org = await db.getOrg(orgId);
+      if (!org || org.is_active === false) return res.json({ ok: false });
+      const { hasPro } = require('../billing/plan');
+      const cfg = org.automation_config?.config || {};
+      if (!hasPro(org) || cfg.webChatOff === true) return res.json({ ok: false });
+      const name = org.name || 'el negocio';
+      res.set('Cache-Control', 'public, max-age=120');
+      res.json({ ok: true, name, greeting: cfg.webChatGreeting || `¡Hola! Soy el asistente de ${name}. ¿En qué te ayudo o qué cita necesitas?` });
+    } catch (_) { res.json({ ok: false }); }
+  });
+
   app.post('/api/chat', chatLimit, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
 
