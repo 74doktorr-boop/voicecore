@@ -80,6 +80,15 @@ class Database {
     return data;
   }
 
+  // Lookup por slug (micrositios públicos /n/:slug). Activo únicamente.
+  async getOrgBySlug(slug) {
+    if (!this.enabled || !slug) return null;
+    const { data, error } = await this.client.from('organizations')
+      .select('*').eq('slug', slug).eq('is_active', true).maybeSingle();
+    if (error && error.code !== 'PGRST116') log.error(`getOrgBySlug failed: ${error.message}`);
+    return data || null;
+  }
+
   async updateOrg(id, updates) {
     if (!this.enabled) return updates;
     const { data, error } = await this.client.from('organizations')
