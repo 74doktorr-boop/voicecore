@@ -49,7 +49,19 @@ const log = new Logger('SERVER');
 const PORT = process.env.PORT || 3001;
 
 // Capturar errores no manejados a nivel de proceso (alertan por email)
-installProcessHandlers({ onFatal: () => { try { server.close(); } catch (_) {} } });
+// PILOT-001 (L2): un error fatal (OOM, excepción no capturada) también debe
+// PERSISTIR las llamadas vivas antes de morir — antes solo cerraba el socket y
+// se perdían transcript y minutos igual que en un despliegue. Devuelve promesa:
+// el manejador la espera con techo de tiempo (FATAL_PERSIST_MS).
+installProcessHandlers({
+  onFatal: async () => {
+    try { server.close(); } catch (_) {}
+    try {
+      const { closed, unwritten } = await pipeline.shutdownPersist(4000);
+      if (closed || unwritten) log.warn(`fatal — ${closed} llamada(s) persistida(s), ${unwritten} escritura(s) sin confirmar`);
+    } catch (_) {}
+  },
+});
 
 // ─── Validate Config ───
 const requiredEnvVars = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY'];

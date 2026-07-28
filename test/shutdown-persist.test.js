@@ -109,6 +109,29 @@ describe('F1 · drenado de escrituras en el apagado', () => {
   });
 });
 
+describe('L1 · el post-call REGISTRA sus escrituras internas', () => {
+  test('handle() acepta un registrador y lo usa para lo que vale dinero', async () => {
+    // Sin esto, esperar a handle() era un falso "todo OK": esa promesa solo
+    // aguarda a los emails, no a los minutos facturables ni al contacto.
+    const { postCallHandler } = require('../src/automations/post-call-handler');
+    const tracked = [];
+    await postCallHandler.handle(
+      { id: 'x1', businessId: 'biz-1', assistantId: 'biz-1', duration: 60000, outcome: 'info',
+        transcript: [{ role: 'user', content: 'hola' }], callerNumber: '+34600000000',
+        direction: 'inbound', metrics: {} },
+      { track: (p) => { tracked.push(p); return p; } },
+    );
+    assert.ok(tracked.length > 0, 'las escrituras internas quedan registradas');
+  });
+
+  test('sin registrador sigue funcionando igual (compatibilidad)', async () => {
+    const { postCallHandler } = require('../src/automations/post-call-handler');
+    await assert.doesNotReject(() => postCallHandler.handle(
+      { id: 'x2', businessId: 'biz-1', assistantId: 'biz-1', duration: 1000, outcome: 'abandoned', transcript: [], metrics: {} },
+    ));
+  });
+});
+
 describe('F3 · el alta ocurre ANTES del saludo', () => {
   test('startCall persiste el alta aunque el saludo (TTS) sea lento', async () => {
     const starts = [];

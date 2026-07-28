@@ -1210,7 +1210,12 @@ class VoicePipeline {
     if (!this._shuttingDown) {
       try {
         const { postCallHandler } = require('../automations/post-call-handler');
-        this._trackWrite(postCallHandler.handle(callData).catch(e => log.warn('post-call handler error', { err: e.message })));
+        // L1: se le pasa el registrador para que SUS escrituras internas
+        // (minutos facturables, webhook, contacto, auditoría, análisis) queden
+        // en vuelo controlado. Esperar solo a `handle()` era un falso "todo OK":
+        // esa promesa solo aguarda a los emails, no a lo que vale dinero.
+        this._trackWrite(postCallHandler.handle(callData, { track: (p) => this._trackWrite(p) })
+          .catch(e => log.warn('post-call handler error', { err: e.message })));
       } catch (e) {
         // require() failure (missing module) must not break call teardown
       }
