@@ -904,6 +904,17 @@ async function checkAndSendReviews(scheduler, flowManager = null) {
         const emailOk = await sendReviewRequest(apt, config);
         ok = ok || emailOk;
       }
+      // Canal 3 (opt-in): VOZ — llamada cálida pidiendo la reseña. El enlace lo
+      // sigue enviando el WhatsApp de arriba; la llamada es el empujón personal.
+      // Respeta bajas (dentro del enqueuer) y el tope de gasto (en el dispatcher).
+      if (config.reviewChannel === 'voice' && apt.phone) {
+        try {
+          const { enqueueReviewCall } = require('../campaigns/enqueuers');
+          const r = await enqueueReviewCall(apt.businessId, config.name || 'tu negocio',
+            { phone: apt.phone, name: apt.patientName || apt.patient_name, service: apt.service });
+          ok = ok || (r && r.queued);
+        } catch (e) { log.warn(`reseña por voz ${apt.businessId}: ${e.message}`); }
+      }
       if (ok) {
         apt.review_requested = true;
         appointmentsStore.patch(apt.id, { review_requested: true, updatedAt: new Date().toISOString() });

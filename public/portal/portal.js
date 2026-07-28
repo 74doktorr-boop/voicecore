@@ -6586,8 +6586,18 @@ async function loadCampanas() {
       '</div>' +
     '</div>';
 
+  var actionsBox = d.isPro ?
+    '<div class="card" style="padding:16px 18px;margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:12px">Acciones</div>' +
+      '<label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">' +
+        '<input type="checkbox" ' + (d.reviewVoice ? 'checked' : '') + ' onchange="toggleReviewVoice(this.checked)">' +
+        '<span>Pedir reseñas <b>también por voz</b> tras la visita <span style="color:var(--dim)">(el enlace sigue yendo por WhatsApp)</span></span>' +
+      '</label>' +
+      '<button class="btn btn-d btn-sm" onclick="launchNps()">Lanzar encuesta NPS a clientes recientes</button>' +
+    '</div>' : '';
+
   el.innerHTML =
-    proBanner + capBox +
+    proBanner + capBox + actionsBox +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px">' + cards + '</div>' +
     '<div class="card" style="padding:18px 20px">' +
       '<div style="font-size:13px;font-weight:700;margin-bottom:4px">Últimas llamadas del asistente</div>' +
@@ -6605,6 +6615,23 @@ async function saveCampaignCap() {
     if (r && r.ok) { toast('Tope guardado: ' + r.cap + ' llamadas/mes', 'ok'); loadCampanas(); }
     else toast((r && r.error) || 'No se pudo guardar', 'err');
   } catch (e) { toast((e && e.message) || 'No se pudo guardar', 'err'); }
+}
+
+async function toggleReviewVoice(on) {
+  try {
+    var r = await api('/api/portal/campaigns/review-voice', 'POST', { on: !!on });
+    if (r && r.ok) toast(on ? 'Reseña por voz activada' : 'Reseña por voz desactivada', 'ok');
+    else toast((r && r.error) || 'No se pudo', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
+}
+
+async function launchNps() {
+  if (!confirm('¿Lanzar una encuesta NPS por voz a tus clientes con cita en los últimos 30 días? Respeta las bajas y tu tope mensual de llamadas.')) return;
+  try {
+    var r = await api('/api/portal/campaigns/nps/launch', 'POST', {});
+    if (r && r.ok) { toast('Encuesta en cola: ' + r.queued + ' llamadas (' + r.skipped + ' saltadas)', 'ok'); loadCampanas(); }
+    else toast((r && r.error) || 'No se pudo', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
 }
 
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──

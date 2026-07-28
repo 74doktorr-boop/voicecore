@@ -2514,10 +2514,12 @@ function setupPortalRoutes(app, pipeline, config) {
           .eq('org_id', req.businessId).gte('started_at', monthStartISO());
         usedThisMonth = count || 0;
       } catch (_) {}
+      const reviewVoice = (req.flowConfig?.automations?.config?.reviewChannel === 'voice');
       res.json({
         available: true,
         isPro,
         cap, usedThisMonth, capReached: usedThisMonth >= cap,
+        reviewVoice,
         catalog: CATALOG.map(c => ({ ...c, stats: byType[c.type] || { type: c.type, total: 0, enCurso: 0, hechas: 0, reservadas: 0, fallidas: 0 } })),
         recent: rows.slice(0, 25).map(c => ({
           type: c.campaign_type, status: c.status, outcome: c.outcome || null,
@@ -2544,6 +2546,58 @@ function setupPortalRoutes(app, pipeline, config) {
       log.info(`Tope saliente actualizado (${req.businessId}): ${cap}/mes`);
       res.json({ ok: true, cap });
     } catch (e) { log.warn(`campaigns cap ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // ── POST /api/portal/campaigns/review-voice ── activar/desactivar reseña por voz
+  // Opt-in: cuando está ON, el flujo de reseñas ADEMÁS llama al cliente tras la
+  // visita (el enlace sigue yendo por WhatsApp). Pro (voz saliente = Pro).
+  app.post('/api/portal/campaigns/review-voice', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const { hasPro } = require('../billing/plan');
+    if (!hasPro({ automation_config: req.flowConfig?.automations })) return res.status(402).json({ error: 'La voz saliente es del plan Pro', proRequired: true });
+    const on = !!(req.body && req.body.on);
+    try {
+      const { data: cur } = await db.client.from('organizations').select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      const cfg = { ...(ac.config || {}) };
+      if (on) cfg.reviewChannel = 'voice'; else delete cfg.reviewChannel;
+      await db.client.from('organizations').update({ automation_config: { ...ac, config: cfg } }).eq('id', req.businessId);
+      res.json({ ok: true, reviewVoice: on });
+    } catch (e) { log.warn(`review-voice ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
+  // ── POST /api/portal/campaigns/nps/launch ── encuesta NPS a clientes recientes
+  // On-demand: encola una llamada NPS por cada cliente con cita en los últimos
+  // 30 días (dedup por teléfono). Respeta bajas (enqueuer) y tope (dispatcher).
+  app.post('/api/portal/campaigns/nps/launch', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const { hasPro } = require('../billing/plan');
+    if (!hasPro({ automation_config: req.flowConfig?.automations })) return res.status(402).json({ error: 'La voz saliente es del plan Pro', proRequired: true });
+    try {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const { data: apts } = await db.client.from('appointments')
+        .select('phone, patient_name, status, date')
+        .eq('org_id', req.businessId).gte('date', since).neq('status', 'cancelled')
+        .limit(500);
+      const seen = new Set();
+      const clients = [];
+      for (const a of (apts || [])) {
+        const p = normalizePhone(a.phone || '');
+        if (!p || seen.has(p)) continue;
+        seen.add(p);
+        clients.push({ phone: a.phone, name: a.patient_name });
+      }
+      const { enqueueNpsCall } = require('../campaigns/enqueuers');
+      let queued = 0, skipped = 0;
+      for (const c of clients.slice(0, 200)) {
+        const r = await enqueueNpsCall(req.businessId, req.flowConfig.name, c);
+        if (r && r.queued) queued++; else skipped++;
+      }
+      log.info(`NPS lanzado (${req.flowConfig.name}): ${queued} en cola, ${skipped} saltados`);
+      res.json({ ok: true, queued, skipped, candidates: clients.length });
+    } catch (e) { log.warn(`nps launch ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ── GET /api/portal/insights ── horas/días punta + conversión ───────────────
