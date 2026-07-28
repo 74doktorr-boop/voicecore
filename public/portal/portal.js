@@ -6634,6 +6634,14 @@ async function launchNps() {
   } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
 }
 
+async function toggleChatWidget(on) {
+  try {
+    var r = await api('/api/portal/chat/toggle', 'POST', { on: !!on });
+    if (r && r.ok) { toast(on ? 'Chat web activado' : 'Chat web desactivado', 'ok'); if (typeof loadWidget === 'function') loadWidget(); }
+    else toast((r && r.error) || 'No se pudo', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
+}
+
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──
 // targetId opcional (2026-07-08): la misma tarjeta se pinta en Seguimientos
 // (followup-roi) y en el DASHBOARD (dash-roi) — la cifra que renueva
@@ -8186,7 +8194,24 @@ async function loadWidget() {
       }).join('')
     : '<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Aún no has recibido solicitudes. Instala el widget en tu web 👇</td></tr>';
 
+  var codeStyle = 'flex:1;min-width:240px;background:rgba(196,245,70,.08);border:1px solid rgba(196,245,70,.25);border-radius:8px;padding:12px 14px;font-size:12px;word-break:break-all;color:var(--text)';
+  var chatCard = d.chatIsPro
+    ? '<div class="card" style="margin-bottom:18px;border-color:rgba(196,245,70,.35)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">' +
+          '<div style="font-size:14px;font-weight:700">💬 Chat con IA en tu web</div>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" ' + (d.chatOn ? 'checked' : '') + ' onchange="toggleChatWidget(this.checked)"> <span>' + (d.chatOn ? 'Activado' : 'Desactivado') + '</span></label>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Una burbuja de chat en tu web donde tus visitantes hablan con el asistente: responde dudas y <b style="color:var(--accent-l)">reserva citas</b> ahí mismo, 24/7. El mismo cerebro que tu teléfono y tu WhatsApp.</div>' +
+        '<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">' +
+          '<code style="' + codeStyle + '">' + esc(d.chatSnippet || '') + '</code>' +
+          '<button class="btn btn-d btn-sm" onclick="nfCopy(' + JSON.stringify(d.chatSnippet || '').replace(/"/g, '&quot;') + ',this)">📋 Copiar</button>' +
+        '</div>' +
+        '<div style="margin-top:10px;font-size:12px;color:var(--dim)">Pégalo antes de <code>&lt;/body&gt;</code> en tu web, igual que el de abajo.</div>' +
+      '</div>'
+    : '<div class="card" style="margin-bottom:18px"><div style="font-size:14px;font-weight:700;margin-bottom:6px">💬 Chat con IA en tu web</div><div style="font-size:13px;color:var(--dim);line-height:1.6">Una burbuja que responde y <b>reserva citas</b> en tu web, 24/7. Forma parte del plan <b style="color:var(--accent-l)">Pro</b> — súbete a Pro para activarlo.</div></div>';
+
   box.innerHTML =
+    chatCard +
     '<div class="card" style="margin-bottom:18px">' +
       '<div style="font-size:14px;font-weight:700;margin-bottom:6px">📋 Instálalo en tu web</div>' +
       '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Copia esta línea y pégala antes de <code>&lt;/body&gt;</code> en tu página web. Aparecerá un botón flotante "¿Te llamamos?".</div>' +

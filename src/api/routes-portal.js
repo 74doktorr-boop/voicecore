@@ -394,6 +394,10 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       const orgId = req.businessId;
       const snippet = `<script src="https://nodeflow.es/widget/nf-widget.js" data-org="${orgId}"></script>`;
+      // Chat web con IA (mismo asistente): snippet + estado. Pro.
+      const chatSnippet = `<script src="https://nodeflow.es/chat.js" data-nodeflow-org="${orgId}"></script>`;
+      const chatIsPro = require('../billing/plan').hasPro({ automation_config: req.flowConfig?.automations });
+      const chatOn = chatIsPro && (req.flowConfig?.automations?.config?.webChatOff !== true);
 
       let callbacks = [];
       const db = getDatabase();
@@ -406,11 +410,28 @@ function setupPortalRoutes(app, pipeline, config) {
           .limit(20);
         callbacks = data || [];
       }
-      res.json({ snippet, callbacks });
+      res.json({ snippet, callbacks, chatSnippet, chatOn, chatIsPro });
     } catch (e) {
       log.warn(`/api/portal/widget error: ${e.message}`);
       res.status(500).json({ error: 'No se pudo cargar el widget' });
     }
+  });
+
+  // ── POST /api/portal/chat/toggle ── activar/desactivar el Chat web con IA ────
+  app.post('/api/portal/chat/toggle', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const { hasPro } = require('../billing/plan');
+    if (!hasPro({ automation_config: req.flowConfig?.automations })) return res.status(402).json({ error: 'El Chat web es del plan Pro', proRequired: true });
+    const on = !!(req.body && req.body.on);
+    try {
+      const { data: cur } = await db.client.from('organizations').select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      const cfg = { ...(ac.config || {}) };
+      if (on) delete cfg.webChatOff; else cfg.webChatOff = true;
+      await db.client.from('organizations').update({ automation_config: { ...ac, config: cfg } }).eq('id', req.businessId);
+      res.json({ ok: true, chatOn: on });
+    } catch (e) { log.warn(`chat toggle ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ── GET /api/portal/dashboard ──────────────────────────────
