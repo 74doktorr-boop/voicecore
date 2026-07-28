@@ -6642,6 +6642,16 @@ async function toggleChatWidget(on) {
   } catch (e) { toast((e && e.message) || 'No se pudo', 'err'); }
 }
 
+async function generateContent(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando… (~15s)'; }
+  try {
+    var r = await api('/api/portal/content/generate', 'POST', {}, 40000);
+    if (r && r.ok) toast('Artículo publicado: ' + (r.title || r.slug), 'ok');
+    else toast((r && (r.message || r.error)) || 'No se pudo generar', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo generar', 'err'); }
+  finally { if (typeof loadWidget === 'function') loadWidget(); }
+}
+
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──
 // targetId opcional (2026-07-08): la misma tarjeta se pinta en Seguimientos
 // (followup-roi) y en el DASHBOARD (dash-roi) — la cifra que renueva
@@ -8210,8 +8220,24 @@ async function loadWidget() {
       '</div>'
     : '<div class="card" style="margin-bottom:18px"><div style="font-size:14px;font-weight:700;margin-bottom:6px">💬 Chat con IA en tu web</div><div style="font-size:13px;color:var(--dim);line-height:1.6">Una burbuja que responde y <b>reserva citas</b> en tu web, 24/7. Forma parte del plan <b style="color:var(--accent-l)">Pro</b> — súbete a Pro para activarlo.</div></div>';
 
+  var c = await api('/api/portal/content').catch(function(){ return { available: false }; });
+  var contentCard = (c && c.available && c.isPro)
+    ? '<div class="card" style="margin-bottom:18px;border-color:rgba(196,245,70,.35)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">' +
+          '<div style="font-size:14px;font-weight:700">🌐 Tu micrositio · Contenido &amp; SEO</div>' +
+          '<span style="font-family:var(--mono);font-size:12px;color:var(--dim)">' + (c.used || 0) + '/' + (c.cap || 8) + ' artículos/mes</span>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Una web tuya que <b style="color:var(--accent-l)">rankea en Google</b> y reserva citas. Genera artículos SEO de tu negocio con un clic.</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+          '<a href="' + esc(c.micrositeUrl || '#') + '" target="_blank" class="btn btn-d btn-sm" style="text-decoration:none">Ver mi micrositio ↗</a>' +
+          '<button class="btn btn-accent btn-sm" onclick="generateContent(this)"' + (c.used >= c.cap ? ' disabled title="Tope mensual alcanzado"' : '') + '>✨ Generar artículo</button>' +
+        '</div>' +
+        (c.articles && c.articles.length ? '<div style="font-size:12px;color:var(--dim);margin-top:12px;line-height:1.7">' + c.articles.slice(0, 8).map(function(a){ return '· ' + esc(a.title); }).join('<br>') + '</div>' : '') +
+      '</div>'
+    : '';
+
   box.innerHTML =
-    chatCard +
+    contentCard + chatCard +
     '<div class="card" style="margin-bottom:18px">' +
       '<div style="font-size:14px;font-weight:700;margin-bottom:6px">📋 Instálalo en tu web</div>' +
       '<div style="font-size:13px;color:var(--dim);margin-bottom:12px;line-height:1.6">Copia esta línea y pégala antes de <code>&lt;/body&gt;</code> en tu página web. Aparecerá un botón flotante "¿Te llamamos?".</div>' +

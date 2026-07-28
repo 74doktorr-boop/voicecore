@@ -15,7 +15,7 @@ const log = new Logger('MICROSITE');
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-function renderMicrosite(org, base) {
+function renderMicrosite(org, base, articles = []) {
   const cfg = org.automation_config?.config || {};
   const name = org.name || 'Tu negocio';
   const city = cfg.city || org.city || '';
@@ -82,11 +82,77 @@ function renderMicrosite(org, base) {
     </div>
   </div></section>
 
+  ${articles.length ? `<section><div class="wrap">
+    <h2>Guías y consejos</h2>
+    <div class="grid">
+      ${articles.slice(0, 9).map(a => `<a class="card" href="${esc(url)}/${esc(a.slug)}" style="text-decoration:none;color:inherit"><b>${esc(a.h1 || a.meta_title)}</b><p>${esc(a.meta_description || '')}</p></a>`).join('')}
+    </div>
+  </div></section>` : ''}
+
   <footer><div class="wrap">
     ${phone ? `${esc(name)} · <a href="tel:${esc(phone)}">${esc(phone)}</a> · ` : `${esc(name)} · `}
     Reservas con <a href="https://nodeflow.es" target="_blank" rel="noopener">NodeFlow</a>
   </div></footer>
 
+  <script>function nfOpenChat(){var h=document.querySelector('[data-nodeflow-chat]');if(h&&h.shadowRoot){var b=h.shadowRoot.querySelector('.nf-btn');if(b)b.click();}}</script>
+  <script src="${esc(base)}/chat.js" data-nodeflow-org="${esc(org.id)}"></script>
+</body></html>`;
+}
+
+function renderArticle(org, art, base) {
+  const cfg = org.automation_config?.config || {};
+  const name = org.name || 'Tu negocio';
+  const city = cfg.city || org.city || '';
+  const home = `${base}/n/${org.slug}`;
+  const url = `${home}/${art.slug}`;
+  const sections = Array.isArray(art.sections) ? art.sections : [];
+  const faqs = Array.isArray(art.faqs) ? art.faqs : [];
+  const toc = sections.map((s, i) => `<li><a href="#s${i}">${esc(s.h2)}</a></li>`).join('');
+  const body = sections.map((s, i) => `<h2 id="s${i}">${esc(s.h2)}</h2>${String(s.content || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('')}`).join('');
+  const faqHtml = faqs.length ? `<h2>Preguntas frecuentes</h2>${faqs.map(f => `<div class="faq"><b>${esc(f.question)}</b><p>${esc(f.answer)}</p></div>`).join('')}` : '';
+  const intro = String(art.intro || '').split(/\n+/).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
+  const schema = [
+    { '@context': 'https://schema.org', '@type': 'Article', headline: art.h1 || art.meta_title, author: { '@type': 'Organization', name }, publisher: { '@type': 'Organization', name }, mainEntityOfPage: url, ...(art.published_at ? { datePublished: art.published_at } : {}) },
+    faqs.length ? { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) } : null,
+  ].filter(Boolean);
+  return `<!DOCTYPE html><html lang="${esc(org.language || 'es')}"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(art.meta_title || art.h1)}</title>
+<meta name="description" content="${esc(art.meta_description || '')}">
+<link rel="canonical" href="${esc(url)}">
+<meta property="og:type" content="article"><meta property="og:title" content="${esc(art.meta_title || art.h1)}"><meta property="og:description" content="${esc(art.meta_description || '')}"><meta property="og:url" content="${esc(url)}">
+${schema.map(s => `<script type="application/ld+json">${JSON.stringify(s).replace(/</g, '\\u003c')}</script>`).join('')}
+<style>
+  :root{--bg:#fbfbf9;--ink:#1a1c1a;--ink2:#4d534c;--line:#e6e6e0;--accent:#2f7d5b;--accent2:#eaf5ef}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+  .wrap{max-width:720px;margin:0 auto;padding:0 22px}
+  .top{padding:20px 0;border-bottom:1px solid var(--line)}
+  .top a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+  article{padding:40px 0}
+  h1{font-size:clamp(1.8rem,4.5vw,2.6rem);line-height:1.15;letter-spacing:-.02em;margin-bottom:18px}
+  article p{margin:0 0 16px;color:var(--ink2);font-size:1.06rem}
+  h2{font-size:1.5rem;margin:34px 0 12px;letter-spacing:-.01em}
+  .toc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:24px 0}
+  .toc b{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:8px}
+  .toc ul{margin:0;padding-left:18px}.toc a{color:var(--ink);text-decoration:none}.toc a:hover{color:var(--accent)}
+  .faq{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:12px 0}.faq b{display:block;margin-bottom:6px}
+  .cta-box{background:var(--accent2);border-radius:16px;padding:26px;text-align:center;margin:40px 0}
+  .cta{display:inline-block;background:var(--accent);color:#fff;font-weight:700;padding:14px 28px;border-radius:12px;text-decoration:none;cursor:pointer;border:none;font-size:1.02rem}
+  footer{padding:36px 0;text-align:center;color:var(--ink2);font-size:.85rem;border-top:1px solid var(--line)}
+  footer a{color:var(--accent);text-decoration:none}
+</style></head>
+<body>
+  <div class="top"><div class="wrap"><a href="${esc(home)}">← ${esc(name)}</a></div></div>
+  <article><div class="wrap">
+    <h1>${esc(art.h1 || art.meta_title)}</h1>
+    ${intro}
+    ${toc ? `<nav class="toc"><b>En este artículo</b><ul>${toc}</ul></nav>` : ''}
+    ${body}
+    <div class="cta-box"><p style="margin-bottom:14px;color:var(--ink)"><b>¿Lo necesitas${city ? ' en ' + esc(city) : ''}?</b> Pide tu cita en ${esc(name)} en un momento.</p><button class="cta" onclick="nfOpenChat()">Pedir cita ahora</button></div>
+    ${faqHtml}
+  </div></article>
+  <footer><div class="wrap">${esc(name)} · Reservas con <a href="https://nodeflow.es" target="_blank" rel="noopener">NodeFlow</a></div></footer>
   <script>function nfOpenChat(){var h=document.querySelector('[data-nodeflow-chat]');if(h&&h.shadowRoot){var b=h.shadowRoot.querySelector('.nf-btn');if(b)b.click();}}</script>
   <script src="${esc(base)}/chat.js" data-nodeflow-org="${esc(org.id)}"></script>
 </body></html>`;
@@ -105,16 +171,42 @@ function setupMicrositeRoutes(app) {
       const cfg = org.automation_config?.config || {};
       if (!hasPro(org) || cfg.micrositeOff === true) return res.status(404).send('No encontrado');
       const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+      const articles = await require('../content/store').listArticles(org.id, 12).catch(() => []);
       res.set('Content-Type', 'text/html; charset=utf-8');
       res.set('Cache-Control', 'public, max-age=300');
-      return res.send(renderMicrosite(org, base));
+      return res.send(renderMicrosite(org, base, articles));
     } catch (e) {
       log.warn(`microsite ${slug}: ${e.message}`);
       return res.status(500).send('Error');
     }
   });
 
-  log.info('Microsite routes configured → GET /n/:slug');
+  // Artículo dentro del micrositio.
+  app.get('/n/:slug/:article', async (req, res) => {
+    const slug = String(req.params.slug || '').replace(/[^a-z0-9-]/gi, '').slice(0, 80);
+    const artSlug = String(req.params.article || '').replace(/[^a-z0-9-]/gi, '').slice(0, 90);
+    if (!slug || !artSlug) return res.status(404).send('No encontrado');
+    try {
+      const db = getDatabase();
+      if (!db.enabled) return res.status(503).send('No disponible');
+      const org = await db.getOrgBySlug(slug);
+      if (!org) return res.status(404).send('No encontrado');
+      const { hasPro } = require('../billing/plan');
+      const cfg = org.automation_config?.config || {};
+      if (!hasPro(org) || cfg.micrositeOff === true) return res.status(404).send('No encontrado');
+      const art = await require('../content/store').getArticle(org.id, artSlug);
+      if (!art) return res.status(404).send('No encontrado');
+      const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      res.set('Cache-Control', 'public, max-age=600');
+      return res.send(renderArticle(org, art, base));
+    } catch (e) {
+      log.warn(`microsite article ${slug}/${artSlug}: ${e.message}`);
+      return res.status(500).send('Error');
+    }
+  });
+
+  log.info('Microsite routes configured → GET /n/:slug + /n/:slug/:article');
 }
 
-module.exports = { setupMicrositeRoutes, renderMicrosite };
+module.exports = { setupMicrositeRoutes, renderMicrosite, renderArticle };

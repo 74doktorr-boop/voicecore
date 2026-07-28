@@ -434,6 +434,61 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`chat toggle ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
+  // ── Contenido & SEO: micrositio + artículos ─────────────────────────────────
+  function _contentCap(cfg) {
+    const c = Number(cfg && cfg.contentMonthlyCap);
+    return (Number.isFinite(c) && c >= 0) ? c : (Number(process.env.CONTENT_MONTHLY_CAP_DEFAULT) || 8);
+  }
+
+  // GET estado: URL del micrositio, tope/usado, artículos.
+  app.get('/api/portal/content', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ available: false });
+    const { hasPro } = require('../billing/plan');
+    const isPro = hasPro({ automation_config: req.flowConfig?.automations });
+    try {
+      const org = await db.getOrg(req.businessId);
+      const cfg = org?.automation_config?.config || {};
+      const { listArticles, countThisMonth } = require('../content/store');
+      const articles = await listArticles(req.businessId, 50);
+      const used = await countThisMonth(req.businessId);
+      const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+      res.json({
+        available: true, isPro, cap: _contentCap(cfg), used,
+        micrositeUrl: `${base}/n/${org?.slug || ''}`,
+        micrositeOn: isPro && cfg.micrositeOff !== true,
+        articles: articles.map(a => ({ slug: a.slug, title: a.h1 || a.meta_title })),
+      });
+    } catch (e) { log.warn(`content GET ${req.businessId}: ${e.message}`); res.json({ available: false }); }
+  });
+
+  // POST generar el siguiente artículo (Pro + tope mensual de coste GPT).
+  app.post('/api/portal/content/generate', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const { hasPro } = require('../billing/plan');
+    if (!hasPro({ automation_config: req.flowConfig?.automations })) return res.status(402).json({ error: 'Contenido & SEO es del plan Pro', proRequired: true });
+    try {
+      const org = await db.getOrg(req.businessId);
+      if (!org) return res.status(404).json({ error: 'Negocio no encontrado' });
+      const cfg = org.automation_config?.config || {};
+      const cap = _contentCap(cfg);
+      const { topicsForOrg, generateArticle } = require('../content/generator');
+      const { saveArticle, listArticles, countThisMonth } = require('../content/store');
+      const used = await countThisMonth(req.businessId);
+      if (used >= cap) return res.status(429).json({ error: `Has alcanzado tu tope de ${cap} artículos este mes.`, capReached: true });
+      const existing = new Set((await listArticles(req.businessId, 200)).map(a => a.slug));
+      const topic = topicsForOrg(org).find(t => !existing.has(t.slug));
+      if (!topic) return res.json({ ok: false, reason: 'no_topics', message: 'Ya has generado todos los temas disponibles por ahora.' });
+      const r = await generateArticle({ org, topic });
+      if (!r.ok) return res.status(502).json({ error: 'No se pudo generar el artículo ahora mismo.', reason: r.reason });
+      const s = await saveArticle(req.businessId, r.article);
+      if (!s.ok) return res.status(500).json({ error: 'No se pudo guardar el artículo.' });
+      log.info(`Contenido generado (${req.businessId}): ${r.article.slug}`);
+      res.json({ ok: true, slug: r.article.slug, title: r.article.h1 });
+    } catch (e) { log.warn(`content generate ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ── GET /api/portal/dashboard ──────────────────────────────
   app.get('/api/portal/dashboard', portalAuth, async (req, res) => {
     const { businessId, flowConfig } = req;
