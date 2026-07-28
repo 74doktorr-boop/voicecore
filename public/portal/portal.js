@@ -6531,7 +6531,7 @@ async function loadCampanas() {
 
   var STATUS = { queued: 'En cola', calling: 'Llamando', done: 'Hecha', failed: 'Fallida', cancelled: 'Cancelada' };
   var OUTCOME = { booked: '✅ Reservó', info: 'Informó', no_answer: 'No contestó', abandoned: 'Colgó', voicemail: 'Buzón', do_not_contact: 'No contactar' };
-  var TYPE = { reactivation: 'Reactivar', recovery: 'Recuperar', no_show: 'Confirmar', entity_date: 'Vencimiento' };
+  var TYPE = { reactivation: 'Reactivar', recovery: 'Recuperar', no_show: 'Confirmar', entity_date: 'Vencimiento', review: 'Reseña', nps: 'Encuesta' };
   var stat = function(label, n, hot) {
     return '<div><div style="font-family:var(--mono);font-size:18px;font-weight:800;color:' + (hot ? 'var(--accent-l)' : 'var(--white)') + '">' + (n || 0) + '</div>' +
       '<div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)">' + label + '</div></div>';

@@ -200,6 +200,21 @@ volver a reservar cuando le venga bien. Es una INVITACIÓN, no una venta: si no 
 interesa o es mal momento, despídete con amabilidad y NO insistas. Nunca
 presiones ni prometas nada que no puedas cumplir. Si no contesta un humano o
 salta un buzón, cuelga sin dejar mensaje.`,
+
+  review: (bizName, clientName, service) => `
+
+## ESTA ES UNA LLAMADA SALIENTE PARA PEDIR UNA RESEÑA
+Llamas TÚ en nombre de ${bizName} a ${clientName || 'un cliente'} tras su visita reciente${service ? ' (' + service + ')' : ''}. Preséntate con calidez, agradece que confiara en el negocio y pregúntale con naturalidad qué tal fue.
+- Si está CONTENTO: pídele con amabilidad que os deje una reseña — dile que le llega el enlace por WhatsApp o SMS nada más colgar, que es un momento y que ayuda muchísimo al negocio.
+- Si algo NO fue bien: agradece el comentario, discúlpate y dile que se lo trasladas al negocio para mejorarlo. NUNCA le pidas reseña en ese caso.
+Nunca presiones ni insistas. Si no contesta un humano o salta un buzón, cuelga sin dejar mensaje.`,
+
+  nps: (bizName, clientName) => `
+
+## ESTA ES UNA LLAMADA SALIENTE DE ENCUESTA BREVE (NPS)
+Llamas TÚ en nombre de ${bizName} a ${clientName || 'un cliente'} para una encuesta muy corta de satisfacción — deja claro que es solo un minuto.
+Pregunta EXACTAMENTE: "Del 0 al 10, ¿cuánto recomendarías ${bizName} a un amigo o familiar?". Espera el número y repítelo para confirmar. Luego pregunta brevemente el porqué de esa nota.
+Agradece con calidez y despídete. NO vendas nada, NO ofrezcas cita, NO insistas. Si no contesta un humano o salta un buzón, cuelga sin dejar mensaje.`,
 };
 
 module.exports = { startOutboundCall, resolveOutboundNumber, registerOutboundContext, consumeOutboundContext, normalizeE164, PURPOSE_BLOCKS };

@@ -145,6 +145,44 @@ async function enqueueReactivationCall(orgId, bizName, client) {
   return { queued: true };
 }
 
+/**
+ * Encola UNA llamada para pedir RESEÑA tras una visita. Respeta las bajas.
+ * `client`: { phone, name?, service? }. El enlace de reseña se envía por
+ * WhatsApp/SMS al colgar (lo dispara el flujo de reseñas existente).
+ */
+async function enqueueReviewCall(orgId, bizName, client) {
+  const phone = String((client && client.phone) || '').replace(/[^\d+]/g, '');
+  if (phone.replace(/\D/g, '').length < 7) return { queued: false, reason: 'phone_invalid' };
+  const info = await contactInfo(orgId, phone);
+  if (info.blocked) { log.info(`Reseña por voz: ${phone} saltado (baja)`); return { queued: false, reason: 'blocked' }; }
+  await enqueueCampaignCall({
+    orgId,
+    campaignType: 'review',
+    phone,
+    contactId: info.contactId,
+    payload: { promptBlock: PURPOSE_BLOCKS.review(bizName, info.name || (client && client.name), client && client.service) },
+  });
+  return { queued: true };
+}
+
+/**
+ * Encola UNA llamada de encuesta NPS. Respeta las bajas. `client`: { phone, name? }.
+ */
+async function enqueueNpsCall(orgId, bizName, client) {
+  const phone = String((client && client.phone) || '').replace(/[^\d+]/g, '');
+  if (phone.replace(/\D/g, '').length < 7) return { queued: false, reason: 'phone_invalid' };
+  const info = await contactInfo(orgId, phone);
+  if (info.blocked) { log.info(`NPS por voz: ${phone} saltado (baja)`); return { queued: false, reason: 'blocked' }; }
+  await enqueueCampaignCall({
+    orgId,
+    campaignType: 'nps',
+    phone,
+    contactId: info.contactId,
+    payload: { promptBlock: PURPOSE_BLOCKS.nps(bizName, info.name || (client && client.name)) },
+  });
+  return { queued: true };
+}
+
 // ── Consumidor 2: confirmación anti no-show (cron) ───────────────────
 // Franja de encolado: 16:00-18:59 Madrid — las llamadas salen la tarde
 // anterior a la cita, cuando el cliente puede reorganizarse.
@@ -214,4 +252,4 @@ async function enqueueNoShowConfirmations({ scheduler, flowManager }) {
   return { queued };
 }
 
-module.exports = { enqueueRecoveryBatch, enqueueNoShowConfirmations, buildNoShowBlock, isNoShowEnqueueWindow, contactInfo, reactivationEligible, enqueueReactivationCall };
+module.exports = { enqueueRecoveryBatch, enqueueNoShowConfirmations, buildNoShowBlock, isNoShowEnqueueWindow, contactInfo, reactivationEligible, enqueueReactivationCall, enqueueReviewCall, enqueueNpsCall };

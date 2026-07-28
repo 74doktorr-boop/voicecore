@@ -2481,6 +2481,8 @@ function setupPortalRoutes(app, pipeline, config) {
       { type: 'recovery',     label: 'Recuperar perdidas',   desc: 'Llama a quien llamó y no reservó, para cerrar la cita.' },
       { type: 'no_show',      label: 'Confirmar citas',      desc: 'Llama la víspera para confirmar y evitar plantones.' },
       { type: 'entity_date',  label: 'Avisos por vencimiento', desc: 'Llama cuando algo del cliente caduca (ITV, revisión, renovación…).' },
+      { type: 'review',       label: 'Pedir reseña',         desc: 'Llama tras la visita, y si el cliente está contento le pide una reseña.' },
+      { type: 'nps',          label: 'Encuesta de satisfacción', desc: 'Encuesta breve (0-10) para medir cómo de contentos están tus clientes.' },
     ];
     const mask = p => { const s = String(p || ''); return s.length > 5 ? s.slice(0, 4) + '···' + s.slice(-2) : '···'; };
     try {
