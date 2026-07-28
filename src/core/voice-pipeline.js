@@ -171,6 +171,11 @@ class VoicePipeline {
       const s = this.activeCalls.get(callId);
       if (!s || s.isProcessing || s.isSpeakingNow() || s.pendingUtterance) return;
       log.call(`[${callId}] Interrupción sin continuación — re-enganche`);
+      // Cerrar el episodio de interrupción ANTES de hablar: si no, _speakText
+      // devuelve en su primera línea (`session.interrupted` sigue true) y el
+      // re-enganche era literalmente inalcanzable — silencio (V1). Es seguro:
+      // las guardas de arriba ya garantizan que no hay ningún turno en curso.
+      s.clearInterruption();
       this._speakText(callId, '¿Sí? Dígame.', { cache: true }).catch(() => {});
     }, 2500);
   }
@@ -434,6 +439,11 @@ class VoicePipeline {
         const porSilencio = idleMs > 75000;
         log.warn(`[${callId}] Lifeguard: cierre por ${porSilencio ? 'silencio prolongado' : 'duración máxima'}`);
         const bye = farewell(assistant && assistant.language, porSilencio ? 'silence' : 'maxlen');
+        // Igual que el re-enganche (V1): si la llamada murió tras un barge-in,
+        // `interrupted` seguía true y la despedida NO sonaba — se colgaba a los
+        // 6 s sin decir nada. La llamada se está cerrando: no hay turno que
+        // proteger.
+        session.clearInterruption();
         this._speakText(callId, bye, { cache: true })
           .then(() => session.addAssistantMessage(bye))
           .catch(() => {})
@@ -745,7 +755,16 @@ class VoicePipeline {
             : 'Un momento, por favor…';
           await this._speakText(callId, filler, { cache: true });
         }
-        await this._handleToolCalls(callId, session, pendingToolCalls, turnMetrics);
+        // El cliente puede haber hablado ENCIMA de la frase-puente: hay que
+        // volver a mirar (la guarda de arriba se evaluó antes del await). Sin
+        // esto se entraba en _handleToolCalls ya interrumpido y el historial
+        // quedaba con un tool_call huérfano (V2). La invariante también está
+        // garantizada dentro de _handleToolCalls; esto evita el caso frecuente.
+        if (!session.interrupted) {
+          await this._handleToolCalls(callId, session, pendingToolCalls, turnMetrics);
+        } else {
+          log.info(`[${callId}] Cliente interrumpió la frase-puente — herramientas canceladas`);
+        }
       } else if (fullResponse) {
         session._consecRecovery = 0; // respuesta real → rompe cualquier racha de recuperación
         session.addAssistantMessage(fullResponse);
@@ -859,7 +878,14 @@ class VoicePipeline {
     session.addAssistantToolCallMessage(null, toolCalls);
     turnMetrics.toolCalls = toolCalls.length;
     const toolStart = Date.now();
+    // INVARIANTE (V2): todo tool_call insertado arriba DEBE acabar con su
+    // mensaje role:'tool'. Si el bucle sale antes (interrupción o excepción),
+    // el historial queda inválido y la API devuelve 400 en TODAS las peticiones
+    // restantes de la llamada — no solo en esta. Se lleva la cuenta y se
+    // completa en el finally.
+    const answered = new Set();
 
+    try {
     for (const tc of toolCalls) {
       if (session.interrupted) break;
 
@@ -891,6 +917,22 @@ class VoicePipeline {
       session.addToolMessage(tc.id, result.success !== undefined
         ? (result.success ? JSON.stringify(result) : `Error: ${result.error}`)
         : JSON.stringify(result));
+      answered.add(tc.id);
+    }
+    } finally {
+      // Cierra la invariante pase lo que pase. El resultado sintético es
+      // honesto (dice que se canceló) y deja el historial válido, así que la
+      // conversación puede continuar en vez de morir el resto de la llamada.
+      const { cancelledToolResult } = require('../llm/message-integrity');
+      const reason = session.interrupted ? 'interrupted_by_customer' : 'not_executed';
+      let repaired = 0;
+      for (const tc of toolCalls) {
+        if (tc && tc.id && !answered.has(tc.id)) {
+          session.addToolMessage(tc.id, cancelledToolResult(reason));
+          repaired++;
+        }
+      }
+      if (repaired) log.warn(`[${callId}] ${repaired} tool_call(s) sin ejecutar (${reason}) — historial cerrado para no invalidar la conversación`);
     }
 
     turnMetrics.toolTime = Date.now() - toolStart;

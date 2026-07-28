@@ -153,6 +153,22 @@ class CallSession {
     if (m.toolCalls) this.metrics.toolCalls += m.toolCalls;
   }
 
+  /**
+   * Cierra el episodio de interrupción: el asistente vuelve a tomar la palabra.
+   *
+   * POR QUÉ (auditoría 2026-07-29, hallazgo V1): `interrupted` solo se ponía a
+   * false al principio de `_processTurn`, y `_speakText` devuelve pronto si está
+   * a true. Pero los dos sitios que hablan CUANDO NO HAY TURNO —el re-enganche
+   * tras una interrupción sin continuación y la despedida del salvavidas— se
+   * disparan precisamente en ese caso: `interrupted` seguía true y **no podían
+   * sonar nunca**. Resultado: falso positivo de barge-in → 75 s de silencio
+   * absoluto → el cliente cuelga. La garantía "jamás aire muerto" fallaba justo
+   * en el escenario que la motivó.
+   */
+  clearInterruption() {
+    this.interrupted = false;
+  }
+
   handleInterruption() {
     this.interrupted = true;
     this.isSpeaking = false;
