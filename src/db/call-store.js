@@ -63,6 +63,9 @@ async function saveCallEnd(callData, deps = {}) {
       status:        'ended',
       outcome:       callData.outcome || null,
       transcript:    callData.transcript || [],
+      // Caja negra: las decisiones (tools) del asistente en la llamada, para
+      // que el dueño audite qué hizo su IA. JSONB, default [] (columna nueva).
+      ai_decisions:  callData.aiDecisions || [],
       metrics:       callData.metrics || {},
       cost:          callData.cost || {},
       // Varias reservas en una llamada → array; una → objeto (compat lectores)

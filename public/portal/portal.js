@@ -4607,9 +4607,30 @@ async function openTranscriptModal(callSid) {
       '</div>';
   }
 
+  // Caja negra de la IA: la lista de DECISIONES que tomó el asistente en la
+  // llamada (reservó, registró lead, marcó urgencia…), para que el dueño audite
+  // exactamente qué hizo su IA con el cliente. No es una caja negra: es trazable.
+  var dec = data.aiDecisions || [];
+  var decisionsHtml = '';
+  if (dec.length) {
+    var items = dec.map(function (d) {
+      var bad = d.ok === false;
+      return '<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin-bottom:5px">' +
+        '<span style="font-family:var(--mono);color:' + (bad ? '#e0b341' : 'var(--green2)') + '">' + (bad ? '⚠' : '✓') + '</span>' +
+        '<span>' + esc(d.summary || (d.tool || '').replace(/_/g, ' ')) + '</span>' +
+      '</div>';
+    }).join('');
+    decisionsHtml =
+      '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:12px 0">' +
+        '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:8px">Lo que hizo el asistente</div>' +
+        items +
+      '</div>';
+  }
+
   openModal(
     '<div class="modal-title">💬 Transcripción' + (dateStr ? ' · ' + dateStr : '') + '</div>' +
     (durStr ? '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">' + durStr + ' · ' + data.transcript.length + ' intercambios</div>' : '') +
+    decisionsHtml +
     analysisHtml +
     '<div class="transcript-list">' + rows + '</div>' +
     '<div class="modal-actions"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'

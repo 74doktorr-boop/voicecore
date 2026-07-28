@@ -3072,7 +3072,7 @@ function setupPortalRoutes(app, pipeline, config) {
     // estaba vacía y este endpoint devolvía 404 para TODA llamada)
     const { data, error } = await db.client
       .from('nf_calls')
-      .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number,metrics')
+      .select('transcript,outcome,started_at,ended_at,duration_ms,caller_number,metrics,ai_decisions')
       .eq('id', callSid)
       .eq('org_id', businessId)
       .single();
@@ -3088,6 +3088,7 @@ function setupPortalRoutes(app, pipeline, config) {
     res.json({
       ok:           true,
       transcript:   data.transcript   || [],
+      aiDecisions:  data.ai_decisions || [],   // caja negra: qué hizo el asistente
       outcome:      data.outcome      || null,
       startedAt:    data.started_at   || null,
       endedAt:      data.ended_at     || null,

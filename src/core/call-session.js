@@ -341,6 +341,10 @@ class CallSession {
       turnCount: this.turnCount, transcript: this.transcript, metrics: this.metrics, cost: this.getCost(),
       // Post-call context
       outcome: this.outcome,
+      // Caja negra de la IA: las decisiones (tools) que tomó el asistente en la
+      // llamada, para enseñarle al dueño exactamente qué hizo. Las escribe el
+      // ToolExecutor sobre esta misma sesión (context.session).
+      aiDecisions: this.aiDecisions || [],
       bookedAppointment: this.bookedAppointment,
       bookedAppointments: this.bookedAppointments,
       clientEmail: this.clientEmail,

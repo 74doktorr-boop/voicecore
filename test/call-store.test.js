@@ -98,6 +98,17 @@ describe('saveCallEnd', () => {
     assert.deepStrictEqual(row.booked_appointment, { id: 'APT-1' });
   });
 
+  test('caja negra: persiste ai_decisions de la sesión (y default [] si no hay)', async () => {
+    const db = fakeDb();
+    const decisions = [{ tool: 'book_appointment', ok: true, summary: 'Reservó cita: Ana' }];
+    await saveCallEnd({ ...callData, aiDecisions: decisions }, { db });
+    assert.deepStrictEqual(db.upserts[0].row.ai_decisions, decisions);
+    // sin aiDecisions → columna con [] (no undefined, que rompería el insert)
+    const db2 = fakeDb();
+    await saveCallEnd(callData, { db: db2 });
+    assert.deepStrictEqual(db2.upserts[0].row.ai_decisions, []);
+  });
+
   test('idempotente: dos cierres = dos upserts al mismo id (cero duplicados)', async () => {
     const db = fakeDb();
     await saveCallEnd(callData, { db });
