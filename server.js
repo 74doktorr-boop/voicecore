@@ -719,16 +719,43 @@ async function gracefulShutdown(signal) {
   if (_shuttingDown) return;
   _shuttingDown = true;
   const active = () => pipeline.activeCalls?.size || 0;
+  // ── PRESUPUESTO DE APAGADO (PILOT-001/F1, corregido tras revisión) ───────
+  // Antes: se esperaba hasta 45 s a que las llamadas colgaran solas y DESPUÉS
+  // se persistía. Con llamadas activas eso era una trampa: el orquestador de
+  // contenedores manda SIGKILL a los ~10 s por defecto, así que la espera se
+  // comía todo el tiempo y la persistencia NUNCA llegaba a ejecutarse — justo
+  // en el escenario que debía proteger.
+  // Ahora hay UN presupuesto total (env SHUTDOWN_BUDGET_MS) del que se RESERVA
+  // una parte para persistir. Nunca se suman dos temporizadores a ciegas.
+  // Ajusta SHUTDOWN_BUDGET_MS por debajo del grace period real del contenedor.
+  const BUDGET  = Math.max(2000, Number(process.env.SHUTDOWN_BUDGET_MS) || 8000);
+  const RESERVE = Math.min(Math.round(BUDGET * 0.6), BUDGET - 500); // para escribir
   if (active() > 0) {
-    log.warn(`${signal} — drenando ${active()} llamada(s) activa(s) antes de cerrar (máx. 45s)`);
-    const started = Date.now();
-    while (active() > 0 && Date.now() - started < 45000) {
-      await new Promise(r => setTimeout(r, 1000));
+    log.warn(`${signal} — ${active()} llamada(s) activa(s); presupuesto ${BUDGET}ms (${RESERVE}ms reservados para persistir)`);
+    const waitUntil = Date.now() + (BUDGET - RESERVE);
+    while (active() > 0 && Date.now() < waitUntil) {
+      await new Promise(r => setTimeout(r, 200));
     }
-    if (active() > 0) log.warn(`${signal} — cierre con ${active()} llamada(s) aún activas tras el drenaje`);
+    if (active() > 0) log.warn(`${signal} — ${active()} llamada(s) siguen vivas: se cierran y persisten ahora`);
   } else {
-    log.info(`${signal} — sin llamadas activas, cierre inmediato`);
+    log.info(`${signal} — sin llamadas activas`);
   }
+  // ── PILOT-001 (F1): PERSISTIR antes de morir ────────────────────────────
+  // El drenaje de arriba solo espera a que `activeCalls` llegue a 0, pero esa
+  // cuenta baja ANTES de que la escritura viaje a la BD (endCall borra de
+  // activeCalls y luego dispara saveCallEnd + post-call sin esperarlos). El
+  // process.exit(0) mataba esas escrituras: transcript perdido para siempre y
+  // los minutos de la última llamada de cada despliegue sin facturar.
+  // Ahora: (1) se cierran las llamadas que aún vivan —para que se escriban en
+  // vez de evaporarse— y (2) se espera a las escrituras en vuelo. Con techo de
+  // tiempo y sin lanzar: un apagado nunca puede quedarse colgado.
+  try {
+    const { closed, unwritten } = await pipeline.shutdownPersist(8000);
+    if (closed) log.warn(`${signal} — ${closed} llamada(s) cerrada(s) y persistida(s) en el apagado`);
+    if (unwritten) log.error(`${signal} — ${unwritten} escritura(s) de persistencia NO confirmadas antes de cerrar`);
+    else log.info(`${signal} — persistencia drenada, nada en vuelo`);
+  } catch (e) { log.warn(`${signal} — drenado de persistencia: ${e.message}`); }
+
   try { assistantManager.destroy(); } catch (_) {}
   try { server.close(); } catch (_) {}
   process.exit(0);
@@ -912,6 +939,20 @@ server.listen(PORT, () => {
 ║  Voices:     ${String((() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'config', 'voices.json'), 'utf8')).voices.length; } catch(e) { return 0; } })()).padEnd(34)}║
 ╚══════════════════════════════════════════════════╝
   `);
+
+  // ── Avisos de configuración insegura: RUIDOSOS, nunca silenciosos ──
+  // (auditoría 2026-07-29). Un fail-open que nadie ve es un fail-open que dura
+  // meses: la firma de Telnyx llevaba abierta desde el 2026-07-16.
+  try {
+    const { telnyxSignatureStatus } = require('./src/utils/telnyx-signature');
+    const st = telnyxSignatureStatus();
+    if (!st.enforced) {
+      log.error(`⚠️  SEGURIDAD: ${st.reason}. Cualquiera puede POSTear a /voice/telnyx y arrancar llamadas a tu costa. Pon TELNYX_PUBLIC_KEY en EasyPanel (se ve en /health → telnyxSignature).`);
+    }
+  } catch (_) {}
+  if (!process.env.JWT_SECRET) {
+    log.error('⚠️  SEGURIDAD: JWT_SECRET ausente — las sesiones del portal NO se pueden emitir (ya no cae a API_KEY, que viajaba en cabeceras de cliente).');
+  }
 });
 
 // ─── Health Monitor (alertas por email si el servidor cae) ───
