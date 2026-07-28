@@ -115,6 +115,16 @@ h1.hero-h em{font-style:normal;color:var(--lime)}
 .prod-vis .glyph{font-family:var(--disp);font-weight:700;font-size:clamp(3rem,8vw,5.5rem);color:var(--line-2);letter-spacing:-.04em}
 .prod.flag .prod-vis{background:radial-gradient(24rem 16rem at 60% 20%,rgba(196,245,70,.1),transparent 60%),var(--bg-2)}
 .prod.flag .prod-vis .glyph{color:rgba(196,245,70,.45)}
+/* servicios (capacidades sobre la misma tecnología) */
+.svc-head{margin:clamp(40px,5vw,60px) 0 20px;font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:800px){.services{grid-template-columns:1fr}}
+.svc{border:1px solid var(--line);border-radius:16px;padding:26px 24px;background:linear-gradient(180deg,rgba(255,255,255,.015),transparent);transition:border-color .25s}
+.svc:hover{border-color:var(--line-2)}
+.svc-ico{font-size:1.5rem;line-height:1;margin-bottom:16px;filter:grayscale(.2)}
+.svc h4{font-family:var(--disp);font-size:1.35rem;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin-bottom:10px}
+.svc p{font-size:.98rem;color:var(--ink-2);line-height:1.5}
+.svc p b{color:var(--ink);font-weight:600}
 
 /* ── por qué (empresa) ── */
 .why{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:8px}
@@ -240,6 +250,26 @@ footer{border-top:1px solid var(--line);padding:60px 0 46px}
         <div class="prod-vis"><span class="glyph">Ojo</span></div>
       </article>
 
+    </div>
+
+    <!-- Servicios / capacidades (lo que ya ofrecemos sobre la misma tecnología) -->
+    <div class="svc-head">Y como servicio, también hacemos:</div>
+    <div class="services">
+      <article class="svc">
+        <div class="svc-ico">☎</div>
+        <h4>Voz saliente</h4>
+        <p><b>El asistente que llama por ti.</b> Confirma citas, recupera plantones, reactiva a los que se fueron y pide reseñas — llamando él, en castellano, euskera y galego.</p>
+      </article>
+      <article class="svc">
+        <div class="svc-ico">💬</div>
+        <h4>Asistente en WhatsApp</h4>
+        <p><b>El mismo cerebro, en tus mensajes.</b> Responde tus WhatsApp, agenda y resuelve solo. Instagram y web, en camino.</p>
+      </article>
+      <article class="svc">
+        <div class="svc-ico">✍</div>
+        <h4>Contenido &amp; SEO</h4>
+        <p><b>Apareces en Google sin escribir nada.</b> Publicamos artículos optimizados de tu negocio en piloto automático para que te encuentren.</p>
+      </article>
     </div>
   </div>
 </section>
