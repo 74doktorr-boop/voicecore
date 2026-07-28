@@ -5,8 +5,9 @@ Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /docs/
 Disallow: /health
-Disallow: /portal/
-Disallow: /gracias/
-Disallow: /gracias
+# portal y gracias NO se bloquean aquí a propósito: llevan cabecera
+# X-Robots-Tag: noindex y así Google las rastrea, ve el noindex y las saca
+# del índice (bloquearlas impedía leer el noindex → aviso GSC). onboarding
+# también va con noindex; la que rankea es /recepcion.
 
 Sitemap: https://nodeflow.es/sitemap.xml

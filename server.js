@@ -243,6 +243,17 @@ function serveGitHubPage(publicPath, fallbackFile) {
   '/bilbao/index.html', '/vitoria/index.html',
 ].forEach(p => getPage(p).catch(() => {}));
 
+// ─── SEO: páginas de app/privadas nunca deben rankear ───
+// noindex por cabecera. En robots.txt se DES-bloquean portal/gracias para que
+// Google pueda LEER este noindex y sacarlas del índice (bloquearlas en robots
+// impedía verlo → aviso "indexada aunque bloqueada por robots.txt"). onboarding
+// también noindex: la que debe rankear es /recepcion, no el formulario.
+const _NOINDEX = /^\/(onboarding|portal|gracias|admin|dashboard)(?=$|[\/.?])/i;
+app.use((req, res, next) => {
+  if (_NOINDEX.test(req.path)) res.set('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
 // ─── Canónico de la APP: onboarding/portal viven en app.nodeflow.es ───
 // Enlaces/anuncios/marcadores viejos a nodeflow.es/onboarding|/portal → 301 al
 // subdominio conservando la query (?plan=…). Solo dispara en el APEX real de
