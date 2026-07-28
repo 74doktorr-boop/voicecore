@@ -143,7 +143,7 @@ async function _syncToCalendar(businessId, appointment) {
 function _notifyOwner(message, businessId = null) {
   // Sin businessId no podemos resolver el negocio → fallback a Callmebot (Unai)
   if (!businessId) {
-    try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+    try { _wa().sendWhatsApp(message).catch((e) => log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`)); } catch (e) { log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`); }
     return;
   }
   setImmediate(async () => {
@@ -162,10 +162,10 @@ function _notifyOwner(message, businessId = null) {
         }
       }
       // Fallback final: Callmebot a Unai (para que al menos NodeFlow se entere)
-      try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+      try { _wa().sendWhatsApp(message).catch((e) => log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`)); } catch (e) { log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`); }
     } catch (e) {
       log.warn(`_notifyOwner(${businessId}): ${e.message}`);
-      try { _wa().sendWhatsApp(message).catch(() => {}); } catch (_) {}
+      try { _wa().sendWhatsApp(message).catch((e) => log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`)); } catch (e) { log.error(`_notifyOwner: aviso al dueño NO entregado (${businessId || 'nodeflow'}): ${e.message}`); }
     }
   });
 }
@@ -915,11 +915,18 @@ class ToolExecutor {
     const phone = args.phone || ((callerPhone && callerPhone !== 'unknown') ? callerPhone : '');
     const biz   = _getBizConfig(assistantId);
 
-    // Persist to DB
+    // Persist to DB. OJO: el insert de Supabase NO lanza ante un error de BD
+    // (RLS, constraint) — devuelve { error }. Antes se ignoraba y además el
+    // catch solo veía fallos de red → un lead podía perderse en TOTAL silencio
+    // mientras al cliente se le decía "registrado". Un lead perdido es dinero
+    // perdido: se comprueba el error y, si falla, se registra a nivel ERROR con
+    // los datos (recuperable de logs) — el aviso al dueño de abajo, con el mismo
+    // nombre/teléfono, es la red de seguridad humana.
+    let leadPersisted = false;
     try {
       const db = getDatabase();
       if (db.enabled) {
-        await db.client.from('leads').insert({
+        const { error } = await db.client.from('leads').insert({
           org_id:        assistantId,
           name,
           phone,
@@ -932,8 +939,12 @@ class ToolExecutor {
           source:        'voice_call',
           created_at:    new Date().toISOString(),
         });
+        if (error) throw new Error(error.message);
+        leadPersisted = true;
       }
-    } catch (_) {}
+    } catch (e) {
+      log.error(`registerLead: lead NO persistido (org ${assistantId}) — ${e.message} | nombre="${name}" tel="${phone}" urgencia=${args.urgency || 'media'} need="${args.need || ''}" goal="${args.goal || ''}"`);
+    }
 
     // Integraciones (conector): empuja el lead al sistema/CRM externo del negocio
     // (webhook firmado). Fire-and-forget, fail-open, NO-OP sin integración.

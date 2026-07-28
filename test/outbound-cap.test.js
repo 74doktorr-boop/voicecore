@@ -9,7 +9,25 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { capOf, monthStartISO, DEFAULT_OUTBOUND_CAP } = require('../src/campaigns/dispatcher');
+const { capOf, monthStartISO, DEFAULT_OUTBOUND_CAP, loadCapState } = require('../src/campaigns/dispatcher');
+
+// Mock mínimo del cliente Supabase para loadCapState: la consulta de orgs
+// resuelve una org con tope 200; la de conteo de gasto puede resolver o LANZAR.
+function mockDb({ throwOnCount = false, count = 5 } = {}) {
+  return {
+    client: {
+      from(table) {
+        if (table === 'organizations') {
+          return { select: () => ({ in: async () => ({ data: [{ id: 'o1', automation_config: { config: { outboundMonthlyCap: 200 } } }] }) }) };
+        }
+        return { select: () => ({ eq: () => ({ gte: async () => {
+          if (throwOnCount) throw new Error('BD caída');
+          return { count };
+        } }) }) };
+      },
+    },
+  };
+}
 
 describe('capOf — tope efectivo por org', () => {
   test('sin config → default', () => {
@@ -48,5 +66,26 @@ describe('gate del dispatcher — fail-closed al alcanzar el tope', () => {
   test('cap 0 → cancela cualquier llamada (pausa total)', () => {
     assert.strictEqual(overCap(0, 0), true);
     assert.strictEqual(overCap(3, 0), true);
+  });
+});
+
+describe('loadCapState — fail-CLOSED cuando no se puede verificar el gasto', () => {
+  test('conteo OK → used real, sin marca unknown', async () => {
+    const st = await loadCapState(mockDb({ count: 7 }), ['o1']);
+    assert.strictEqual(st.o1.used, 7);
+    assert.strictEqual(st.o1.cap, 200);
+    assert.strictEqual(st.o1.unknown, undefined);
+  });
+  test('conteo FALLA → unknown:true (NO used=0 silencioso que dejaría pasar todo)', async () => {
+    const st = await loadCapState(mockDb({ throwOnCount: true }), ['o1']);
+    assert.strictEqual(st.o1.unknown, true);
+  });
+  test('decisión del dispatcher: unknown → POSPONE (ni llama ni cancela)', () => {
+    // Réplica de la lógica de tick(): unknown se salta con `continue`.
+    const decide = (cs) => (cs && cs.unknown) ? 'defer'
+      : (cs && cs.used >= cs.cap) ? 'cancel' : 'call';
+    assert.strictEqual(decide({ cap: 200, used: 0, unknown: true }), 'defer');
+    assert.strictEqual(decide({ cap: 200, used: 5 }), 'call');
+    assert.strictEqual(decide({ cap: 200, used: 200 }), 'cancel');
   });
 });

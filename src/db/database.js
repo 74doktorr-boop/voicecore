@@ -279,8 +279,11 @@ class Database {
         .update({ monthly_minutes_used: Math.round(newTotal * 100) / 100 })
         .eq('id', orgId);
 
-      // Overage: reporta a Stripe los minutos por encima de lo incluido (best-effort,
-      // no-op hasta configurar STRIPE_OVERAGE_METER_EVENT). No bloquea el flujo.
+      // Overage: reporta a Stripe los minutos por encima de lo incluido. No
+      // bloquea el flujo de la llamada, PERO su fallo NO es silencioso: si el
+      // meter no se reporta, NodeFlow infra-factura (pérdida de ingresos), así
+      // que se registra a nivel ERROR con org e importe para poder alertarlo y
+      // reconciliarlo. (No-op limpio hasta configurar STRIPE_OVERAGE_METER_EVENT.)
       if (org.stripe_customer_id) {
         try {
           const { getBilling } = require('../billing/stripe');
@@ -289,8 +292,8 @@ class Database {
             stripeCustomerId: org.stripe_customer_id,
             prevMinutes:      prevTotal,
             newMinutes:       newTotal,
-          }).catch(() => {});
-        } catch (_) { /* billing no disponible */ }
+          }).catch((e) => log.error(`overage NO reportado a Stripe (org ${orgId}, ${prevTotal}→${newTotal} min): ${e.message}`));
+        } catch (e) { log.error(`overage: billing no disponible (org ${orgId}): ${e.message}`); }
       }
     }
 

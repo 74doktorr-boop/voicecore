@@ -74,19 +74,27 @@ async function loadCapState(db, orgIds, now = Date.now()) {
   const ids = [...new Set(orgIds)].filter(Boolean);
   if (!ids.length) return state;
   const monthStart = monthStartISO(now);
-  const { data: orgs } = await db.client.from('organizations')
-    .select('id, automation_config').in('id', ids);
+  let orgs = null;
+  try {
+    const res = await db.client.from('organizations').select('id, automation_config').in('id', ids);
+    orgs = res.data;
+  } catch (_) { orgs = null; }
   const capMap = {};
   for (const o of (orgs || [])) capMap[o.id] = capOf(o);
   for (const id of ids) {
-    let used = 0;
+    const cap = (capMap[id] != null ? capMap[id] : DEFAULT_OUTBOUND_CAP);
     try {
       const { count } = await db.client.from('nf_campaign_calls')
         .select('id', { count: 'exact', head: true })
         .eq('org_id', id).gte('started_at', monthStart);
-      used = count || 0;
-    } catch (_) { /* si falla el conteo, fail-closed abajo trata used como alto no; mejor 0 y confiar en el pool */ }
-    state[id] = { cap: (capMap[id] != null ? capMap[id] : DEFAULT_OUTBOUND_CAP), used };
+      state[id] = { cap, used: count || 0 };
+    } catch (_) {
+      // No se pudo VERIFICAR el gasto del mes. Fail-CLOSED de verdad: se marca
+      // como desconocido y el dispatcher NO llama este tick (el trabajo sigue
+      // 'queued' y se reintenta). Poner used=0 sería fail-OPEN: dejaría pasar
+      // todas las llamadas sin tope justo cuando el guardarraíl está ciego.
+      state[id] = { cap, used: 0, unknown: true };
+    }
   }
   return state;
 }
@@ -182,6 +190,10 @@ async function tick() {
     // Guardarraíl: si la org ya alcanzó su tope mensual de salientes, CANCELA
     // el trabajo (no llama) y avisa una vez. Fail-closed: nunca gasta de más.
     const cs = capState[job.org_id];
+    // Tope no verificable (fallo al contar el gasto): NO llamar este tick. El
+    // trabajo sigue 'queued' y se reintenta cuando la BD responda. Mejor
+    // posponer una campaña que arriesgar una factura sin techo.
+    if (cs && cs.unknown) continue;
     if (cs && cs.used >= cs.cap) {
       await db.client.from('nf_campaign_calls')
         .update({ status: 'cancelled', error: 'tope mensual de llamadas salientes', finished_at: new Date().toISOString() })
