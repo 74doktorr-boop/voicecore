@@ -663,6 +663,9 @@ setupWhatsAppWebhook(app);
 const { setupWidgetRoutes } = require('./src/api/routes-widget');
 setupWidgetRoutes(app);
 
+const { setupChatRoutes } = require('./src/api/routes-chat');
+setupChatRoutes(app);
+
 // Elección de líder (multi-réplica): solo el líder ejecuta los crons. Debe
 // arrancar ANTES que los crons. Sin REDIS_URL → esta instancia es líder.
 const { startLeaderElection } = require('./src/utils/leader');
