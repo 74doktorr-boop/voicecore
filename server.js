@@ -243,6 +243,23 @@ function serveGitHubPage(publicPath, fallbackFile) {
   '/bilbao/index.html', '/vitoria/index.html',
 ].forEach(p => getPage(p).catch(() => {}));
 
+// ─── Canónico de la APP: onboarding/portal viven en app.nodeflow.es ───
+// Enlaces/anuncios/marcadores viejos a nodeflow.es/onboarding|/portal → 301 al
+// subdominio conservando la query (?plan=…). Solo dispara en el APEX real de
+// producción: NO en app.nodeflow.es (evita bucle), NO en localhost/preview, NO
+// en /api (solo estas rutas HTML de entrada). Los deep-links /portal/* (callbacks
+// del SPA) NO se tocan.
+const _APEX_HOSTS = new Set(['nodeflow.es', 'www.nodeflow.es']);
+const _APP_ENTRY = /^\/(onboarding(\.html)?|portal)\/?$/i;
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const host = (req.hostname || '').toLowerCase();
+  if (_APEX_HOSTS.has(host) && _APP_ENTRY.test(req.path)) {
+    return res.redirect(301, 'https://app.nodeflow.es' + req.originalUrl);
+  }
+  next();
+});
+
 // ─── Home enrutado por HOST ───
 // nodeflow.es (apex)  → landing CORPORATIVA (empresa + cartera de productos).
 // app.nodeflow.es     → la APP: se entra por el portal.
