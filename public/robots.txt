@@ -11,3 +11,4 @@ Disallow: /health
 # también va con noindex; la que rankea es /recepcion.
 
 Sitemap: https://nodeflow.es/sitemap.xml
+Sitemap: https://nodeflow.es/sitemap-negocios.xml

@@ -206,7 +206,40 @@ function setupMicrositeRoutes(app) {
     }
   });
 
-  log.info('Microsite routes configured → GET /n/:slug + /n/:slug/:article');
+  // Sitemap dinámico de TODOS los micrositios + sus artículos → sin esto Google
+  // no los descubre y el producto de SEO no rankea. Referenciado en robots.txt.
+  app.get('/sitemap-negocios.xml', async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).end();
+    try {
+      const base = process.env.PUBLIC_URL || 'https://nodeflow.es';
+      const { hasPro } = require('../billing/plan');
+      const { data: orgs } = await db.client.from('organizations')
+        .select('id, slug, automation_config, is_active').eq('is_active', true).limit(3000);
+      const pro = (orgs || []).filter(o => o.slug && hasPro(o) && (o.automation_config?.config?.micrositeOff !== true));
+      const ids = pro.map(o => o.id);
+      let arts = [];
+      if (ids.length) {
+        const { data } = await db.client.from('nf_content')
+          .select('org_id, slug, published_at').in('org_id', ids).eq('status', 'published').limit(8000);
+        arts = data || [];
+      }
+      const byOrg = {};
+      for (const a of arts) (byOrg[a.org_id] = byOrg[a.org_id] || []).push(a);
+      const urls = [];
+      for (const o of pro) {
+        urls.push(`  <url><loc>${base}/n/${esc(o.slug)}</loc><changefreq>weekly</changefreq></url>`);
+        for (const a of (byOrg[o.id] || [])) {
+          urls.push(`  <url><loc>${base}/n/${esc(o.slug)}/${esc(a.slug)}</loc>${a.published_at ? `<lastmod>${a.published_at.slice(0, 10)}</lastmod>` : ''}</url>`);
+        }
+      }
+      res.set('Content-Type', 'application/xml; charset=utf-8');
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
+    } catch (e) { log.warn(`sitemap-negocios: ${e.message}`); res.status(500).end(); }
+  });
+
+  log.info('Microsite routes configured → GET /n/:slug + /n/:slug/:article + sitemap-negocios.xml');
 }
 
 module.exports = { setupMicrositeRoutes, renderMicrosite, renderArticle };
