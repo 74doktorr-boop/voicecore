@@ -94,13 +94,63 @@ async function collectBriefing(db, businessId, today, yesterday) {
     winback = data || [];
   }
 
-  return { apts, freeSlots, missedCalls, winback, followupsPending };
+  // 5. LO QUE HIZO EL ASISTENTE AYER (caja negra) + gasto del mes. Convierte el
+  // briefing en prueba de valor: el dueño ve, cada mañana, lo que su IA hizo
+  // mientras no miraba — y cuánto le cuesta. Ata #1 (gasto) y #2 (caja negra).
+  let assistantDid = { attended: 0, booked: 0, leads: 0, urgent: 0 };
+  let spend = null;
+  if (db.enabled) {
+    try {
+      const { data: calls } = await db.client
+        .from('nf_calls')
+        .select('outcome, ai_decisions')
+        .eq('org_id', businessId)
+        .gte('started_at', madridMidnightUtc(yesterday).toISOString())
+        .lt('started_at',  madridMidnightUtc(today).toISOString())
+        .limit(500);
+      for (const c of (calls || [])) {
+        assistantDid.attended++;
+        if (c.outcome === 'booked') assistantDid.booked++;
+        for (const dec of (Array.isArray(c.ai_decisions) ? c.ai_decisions : [])) {
+          if (!dec || dec.ok === false) continue;
+          if (dec.tool === 'register_lead') assistantDid.leads++;
+          else if (dec.tool === 'flag_urgent') assistantDid.urgent++;
+        }
+      }
+    } catch (_) { /* fail-open: sin caja negra el resto del briefing va igual */ }
+    try {
+      const { data: org } = await db.client.from('organizations')
+        .select('id, monthly_minutes_used, monthly_minutes_limit, automation_config')
+        .eq('id', businessId).maybeSingle();
+      if (org) {
+        const { monthlyVariableSpend, resolveCap } = require('../billing/cost-alert');
+        const s = await monthlyVariableSpend(org, { db });
+        spend = { eur: s.totalEur, cap: resolveCap(org) };
+      }
+    } catch (_) { /* sin motor de coste → sin línea de gasto */ }
+  }
+
+  return { apts, freeSlots, missedCalls, winback, followupsPending, assistantDid, spend };
 }
 
 function buildEmail({ bizName, today, data }) {
-  const { apts, freeSlots, missedCalls, winback, followupsPending = 0 } = data;
+  const { apts, freeSlots, missedCalls, winback, followupsPending = 0, assistantDid = {}, spend = null } = data;
 
   const card = (inner) => `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px;margin-bottom:12px">${inner}</div>`;
+  const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
+
+  // Lo que hizo el asistente AYER (caja negra) — prueba de valor + confianza.
+  const didParts = [];
+  if (assistantDid.attended) didParts.push(plural(assistantDid.attended, 'llamada atendida', 'llamadas atendidas'));
+  if (assistantDid.booked)   didParts.push(plural(assistantDid.booked, 'cita reservada', 'citas reservadas'));
+  if (assistantDid.leads)    didParts.push(plural(assistantDid.leads, 'lead captado', 'leads captados'));
+  if (assistantDid.urgent)   didParts.push(plural(assistantDid.urgent, 'urgencia marcada', 'urgencias marcadas'));
+  const spendLine = (spend && Number(spend.eur) > 0)
+    ? `<div style="font-size:12px;color:#8888a8;margin-top:8px">Gasto variable este mes: <b style="color:#e8e8f0">${spend.eur}€</b>${Number(spend.cap) > 0 ? ` · tu tope: ${spend.cap}€` : ''}.</div>`
+    : '';
+  const didHtml = didParts.length
+    ? `<div style="font-size:13px;color:#e8e8f0">Ayer, mientras no mirabas: <b>${esc(didParts.join(', '))}</b>. Cada decisión, auditable en tu portal.</div>${spendLine}`
+    : (spendLine || null);
 
   // Citas de hoy
   let aptsHtml;
@@ -143,6 +193,8 @@ function buildEmail({ bizName, today, data }) {
       <div style="font-size:13px;font-weight:700;color:#a29bfe;margin-bottom:8px">📅 TUS CITAS DE HOY (${apts.length})</div>
       ${card(aptsHtml)}
 
+      ${didHtml ? `<div style="font-size:13px;font-weight:700;color:#c4f546;margin-bottom:8px">🤖 LO QUE HIZO TU ASISTENTE AYER</div>${card(didHtml)}` : ''}
+
       <div style="font-size:13px;font-weight:700;color:#00b894;margin-bottom:8px">🟢 HUECOS LIBRES HOY</div>
       ${card(slotsHtml)}
 
@@ -159,7 +211,11 @@ function buildEmail({ bizName, today, data }) {
       <p style="color:#55556a;font-size:11px;text-align:center;margin-top:18px">Tu asistente sigue atendiendo el teléfono 24/7. Que tengas un gran día.</p>
     </div>`;
 
-  const text = `Buenos días, ${bizName}. Hoy: ${apts.length} citas. Huecos libres: ${freeSlots.length}. Oportunidades de ayer: ${missedCalls.length}.${followupsPending > 0 ? ` Seguimientos listos para enviar: ${followupsPending} (https://nodeflow.es/portal/?go=seguimientos).` : ''} Clientes a recuperar: ${winback.length}. Portal: https://nodeflow.es/portal/`;
+  const text = `Buenos días, ${bizName}. Hoy: ${apts.length} citas. Huecos libres: ${freeSlots.length}. Oportunidades de ayer: ${missedCalls.length}.`
+    + (didParts.length ? ` Ayer tu asistente: ${didParts.join(', ')}.` : '')
+    + (spend && Number(spend.eur) > 0 ? ` Gasto del mes: ${spend.eur}€.` : '')
+    + (followupsPending > 0 ? ` Seguimientos listos para enviar: ${followupsPending} (https://nodeflow.es/portal/?go=seguimientos).` : '')
+    + ` Clientes a recuperar: ${winback.length}. Portal: https://nodeflow.es/portal/`;
 
   return { subject: `☀️ Tu día en ${bizName}: ${apts.length} citas${missedCalls.length ? ` · ${missedCalls.length} oportunidades` : ''}`, html, text };
 }
@@ -187,8 +243,10 @@ async function sendDailyBriefings({ orgId = null, dryRun = false } = {}) {
 
       const data = await collectBriefing(db, businessId, today, yesterday);
 
-      // No molestar si no hay NADA que contar (ni citas, ni huecos, ni oportunidades)
-      const hasContent = data.apts.length || data.missedCalls.length || data.winback.length;
+      // No molestar si no hay NADA que contar (ni citas, ni oportunidades, ni
+      // recuperables, ni actividad del asistente ayer).
+      const hasContent = data.apts.length || data.missedCalls.length || data.winback.length
+        || (data.assistantDid && data.assistantDid.attended);
       if (!hasContent) { results.push({ org: businessId, sent: false, reason: 'sin contenido' }); continue; }
 
       const email = buildEmail({ bizName, today, data });
