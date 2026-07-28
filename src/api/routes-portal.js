@@ -2466,6 +2466,54 @@ function setupPortalRoutes(app, pipeline, config) {
     }
   });
 
+  // ── GET /api/portal/campaigns ── panel de VOZ SALIENTE (dashboard) ──────────
+  // Da cara al Campaign Core: qué tipos de llamada saliente existen y qué han
+  // hecho (últimos 30d) desde nf_campaign_calls. Read-only → cero riesgo. La voz
+  // saliente es motor de seguimientos = Pro (isPro para que el portal cape).
+  app.get('/api/portal/campaigns', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.json({ available: false });
+    const { hasPro } = require('../billing/plan');
+    const isPro = hasPro({ automation_config: req.flowConfig?.automations });
+    // Catálogo (label/descripción cara al dueño) de los tipos que ya funcionan.
+    const CATALOG = [
+      { type: 'reactivation', label: 'Reactivar dormidos',   desc: 'Llama a clientes que hace tiempo que no vienen para que vuelvan.' },
+      { type: 'recovery',     label: 'Recuperar perdidas',   desc: 'Llama a quien llamó y no reservó, para cerrar la cita.' },
+      { type: 'no_show',      label: 'Confirmar citas',      desc: 'Llama la víspera para confirmar y evitar plantones.' },
+      { type: 'entity_date',  label: 'Avisos por vencimiento', desc: 'Llama cuando algo del cliente caduca (ITV, revisión, renovación…).' },
+    ];
+    const mask = p => { const s = String(p || ''); return s.length > 5 ? s.slice(0, 4) + '···' + s.slice(-2) : '···'; };
+    try {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data } = await db.client.from('nf_campaign_calls')
+        .select('campaign_type, status, outcome, phone, created_at, finished_at')
+        .eq('org_id', req.businessId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      const rows = data || [];
+      const byType = {};
+      for (const c of rows) {
+        const t = c.campaign_type || 'otro';
+        const s = (byType[t] = byType[t] || { type: t, total: 0, enCurso: 0, hechas: 0, reservadas: 0, fallidas: 0 });
+        s.total++;
+        if (c.status === 'queued' || c.status === 'calling') s.enCurso++;
+        else if (c.status === 'done') s.hechas++;
+        else if (c.status === 'failed') s.fallidas++;
+        if (c.outcome === 'booked') s.reservadas++;
+      }
+      res.json({
+        available: true,
+        isPro,
+        catalog: CATALOG.map(c => ({ ...c, stats: byType[c.type] || { type: c.type, total: 0, enCurso: 0, hechas: 0, reservadas: 0, fallidas: 0 } })),
+        recent: rows.slice(0, 25).map(c => ({
+          type: c.campaign_type, status: c.status, outcome: c.outcome || null,
+          phone: mask(c.phone), at: c.created_at,
+        })),
+      });
+    } catch (e) { log.warn(`campaigns GET ${req.businessId}: ${e.message}`); res.json({ available: false }); }
+  });
+
   // ── GET /api/portal/insights ── horas/días punta + conversión ───────────────
   app.get('/api/portal/insights', portalAuth, async (req, res) => {
     const db = getDatabase();

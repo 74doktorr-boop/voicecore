@@ -149,6 +149,7 @@ function navigate(section) {
   else if (section === 'facturacion')      loadFacturacion();
   else if (section === 'integraciones')    loadIntegraciones();
   else if (section === 'seguimientos')     loadSeguimientos();
+  else if (section === 'campanas')         loadCampanas();
   else if (section === 'ayuda')            loadAyuda();
   else if (section === 'referidos')        loadReferidos();
   else if (section === 'widget')           loadWidget();
@@ -6514,6 +6515,65 @@ async function loadSeguimientos() {
     };
   });
   await loadFollowups();
+}
+
+// ============================================================
+// Voz saliente (Campaign Core) — dashboard: qué llama el asistente y con qué resultado
+// ============================================================
+async function loadCampanas() {
+  var el = document.getElementById('campanasBox');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--dim);font-size:13px;padding:20px">Cargando…</div>';
+  var d;
+  try { d = await api('/api/portal/campaigns'); }
+  catch (e) { el.innerHTML = '<div style="color:var(--dim);padding:20px">No se pudo cargar.</div>'; return; }
+  if (!d || !d.available) { el.innerHTML = '<div style="color:var(--dim);padding:20px">Aún no disponible.</div>'; return; }
+
+  var STATUS = { queued: 'En cola', calling: 'Llamando', done: 'Hecha', failed: 'Fallida', cancelled: 'Cancelada' };
+  var OUTCOME = { booked: '✅ Reservó', info: 'Informó', no_answer: 'No contestó', abandoned: 'Colgó', voicemail: 'Buzón', do_not_contact: 'No contactar' };
+  var TYPE = { reactivation: 'Reactivar', recovery: 'Recuperar', no_show: 'Confirmar', entity_date: 'Vencimiento' };
+  var stat = function(label, n, hot) {
+    return '<div><div style="font-family:var(--mono);font-size:18px;font-weight:800;color:' + (hot ? 'var(--accent-l)' : 'var(--white)') + '">' + (n || 0) + '</div>' +
+      '<div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)">' + label + '</div></div>';
+  };
+
+  var proBanner = d.isPro ? '' :
+    '<div class="card" style="padding:16px;margin-bottom:16px;border-color:rgba(196,245,70,.4);background:rgba(196,245,70,.05)">' +
+      '<div style="font-size:13px;font-weight:800;color:var(--accent-l)">La voz saliente es parte del plan Pro</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin-top:4px">Con Pro, tu asistente LLAMA por ti: confirma citas, recupera perdidas y reactiva clientes dormidos — solo.</div>' +
+    '</div>';
+
+  var cards = (d.catalog || []).map(function(c) {
+    var s = c.stats || {};
+    return '<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px 18px">' +
+      '<div style="font-size:14px;font-weight:700">' + esc(c.label) + '</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin:6px 0 14px;line-height:1.5">' + esc(c.desc) + '</div>' +
+      '<div style="display:flex;gap:22px;flex-wrap:wrap">' + stat('Llamadas', s.total) + stat('En curso', s.enCurso) + stat('Reservas', s.reservadas, true) + '</div>' +
+    '</div>';
+  }).join('');
+
+  var recent = (d.recent || []);
+  var recentHtml = recent.length
+    ? recent.map(function(r) {
+        var oc = r.outcome ? (OUTCOME[r.outcome] || r.outcome) : (STATUS[r.status] || r.status);
+        var when = r.at ? new Date(r.at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px">' +
+          '<span style="color:var(--white)">' + esc(TYPE[r.type] || r.type || '—') + '</span>' +
+          '<span style="font-family:var(--mono);color:var(--dim)">' + esc(r.phone || '') + '</span>' +
+          '<span style="color:' + (r.outcome === 'booked' ? 'var(--accent-l)' : 'var(--dim)') + '">' + esc(oc) + '</span>' +
+          '<span style="color:var(--dim);font-size:11px;min-width:88px;text-align:right">' + esc(when) + '</span>' +
+        '</div>';
+      }).join('')
+    : '<div style="color:var(--dim);font-size:12.5px;padding:14px 0">Aún no ha salido ninguna llamada. En cuanto haya oportunidades (clientes perdidos, citas de mañana, vencimientos), el asistente empezará a llamar dentro del horario permitido (L-S 10-20h).</div>';
+
+  el.innerHTML =
+    proBanner +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px">' + cards + '</div>' +
+    '<div class="card" style="padding:18px 20px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:4px">Últimas llamadas del asistente</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">Cada resultado, con tu cliente protegido. Los números respetan las bajas (quien pidió no ser llamado no recibe llamadas).</div>' +
+      recentHtml +
+    '</div>';
 }
 
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──

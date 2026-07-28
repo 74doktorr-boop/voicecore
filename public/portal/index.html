@@ -178,6 +178,9 @@
       <div class="nav-item" data-section="seguimientos" id="nav-seguimientos" onclick="navigate('seguimientos')">
         <span class="nav-icon"><svg class="ico"><use href="#i-seguimientos"/></svg></span><span class="nav-label">Seguimientos</span>
       </div>
+      <div class="nav-item" id="nav-campanas" onclick="navigate('campanas')">
+        <span class="nav-icon"><svg class="ico"><use href="#i-llamadas"/></svg></span><span>Voz saliente</span>
+      </div>
       <div class="nav-section-title">Crecimiento</div>
       <div class="nav-item" id="nav-informes" onclick="navigate('informes')">
         <span class="nav-icon"><svg class="ico"><use href="#i-informes"/></svg></span><span>Informes</span>
@@ -536,6 +539,14 @@
     <div id="sec-integraciones" class="section">
       <div class="empty-state"><span class="nf-wave nf-wave--lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div class="empty-state-text">Cargando integraciones…</div></div>
     </div>
+
+    <section id="sec-campanas" class="section">
+      <div class="section-header">
+        <h2>Voz saliente</h2>
+        <p class="section-desc">El asistente que llama por ti: confirma citas, recupera perdidas, reactiva dormidos</p>
+      </div>
+      <div id="campanasBox"></div>
+    </section>
 
     <section id="sec-seguimientos" class="section">
       <div class="section-header">
