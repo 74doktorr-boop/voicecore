@@ -76,7 +76,7 @@
     var send = root.querySelector('.nf-send');
     root.querySelector('.nf-title').textContent = cfg.name || 'Asistente';
 
-    var greeted = false, busy = false;
+    var greeted = false, busy = false, hist = [];
     function open() {
       panel.classList.add('open');
       if (!greeted) { greeted = true; addMsg(cfg.greeting || '¡Hola! ¿En qué te ayudo?', 'bot'); }
@@ -92,6 +92,8 @@
       d.textContent = text;
       msgs.appendChild(d);
       msgs.scrollTop = msgs.scrollHeight;
+      hist.push({ role: who === 'me' ? 'user' : 'assistant', content: text });
+      if (hist.length > 40) hist = hist.slice(-40);
     }
 
     function autosize() { input.style.height = 'auto'; input.style.height = Math.min(90, input.scrollHeight) + 'px'; }
@@ -102,10 +104,11 @@
       e.preventDefault();
       var text = input.value.trim();
       if (!text || busy) return;
+      var priorHist = hist.slice(-24);   // turnos previos (sin el mensaje actual)
       addMsg(text, 'me');
       input.value = ''; autosize();
       busy = true; send.disabled = true; typing.style.display = 'block'; msgs.scrollTop = msgs.scrollHeight;
-      fetch(API + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId: ORG, sessionId: SID, text: text }) })
+      fetch(API + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId: ORG, sessionId: SID, text: text, messages: priorHist }) })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           typing.style.display = 'none';

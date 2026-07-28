@@ -80,7 +80,10 @@ function setupChatRoutes(app) {
       };
 
       const { generateChatReply } = require('../webchat/chat-agent');
-      const r = await generateChatReply({ businessId: orgId, sessionId, text, config });
+      // El widget manda su historial → stateless, multi-réplica safe. Se acota y
+      // se saneará dentro (solo user/assistant). Sin él, hilo in-memory.
+      const history = Array.isArray(req.body?.messages) ? req.body.messages.slice(-24) : undefined;
+      const r = await generateChatReply({ businessId: orgId, sessionId, text, config, history });
       if (!r.ok) {
         // Sin respuesta útil → fallback honesto (que dejen su contacto).
         return res.json({ ok: false, reply: 'Ahora mismo no puedo con eso. ¿Me dejas tu teléfono y te llamamos?' });

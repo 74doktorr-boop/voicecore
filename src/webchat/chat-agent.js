@@ -80,7 +80,7 @@ function _executor() {
  * @param {{llm?, execute?}} deps  inyectables para test
  * @returns {Promise<{ok, reply?, booked?, reason?}>}
  */
-async function generateChatReply({ businessId, sessionId, text, config }, deps = {}) {
+async function generateChatReply({ businessId, sessionId, text, config, history }, deps = {}) {
   if (!isEnabled()) return { ok: false, reason: 'disabled' };
   if (!businessId || !sessionId || !text || !text.trim()) return { ok: false, reason: 'bad_request' };
   const now = Date.now();
@@ -93,12 +93,26 @@ async function generateChatReply({ businessId, sessionId, text, config }, deps =
   const todayMadrid = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const systemPrompt = buildSystemPrompt({ bizName: cfg.name, language: cfg.language, serviceList: cfg.serviceList, clientName: null, todayMadrid, address: cfg.address });
 
-  const thread = _thread(businessId, sessionId, now);
   const userText = String(text).trim().slice(0, 1000);
-  thread.messages.push({ role: 'user', content: userText });
-  if (thread.messages.length > MAX_HISTORY * 2) thread.messages = thread.messages.slice(-MAX_HISTORY * 2);
+  // STATELESS (multi-réplica safe): si el widget manda el historial, se usa ese
+  // — sin estado en el server, funciona con cualquier nº de réplicas. Se sanea
+  // (solo user/assistant, texto acotado, últimos N; nunca system/tool del cliente).
+  // Sin history → hilo in-memory (compat con widgets viejos / single-réplica).
+  let thread = null, prior;
+  if (Array.isArray(history)) {
+    prior = history
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant') && (m.content || m.text))
+      .slice(-MAX_HISTORY * 2)
+      .map(m => ({ role: m.role, content: String(m.content || m.text).slice(0, 1000) }));
+    prior.push({ role: 'user', content: userText });
+  } else {
+    thread = _thread(businessId, sessionId, now);
+    thread.messages.push({ role: 'user', content: userText });
+    if (thread.messages.length > MAX_HISTORY * 2) thread.messages = thread.messages.slice(-MAX_HISTORY * 2);
+    prior = thread.messages;
+  }
 
-  const messages = [{ role: 'system', content: systemPrompt }, ...thread.messages];
+  const messages = [{ role: 'system', content: systemPrompt }, ...prior];
   const { ToolExecutor } = require('../tools/executor');
   const tools = ToolExecutor.toOpenAITools(['check_availability', 'book_appointment', 'lookup_appointments', 'cancel_appointment', 'register_lead']);
   const callId = `web-${businessId}|${sessionId}`;
@@ -120,7 +134,7 @@ async function generateChatReply({ businessId, sessionId, text, config }, deps =
     }
     const reply = (turn.text || '').trim();
     if (!reply) return { ok: false, reason: 'no_reply' };
-    thread.messages.push({ role: 'assistant', content: reply });
+    if (thread) thread.messages.push({ role: 'assistant', content: reply }); // solo modo in-memory
     log.info(`webchat ${sessionId} (org ${businessId}) — ${booked ? 'RESERVÓ' : 'respondió'}`);
     return { ok: true, reply, booked: !!booked };
   } catch (e) {
