@@ -47,6 +47,60 @@ function nextRetryAt(attempts, now = Date.now()) {
   return new Date(now + delay).toISOString();
 }
 
+// ── Tope de gasto SALIENTE (guardarraíl anti factura sorpresa) ────────
+// Las salientes consumen el MISMO pool de minutos que las entrantes (0,15€/min
+// sobre lo incluido) → una campaña grande podría comerse el pool en silencio.
+// Cap mensual por nº de llamadas COLOCADAS (started_at este mes). Configurable
+// por org (automation_config.config.outboundMonthlyCap); default env/200.
+// Fail-CLOSED: al alcanzarlo, el dispatcher CANCELA los trabajos y no llama.
+const DEFAULT_OUTBOUND_CAP = Math.max(0, Number(process.env.OUTBOUND_MONTHLY_CAP_DEFAULT) || 200);
+
+function monthStartISO(now = Date.now()) {
+  const d = new Date(now);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
+}
+
+// Tope efectivo de una org (número ≥ 0; si no está configurado, el default).
+function capOf(org) {
+  const cfg = org && org.automation_config && org.automation_config.config;
+  const c = cfg ? cfg.outboundMonthlyCap : undefined;   // undefined si no hay config (evita Number(null)=0)
+  const n = Number(c);
+  return (c != null && Number.isFinite(n) && n >= 0) ? n : DEFAULT_OUTBOUND_CAP;
+}
+
+// Estado de tope por org para este tick: { cap, used(=llamadas colocadas este mes) }.
+async function loadCapState(db, orgIds, now = Date.now()) {
+  const state = {};
+  const ids = [...new Set(orgIds)].filter(Boolean);
+  if (!ids.length) return state;
+  const monthStart = monthStartISO(now);
+  const { data: orgs } = await db.client.from('organizations')
+    .select('id, automation_config').in('id', ids);
+  const capMap = {};
+  for (const o of (orgs || [])) capMap[o.id] = capOf(o);
+  for (const id of ids) {
+    let used = 0;
+    try {
+      const { count } = await db.client.from('nf_campaign_calls')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', id).gte('started_at', monthStart);
+      used = count || 0;
+    } catch (_) { /* si falla el conteo, fail-closed abajo trata used como alto no; mejor 0 y confiar en el pool */ }
+    state[id] = { cap: (capMap[id] != null ? capMap[id] : DEFAULT_OUTBOUND_CAP), used };
+  }
+  return state;
+}
+
+// Aviso al dueño UNA vez por org y mes cuando se toca el tope (in-memory; se
+// resetea al reiniciar, aceptable para un aviso). El panel también lo muestra.
+const _capAlerted = new Set();
+function _alertCapOnce(orgId, cap, now = Date.now()) {
+  const key = `${orgId}:${monthStartISO(now)}`;
+  if (_capAlerted.has(key)) return;
+  _capAlerted.add(key);
+  log.metric(`⛔ Tope saliente alcanzado (${orgId}): ${cap} llamadas/mes. Campañas en pausa hasta subir el límite.`);
+}
+
 // ── API para la capa de producto ──────────────────────────────────────
 
 /**
@@ -118,9 +172,24 @@ async function tick() {
     due = data || [];
   } catch (e) { log.warn(`due: ${e.message}`); return { error: e.message }; }
 
-  let launched = 0;
+  // 3b. Estado de tope de gasto por org (guardarraíl anti factura sorpresa).
+  const capState = await loadCapState(db, due.map(j => j.org_id), Date.now());
+
+  let launched = 0, capped = 0;
   for (const job of due) {
     if (inFlight.has(job.org_id)) continue;
+
+    // Guardarraíl: si la org ya alcanzó su tope mensual de salientes, CANCELA
+    // el trabajo (no llama) y avisa una vez. Fail-closed: nunca gasta de más.
+    const cs = capState[job.org_id];
+    if (cs && cs.used >= cs.cap) {
+      await db.client.from('nf_campaign_calls')
+        .update({ status: 'cancelled', error: 'tope mensual de llamadas salientes', finished_at: new Date().toISOString() })
+        .eq('id', job.id).eq('status', 'queued').then(undefined, () => {});
+      _alertCapOnce(job.org_id, cs.cap);
+      capped++;
+      continue;
+    }
 
     // 4. Reclamar de forma atómica (si otro proceso lo cogió, saltar).
     const { data: claimed } = await db.client.from('nf_campaign_calls')
@@ -129,6 +198,7 @@ async function tick() {
       .select('id');
     if (!claimed || !claimed.length) continue;
     inFlight.add(job.org_id);
+    if (cs) cs.used++;   // cuenta dentro del tick para no pasarse del tope
 
     // 5. Lanzar. El outcome lo cierra el post-call (vía campaignRef).
     try {
@@ -154,7 +224,7 @@ async function tick() {
       log.warn(`Fallo al lanzar job ${job.id}: ${e.message}${dead ? ' (agotado)' : ' (reintento programado)'}`);
     }
   }
-  return { launched, due: due.length };
+  return { launched, capped, due: due.length };
 }
 
 /** Cierra un trabajo con el resultado real de la llamada (lo llama post-call). */
@@ -188,4 +258,8 @@ module.exports = {
   stopCampaignDispatcher,
   isWithinCallingWindow,
   nextRetryAt,
+  capOf,
+  monthStartISO,
+  loadCapState,
+  DEFAULT_OUTBOUND_CAP,
 };

@@ -2502,9 +2502,20 @@ function setupPortalRoutes(app, pipeline, config) {
         else if (c.status === 'failed') s.fallidas++;
         if (c.outcome === 'booked') s.reservadas++;
       }
+      // Tope de gasto saliente (guardarraíl): tope + llamadas COLOCADAS este mes.
+      const { capOf, monthStartISO } = require('../campaigns/dispatcher');
+      const cap = capOf({ automation_config: req.flowConfig?.automations });
+      let usedThisMonth = 0;
+      try {
+        const { count } = await db.client.from('nf_campaign_calls')
+          .select('id', { count: 'exact', head: true })
+          .eq('org_id', req.businessId).gte('started_at', monthStartISO());
+        usedThisMonth = count || 0;
+      } catch (_) {}
       res.json({
         available: true,
         isPro,
+        cap, usedThisMonth, capReached: usedThisMonth >= cap,
         catalog: CATALOG.map(c => ({ ...c, stats: byType[c.type] || { type: c.type, total: 0, enCurso: 0, hechas: 0, reservadas: 0, fallidas: 0 } })),
         recent: rows.slice(0, 25).map(c => ({
           type: c.campaign_type, status: c.status, outcome: c.outcome || null,
@@ -2512,6 +2523,25 @@ function setupPortalRoutes(app, pipeline, config) {
         })),
       });
     } catch (e) { log.warn(`campaigns GET ${req.businessId}: ${e.message}`); res.json({ available: false }); }
+  });
+
+  // ── POST /api/portal/campaigns/cap ── el dueño ajusta su tope mensual ───────
+  // Guardarraíl anti factura sorpresa: nº máximo de llamadas salientes/mes.
+  app.post('/api/portal/campaigns/cap', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    const cap = Math.round(Number(req.body && req.body.cap));
+    if (!Number.isFinite(cap) || cap < 0 || cap > 100000) return res.status(400).json({ error: 'Tope inválido (0–100000)' });
+    try {
+      const { data: cur } = await db.client.from('organizations')
+        .select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      await db.client.from('organizations').update({
+        automation_config: { ...ac, config: { ...(ac.config || {}), outboundMonthlyCap: cap } },
+      }).eq('id', req.businessId);
+      log.info(`Tope saliente actualizado (${req.businessId}): ${cap}/mes`);
+      res.json({ ok: true, cap });
+    } catch (e) { log.warn(`campaigns cap ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
   // ── GET /api/portal/insights ── horas/días punta + conversión ───────────────

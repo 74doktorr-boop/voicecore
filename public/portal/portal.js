@@ -6566,14 +6566,45 @@ async function loadCampanas() {
       }).join('')
     : '<div style="color:var(--dim);font-size:12.5px;padding:14px 0">Aún no ha salido ninguna llamada. En cuanto haya oportunidades (clientes perdidos, citas de mañana, vencimientos), el asistente empezará a llamar dentro del horario permitido (L-S 10-20h).</div>';
 
+  // Tope de gasto saliente (guardarraíl anti factura sorpresa)
+  var cap = (typeof d.cap === 'number') ? d.cap : 200;
+  var used = d.usedThisMonth || 0;
+  var pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+  var capColor = d.capReached ? '#ff6f5e' : 'var(--accent-l)';
+  var capBox =
+    '<div class="card" style="padding:16px 18px;margin-bottom:16px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">' +
+        '<div style="font-size:13px;font-weight:700">Tope de llamadas salientes este mes</div>' +
+        '<div style="font-family:var(--mono);font-size:12px;color:' + (d.capReached ? '#ff6f5e' : 'var(--dim)') + '">' + used + ' / ' + cap + '</div>' +
+      '</div>' +
+      '<div style="height:6px;border-radius:6px;background:var(--border);margin:10px 0;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + capColor + '"></div></div>' +
+      (d.capReached ? '<div style="font-size:12px;color:#ff6f5e;margin-bottom:8px">Límite alcanzado — las campañas están en pausa hasta que subas el tope.</div>' : '') +
+      '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">El asistente nunca hará más llamadas de las que fijes aquí. Cada minuto saliente consume tu bolsa de minutos igual que una entrante — esto evita facturas sorpresa.</div>' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
+        '<input id="capInput" type="number" min="0" max="100000" value="' + cap + '" style="width:110px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:var(--mono)">' +
+        '<button class="btn btn-d btn-sm" onclick="saveCampaignCap()">Guardar tope</button>' +
+      '</div>' +
+    '</div>';
+
   el.innerHTML =
-    proBanner +
+    proBanner + capBox +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:20px">' + cards + '</div>' +
     '<div class="card" style="padding:18px 20px">' +
       '<div style="font-size:13px;font-weight:700;margin-bottom:4px">Últimas llamadas del asistente</div>' +
       '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">Cada resultado, con tu cliente protegido. Los números respetan las bajas (quien pidió no ser llamado no recibe llamadas).</div>' +
       recentHtml +
     '</div>';
+}
+
+async function saveCampaignCap() {
+  var inp = document.getElementById('capInput');
+  var v = inp ? parseInt(inp.value, 10) : NaN;
+  if (!(v >= 0)) { toast('Pon un número válido (0 o más)', 'err'); return; }
+  try {
+    var r = await api('/api/portal/campaigns/cap', 'POST', { cap: v });
+    if (r && r.ok) { toast('Tope guardado: ' + r.cap + ' llamadas/mes', 'ok'); loadCampanas(); }
+    else toast((r && r.error) || 'No se pudo guardar', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo guardar', 'err'); }
 }
 
 // ── ROI del motor: lo que los seguimientos han traído de verdad ──
