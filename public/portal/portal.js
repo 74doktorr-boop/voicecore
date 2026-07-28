@@ -6134,6 +6134,45 @@ async function requestWaUpgrade(btn) {
   }
 }
 
+// ── Feed iCal: el dueño se suscribe a sus citas desde CUALQUIER calendario
+// (Google/Outlook/Apple) con una URL privada. Sin OAuth. Mata "solo Google
+// Calendar" de forma universal.
+function renderIcalCard(feed) {
+  var url = feed && feed.url;
+  var body = url
+    ? '<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Pega esta URL en tu calendario como <b>“suscribirse por URL / add by URL”</b> y tus citas aparecerán solas (y se actualizan).</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<input id="icalUrl" readonly value="' + esc(url) + '" onclick="this.select()" style="flex:1;min-width:220px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:var(--mono);font-size:11px">' +
+        '<button class="btn btn-d btn-sm" onclick="copyIcalUrl()">Copiar</button>' +
+        '<button class="btn btn-d btn-sm" onclick="regenIcalFeed()">Regenerar</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--dim);margin-top:8px">Enlace privado: quien tenga la URL ve tus citas. Si se te filtra, pulsa <b>Regenerar</b> (invalida el anterior).</div>'
+    : '<div style="font-size:12px;color:var(--dim);margin-bottom:10px">Suscríbete a tus citas desde cualquier calendario sin instalar nada. Genera tu enlace privado:</div>' +
+      '<button class="btn btn-accent btn-sm" onclick="regenIcalFeed()">Generar mi enlace de calendario</button>';
+  return '<div class="card" style="padding:16px 18px;margin-bottom:12px">' +
+    '<div style="font-size:14px;font-weight:800;margin-bottom:4px">📅 Tu agenda en cualquier calendario</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:12px">Google Calendar, Outlook, Apple Calendar y cualquier app que acepte una URL iCal — sin conectar cuentas ni permisos.</div>' +
+    body +
+  '</div>';
+}
+
+function copyIcalUrl() {
+  var i = document.getElementById('icalUrl');
+  if (!i) return;
+  i.select();
+  var done = function () { toast('URL copiada', 'ok'); };
+  try { navigator.clipboard.writeText(i.value).then(done, function () { try { document.execCommand('copy'); done(); } catch (_) { toast('Copia la URL a mano', 'err'); } }); }
+  catch (e) { try { document.execCommand('copy'); done(); } catch (_) { toast('Copia la URL a mano', 'err'); } }
+}
+
+async function regenIcalFeed() {
+  try {
+    var r = await api('/api/portal/ical-feed/regenerate', 'POST', {});
+    if (r && r.ok) { toast('Enlace de calendario listo', 'ok'); loadIntegraciones(); }
+    else toast((r && r.error) || 'No se pudo generar', 'err');
+  } catch (e) { toast((e && e.message) || 'No se pudo generar', 'err'); }
+}
+
 async function loadIntegraciones() {
   var sec = document.getElementById('sec-integraciones');
   sec.innerHTML = skelPanel();
@@ -6147,6 +6186,9 @@ async function loadIntegraciones() {
 
   var outlookStatus;
   try { outlookStatus = await api('/api/outlook/status'); } catch(e) { outlookStatus = { enabled: false, connected: false }; }
+
+  var icalFeed;
+  try { icalFeed = await api('/api/portal/ical-feed'); } catch(e) { icalFeed = null; }
 
   var data;
   try {
@@ -6200,6 +6242,7 @@ async function loadIntegraciones() {
     renderWaCard(waStatus) +
     renderCalendarCard(calStatus) +
     renderOutlookCard(outlookStatus) +
+    renderIcalCard(icalFeed) +
 
     // ── Avanzado: Webhooks (desarrolladores) ─────────────────────
     '<details style="margin-top:8px">' +

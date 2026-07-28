@@ -2702,6 +2702,65 @@ function setupPortalRoutes(app, pipeline, config) {
     } catch (e) { log.warn(`spending POST ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
   });
 
+  // ── FEED iCAL DE LAS CITAS (integración universal de salida) ────────────────
+  // El dueño se suscribe a sus citas desde CUALQUIER calendario (Google, Outlook,
+  // Apple, Proton…) pegando una URL secreta. Sin OAuth, sin Azure. Mata el
+  // bloqueo "solo Google Calendar". El feed es la contrapartida de ical-busy.
+  const _icalUrl = (req, orgId, token) => {
+    const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+    return `${proto}://${req.get('host')}/api/agenda.ics?org=${encodeURIComponent(orgId)}&token=${token}`;
+  };
+
+  // GET /api/agenda.ics?org=&token= — PÚBLICO (los calendarios no traen sesión),
+  // autenticado por el token secreto de la org. Devuelve text/calendar.
+  app.get('/api/agenda.ics', async (req, res) => {
+    const org = String(req.query.org || '').trim();
+    const token = String(req.query.token || '').trim();
+    const db = getDatabase();
+    if (!org || !token || !db.enabled) return res.status(404).type('text/plain').send('No disponible');
+    try {
+      const { data: o } = await db.client.from('organizations')
+        .select('id, name, automation_config, is_active').eq('id', org).maybeSingle();
+      const stored = o && o.is_active !== false ? (o.automation_config?.config?.icalToken || '') : '';
+      const { icalTokenMatches, buildIcsFeed } = require('../integrations/ical-feed');
+      if (!icalTokenMatches(stored, token)) return res.status(404).type('text/plain').send('No disponible');
+      // Ventana acotada: desde hace 7 días (para que el calendario borre lo
+      // cancelado reciente) hacia adelante. Cap defensivo.
+      const since = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const { data: apts } = await db.client.from('nf_appointments')
+        .select('id, date, time, duration, service, patient_name, phone, location, status')
+        .eq('organization_id', org).gte('date', since)
+        .order('date', { ascending: true }).limit(2000);
+      res.set('Content-Type', 'text/calendar; charset=utf-8');
+      res.set('Cache-Control', 'private, max-age=300');   // los calendarios sondean; 5 min basta
+      res.set('Content-Disposition', 'inline; filename="agenda-nodeflow.ics"');
+      res.send(buildIcsFeed(o.name, apts || []));
+    } catch (e) { log.warn(`agenda.ics ${org}: ${e.message}`); res.status(500).type('text/plain').send('Error'); }
+  });
+
+  // GET /api/portal/ical-feed — la URL de suscripción del dueño (null si no la ha generado).
+  app.get('/api/portal/ical-feed', portalAuth, async (req, res) => {
+    const token = req.flowConfig?.automations?.config?.icalToken || null;
+    res.json({ available: true, url: token ? _icalUrl(req, req.businessId, token) : null });
+  });
+
+  // POST /api/portal/ical-feed/regenerate — crea o ROTA el enlace (invalida el viejo).
+  app.post('/api/portal/ical-feed/regenerate', portalAuth, async (req, res) => {
+    const db = getDatabase();
+    if (!db.enabled) return res.status(503).json({ error: 'BD no disponible' });
+    try {
+      const token = require('crypto').randomBytes(24).toString('hex');
+      const { data: cur } = await db.client.from('organizations')
+        .select('automation_config').eq('id', req.businessId).maybeSingle();
+      const ac = (cur && cur.automation_config) || {};
+      await db.client.from('organizations').update({
+        automation_config: { ...ac, config: { ...(ac.config || {}), icalToken: token } },
+      }).eq('id', req.businessId);
+      log.info(`Feed iCal (re)generado (${req.businessId})`);
+      res.json({ ok: true, url: _icalUrl(req, req.businessId, token) });
+    } catch (e) { log.warn(`ical regenerate ${req.businessId}: ${e.message}`); res.status(500).json({ error: e.message }); }
+  });
+
   // ── POST /api/portal/campaigns/review-voice ── activar/desactivar reseña por voz
   // Opt-in: cuando está ON, el flujo de reseñas ADEMÁS llama al cliente tras la
   // visita (el enlace sigue yendo por WhatsApp). Pro (voz saliente = Pro).
