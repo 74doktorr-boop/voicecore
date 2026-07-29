@@ -8,6 +8,7 @@
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
     "schema": "node scripts/check-schema.js",
+    "deps:check": "node scripts/check-deps.js",
     "env:check": "node scripts/env-check.js",
     "guia:pdf": "node scripts/generate-guia-pdf.js"
   },
@@ -26,6 +27,9 @@
     "twilio": "^5.4.3",
     "uuid": "^11.1.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1"
   },
   "engines": {
     "node": ">=18.0.0"

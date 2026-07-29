@@ -31,6 +31,12 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # Va ANTES de los tests: un `require` no declarado no lo cazan los tests
+      # (en local Node encuentra el paquete subiendo por el árbol de carpetas),
+      # solo revienta dentro del contenedor. Así fue lo de jszip.
+      - name: Dependencias declaradas
+        run: npm run deps:check
+
       - name: Suite de tests
         run: npm test
 
