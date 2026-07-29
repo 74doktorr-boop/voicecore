@@ -54,8 +54,13 @@ const SPECIAL = [
 ];
 
 // TTS: basta UNO de estos grupos.
+// Azure FUERA (auditoría 2026-07-29): el soporte de Azure TTS ya no existe en
+// el código (`grep AZURE src/` → 0 resultados), pero seguía contando como grupo
+// válido aquí. Un despliegue con SOLO Azure configurado pasaba el chequeo con
+// "✔ todas las críticas puestas"… y se quedaba sin voz. Justo el tipo de
+// fallo silencioso que este script existe para impedir.
 const TTS_OK = has('ELEVENLABS_API_KEY')
-  || (has('AZURE_SPEECH_KEY') && has('AZURE_SPEECH_REGION'))
+  || has('CARTESIA_API_KEY')
   || has('GOOGLE_TTS_API_KEY');
 
 // Recomendadas para cobro correcto del excedente.
@@ -94,7 +99,7 @@ console.log('\n▶ NodeFlow — chequeo de variables de entorno (no muestra valo
 console.log('── CRÍTICAS ──');
 for (const [k, note] of CRITICAL) { const ok = has(k); if (!ok) missingCritical++; line(ok, k, note); }
 for (const [k, test, note] of SPECIAL) { const ok = test(); if (!ok) missingCritical++; line(ok, k, note); }
-{ const ok = TTS_OK; if (!ok) missingCritical++; line(ok, 'TTS (voz)', 'al menos: ELEVENLABS_API_KEY / AZURE_SPEECH_* / GOOGLE_TTS_API_KEY'); }
+{ const ok = TTS_OK; if (!ok) missingCritical++; line(ok, 'TTS (voz)', 'al menos: ELEVENLABS_API_KEY / CARTESIA_API_KEY / GOOGLE_TTS_API_KEY'); }
 
 console.log('\n── RECOMENDADAS (cobro correcto del excedente) ──');
 for (const [k, note] of BILLING) line(has(k), k, note, true);

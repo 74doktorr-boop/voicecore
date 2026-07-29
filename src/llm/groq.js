@@ -5,6 +5,7 @@
 
 const { Logger } = require('../utils/logger');
 const { TextualToolFilter } = require('./textual-tool-filter');
+const { newTimeoutSignal, isAbortError, timeoutMessage, llmTimeoutMs } = require('../utils/fetch-timeout');
 const log = new Logger('LLM:GROQ');
 
 class GroqLLM {
@@ -23,12 +24,24 @@ class GroqLLM {
 
     log.llm(`[${callId}] Groq request`, { model, msgs: messages.length });
 
+    // Presupuesto hasta el PRIMER byte (V4): un fetch colgado —que no es lo
+    // mismo que uno que falla— bloqueaba el turno hasta el salvavidas, 75 s.
+    // Se limpia en cuanto llegan las cabeceras: una generación larga pero sana
+    // no se aborta.
+    const budget = llmTimeoutMs();
+    const t = newTimeoutSignal(budget);
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      let response;
+      try {
+        response = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: t.signal,
+        });
+      } finally {
+        t.clear(); // el cuerpo ya puede fluir sin reloj
+      }
 
       if (!response.ok) throw new Error(`Groq error: ${response.status} ${await response.text()}`);
 
@@ -110,8 +123,11 @@ class GroqLLM {
         metrics: { totalTime, ttft: firstTokenTime ? firstTokenTime - startTime : 0, tokens: totalTokens }
       };
     } catch (error) {
-      log.error(`[${callId}] Groq error`, { error: error.message });
-      yield { type: 'error', message: error.message };
+      // Distinguir "no respondió a tiempo" de "respondió mal": son diagnósticos
+      // distintos y el router necesita saber que puede saltar de proveedor ya.
+      const msg = isAbortError(error) ? timeoutMessage('Groq', budget) : error.message;
+      log.error(`[${callId}] Groq error`, { error: msg });
+      yield { type: 'error', message: msg };
     }
   }
 

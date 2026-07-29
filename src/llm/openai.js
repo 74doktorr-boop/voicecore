@@ -10,7 +10,12 @@ const log = new Logger('LLM');
 
 class OpenAILLM {
   constructor(apiKey) {
-    this.client = new OpenAI({ apiKey });
+    // El SDK trae 10 MINUTOS de timeout por defecto y 2 reintentos — inútil
+    // para una conversación telefónica (V4). Presupuesto explícito y CERO
+    // reintentos: el failover entre proveedores del router es más rápido y más
+    // seguro que reintentar contra el que ya no responde.
+    const { llmTimeoutMs } = require('../utils/fetch-timeout');
+    this.client = new OpenAI({ apiKey, timeout: llmTimeoutMs(), maxRetries: 0 });
   }
 
   /**

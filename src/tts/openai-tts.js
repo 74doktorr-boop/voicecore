@@ -32,6 +32,7 @@ class OpenAITTS {
 
     log.tts(`[${callId}] Synthesizing: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
 
+    const { ttsTimeoutMs } = require('../utils/fetch-timeout');
     try {
       const response = await this.client.audio.speech.create({
         model,
@@ -39,7 +40,7 @@ class OpenAITTS {
         input: text,
         speed,
         response_format: 'pcm', // Raw PCM 16-bit 24kHz
-      });
+      }, { timeout: ttsTimeoutMs(), maxRetries: 0 }); // V4: el SDK trae 10 min por defecto
 
       // Get the raw audio buffer
       const arrayBuffer = await response.arrayBuffer();

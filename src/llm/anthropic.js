@@ -4,7 +4,40 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { newTimeoutSignal, isAbortError, timeoutMessage, llmTimeoutMs } = require('../utils/fetch-timeout');
 const log = new Logger('LLM:CLAUDE');
+
+/**
+ * Aplana los bloques tool_use / tool_result a texto plano.
+ *
+ * POR QUÉ (auditoría 2026-07-29, hallazgo E3): la API de Anthropic exige que si
+ * el historial contiene bloques `tool_use`, la petición incluya la definición de
+ * las herramientas. Pero el turno POST-herramienta del pipeline no pasa `tools`
+ * (no hace falta: solo quiere que redacte la respuesta). Resultado: Anthropic
+ * devolvía 400 en ese turno SIEMPRE. Como es el último proveedor del failover,
+ * el turno moría justo después de consultar la agenda — el peor momento.
+ *
+ * Aplanar conserva el contexto (el modelo sigue sabiendo qué se consultó y qué
+ * se obtuvo) y cumple el contrato. Puro y testeable.
+ */
+function flattenToolBlocks(chatMessages) {
+  return chatMessages.map((m) => {
+    if (!m || !Array.isArray(m.content)) return m;
+    const parts = m.content.map((b) => {
+      if (b && b.type === 'tool_use') return `[Consulté ${b.name} con ${JSON.stringify(b.input || {})}]`;
+      if (b && b.type === 'tool_result') return `[Resultado: ${typeof b.content === 'string' ? b.content : JSON.stringify(b.content)}]`;
+      if (b && b.type === 'text') return b.text;
+      return '';
+    }).filter(Boolean);
+    return { role: m.role, content: parts.join('\n') || '(sin contenido)' };
+  });
+}
+
+/** ¿El historial lleva bloques de herramienta? (decide si hay que aplanar) */
+function hasToolBlocks(chatMessages) {
+  return chatMessages.some(m => Array.isArray(m?.content)
+    && m.content.some(b => b && (b.type === 'tool_use' || b.type === 'tool_result')));
+}
 
 class AnthropicLLM {
   constructor(apiKey) {
@@ -27,24 +60,41 @@ class AnthropicLLM {
       return { role: m.role, content: m.content };
     });
 
-    const body = { model, messages: chatMessages, max_tokens: maxTokens, temperature, stream: true };
+    // Sin definición de tools, los bloques tool_use/tool_result son un 400
+    // seguro (E3). Se aplanan a texto: se conserva el contexto y la petición es
+    // válida — así Anthropic vuelve a servir como último recurso del failover.
+    let outMessages = chatMessages;
+    if (!(tools?.length > 0) && hasToolBlocks(chatMessages)) {
+      outMessages = flattenToolBlocks(chatMessages);
+      log.info(`[${callId}] Historial con herramientas y petición sin tools — aplanado a texto (evita 400)`);
+    }
+
+    const body = { model, messages: outMessages, max_tokens: maxTokens, temperature, stream: true };
     if (systemMsg) body.system = systemMsg.content;
     if (tools?.length > 0) {
       body.tools = tools.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
     }
 
-    log.llm(`[${callId}] Claude request`, { model, msgs: chatMessages.length });
+    log.llm(`[${callId}] Claude request`, { model, msgs: outMessages.length });
 
+    const budget = llmTimeoutMs();
+    const t = newTimeoutSignal(budget); // presupuesto hasta el primer byte (V4)
     try {
-      const response = await fetch(`${this.baseUrl}/messages`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      let response;
+      try {
+        response = await fetch(`${this.baseUrl}/messages`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': this.apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: t.signal,
+        });
+      } finally {
+        t.clear();
+      }
 
       if (!response.ok) throw new Error(`Claude error: ${response.status} ${await response.text()}`);
 
@@ -106,10 +156,11 @@ class AnthropicLLM {
         metrics: { totalTime, ttft: firstTokenTime ? firstTokenTime - startTime : 0, tokens: totalTokens }
       };
     } catch (error) {
-      log.error(`[${callId}] Claude error`, { error: error.message });
-      yield { type: 'error', message: error.message };
+      const msg = isAbortError(error) ? timeoutMessage('Claude', budget) : error.message;
+      log.error(`[${callId}] Claude error`, { error: msg });
+      yield { type: 'error', message: msg };
     }
   }
 }
 
-module.exports = { AnthropicLLM };
+module.exports = { AnthropicLLM, flattenToolBlocks, hasToolBlocks };

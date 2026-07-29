@@ -4,6 +4,7 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { newTimeoutSignal, isAbortError, timeoutMessage, ttsTimeoutMs } = require('../utils/fetch-timeout');
 const { resampleToMulaw8k } = require('../utils/audio');
 
 const log = new Logger('TTS:11LABS');
@@ -50,9 +51,16 @@ class ElevenLabsTTS {
 
     log.tts(`[${callId}] Synthesizing with ElevenLabs (${resolvedModel}, lang=${langCode}, ${outFmt}): "${text.substring(0, 60)}..."`);
 
+    // Presupuesto de síntesis (V4). Cubre cabeceras + descarga del audio: aquí
+    // sí queremos el cuerpo entero, así que el reloj corre hasta el finally.
+    // Sin esto, un ElevenLabs colgado dejaba el turno bloqueado hasta los 75 s
+    // del salvavidas — el cliente esperando en silencio al teléfono.
+    const budget = ttsTimeoutMs();
+    const t = newTimeoutSignal(budget);
     try {
       const doFetch = (fmt) => fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=${fmt}`, {
         method: 'POST',
+        signal: t.signal,
         headers: {
           'Accept': 'audio/mpeg',
           'Content-Type': 'application/json',
@@ -90,8 +98,11 @@ class ElevenLabsTTS {
       if (isMp3) return buf;
       return outFmt === 'ulaw_8000' ? buf : resampleToMulaw8k(buf, 24000);
     } catch (error) {
-      log.error(`[${callId}] ElevenLabs error`, { error: error.message });
-      throw error;
+      const msg = isAbortError(error) ? timeoutMessage('ElevenLabs', budget) : error.message;
+      log.error(`[${callId}] ElevenLabs error`, { error: msg });
+      throw isAbortError(error) ? new Error(msg) : error;
+    } finally {
+      t.clear();
     }
   }
 

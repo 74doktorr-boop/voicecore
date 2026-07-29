@@ -4,6 +4,7 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { newTimeoutSignal, isAbortError, timeoutMessage, ttsTimeoutMs } = require('../utils/fetch-timeout');
 const { resampleToMulaw8k } = require('../utils/audio');
 
 const log = new Logger('TTS:GOOGLE');
@@ -52,9 +53,12 @@ class GoogleTTS {
 
     log.tts(`[${callId}] Google TTS: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}" [${voiceConfig.name}]`);
 
+    const budget = ttsTimeoutMs(); // presupuesto de síntesis (V4)
+    const t = newTimeoutSignal(budget);
     try {
       const response = await fetch(`${this.baseUrl}/text:synthesize?key=${this.apiKey}`, {
         method: 'POST',
+        signal: t.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: { text },
@@ -90,8 +94,9 @@ class GoogleTTS {
 
       return mulaw;
     } catch (error) {
-      log.error(`[${callId}] Google TTS error`, { error: error.message });
-      throw error;
+      const msg = isAbortError(error) ? timeoutMessage('Google TTS', budget) : error.message;
+      log.error(`[${callId}] Google TTS error`, { error: msg });
+      throw isAbortError(error) ? new Error(msg) : error;
     }
   }
 

@@ -4,6 +4,7 @@
 // ============================================
 
 const { Logger } = require('../utils/logger');
+const { newTimeoutSignal, isAbortError, timeoutMessage, ttsTimeoutMs } = require('../utils/fetch-timeout');
 const { resampleToMulaw8k } = require('../utils/audio');
 
 const log = new Logger('TTS:CARTESIA');
@@ -33,9 +34,12 @@ class CartesiaTTS {
 
     log.tts(`[${callId}] Cartesia synthesizing: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
 
+    const budget = ttsTimeoutMs(); // presupuesto de síntesis (V4)
+    const t = newTimeoutSignal(budget);
     try {
       const response = await fetch(`${this.baseUrl}/tts/bytes`, {
         method: 'POST',
+        signal: t.signal,
         headers: {
           'X-API-Key': this.apiKey,
           'Cartesia-Version': '2024-06-10',
@@ -75,8 +79,11 @@ class CartesiaTTS {
 
       return mulaw;
     } catch (error) {
-      log.error(`[${callId}] Cartesia error`, { error: error.message });
-      throw error;
+      const msg = isAbortError(error) ? timeoutMessage('Cartesia', budget) : error.message;
+      log.error(`[${callId}] Cartesia error`, { error: msg });
+      throw isAbortError(error) ? new Error(msg) : error;
+    } finally {
+      t.clear();
     }
   }
 
