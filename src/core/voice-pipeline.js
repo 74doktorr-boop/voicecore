@@ -582,6 +582,9 @@ class VoicePipeline {
     // pero NADIE los asignaba nunca (F4): totalSttTime era siempre 0 y el TTS no
     // se podía atribuir a ningún turno concreto.
     session._turnTtsMs = 0;
+    // Cadena de habla limpia por turno (F10): una cadena del turno anterior no
+    // debe encadenar el habla de este. Cada turno espera SU cola al terminar.
+    session._speechChain = Promise.resolve();
 
     // Add user message
     session.addUserMessage(userText);
@@ -715,7 +718,11 @@ class VoicePipeline {
             spokeFirstFragment = true;
             for (const sentence of sentences.complete) {
               if (session.interrupted) break;
-              await this._speakText(callId, sentence);
+              // SIN await (F10): esperar aquí SUSPENDE el generador del LLM, así
+              // que la síntesis de cada frase entraba en el camino crítico de la
+              // siguiente. Se encola preservando el orden y el LLM sigue
+              // generando mientras tanto. Ver _speakQueued.
+              this._speakQueued(callId, sentence);
             }
             accumulatedText = sentences.remaining;
           } else if (!spokeFirstFragment) {
@@ -726,7 +733,7 @@ class VoicePipeline {
             const frag = accumulatedText.match(/^(.{24,}?[,;:])\s+/s);
             if (frag) {
               spokeFirstFragment = true;
-              await this._speakText(callId, frag[1]);
+              this._speakQueued(callId, frag[1]);
               accumulatedText = accumulatedText.slice(frag[0].length);
             }
           }
@@ -785,8 +792,13 @@ class VoicePipeline {
 
       // Speak any remaining text
       if (accumulatedText.trim() && !session.interrupted) {
-        await this._speakText(callId, accumulatedText.trim());
+        this._speakQueued(callId, accumulatedText.trim());
       }
+      // Aquí SÍ se espera: el turno no continúa (herramientas, mensaje al
+      // historial, red anti-silencio) hasta que todo lo encolado se ha
+      // sintetizado y enviado. Lo que se elimina es la espera POR FRASE dentro
+      // del bucle, no la del final del turno.
+      await this._drainSpeech(callId);
 
       // Handle tool calls
       if (pendingToolCalls.length > 0 && !session.interrupted) {
@@ -1012,7 +1024,7 @@ class VoicePipeline {
           const sentences = this._extractCompleteSentences(accumulatedText);
           for (const sentence of sentences.complete) {
             if (session.interrupted) break;
-            await this._speakText(callId, sentence);
+            this._speakQueued(callId, sentence);   // sin await (F10), igual que el turno principal
           }
           if (sentences.complete.length > 0) accumulatedText = sentences.remaining;
         }
@@ -1024,8 +1036,9 @@ class VoicePipeline {
       }
 
       if (accumulatedText.trim() && !session.interrupted) {
-        await this._speakText(callId, accumulatedText.trim());
+        this._speakQueued(callId, accumulatedText.trim());
       }
+      await this._drainSpeech(callId);
 
       if (postToolResponse && !session.interrupted) {
         session._consecRecovery = 0; // respuesta real tras la herramienta → rompe la racha
@@ -1048,6 +1061,45 @@ class VoicePipeline {
         }
       }
     }
+  }
+
+  /**
+   * Encola una frase para decirla, SIN bloquear a quien llama.
+   *
+   * POR QUÉ EXISTE (auditoría 2026-07-29, hallazgo F10):
+   * El bucle que consume el stream del LLM hacía `await this._speakText(frase)`
+   * DENTRO del `for await`. Eso SUSPENDE el generador: mientras se sintetiza la
+   * frase 1, el LLM no genera la frase 2. La síntesis estaba en el camino
+   * crítico de cada frase, no solo de la primera.
+   *
+   * Cuando el audio de la frase 1 dura menos que (generar + sintetizar la
+   * frase 2), el teléfono se queda MUDO a media respuesta. Eso es exactamente
+   * lo que cuenta `fragmentGaps` en call-session.js, y es lo que el cliente
+   * describe como "se entrecorta" o "se traba diciendo…".
+   *
+   * Ahora la síntesis y el envío van en una cadena de promesas propia de la
+   * sesión: el orden se conserva estrictamente (una frase no puede adelantar a
+   * la anterior — sonaría desordenado, que es mucho peor que un hueco), la
+   * concurrencia contra el proveedor de TTS sigue siendo UNA petición a la vez
+   * (mismo coste, mismos límites de tasa que antes), y el generador del LLM
+   * deja de esperar.
+   *
+   * @returns {Promise} la cadena; el llamante decide si esperarla o no.
+   */
+  _speakQueued(callId, text, opts = {}) {
+    const session = this.activeCalls.get(callId);
+    if (!session) return Promise.resolve();
+    session._speechChain = (session._speechChain || Promise.resolve())
+      .then(() => this._speakText(callId, text, opts))
+      .catch((e) => { log.warn(`[${callId}] TTS en cola falló: ${e.message}`); });
+    return session._speechChain;
+  }
+
+  /** Espera a que suene todo lo encolado (fin de turno). Nunca lanza. */
+  async _drainSpeech(callId) {
+    const session = this.activeCalls.get(callId);
+    if (!session || !session._speechChain) return;
+    try { await session._speechChain; } catch (_) {}
   }
 
   /**
