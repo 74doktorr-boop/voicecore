@@ -9,7 +9,33 @@ env:
   IMAGE_NAME: ghcr.io/74doktorr-boop/voicecore
 
 jobs:
+  # ── PUERTA DE CALIDAD (auditoría 2026-07-29, F1) ────────────────────────────
+  # Hasta ahora la suite —casi 2.800 casos— NO se ejecutaba NUNCA: ni aquí ni en
+  # el Dockerfile. Un commit que la rompiera entera llegaba a producción sin
+  # ninguna fricción. Era la deuda estructural más cara del repo: mucho test
+  # escrito que no protegía nada.
+  #
+  # La suite no necesita credenciales ni red (se comprobó ejecutándola sin .env),
+  # así que este job es rápido y determinista. Si falla, NO se construye ni se
+  # despliega.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'          # igual que el Dockerfile
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Suite de tests
+        run: npm test
+
   build-and-deploy:
+    needs: test                        # sin verde no se despliega
     runs-on: ubuntu-latest
     permissions:
       contents: read
