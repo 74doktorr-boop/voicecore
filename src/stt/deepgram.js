@@ -108,7 +108,11 @@ class DeepgramSTT {
           session.finalTranscript += (session.finalTranscript ? ' ' : '') + transcript;
           const conf = data.channel?.alternatives?.[0]?.confidence;
           if (typeof conf === 'number') session.finalConfidences.push(conf);
-          log.stt(`[${callId}] Final: "${transcript}"${typeof conf === 'number' ? ` (conf ${conf.toFixed(2)})` : ''}`);
+          // F7: la transcripción íntegra de lo que dice un paciente NO va a los
+          // logs por defecto. Se registra la longitud y la confianza —que es lo
+          // que hace falta para diagnosticar— y el texto solo con LOG_TRANSCRIPTS=1.
+          const shown = process.env.LOG_TRANSCRIPTS === '1' ? `"${transcript}"` : `${transcript.length} car.`;
+          log.stt(`[${callId}] Final: ${shown}${typeof conf === 'number' ? ` (conf ${conf.toFixed(2)})` : ''}`);
         } else {
           session.currentTranscript = transcript;
         }

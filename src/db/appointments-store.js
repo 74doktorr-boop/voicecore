@@ -266,6 +266,17 @@ class AppointmentsStore {
       `📅 ${apt.date} a las ${apt.time}${apt.service ? ' · ' + apt.service : ''}\n` +
       `━━━━━━━━━━━━\n` +
       `Apúntala a mano y llama al cliente para confirmar. NodeFlow`;
+    // F5: además del dueño, que se entere NodeFlow. Una cita que no se guarda es
+    // un fallo NUESTRO: el dueño recibe el aviso para apuntarla a mano, pero si
+    // nadie del equipo lo ve, el patrón (una BD que va mal, un constraint que
+    // rechaza de más) no se detecta hasta que se acumulan las quejas.
+    try {
+      require('../monitoring/error-tracker').capture(
+        new Error(`Cita no persistida (${apt.businessId}): ${reason}`),
+        'appointment_not_persisted',
+        { orgId: apt.businessId, cita: apt.id, cuando: `${apt.date} ${apt.time}`, cliente: apt.patientName || '—' },
+      );
+    } catch (_) {}
     try {
       if (this._notify) return this._notify(msg, apt.businessId);
       require('../tools/executor')._notifyOwner(msg, apt.businessId);

@@ -37,20 +37,26 @@ async function handle(callData) {
   const config = flowManager.mergeConfig(businessId, schedulerConfig);
   const db = getDatabase(); // BUG FIX: declarado al principio — antes se usaba en el paso 4 antes de declararse (ReferenceError en llamadas 'info')
 
-  log.info(`Post-call [${callData.id}] — outcome:${callData.outcome} biz:${businessId}`);
+  // F6: TODO lo que salga de aquí lleva el id de llamada. Antes NINGUNO de los
+  // 22 logs del post-call lo llevaba, y es justo la frontera donde se rompía la
+  // traza: "la IA colgó" → "al cliente le llega (o no) su confirmación". Un
+  // "WA confirmation to client failed" sin llamada, sin negocio y sin teléfono
+  // no es diagnosticable.
+  const clog = log.forCall(callData.id);
+  clog.info(`Post-call — outcome:${callData.outcome} biz:${businessId}`);
 
   // ── 0. Campaign Core: cerrar el job que originó esta saliente ───────────────
   if (callData.campaignRef) {
     try {
       const { completeCampaignCall } = require('../campaigns/dispatcher');
       completeCampaignCall(callData.campaignRef, { outcome: callData.outcome, callSid: callData.id })
-        .catch(e => log.warn(`campaign complete failed: ${e.message}`));
-    } catch (e) { log.warn(`campaign complete: ${e.message}`); }
+        .catch(e => clog.warn(`campaign complete failed: ${e.message}`));
+    } catch (e) { clog.warn(`campaign complete: ${e.message}`); }
   }
 
   // ── 1. Email summary to owner (always) ──────────────────────────────────────
   if (config.ownerEmail) {
-    await sendCallSummaryToOwner(callData, config).catch(e => log.warn('owner summary email failed', { err: e.message }));
+    await sendCallSummaryToOwner(callData, config).catch(e => clog.warn('owner summary email failed', { err: e.message }));
   }
 
   // ── 2+3. Avisos de reserva — para TODAS las citas de la llamada ─────────────
@@ -67,8 +73,8 @@ async function handle(callData) {
     try {
       const { linkBookedAppointmentsToEntity } = require('../entities/entity-calls');
       linkBookedAppointmentsToEntity(callData.campaignRef, bookedList.map(a => a && a.id).filter(Boolean))
-        .catch(e => log.warn(`entity link failed: ${e.message}`));
-    } catch (e) { log.warn(`entity link: ${e.message}`); }
+        .catch(e => clog.warn(`entity link failed: ${e.message}`));
+    } catch (e) { clog.warn(`entity link: ${e.message}`); }
   }
   if (callData.outcome === 'booked') {
     const { sendWaConfirmation, sendWaOwnerNewBooking } = require('../notifications/reminders');
@@ -93,20 +99,20 @@ async function handle(callData) {
       //     está aprobada aún o no hay alertPhone, no pasa nada (el dueño sigue
       //     con el email). Antes el "Nueva reserva" solo llegaba a Unai (1a).
       sendWaOwnerNewBooking(aptWithBiz, config)
-        .catch(e => log.warn('WA nueva-reserva al dueño falló', { err: e.message }));
+        .catch(e => clog.warn('WA nueva-reserva al dueño falló', { err: e.message }));
 
       // 2) Confirmación al CLIENTE por WhatsApp desde el número del NEGOCIO,
       //    al instante de colgar (petición Unai 2026-07-04). Respeta el toggle
       //    'waConfirm' del portal; fail-open si no hay plantilla/credenciales.
       if (flowManager.isEnabled(businessId, 'waConfirm')) {
         sendWaConfirmation(aptWithBiz, config)
-          .catch(e => log.warn('WA confirmation to client failed', { err: e.message }));
+          .catch(e => clog.warn('WA confirmation to client failed', { err: e.message }));
       }
 
       // 3) Confirmación por email (complementaria, si hay email)
       if (apt.email) {
         await sendBookingConfirmationEmail(apt, config)
-          .catch(e => log.warn('booking confirmation email failed', { err: e.message }));
+          .catch(e => clog.warn('booking confirmation email failed', { err: e.message }));
       }
     }
   }
@@ -121,7 +127,7 @@ async function handle(callData) {
       db.client.from('nf_calls')
         .update({ followup_at: followupAt })
         .eq('id', callData.id)
-        .then(undefined, e => log.warn('followup_at persist failed', { err: e.message }));
+        .then(undefined, e => clog.warn('followup_at persist failed', { err: e.message }));
     }
     setTimeout(async () => {
       try {
@@ -134,7 +140,7 @@ async function handle(callData) {
             .then(undefined, () => {});
         }
       } catch (e) {
-        log.warn('followup email failed', { err: e.message });
+        clog.warn('followup email failed', { err: e.message });
       }
     }, FOLLOWUP_DELAY_MS);
   }
@@ -151,7 +157,7 @@ async function handle(callData) {
       llmTokens: callData.metrics?.llmTokens  || 0,
       toolCalls: callData.metrics?.toolCalls  || 0,
       cost:      callData.cost?.total         || 0,
-    }).catch(e => log.warn('usage increment failed', { err: e.message }));
+    }).catch(e => clog.warn('usage increment failed', { err: e.message }));
   }
 
   // Teléfono del CLIENTE de la llamada (para el CRM, seguimientos y webhooks).
@@ -193,8 +199,8 @@ async function handle(callData) {
       if (shouldAlert(callData, audit)) {
         await sendFounderAlert(callData, audit, config).catch(() => {});
       }
-    }).catch(e => log.warn(`auditor: ${e.message}`));
-  } catch (e) { log.warn(`auditor init: ${e.message}`); }
+    }).catch(e => clog.warn(`auditor: ${e.message}`));
+  } catch (e) { clog.warn(`auditor init: ${e.message}`); }
 
   // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
   if (db.enabled && clientPhone) {
@@ -225,8 +231,8 @@ async function handle(callData) {
           .eq('org_id', businessId)
           .eq('phone', clientPhone)
           .or('name.is.null,name.ilike.cliente,name.ilike.clienta,name.ilike.usuario,name.ilike.desconocido,name.ilike.desconocida,name.ilike.customer,name.ilike.unknown')
-          .then(({ error }) => { if (error) log.warn(`contact name upgrade: ${error.message}`); },
-                (e) => log.warn(`contact name upgrade: ${e.message}`));
+          .then(({ error }) => { if (error) clog.warn(`contact name upgrade: ${error.message}`); },
+                (e) => clog.warn(`contact name upgrade: ${e.message}`));
       }
       // ── 9. Tras cada llamada con contacto resuelto: (a) reprogramar sus
       // seguimientos de sector, (b) analizar el transcript. El lookup del id se
@@ -246,8 +252,8 @@ async function handle(callData) {
           // por contacto+servicio, solo programa a futuro) y fail-open.
           try {
             require('../lifecycle/reminder-engine').recalculate(contact.id, businessId)
-              .catch(e => log.warn(`recalculate follow-ups failed: ${e.message}`));
-          } catch (e) { log.warn(`recalculate init: ${e.message}`); }
+              .catch(e => clog.warn(`recalculate follow-ups failed: ${e.message}`));
+          } catch (e) { clog.warn(`recalculate init: ${e.message}`); }
 
           // (b) Análisis async del transcript (solo si hubo conversación).
           if (callData.transcript?.length > 0) {
@@ -263,11 +269,11 @@ async function handle(callData) {
               transcript:    callData.transcript || [],
               callerNumber:  clientPhone || null,
               leadRegistered,
-            }).catch(e => log.warn('transcript async processing failed', { err: e.message }));
+            }).catch(e => clog.warn('transcript async processing failed', { err: e.message }));
           }
         })
-        .catch(e => log.warn('contact lookup failed', { err: e.message }));
-    }).catch(e => log.warn('contact upsert failed', { err: e.message }));
+        .catch(e => clog.warn('contact lookup failed', { err: e.message }));
+    }).catch(e => clog.warn('contact upsert failed', { err: e.message }));
   }
 }
 

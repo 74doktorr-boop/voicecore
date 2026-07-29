@@ -37,6 +37,17 @@ class STTRouter {
       h.openUntil = now + this.breakerCooldownMs;
       h.failures = 0;
       log.warn(`STT breaker ABIERTO para '${name}' — ${Math.round(this.breakerCooldownMs / 1000)}s sin usarlo`);
+      // F5: que se caiga el STT es lo más grave que puede pasarle a una llamada
+      // —la IA se queda sorda— y hasta ahora solo dejaba un log.warn que nadie
+      // leía. El error-tracker ya tenía la tubería de alertas con agrupación por
+      // firma cada 15 min, y NINGÚN fallo de dominio la usaba.
+      try {
+        require('../monitoring/error-tracker').capture(
+          new Error(`STT '${name}' fuera de servicio: ${this.breakerThreshold} fallos seguidos`),
+          'stt_breaker_open',
+          { proveedor: name, cooldownSegundos: Math.round(this.breakerCooldownMs / 1000), impacto: 'las llamadas pueden quedarse sin transcripción' },
+        );
+      } catch (_) {}
     }
     this._health.set(name, h);
   }

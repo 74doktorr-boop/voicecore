@@ -330,10 +330,16 @@ class ToolExecutor {
       // get confused and fabricate a result.
       return { success: false, message: 'Función no disponible, continúa la conversación normalmente.' };
     }
-    log.info(`Tool: ${functionName}`, args);
+    // F7: los args de book_appointment / register_lead llevan nombre, teléfono y
+    // motivo de consulta del paciente. El logger enmascara los teléfonos, pero
+    // el resto tampoco tiene por qué acabar en stdout: se registran las CLAVES
+    // (que es lo que hace falta para diagnosticar "qué le llegó a la tool") y
+    // los valores solo con LOG_PII=1.
+    const _safeArgs = process.env.LOG_PII === '1' ? args : Object.keys(args || {}).join(',');
+    log.info(`Tool: ${functionName}`, _safeArgs);
     try {
       const result = await handler(args, assistantId, context);
-      log.info(`Tool OK: ${functionName}`, result);
+      log.info(`Tool OK: ${functionName}`, process.env.LOG_PII === '1' ? result : { success: result && result.success });
       _recordDecision(context, functionName, args, result, true);   // caja negra
       return result;
     } catch (err) {

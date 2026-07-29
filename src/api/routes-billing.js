@@ -649,6 +649,15 @@ function setupBillingRoutes(app, config) {
 
         if (result.action === 'payment_failed') {
           log.warn(`Pago fallido — customer: ${result.customerId}`);
+          // F5: se avisaba al CLIENTE y a nadie de NodeFlow. Un cliente que deja
+          // de pagar no generaba ninguna señal: te enterabas cuando se iba.
+          try {
+            require('../monitoring/error-tracker').capture(
+              new Error(`Pago fallido de un cliente (customer ${result.customerId})`),
+              'stripe_payment_failed',
+              { customerId: result.customerId, accion: 'revisar dunning y contactar antes de que se vaya' },
+            );
+          } catch (_) {}
           // Notify the customer by email — look up in registros first (Payment Link customers),
           // then fall back to organizations (dashboard checkout customers).
           if (db.enabled && result.customerId) {
