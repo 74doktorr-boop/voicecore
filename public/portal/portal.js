@@ -6870,6 +6870,25 @@ async function loadRecovery(targetId) {
       '</div>';
   }).join('');
 
+  // F8: el EXTRACTO línea a línea. Una cifra que no se puede auditar es un
+  // eslogan; este número existe justo para convencer a quien duda, así que
+  // tiene que poder abrirse y comprobarse una a una. El backend ya calculaba
+  // este detalle y lo descartaba antes de enviarlo.
+  var detail = (r && r.detail) || [];
+  var detailRows = detail.map(function (d) {
+    var when = d.at ? new Date(d.at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '—';
+    var open = d.callId
+      ? '<button class="btn-link" onclick="openTranscriptModal(\'' + esc(d.callId) + '\')" style="font-size:11px">ver llamada</button>'
+      : '';
+    return '<div style="padding:8px 0;border-top:1px solid var(--line,rgba(255,255,255,.06));font-size:12.5px">' +
+        '<div style="display:flex;justify-content:space-between;gap:10px">' +
+          '<span><span style="color:var(--dim)">' + esc(when) + '</span> · ' + esc(d.label) + '</span>' +
+          '<span style="font-family:monospace;white-space:nowrap">' + (d.value > 0 ? d.value + '€' : '—') + '</span>' +
+        '</div>' +
+        '<div style="color:var(--dim);font-size:11.5px;margin-top:2px">' + esc(d.why || '') + ' ' + open + '</div>' +
+      '</div>';
+  }).join('');
+
   box.innerHTML =
     '<div style="background:linear-gradient(180deg,rgba(196,245,70,.09),rgba(196,245,70,.02));border:1px solid rgba(196,245,70,.32);border-radius:14px;padding:16px 18px">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">' +
@@ -6879,6 +6898,12 @@ async function loadRecovery(targetId) {
       '</div>' +
       '<div style="font-size:12px;color:var(--dim);margin-bottom:4px">En 30 días · solo lo que se habría perdido sin mí</div>' +
       rows +
+      (detailRows
+        ? '<details style="margin-top:8px">' +
+            '<summary style="cursor:pointer;font-size:12px;color:var(--accent,#c4f546)">Ver una a una (' + detail.length + ')</summary>' +
+            '<div style="margin-top:4px">' + detailRows + '</div>' +
+          '</details>'
+        : '') +
     '</div>';
 }
 

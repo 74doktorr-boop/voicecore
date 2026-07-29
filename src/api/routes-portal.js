@@ -4235,7 +4235,16 @@ function setupPortalRoutes(app, pipeline, config) {
         { key: 'concurrent',  label: 'Llamadas en saturación',    count: ct.concurrent || 0, value: ct.concurrentValue || 0 },
         { key: 'followups',   label: 'Citas que traje con seguimientos', count: ft.count || 0, value: ft.value || 0 },
       ].filter(l => l.count > 0);
-      res.json({ ok: true, days, total, lines, calls: ct, followups: ft });
+      // F8: el DETALLE línea a línea ya se calculaba (getCallRecovery devuelve
+      // `recoveries[]` y getAttribution `bookings[]`) y se tiraba aquí mismo, a
+      // un res.json de distancia. El dueño veía "~105€" y no tenía ningún camino,
+      // en ninguna pantalla, para preguntar "¿cuáles?". Una cifra que no se
+      // puede auditar es un eslogan, no una prueba — y este número existe
+      // precisamente para convencer a quien duda.
+      const { buildRecoveryDetail } = require('../lifecycle/call-recovery');
+      const detail = buildRecoveryDetail(calls, followups, avgTicket);
+
+      res.json({ ok: true, days, total, lines, detail, calls: ct, followups: ft });
     } catch (e) {
       log.warn(`recovery: ${e.message}`);
       res.json({ ok: true, days: 30, total: 0, lines: [], calls: {}, followups: {} });

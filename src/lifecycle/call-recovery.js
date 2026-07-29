@@ -218,10 +218,64 @@ async function getCallRecovery(orgId, opts = {}) {
   }
 }
 
+/**
+ * Extracto línea a línea detrás del "~X€ recuperados" (F8, auditoría 2026-07-29).
+ *
+ * El detalle YA se calculaba —`getCallRecovery` devuelve `recoveries[]` y
+ * `getAttribution` devuelve `bookings[]`— y se descartaba en el `res.json`. El
+ * dueño veía "~105€" y no tenía ningún camino, en ninguna pantalla, para
+ * preguntar "¿cuáles?". Una cifra que no se puede auditar es un eslogan, no una
+ * prueba — y este número existe precisamente para convencer a quien duda.
+ *
+ * Solo se detalla lo que SUMA en la cabecera (atribución fuerte), para que el
+ * extracto cuadre con el total. Cada llamada lleva su `callId`: es lo que
+ * permite abrir la transcripción y comprobarlo de verdad.
+ *
+ * Puro: no toca BD ni red.
+ * @param {{recoveries?: Array}} calls      salida de getCallRecovery
+ * @param {{bookings?: Array}} followups    salida de getAttribution
+ * @param {number|null} avgTicket           ticket para las citas sin precio real
+ * @returns {Array<object>} líneas ordenadas de más reciente a más antigua
+ */
+function buildRecoveryDetail(calls, followups, avgTicket) {
+  const ticket = Number(avgTicket) || 0;
+  const _arr = (v) => (Array.isArray(v) ? v : []);   // tolerante a datos raros
+  const fromCalls = _arr(calls && calls.recoveries)
+    .filter(r => r && r.confidence === 'strong')
+    .map(r => ({
+      kind: 'call',
+      label: r.type === 'after_hours' ? 'Llamada fuera de tu horario' : 'Llamada mientras estabas ocupado',
+      value: r.value || 0,
+      at: r.at || null,
+      callId: r.id || null,
+      why: r.type === 'after_hours'
+        ? 'Entró fuera de tu horario: sin NodeFlow no la habría cogido nadie.'
+        : 'Entró mientras había otra llamada en curso: se habría perdido.',
+    }));
+
+  const fromFollowups = _arr(followups && followups.bookings).map(b => ({
+    kind: 'followup',
+    label: `Cita traída por un seguimiento${b.service ? ' · ' + b.service : ''}`,
+    // Precio REAL de la cita cuando lo hay. `pricedFrom` lo deja explícito para
+    // que nadie confunda una medición con una estimación.
+    value: b.price > 0 ? b.price : ticket,
+    pricedFrom: b.price > 0 ? 'real' : (ticket ? 'ticket_medio' : 'sin_precio'),
+    at: b.date || null,
+    phone: b.phone || null,
+    why: b.lagDays != null
+      ? `Reservó ${b.lagDays} día(s) después de que le escribiéramos.`
+      : 'Reservó después de que le escribiéramos.',
+  }));
+
+  return [...fromCalls, ...fromFollowups]
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+
 module.exports = {
   // núcleo puro (testeable sin BD)
   madridParts, hhmmToMin, isAfterHours, callInterval, detectConcurrent,
   appointmentValue, classifyCall, summarizeRecovery, computeRecovery,
+  buildRecoveryDetail,
   // cargador
   getCallRecovery,
   NOMINAL_CALL_MS,
