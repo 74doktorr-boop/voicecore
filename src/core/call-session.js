@@ -144,10 +144,18 @@ class CallSession {
 
   recordTurn(m) {
     this.turnCount++;
+    // F4 (auditoría 2026-07-29): `ttsTime` y `firstAudioMs` se acumulaban aquí
+    // pero NADIE los asignaba en turnMetrics. Se rellenan desde lo que el turno
+    // midió de verdad, en un único sitio, para que valga para los cuatro
+    // caminos que llaman a recordTurn (turno normal, descartado, escalado…).
+    if (m.ttsTime === undefined && this._turnTtsMs) m.ttsTime = this._turnTtsMs;
+    if (m.firstAudioMs === undefined && this._turnFirstAudioMs != null) m.firstAudioMs = this._turnFirstAudioMs;
     this.metrics.turns.push({ turn: this.turnCount, ...m, timestamp: Date.now() });
     if (m.sttTime) this.metrics.totalSttTime += m.sttTime;
     if (m.llmTime) this.metrics.totalLlmTime += m.llmTime;
-    if (m.ttsTime) this.metrics.totalTtsTime += m.ttsTime;
+    // OJO: totalTtsTime ya lo acumula _speakText por fragmento. Sumar aquí
+    // m.ttsTime lo DUPLICARÍA. Se deja la atribución por turno (turns[].ttsTime)
+    // y el total sigue viniendo de la única fuente que lo mide de verdad.
     if (m.toolTime) this.metrics.totalToolTime += m.toolTime;
     if (m.llmTokens) this.metrics.llmTokens += m.llmTokens;
     if (m.toolCalls) this.metrics.toolCalls += m.toolCalls;

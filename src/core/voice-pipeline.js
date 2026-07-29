@@ -543,6 +543,10 @@ class VoicePipeline {
     // cliente percibe como "tardó en contestar") — _speakText lo captura.
     session._turnT0 = turnStart;
     session._turnFirstAudioMs = null;
+    // TTS gastado en ESTE turno. `recordTurn` acumulaba `m.ttsTime` y `m.sttTime`
+    // pero NADIE los asignaba nunca (F4): totalSttTime era siempre 0 y el TTS no
+    // se podía atribuir a ningún turno concreto.
+    session._turnTtsMs = 0;
 
     // Add user message
     session.addUserMessage(userText);
@@ -706,7 +710,14 @@ class VoicePipeline {
 
         if (chunk.type === 'done') {
           fullResponse = chunk.content;
-          turnMetrics.llmTime = chunk.metrics?.totalTime;
+          // F4: el `totalTime` del proveedor se mide DENTRO de su generador, y el
+          // consumidor hace `await this._speakText(...)` dentro del for-await —
+          // lo que SUSPENDE el generador. Es decir, ese número incluía toda la
+          // síntesis TTS de las frases anteriores. Como client-health compara
+          // componentes para decidir "quién manda en la latencia", el LLM salía
+          // dominante por construcción y se optimizaba contra un número falso.
+          // Se descuenta el TTS realmente gastado en este turno.
+          turnMetrics.llmTime = Math.max(0, (chunk.metrics?.totalTime || 0) - (session._turnTtsMs || 0));
           turnMetrics.llmTokens = chunk.metrics?.tokens;
           turnMetrics.llmProvider = chunk.metrics?.provider;
           if (chunk.toolCalls?.length > 0) pendingToolCalls = chunk.toolCalls;
@@ -1086,6 +1097,9 @@ class VoicePipeline {
       // Instrumentación real del TTS: antes SOLO se logueaba (n=0 en métricas)
       // y el desglose de latencia atribuía todo al LLM.
       session.metrics.totalTtsTime = (session.metrics.totalTtsTime || 0) + ttsTime;
+      // …y por TURNO (F4), para poder decir QUÉ turno fue lento por culpa del TTS
+      // y para descontarlo del llmTime, que lo estaba absorbiendo.
+      session._turnTtsMs = (session._turnTtsMs || 0) + ttsTime;
       // Tiempo hasta el PRIMER audio del turno = la latencia que percibe el
       // cliente al teléfono (la métrica que importa, no el total del turno).
       if (session._turnT0 && session._turnFirstAudioMs == null) {
@@ -1114,6 +1128,15 @@ class VoicePipeline {
     const avgConfidence = confs.length ? +(confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(3) : null;
     const lats = turns.map(t => t.totalTime).filter(Boolean);
     const avgLatency = lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : null;
+    // F2/F3: `firstAudioMs` es la ÚNICA métrica que modela lo que el cliente
+    // percibe ("tardó en contestar"), y se capturaba desde hace semanas sin que
+    // nadie la agregara en ningún sitio — el panel admin leía `avgFirstAudioMs`,
+    // un campo que ningún backend producía. Y de todo el repo no salía ni un
+    // percentil: solo medias, que en voz esconden justo la cola que el cliente
+    // nota. Aquí se persisten las dos cosas.
+    const { latencySummary } = require('../analytics/percentiles');
+    const firstAudio = latencySummary(turns.map(t => t.firstAudioMs));
+    const turnLatency = latencySummary(lats);
     const clarifications = session.metrics.clarifications || 0;
     const recoveries = session.metrics.recoveries || 0;
     const interruptions = session.metrics.interruptions || 0;
@@ -1129,7 +1152,12 @@ class VoicePipeline {
     let score = 100;
     if (!completed) score -= 40;
     if (avgConfidence !== null) score -= Math.round(Math.max(0, (0.95 - avgConfidence) / 0.95) * 30);
-    if (avgLatency !== null && avgLatency > 1500) score -= Math.min(15, Math.round((avgLatency - 1500) / 200));
+    // El score penaliza por lo que el cliente PERCIBE (cuánto tardó en abrir la
+    // boca), no por lo que dura el turno entero: antes un turno donde la IA
+    // contestaba en 600 ms pero hablaba 4 s se penalizaba igual que uno que
+    // tardó 4 s en responder. Se cae a la latencia de turno si no hay dato.
+    const perceived = firstAudio.p50 != null ? firstAudio.p50 : avgLatency;
+    if (perceived !== null && perceived > 1500) score -= Math.min(15, Math.round((perceived - 1500) / 200));
     score -= Math.min(15, clarifications * 5 + recoveries * 5 + interruptions * 2);
     // El entrecortado es lo que MÁS molesta al oído: cada hueco resta, y un
     // hueco largo (>400ms) es una pausa clarísima a media frase.
@@ -1142,6 +1170,13 @@ class VoicePipeline {
       booked: session.outcome === 'booked',
       avgConfidence,
       avgLatency,
+      // Lo que el cliente percibe, con su cola. `n` va incluido a propósito: un
+      // p95 con 3 muestras no significa nada y quien lo lea debe poder saberlo.
+      firstAudio,
+      turnLatency,
+      // Atajo para el panel y las alertas (evita que cada consumidor rebusque).
+      p50FirstAudioMs: firstAudio.p50,
+      p95FirstAudioMs: firstAudio.p95,
       clarifications,
       recoveries,
       interruptions,

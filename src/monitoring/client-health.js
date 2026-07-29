@@ -28,6 +28,10 @@ const SCORE_CRIT  = 45;
 const SCORE_WARN  = 60;
 const HALLUC_WARN = 40;        // % de alucinación
 const LAT_WARN_MS = 1500;      // latencia media por turno (charter apunta a <700)
+// p95 de lo que el cliente PERCIBE (tiempo hasta el primer audio). Es el umbral
+// bueno: el de la media solo saltaba con la degradación ya masiva (F2). 2s es
+// donde una persona al teléfono empieza a pensar "se ha cortado".
+const LAT_P95_WARN_MS = Number(process.env.LAT_P95_WARN_MS) > 0 ? Number(process.env.LAT_P95_WARN_MS) : 2000;
 const LAT_MIN_TURNS = 5;       // no juzgues latencia con menos turnos
 const SILENCE_MIN_PRIOR = 3;   // tenía ≥3 llamadas en la ventana previa…
 const RECENT_MS = 2 * 24 * 3600 * 1000; // …y 0 en las últimas 48h → silencio
@@ -69,6 +73,7 @@ function computeClientHealth(rows, nowMs) {
       causes: { instant: 0, no_conversation: 0, cut_mid: 0 },
       infoGaps: {}, problems: {},
       latSum: 0, latTurns: 0, llmSum: 0, ttsSum: 0, sttSum: 0, toolSum: 0,
+      firstAudioSamples: [],
     });
     o.calls++;
     if (_isBroken(r)) { o.broken++; o.causes[_brokenCause(r)]++; }
@@ -77,6 +82,10 @@ function computeClientHealth(rows, nowMs) {
     const m = r.metrics || {};
     for (const t of (Array.isArray(m.turns) ? m.turns : [])) {
       if (Number.isFinite(t.totalTime)) { o.latSum += t.totalTime; o.latTurns++; }
+      // F2/F3: se guardan las muestras crudas de lo que el cliente PERCIBE para
+      // poder sacar percentiles. La media escondía la cola: 9 turnos a 400ms y
+      // uno a 6s dan 960ms → "verde" mientras el cliente ya ha colgado.
+      if (Number.isFinite(t.firstAudioMs)) o.firstAudioSamples.push(t.firstAudioMs);
     }
     o.llmSum  += Number(m.totalLlmTime)  || 0;
     o.ttsSum  += Number(m.totalTtsTime)  || 0;
@@ -121,6 +130,10 @@ function computeClientHealth(rows, nowMs) {
     o.avgScore = o.scored ? Math.round(o.scoreSum / o.scored) : null;
     o.hallucinationRate = o.scored ? Math.round((o.hallucinated / o.scored) * 100) : null;
     o.avgTurnMs = o.latTurns ? Math.round(o.latSum / o.latTurns) : null;
+    // Percentiles de lo que el cliente percibe. La media sola no vale para
+    // decidir si un negocio "va lento": esconde exactamente la cola que duele.
+    o.firstAudio = require('../analytics/percentiles').latencySummary(o.firstAudioSamples);
+    delete o.firstAudioSamples;   // no arrastrar las muestras crudas al informe
 
     // Silencio: recibía llamadas y de golpe 0 en las últimas 48h.
     const silent = now && o.prior >= SILENCE_MIN_PRIOR && o.recent === 0;
@@ -132,6 +145,10 @@ function computeClientHealth(rows, nowMs) {
     else if (o.brokenRate >= BROKEN_WARN && o.calls >= 2) { verdict = 'warning'; reasons.push(`${Math.round(o.brokenRate * 100)}% de llamadas rotas`); }
     else if (o.scored >= MIN_CALLS_QUALITY && o.avgScore < SCORE_WARN) { verdict = 'warning'; reasons.push(`calidad floja (score ${o.avgScore})`); }
     else if (o.scored >= MIN_CALLS_QUALITY && o.hallucinationRate >= HALLUC_WARN) { verdict = 'warning'; reasons.push(`alucina el ${o.hallucinationRate}% de las veces`); }
+    // Se avisa por el p95 de lo que el cliente percibe (si hay muestras
+    // suficientes) y no por la media del turno completo: el umbral sobre la
+    // media solo saltaba cuando la degradación ya era masiva.
+    else if ((o.firstAudio?.n || 0) >= LAT_MIN_TURNS && o.firstAudio.p95 >= LAT_P95_WARN_MS) { verdict = 'warning'; reasons.push(`va lento (p95 ${(o.firstAudio.p95 / 1000).toFixed(1)}s hasta contestar)`); }
     else if (o.latTurns >= LAT_MIN_TURNS && o.avgTurnMs >= LAT_WARN_MS) { verdict = 'warning'; reasons.push(`va lento (${(o.avgTurnMs / 1000).toFixed(1)}s por turno)`); }
 
     if (silent) { // el silencio es lo más urgente: el negocio no recibe NADA
@@ -189,9 +206,17 @@ function prescribe(o, ctx = {}) {
       detail: 'La voz se para a media frase: el siguiente fragmento de audio llega tarde (generación lenta). Es problema NUESTRO, no del negocio — si persiste tras la frase-puente, toca acelerar el TTS en streaming para ese volumen.' });
   }
 
-  if ((o.latTurns || 0) >= 5 && (o.avgTurnMs || 0) >= 1500) {
+  const slowByP95 = (o.firstAudio?.n || 0) >= 5 && (o.firstAudio.p95 || 0) >= 2000;
+  if (slowByP95 || ((o.latTurns || 0) >= 5 && (o.avgTurnMs || 0) >= 1500)) {
     // ¿Quién es el lento? El desglose por componente lo dice.
-    const parts = { LLM: o.llmSum || 0, TTS: o.ttsSum || 0, STT: o.sttSum || 0, herramientas: o.toolSum || 0 };
+    // Solo se comparan los componentes REALMENTE medidos (F4): `totalSttTime`
+    // es siempre 0 porque nadie mide el tiempo de STT, así que incluirlo hacía
+    // que el STT no pudiera salir dominante NUNCA — y de paso diluía los
+    // porcentajes de los demás. Mejor no listar lo que no se mide.
+    const parts = Object.fromEntries(
+      Object.entries({ LLM: o.llmSum || 0, TTS: o.ttsSum || 0, STT: o.sttSum || 0, herramientas: o.toolSum || 0 })
+        .filter(([, v]) => v > 0));
+    if (!Object.keys(parts).length) parts.LLM = 1;   // sin desglose: no romper
     const total = Object.values(parts).reduce((a, b) => a + b, 0) || 1;
     const [worst, worstMs] = Object.entries(parts).sort((a, b) => b[1] - a[1])[0];
     const pct = Math.round((worstMs / total) * 100);
@@ -201,7 +226,10 @@ function prescribe(o, ctx = {}) {
       STT: 'revisa Deepgram en diagnostics — la transcripción está tardando de más',
       herramientas: 'una integración va lenta (agenda/calendario): mira qué tool tarda en los transcripts',
     }[worst];
-    out.push({ icon: '🐢', action: `Va lento: ${(o.avgTurnMs / 1000).toFixed(1)}s de media por turno — el ${pct}% se va en ${worst}`,
+    const cómo = slowByP95
+      ? `p95 ${(o.firstAudio.p95 / 1000).toFixed(1)}s hasta contestar (mediana ${(o.firstAudio.p50 / 1000).toFixed(1)}s, n=${o.firstAudio.n})`
+      : `${(o.avgTurnMs / 1000).toFixed(1)}s de media por turno`;
+    out.push({ icon: '🐢', action: `Va lento: ${cómo} — el ${pct}% se va en ${worst}`,
       detail: `Cada segundo de silencio cuesta colgados (el objetivo interno es <0,7s). Dominante: ${worst}. Acción: ${fix}.` });
   }
 
