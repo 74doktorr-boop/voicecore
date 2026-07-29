@@ -16,6 +16,18 @@ class STTRouter {
     this._health = new Map();
     this._openWatch = new Map();     // callId -> timer del watchdog de apertura
     this._failoverCount = 0;         // observabilidad (charter: evidencia)
+    // Llamadas VIVAS según el router: callId -> { options, order, session,
+    // attempts, nextAttemptAt, reconnecting, dropped, gaveUp }.
+    // Existir aquí significa "esta llamada sigue en curso": es lo que permite
+    // distinguir una conexión que se ha MUERTO de una llamada que ha COLGADO.
+    this._live = new Map();
+    this._reconnects = 0;
+    this._droppedFrames = 0;
+    // Reconexión en vuelo (V3). Tope de intentos y espera creciente: si Deepgram
+    // está caído de verdad, no tiene sentido martillearlo 50 veces por segundo
+    // (llega un frame de audio cada 20 ms).
+    this.maxReconnects   = Number(config.sttMaxReconnects   ?? process.env.STT_MAX_RECONNECTS)   || 3;
+    this.reconnectBackoff = [250, 1000, 2500];
     // Cuánto esperamos a que la conexión ABRA antes de dar el proveedor por
     // caído y saltar al siguiente. Corto para no dejar la llamada sorda, pero
     // holgado para una apertura de WebSocket normal (~100-300ms).
@@ -144,8 +156,93 @@ class STTRouter {
     const primary = order.find(n => this._isHealthy(n, now)) || order[0];
     const session = this.providers.get(primary).instance.createSession(callId, options);
     session._sttProviderName = primary;
+    // Marca la llamada como viva: a partir de aquí, quedarse sin sesión es una
+    // AVERÍA que hay que reparar, no el final normal de la llamada.
+    this._live.set(callId, {
+      options, order, session,
+      attempts: 0, nextAttemptAt: 0, reconnecting: false, dropped: 0, gaveUp: false,
+    });
     this._armOpenWatchdog(callId, session, primary, order, options);
     return session;
+  }
+
+  /** Sesión activa de este callId en cualquier proveedor, o null. */
+  _findSession(callId) {
+    for (const [name, info] of this.providers) {
+      const session = info.instance.connections?.get(callId);
+      if (session) return { name, info, session };
+    }
+    return null;
+  }
+
+  /**
+   * Reconecta el STT de una llamada VIVA cuya conexión se ha muerto (V3).
+   *
+   * EL BUG QUE ARREGLA (auditoría 2026-07-29): cuando Deepgram cerraba el socket
+   * a mitad de llamada —cosa que pasa: timeouts de red, despliegues suyos, un
+   * keepAlive perdido— su handler de Close borraba la sesión del Map y `sendAudio`
+   * dejaba de encontrarla. Y no hacía nada: `return` a secas, sin log, sin
+   * métrica, sin excepción. **El audio del cliente se tiraba al suelo el resto
+   * de la llamada y la IA se quedaba SORDA en silencio.** El único que se
+   * enteraba era el salvavidas, 75 segundos después. El negocio veía "llamada de
+   * 8 minutos, 3 turnos, abandonada" y culpaba al cliente.
+   *
+   * No había reconexión en ningún sitio: el failover del router solo cubría la
+   * APERTURA (un watchdog de un disparo que se desarma en cuanto la conexión
+   * abre), así que protegía el primer segundo de la llamada y nada más.
+   *
+   * Idempotente y con freno: llega un frame cada 20 ms, así que esto se invoca
+   * en ráfaga. Un solo intento en vuelo, espera creciente entre intentos y tope
+   * duro; agotado el tope se avisa UNA vez y se deja de intentar.
+   */
+  _reconnect(callId, live, now = Date.now()) {
+    if (live.reconnecting || live.gaveUp) return;
+    if (now < live.nextAttemptAt) return;
+
+    if (live.attempts >= this.maxReconnects) {
+      live.gaveUp = true;
+      log.error(`[${callId}] STT: ${live.attempts} reconexiones fallidas — la llamada se queda sin transcripción`);
+      try {
+        require('../monitoring/error-tracker').capture(
+          new Error(`STT no se pudo reconectar tras ${live.attempts} intentos`),
+          'stt_reconnect_failed',
+          { callId, framesDescartados: live.dropped, impacto: 'la IA no oye al cliente durante el resto de la llamada' },
+        );
+      } catch (_) {}
+      return;
+    }
+
+    live.reconnecting = true;
+    live.attempts++;
+    live.nextAttemptAt = now + (this.reconnectBackoff[live.attempts - 1] || 2500);
+
+    // Si el proveedor de origen se ha ganado el breaker por el camino, se
+    // reconecta en el siguiente sano: reconectar contra un servicio caído es
+    // repetir el problema.
+    const prevName = live.session?._sttProviderName;
+    const candidates = live.order.filter(n => this.providers.has(n));
+    const next = candidates.find(n => this._isHealthy(n, now)) || prevName || candidates[0];
+    if (!next) { live.reconnecting = false; live.gaveUp = true; return; }
+
+    log.warn(`[${callId}] STT caído en mitad de la llamada — reconectando (intento ${live.attempts}/${this.maxReconnects}, proveedor '${next}')`);
+    this._reconnects++;
+
+    try {
+      const ns = this.providers.get(next).instance.createSession(callId, live.options);
+      ns._sttProviderName = next;
+      // Los callbacks los puso el pipeline sobre la sesión ANTERIOR: sin
+      // recablearlos, la conexión nueva transcribiría al vacío.
+      for (const cb of ['onTranscript', 'onSpeechStart', 'onSpeechEnd', 'onUtteranceEnd']) {
+        if (live.session && live.session[cb]) ns[cb] = live.session[cb];
+      }
+      live.session = ns;
+      this._armOpenWatchdog(callId, ns, next, live.order, live.options);
+    } catch (e) {
+      log.error(`[${callId}] STT: fallo al reconectar con '${next}': ${e.message}`);
+      this._recordFailure(next, now);
+    } finally {
+      live.reconnecting = false;
+    }
   }
 
   // Vigila que la sesión ABRA. Si a tiempo no abrió, marca fallo (puede abrir el
@@ -179,13 +276,18 @@ class STTRouter {
   }
 
   sendAudio(callId, audioData) {
-    for (const [, info] of this.providers) {
-      const session = info.instance.connections?.get(callId);
-      if (session) {
-        info.instance.sendAudio(callId, audioData);
-        return;
-      }
-    }
+    const found = this._findSession(callId);
+    if (found) { found.info.instance.sendAudio(callId, audioData); return; }
+
+    // Sin sesión. Dos casos MUY distintos que antes se trataban igual (con un
+    // `return` mudo):
+    const live = this._live.get(callId);
+    if (!live) return;            // la llamada ya colgó: normal, no hay nada que hacer.
+
+    // …y la llamada SIGUE VIVA: la conexión se ha muerto. Esto es una avería.
+    live.dropped++;
+    this._droppedFrames++;
+    this._reconnect(callId, live);
   }
 
   closeSession(callId) {
@@ -193,6 +295,14 @@ class STTRouter {
     // openTimeoutMs, NO debe marcarse como fallo del proveedor ni hacer failover.
     const w = this._openWatch.get(callId);
     if (w) { clearTimeout(w); this._openWatch.delete(callId); }
+    // Y deja de considerarla viva ANTES de cerrar: si no, el cierre normal
+    // parecería una caída y el router intentaría reconectar una llamada que ya
+    // ha colgado (audio a un proveedor por una conversación que no existe).
+    const live = this._live.get(callId);
+    if (live && live.dropped) {
+      log.warn(`[${callId}] STT: ${live.dropped} frame(s) de audio descartados por caída de conexión durante la llamada`);
+    }
+    this._live.delete(callId);
     for (const [, info] of this.providers) {
       if (info.instance.connections?.has(callId)) {
         info.instance.closeSession(callId);
@@ -211,7 +321,15 @@ class STTRouter {
   }
 
   getMetrics() {
-    const result = { _failovers: this._failoverCount };
+    // `_reconnects` y `_droppedFrames` son la evidencia de V3: si crecen, hay
+    // llamadas en las que la IA se estuvo quedando sorda. Antes ninguna de las
+    // dos cosas dejaba rastro de ningún tipo.
+    const result = {
+      _failovers: this._failoverCount,
+      _reconnects: this._reconnects,
+      _droppedFrames: this._droppedFrames,
+      _liveCalls: this._live.size,
+    };
     for (const [name, info] of this.providers) {
       result[name] = {
         models: info.models,

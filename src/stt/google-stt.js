@@ -18,6 +18,12 @@ class GoogleSTT {
    * Uses short-lived recognize requests (simpler than gRPC)
    */
   createSession(callId, options = {}) {
+    // V5: el códec y el idioma se derivan de verdad. Antes era
+    // `encoding === 'mulaw' ? 'MULAW' : 'LINEAR16'` y `language || 'es-ES'`:
+    // con Telnyx España (A-law) se configuraba LINEAR16 sobre bytes A-law —
+    // ruido, no "peor calidad"— y se enviaba 'es+gl' como si fuera BCP-47.
+    const { googleAudioConfig, toBCP47 } = require('./audio-format');
+    const audio = googleAudioConfig(options.encoding, options.sample_rate);
     const session = {
       callId,
       isOpen: true,
@@ -34,12 +40,16 @@ class GoogleSTT {
       processInterval: null,
       silenceTimer: null,
       utteranceEndMs: options.utteranceEndMs || 1000,
-      language: options.language || 'es-ES',
-      sampleRate: options.encoding === 'mulaw' ? 8000 : 16000,
-      encoding: options.encoding === 'mulaw' ? 'MULAW' : 'LINEAR16',
+      language: toBCP47(options.language),
+      sampleRate: audio.sampleRateHertz,
+      encoding: audio.encoding,
+      // Fallos seguidos de la API. Sin esto `isOpen` era true desde el
+      // constructor y JAMÁS cambiaba: el vigilante del router daba a Google por
+      // sano aunque devolviera 403 en cada petición.
+      consecutiveErrors: 0,
     };
 
-    log.stt(`[${callId}] Creating Google STT session`, { language: session.language });
+    log.stt(`[${callId}] Creating Google STT session`, { language: session.language, encoding: session.encoding, sampleRate: session.sampleRate });
 
     // Process audio buffer periodically (every 2 seconds)
     session.processInterval = setInterval(() => {
@@ -82,7 +92,30 @@ class GoogleSTT {
         }
       );
 
-      if (!response.ok) return;
+      // ANTES: `if (!response.ok) return;` — se tragaba el error entero. Google
+      // podía estar devolviendo 400 por códec mal declarado o 403 por la key, en
+      // TODAS las peticiones, y no quedaba ni una línea de log. Es exactamente
+      // por eso que el respaldo parecía funcionar.
+      if (!response.ok) {
+        const cuerpo = await response.text().catch(() => '');
+        session.consecutiveErrors++;
+        log.error(`[${session.callId}] Google STT ${response.status}: ${cuerpo.slice(0, 200)}`);
+        if (session.consecutiveErrors >= 3 && session.isOpen) {
+          // Marcarlo como cerrado es lo que permite al router darlo por caído y
+          // reconectar/hacer failover en vez de seguir enviándole audio al vacío.
+          session.isOpen = false;
+          log.error(`[${session.callId}] Google STT fuera de servicio tras 3 errores seguidos — se marca la sesión como cerrada`);
+          try {
+            require('../monitoring/error-tracker').capture(
+              new Error(`Google STT devuelve ${response.status} de forma sostenida`),
+              'stt_google_down',
+              { callId: session.callId, respuesta: cuerpo.slice(0, 200) },
+            );
+          } catch (_) {}
+        }
+        return;
+      }
+      session.consecutiveErrors = 0;
 
       const result = await response.json();
       const results = result.results || [];
@@ -96,11 +129,22 @@ class GoogleSTT {
 
         if (isFinal) {
           session.finalTranscript += (session.finalTranscript ? ' ' : '') + text;
-          log.stt(`[${session.callId}] Final: "${text}"`);
+          // D4: la confianza se propaga. Sin ella, la escalera de confianza del
+          // pipeline se salta ENTERA (todas sus comprobaciones son
+          // `conf !== null && …`) — es decir, la protección contra transcripción
+          // mala se desactivaba justo cuando la transcripción era peor, porque
+          // solo Deepgram la enviaba.
+          if (typeof alt.confidence === 'number') {
+            session.finalConfidences = session.finalConfidences || [];
+            session.finalConfidences.push(alt.confidence);
+          }
+          // Igual que Deepgram (F7): la transcripción íntegra no va a los logs.
+          const mostrado = process.env.LOG_TRANSCRIPTS === '1' ? `"${text}"` : `${text.length} car.`;
+          log.stt(`[${session.callId}] Final: ${mostrado}`);
 
           if (!session.speechStarted) {
             session.speechStarted = true;
-            if (session.onSpeechStart) session.onSpeechStart(text);
+            if (session.onSpeechStart) session.onSpeechStart(text, { confidence: typeof alt.confidence === 'number' ? alt.confidence : null });
           }
 
           if (session.onTranscript) {
@@ -112,10 +156,15 @@ class GoogleSTT {
           session.silenceTimer = setTimeout(() => {
             if (session.finalTranscript && session.onUtteranceEnd) {
               const fullText = session.finalTranscript;
+              const cs = session.finalConfidences || [];
+              const confianza = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : null;
               session.finalTranscript = '';
               session.currentTranscript = '';
+              session.finalConfidences = [];
               session.speechStarted = false;
-              session.onUtteranceEnd(fullText);
+              // Con meta, igual que Deepgram: la escalera de confianza sigue
+              // protegiendo aunque estemos en el proveedor de respaldo.
+              session.onUtteranceEnd(fullText, { confidence: confianza });
             }
           }, session.utteranceEndMs);
         }

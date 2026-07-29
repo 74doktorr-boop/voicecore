@@ -36,8 +36,11 @@ class AssemblyAISTT {
       utteranceEndMs: options.utteranceEndMs || 1000,
     };
 
-    const sampleRate = options.encoding === 'mulaw' ? 8000 : (options.sample_rate || 16000);
-    const encoding = options.encoding === 'mulaw' ? 'pcm_mulaw' : 'pcm_s16le';
+    // V5: mismo fallo que tenía Google — con Telnyx España (A-law) este `? :`
+    // declaraba pcm_s16le sobre bytes A-law, o sea ruido. AssemblyAI acepta
+    // pcm_alaw de forma nativa: solo hay que declararlo bien.
+    const { assemblyAudioConfig } = require('./audio-format');
+    const { encoding, sampleRate } = assemblyAudioConfig(options.encoding, options.sample_rate);
 
     log.stt(`[${callId}] Creating AssemblyAI session`, { sampleRate, encoding });
 
