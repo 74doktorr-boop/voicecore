@@ -28,7 +28,15 @@ function sendWhatsApp(text) {
       return resolve({ ok: false, reason: 'not_configured' });
     }
 
-    const encoded = encodeURIComponent(text);
+    // Auditoría 2026-07-29: CallMeBot es un servicio gratuito de un particular,
+    // sin DPA posible, y el mensaje viaja en la QUERY STRING (queda en sus logs
+    // de acceso). El destinatario es el móvil del fundador, así que el canal en
+    // sí es aceptable para un aviso rápido — pero el CONTENIDO llevaba nombres y
+    // teléfonos de clientes finales, que son terceros que nunca contrataron nada
+    // con NodeFlow. Se enmascaran antes de salir: el aviso sigue sirviendo para
+    // enterarse al momento, y el detalle completo está en el panel y en el email.
+    const { redactPII } = require('../utils/logger');
+    const encoded = encodeURIComponent(redactPII(text));
     const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encoded}&apikey=${apiKey}`;
 
     https.get(url, (res) => {

@@ -270,14 +270,26 @@ a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset
     <section class="sec" id="s5">
       <div class="sec-head"><span class="sec-num">05</span><h2>Destinatarios y encargados/subencargados</h2></div>
       <p>Para prestar el servicio recurrimos a proveedores tecnológicos que tratan datos por nuestra cuenta (o, en el caso de datos de clientes finales, como subencargados), todos ellos con garantías contractuales adecuadas. Por categorías:</p>
+      <!-- Auditoría 2026-07-29: la lista anterior nombraba CUATRO proveedores y
+           dejaba en genérico ("proveedores de IA de voz y lenguaje") justo a los
+           que reciben lo más sensible: la VOZ CRUDA del que llama y la
+           CONVERSACIÓN ÍNTEGRA. El art. 28.2 del RGPD permite dar la lista bajo
+           petición, pero con datos de pacientes de clínicas la práctica
+           defendible es nombrarlos — y, sobre todo, sin nombres el negocio-
+           cliente NO PUEDE cumplir SU obligación de informar a sus pacientes. -->
       <ul>
         <li><strong>Base de datos y alojamiento:</strong> Supabase.</li>
-        <li><strong>Proveedores de IA de voz y lenguaje:</strong> transcripción (voz a texto), síntesis de voz (texto a voz) y modelos de lenguaje.</li>
+        <li><strong>Transcripción de voz (recibe el audio de la llamada):</strong> Deepgram. Como respaldo, según configuración: AssemblyAI y Google Cloud Speech-to-Text.</li>
+        <li><strong>Modelos de lenguaje (reciben el texto de la conversación):</strong> Groq, OpenAI y Anthropic.</li>
+        <li><strong>Síntesis de voz (recibe el texto de las respuestas):</strong> ElevenLabs, Cartesia y Google Cloud Text-to-Speech.</li>
         <li><strong>Telefonía:</strong> Telnyx (infraestructura de llamadas).</li>
         <li><strong>Mensajería:</strong> Meta Platforms — WhatsApp Business Platform.</li>
+        <li><strong>Calendario:</strong> Google (Calendar) y Microsoft (Outlook), cuando el negocio conecta el suyo: reciben nombre, teléfono y motivo de la cita.</li>
         <li><strong>Pagos:</strong> Stripe.</li>
-        <li><strong>Correo electrónico:</strong> proveedor de envío de email transaccional y de notificaciones.</li>
+        <li><strong>Correo electrónico:</strong> Resend (email transaccional y notificaciones).</li>
+        <li><strong>Analítica del sitio web:</strong> Plausible (sin cookies).</li>
       </ul>
+      <p>Ninguno de estos proveedores utiliza los datos tratados por cuenta de NodeFlow para entrenar sus propios modelos.</p>
       <div class="callout">
         <div class="co-label"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>Transferencias internacionales</div>
         <p>Algunos de estos proveedores pueden tratar datos <strong>fuera del Espacio Económico Europeo</strong>. En esos casos las transferencias se amparan en <strong>garantías adecuadas</strong>, como las <strong>Cláusulas Contractuales Tipo</strong> aprobadas por la Comisión Europea. La lista actualizada de subencargados puede solicitarse en <a class="link" href="mailto:privacidad@nodeflow.es">privacidad@nodeflow.es</a>.</p>
@@ -327,7 +339,11 @@ a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset
         <li><strong>Qué NO hacemos:</strong> no vendemos estos datos, no los usamos con fines publicitarios, no los cedemos a terceros ajenos a la prestación del servicio ni los empleamos para desarrollar, mejorar o entrenar modelos de inteligencia artificial. El modelo de lenguaje del asistente solo recibe los huecos de disponibilidad ya calculados, nunca el contenido de tu calendario.</li>
         <li><strong>Cómo los protegemos:</strong> la comunicación viaja cifrada en tránsito (HTTPS/TLS) y los tokens de acceso de Google se almacenan cifrados en reposo (AES-256-GCM), con aislamiento por negocio de forma que ningún cliente puede acceder a los datos de otro.</li>
         <li><strong>Conservación y borrado:</strong> conservamos los tokens mientras mantengas Google Calendar conectado. Puedes desconectarlo en cualquier momento desde el panel («Desconectar»), lo que borra los tokens de inmediato; también se eliminan al cerrar la cuenta. No conservamos una copia del contenido de tu calendario.</li>
-        <li><strong>Modelos auto-alojados:</strong> algunos componentes de voz (por ejemplo, la síntesis de voz en euskera y galego) funcionan con modelos <strong>auto-alojados en nuestra propia infraestructura</strong>: los datos se procesan localmente y <strong>nunca se transmiten al proveedor del modelo</strong> ni se usan para su entrenamiento ni para ningún fin secundario.</li>
+        <!-- Auditoría 2026-07-29: esta afirmación era FALSA y estaba dentro de un
+             documento RGPD. La voz en galego se sintetiza con ElevenLabs (EEUU),
+             es decir el texto SÍ se transmite al proveedor; y el servidor de voz
+             local para euskera no está desplegado. -->
+        <li><strong>Modelos auto-alojados:</strong> tenemos un servidor propio de síntesis de voz para euskera y galego, pensado para que esos datos se procesen localmente. <strong>Hoy no está en servicio</strong>: mientras tanto, la síntesis de voz se hace con los proveedores listados en el apartado 05, con las garantías allí descritas. Actualizaremos este apartado cuando cambie.</li>
       </ul>
       <p>El uso y la transferencia por parte de NodeFlow de la información recibida de las APIs de Google se ajustan a la <a class="link" href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Datos de Usuario de los Servicios de la API de Google</a>, incluidos sus <strong>requisitos de Uso Limitado (Limited Use)</strong>.</p>
     </section>
@@ -350,9 +366,9 @@ a:focus-visible,.back:focus-visible{outline:2px solid var(--lime);outline-offset
   </div>
   <div class="foot-bot">
     <div>© 2026 NodeFlow · Hecho en Euskadi</div>
-    <div class="meta-badge" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+    <div class="meta-badge" title="Los avisos de WhatsApp se envían por la API oficial de Meta (WhatsApp Business Platform), no desde un móvil ni un bot no oficial">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
-      <span>Proveedor de tecnología verificado por Meta</span>
+      <span>WhatsApp por la API oficial de Meta</span>
     </div>
     <div>Cumple RGPD · Soporte humano en español</div>
   </div>

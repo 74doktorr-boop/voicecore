@@ -199,6 +199,17 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
       <input type="text" id="coupon" placeholder="Introduce tu código" style="text-transform:uppercase">
     </div>
     <div class="error-msg" id="step3-error" role="alert" aria-live="assertive"></div>
+    <!-- Auditoría 2026-07-29: este formulario recogía nombre, teléfono y email
+         con CERO menciones legales (0 coincidencias de "privac", "legal" o
+         "RGPD" en toda la página), mientras las Condiciones afirmaban "al darte
+         de alta las aceptas". Un consentimiento que nunca se mostró es
+         impugnable, y falta la información del art. 13 del RGPD. -->
+    <p style="font-size:12.5px;line-height:1.5;opacity:.72;margin:10px 0 14px">
+      Al continuar aceptas las <a href="/condiciones/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Condiciones de Uso</a>
+      y la <a href="/privacidad/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Política de Privacidad</a>.
+      Usamos tus datos para crear y gestionar tu cuenta; puedes acceder a ellos, rectificarlos o pedir su supresión escribiendo a
+      <a href="mailto:unai@nodeflow.es" style="color:inherit;text-decoration:underline">unai@nodeflow.es</a>.
+    </p>
     <button class="btn-primary" id="step3-btn" onclick="submitRegistro()">Ver resumen →</button>
   </div>
 

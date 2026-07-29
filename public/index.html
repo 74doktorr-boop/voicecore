@@ -271,7 +271,11 @@ footer{padding:64px 0 44px;position:relative;z-index:2;background:var(--bg)}
     <div class="fcard reveal d2"><div class="i">// honesta</div><h3>Sin humo ni permanencia</h3><p>Precio claro, cancelas cuando quieras y la IA avisa siempre de que es IA. Si no te sirve, no te quedas.</p></div>
   </div>
   <div class="ticker reveal d1">
-    <div class="ticker-head"><span class="live"></span>El asistente, trabajando ahora mismo</div>
+    <!-- Auditoría 2026-07-29: esto se presentaba como actividad EN VIVO (punto
+         pulsante "live" + "hace 3s" generado con Math.random()) cuando es un
+         array fijo de 8 frases de ejemplo. Se reetiqueta: el formato está bien,
+         lo que no valía era venderlo como real. -->
+    <div class="ticker-head">Lo que hace en un día normal <span style="opacity:.6;font-weight:400">· ejemplos</span></div>
     <div class="ticker-body" id="tickerBody"></div>
   </div>
 </div></section>
@@ -427,7 +431,8 @@ footer{padding:64px 0 44px;position:relative;z-index:2;background:var(--bg)}
   // ── Ticker ──
   var EVENTS=[['Reserva','Cita confirmada para mañana a las 10:00'],['Llamada','Atendida — cliente informado de horarios'],['WhatsApp','Respondido y cita agendada'],['Recupera','Cliente dormido reactivado por voz'],['Reseña','Pedida tras la visita — 5★'],['Web','Visitante reservó desde el chat'],['Aviso','Recordatorio de cita enviado'],['Contenido','Artículo SEO publicado en el micrositio']];
   var body=document.getElementById('tickerBody'), ti=0;
-  function addRow(){var e=EVENTS[ti%EVENTS.length];ti++;var r=document.createElement('div');r.className='ticker-row';r.innerHTML='<span class="tag">'+e[0]+'</span><span class="who">'+e[1]+'</span><span class="ago">hace '+(Math.floor(Math.random()*9)+1)+'s</span>';body.insertBefore(r,body.firstChild);while(body.children.length>5)body.removeChild(body.lastChild);}
+  // Sin "hace N s" inventado: eran ejemplos presentados como eventos en vivo.
+  function addRow(){var e=EVENTS[ti%EVENTS.length];ti++;var r=document.createElement('div');r.className='ticker-row';r.innerHTML='<span class="tag">'+e[0]+'</span><span class="who">'+e[1]+'</span>';body.insertBefore(r,body.firstChild);while(body.children.length>5)body.removeChild(body.lastChild);}
   addRow();addRow();addRow();addRow();
   if(!reduce) setInterval(addRow,2400);
 

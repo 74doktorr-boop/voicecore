@@ -330,9 +330,9 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
         <span><span class="k">✓</span> Sin cambiar tu número</span>
         <span><span class="k">✓</span> Sin permanencia</span>
       </div>
-      <div class="meta-badge" style="margin-top:20px" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+      <div class="meta-badge" style="margin-top:20px" title="Los avisos de WhatsApp se envían por la API oficial de Meta (WhatsApp Business Platform), no desde un móvil ni un bot no oficial">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
-        <span>Proveedor de tecnología verificado por Meta · WhatsApp Business Platform oficial</span>
+        <span>WhatsApp por la API oficial de Meta (Business Platform)</span>
       </div>
     </div>
     <div class="demo">
@@ -357,7 +357,12 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
           <input id="cmPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Tu número de móvil" aria-label="Tu teléfono para la demostración" required>
           <button type="submit" id="cmBtn">Llámame</button>
         </form>
-        <div class="cc-callme-note" id="cmNote">Sin coste · sin registro · sin compromiso</div>
+        <!-- Auditoría 2026-07-29: decía "sin registro" y SÍ hay registro — el
+             endpoint inserta un lead con nombre y teléfono ANTES de llamar. Y no
+             había aviso de privacidad, ni enlace, ni casilla: recoger un dato
+             personal así incumple el art. 13 del RGPD, y hacerlo diciendo
+             explícitamente "sin registro" lo agrava. -->
+        <div class="cc-callme-note" id="cmNote">Sin coste y sin compromiso. Guardamos tu número solo para llamarte y contactarte una vez; puedes pedirnos que lo borremos cuando quieras. <a href="/privacidad/" style="color:inherit;text-decoration:underline">Cómo tratamos tus datos</a>.</div>
       </div>
       <script>
       (function(){
@@ -438,7 +443,10 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
 <section class="section" id="capacidades"><div class="wrap">
   <div class="kicker"><span class="n">03</span><span>Qué hace por ti</span></div>
   <h2 class="h2" style="margin-bottom:8px">No es un contestador. Es la gestión de tus clientes, <span class="lime">automatizada</span>.</h2>
-  <p class="deck" style="margin-bottom:clamp(36px,4vw,52px)">Todo incluido en el plan, sin módulos adicionales.</p>
+  <!-- Auditoría 2026-07-29: "todo incluido, sin módulos adicionales" se
+       contradecía 110 líneas más abajo, en la misma página, con tres extras de
+       pago (WhatsApp propio +15€, Voz Premium +10€, minutos extra). -->
+  <p class="deck" style="margin-bottom:clamp(36px,4vw,52px)">Esto es lo que hace el plan. Los extras (WhatsApp con tu número, voz premium) son opcionales y están abajo, con su precio.</p>
   <div class="caps">
     <div class="cap"><div class="n">01</div><div><h3>Agenda citas mientras trabajas</h3><p>Consulta tu disponibilidad real y reserva en tu Google Calendar durante la llamada. El cliente finaliza con su cita ya confirmada.</p></div><div class="tag">Sincroniza con tu calendario</div></div>
     <div class="cap feat"><div class="n">02</div><div><h3>Recuerda a cada cliente <span class="dot">●</span></h3><p>Sabe quién llama, cómo se llama y qué solicitó la última vez. Cada conversación es personalizada, como la de un empleado con experiencia: una memoria que trabaja a tu favor en cada llamada.</p></div><div class="tag">CRM que se completa solo</div></div>
@@ -471,7 +479,12 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
         <div class="guar-row"><span class="k">✓</span><div><b>Escúchalo antes de desviar nada.</b> Te llama a tu móvil para que lo pruebes tú primero.</div></div>
         <div class="guar-row"><span class="k">✓</span><div><b>Sin permanencia.</b> Cancelas cuando quieras desde tu panel, sin trámites ni penalizaciones.</div></div>
         <div class="guar-row"><span class="k">✓</span><div><b>Tu número no cambia.</b> Solo desvías lo que no atiendes. Sin riesgo para lo que ya funciona.</div></div>
-        <div class="guar-row"><span class="k">✓</span><div><b>Hecho en Euskadi, cumple RGPD.</b> La IA avisa de que lo es y tus datos se quedan en Europa.</div></div>
+        <!-- Auditoría 2026-07-29: "tus datos se quedan en Europa" era FALSO y lo
+             desmentía la propia política de privacidad ("pueden tratar datos fuera
+             del EEE"). La voz del cliente sale en tiempo real hacia Deepgram y el
+             LLM, ambos en EEUU. En un sector con datos de salud, afirmarlo era
+             exposición de primer orden. -->
+        <div class="guar-row"><span class="k">✓</span><div><b>Hecho en Euskadi, con las reglas del RGPD.</b> La IA avisa de que lo es, tus datos se alojan cifrados y nunca se venden ni se usan para entrenar modelos. Parte del procesamiento de voz se hace con proveedores fuera del EEE bajo Cláusulas Contractuales Tipo — los tienes listados uno a uno en la <a href="/privacidad/" style="color:inherit;text-decoration:underline">política de privacidad</a>.</div></div>
       </div>
     </div>
     <div class="quote">
@@ -492,7 +505,11 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <span style="font-size:.85rem;opacity:.85">solo julio de 2026 · Gipuzkoa</span>
       <span style="margin-left:auto;font-weight:800;font-size:.95rem;border:1px solid rgba(196,245,70,.4);border-radius:999px;padding:4px 14px">Quedan <span id="plazas">20</span> de 20 plazas</span>
     </div>
-    <p style="margin:10px 0 14px;font-size:.98rem;line-height:1.65;max-width:62ch">Los 20 primeros negocios conservan el precio de <b>49€/mes de forma permanente</b>: cuando suba en septiembre, los fundadores lo mantienen. A cambio: 15 minutos de comentarios al mes y línea directa con el fundador. <b>Garantía:</b> si el primer mes no recuperas al menos la cuota, te la devolvemos.</p>
+    <p style="margin:10px 0 14px;font-size:.98rem;line-height:1.65;max-width:62ch">Los 20 primeros negocios conservan el precio de <b>49€/mes de forma permanente</b>: cuando suba en septiembre, los fundadores lo mantienen. A cambio: 15 minutos de comentarios al mes y línea directa con el fundador. <b>Garantía sin letra pequeña:</b> si el primer mes no estás convencido, nos lo dices y te devolvemos la cuota. Sin justificarlo.</p>
+    <!-- Auditoría 2026-07-29: la garantía anterior ("si no recuperas al menos la
+         cuota") tenía un criterio que medía el propio vendedor, con SU
+         estimación de ticket medio. Una garantía con criterio indeterminado es
+         reclamable; esta es más fuerte comercialmente y no admite disputa. -->
     <a href="/onboarding.html?plan=negocio&fundador=1" class="btn btn-fill">Quiero mi plaza de fundador →</a>
   </div>
 
@@ -507,11 +524,20 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     </div>
     <ul class="price-feats">
       <li><span class="m">✓</span><span>Atiende tus llamadas <b>24/7</b>, también festivos</span></li>
-      <li><span class="m">✦</span><span>Voz natural en <b>castellano, euskera y galego</b></span></li>
+      <!-- Auditoría 2026-07-29: no hay ninguna voz vasca alcanzable en
+           producción (proveedor local tras una variable comentada, servidor
+           Python sin desplegar y los WAV de clonación nunca grabados), y el
+           euskera se transcribe con el modelo español por decisión de código.
+           Galego sí es real (ElevenLabs + parsers de fecha/hora en galego). -->
+      <li><span class="m">✦</span><span>Voz natural en <b>castellano y galego</b>. En euskera saluda y se despide en euskera y entiende a quien le hable en euskera; la voz vasca completa está en camino</span></li>
       <li><span class="m">✦</span><span>Agenda citas en tu <b>Google Calendar</b></span></li>
       <li><span class="m">✦</span><span>Memoria de clientes + <b>CRM completo</b></span></li>
       <li><span class="m">✦</span><span>Recordatorios y reseñas por <b>WhatsApp</b></span></li>
-      <li><span class="m">✦</span><span>Recupera perdidas + lista de espera + reactivación</span></li>
+      <!-- Auditoría 2026-07-29: la reactivación exige el add-on `growth` (39€) —
+           rebooking-cron la salta si no lo tienes— y la oferta automática de
+           huecos está tras un flag apagado. Anunciarlas como incluidas en los
+           49€ es engaño por omisión. -->
+      <li><span class="m">✦</span><span>Recupera las llamadas perdidas y apunta en lista de espera</span></li>
       <li><span class="m">✓</span><span><b>500 min/mes</b> · sin permanencia</span></li>
     </ul>
   </div>
@@ -553,9 +579,13 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   <div class="addons">
     <div class="addon addon-proincl"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
     <div class="addon addon-proincl"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
-    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si algún mes superas los 500 min, se añaden automáticamente. Sin cortes de servicio y siempre visibles.</p></div>
+    <!-- Auditoría 2026-07-29: "sin cortes de servicio" era falso — hay un tope
+         duro a 3× el plan (1.500 min) que devuelve 402 y no se revelaba en
+         ninguna página. Y el IVA se contradecía con las Condiciones, que dicen
+         "los precios se muestran sin IVA". -->
+    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si algún mes superas los 500 min, se facturan a 0,15€/min y los ves en tu panel antes de que lleguen a la factura. Por seguridad hay un tope de 1.500 min/mes: si lo alcanzas te avisamos y lo subimos contigo.</p></div>
   </div>
-  <div class="price-foot">Desde <b>49€ al mes</b> · IVA incluido · sin permanencia · cancela cuando quieras. Los extras, opcionales.</div>
+  <div class="price-foot">Desde <b>49€ al mes</b> + IVA · sin permanencia · cancela cuando quieras. Los extras, opcionales.</div>
 
   <!-- Tier a medida: grupos, franquicias y proyectos grandes → contacto directo -->
   <div id="a-medida" style="border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:22px 24px;margin-top:22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
@@ -568,7 +598,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
       <a href="mailto:unai@nodeflow.es?subject=Proyecto%20a%20medida%20NodeFlow" class="btn" style="border:1px solid rgba(255,255,255,.25)">Prefiero email</a>
     </div>
   </div>
-  <div class="meta-badge" style="margin-top:16px" title="Los avisos de WhatsApp se envían por la API oficial: Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta">
+  <div class="meta-badge" style="margin-top:16px" title="Los avisos de WhatsApp se envían por la API oficial de Meta (WhatsApp Business Platform)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
     <span>WhatsApp por la API oficial de Meta · Proveedor de tecnología verificado</span>
   </div>
@@ -606,9 +636,9 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   </div>
   <div class="foot-bot">
     <div>© 2026 NodeFlow · Hecho en Euskadi</div>
-    <div class="meta-badge" style="letter-spacing:.04em;text-transform:none;font-size:.72rem" title="Nodeflow Inteligencia Artificial S.L. es proveedor de tecnología verificado por Meta (WhatsApp Business Platform)">
+    <div class="meta-badge" style="letter-spacing:.04em;text-transform:none;font-size:.72rem" title="Los avisos de WhatsApp se envían por la API oficial de Meta (WhatsApp Business Platform), no desde un móvil ni un bot no oficial">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12c0-2.2 2-4 4.5-4 3.5 0 5.5 8 11 8 2.5 0 4.5-1.8 4.5-4s-2-4-4.5-4c-5.5 0-7.5 8-11 8-2.5 0-4.5-1.8-4.5-4z"/></svg>
-      <span>Proveedor de tecnología verificado por Meta</span>
+      <span>WhatsApp por la API oficial de Meta</span>
     </div>
     <div>Cumple RGPD · Soporte humano en español</div>
   </div>
