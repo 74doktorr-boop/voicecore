@@ -15,6 +15,7 @@ const DEFAULTS = {
   reviews:   { enabled: true,  hoursAfter:  24 },
   waConfirm: { enabled: true },
   rebooking: { enabled: true,  daysThreshold: null, maxPerYear: 4 },
+  noshow:    { enabled: true },
 };
 
 class FlowManager {
@@ -40,6 +41,7 @@ class FlowManager {
         reviews:   { ...DEFAULTS.reviews,   ...(prev.automations?.reviews   || {}), ...(config.automations?.reviews   || {}) },
         waConfirm: { ...DEFAULTS.waConfirm, ...(prev.automations?.waConfirm || {}), ...(config.automations?.waConfirm || {}) },
         rebooking: { ...DEFAULTS.rebooking, ...(prev.automations?.rebooking || {}), ...(config.automations?.rebooking || {}) },
+        noshow:    { ...DEFAULTS.noshow,    ...(prev.automations?.noshow    || {}), ...(config.automations?.noshow    || {}) },
       },
       registeredAt: prev.registeredAt || new Date().toISOString(),
       updatedAt:    new Date().toISOString(),
@@ -63,6 +65,7 @@ class FlowManager {
             reviews:   { ...flow.automations.reviews,   ...(automations.reviews   || {}) },
             waConfirm: { ...flow.automations.waConfirm, ...(automations.waConfirm || {}) },
             rebooking: { ...flow.automations.rebooking, ...(automations.rebooking || {}) },
+            noshow:    { ...flow.automations.noshow,    ...(automations.noshow    || {}) },
           }
         : flow.automations,
       updatedAt: new Date().toISOString(),
