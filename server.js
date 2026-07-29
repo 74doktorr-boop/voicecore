@@ -825,6 +825,14 @@ startClientHealthCron();
 const { startFounderDigestCron } = require('./src/monitoring/founder-digest');
 startFounderDigestCron();
 
+// Auditoría TÉCNICA nocturna (07:30 Madrid): esquema, variables críticas,
+// latencia percibida, entrecortado, llamadas rotas y qué versión corre.
+// Solo lectura. A diferencia del digest, ENVÍA SIEMPRE — también cuando está
+// todo bien: un latido que solo suena cuando hay problemas hace que "todo en
+// orden" y "el cron está muerto" se vean igual desde la bandeja de entrada.
+const { startSystemAuditCron } = require('./src/monitoring/system-audit');
+startSystemAuditCron();
+
 // Paquete de mensajes: reporta a Stripe el excedente (>200/mes) cada día
 // 02:40 Madrid. Gateado por STRIPE_MSG_METER_EVENT — sin meter, solo cuenta.
 const { startMessageOverageCron } = require('./src/billing/message-usage');
