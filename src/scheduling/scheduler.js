@@ -129,12 +129,18 @@ class SchedulingSystem {
     const to = new Date(toDate);
     const slots = [];
 
+    const { scheduleForDate } = require('./business-calendar');
+
     for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
-      const daySchedule = config.schedule[dayOfWeek];
-      if (!daySchedule) continue; // closed
-
       const dateStr = d.toISOString().split('T')[0];
+      // A6: el horario del DÍA CONCRETO, no solo el del día de la semana. Aplica
+      // festivos nacionales, vacaciones/cierres del negocio y jornadas
+      // especiales. Sin esto, el 15 de agosto (viernes) el bot ofrecía y
+      // reservaba ocho citas en una clínica cerrada.
+      const daySchedule = scheduleForDate(dateStr, dayOfWeek, config);
+      if (!daySchedule) continue; // cerrado ese día
+
       const daySlots = [];
 
       const extraBusy = busyByDate[dateStr] || [];
@@ -217,6 +223,14 @@ class SchedulingSystem {
     const [h, m] = time.split(':').map(Number);
     const slotStart = h * 60 + m;
     const slotEnd = slotStart + duration;
+    // A6: margen DESPUÉS de cada cita (limpieza de box, desinfección, el minuto
+    // de respirar entre pacientes). No existía: una cita de 30 min terminaba a y
+    // media y la siguiente empezaba a y media. Con bufferMin sin configurar es 0
+    // y el comportamiento es exactamente el de antes.
+    const margen = (() => {
+      try { return require('./business-calendar').bufferMin(this.getBusinessConfig(businessId) || {}); }
+      catch (_) { return 0; }
+    })();
 
     for (const [, apt] of this.appointments) {
       if (apt.businessId !== businessId || apt.date !== date || apt.status === 'cancelled') continue;
@@ -227,9 +241,10 @@ class SchedulingSystem {
       if (staff && apt.staff && apt.staff !== staff) continue;
       const [ah, am] = apt.time.split(':').map(Number);
       const aptStart = ah * 60 + am;
-      const aptEnd = aptStart + apt.duration;
-      // Check overlap
-      if (slotStart < aptEnd && slotEnd > aptStart) return true;
+      // El margen se aplica a AMBOS lados del hueco existente: ni pegar la
+      // siguiente al final de esta, ni meter una que termine justo al empezar.
+      const aptEnd = aptStart + apt.duration + margen;
+      if (slotStart < aptEnd && slotEnd + margen > aptStart) return true;
     }
     // Solapes con eventos externos (Google Calendar del negocio)
     for (const b of extraBusy) {
@@ -302,7 +317,23 @@ class SchedulingSystem {
     // Los errores incluyen QUÉ días/horas SÍ — la IA los lee en voz alta y
     // ofrece alternativas reales en vez de un "elige otro" a ciegas.
     const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-    const daySchedule = config?.schedule?.[dateObj.getDay()];
+
+    // A6: días cerrados por FECHA (festivo nacional, vacaciones, cierre puntual).
+    // Va ANTES del horario semanal: el 15 de agosto es viernes y el patrón
+    // semanal dice abierto — sin esta comprobación el bot reservaba igual, y el
+    // cliente se plantaba en una clínica cerrada.
+    const { closedOn, scheduleForDate } = require('./business-calendar');
+    const cierre = closedOn(date, config || {});
+    if (cierre.closed) {
+      return {
+        success: false,
+        error: `Ese día el negocio está CERRADO (${cierre.reason}). Ofrece al cliente otra fecha y verifica huecos con check_availability.`,
+      };
+    }
+
+    // El horario del DÍA CONCRETO: el semanal, o el especial si ese día tiene
+    // jornada distinta (p. ej. el 24 de diciembre se cierra a las 14:00).
+    const daySchedule = scheduleForDate(date, dateObj.getDay(), config || {});
     if (config?.schedule && !daySchedule) {
       const openDays = Object.keys(config.schedule).map(Number).sort()
         .map(d => DAY_NAMES[d]).join(', ');

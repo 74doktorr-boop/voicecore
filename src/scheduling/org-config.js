@@ -184,8 +184,20 @@ async function syncOrgRuntime(businessId, deps = {}) {
  */
 function toSchedulerConfig(org) {
   const ac = org?.assistant_config || {};
-  const serviceList = org?.automation_config?.config?.serviceList;
+  const autoCfg = org?.automation_config?.config || {};
+  const serviceList = autoCfg.serviceList;
+  // A6 — Días cerrados y tiempo entre citas. Se leen de assistant_config (donde
+  // vive el horario) con respaldo en automation_config, porque el portal escribe
+  // en uno u otro según la pantalla. Todo OPCIONAL: sin nada configurado, el
+  // scheduler se comporta exactamente igual que antes.
+  const cal = {
+    nationalHolidays: ac.nationalHolidays ?? autoCfg.nationalHolidays ?? false,
+    closedDates: ac.closedDates || autoCfg.closedDates || [],
+    scheduleExceptions: ac.scheduleExceptions || autoCfg.scheduleExceptions || {},
+    bufferMin: ac.bufferMin ?? autoCfg.bufferMin ?? 0,
+  };
   return {
+    ...cal,
     // NOMBRE DEL NEGOCIO, no del asistente (bug real 2026-07-15: el WhatsApp
     // de confirmación decía "tu cita en Unai" — el nombre del ASISTENTE de la
     // fisio — en vez de "fisioterapia unai"). assistantName queda de respaldo.
