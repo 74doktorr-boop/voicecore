@@ -163,6 +163,33 @@ async function sendCallSummaryToOwner(callData, config) {
     if (apt.phone) aptRows += `<tr style="background:rgba(124,58,237,.08);"><td style="color:#94a3b8;font-size:12px;padding:5px 8px;">Teléfono</td><td style="color:#e2e8f0;font-size:12px;padding:5px 8px;">${esc(apt.phone)}</td></tr>`;
   }
 
+  // ── Lo que el dueño necesita saber, y que este email NO contaba ──────────────
+  // Decía "ℹ️ CONSULTA", el número y la duración. Para una llamada de
+  // información eso no informa de nada: el dueño ya sabía que sonó el teléfono.
+  // Los datos estaban todos aquí (transcript + aiDecisions) y no se pintaban.
+  const { firstAsk, decisionLines, conversationLines, subjectLine } = require('./call-summary');
+
+  const pedido = firstAsk(callData.transcript);
+  const bloquePedido = pedido ? `
+    <div style="background:rgba(59,130,246,.08);border-left:3px solid #60a5fa;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:18px;">
+      <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:4px;">Qué pedían</div>
+      <div style="color:#e2e8f0;font-size:14px;line-height:1.5;">“${esc(pedido)}”</div>
+    </div>` : '';
+
+  const decisiones = decisionLines(callData.aiDecisions);
+  const bloqueDecisiones = decisiones.length ? `
+    <div style="margin-top:18px;">
+      <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px;">Lo que hizo el asistente</div>
+      ${decisiones.map(d => `<div style="color:#e2e8f0;font-size:13px;padding:4px 0;">${d.ok ? '✓' : '⚠'} ${esc(d.texto)}</div>`).join('')}
+    </div>` : '';
+
+  const conv = conversationLines(callData.transcript);
+  const bloqueConversacion = conv.lineas.length ? `
+    <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.06);padding-top:14px;">
+      <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px;">La conversación${conv.recortadas ? ` <span style="font-weight:400;text-transform:none;letter-spacing:0;">(últimas ${conv.lineas.length} de ${conv.lineas.length + conv.recortadas})</span>` : ''}</div>
+      ${conv.lineas.map(l => `<div style="margin:6px 0;font-size:13px;line-height:1.45;"><span style="color:${l.quien === 'cliente' ? '#60a5fa' : '#a78bfa'};font-weight:700;">${l.quien === 'cliente' ? 'Cliente' : 'Asistente'}:</span> <span style="color:#cbd5e1;">${esc(l.texto)}</span></div>`).join('')}
+    </div>` : '';
+
   const html = `
 <!DOCTYPE html><html><body style="font-family:Inter,-apple-system,sans-serif;margin:0;padding:0;">
 <div style="max-width:540px;margin:24px auto;background:#0c0c1a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);">
@@ -183,14 +210,19 @@ async function sendCallSummaryToOwner(callData, config) {
       </tr>
       ${aptRows}
     </table>
+    ${bloquePedido}
+    ${bloqueDecisiones}
+    ${bloqueConversacion}
     ${apt && config.ownerPhone ? `<a href="https://wa.me/${(config.ownerPhone||'').replace(/\D/g,'')}?text=${encodeURIComponent(`Hola, te confirmo la cita de ${apt.patientName} el ${apt.date} a las ${apt.time}h`)}" style="display:block;margin-top:16px;background:#25d366;color:#fff;text-decoration:none;text-align:center;padding:12px;border-radius:10px;font-weight:700;font-size:14px;">📲 Enviar confirmación WA al cliente</a>` : ''}
+    ${!apt && callData.callerNumber ? `<a href="tel:${esc(String(callData.callerNumber).replace(/[^\d+]/g, ''))}" style="display:block;margin-top:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;text-decoration:none;text-align:center;padding:12px;border-radius:10px;font-weight:700;font-size:14px;">📞 Devolver la llamada</a>` : ''}
   </div>
 </div>
 </body></html>`;
 
-  const subject = outcome === 'booked'
-    ? `📞 Nueva reserva — ${callData.callerNumber} · ${apt?.date || ''}`
-    : `📞 Llamada ${outcomeBadge} — ${callData.callerNumber} (${dur})`;
+  // El asunto tiene que entenderse SIN abrir el correo: la bandeja de entrada es
+  // donde el dueño decide si esto merece su atención ahora o luego. "Llamada
+  // CONSULTA — +34666351319 (1:38)" no le decía nada.
+  const subject = subjectLine(callData);
 
   return sendEmail({ to, subject, html });
 }
