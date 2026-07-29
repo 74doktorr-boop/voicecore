@@ -19,23 +19,42 @@ const BOOT_ID = String(Date.now());
 // Marcador de build manual — verificable en /health. EasyPanel construye desde
 // el fuente (sin .git en el contexto), así que el runtime no puede leer su propio
 // commit; este tag SÍ es fiable. BUMPEAR en cada deploy crítico. (2026-07-16)
-const BUILD_TAG = '84d521c-auditoria-fase0';
+const BUILD_TAG = 'sha-desde-fichero';
 
 /**
- * SHA del commit desplegado, o 'unknown' si no se puede saber.
+ * SHA del commit desplegado, o 'unknown' si de verdad no se puede saber.
  *
- * Un GIT_SHA que vale la CADENA "undefined" no es una versión: es ruido que se
- * lee como si lo fuera. Se comprobó en producción el 2026-07-29 —/health
- * devolvía sha:"undefin" (los 7 primeros caracteres de "undefined")— porque hay
- * una variable GIT_SHA con ese valor literal en el entorno, que pisa a la que
- * inyecta el Dockerfile. Este campo existe para poder responder "¿qué versión
- * corre ahí fuera?"; si no lo sabemos, tiene que DECIRLO.
+ * Se lee de un FICHERO grabado durante el build, no de una variable de entorno.
+ * Comprobado contra producción el 2026-07-29: la imagen en GHCR llevaba
+ * `GIT_SHA=825b8c73…` y el contenedor que la ejecutaba reportaba otra cosa —
+ * el entorno de EasyPanel la pisa (antes con la cadena literal "undefined", que
+ * el código de entonces recortaba a "undefin" y servía como si fuera una
+ * versión). Un fichero escrito en el build no lo puede pisar el entorno.
+ *
+ * La variable queda de respaldo para desarrollo. Y si ninguna de las dos vías
+ * da algo utilizable, se dice "unknown": este campo existe para responder "¿qué
+ * versión corre ahí fuera?", y una respuesta inventada es peor que ninguna.
+ *
+ * Se resuelve UNA vez al cargar el módulo: no cambia en la vida del proceso.
  */
-function deployedSha() {
-  const raw = String(process.env.GIT_SHA || '').trim();
-  if (!raw || raw === 'undefined' || raw === 'null' || raw === 'unknown') return 'unknown';
-  return raw.slice(0, 7);
+function resolveSha(fromFile, fromEnv) {
+  const usable = (v) => {
+    const s = String(v == null ? '' : v).trim();
+    // "undefined" y "null" son cadenas que aparecen cuando una plantilla no
+    // resuelve: parecen un valor y no lo son.
+    if (!s || s === 'undefined' || s === 'null' || s === 'unknown') return null;
+    if (!/^[0-9a-f]{7,40}$/i.test(s)) return null;   // un SHA, no cualquier cosa
+    return s.slice(0, 7);
+  };
+  return usable(fromFile) || usable(fromEnv) || 'unknown';
 }
+
+const DEPLOYED_SHA = resolveSha(
+  (() => { try { return require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'BUILD_SHA'), 'utf8'); } catch (_) { return null; } })(),
+  process.env.GIT_SHA,
+);
+
+function deployedSha() { return DEPLOYED_SHA; }
 
 // BUG-21 FIX: Twilio webhook signature validation middleware.
 // Validates X-Twilio-Signature header when TWILIO_AUTH_TOKEN is configured.
@@ -573,4 +592,4 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   log.info('API routes configured');
 }
 
-module.exports = { setupRoutes };
+module.exports = { setupRoutes, resolveSha };

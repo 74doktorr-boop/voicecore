@@ -10,6 +10,12 @@ COPY . .
 # SHA del commit → visible en /health para saber QUÉ versión corre (2026-07-16).
 ARG GIT_SHA=unknown
 ENV GIT_SHA=$GIT_SHA
+# …y GRABADO EN UN FICHERO (2026-07-29). La variable de entorno no basta:
+# comprobado contra producción, la imagen llevaba GIT_SHA correcto y el
+# contenedor reportaba otra cosa — el entorno de EasyPanel la pisa. Un fichero
+# escrito en el build no lo puede pisar nadie en tiempo de ejecución, y este
+# campo existe justamente para poder responder "¿qué versión corre ahí fuera?".
+RUN printf '%s' "$GIT_SHA" > /app/BUILD_SHA
 EXPOSE 3001
 ENV NODE_ENV=production
 
