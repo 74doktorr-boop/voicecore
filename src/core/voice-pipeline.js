@@ -358,7 +358,12 @@ class VoicePipeline {
     // segundos del saludo. Sigue siendo fail-open: jamás bloquea la llamada.
     // Se REGISTRA (revisión A2): una llamada que entra mientras el proceso se
     // apaga también debe poder escribir su alta antes de morir.
-    this._trackWrite(this.callStore.saveCallStart(session).catch(() => {}));
+    // L5: se guarda la promesa para poder ORDENAR alta → cierre. Las dos son
+    // peticiones sueltas: si el alta aterrizaba después del cierre, devolvía la
+    // fila a 'active' (reloj corriendo en el portal y, a los 90 min, marcada
+    // como perdida… habiendo terminado bien).
+    session._startWrite = this.callStore.saveCallStart(session).catch(() => {});
+    this._trackWrite(session._startWrite);
 
     // Códec de entrada por proveedor. CRÍTICO: el STT debe recibir el códec
     // REAL — decodificar PCMA (Europa) como PCMU destroza la transcripción
@@ -1184,7 +1189,11 @@ class VoicePipeline {
     // Persistencia (C1): registro completo, upsert idempotente — recupera
     // incluso las llamadas cuya alta falló (BD caída al inicio).
     // PILOT-001 (F1): se REGISTRA la escritura para que un apagado la espere.
-    this._trackWrite(this.callStore.saveCallEnd(callData).catch(() => {}));
+    // L5: el cierre espera al alta ANTES de escribir. Así el upsert de alta no
+    // puede aterrizar después y devolver la fila a 'active'. No bloquea la
+    // llamada (sigue siendo fire-and-forget) y el registro tiene techo de tiempo.
+    const _startWrite = session._startWrite || Promise.resolve();
+    this._trackWrite(_startWrite.then(() => this.callStore.saveCallEnd(callData)).catch(() => {}));
     // D4: el webhook al sistema del cliente también moría con el proceso —
     // una integración que nunca se entera de la llamada. Se registra si el
     // disparo devuelve promesa (no todas las rutas lo hacen).

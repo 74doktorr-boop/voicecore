@@ -55,6 +55,7 @@ const PORT = process.env.PORT || 3001;
 // el manejador la espera con techo de tiempo (FATAL_PERSIST_MS).
 installProcessHandlers({
   onFatal: async () => {
+    try { require('./src/utils/lifecycle').markShuttingDown(); } catch (_) {}
     try { server.close(); } catch (_) {}
     try {
       const { closed, unwritten } = await pipeline.shutdownPersist(4000);
@@ -730,6 +731,14 @@ let _shuttingDown = false;
 async function gracefulShutdown(signal) {
   if (_shuttingDown) return;
   _shuttingDown = true;
+  // PILOT-001 (L4): DEJAR DE ACEPTAR TRABAJO NUEVO lo primero. Antes el
+  // `server.close()` iba al final, así que durante todo el apagado el proceso
+  // seguía aceptando conexiones y respondiendo "sano" en /health: la telefonía
+  // le enrutaba llamadas nuevas que morirían segundos después, con su alta a
+  // medio escribir. Cerrar el listener NO corta las llamadas en curso (las
+  // conexiones ya establecidas siguen vivas); solo impide que entren más.
+  try { require('./src/utils/lifecycle').markShuttingDown(); } catch (_) {}
+  try { server.close(); } catch (_) {}
   const active = () => pipeline.activeCalls?.size || 0;
   // ── PRESUPUESTO DE APAGADO (PILOT-001/F1, corregido tras revisión) ───────
   // Antes: se esperaba hasta 45 s a que las llamadas colgaran solas y DESPUÉS
@@ -769,7 +778,7 @@ async function gracefulShutdown(signal) {
   } catch (e) { log.warn(`${signal} — drenado de persistencia: ${e.message}`); }
 
   try { assistantManager.destroy(); } catch (_) {}
-  try { server.close(); } catch (_) {}
+  // (el listener ya se cerró al empezar el apagado — L4)
   process.exit(0);
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

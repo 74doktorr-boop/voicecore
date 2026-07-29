@@ -471,6 +471,15 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   // 2026-07-03: el dueño no veía features ya desplegadas).
   app.get('/health', async (req, res) => {
     res.set('Cache-Control', 'no-store');
+    // PILOT-001 (L4): si el proceso se está apagando, deja de anunciarse como
+    // disponible. Antes seguía respondiendo 200/'ok' mientras moría, así que el
+    // balanceador y la telefonía le enviaban llamadas nuevas condenadas a
+    // perderse. 503 = "no me mandes tráfico"; las llamadas EN CURSO siguen.
+    try {
+      if (require('../utils/lifecycle').isShuttingDown()) {
+        return res.status(503).json({ status: 'shutting_down', version: '2.0.0', activeCalls: pipeline.activeCalls?.size || 0 });
+      }
+    } catch (_) {}
     // Readiness real: antes devolvía SIEMPRE status:'ok' y database:'connected'
     // (derivado de db.enabled, fijado al arrancar) → si la BD caía en runtime el
     // monitor no se enteraba jamás. Ahora hace un ping ligero con timeout.
@@ -494,6 +503,10 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // leader: ¿esta réplica ejecuta los crons? (con multi-réplica, solo una).
     let leader = true;
     try { leader = require('../utils/leader').isLeader(); } catch (_) {}
+    // Firma de webhooks de Telnyx: si no se exige, hay que poder VERLO. Estaba
+    // fail-open en silencio desde 2026-07-16 y nadie lo sabía (hallazgo S3).
+    let telnyxSignature = 'unknown';
+    try { telnyxSignature = require('../utils/telnyx-signature').telnyxSignatureStatus().enforced ? 'enforced' : 'UNVERIFIED'; } catch (_) {}
     res.json({
       status,
       version: '2.0.0',
@@ -508,6 +521,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       database,
       redis,
       leader,
+      telnyxSignature,
     });
   });
 

@@ -109,6 +109,42 @@ describe('F1 · drenado de escrituras en el apagado', () => {
   });
 });
 
+describe('L5 · el cierre nunca adelanta al alta', () => {
+  test('saveCallEnd espera al saveCallStart aunque el alta vaya lenta', async () => {
+    // Si el alta aterrizaba después del cierre, devolvía la fila a 'active':
+    // reloj corriendo en el portal y, a los 90 min, marcada como perdida
+    // habiendo terminado bien.
+    const orden = [];
+    let resolveStart;
+    const callStore = {
+      saveCallStart: () => new Promise(res => { resolveStart = () => { orden.push('start'); res(true); }; }),
+      saveCallEnd: async () => { orden.push('end'); return true; },
+    };
+    const p = makePipeline(callStore);
+    await p.startCall(startArgs('c7'));
+    p.endCall('c7');                          // cuelga con el alta aún en vuelo
+    await new Promise(r => setTimeout(r, 30));
+    assert.deepStrictEqual(orden, [], 'el cierre NO se ha escrito todavía');
+    resolveStart();                            // el alta por fin aterriza
+    await p.drainPendingWrites(1000);
+    assert.deepStrictEqual(orden, ['start', 'end'], 'el orden queda garantizado');
+  });
+});
+
+describe('L4 · el proceso deja de anunciarse al apagarse', () => {
+  const lifecycle = require('../src/utils/lifecycle');
+  test('arranca disponible; al marcar apagado deja de estarlo (irreversible)', () => {
+    lifecycle._reset();
+    assert.strictEqual(lifecycle.isShuttingDown(), false);
+    lifecycle.markShuttingDown();
+    assert.strictEqual(lifecycle.isShuttingDown(), true);
+    assert.ok(lifecycle.shuttingDownSince() > 0);
+    lifecycle.markShuttingDown();              // idempotente
+    assert.strictEqual(lifecycle.isShuttingDown(), true);
+    lifecycle._reset();
+  });
+});
+
 describe('L1 · el post-call REGISTRA sus escrituras internas', () => {
   test('handle() acepta un registrador y lo usa para lo que vale dinero', async () => {
     // Sin esto, esperar a handle() era un falso "todo OK": esa promesa solo
