@@ -19,6 +19,7 @@
     "express": "^4.21.2",
     "googleapis": "^144.0.0",
     "ioredis": "^5.11.1",
+    "jszip": "^3.10.1",
     "openai": "^4.77.0",
     "resend": "^4.8.0",
     "stripe": "^22.1.1",

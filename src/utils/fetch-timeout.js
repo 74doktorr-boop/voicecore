@@ -40,8 +40,13 @@ const ttsTimeoutMs = () => _ms('TTS_TIMEOUT_MS', DEFAULTS.tts);
 /**
  * Señal de aborto con vencimiento.
  *
- * El temporizador va con `.unref()`: un timeout pendiente NUNCA debe impedir
- * que el proceso termine (importa en el apagado con drenaje).
+ * SIN `.unref()` — lo tenía y estaba mal. La idea era que un timeout pendiente
+ * no impidiera terminar el proceso, pero eso ya lo garantiza el `clear()` que
+ * todos los llamantes hacen en un `finally`. Con unref, Node puede dar el
+ * temporizador por prescindible: si lo único pendiente es este plazo, la cola
+ * de eventos se drena y el aborto NO LLEGA A DISPARARSE — es decir, el timeout
+ * deja de existir justo en el caso para el que se creó. Lo destapó la puerta de
+ * calidad de CI, que corre Node 22; en local (Node 24) quedaba tapado.
  *
  * @param {number} timeoutMs
  * @param {object} [deps] inyección para tests: { setTimeout, clearTimeout, AbortController }
@@ -55,7 +60,6 @@ function newTimeoutSignal(timeoutMs, deps = {}) {
   const controller = new AC();
   let fired = false;
   const timer = setT(() => { fired = true; controller.abort(); }, timeoutMs);
-  if (timer && typeof timer.unref === 'function') timer.unref();
 
   return {
     signal: controller.signal,

@@ -46,11 +46,20 @@ describe('newTimeoutSignal', () => {
     assert.strictEqual(t.timedOut(), false);
   });
 
-  test('el temporizador no impide que el proceso termine (unref)', () => {
-    let unrefed = false;
-    const fakeTimer = { unref() { unrefed = true; } };
-    newTimeoutSignal(999999, { setTimeout: () => fakeTimer, clearTimeout: () => {} });
-    assert.strictEqual(unrefed, true, 'un timeout pendiente no puede bloquear el apagado con drenaje');
+  test('el temporizador se limpia SIEMPRE (no queda pendiente al terminar)', () => {
+    // Antes este test exigía `.unref()` en el temporizador. Era un error: con
+    // unref, si el plazo es lo único pendiente, Node drena la cola y el aborto
+    // NUNCA se dispara — el timeout deja de existir justo cuando hace falta.
+    // Lo que de verdad protege la salida del proceso es que el llamante limpie,
+    // y eso es lo que hay que fijar aquí.
+    let limpiado = false;
+    const fakeTimer = { unref() { assert.fail('no debe usar unref: haría el plazo saltable'); } };
+    const t = newTimeoutSignal(999999, {
+      setTimeout: () => fakeTimer,
+      clearTimeout: (x) => { limpiado = (x === fakeTimer); },
+    });
+    t.clear();
+    assert.strictEqual(limpiado, true, 'clear() debe limpiar el temporizador que creó');
   });
 
   test('isAbortError distingue nuestro vencimiento de un fallo del proveedor', () => {
