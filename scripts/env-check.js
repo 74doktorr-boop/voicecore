@@ -30,6 +30,13 @@ const CRITICAL = [
   ['TELNYX_APP_ID',             'Telefonía (TeXML App)'],
   ['TELNYX_NUMBER_AREACODE',    'Comprar nº al pool'],
   ['TELNYX_REQUIREMENT_GROUP_ID','Comprar nº al pool (ES)'],
+  // CRÍTICA de seguridad (auditoría 2026-07-29): sin ella la verificación de
+  // firma de los webhooks de voz es FAIL-OPEN — cualquiera puede POSTear a
+  // /voice/telnyx con el número de un cliente y arrancar llamadas a tu costa.
+  // Estaba puesta en EasyPanel pero NO documentada en ninguna parte, así que un
+  // despliegue nuevo la habría perdido sin que nadie se enterara.
+  // Se ve desde fuera en /health → telnyxSignature.
+  ['TELNYX_PUBLIC_KEY',         'Firma de webhooks de voz — SIN ELLA NO SE VERIFICA NADA'],
   ['STRIPE_SECRET_KEY',         'Cobro'],
   ['STRIPE_WEBHOOK_SECRET',     'Alta automática (webhook)'],
   ['STRIPE_BUSINESS_PRICE_ID',  'Plan €49'],
