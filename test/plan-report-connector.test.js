@@ -2,7 +2,8 @@
 // NodeFlow — Gating Pro: informe completo + conector (2026-07-27)
 // Completa la matriz Básico/Pro: el informe cita-a-cita (+CSV) y el
 // conector de integraciones son Pro. Básico ve el resumen del informe
-// y NO puede activar el conector. Default PRO → cero regresión.
+// y NO puede activar el conector. Defecto BÁSICO desde 2026-07-29: una org sin
+// tier explícito queda capada (antes recibía Pro de gratis).
 // ============================================================
 'use strict';
 
@@ -14,7 +15,7 @@ const { hasPro } = require('../src/billing/plan');
 // mantiene el test rápido y a la vez fija el contrato que codifican las rutas.
 const basico = { automation_config: { config: { tier: 'basico' } } };
 const pro = { automation_config: { config: { tier: 'pro' } } };
-const sinTier = {}; // fundadores/existentes → pro por defecto
+const sinTier = {}; // sin tier explícito → BÁSICO (los fundadores llevan tier:'pro' escrito)
 
 describe('informe completo (roi-report) — gating Pro', () => {
   const stripDetail = (org, report) => {
@@ -34,14 +35,16 @@ describe('informe completo (roi-report) — gating Pro', () => {
     assert.strictEqual(r.appointments.length, 3);
     assert.ok(!r.proLocked);
   });
-  test('sin tier (fundador/existente) → completo', () => {
-    assert.strictEqual(stripDetail(sinTier, full).appointments.length, 3);
+  test('sin tier explícito → capado (ya no hereda Pro por omisión)', () => {
+    const r = stripDetail(sinTier, full);
+    assert.strictEqual(r.appointments.length, 0);
+    assert.ok(r.proLocked);
   });
-  test('CSV → 402 en Básico, permitido en Pro/sin-tier', () => {
+  test('CSV → 402 en Básico y en sin-tier, permitido en Pro', () => {
     const csvAllowed = (org) => hasPro(org);
     assert.strictEqual(csvAllowed(basico), false);
+    assert.strictEqual(csvAllowed(sinTier), false);
     assert.strictEqual(csvAllowed(pro), true);
-    assert.strictEqual(csvAllowed(sinTier), true);
   });
 });
 
@@ -58,8 +61,8 @@ describe('conector (integraciones) — gating Pro', () => {
   test('Básico APAGANDO el conector → permitido (no capamos desactivar)', () => {
     assert.strictEqual(blocked(basico, { enabled: false, outbound: [] }), false);
   });
-  test('Pro / sin tier → permitido', () => {
+  test('Pro → permitido; sin tier explícito → bloqueado', () => {
     assert.strictEqual(blocked(pro, { enabled: true }), false);
-    assert.strictEqual(blocked(sinTier, { enabled: true }), false);
+    assert.strictEqual(blocked(sinTier, { enabled: true }), true);
   });
 });

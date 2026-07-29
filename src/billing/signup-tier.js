@@ -8,17 +8,20 @@
 //
 //   - basePlan: el plan Stripe BASE (siempre 'negocio' = 49€; Básico y Pro
 //       comparten base — Pro es base + add-on 'pro' de +36€ = 85€).
-//   - tier: 'basico' → se escribe en automation_config.config.tier y CAPA el
-//       motor de seguimientos. Pro/legacy → null (defecto PRO, ver plan.js).
+//   - tier: 'basico' | 'pro' | null → se escribe en automation_config.config.tier.
 //   - wantsProAddon: true solo para 'pro' → el checkout añade la 2ª línea
 //       (+36€) y la provisión registra addons.pro.
 //
-// FUNDADORES (isFounder): SIEMPRE base 'negocio' sin tier ni add-on → Pro
-// completo al precio de 49€ de por vida (la oferta). Aunque cliquen "Pro",
-// no se les cobra el add-on: su deal ES Pro gratis.
+// FUNDADORES (isFounder): base 'negocio' sin add-on, pero con `tier:'pro'`
+// ESCRITO. Su oferta es Pro completo a 49€ de por vida y, desde que el defecto
+// pasó a Básico (2026-07-29), dejar su tier a null los habría capado en
+// silencio. Una promesa comercial tiene que estar en los datos, no depender del
+// valor por defecto de una función. Aunque cliquen "Pro" no se les cobra el
+// add-on: su deal ES Pro gratis.
 //
-// Desconocido / ausente / 'negocio' → base 'negocio', sin tier, sin add-on
-// (= comportamiento actual exacto: cero regresión antes del lanzamiento).
+// Desconocido / ausente / 'negocio' → base 'negocio', sin tier explícito → cae
+// al defecto, que ahora es BÁSICO. Es el cambio: antes esto regalaba ~64€/mes
+// de complementos dentro de un plan de 49€.
 // ============================================================
 
 /**
@@ -29,9 +32,11 @@
 function parseSignupPlan(rawPlan, opts = {}) {
   const raw = String(rawPlan || '').trim().toLowerCase();
 
-  // Fundador: su oferta es Pro completo a 49€ → base sola, sin capar ni add-on.
+  // Fundador: su oferta es Pro completo a 49€. Se ESCRIBE tier:'pro' — con el
+  // defecto en Básico, dejarlo a null los caparía en silencio y romperíamos la
+  // oferta sin que nadie lo notara hasta que un fundador echara algo en falta.
   if (opts.isFounder) {
-    return { choice: 'negocio', basePlan: 'negocio', tier: null, wantsProAddon: false };
+    return { choice: 'negocio', basePlan: 'negocio', tier: 'pro', wantsProAddon: false };
   }
 
   if (raw === 'basico') {

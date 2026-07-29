@@ -10,11 +10,12 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { runAutoContent } = require('../src/content/auto');
 
-// Org helper: Pro por defecto (sin tier); auto/micrositeOff configurables.
+// Org helper: Pro EXPLÍCITO. Desde 2026-07-29 el defecto es Básico, así que una
+// org sin tier ya no pasa el gating del contenido — hay que escribirlo.
 const org = (id, over = {}) => ({
   id, name: 'N' + id, slug: 's' + id, is_active: true,
   assistant_config: { sector: 'dental' },
-  automation_config: { config: Object.assign({ contentAuto: true, city: 'Bilbao', serviceList: [{ name: 'Limpieza' }] }, over) },
+  automation_config: { config: Object.assign({ tier: 'pro', contentAuto: true, city: 'Bilbao', serviceList: [{ name: 'Limpieza' }] }, over) },
 });
 
 function deps(orgs, over = {}) {

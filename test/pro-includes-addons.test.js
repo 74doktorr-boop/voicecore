@@ -10,8 +10,10 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { hasAddon, listAddons, ADDONS } = require('../src/billing/addons');
 
-const pro = {};                                                   // sin tier → Pro por defecto
-const proExplicito = { automation_config: { config: { tier: 'pro' } } };
+// Desde 2026-07-29 el defecto es BÁSICO: Pro hay que tenerlo escrito o comprado.
+const pro = { automation_config: { config: { tier: 'pro' } } };
+const proExplicito = pro;
+const sinTier = {};                                               // → básico
 const basico = { automation_config: { config: { tier: 'basico' } } };
 const basicoConGrowth = { automation_config: { config: { tier: 'basico', addons: { growth: { itemId: 'si_x' } } } } };
 const CAP = ['voice_premium', 'growth', 'wa_own_number'];
@@ -24,6 +26,12 @@ describe('hasAddon — Pro incluye todos los de capacidad', () => {
   }
   test("Pro NO se auto-incluye 'pro' (evita circular)", () => {
     assert.strictEqual(hasAddon(pro, 'pro'), false);
+  });
+  test('org SIN tier ya NO recibe los complementos de gratis', () => {
+    for (const k of CAP) {
+      assert.strictEqual(hasAddon(sinTier, k), false,
+        `sin tier explícito no puede venir '${k}' regalado: eran ~64€/mes dentro de un plan de 49€`);
+    }
   });
   test('Básico que compró growth aparte lo conserva (sin regresión)', () => {
     assert.strictEqual(hasAddon(basicoConGrowth, 'growth'), true);

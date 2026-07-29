@@ -10,27 +10,43 @@
 // FUENTE DE VERDAD del tier: organizations.automation_config.config.tier
 //   ('basico' | 'pro'). Mismo almacén que los add-ons (billing/addons.js).
 //
-// DEFECTO = PRO (no negociable): una org SIN tier explícito tiene TODO. Así:
-//   (1) las orgs existentes y los 20 FUNDADORES no pierden nada,
-//   (2) el gating es un NO-OP hasta que se marque a un cliente como 'basico'.
-// Solo un `tier: 'basico'` explícito capa el motor de seguimientos.
+// DEFECTO = BÁSICO (cambiado el 2026-07-29, decisión de Unai).
+//
+// Antes el defecto era PRO: una org SIN tier explícito tenía TODO. Se hizo así
+// para que el gating fuera un NO-OP y nadie perdiera nada al desplegarlo, pero
+// el efecto económico no era un no-op: toda org sin marcar recibía voz premium,
+// crecimiento y WhatsApp propio — unos 64€/mes de complementos — dentro de un
+// plan de 49€. Con 0 suscripciones activas en Stripe era el momento de
+// corregirlo, antes de que el regalo se volviera un derecho adquirido.
+//
+// La regla ahora es explícita en los dos sentidos: para tener Pro hay que
+// tenerlo ESCRITO (`tier:'pro'`) o haberlo COMPRADO (`addons.pro`). Nada de
+// entitlements que dependen de la ausencia de un campo.
+//
+// FUNDADORES: su oferta sigue intacta (Pro completo a 49€ de por vida), pero
+// ahora se les escribe `tier:'pro'` en el alta (ver billing/signup-tier.js) en
+// vez de dárselo por omisión. Una promesa comercial tiene que estar en los
+// datos, no en el valor por defecto de una función.
 // ============================================================
 
-/** Tier del negocio: 'basico' | 'pro'. Pro por defecto (ver cabecera). PURA. */
+/**
+ * Tier del negocio: 'basico' | 'pro'. BÁSICO por defecto (ver cabecera). PURA.
+ * Solo un `tier:'pro'` explícito da Pro por tier; el otro camino es el add-on.
+ */
 function tierOf(org) {
   const t = org && org.automation_config && org.automation_config.config && org.automation_config.config.tier;
-  return t === 'basico' ? 'basico' : 'pro';
+  return t === 'pro' ? 'pro' : 'basico';
 }
 
 /**
  * ¿La org tiene desbloqueado el motor de seguimientos (Pro)? PURA.
- * Dos caminos: (a) tier != 'basico' (defecto/fundadores), o (b) el add-on
- * 'pro' comprado (un Básico que se subió pagando +36€ → item Stripe activo).
- * El add-on ANULA el cap 'basico': activarlo abre todo sin reescribir tier;
- * cancelarlo vuelve a capar (el tier:'basico' sigue ahí). Ver billing/addons.js.
+ * Dos caminos, ambos EXPLÍCITOS: (a) `tier:'pro'` escrito (fundadores, o una
+ * cortesía decidida a mano), o (b) el add-on 'pro' comprado (un Básico que se
+ * subió pagando +36€ → item Stripe activo). Activar el add-on abre todo sin
+ * tocar el tier; cancelarlo vuelve a capar. Ver billing/addons.js.
  */
 function hasPro(org) {
-  if (tierOf(org) !== 'basico') return true;
+  if (tierOf(org) === 'pro') return true;
   const addons = org && org.automation_config && org.automation_config.config && org.automation_config.config.addons;
   return Boolean(addons && addons.pro);
 }

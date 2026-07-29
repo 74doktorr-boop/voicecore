@@ -23,15 +23,18 @@ describe('parseSignupPlan', () => {
     assert.strictEqual(r.wantsProAddon, true);
   });
 
-  test('FUNDADOR gana siempre: aunque elija Pro, sin add-on ni tier (Pro a 49€)', () => {
+  // Desde que el defecto es BÁSICO (2026-07-29), el tier del fundador se ESCRIBE.
+  // Dejarlo a null lo caparía en silencio y romperíamos su oferta —Pro completo a
+  // 49€ de por vida— sin que nadie lo notara hasta que echara algo en falta.
+  test('FUNDADOR gana siempre: aunque elija Pro, sin add-on y con tier pro ESCRITO (Pro a 49€)', () => {
     const r = parseSignupPlan('pro', { isFounder: true });
     assert.strictEqual(r.wantsProAddon, false); // NO se le cobra el +36€
-    assert.strictEqual(r.tier, null);           // Pro completo
+    assert.strictEqual(r.tier, 'pro');          // su promesa, en los datos
     assert.strictEqual(r.basePlan, 'negocio');  // precio base 49€
   });
 
   test('fundador que elige básico → tampoco capado (su deal es Pro)', () => {
-    assert.strictEqual(parseSignupPlan('basico', { isFounder: true }).tier, null);
+    assert.strictEqual(parseSignupPlan('basico', { isFounder: true }).tier, 'pro');
   });
 
   test("ausente / 'negocio' / legacy / basura → comportamiento actual (base, sin tier, sin add-on)", () => {
