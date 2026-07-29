@@ -1,40 +1,66 @@
 {
   "id": "organizate",
-  "name": "Organízate — crear cita en la agenda (login del profesional)",
+  "name": "Organízate — crear cita con tratamiento en la agenda",
   "_meta": {
-    "web": "https://www.organizate.info/  (gestión clínica, sin API, sin 2FA, sin CAPTCHA)",
-    "modo": "LOGIN del profesional → escribir la cita en la AGENDA, igual que hace la recepcionista a mano pero automático según van llegando las llamadas. (NO el widget público: el cliente quiere que la IA rellene SU agenda.)",
-    "config_por_negocio": ["org.organizateLoginUrl", "org.organizateUser (cifrado)", "org.organizatePass (cifrado)"],
-    "datos_entrada": ["appt.sede", "appt.service", "appt.profesional", "appt.date", "appt.time", "patient.name", "patient.phone", "patient.email", "appt.notas"],
-    "sesion": "Tras el primer login, exportar storageState y reutilizarlo (PlaywrightDriver.exportSession) para no logear en cada cita.",
-    "estado": "PLANTILLA — selectores REALES pendientes de las credenciales de Osakin (llegan mañana). Se afinan navegando la agenda real, igual que se hizo con StormPlus.",
-    "credenciales_cifradas": "AES-256-GCM como WhatsApp. Requiere autorización de Osakin (anexo RGPD)."
+    "web": "https://www.organizate.biz/  (gestión clínica, sin API, sin 2FA, sin CAPTCHA)",
+    "estado": "VALIDADO END-TO-END contra la demo (usuario 'Sergio') 2026-07-01 vía Claude-in-Chrome, CON autorización explícita del cliente. Se CREARON de verdad: paciente (id 2054) + cita 'Reservado' + cita de TRATAMIENTO 'Fisioterapia' (40€), visibles en la agenda de Nerea el Vie 03/07.",
+    "SECUENCIA_VALIDADA_END_TO_END": [
+      "1. goto URL directa del formulario de cita nueva: index.php?opcion=citas&vista=citas_panel&hora_ini={MIN}&fecha={DD/MM/YYYY}&id_emp={PROF}&id_sal={SALA}&tipo=e   (hora_ini=minutos desde medianoche: 10:00=600, 11:30=690)",
+      "2a. PACIENTE EXISTENTE: escribir en #search-friends (morphsearch) + #btn_buscar1 → seleccionar de resultados.  [el morphsearch NO se deja rellenar por .value; requiere focus()+teclas reales o Playwright type]",
+      "2b. PACIENTE NUEVO (alta): botón '+ ALTA PACIENTE' (btn_div_paciente) → rellenar #nombre/#apellidos/#dni/#fechanac/#tlf_fijo/#tlf_movil/#email → GUARDAR.  ⚠️ BUG: hay 3 elementos '#nombre' (2 OCULTOS + 1 visible). Rellenar el VISIBLE con focus()+teclas reales (Playwright locator visible + type). Con .value o getElementById se rellena el oculto → error 'El nombre es obligatorio'.",
+      "3. Aparece panel de SALAS ('Salas libres: - SIN SALA -'). ← PASO CLAVE: hay que CLICAR una sala (p.ej. '- SIN SALA -'). Esto abre el formulario de CITA con tratamiento (NO usar el botón 'Reserva', que abre un bloque genérico Duración/Tipo).",
+      "4. Formulario de tratamiento: lista (FA, Fisioterapia, PRESO, Primera Visita, Rehab, revision). Clicar el botón verde '+' del servicio (onclick tratamiento_add({ID})) → se añade al panel derecho y actualiza el precio (Fisioterapia=40€). Filtrar con #tratamiento si la lista es larga.",
+      "5. (opcional) Tarifa/Seguro: select #id_tarifa (p.ej. 'Sesión normal'). Recordatorios: #email/#sms.",
+      "6. GUARDAR: botón verde 'GUARDAR' (onclick enviar_form()) → crea la cita y redirige a la agenda (vista=planning). 'GUARDAR Y PROGRAMAR' es otra opción (programa repeticiones).",
+      "7. La cita aparece en la agenda como bloque verde con el servicio."
+    ],
+    "selectores_VALIDADOS": {
+      "url_form_nueva": "index.php?opcion=citas&vista=citas_panel&hora_ini={MIN}&fecha={DD/MM/YYYY}&id_emp={PROF}&id_sal={SALA}&tipo=e",
+      "url_form_editar": "index.php?opcion=citas&vista=citas_panel&id={ID_CITA}",
+      "buscar_paciente": "#search-friends (name=username) + #btn_buscar1 (btn_buscar_pacientes())",
+      "alta_paciente_btn": "#btn_new_paciente (btn_div_paciente())",
+      "alta_campos": "#nombre(VISIBLE, teclas reales) #apellidos #dni #fechanac(dd/mm/aaaa) #tlf_fijo #tlf_movil #email; avisos #recordatorio_eml/_sms/_wsp; tarifa #id_tarifa",
+      "sala_clic": "clic en el botón de la sala en 'Salas libres' (texto '- SIN SALA -') → abre el form de tratamiento",
+      "tarifa_seguro": "select#id_tarifa",
+      "tratamiento_lista": "botón verde '+' por servicio: onclick tratamiento_add({ID}). Filtro: input #tratamiento (placeholder 'Buscar tratamiento')",
+      "bono": "select[name='lst_bonos[]']",
+      "GUARDAR": "botón texto 'GUARDAR' con onclick enviar_form()  (evitar 'GUARDAR Y PROGRAMAR')",
+      "cancelar": "btn_div_cita()"
+    },
+    "config_por_negocio": [
+      "org.organizateLoginUrl, org.organizateUser (cifrado AES-256-GCM, anexo RGPD), org.organizatePass (cifrado)",
+      "mapa profesional→{id_emp,id_sal} (demo: Nerea=279). Descubrir inspeccionando su agenda.",
+      "mapa servicio→id para tratamiento_add() (demo: Fisioterapia y otros). Descubrir en su form de cita.",
+      "id_tarifa por defecto (p.ej. 'Sesión normal')."
+    ],
+    "PENDIENTE": [
+      "Login real (la demo entra por botón, sin credenciales) — confirmar con las de Osakin.",
+      "Robustecer el morphsearch de paciente existente en Playwright (type carácter a carácter).",
+      "Correr booking-run.js --recipe organizate --config datos.json (dry-run→--live) con las credenciales de Osakin en SU agenda."
+    ]
   },
   "steps": [
     { "action": "goto", "url": "{{org.organizateLoginUrl}}" },
-    { "action": "fill", "selectorCandidates": ["input[name=usuario]", "input[name=email]", "#usuario", "#email", "input[type=email]"], "value": "{{org.organizateUser}}" },
+    { "action": "fill", "selectorCandidates": ["input[name=usuario]", "input[name=email]", "#usuario", "#email"], "value": "{{org.organizateUser}}" },
     { "action": "fill", "selectorCandidates": ["input[name=password]", "input[name=clave]", "#password", "input[type=password]"], "value": "{{org.organizatePass}}" },
-    { "action": "click", "selectorCandidates": ["button[type=submit]", "button:has-text('Entrar')", "button:has-text('Acceder')", "input[type=submit]"] },
-    { "action": "waitFor", "selectorCandidates": ["text=Agenda", "nav", ".dashboard", "#agenda"] },
+    { "action": "click", "selectorCandidates": ["button[type=submit]", "button:has-text('Entrar')", "button:has-text('Acceder')"] },
+    { "action": "waitFor", "selectorCandidates": ["text=Planning", "text=Agenda", "nav"] },
 
-    { "action": "click", "selectorCandidates": ["a:has-text('Agenda')", "text=Agenda", "#menu-agenda"] },
-    { "action": "click", "optional": true, "selectorCandidates": ["button:has-text('Nueva cita')", "text=Nueva cita", "#nueva-cita", "a:has-text('Añadir cita')"] },
+    { "_comment": "Formulario de cita nueva por URL directa.", "action": "goto", "url": "index.php?opcion=citas&vista=citas_panel&hora_ini={{appt.horaIniMin}}&fecha={{appt.fechaDmy}}&id_emp={{appt.idEmp}}&id_sal={{appt.idSal}}&tipo=e" },
+    { "_comment": "Aviso fuera de horario, si aparece.", "action": "click", "optional": true, "selectorCandidates": ["button:has-text('CONTINUAR')", ".swal2-confirm"] },
 
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name=sede]", "#sede"], "value": "{{appt.sede}}" },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name=profesional]", "#profesional"], "value": "{{appt.profesional}}" },
-    { "action": "select", "optional": true, "selectorCandidates": ["select[name=servicio]", "#servicio"], "value": "{{appt.service}}" },
+    { "_comment": "Paciente existente (morphsearch — teclas reales).", "action": "fill", "optional": true, "selectorCandidates": ["#search-friends"], "value": "{{patient.phone}}" },
+    { "action": "click", "optional": true, "selectorCandidates": ["#btn_buscar1", "button[onclick*=btn_buscar_pacientes]"] },
+    { "action": "click", "optional": true, "selectorCandidates": [".list-group-item:has-text('{{patient.name}}')", "[onclick*=selec]"] },
 
-    { "action": "fill", "selectorCandidates": ["input[name=fecha]", "#fecha", ".datepicker"], "value": "{{appt.date}}" },
-    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=hora]", "#hora", "#horaInicio"], "value": "{{appt.time}}" },
+    { "_comment": "PASO CLAVE: clicar una sala para abrir el form de tratamiento.", "action": "click", "selectorCandidates": ["text=- SIN SALA -", ".sala-libre", "[onclick*=sala]"] },
 
-    { "action": "fill", "selectorCandidates": ["input[name=nombre]", "#nombrePaciente", "input[placeholder*='aciente']"], "value": "{{patient.name}}" },
-    { "action": "fill", "selectorCandidates": ["input[name=telefono]", "#telefono", "input[type=tel]"], "value": "{{patient.phone}}" },
-    { "action": "fill", "optional": true, "selectorCandidates": ["input[name=email]", "#emailPaciente", "input[type=email]"], "value": "{{patient.email}}" },
-    { "action": "fill", "optional": true, "selectorCandidates": ["textarea[name=notas]", "#notas", "textarea"], "value": "{{appt.notas}}" },
+    { "action": "select", "optional": true, "selectorCandidates": ["#id_tarifa", "select[name=id_tarifa]"], "value": "{{appt.tarifa}}" },
+    { "_comment": "Filtrar el servicio y añadirlo con su botón '+'.", "action": "fill", "optional": true, "selectorCandidates": ["#tratamiento"], "value": "{{appt.service}}" },
+    { "action": "click", "selectorCandidates": ["button[onclick^='tratamiento_add(']", "#tratamiento_lista button.btn-success"] },
 
     { "action": "screenshot", "name": "organizate-antes-de-guardar" },
-    { "action": "click", "skipOnDryRun": true, "selectorCandidates": ["button:has-text('Guardar')", "button:has-text('Crear cita')", "button[type=submit]"] },
-    { "action": "expectText", "skipOnDryRun": true, "anyOf": ["cita creada", "guardado", "guardada", "correctamente", "añadida"] },
+    { "action": "click", "skipOnDryRun": true, "selectorCandidates": ["button[onclick*=enviar_form]", "button:has-text('GUARDAR'):not(:has-text('PROGRAMAR'))"] },
     { "action": "screenshot", "skipOnDryRun": true, "name": "organizate-cita-creada" }
   ]
 }

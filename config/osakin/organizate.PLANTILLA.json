@@ -1,0 +1,45 @@
+{
+  "_nota": "Organízate · PLANTILLA. Rellenar los campos TODO con los datos que facilite Osakin. Los campos _map se completan una sola vez por sede (ids de profesional/servicio de Organízate). Ejecutar dry-run: node scripts/booking-run.js --recipe organizate --config config/osakin/organizate.PLANTILLA.json  (añadir --live SOLO tras validar en dry-run).",
+  "_pendiente_de_osakin": [
+    "organizateUser / organizatePass (usuario de Organízate de cada sede o uno multi-sede)",
+    "Confirmar organizateLoginUrl real (demo usa organizate.biz)",
+    "Mapa profesional -> id_emp por sede (ver _map.profesionales)",
+    "Mapa servicio -> id_tarifa/id_tratamiento por sede (ver _map.servicios)",
+    "Salas por sede si aplica (id_sal)"
+  ],
+  "org": {
+    "id": "osakin",
+    "name": "Osakin",
+    "organizateLoginUrl": "https://www.organizate.biz/",
+    "organizateUser": "TODO",
+    "organizatePass": "TODO"
+  },
+  "_map": {
+    "profesionales": {
+      "_ejemplo_demo": { "Nerea": 279 },
+      "andoain": {},
+      "tolosa": {},
+      "villabona": {}
+    },
+    "servicios": {
+      "_ejemplo_demo": { "Fisioterapia": { "id_tarifa": "TODO", "id_tratamiento": "TODO", "precio": 40 } },
+      "andoain": {},
+      "tolosa": {},
+      "villabona": {}
+    }
+  },
+  "appt": {
+    "sede": "Tolosa",
+    "service": "Fisioterapia",
+    "profesional": "Nerea",
+    "date": "15/07/2026",
+    "time": "10:00",
+    "notas": "Cita creada por NodeFlow"
+  },
+  "patient": {
+    "name": "PRUEBA TEST NODEFLOW",
+    "phone": "600000000",
+    "email": "prueba@nodeflow.es",
+    "dni": "00000000T"
+  }
+}
