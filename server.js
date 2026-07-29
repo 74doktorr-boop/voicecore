@@ -32,7 +32,8 @@ const { setupDemoRoutes }         = require('./src/api/routes-demo');
 const { setupAutomationRoutes }   = require('./src/api/routes-automations');
 const { setupFlowRoutes }         = require('./src/api/routes-flows');
 const { setupCalendarRoutes }     = require('./src/api/routes-calendar');
-const { setupOutlookRoutes }      = require('./src/api/routes-outlook');
+// (Retirado 2026-07-29) routes-outlook: Azure descartado de forma permanente.
+// La integración con Outlook se sirve por el feed iCal (/api/agenda.ics).
 const { setupIntegrationRoutes }  = require('./src/api/routes-integrations');
 const { setupLlamameRoutes }      = require('./src/api/routes-llamame');
 const { setupAuthRoutes }         = require('./src/api/routes-auth');
@@ -660,7 +661,7 @@ setupDemoRoutes(app, ttsRouter);
 setupAutomationRoutes(app);
 setupFlowRoutes(app);
 setupCalendarRoutes(app, config);
-setupOutlookRoutes(app, config);
+// (Retirado 2026-07-29) setupOutlookRoutes — Azure descartado permanentemente.
 // Ingreso de integraciones: sistemas externos empujan sus reservas para evitar
 // overbooking (HMAC firmado, INERTE sin inboundSecret configurado por negocio).
 setupIntegrationRoutes(app);

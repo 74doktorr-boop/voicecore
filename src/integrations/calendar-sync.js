@@ -22,7 +22,13 @@ function _resolve(deps) {
   return {
     db:  deps.db  || require('../db/database').getDatabase(),
     cal: deps.cal || require('./google-calendar').getGoogleCalendar(),
-    ocal: deps.ocal || (() => { try { return require('./outlook-calendar').getOutlookCalendar(); } catch (_) { return { enabled: false }; } })(),
+    // Outlook por Microsoft Graph RETIRADO (2026-07-29): Azure queda descartado
+    // de forma permanente. Se deja `enabled:false` fijo en vez de borrar el
+    // fan-out entero para no operar el camino de Google, que sí está en uso:
+    // con esto, todas las funciones *OutlookEvent salen en su primera línea y
+    // no hacen nada. La integración con Outlook se sirve hoy por el FEED iCAL
+    // (src/integrations/ical-feed.js). Sigue siendo inyectable en tests.
+    ocal: deps.ocal || { enabled: false },
     getConfig: deps.getConfig || ((id) => {
       try { return require('../scheduling/scheduler').scheduler.getBusinessConfig(id); }
       catch (_) { return null; }
