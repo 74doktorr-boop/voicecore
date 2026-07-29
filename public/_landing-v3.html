@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow — Tu negocio no vuelve a perder una llamada</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0C0C0E; --surface:#141416; --raise:#191920;
+  --ink:#F3F3EE; --ink-2:#9C9C95; --ink-3:#62625B;
+  --line:rgba(240,240,235,.08); --line-2:rgba(240,240,235,.15);
+  --accent:#C4F546; --accent-ink:#14170B; --accent-rgb:196,245,70;
+  --font:'General Sans',system-ui,-apple-system,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--ink-2);line-height:1.6;font-weight:400;letter-spacing:-.01em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 40px}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{color:var(--ink);font-weight:500;letter-spacing:-.03em;line-height:1.05}
+::selection{background:var(--accent);color:var(--accent-ink)}
+
+/* nav */
+nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:22px 0;background:rgba(12,12,14,.7);backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}
+nav.stuck{border-bottom-color:var(--line)}
+.logo{font-size:1.18rem;font-weight:600;color:var(--ink);letter-spacing:-.03em}
+.nav-r{display:flex;align-items:center;gap:34px}
+.nav-r a{font-size:.95rem;color:var(--ink-2);font-weight:400;transition:color .2s}
+.nav-r a:hover{color:var(--ink)}
+.nav-r a:not(.btn){position:relative}
+.nav-r a:not(.btn)::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--ink);transition:right .35s var(--ease)}
+.nav-r a:not(.btn):hover::after{right:0}
+.nav-cta{color:var(--ink);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--font);font-size:1rem;font-weight:500;letter-spacing:-.01em;padding:13px 24px;border-radius:11px;cursor:pointer;transition:transform .25s var(--ease),background .25s,border-color .25s;border:1px solid transparent}
+.btn-accent{background:var(--accent);color:var(--accent-ink)}
+.btn-accent:hover{transform:translateY(-1px);background:#cff85a}
+.nav-r a.btn-accent{color:var(--accent-ink)}
+.btn-quiet{color:var(--ink);border-color:var(--line-2)}
+.btn-quiet:hover{border-color:var(--ink-3);background:rgba(240,240,235,.03)}
+.btn-sm{padding:9px 18px;font-size:.92rem;border-radius:9px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:80px;align-items:center;padding:64px 0 96px}
+.kicker{font-size:.82rem;font-weight:500;color:var(--ink-3);margin-bottom:30px;display:flex;align-items:center;gap:10px}
+.kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.hero h1{font-size:clamp(2.6rem,4.6vw,4rem);font-weight:500;letter-spacing:-.035em;line-height:1.02;color:var(--ink);margin-bottom:28px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lead{font-size:1.24rem;line-height:1.5;color:var(--ink-2);max-width:31ch;margin-bottom:36px}
+.hero-cta{display:flex;align-items:center;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+.reassure{font-size:.92rem;color:var(--ink-3);display:flex;gap:18px;flex-wrap:wrap}
+.reassure span{display:inline-flex;align-items:center;gap:7px}
+.reassure .c{color:var(--ink);font-weight:500}
+
+/* demo callsheet */
+.callsheet{background:linear-gradient(180deg,var(--raise),var(--surface));border:1px solid var(--line-2);border-radius:20px;padding:30px 30px 26px;box-shadow:0 30px 60px -40px rgba(0,0,0,.9);position:relative}
+.callsheet::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+.cs-head{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.cs-when{font-size:.9rem;color:var(--ink)}.cs-when b{font-weight:500}
+.cs-meta{font-size:.8rem;color:var(--ink-3)}
+.cs-status{margin:20px 0 4px;font-size:.98rem;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:9px}
+.cs-status .live{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:bp 2.4s infinite}
+@keyframes bp{0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.5)}70%{box-shadow:0 0 0 6px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
+.cs-rows{margin-top:16px}
+.cs-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+.cs-row:last-child{border-bottom:none}
+.cs-ck{width:22px;height:22px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:.72rem;font-weight:600;flex-shrink:0}
+.cs-txt{flex:1;font-size:.98rem;color:var(--ink)}
+.cs-val{font-size:.9rem;color:var(--ink-3);text-align:right}
+.cs-foot{margin-top:20px;font-size:.9rem;color:var(--ink-2)}.cs-foot b{color:var(--ink);font-weight:500}
+
+/* proof */
+.proof{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.proof .wrap{display:flex;gap:64px;padding:38px 40px;flex-wrap:wrap;align-items:baseline}
+.pf-n{font-size:2.1rem;font-weight:500;color:var(--ink);letter-spacing:-.03em;line-height:1}
+.pf-n .u{color:var(--accent)}
+.pf-l{font-size:.9rem;color:var(--ink-3);margin-top:8px;max-width:22ch}
+
+/* secciones */
+.sec{padding:112px 0}
+.sec-k{font-size:.82rem;font-weight:500;color:var(--ink-3);margin-bottom:22px}
+.sec h2{font-size:clamp(1.9rem,3.2vw,2.7rem);font-weight:500;letter-spacing:-.03em;max-width:18ch;margin-bottom:20px}
+.sec .intro{font-size:1.16rem;color:var(--ink-2);max-width:46ch;line-height:1.5}
+.head-2{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end;margin-bottom:64px}
+
+/* problema */
+.prob{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
+.prob-lines{display:flex;flex-direction:column;gap:26px;margin-top:6px}
+.prob-line{padding-left:26px;position:relative;font-size:1.12rem;color:var(--ink-2);line-height:1.5}
+.prob-line::before{content:"";position:absolute;left:0;top:.62em;width:10px;height:1px;background:var(--ink-3)}
+.prob-line b{color:var(--ink);font-weight:500}
+.prob-quote{font-size:1.5rem;font-weight:400;color:var(--ink);line-height:1.35;letter-spacing:-.02em;max-width:20ch}
+.prob-quote em{font-style:normal;color:var(--accent)}
+
+/* cómo funciona — sin cajas */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
+.step{padding:34px 0 0;border-top:1px solid var(--line-2)}
+.step-n{font-size:.9rem;font-weight:500;color:var(--accent)}
+.step h3{font-size:1.35rem;font-weight:500;color:var(--ink);margin:20px 0 12px}
+.step p{font-size:1.02rem;color:var(--ink-2);line-height:1.5}
+
+/* resultados — prosa, problemas que desaparecen */
+.outcomes{display:grid;grid-template-columns:1fr 1fr;gap:48px 80px}
+.oc{padding-top:26px;border-top:1px solid var(--line)}
+.oc h3{font-size:1.32rem;font-weight:500;color:var(--ink);letter-spacing:-.02em;margin-bottom:11px}
+.oc p{font-size:1.04rem;color:var(--ink-2);line-height:1.55;max-width:34ch}
+
+/* sectores — una línea sobria */
+.sectors{font-size:clamp(1.4rem,2.6vw,2rem);font-weight:400;color:var(--ink-3);line-height:1.4;letter-spacing:-.02em;max-width:24ch}
+.sectors b{color:var(--ink);font-weight:500}
+
+/* confianza — humano, sin glow */
+.trust{display:grid;grid-template-columns:1.2fr .8fr;gap:80px;align-items:start}
+.trust-q{font-size:1.7rem;font-weight:400;color:var(--ink);line-height:1.35;letter-spacing:-.02em}
+.trust-q em{font-style:normal;color:var(--accent)}
+.trust-by{margin-top:26px;font-size:.98rem;color:var(--ink-2)}
+.trust-by b{color:var(--ink);font-weight:500}
+.guar{display:flex;flex-direction:column;gap:20px}
+.guar-i{font-size:1.02rem;color:var(--ink-2);line-height:1.5;padding-top:18px;border-top:1px solid var(--line)}
+.guar-i b{color:var(--ink);font-weight:500;display:block;margin-bottom:3px}
+
+/* precio */
+.price{max-width:520px;margin:0 auto;text-align:center}
+.price .amt{font-size:clamp(3.2rem,7vw,4.6rem);font-weight:500;color:var(--ink);letter-spacing:-.04em;line-height:1}
+.price .amt sup{font-size:.35em;vertical-align:.9em;color:var(--ink-3);font-weight:400}
+.price .amt .per{font-size:.24em;color:var(--ink-3);font-weight:400}
+.price .sub{font-size:1.08rem;color:var(--ink-2);margin:16px 0 8px}
+.price .feats{list-style:none;text-align:left;max-width:360px;margin:34px auto 0;display:flex;flex-direction:column;gap:13px}
+.price .feats li{display:flex;gap:12px;font-size:1rem;color:var(--ink-2)}
+.price .feats .k{color:var(--accent);flex-shrink:0}
+.price .note{font-size:.9rem;color:var(--ink-3);margin-top:26px}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto}
+.qa{padding:28px 0;border-top:1px solid var(--line)}
+.qa:last-child{border-bottom:1px solid var(--line)}
+.qa h3{font-size:1.12rem;font-weight:500;color:var(--ink);margin-bottom:10px}
+.qa p{font-size:1.02rem;color:var(--ink-2);line-height:1.55;max-width:64ch}
+
+/* final */
+.final{text-align:center;padding:130px 0}
+.final h2{font-size:clamp(2.2rem,4.2vw,3.4rem);font-weight:500;letter-spacing:-.035em;line-height:1.05;max-width:18ch;margin:0 auto 26px}
+.final .sub{font-size:1.16rem;color:var(--ink-2);margin-bottom:34px}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:56px 0 44px}
+.foot{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;margin-bottom:40px}
+.foot-brand{max-width:260px}
+.foot-brand .logo{display:inline-block;margin-bottom:12px}
+.foot-brand p{font-size:.9rem;color:var(--ink-3);line-height:1.5}
+.foot-col h4{font-size:.78rem;font-weight:500;color:var(--ink-3);margin-bottom:14px}
+.foot-col a{display:block;font-size:.92rem;color:var(--ink-2);margin-bottom:10px;transition:color .2s}
+.foot-col a:hover{color:var(--ink)}
+.foot-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-3)}
+
+@media(max-width:900px){
+  .wrap{padding:0 24px}
+  .hero{grid-template-columns:1fr;gap:48px;padding:36px 0 60px}.callsheet{order:2}
+  .proof .wrap{gap:36px}
+  .sec{padding:78px 0}
+  .head-2,.prob,.trust,.outcomes{grid-template-columns:1fr;gap:40px}
+  .prob-quote,.sectors{max-width:none}
+  .steps{grid-template-columns:1fr}
+  .step{padding:30px 0;border-top:1px solid var(--line)}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav id="nav"><div class="wrap" style="display:flex;align-items:center;justify-content:space-between;padding:0">
+  <div class="logo">NodeFlow</div>
+  <div class="nav-r">
+    <a href="#como">Cómo funciona</a>
+    <a href="#precio">Precio</a>
+    <a href="#" class="nav-cta">Entrar</a>
+    <a href="#precio" class="btn btn-accent btn-sm">Empezar</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+  <!-- HERO -->
+  <header class="hero">
+    <div>
+      <div class="kicker"><span class="dot"></span>La recepcionista que tu negocio no tiene</div>
+      <h1>Tu negocio no vuelve<br>a perder <em>una llamada</em>.</h1>
+      <p class="lead">Atiende el teléfono por ti, reserva las citas y avisa a tus clientes. Tú, a lo tuyo — con la tranquilidad de que nadie se queda sin respuesta.</p>
+      <div class="hero-cta">
+        <a href="#precio" class="btn btn-accent">Empezar ahora</a>
+        <a href="#como" class="btn btn-quiet">Escúchalo un momento</a>
+      </div>
+      <div class="reassure">
+        <span><span class="c">Sin</span> cambiar tu número</span>
+        <span><span class="c">Sin</span> permanencia</span>
+        <span>Listo en minutos</span>
+      </div>
+    </div>
+    <div class="callsheet">
+      <div class="cs-head"><div class="cs-when">Martes, <b>20:47</b></div><div class="cs-meta">fuera de horario</div></div>
+      <div class="cs-status"><span class="live"></span>NodeFlow atendió la llamada por ti</div>
+      <div class="cs-rows">
+        <div class="cs-row"><div class="cs-ck">✓</div><div class="cs-txt">Cita reservada</div><div class="cs-val">Jueves · 10:00</div></div>
+        <div class="cs-row"><div class="cs-ck">✓</div><div class="cs-txt">Añadida a tu calendario</div><div class="cs-val">Google Calendar</div></div>
+        <div class="cs-row"><div class="cs-ck">✓</div><div class="cs-txt">Cliente guardado</div><div class="cs-val">María G. · nueva ficha</div></div>
+        <div class="cs-row"><div class="cs-ck">✓</div><div class="cs-txt">Confirmación enviada</div><div class="cs-val">WhatsApp</div></div>
+      </div>
+      <div class="cs-foot">Resuelto en <b>43 segundos</b>. Tú no tuviste que hacer nada.</div>
+    </div>
+  </header>
+</div>
+
+<!-- PROOF -->
+<div class="proof"><div class="wrap">
+  <div><div class="pf-n"><span class="u">0</span></div><div class="pf-l">llamadas perdidas — siempre hay alguien que contesta</div></div>
+  <div><div class="pf-n">24/7</div><div class="pf-l">también de noche, fines de semana y festivos</div></div>
+  <div><div class="pf-n">49€</div><div class="pf-l">al mes · un recepcionista cuesta 15 veces más</div></div>
+</div></div>
+
+<!-- PROBLEMA -->
+<section class="sec"><div class="wrap"><div class="prob">
+  <div>
+    <div class="sec-k">Lo que desaparece</div>
+    <div class="prob-quote">La llamada que no cogiste era <em>un cliente</em>. Y llamó al de al lado.</div>
+  </div>
+  <div class="prob-lines">
+    <div class="prob-line">Estás con las manos ocupadas y el teléfono suena. No llegas. <b>Ese cliente no vuelve a llamar.</b></div>
+    <div class="prob-line">Las llamadas entran fuera de horario, en festivos, a la hora punta — <b>justo cuando no puedes cogerlas.</b></div>
+    <div class="prob-line">Un contestador no reserva ni resuelve. Y contratar a alguien son <b>800 € cada mes.</b></div>
+    <div class="prob-line" style="color:var(--ink)"><b>Con NodeFlow, sencillamente, deja de pasar.</b></div>
+  </div>
+</div></div></section>
+
+<!-- CÓMO FUNCIONA -->
+<section class="sec" id="como"><div class="wrap">
+  <div class="head-2">
+    <div><div class="sec-k">Cómo funciona</div><h2>Listo en una tarde. Sin técnicos.</h2></div>
+    <p class="intro">Nos cuentas cómo trabajas, eliges su voz y desvías las llamadas que no coges. A partir de ahí, se encarga solo.</p>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="step-n">01</div><h3>Cuéntanos qué haces</h3><p>Tus servicios, tus horarios, tu forma de hablar. Eliges la voz y la escuchas antes de nada.</p></div>
+    <div class="step"><div class="step-n">02</div><h3>Desvía lo que no coges</h3><p>Un código en tu móvil y las llamadas sin atender saltan a tu asistente. Tu número no cambia.</p></div>
+    <div class="step"><div class="step-n">03</div><h3>Vuelve a lo tuyo</h3><p>Atiende, reserva en tu calendario y te avisa por WhatsApp. Tú, tranquilo.</p></div>
+  </div>
+</div></section>
+
+<!-- RESULTADOS (problemas que desaparecen) -->
+<section class="sec"><div class="wrap">
+  <div class="head-2">
+    <div><div class="sec-k">Lo que deja de ser tu problema</div><h2>No es lo que hace la IA. Es lo que dejas de perder.</h2></div>
+    <p class="intro">Todo incluido, sin módulos que activar. La IA es solo el motor — lo que te llevas es tranquilidad.</p>
+  </div>
+  <div class="outcomes">
+    <div class="oc"><h3>La agenda se llena sola</h3><p>Reserva en tu Google Calendar durante la llamada, consultando tus huecos reales. El cliente cuelga con su cita hecha.</p></div>
+    <div class="oc"><h3>Ningún cliente se te olvida</h3><p>Recuerda quién llama, qué pidió y cómo se llama. Cada conversación es personal, como con alguien de años.</p></div>
+    <div class="oc"><h3>Menos ausencias, sin insistir</h3><p>Confirma al instante y recuerda la cita el día antes por WhatsApp. Menos huecos vacíos, cero gestión.</p></div>
+    <div class="oc"><h3>Recuperas lo que se escapaba</h3><p>Rellena huecos con la lista de espera y llama a clientes que hace tiempo no vienen. Ingresos que antes perdías.</p></div>
+  </div>
+</div></section>
+
+<!-- SECTORES -->
+<section class="sec" style="padding:76px 0;border-top:1px solid var(--line)"><div class="wrap">
+  <div class="sec-k">Para negocios que viven del teléfono</div>
+  <p class="sectors">Clínicas dentales, <b>peluquerías</b>, fisioterapia, <b>veterinarias</b>, estética, <b>talleres</b>, despachos, gimnasios y <b>cualquier negocio</b> donde una llamada perdida es un cliente perdido.</p>
+</div></section>
+
+<!-- CONFIANZA -->
+<section class="sec"><div class="wrap"><div class="trust">
+  <div>
+    <div class="sec-k">Sin humo</div>
+    <div class="trust-q">Desviar tu teléfono da respeto. Por eso no te pedimos fe: <em>lo escuchas tú antes</em>, no hay permanencia, y si algo falla me escribes a mí.</div>
+    <div class="trust-by"><b>Unai</b> — fundador de NodeFlow · Euskal Herria · soporte humano en español</div>
+  </div>
+  <div class="guar">
+    <div class="guar-i"><b>Escúchalo antes de desviar nada</b>Te llama a tu móvil para que lo pruebes tú primero.</div>
+    <div class="guar-i"><b>Tu número no cambia</b>Solo desvías lo que no coges. Cero riesgo para lo que ya funciona.</div>
+    <div class="guar-i"><b>Hecho en Euskadi, cumple RGPD</b>La IA avisa de que lo es y tus datos se quedan en Europa.</div>
+  </div>
+</div></div></section>
+
+<!-- PRECIO -->
+<section class="sec" id="precio" style="background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap"><div class="price">
+  <div class="sec-k">Un precio, todo dentro</div>
+  <div class="amt"><sup>€</sup>49<span class="per">/mes</span></div>
+  <div class="sub">Tu recepcionista, 24/7. Por menos que una mañana de un empleado.</div>
+  <ul class="feats">
+    <li><span class="k">✓</span> Atiende cada llamada, también festivos</li>
+    <li><span class="k">✓</span> Reserva citas en tu Google Calendar</li>
+    <li><span class="k">✓</span> Recuerda a cada cliente y avisa por WhatsApp</li>
+    <li><span class="k">✓</span> 500 minutos al mes · sin permanencia</li>
+  </ul>
+  <div style="margin-top:34px"><a href="#" class="btn btn-accent">Empezar ahora</a></div>
+  <div class="note">Sin tarjeta para escucharlo · cancela cuando quieras</div>
+</div></div></section>
+
+<!-- FAQ -->
+<section class="sec"><div class="wrap">
+  <div class="sec-k" style="text-align:center">Dudas</div>
+  <div class="faq">
+    <div class="qa"><h3>¿Tengo que cambiar mi número?</h3><p>No. Mantienes el de siempre. Solo configuras un desvío para las llamadas que no coges — un código sencillo en tu móvil.</p></div>
+    <div class="qa"><h3>¿Se nota que es una IA?</h3><p>Suena natural. Por transparencia y por ley, avisa al inicio de que es un asistente virtual. Puedes escucharlo tú antes de activar nada.</p></div>
+    <div class="qa"><h3>¿Y si el cliente quiere hablar con una persona?</h3><p>Lo detecta y te avisa al instante por WhatsApp con el resumen, para que llames tú cuando puedas. Nunca deja a nadie tirado.</p></div>
+    <div class="qa"><h3>¿Puedo cancelar cuando quiera?</h3><p>Sí, sin permanencia ni penalizaciones. Desde tu panel, cuando quieras, sin llamadas ni letra pequeña.</p></div>
+  </div>
+</div></section>
+
+<!-- FINAL -->
+<section class="final"><div class="wrap">
+  <h2>Deja de perder clientes por no coger el teléfono.</h2>
+  <div class="sub">Escúchalo un momento y decide. Sin compromiso.</div>
+  <a href="#precio" class="btn btn-accent">Empezar ahora</a>
+</div></section>
+
+<!-- FOOTER -->
+<footer><div class="wrap">
+  <div class="foot">
+    <div class="foot-brand"><div class="logo">NodeFlow</div><p>La recepcionista con IA para negocios que viven del teléfono. Hecha en Euskal Herria.</p></div>
+    <div class="foot-col"><h4>Producto</h4><a href="#como">Cómo funciona</a><a href="#precio">Precio</a><a href="#">Sectores</a></div>
+    <div class="foot-col"><h4>Empresa</h4><a href="#">Sobre NodeFlow</a><a href="#">Blog</a><a href="#">Aviso legal</a></div>
+    <div class="foot-col"><h4>Empieza</h4><a href="#precio">Empezar</a><a href="#">Entrar</a><a href="#">Soporte</a></div>
+  </div>
+  <div class="foot-bot"><div>© 2026 NodeFlow · Hecho en Euskadi</div><div>Cumple RGPD · Soporte humano en español</div></div>
+</div></footer>
+
+<script>
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('stuck',scrollY>8),{passive:true});
+</script>
+</body>
+</html>
