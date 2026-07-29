@@ -893,16 +893,8 @@ function showApp() {
     return;
   }
 
-  // Feedback tras volver del OAuth de Outlook (/portal/?outlook=connected|denied|error)
-  var _outlookParam = new URLSearchParams(location.search).get('outlook');
-  if (_outlookParam) {
-    if (_outlookParam === 'connected')   toast('✅ Outlook conectado');
-    else if (_outlookParam === 'denied') toast('Conexión de Outlook cancelada', 'err');
-    else                                 toast('No se pudo conectar Outlook', 'err');
-    history.replaceState(null, '', location.pathname);
-    navigate(_outlookParam === 'connected' ? 'integraciones' : 'dashboard');
-    return;
-  }
+  // (Retirado 2026-07-29) Aquí vivía el retorno del OAuth de Outlook. Azure
+  // queda descartado de forma permanente; ese flujo ya no existe.
 
   // Deep-links desde emails: ?go=reglas → Seguimientos ▸ Reglas (informe semanal);
   // ?go=seguimientos → Personalizados (briefing diario).
@@ -6192,9 +6184,6 @@ async function loadIntegraciones() {
   var calStatus;
   try { calStatus = await api('/api/calendar/status'); } catch(e) { calStatus = { enabled: false, connected: false }; }
 
-  var outlookStatus;
-  try { outlookStatus = await api('/api/outlook/status'); } catch(e) { outlookStatus = { enabled: false, connected: false }; }
-
   var icalFeed;
   try { icalFeed = await api('/api/portal/ical-feed'); } catch(e) { icalFeed = null; }
 
@@ -6246,10 +6235,9 @@ async function loadIntegraciones() {
       '</div>' +
     '</div>' +
 
-    // ── Apps: WhatsApp + Google Calendar + Outlook ───────────────
+    // ── Apps: WhatsApp + Google Calendar + feed iCal (Outlook/Apple/…) ──
     renderWaCard(waStatus) +
     renderCalendarCard(calStatus) +
-    renderOutlookCard(outlookStatus) +
     renderIcalCard(icalFeed) +
 
     // ── Avanzado: Webhooks (desarrolladores) ─────────────────────
@@ -6340,60 +6328,10 @@ async function disconnectCalendar() {
   } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
-function renderOutlookCard(cal) {
-  var enabled   = cal && cal.enabled;
-  var connected = cal && cal.connected;
-  // Sin credenciales MS en el servidor la integración no existe para el
-  // usuario: NO pintamos la tarjeta (nada de "muy pronto" que meta ruido).
-  // El día que se configure Azure, aparece sola.
-  if (!enabled && !connected) return '';
-  var statusBadge = connected
-    ? '<span class="badge bg" style="font-size:11px">✅ Conectado</span>'
-    : (enabled ? '<span class="badge by" style="font-size:11px">Sin conectar</span>'
-               : '<span class="badge bd" style="font-size:11px">🔜 Muy pronto</span>');
-  var actionBtn = connected
-    ? '<button class="btn btn-d btn-sm" onclick="disconnectOutlook()" style="margin-left:8px">Desconectar</button>'
-    : (enabled ? '<button class="btn btn-accent btn-sm" onclick="connectOutlook(this)" style="margin-left:8px">Conectar</button>' : '');
-  var info = connected
-    ? '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">El asistente crea y sincroniza las citas en tu calendario de Outlook automáticamente durante la llamada.</div>'
-    : (enabled
-      ? '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Conéctalo para que el asistente <strong style="color:var(--text)">reserve citas en tu Outlook / Microsoft 365</strong> mientras habla con el cliente.</div>'
-      : '<div style="margin-top:10px;font-size:12px;color:var(--dim);line-height:1.6">Estamos terminando de activar esta integración. Muy pronto tu asistente podrá <strong style="color:var(--text)">reservar directamente en tu Outlook / Microsoft 365</strong>. Mientras tanto, tus citas viven en la sección Citas.</div>');
-  return '<div class="card" style="margin-bottom:20px;border-color:' + (connected ? 'rgba(0,120,212,.3)' : 'var(--border)') + '">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-      '<div style="display:flex;align-items:center;gap:12px">' +
-        '<div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
-          '<svg width="22" height="22" viewBox="0 0 24 24" fill="#0078d4"><path d="M21.5 6.5h-8v11h8a.5.5 0 00.5-.5V7a.5.5 0 00-.5-.5zM20 9.2l-3 2.1v-1.4l3-2.1v1.4zM2 5.4l10-1.9v17l-10-1.9V5.4zm5.9 9.8c1.4 0 2.3-1.3 2.3-3.2 0-1.9-.9-3.1-2.2-3.1-1.4 0-2.4 1.3-2.4 3.2 0 1.9 1 3.1 2.3 3.1zm0-1.2c-.6 0-1-.7-1-2 0-1.2.4-1.9 1-1.9s1 .7 1 1.9c0 1.3-.4 2-1 2z"/></svg>' +
-        '</div>' +
-        '<div>' +
-          '<div style="font-weight:700;font-size:14px">Outlook · Microsoft 365</div>' +
-          '<div style="font-size:11px;color:var(--dim);margin-top:2px">Reserva y sincroniza citas automáticamente</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px">' + statusBadge + actionBtn + '</div>' +
-    '</div>' + info +
-  '</div>';
-}
-
-async function connectOutlook(btn) {
-  if (btn) { btn.disabled = true; btn.textContent = 'Conectando…'; }
-  try {
-    var d = await api('/api/outlook/auth');
-    if (d && d.url) { window.location.href = d.url; return; }
-    throw new Error('No se pudo iniciar la conexión');
-  } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Conectar'; }
-    toast('Error al conectar: ' + (e.message || ''), 'err');
-  }
-}
-
-async function disconnectOutlook() {
-  try {
-    await api('/api/outlook/disconnect', 'POST');
-    toast('Outlook desconectado');
-    loadIntegraciones();
-  } catch (e) { toast('Error: ' + e.message, 'err'); }
-}
+// Outlook por Microsoft Graph retirado (2026-07-29): Azure queda descartado de
+// forma permanente. El caso de uso lo cubre el FEED iCAL (renderIcalCard): el
+// dueño se suscribe a sus citas desde Outlook, Google o Apple sin conectar
+// ninguna cuenta ni registrar ninguna app.
 
 function openNewWebhookModal() {
   var evtCheckboxes = _ALL_EVENTS.map(function(e) {
