@@ -258,6 +258,28 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       }
     }
     log.call(`[Telnyx] Inbound call from ${callerNumber} → ${calledNumber} | assistant: ${assistantId || 'default'}`);
+
+    // Tope de llamadas simultáneas: si el negocio está saturado, DECÍRSELO al que
+    // llama. Antes el pipeline devolvía null en el WebSocket y el handler lo
+    // cerraba sin una palabra: el cliente final oía silencio y colgaba, mientras
+    // la web prometía "0 llamadas sin atender" (auditoría 2026-07-29).
+    try {
+      const asis = assistantId ? assistantManager.get(assistantId) : null;
+      const cupo = pipeline.isAssistantBusy(asis || { id: assistantId });
+      if (cupo.busy) {
+        log.warn(`[Telnyx] ${calledNumber} en su tope de simultáneas (${cupo.active}/${cupo.limit}) — se avisa por voz y se cuelga`);
+        try {
+          require('../monitoring/error-tracker').capture(
+            new Error(`Negocio saturado: ${cupo.active}/${cupo.limit} llamadas simultáneas`),
+            'concurrency_cap_reached',
+            { asistente: assistantId || 'default', numero: calledNumber, accion: 'valorar subir concurrentCalls de esta org' },
+          );
+        } catch (_) {}
+        const { generateBusyTeXML } = require('../telephony/telnyx-handler');
+        return res.type('text/xml').send(generateBusyTeXML(asis?.language));
+      }
+    } catch (e) { log.warn(`[Telnyx] check de cupo falló (se atiende igual): ${e.message}`); }
+
     res.type('text/xml').send(generateTeXML(wsUrl, assistantId));
   });
 

@@ -137,6 +137,18 @@ class VoicePipeline {
     return n;
   }
 
+  /**
+   * ¿Este negocio está en su tope de llamadas simultáneas AHORA MISMO?
+   * Se consulta desde el webhook de voz para poder decírselo al que llama en vez
+   * de cerrarle el WebSocket en silencio (auditoría 2026-07-29).
+   * @returns {{busy: boolean, active: number, limit: number}}
+   */
+  isAssistantBusy(assistant) {
+    const limit = this._concurrentLimitFor(assistant);
+    const active = this._countActiveForAssistant(assistant?.id);
+    return { busy: limit > 0 && active >= limit, active, limit };
+  }
+
   /** Límite de concurrentes del asistente: override > default. */
   _concurrentLimitFor(assistant) {
     const override = Number(assistant?.concurrentCalls);

@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
+    "schema": "node scripts/check-schema.js",
+    "env:check": "node scripts/env-check.js",
     "guia:pdf": "node scripts/generate-guia-pdf.js"
   },
   "dependencies": {

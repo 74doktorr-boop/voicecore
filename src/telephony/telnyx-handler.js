@@ -284,4 +284,29 @@ function generateTeXML(wsUrl, assistantId = null) {
 </Response>`;
 }
 
-module.exports = { setupTelnyxStreams, generateTeXML };
+/**
+ * TeXML de "ahora mismo no puedo atenderte", con voz y colgado educado.
+ *
+ * POR QUÉ (auditoría 2026-07-29): al alcanzar el cap de llamadas concurrentes
+ * (10 por negocio por defecto), el pipeline devolvía null y el handler cerraba
+ * el WebSocket **sin decirle absolutamente nada al que llamaba**. El cliente
+ * final oía silencio y colgaba — mientras la web prometía "0 llamadas sin
+ * atender". Si no podemos atender, al menos hay que decirlo.
+ *
+ * @param {string} [language] idioma del asistente, para el mensaje
+ */
+function generateBusyTeXML(language = 'es') {
+  const lang = String(language || 'es').toLowerCase().split(/[-+_]/)[0];
+  const { texto, voice } = {
+    gl: { texto: 'Grazas por chamar. Neste momento estamos atendendo outras chamadas. Por favor, ténteo de novo nuns minutos.', voice: 'Polly.Conchita' },
+    eu: { texto: 'Eskerrik asko deitzeagatik. Une honetan beste dei batzuk artatzen ari gara. Mesedez, saiatu berriro minutu batzuk barru.', voice: 'Polly.Conchita' },
+  }[lang] || { texto: 'Gracias por llamar. En este momento estamos atendiendo otras llamadas. Por favor, inténtelo de nuevo en unos minutos.', voice: 'Polly.Conchita' };
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="${voice}" language="es-ES">${escapeXmlAttr(texto)}</Say>
+  <Hangup/>
+</Response>`;
+}
+
+module.exports = { setupTelnyxStreams, generateTeXML, generateBusyTeXML };

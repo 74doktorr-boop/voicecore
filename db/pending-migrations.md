@@ -1,316 +1,66 @@
-# Migraciones pendientes de ejecutar en Supabase
+# Migraciones pendientes
 
-## ⚠️ NUEVA 2026-07-16 — `migration-appointment-location-overlap.sql` (MULTI-SEDE, importante para Osakin)
-El constraint anti-solape `nf_appointments_no_overlap` NO incluía `location`
-→ dos citas legítimas a la misma hora en centros distintos (Tolosa 10:00 y
-Villabona 10:00) chocaban: la 2ª la rechazaba la BD (23P01), quedaba solo en
-memoria y desaparecía en el siguiente deploy tras confirmársela al paciente.
-Verificado contra la BD real. La migración recrea el EXCLUDE con
-`COALESCE(location,'')`. Segura (más permisiva) e idempotente. **Aplicar antes
-de que Osakin opere dos centros a la vez.** Fichero: `db/migration-appointment-location-overlap.sql`.
+> **No te fíes de este fichero. Pregúntale a la base de datos.**
+>
+> ```bash
+> node scripts/check-schema.js
+> ```
 
+## Por qué este fichero ya no lleva una lista escrita a mano
 
-**Estado (verificado contra la BD 2026-07-13): 2 pendientes ⚠️**
-1. `contact_memory.no_calls` (opt-out de voz)
-2. `nf_appointments.outlook_event_id` — la 1ª versión de migration-outlook.sql
-   decía `appointments` (tabla legacy) y se aplicó ahí; falta en `nf_appointments`:
+Hasta el 2026-07-29 esto era una lista mantenida a mano. Llevaba **dos semanas
+sin actualizarse** y declaraba pendientes **cinco migraciones que estaban
+aplicadas**. En la auditoría de ese día, dos revisiones independientes
+concluyeron a partir de este documento que producción estaba perdiendo *todas*
+las llamadas y *todas* las citas.
 
-```sql
-ALTER TABLE contact_memory
-  ADD COLUMN IF NOT EXISTS no_calls boolean NOT NULL DEFAULT false;
-ALTER TABLE nf_appointments
-  ADD COLUMN IF NOT EXISTS outlook_event_id TEXT;
-```
+Era falso. Se comprobó consultando la base de datos: todo lo crítico estaba
+aplicado.
 
-⚠️ Además (no es migración, es DATO): `nf_phone_pool` tiene **0 números disponibles**
-— sin pool no hay onboarding de clientes nuevos el día 20.
+Un documento de estado que induce a error es peor que no tenerlo. Hace perder
+horas persiguiendo un incendio inexistente y, sobre todo, hace desconfiar de lo
+que sí funciona. Así que la lista se sustituye por un comprobador.
 
-Verificado también ✅: nf_campaign_calls, nf_entities(+templates), magic_tokens,
-audit_log, nf_calls, knowledge_chunks, nf_learned_rules, organizations.outlook_*,
-nf_appointments.google_event_id.
+## Qué hace `scripts/check-schema.js`
 
----
+Es **solo lectura**: hace `select <columna> limit 1` sobre cada tabla y columna
+que el código necesita, y PostgREST devuelve un error identificable si no
+existen. Por cada pieza que falta dice **qué se rompe exactamente**, y separa lo
+crítico (rompe la persistencia o una protección) de lo opcional (la feature se
+queda en NO-OP limpio). Sale con código 1 si falta algo crítico, así que sirve
+para bloquear un despliegue.
 
-## contact_memory.no_calls — opt-out de LLAMADAS de voz ⚠️ PENDIENTE
-**Por qué:** hasta ahora un contacto solo se libraba de las llamadas salientes
-(recuperación / reactivación / anti no-show / avisos de entidades) si tenía las
-TRES bajas a la vez (`no_whatsapp`+`no_email`+`no_sms`). No había baja dedicada de
-"no me llames por teléfono": un opt-out solo de WhatsApp seguía recibiendo voz.
-Esta columna la añade; `contactInfo()` (`src/campaigns/enqueuers.js`) bloquea las
-campañas de voz cuando `no_calls=true`, aunque no estén las otras bajas. Sin la
-columna el código NO rompe (fail-open: el `select` de esa columna daría error y se
-captura, o simplemente no bloquea por voz). SQL también en `db/migration-no-calls.sql`.
+## Antes de desplegar
 
-```sql
-ALTER TABLE contact_memory
-  ADD COLUMN IF NOT EXISTS no_calls boolean NOT NULL DEFAULT false;
-```
+1. `node scripts/check-schema.js`
+2. Si sale `✖`, aplica el `.sql` correspondiente de `db/` en el SQL Editor de
+   Supabase y vuelve a ejecutarlo.
+3. Si sale `!`, decide: son features que se quedan desactivadas de forma limpia.
 
----
+## Estado a 2026-07-29 (verificado, no declarado)
 
-## nf_callbacks — solicitudes del widget "¿Te llamamos?" ✅ APLICADA 2026-07-01
-**Por qué:** el widget embebible manda las solicitudes a `POST /api/widget/callback`,
-que las guarda aquí y las lista en el portal del cliente. Sin la tabla, el negocio
-igual recibe el email (best-effort), pero no se guardan ni aparecen en el portal.
-SQL también en `db/migration-callbacks.sql`.
+Todo lo crítico, aplicado. Dos piezas opcionales sin aplicar:
 
-```sql
-CREATE TABLE IF NOT EXISTS nf_callbacks (
-  id bigserial PRIMARY KEY,
-  organization_id text NOT NULL,
-  name text,
-  phone text NOT NULL,
-  message text,
-  status text NOT NULL DEFAULT 'pending',
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_callbacks_org ON nf_callbacks (organization_id, created_at DESC);
-ALTER TABLE nf_callbacks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON nf_callbacks TO service_role USING (true) WITH CHECK (true);
-```
+| Falta | Migración | Consecuencia real |
+|---|---|---|
+| `nf_appointments.staff` | **`db/migration-appointment-staff.sql`** | La cita se guarda sin profesional. Dos profesionales no pueden compartir hueco —la BD lo rechaza con 23P01 **después** de que el bot se lo confirmó al cliente, y el dueño recibe una alerta de doble reserva que es falsa— y, tras reiniciar, la agenda colapsa a 1:1 y el negocio pierde media capacidad. **Aplicar antes de vender reserva por profesional a ninguna peluquería o barbería.** |
+| tabla `nf_stays` | `db/migration-stays.sql` | Estancias (hoteles) en NO-OP. Inocuo mientras no haya clientes de ese vertical. |
 
----
+El código tolera ambas ausencias sin perder datos: si falta `staff`, el store lo
+detecta, reintenta sin esa columna y lo grita en los logs. Una migración
+pendiente no puede costar una cita, pero tampoco puede pasar desapercibida.
 
-## audit_log — registro de auditoría del panel admin ✅ APLICADA 2026-07-01
-**Por qué:** trazar quién hizo qué y cuándo (login, alta/edición/baja de clientes,
-cambios de plan…). El código escribe best-effort; sin esta tabla el registro no
-persiste pero NO rompe nada. Fichero de código: `src/audit/audit-log.js`.
+## Correcciones a notas anteriores de este fichero
 
-```sql
-CREATE TABLE IF NOT EXISTS audit_log (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  actor       TEXT        NOT NULL DEFAULT 'admin',
-  action      TEXT        NOT NULL,
-  target_type TEXT,
-  target_id   TEXT,
-  details     JSONB       NOT NULL DEFAULT '{}',
-  ip          TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_log (action);
-ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON audit_log TO service_role USING (true) WITH CHECK (true);
-```
+Todas verificadas contra la BD el 2026-07-29:
 
----
-
-## 0. Lifecycle scaling patch 2 — índices de cola ✅ APLICADA 2026-06-30
-**Por qué:** la cola global de recordatorios (`claim_pending_reminders`) ordena por
-`scheduled_for` pero el índice previo lidera por `org_id`; a miles de clientes el
-claim (la consulta más caliente) se degrada. Fichero: `db/schema-migration-lifecycle-patch2-scale.sql`.
-Creados `idx_reminders_due` y `idx_nf_appointments_org_phone` (verificado: 2 filas en pg_indexes).
-
----
-
-## 1. magic_tokens (login de portal)
-**Estado:** tabla no existe → magic links no funcionan
-
-```sql
-CREATE TABLE IF NOT EXISTS magic_tokens (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  token       TEXT        UNIQUE NOT NULL,
-  email       TEXT        NOT NULL,
-  registro_id TEXT,
-  expires_at  TIMESTAMPTZ NOT NULL,
-  used_count  INT         DEFAULT 0,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_magic_tokens_token   ON magic_tokens(token);
-CREATE INDEX IF NOT EXISTS idx_magic_tokens_email   ON magic_tokens(email);
-CREATE INDEX IF NOT EXISTS idx_magic_tokens_expires ON magic_tokens(expires_at);
-ALTER TABLE magic_tokens ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON magic_tokens TO service_role USING (true) WITH CHECK (true);
-```
-
----
-
-## 2. webhook_configs (webhooks del portal)
-**Estado:** tabla no existe → webhooks creados en el portal no se envían  
-(existe tabla `webhooks` antigua pero el código usa `webhook_configs`)
-
-```sql
-CREATE TABLE IF NOT EXISTS webhook_configs (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id  TEXT        NOT NULL,
-  url          TEXT        NOT NULL,
-  secret       TEXT        NOT NULL,
-  events       TEXT[]      NOT NULL DEFAULT ARRAY['*']::TEXT[],
-  enabled      BOOLEAN     NOT NULL DEFAULT true,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_webhook_configs_business_id
-  ON webhook_configs (business_id);
-ALTER TABLE webhook_configs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON webhook_configs TO service_role USING (true) WITH CHECK (true);
-```
-
----
-
-## 3. Columnas organizations (flow manager + language)
-**Estado:** probablemente aplicadas si el sistema funciona — verificar con  
-`SELECT column_name FROM information_schema.columns WHERE table_name='organizations';`  
-Si faltan `google_place_id`, `automation_config`, `language`:
-
-```sql
-ALTER TABLE organizations
-  ADD COLUMN IF NOT EXISTS google_place_id        TEXT,
-  ADD COLUMN IF NOT EXISTS review_url             TEXT,
-  ADD COLUMN IF NOT EXISTS automation_config      JSONB DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS language               VARCHAR(5) DEFAULT 'es',
-  ADD COLUMN IF NOT EXISTS status                 TEXT DEFAULT 'active',
-  ADD COLUMN IF NOT EXISTS registered_at          TIMESTAMPTZ DEFAULT NOW(),
-  ADD COLUMN IF NOT EXISTS assistant_config       JSONB DEFAULT '{}';
-```
-
----
-
-## 4. whatsapp_accounts (conexión WA por negocio)
-**Estado:** tabla probablemente no existe → botón "Conectar WhatsApp" del portal no funciona
-
-```sql
-CREATE TABLE IF NOT EXISTS whatsapp_accounts (
-  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id TEXT        NOT NULL UNIQUE,
-  waba_id         TEXT        NOT NULL,
-  phone_number_id TEXT        NOT NULL,
-  phone_number    TEXT        NOT NULL,
-  display_name    TEXT,
-  access_token    TEXT        NOT NULL,     -- cifrado AES-256-GCM
-  api_base        TEXT,                     -- null = Meta; 'waba.360dialog.io' = 360dialog
-  status          TEXT        NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked','suspended')),
-  connected_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_whatsapp_accounts_org
-  ON whatsapp_accounts (organization_id);
-ALTER TABLE whatsapp_accounts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON whatsapp_accounts TO service_role USING (true) WITH CHECK (true);
-```
-
----
-
-## 5. calls (historial de llamadas)
-**Estado:** probablemente no existe → post-call-handler falla al persistir llamadas silenciosamente
-
-```sql
-CREATE TABLE IF NOT EXISTS calls (
-  call_sid            TEXT        PRIMARY KEY,
-  org_id              TEXT        NOT NULL,
-  outcome             TEXT,
-  caller_number       TEXT,
-  client_email        TEXT,
-  booked_appointment  JSONB,
-  transcript          JSONB       DEFAULT '[]',
-  duration_ms         INTEGER     DEFAULT 0,
-  turn_count          INTEGER     DEFAULT 0,
-  started_at          TIMESTAMPTZ,
-  ended_at            TIMESTAMPTZ,
-  status              TEXT        DEFAULT 'ended',
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_calls_org_id ON calls (org_id);
-CREATE INDEX IF NOT EXISTS idx_calls_ended_at ON calls (ended_at);
-ALTER TABLE calls ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON calls TO service_role USING (true) WITH CHECK (true);
-```
-
----
-
-## 6. Tablas sector-específicas (opcionales — solo si usas ese sector)
-**Estado:** se crean bajo demanda; fallan silenciosamente si no existen
-
-```sql
--- Leads (cualquier sector)
-CREATE TABLE IF NOT EXISTS leads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL, name TEXT, phone TEXT,
-  goal TEXT, business_type TEXT, need TEXT, operation TEXT,
-  notes TEXT, urgency TEXT DEFAULT 'media', source TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Eventos de llamada (urgencias, flags)
-CREATE TABLE IF NOT EXISTS call_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL, event_type TEXT, client_name TEXT,
-  phone TEXT, notes TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Stock farmacia
-CREATE TABLE IF NOT EXISTS pharmacy_stock (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL, medication TEXT NOT NULL,
-  in_stock BOOLEAN DEFAULT true, updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Casos asesoría
-CREATE TABLE IF NOT EXISTS advisory_cases (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL, client_name TEXT, status TEXT,
-  subject TEXT, advisor TEXT, updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Propiedades inmobiliaria
-CREATE TABLE IF NOT EXISTS properties (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL, title TEXT, price NUMERIC, bedrooms INTEGER,
-  zone TEXT, type TEXT, operation TEXT DEFAULT 'compra',
-  description TEXT, active BOOLEAN DEFAULT true
-);
-```
-
----
-
-## 10. nf_phone_pool — pool de números pre-comprados para auto-asignación
-**Estado:** PENDIENTE — sin esta tabla, la auto-asignación de números no puede persistir
-
-```sql
-CREATE TABLE IF NOT EXISTS nf_phone_pool (
-  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone_number TEXT        NOT NULL UNIQUE,   -- E.164, ej: +34943123456
-  provider     TEXT        NOT NULL DEFAULT 'manual',  -- 'vonage'|'twilio'|'telnyx'|'manual'
-  prefix       TEXT,                          -- '943', '91', etc. (para búsqueda)
-  country_code TEXT        NOT NULL DEFAULT 'ES',
-  status       TEXT        NOT NULL DEFAULT 'available'
-               CHECK (status IN ('available','assigned','reserved','retired')),
-  org_id       TEXT,                          -- rellenado al asignar
-  assigned_at  TIMESTAMPTZ,
-  notes        TEXT,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_nf_phone_pool_status
-  ON nf_phone_pool (status, created_at)
-  WHERE status = 'available';
-CREATE INDEX IF NOT EXISTS idx_nf_phone_pool_org
-  ON nf_phone_pool (org_id)
-  WHERE org_id IS NOT NULL;
-ALTER TABLE nf_phone_pool ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_all" ON nf_phone_pool TO service_role USING (true) WITH CHECK (true);
-```
-
----
-
-## Ya aplicadas ✅
-- `nf_appointments` + columnas `reminder_sent`, `review_requested`, `no_show_notified`
-- `contacts`
-- `contact_memory`
-- `call_summaries`
-- `scheduled_reminders` + RPCs (`claim_pending_reminders`, `recover_stalled_reminders`) + columnas `postponed_from`, `postponed_days`
-- `org_reminder_config`
-- `org_campaigns`
-- `registros`
-- `magic_tokens`
-- `webhook_configs`
-- `organizations` — columnas `google_place_id`, `review_url`, `automation_config`, `language`, `status`, `registered_at`, `assistant_config`
-- `whatsapp_accounts`
-- `calls` — columnas añadidas sobre tabla existente
-- `leads`, `call_events`, `pharmacy_stock`, `advisory_cases`, `properties`
-- `calls` — columnas `followup_at`, `followup_sent` + índice `idx_calls_followup` ✅ 2026-06-10
-- `nf_rebooking_log` + índice + RLS ✅ 2026-06-10
-- `nf_phone_pool` + índice + RLS ✅ 2026-06-10
-- `idx_reminders_due` + `idx_nf_appointments_org_phone` (lifecycle scaling patch 2) ✅ 2026-06-30
-
-## PENDIENTE 2026-07-03: migration-campaign-calls.sql
-Tabla nf_campaign_calls (cola del Campaign Core — dispatcher de salientes). Aplicar en Supabase SQL editor. Sin ella el dispatcher no lanza nada (fail-soft: warns en logs).
+- `nf_calls.ai_decisions` — **aplicada**. (Se llegó a temer que su ausencia
+  estuviera tirando el upsert completo de cada llamada. No era el caso.)
+- `nf_appointments.location` — **aplicada**, igual que el constraint anti-solape
+  con `location` para multi-sede.
+- `nf_appointments.outlook_event_id` — **aplicada**. La nota anterior la daba por
+  pendiente porque la primera versión de la migración fue a la tabla legacy.
+- `contact_memory.no_calls` — **aplicada**.
+- `nf_campaign_calls` — **aplicada**.
+- Pool de números: **hay disponibles**. Una nota anterior decía 0 y bloqueaba
+  mentalmente el alta de clientes nuevos.

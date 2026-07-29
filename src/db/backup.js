@@ -57,6 +57,21 @@ const TABLES = [
   'webhook_configs',
   'magic_tokens',
   'demo_bots',
+  // ── Añadidas en la auditoría 2026-07-29 ─────────────────────────────────────
+  // Esta lista se había quedado atrás y NO incluía toda la "ficha viva" — que es
+  // justo la feature en la que más se ha invertido — ni los bonos, el contenido
+  // SEO, el histórico de WhatsApp o las reglas aprendidas. Se hacía copia de
+  // seguridad de lo viejo y no de lo nuevo, que es el peor reparto posible.
+  'nf_entities',
+  'nf_entity_types',
+  'nf_entity_events',
+  'nf_bonos',
+  'nf_bono_consumptions',
+  'nf_stays',
+  'nf_content',
+  'nf_wa_messages',
+  'nf_learned_rules',
+  'nf_campaign_calls',
 ];
 
 const PAGE_SIZE = 1000;
