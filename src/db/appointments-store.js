@@ -139,6 +139,45 @@ class AppointmentsStore {
   // ¿Se cargó el histórico de citas al arranque? false hasta una carga OK.
   isHydrated() { return !!this._hydrated; }
 
+  /** El arranque registra aquí su promesa de hidratación (ver server.js). */
+  setHydrationPromise(p) { this._hydrationPromise = p; }
+
+  /**
+   * Espera a que la agenda esté cargada, con techo de tiempo.
+   *
+   * A4 (auditoría 2026-07-29): `isHydrated()` existía y NO lo invocaba nadie.
+   * Entre `server.listen()` y el final de la carga había una ventana en la que
+   * el Map de citas estaba vacío: _isSlotTaken devolvía "libre" para TODO y el
+   * bot ofrecía —y reservaba— huecos ya ocupados. Con un redeploy a las 10:00 y
+   * una llamada a las 10:00:03, eso pasa de verdad.
+   *
+   * Se espera en el webhook de voz (antes de devolver el TeXML), no en el
+   * arranque: /health tiene que responder desde el primer segundo. Una vez
+   * hidratado, la promesa ya está resuelta y no cuesta nada.
+   *
+   * Fail-open a propósito: si vence el plazo se sigue igualmente. Perder la
+   * llamada es peor que arriesgar un solape, y la BD tiene su propio constraint
+   * anti-solape como última red.
+   *
+   * @returns {Promise<boolean>} true si está hidratado; false si venció el plazo
+   */
+  async whenHydrated(timeoutMs = 5000) {
+    if (!this._enabled || this._hydrated) return true;
+    if (!this._hydrationPromise) return false;
+    let timer;
+    const deadline = new Promise((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs);
+      if (timer.unref) timer.unref();
+    });
+    try {
+      const done = await Promise.race([this._hydrationPromise.then(() => true).catch(() => false), deadline]);
+      if (!done) log.warn(`Agenda aún sin cargar tras ${timeoutMs}ms — se atiende igual (la BD tiene el anti-solape)`);
+      return done && this._hydrated;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // ── Persistir (upsert) ────────────────────────────────────
   // Fire-and-forget para el llamante (no bloquea el scheduler), pero por dentro
   // REINTENTA los fallos transitorios y, si aun así no persiste, AVISA al dueño.

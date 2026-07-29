@@ -555,7 +555,12 @@ appointmentsStore.init(db.client);
 // dejaba el Map vacío en silencio → citas invisibles y riesgo de doble-reserva.
 // Ahora se reintenta y, si tras 3 intentos falla, se avisa FUERTE (no un warn
 // perdido) — el constraint anti-solape de la BD sigue siendo la red final.
-(async () => {
+// A4 (auditoría 2026-07-29): se guarda la promesa. `server.listen` no espera —
+// /health debe responder ya —, pero el webhook de voz SÍ la espera antes de
+// devolver el TeXML. Sin eso había una ventana real: redeploy a las 10:00,
+// llamada a las 10:00:03, Map vacío → _isSlotTaken decía "libre" para TODO y el
+// bot ofrecía huecos ya ocupados. `isHydrated()` existía y no lo llamaba nadie.
+const appointmentsHydration = (async () => {
   const { Logger } = require('./src/utils/logger');
   const slog = new Logger('SERVER');
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -586,6 +591,7 @@ appointmentsStore.init(db.client);
     );
   } catch (_) {}
 })();
+appointmentsStore.setHydrationPromise(appointmentsHydration);
 
 // ─── Initialize Webhook Dispatcher ───
 webhookDispatcher.init(db);

@@ -231,6 +231,12 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // Firma Telnyx (opt-in: solo si TELNYX_PUBLIC_KEY está puesta). Sin la clave
     // no verifica → no cambia nada. Con ella, rechaza webhooks no firmados.
     if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx firma inválida — 403'); return res.sendStatus(403); }
+    // A4: no empezar a atender con la agenda a medio cargar. Tras el arranque la
+    // promesa ya está resuelta y esto no cuesta nada; en los primeros segundos
+    // de un redeploy evita que el bot ofrezca huecos que en realidad están
+    // ocupados. Fail-open: si vence el plazo se atiende igual (perder la llamada
+    // es peor, y la BD tiene su propio anti-solape).
+    try { await require('../db/appointments-store').appointmentsStore.whenHydrated(5000); } catch (_) {}
     // Token efímero: solo un stream nacido de ESTE webhook (firmado) podrá abrir
     // el WS /telnyx-stream (auditoría seguridad 2026-07-16).
     const wsUrl = `wss://${req.headers.host}/telnyx-stream?t=${require('../telephony/stream-token').mintStreamToken()}`;
@@ -255,8 +261,9 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     res.type('text/xml').send(generateTeXML(wsUrl, assistantId));
   });
 
-  app.post('/voice/telnyx/:assistantId', (req, res) => {
+  app.post('/voice/telnyx/:assistantId', async (req, res) => {
     if (!verifyTelnyxRequest(req)) { log.warn('[Telnyx] /voice/telnyx/:id firma inválida — 403'); return res.sendStatus(403); }
+    try { await require('../db/appointments-store').appointmentsStore.whenHydrated(5000); } catch (_) {} // A4
     const wsUrl = `wss://${req.headers.host}/telnyx-stream?t=${require('../telephony/stream-token').mintStreamToken()}`;
     const callerNumber = req.body?.From || req.body?.from || 'unknown';
     log.call(`[Telnyx] Inbound call from ${callerNumber} → assistant: ${req.params.assistantId}`);

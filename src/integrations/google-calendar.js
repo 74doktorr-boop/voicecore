@@ -7,6 +7,34 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('GOOGLE-CAL');
 
+// ── Techo de tiempo para hablar con Google (auditoría 2026-07-29, A3) ─────────
+// Ni `googleapis` ni gaxios imponen timeout por defecto. `check_availability`
+// y `book_appointment` corren DENTRO de la llamada: un incidente de Google que
+// deje las conexiones colgadas se traducía en el bot diciendo "un momento, por
+// favor…" y luego 60 segundos de aire muerto, una vez por consulta. El cliente
+// cuelga. (La integración iCal ya lo hacía bien con 8 s; Google, que es la
+// principal, no tenía nada.)
+const CALENDAR_TIMEOUT_MS = 6000;
+function calendarTimeoutMs() {
+  const v = Number(process.env.GOOGLE_CAL_TIMEOUT_MS);
+  return Number.isFinite(v) && v > 0 ? v : CALENDAR_TIMEOUT_MS;
+}
+
+/**
+ * Pone un techo de tiempo a una promesa que no admite `timeout` propio.
+ * No cancela la operación subyacente (no se puede), pero desbloquea al llamante
+ * — que es lo que importa cuando hay una persona esperando al teléfono.
+ * Puro salvo por el reloj; el temporizador va con unref().
+ */
+function withDeadline(promise, ms, label) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} no respondió en ${ms}ms (timeout de NodeFlow)`)), ms);
+    if (timer.unref) timer.unref();
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
 class GoogleCalendar {
   constructor() {
     this.clientId     = process.env.GOOGLE_CLIENT_ID;
@@ -43,7 +71,16 @@ class GoogleCalendar {
   async refreshIfNeeded(tokens) {
     if (!tokens.expiry_date || Date.now() > tokens.expiry_date - 120_000) {
       try {
-        const { credentials } = await this._oauth2(tokens).refreshAccessToken();
+        // Con techo de tiempo (A3): esto corre DENTRO de la llamada, justo antes
+        // de consultar disponibilidad. Sin él, un incidente de Google dejaba al
+        // cliente escuchando silencio hasta el salvavidas. Fail-open: si vence,
+        // se sigue con el token viejo (que puede valer aún) y, si no vale, la
+        // consulta de ocupación ya es fail-open por diseño.
+        const { credentials } = await withDeadline(
+          this._oauth2(tokens).refreshAccessToken(),
+          calendarTimeoutMs(),
+          'Google token refresh',
+        );
         return credentials;
       } catch (e) {
         log.warn(`Token refresh failed: ${e.message}`);
@@ -95,7 +132,7 @@ class GoogleCalendar {
           end:   { dateTime: endLocal,   timeZone: tz },
           reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }] },
         },
-      });
+      }, { timeout: calendarTimeoutMs() }); // A3
 
       log.info(`Cal event created: ${data.id} — ${appointment.patientName}`);
       return data;
@@ -110,7 +147,7 @@ class GoogleCalendar {
     try {
       const { google } = require('googleapis');
       const cal = google.calendar({ version: 'v3', auth: this._oauth2(tokens) });
-      await cal.events.delete({ calendarId, eventId });
+      await cal.events.delete({ calendarId, eventId }, { timeout: calendarTimeoutMs() }); // A3
       log.info(`Cal event deleted: ${eventId}`);
       return true;
     } catch (e) {
@@ -145,7 +182,7 @@ class GoogleCalendar {
           start: { dateTime: startLocal, timeZone: tz },
           end:   { dateTime: endLocal,   timeZone: tz },
         },
-      });
+      }, { timeout: calendarTimeoutMs() }); // A3
       log.info(`Cal event updated: ${eventId}`);
       return data;
     } catch (e) {
@@ -199,7 +236,7 @@ class GoogleCalendar {
           timeZone: 'Europe/Madrid',
           items:    [{ id: calendarId }],
         },
-      });
+      }, { timeout: calendarTimeoutMs() }); // A3: esto corre DENTRO de la llamada
       const busy = (data.calendars && data.calendars[calendarId] && data.calendars[calendarId].busy) || [];
       return busyIntervalsToByDate(busy);
     } catch (e) {
@@ -299,4 +336,4 @@ function getGoogleCalendar() {
   return _instance;
 }
 
-module.exports = { GoogleCalendar, getGoogleCalendar, busyIntervalsToByDate, normalizeEvent };
+module.exports = { GoogleCalendar, getGoogleCalendar, busyIntervalsToByDate, normalizeEvent, withDeadline, calendarTimeoutMs };
