@@ -94,6 +94,16 @@ async function collectDigestItems(deps = {}) {
     for (const it of items2) items.push(it);
   } catch (e) { log.warn(`digest integridad: ${e.message}`); }
 
+  // 6) MARGEN DE LA VOZ
+  // El sistema llevaba meses guardando el coste de cada llamada y no lo miraba
+  // nadie. Sin esto, la única forma de enterarse de que un cliente cuesta más
+  // de lo que paga es la factura del proveedor a fin de mes — cuando ya se ha
+  // gastado.
+  try {
+    const items3 = await voiceMarginItems(db);
+    for (const it of items3) items.push(it);
+  } catch (e) { log.warn(`digest margen: ${e.message}`); }
+
   return items;
 }
 
@@ -155,6 +165,110 @@ async function callIntegrityItems(db) {
   return out;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARGEN DE LA VOZ
+//
+// Cada llamada guarda su coste desglosado en `nf_calls.cost` desde hace meses.
+// Nadie lo había mirado nunca, y al mirarlo aparecieron dos cosas: el 88% del
+// coste variable es el TTS, y el plan de 49 € incluye 500 minutos cuando el
+// punto de equilibrio está en ~505. Es decir, el cupo estaba puesto justo en el
+// coste. No pasaba nada porque los clientes usan el 3% de su cupo — pero eso
+// deja de ser cierto en cuanto entra un cliente con volumen de verdad.
+//
+// Esto vigila las tres formas de enterarse TARDE:
+//   · que un cliente concreto se acerque a costar lo que paga,
+//   · que el coste por minuto se dispare (cambio de proveedor o de mezcla),
+//   · que el mes entero se esté comiendo la suscripción.
+//
+// Solo lectura y fail-open, igual que la revisión de integridad: un fallo aquí
+// no puede dejar al fundador sin el resto de avisos.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Precio de referencia de la suscripción mensual. Por entorno para que no haya
+// que tocar código cuando cambie la tarifa; sin él, el plan Negocio actual.
+const PRECIO_MES_EUR = Number(process.env.PLAN_PRICE_EUR) || 49;
+// Techo esperado del coste por minuto. Con ElevenLabs medido ronda 0,10-0,11.
+// Si se pasa de aquí es que la mezcla de proveedores ha cambiado sin avisar.
+const COSTE_MIN_ALERTA = Number(process.env.COST_PER_MIN_ALERT_EUR) || 0.13;
+const LIMITE_FILAS_MES = 5000;
+
+async function voiceMarginItems(db) {
+  const out = [];
+  const desde = new Date();
+  desde.setDate(1); desde.setHours(0, 0, 0, 0);
+
+  const { data, error } = await db.client
+    .from('nf_calls')
+    .select('org_id, duration_ms, cost, created_at')
+    .gte('created_at', desde.toISOString())
+    .not('duration_ms', 'is', null)
+    // Orden explícito: sin él, al truncar PostgREST devuelve filas arbitrarias
+    // y los totales salen mal sin que nadie se entere.
+    .order('created_at', { ascending: false })
+    .limit(LIMITE_FILAS_MES);
+  if (error) throw new Error(error.message);
+
+  const filas = (data || []).filter(r => Number(r.duration_ms) > 3000 && r.cost && Number(r.cost.total) > 0);
+  if (!filas.length) return out;
+
+  let minutos = 0, coste = 0;
+  const porOrg = new Map();
+  for (const r of filas) {
+    const m = Number(r.duration_ms) / 60000;
+    const c = Number(r.cost.total);
+    minutos += m; coste += c;
+    if (!r.org_id) continue;
+    const o = porOrg.get(r.org_id) || { min: 0, eur: 0, n: 0 };
+    o.min += m; o.eur += c; o.n += 1;
+    porOrg.set(r.org_id, o);
+  }
+
+  const porMinuto = coste / minutos;
+
+  // 1) Clientes que se acercan a costar lo que pagan. Es el aviso que evita
+  //    descubrirlo en la factura del proveedor.
+  for (const [orgId, o] of porOrg) {
+    const pct = Math.round((o.eur / PRECIO_MES_EUR) * 100);
+    const id = String(orgId).slice(0, 8);
+    if (pct >= 85) {
+      out.push({
+        sev: 'crit',
+        txt: `Cliente ${id}: la voz ya cuesta el ${pct}% de lo que paga (${o.eur.toFixed(2)} € de ${PRECIO_MES_EUR} €)`,
+        sub: `${Math.round(o.min)} min en ${o.n} llamadas este mes — por encima del 100% cada llamada suya te cuesta dinero`,
+      });
+    } else if (pct >= 50) {
+      out.push({
+        sev: 'warn',
+        txt: `Cliente ${id}: la voz cuesta el ${pct}% de su cuota (${o.eur.toFixed(2)} €)`,
+        sub: `${Math.round(o.min)} min en ${o.n} llamadas este mes`,
+      });
+    }
+  }
+
+  // 2) El coste por minuto se dispara: alguien ha cambiado de voz o de modelo.
+  if (porMinuto > COSTE_MIN_ALERTA) {
+    out.push({
+      sev: 'warn',
+      txt: `El minuto de voz cuesta ${porMinuto.toFixed(4)} € (esperado ≤ ${COSTE_MIN_ALERTA})`,
+      sub: 'ha cambiado la mezcla de proveedores: mira qué TTS están usando los asistentes',
+    });
+  }
+
+  // 3) La foto del mes, siempre. Aunque no haya nada que arreglar, el número
+  //    tiene que estar delante: es lo que impide que vuelva a pasar
+  //    desapercibido durante meses.
+  out.push({
+    sev: 'info',
+    txt: `Voz este mes: ${Math.round(minutos)} min · ${coste.toFixed(2)} € · ${porMinuto.toFixed(4)} €/min`,
+    sub: `${filas.length} llamadas · equilibrio de un plan de ${PRECIO_MES_EUR} € en ~${Math.round(PRECIO_MES_EUR / porMinuto)} min`,
+  });
+
+  if (filas.length >= LIMITE_FILAS_MES) {
+    out.push({ sev: 'warn', txt: `Cálculo de margen truncado a ${LIMITE_FILAS_MES} llamadas`, sub: 'los totales cubren solo las más recientes del mes' });
+  }
+  return out;
+}
+
 /**
  * Ejecuta el digest: si hay avisos, email al fundador. Fail-open.
  * @returns {Promise<{sent:boolean, items:number, reason?:string}>}
@@ -213,4 +327,4 @@ function startFounderDigestCron() {
 }
 function stopFounderDigestCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
-module.exports = { collectDigestItems, callIntegrityItems, runFounderDigest, startFounderDigestCron, stopFounderDigestCron };
+module.exports = { collectDigestItems, callIntegrityItems, voiceMarginItems, runFounderDigest, startFounderDigestCron, stopFounderDigestCron };
