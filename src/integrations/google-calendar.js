@@ -29,8 +29,12 @@ function calendarTimeoutMs() {
 function withDeadline(promise, ms, label) {
   let timer;
   const deadline = new Promise((_, reject) => {
+    // SIN unref (lo tenía y estaba MAL): corre contra una promesa arbitraria que
+    // puede no settlear nunca y que no mantiene viva la cola de eventos. Con
+    // unref el plazo se podía saltar y el llamante quedarse colgado — justo lo
+    // que este helper existe para impedir. El finally siempre lo limpia, así
+    // que no puede quedar pendiente y bloquear la salida del proceso.
     timer = setTimeout(() => reject(new Error(`${label} no respondió en ${ms}ms (timeout de NodeFlow)`)), ms);
-    if (timer.unref) timer.unref();
   });
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }

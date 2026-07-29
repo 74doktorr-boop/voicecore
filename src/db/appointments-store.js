@@ -166,8 +166,12 @@ class AppointmentsStore {
     if (!this._hydrationPromise) return false;
     let timer;
     const deadline = new Promise((resolve) => {
+      // SIN unref (lo tenía y estaba MAL): este plazo corre contra una promesa
+      // que puede no resolverse nunca y que no mantiene viva la cola de eventos.
+      // Con unref, el temporizador se podía saltar y el await quedarse colgado —
+      // justo lo contrario de lo que hace este método. No hay riesgo de fuga
+      // porque el finally siempre lo limpia.
       timer = setTimeout(() => resolve(false), timeoutMs);
-      if (timer.unref) timer.unref();
     });
     try {
       const done = await Promise.race([this._hydrationPromise.then(() => true).catch(() => false), deadline]);
