@@ -526,8 +526,13 @@ function setupPortalRoutes(app, pipeline, config) {
     const bookedToday = todayCalls.filter(c => c.outcome === 'booked').length;
     const convRate    = callCount > 0 ? Math.round((bookedToday / callCount) * 100) : 0;
     const emailsSent  = todayCalls.filter(c => c.outcome === 'booked' && c.clientEmail).length;
-    // 4 min average per call vs manual handling
-    const hoursSaved  = Math.round((callCount * 4) / 60 * 10) / 10;
+    // Tiempo ahorrado MEDIDO (F9): antes era `llamadas × 4 min`, un número
+    // escrito a mano sin ninguna medición detrás — una llamada de 20 segundos
+    // que acababa en cuelgue contaba 4 minutos ahorrados, teniendo la duración
+    // real en la misma consulta. Ahora se suman las duraciones de verdad.
+    const { timeSavedFromCalls } = require('../analytics/value-model');
+    const timeSaved   = timeSavedFromCalls(todayCalls);
+    const hoursSaved  = timeSaved.hours;
 
     // Upcoming appointments (today onwards, not cancelled)
     const appointments = scheduler.getAppointments(businessId);
@@ -629,10 +634,18 @@ function setupPortalRoutes(app, pipeline, config) {
       complete:  obComplete,          // hecho por señales O ya persistido
     };
 
-    // Valor estimado de las reservas de hoy — misma regla que /reports (reservas × ticket medio)
-    const avgTicketConfigured = !!(flowConfig.automations?.config?.avgTicket);
-    const avgTicket     = flowConfig.automations?.config?.avgTicket || 35;
-    const valueEstToday = bookedToday * avgTicket;
+    // Valor estimado de las reservas de hoy. Ya NO hay ticket inventado (F9):
+    // manda el configurado; si no lo hay, la MEDIANA de los precios reales de
+    // sus citas; y si tampoco, se devuelve null para que la UI pida el dato en
+    // vez de enseñar un número que el dueño va a desmontar en 10 segundos.
+    const { resolveAvgTicket, estimateBookingValue } = require('../analytics/value-model');
+    const _prices = scheduler.getAppointments(businessId)
+      .filter(a => a.status !== 'cancelled').map(a => a.price);
+    const ticket = resolveAvgTicket({ configured: flowConfig.automations?.config?.avgTicket, prices: _prices });
+    const avgTicketConfigured = ticket.source === 'configured';
+    const avgTicket     = ticket.value;                 // null si no se sabe
+    const _valueToday   = estimateBookingValue(bookedToday, ticket);
+    const valueEstToday = _valueToday.value;            // null si no se sabe
     const allBookings   = bizCalls.filter(c => c.outcome === 'booked').length;
 
     res.json({
@@ -648,6 +661,11 @@ function setupPortalRoutes(app, pipeline, config) {
       totalBookings: allBookings,
       valueEstToday,
       avgTicketConfigured,
+      // De dónde sale cada número, para que la UI pueda ser explícita en vez de
+      // presentar una estimación como si fuera una medición.
+      avgTicket,
+      avgTicketSource: ticket.source,          // 'configured' | 'observed' | null
+      hoursSavedSource: timeSaved.source,      // 'measured' | null
       today:        { callCount, bookedToday, convRate, emailsSent, hoursSaved },
       upcoming,
       recentActivity,
@@ -1309,7 +1327,9 @@ function setupPortalRoutes(app, pipeline, config) {
     // Periodo anterior: la misma ventana justo antes.
     const prevFrom = new Date(now - 2 * days * 864e5).toISOString();
     const prevTo   = curFrom;
-    const avgTicket = flowConfig.automations?.config?.avgTicket || 35;
+    // F9: sin ticket inventado. buildReport resuelve el ticket real (configurado
+    // o mediana observada de las citas) y devuelve el euro como null si no lo hay.
+    const avgTicket = flowConfig.automations?.config?.avgTicket || null;
     const db = getDatabase();
 
     // Mapea filas de nf_calls al shape que esperan las funciones puras.
@@ -1534,7 +1554,10 @@ function setupPortalRoutes(app, pipeline, config) {
         language:       (dbAsis && dbAsis.language) || flowConfig.language || 'es',
         sector:         (dbAsis && dbAsis.sector) || flowConfig.sector || src.sector || '',
         plan:           flowConfig.plan        || '',
-        avgTicket:      src.avgTicket          || 35,
+        // Sin prefijar 35 (F9): un valor por defecto en el formulario se guarda
+        // como si el dueño lo hubiera declarado, y así es como un número
+        // inventado acaba convertido en "dato configurado".
+        avgTicket:      src.avgTicket          || null,
         // Saludo: el MISMO que Asistente → Básico (assistant_config.firstMessage),
         // honrando el welcomeMessage legado aún no convergido. Sin BD (dev), cae
         // a la copia en memoria.
@@ -2051,7 +2074,7 @@ function setupPortalRoutes(app, pipeline, config) {
         language:       flow.language    || 'es',
         sector:         flow.sector      || custom.sector || '',
         plan:           flow.plan        || '',
-        avgTicket:      custom.avgTicket       || 35,
+        avgTicket:      custom.avgTicket       || null,   // sin ticket inventado (F9)
         // Eco del saludo convergido (ya vive en assistant_config.firstMessage)
         welcomeMessage: (typeof welcomeMessage === 'string' && welcomeMessage.trim())
           ? welcomeMessage.trim() : (custom.welcomeMessage || ''),

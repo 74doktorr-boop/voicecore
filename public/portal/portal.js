@@ -2744,8 +2744,12 @@ async function loadInformes(range) {
     rptKpiCard('Llamadas', fmtNum(k.totalCalls && k.totalCalls.value), k.totalCalls, 'var(--accent)', cmp) +
     rptKpiCard('Reservas', fmtNum(k.bookings && k.bookings.value), k.bookings, 'var(--green2)', cmp) +
     rptKpiCard('Conversión', (k.convRate && k.convRate.value || 0) + '%', k.convRate, 'var(--yellow)', cmp) +
-    rptKpiCard('Horas ahorradas', (k.hoursSaved && k.hoursSaved.value || 0) + 'h', k.hoursSaved, '#60a5fa', cmp) +
-    rptKpiCard('Ingresos estimados', fmtEuro(k.revenueEst && k.revenueEst.value), k.revenueEst, 'var(--green2)', 'reservas × precio medio') +
+    rptKpiCard('Horas ahorradas', (k.hoursSaved && k.hoursSaved.value || 0) + 'h', k.hoursSaved, '#60a5fa', 'duración real de las llamadas atendidas') +
+    // F9: sin ticket configurado ni precios reales en las citas, no hay cifra.
+    (k.revenueEst && k.revenueEst.value != null
+      ? rptKpiCard('Ingresos estimados', fmtEuro(k.revenueEst.value), k.revenueEst, 'var(--green2)',
+          k.revenueEst.source === 'configured' ? 'reservas × tu precio medio' : 'reservas × precio mediano de tus citas')
+      : rptKpiCard('Ingresos estimados', '—', null, 'var(--dim)', 'pon tu precio medio en Configuración para calcularlo')) +
   '</div>';
 
   var lowNote = data.lowData
@@ -5728,8 +5732,12 @@ function renderFacturacion(sec, usage, invoices, monthVal) {
         '<div class="u-grid u-gap-4" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">' +
           valStat(vm.totalCalls || 0, 'llamadas atendidas') +
           valStat(vm.bookings || 0, 'citas capturadas', 'u-green') +
-          valStat('€' + (vm.revenueEst || 0), 'en reservas (est.)', 'u-green') +
-          valStat((vm.hoursSaved || 0) + 'h', 'ahorradas', 'u-blue') +
+          // F9: si no sabemos el ticket real del negocio, se PIDE en vez de
+          // enseñar un número inventado (antes: 35€ por defecto para todos).
+          (vm.revenueEst == null
+            ? valStat('—', 'pon tu precio medio y te lo calculo', 'u-dim')
+            : valStat('€' + vm.revenueEst, 'en reservas (est.)', 'u-green')) +
+          valStat((vm.hoursSaved || 0) + 'h', 'ahorradas al teléfono', 'u-blue') +
         '</div>' +
         '<div class="u-text-sm u-dim u-mt-3">Todo esto por <strong class="u-text">' + planPrice + '</strong>.</div>' +
       '</div>'

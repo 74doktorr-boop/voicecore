@@ -322,7 +322,13 @@ function buildReport(p) {
   const calls = p.calls || [];
   const prevCalls = p.prevCalls || [];
   const appts = p.appointments || [];
-  const avgTicket = Number(p.avgTicket) || 35;
+  // F9: se acabó el ticket inventado de 35€. Manda el configurado; si no lo hay,
+  // la MEDIANA de los precios reales de las citas del periodo; y si tampoco hay,
+  // el valor en euros NO se calcula (null), en vez de fabricar una cifra que el
+  // dueño desmonta en 10 segundos y que le hace desconfiar de todo lo demás.
+  const { resolveAvgTicket } = require('../analytics/value-model');
+  const ticket = resolveAvgTicket({ configured: p.avgTicket, prices: (p.appointments || []).map(a => a.price) });
+  const avgTicket = ticket.value;
   const attr = p.attribution || null;
 
   const { granularity, buckets } = buildBuckets(range, now);
@@ -334,15 +340,18 @@ function buildReport(p) {
   const bookings = bookedCalls.length;
   const answered = calls.filter(isAnswered).length;
   const convRate = totalCalls > 0 ? Math.round((bookings / totalCalls) * 100) : 0;
-  const hoursSaved = Math.round((totalCalls * 4) / 60 * 10) / 10;
-  const revenueEst = bookings * avgTicket;
+  // Tiempo ahorrado MEDIDO, no `llamadas × 4 min` (F9).
+  const { timeSavedFromCalls } = require('../analytics/value-model');
+  const saved = timeSavedFromCalls(calls);
+  const hoursSaved = saved.hours;
+  const revenueEst = avgTicket === null ? null : bookings * avgTicket;
 
   // Periodo anterior (mismos números crudos para deltas honestos)
   const prevTotal = prevCalls.length;
   const prevBookings = prevCalls.filter(isBooked).length;
   const prevConv = prevTotal > 0 ? Math.round((prevBookings / prevTotal) * 100) : 0;
-  const prevHours = Math.round((prevTotal * 4) / 60 * 10) / 10;
-  const prevRevenue = prevBookings * avgTicket;
+  const prevHours = timeSavedFromCalls(prevCalls).hours;
+  const prevRevenue = avgTicket === null ? null : prevBookings * avgTicket;
 
   const funnel = computeFunnel(calls, appts, now);
   const weekday = weekdayDistribution(calls);
@@ -357,8 +366,9 @@ function buildReport(p) {
     totalCalls: { value: totalCalls, delta: computeDelta(totalCalls, prevTotal), spark },
     bookings: { value: bookings, delta: computeDelta(bookings, prevBookings), spark: bookSpark },
     convRate: { value: convRate, delta: computeDelta(convRate, prevConv), suffix: '%' },
-    hoursSaved: { value: hoursSaved, delta: computeDelta(hoursSaved, prevHours), suffix: 'h' },
-    revenueEst: { value: revenueEst, delta: computeDelta(revenueEst, prevRevenue), prefix: '€' },
+    hoursSaved: { value: hoursSaved, delta: computeDelta(hoursSaved, prevHours), suffix: 'h', source: saved.source },
+    // `source: null` = no hay ticket → la UI debe pedirlo, no pintar un número.
+    revenueEst: { value: revenueEst, delta: revenueEst === null ? null : computeDelta(revenueEst, prevRevenue), prefix: '€', source: ticket.source },
   };
 
   // Historia del dinero: fuentes atribuidas + reservas directas de la asistente.
