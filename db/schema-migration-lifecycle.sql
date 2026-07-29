@@ -16,6 +16,7 @@ create table if not exists contact_memory (
   no_whatsapp      boolean not null default false,
   no_email         boolean not null default false,
   no_sms           boolean not null default false,
+  no_calls         boolean not null default false,   -- baja SOLO de llamadas de voz salientes (independiente del do-not-contact total)
   failed_attempts  int not null default 0,
   last_failed_at   timestamptz,
   created_at       timestamptz not null default now(),

@@ -24,6 +24,7 @@ Analiza la transcripción y devuelve ÚNICAMENTE un objeto JSON válido con esto
 {
   "summary": "Resumen de 2-3 frases de lo ocurrido",
   "outcome": "<ver valores válidos>",
+  "no_calls": false,
   "preferences": { "horario": "mañana|tarde|null", "idioma": "es|eu|gl|null", "tono": "formal|informal|null" },
   "sensitivities": {},
   "extracted_data": {},
@@ -33,6 +34,8 @@ Analiza la transcripción y devuelve ÚNICAMENTE un objeto JSON válido con esto
 
 Valores válidos para outcome: booked | rescheduled | declined | no_answer | callback_requested | wrong_number | do_not_contact | voicemail_left
 - callback_requested TAMBIÉN cuando el asistente registró el interés del cliente y prometió que el equipo le devolverá la llamada.
+
+no_calls: true SOLO si el cliente pide EXPLÍCITAMENTE que no le llamen por teléfono ("no me llames", "no me llaméis", "no quiero llamadas", "quitadme de la lista de llamadas"). Es MÁS ESPECÍFICO que do_not_contact: el cliente puede seguir queriendo WhatsApp o email. Si pide no recibir NADA por ningún canal, usa outcome do_not_contact (que ya implica no llamarle). Ante la duda, deja no_calls en false. Un simple "ahora no puedo hablar" o "estoy ocupado" NO es no_calls.
 
 En extracted_data incluye cualquier dato relevante mencionado:
 - nombre_llamante: el nombre que el LLAMANTE dio para SÍ MISMO («me llamo X», «soy X»). null si no lo dio o si el nombre era de OTRA persona («cita para mi novia Nerea» → null).
@@ -187,7 +190,10 @@ async function processCallAsync({ callSessionId, contactId, orgId, transcript, c
       memUpdates.no_whatsapp = true;
       memUpdates.no_email    = true;
       memUpdates.no_sms      = true;
+      memUpdates.no_calls    = true;   // la baja total incluye no llamarle por voz
     }
+    // Baja SOLO de llamadas: "no me llames" sin renunciar a WhatsApp/email.
+    if (analysis.no_calls === true) memUpdates.no_calls = true;
     await upsertContactMemory(contactId, orgId, memUpdates);
 
     // 3. If extracted_data has known-safe fields, merge into contacts.sector_data

@@ -45,6 +45,7 @@ async function getContactMemory(contactId, orgId) {
  *   - no_whatsapp {boolean} — only applied if true
  *   - no_email {boolean}
  *   - no_sms {boolean}
+ *   - no_calls {boolean} — baja de llamadas de voz; only applied if true
  */
 async function upsertContactMemory(contactId, orgId, updates) {
   const db = getDatabase();
@@ -66,6 +67,12 @@ async function upsertContactMemory(contactId, orgId, updates) {
     no_sms:      existing?.no_sms      || updates.no_sms      === true,
     updated_at:      new Date().toISOString(),
   };
+
+  // no_calls (opt-out de voz) — one-way, igual que las otras bajas. Solo se
+  // añade a la fila cuando corresponde escribirlo, para no romper el upsert en
+  // instalaciones donde la columna aún no exista (migración pendiente).
+  const noCalls = existing?.no_calls || updates.no_calls === true;
+  if (noCalls) row.no_calls = true;
 
   const { error } = await db.client
     .from('contact_memory')
