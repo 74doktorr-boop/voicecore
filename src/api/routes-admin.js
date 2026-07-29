@@ -959,6 +959,32 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Recargar la CONFIGURACIÓN de los negocios en caliente ──────────────────
+  // El reload de arriba solo recarga ASISTENTES (ficheros). Las configuraciones
+  // de negocio —tier, horarios, servicios, festivos, margen entre citas— viven
+  // en memoria (flowManager + scheduler) y solo se cargan al ARRANCAR.
+  //
+  // Consecuencia (auditoría 2026-07-29): cualquier cambio hecho en BD exigía un
+  // reinicio COMPLETO del servicio para surtir efecto. Y como portalAuth mira
+  // primero la copia en memoria, hasta que no se reinicia el portal enseña la
+  // configuración vieja mientras la BD ya tiene la nueva: dos verdades a la vez.
+  // Reiniciar producción para cambiar un tier es una herramienta demasiado
+  // grande para el trabajo.
+  app.post('/api/admin/reload-config', adminAuth, async (req, res) => {
+    try {
+      const { flowManager } = require('../automations/flow-manager');
+      const { hydrateSchedulerFromDB } = require('../scheduling/org-config');
+      const flows = await flowManager.loadFromDB();
+      const agendas = await hydrateSchedulerFromDB();
+      log.info(`Reload de configuración: ${flows} negocio(s), ${agendas} agenda(s)`);
+      recordAudit({ action: 'config_reload', targetType: 'system', targetId: 'all', ip: ipOf(req) });
+      res.json({ ok: true, negocios: flows, agendas });
+    } catch (e) {
+      log.error(`Reload de configuración falló: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ─── Helper: resolve org from Bearer token (JWT session or API key) ─────────
   // Returns { org, db } on success; calls res.status(401).json and returns null on failure.
   async function resolvePortalOrg(req, res, { selectAll = false } = {}) {
