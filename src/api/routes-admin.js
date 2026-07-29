@@ -247,6 +247,41 @@ function setupAdminRoutes(app, config, assistantManager) {
     }
   });
 
+  // ─── Derecho de supresión (RGPD art. 17) ────────────────────────────────────
+  // El soft-delete de arriba NO borra ningún dato personal: la fila de la org se
+  // marca y todo lo demás (transcripciones, citas, contactos, memoria de los
+  // clientes finales) sigue íntegro en Supabase. La política de privacidad
+  // promete la supresión y hasta ahora no había NINGUNA herramienta para
+  // atenderla: había que borrar a mano.
+  //
+  // Dos pasos a propósito. GET simula y devuelve el recuento por tabla —para
+  // poder revisarlo antes—, y DELETE ejecuta exigiendo el id de la organización
+  // como confirmación escrita. Un borrado irreversible no puede depender de no
+  // haber pulsado mal.
+  app.get('/api/admin/orgs/:id/erasure-preview', adminAuth, async (req, res) => {
+    try {
+      const { eraseOrgData } = require('./data-erasure');
+      const r = await eraseOrgData(getDatabase(), req.params.id, { dryRun: true });
+      res.json(r);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.delete('/api/admin/orgs/:id/data', adminAuth, async (req, res) => {
+    const orgId = req.params.id;
+    if (req.body?.confirm !== orgId) {
+      return res.status(400).json({ error: 'Para confirmar, envía { confirm: "<id de la organización>" }.' });
+    }
+    try {
+      const { eraseOrgData } = require('./data-erasure');
+      const r = await eraseOrgData(getDatabase(), orgId, { dryRun: false });
+      log.warn(`SUPRESIÓN RGPD ejecutada sobre ${orgId}: ${r.total} filas en ${r.tablas.length} tablas`);
+      // Queda en audit_log, que NO se borra: es la prueba de que se atendió el
+      // derecho (rendición de cuentas, art. 5.2 RGPD).
+      recordAudit({ action: 'org_data_erasure', targetType: 'org', targetId: orgId, ip: ipOf(req), meta: { filas: r.total } });
+      res.json(r);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ─── PATCH org fields ──────────────────────────────────────────────────────────
   app.patch('/api/admin/orgs/:id', adminAuth, async (req, res) => {
     const { name, plan, sector, phone, status, outboundNumber, model, tier } = req.body;

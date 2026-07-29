@@ -2040,7 +2040,13 @@ function setupPortalRoutes(app, pipeline, config) {
         const asisPatch = {};
         if (sector) asisPatch.sector = sector;
         if (typeof welcomeMessage === 'string' && welcomeMessage.trim()) {
-          asisPatch.firstMessage = welcomeMessage.trim();
+          // El aviso de IA no puede depender de que el dueño lo escriba: lo
+          // prometemos en tres sitios de la web y lo exige el art. 50 del AI
+          // Act. Si su saludo ya lo menciona, se respeta tal cual; si no, se le
+          // añade en su idioma. Ver src/assistants/ai-disclosure.js.
+          const { ensureAIDisclosure } = require('../assistants/ai-disclosure');
+          const _lang = (cur && cur.assistant_config && cur.assistant_config.language) || flowConfig.language || 'es';
+          asisPatch.firstMessage = ensureAIDisclosure(welcomeMessage.trim(), _lang);
         }
         if (Object.keys(asisPatch).length) {
           dbUpdate.assistant_config = { ...((cur && cur.assistant_config) || {}), ...asisPatch };
@@ -3326,6 +3332,14 @@ function setupPortalRoutes(app, pipeline, config) {
       }
 
       const merged = { ...(existing?.assistant_config || {}), ...safe };
+
+      // El aviso de IA se garantiza también por esta vía (pantalla Asistente),
+      // que es la otra puerta por la que se edita el saludo. Sin esto, cerrar
+      // solo la de Configuración habría dejado el agujero abierto.
+      if (typeof merged.firstMessage === 'string' && merged.firstMessage.trim()) {
+        const { ensureAIDisclosure } = require('../assistants/ai-disclosure');
+        merged.firstMessage = ensureAIDisclosure(merged.firstMessage, merged.language || 'es');
+      }
 
       const { generatePrompt } = require('../assistants/prompt-generator');
       const prompt = generatePrompt(merged, existing?.name || '');
