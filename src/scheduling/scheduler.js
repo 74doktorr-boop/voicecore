@@ -257,14 +257,29 @@ class SchedulingSystem {
     return count;
   }
 
+  /**
+   * Resuelve el servicio del catálogo del negocio a partir de lo que llegue
+   * (id o nombre aproximado). Extraído para que TODOS los caminos de reserva
+   * usen la MISMA regla: la reserva por voz lo usaba y el portal no, así que al
+   * editar una cita desde el panel la duración nunca se recalculaba (AG-10) —
+   * un "Corte" (30 min) cambiado a "Coloración" (90 min) seguía ocupando 30 y
+   * el bot vendía el hueco solapado.
+   * @returns {object|null} el servicio, o null si no hay catálogo/coincidencia
+   */
+  findService(businessId, service) {
+    const config = this.getBusinessConfig(businessId);
+    if (!config || !Array.isArray(config.services)) return null;
+    const q = String(service || '').toLowerCase();
+    if (!q) return null;
+    return config.services.find(s => s.id === service || String(s.name || '').toLowerCase().includes(q)) || null;
+  }
+
   // ─── Book an appointment ───
   // location (multi-sede): centro donde es la cita. Solo llega cuando la org
   // tiene centros configurados; sin él, todo funciona exactamente como antes.
   bookAppointment(businessId, { patientName, phone, email, service, date, time, notes, location, staff }, extraBusy = [], opts = {}) {
     const config = this.getBusinessConfig(businessId);
-    const serviceObj = config?.services.find(s =>
-      s.id === service || s.name.toLowerCase().includes((service || '').toLowerCase())
-    );
+    const serviceObj = this.findService(businessId, service);
 
     // ── Validación de fecha y hora (la LLM puede pasar valores inválidos) ──────
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {

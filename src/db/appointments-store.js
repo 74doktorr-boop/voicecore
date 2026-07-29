@@ -34,7 +34,13 @@ class AppointmentsStore {
 
   // ── Conversión: appointment object ↔ DB row ───────────────
   _toRow(apt) {
+    // `staff` se escribe SOLO si la cita tiene profesional (ver _persistWithRetry).
+    // Escribirlo siempre rompería TODOS los inserts en cualquier entorno donde la
+    // migración db/migration-appointment-staff.sql aún no esté aplicada — que es
+    // exactamente el fallo "cita fantasma" que este módulo existe para evitar.
+    const staff = apt.staff ? { staff: String(apt.staff) } : {};
     return {
+      ...staff,
       id:              apt.id,
       organization_id: apt.businessId,
       patient_name:    apt.patientName,
@@ -81,6 +87,11 @@ class AppointmentsStore {
       price:        row.price     || 0,
       notes:        row.notes     || null,
       location:     row.location  || null,   // multi-sede (columna ausente → null)
+      // Profesional que atiende. Sin esto, tras un reinicio apt.staff quedaba
+      // undefined → _isSlotTaken dejaba de aplicar la excepción por profesional
+      // → la agenda de una peluquería con 2 personas colapsaba a 1:1 y el
+      // negocio perdía media capacidad hasta el siguiente deploy.
+      staff:        row.staff     || null,
       status:       row.status    || 'confirmed',
       wa_confirmed:     row.wa_confirmed     || false,
       reminder_sent:    row.reminder_sent    || false,
@@ -171,6 +182,15 @@ class AppointmentsStore {
         this._alertLostAppointment(apt, 'ese hueco ya estaba ocupado (posible doble reserva)');
         return false;
       }
+      // Columna `staff` ausente = migración sin aplicar. NO se pierde la cita:
+      // se guarda sin profesional y se GRITA en los logs. Reintentar tal cual
+      // fallaría las 3 veces y acabaría en "cita no persistida" — el peor
+      // resultado posible por una migración pendiente.
+      if (this._isMissingColumn(error, 'staff') && row.staff !== undefined) {
+        log.error(`⚠️ nf_appointments.staff NO EXISTE en la BD — la cita ${apt.id} se guarda SIN profesional. Ejecuta db/migration-appointment-staff.sql en Supabase (hasta entonces, dos profesionales NO pueden compartir hueco).`);
+        const { staff, ...withoutStaff } = row;
+        return this._persistWithRetry(withoutStaff, apt, attempt);
+      }
       throw new Error(error.message);
     } catch (e) {
       if (attempt < MAX) {
@@ -181,6 +201,19 @@ class AppointmentsStore {
       this._alertLostAppointment(apt, 'no se pudo guardar por un error técnico');
       return false;
     }
+  }
+
+  /**
+   * ¿El error de PostgREST dice que falta ESA columna?
+   * PostgREST devuelve PGRST204 ("Could not find the 'x' column") o 42703
+   * ("column ... does not exist") según la operación. Puro y testeable.
+   */
+  _isMissingColumn(error, column) {
+    if (!error) return false;
+    const code = String(error.code || '');
+    const msg  = String(error.message || '');
+    if (code !== 'PGRST204' && code !== '42703' && !/does not exist|could not find/i.test(msg)) return false;
+    return msg.includes(column);
   }
 
   // Una cita que no se guarda deja de ser SILENCIOSA: el dueño recibe un aviso
@@ -217,6 +250,12 @@ class AppointmentsStore {
     if (fields.time         !== undefined) dbFields.time          = fields.time;
     if (fields.notes        !== undefined) dbFields.notes         = fields.notes;
     if (fields.location     !== undefined) dbFields.location      = fields.location;
+    if (fields.staff        !== undefined) dbFields.staff         = fields.staff;
+    // `duration` faltaba: el portal permite cambiar el servicio pero la duración
+    // nunca se recalculaba ni se persistía, así que un "Corte" (30 min) que pasa
+    // a "Coloración" (90 min) seguía ocupando 30 y el bot vendía el hueco
+    // solapado (AG-10).
+    if (fields.duration     !== undefined) dbFields.duration      = fields.duration;
     if (fields.wa_confirmed     !== undefined) dbFields.wa_confirmed     = fields.wa_confirmed;
     if (fields.reminder_sent    !== undefined) dbFields.reminder_sent    = fields.reminder_sent;
     if (fields.review_requested !== undefined) dbFields.review_requested = fields.review_requested;

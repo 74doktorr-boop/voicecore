@@ -1100,7 +1100,21 @@ function setupPortalRoutes(app, pipeline, config) {
     // BD rechaza el upsert por el constraint, divergencia memoria↔BD que
     // "revive" la cita a la hora vieja en el siguiente deploy. Ahora se valida
     // el hueco (excluyéndose a sí misma) y se revierte si está ocupado.
-    if (apt.date !== prevDate || apt.time !== prevTime) {
+    // Cambiar de servicio cambia la DURACIÓN (AG-10). Antes no se recalculaba:
+    // un "Corte" (30 min) que pasaba a "Coloración" (90 min) seguía ocupando 30
+    // en memoria y en BD, y el bot vendía el hueco de los 60 min siguientes →
+    // solape real de una hora, con dos clientes citados a la vez.
+    const prevDuration = apt.duration || 30;
+    if (req.body.service !== undefined && apt.service !== _before.service) {
+      const svc = scheduler.findService(businessId, apt.service);
+      if (svc && svc.duration) apt.duration = svc.duration;
+      // El PRECIO no se toca a propósito: el dueño puede haberlo pactado con
+      // este cliente concreto y pisárselo sería una sorpresa desagradable.
+    }
+
+    // La comprobación de solape también tiene que dispararse si la cita se ha
+    // hecho MÁS LARGA sin moverse de hora — antes solo miraba fecha/hora.
+    if (apt.date !== prevDate || apt.time !== prevTime || (apt.duration || 30) > prevDuration) {
       if (scheduler._isSlotTaken(businessId, apt.date, apt.time, apt.duration || 30, [], apt.location || null, apt.id)) {
         Object.assign(apt, _before);   // revertir todos los campos
         return res.status(409).json({ error: `Ya hay una cita a esa hora${apt.location ? ' en ' + apt.location : ''}. Elige otro hueco.` });
