@@ -1,5 +1,10 @@
 # Auditoría integral NodeFlow — 2026-07-29
 
+> **Estado de ejecución.** Los bloqueadores de las fases 0 y 1 están corregidos
+> en la rama `fix/fase0-seguridad-voz` (13 commits, suite 2865 verde). El detalle
+> de qué se arregló y qué queda está al final, en **§7 Ejecución**.
+
+
 **Commit auditado:** `5de51e8` · **Método:** 8 auditorías independientes sobre el código + verificación del esquema real contra Supabase producción (solo lectura).
 
 **Regla de este documento:** todo hallazgo lleva `fichero:línea`. Lo que no se ha podido verificar se marca como no verificado. No se afirma que algo funciona porque exista código que lo sugiera.
@@ -245,3 +250,51 @@ Tres verticales con producto real · Redis obligatorio antes de multi-réplica �
 **Sin llamada nueva, solo consultando lo ya guardado:** los p50/p95 reales de `firstAudioMs` están en `nf_calls.metrics.turns[]` desde hace semanas. Y V2 es contrastable: buscar llamadas con `toolCalls > 0` seguidas de ≥2 `recoveries` o `escalatedTakeMessage`.
 
 **Economía:** €/min real de entrante y **de saliente a móvil ES** (el que más distorsiona el modelo) · alquiler mensual por número · reparto del gasto de OpenAI entre llamada/auditor/embeddings/blog · caracteres facturados de ElevenLabs por minuto de llamada · coste por conversación de Meta (utility vs marketing) · **si `STRIPE_OVERAGE_METER_EVENT` está puesto en EasyPanel ahora mismo**.
+
+---
+
+## 7. Ejecución
+
+Rama `fix/fase0-seguridad-voz`, 13 commits, **suite 2865 tests en verde**. Cada
+commit explica el fallo concreto que corrige y por qué importaba.
+
+### Corregido
+
+| Bloque | Qué |
+|---|---|
+| **Seguridad** | S1 secuestro de calendario cross-tenant (nonce de un solo uso) · S2 fuga de analítica de toda la flota · S3 firma de Telnyx: anti-replay + estado visible en `/health` · S4 `JWT_SECRET` ya no cae en `API_KEY` · S5 API key fuera de la query string · SEC-13 tokens de Outlook cifrados |
+| **Voz** | V1 el re-enganche y la despedida ya pueden sonar tras un barge-in · V2 una interrupción durante la frase-puente ya no invalida el historial y mata la llamada entera · V4 presupuesto de tiempo en LLM y TTS · E3 Anthropic deja de ser un fallback roto |
+| **Agenda** | A1 `staff` se persiste + migración con el EXCLUDE corregido · AG-10 cambiar de servicio recalcula la duración · A3 timeout en Google Calendar · A4 no se atiende con la agenda a medio cargar |
+| **Fiabilidad** | F1 la suite bloquea el despliegue · F2 percentiles (no existía ni un p50 en todo el repo) · F3 `firstAudioMs` agregado · F4 desglose de latencia sin sesgo · F5 alertas de dominio (STT caído, pago fallido, cita perdida) · F6 correlación en el post-call · F7 redacción de datos personales en logs |
+| **Valor** | F8 el ROI se puede abrir y comprobar una a una · F9 fuera el ticket de 35€ y las horas ahorradas inventadas |
+| **Legal** | 27 testimonios inventados · "datos en Europa" · "verificado por Meta" · euskera · "24/7 sin límite" · IVA · "sin registro" · onboarding sin aviso legal · estadísticas sin fuente · ticker falso · garantía · `index-old.html` · subencargados nombrados · derecho de supresión operativo · aviso de IA garantizado |
+| **Operativa** | El esquema se comprueba (`npm run schema`) en vez de declararse · backups completos · un negocio saturado avisa por voz en vez de colgar en silencio |
+
+### Pendiente de Unai (no es código)
+
+1. **Aplicar `db/migration-appointment-staff.sql`** en Supabase. Hasta entonces
+   la reserva por profesional guarda la cita sin profesional (y lo grita en los
+   logs).
+2. **`TELNYX_PUBLIC_KEY`** en EasyPanel → convierte la verificación de firma en
+   fail-closed. Hoy se ve como `UNVERIFIED` en `/health`.
+3. **Confirmar `JWT_SECRET`** en EasyPanel (local está). Ya no hay fallback.
+4. **`STRIPE_OVERAGE_METER_EVENT` y `STRIPE_MSG_METER_EVENT`**: sin ellas el
+   excedente se cuenta y **no se cobra** — es el único agujero que se vuelve
+   negativo con un cliente legítimo.
+5. **Datos del Registro Mercantil** en el aviso legal (tomo, folio, hoja,
+   inscripción): lo exige el art. 10.1 de la LSSI y no puedo inventarlos.
+6. Revisar el **default de tier a `basico`**: hoy toda org sin tier explícito
+   recibe ~64€/mes de add-ons dentro de un plan de 49€.
+
+### Sigue abierto (no bloqueante para vender)
+
+- **Reconexión de STT en vuelo** (V3): si Deepgram cierra el socket a media
+  llamada, la IA se queda sorda en silencio. Hay que reabrir la conexión.
+- **Failover de STT roto en la práctica** (V5): el respaldo de Google configura
+  LINEAR16 sobre bytes A-law y se traga los errores.
+- **TTS no es streaming**: `streamSynthesize` existe en cuatro proveedores y no
+  lo llama nadie; LLM y TTS están serializados (causa de los huecos).
+- **Agenda en memoria**: bloquea el multi-réplica. Necesita Redis primero.
+- **Festivos, vacaciones y buffers entre citas**: no existen.
+- **Cookies de terceros** (Fontshare, Google Fonts) no declaradas.
+- **Watchdog externo de uptime**: el servicio sigue monitorizándose a sí mismo.
