@@ -104,10 +104,22 @@ function installProcessHandlers({ onFatal } = {}) {
   process.on('uncaughtException', (err) => {
     capture(err, 'uncaughtException').catch(() => {});
     log.error('uncaughtException — cerrando ordenadamente para que el contenedor reinicie');
-    // Dar 1.5s para que la alerta salga, luego salir (el orquestador reinicia)
+    // Dar 1.5s para que la alerta salga y DESPUÉS cerrar. PILOT-001 (L2):
+    // `onFatal` puede devolver una promesa (p.ej. persistir las llamadas vivas
+    // antes de morir); antes se llamaba de forma síncrona y se salía sin
+    // esperarla, así que un error fatal se llevaba por delante el transcript y
+    // los minutos igual que hacía el despliegue. Con techo de tiempo: un cierre
+    // de emergencia no puede quedarse colgado.
     setTimeout(() => {
-      try { if (typeof onFatal === 'function') onFatal(); } catch (_) {}
-      process.exit(1);
+      const salir = () => process.exit(1);
+      try {
+        const r = (typeof onFatal === 'function') ? onFatal() : null;
+        if (r && typeof r.then === 'function') {
+          const techo = setTimeout(salir, Number(process.env.FATAL_PERSIST_MS) || 5000);
+          if (techo.unref) techo.unref();
+          r.then(salir, salir);
+        } else salir();
+      } catch (_) { salir(); }
     }, 1500);
   });
 

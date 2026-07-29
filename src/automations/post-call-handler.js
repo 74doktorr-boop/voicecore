@@ -25,8 +25,16 @@ const FOLLOWUP_DELAY_MS = 30 * 60 * 1000; // 30 min
  * MUST be called fire-and-forget: postCallHandler.handle(callData).catch(() => {})
  *
  * @param {object} callData  - session.toJSON() result (includes outcome, bookedAppointment, etc.)
+ * @param {{track?:(p:Promise)=>Promise}} opts
+ *   `track` (PILOT-001/L1): registrador para las escrituras internas que esta
+ *   función dispara SIN esperarlas (minutos facturables, webhook, contacto,
+ *   auditoría). Sin él, quien esperaba a `handle()` creía haberlas esperado —
+ *   un "todo persistido" falso: `handle()` solo aguarda a los emails. El
+ *   pipeline pasa su `_trackWrite`, de modo que un apagado SÍ las espera.
+ *   Siguen siendo no bloqueantes: registrar ≠ esperar aquí.
  */
-async function handle(callData) {
+async function handle(callData, opts = {}) {
+  const track = typeof opts.track === 'function' ? opts.track : (p) => p;
   const businessId = callData.businessId || callData.assistantId;
   if (!businessId) {
     log.warn('post-call: no businessId in callData — skipping');
@@ -153,11 +161,13 @@ async function handle(callData) {
   // ── 6. Track call usage — increments monthly_minutes_used and usage table ────
   if (db.enabled && callData.duration > 0) {
     const deltaMinutes = callData.duration / 60000;
-    db.incrementMinutesUsed(businessId, deltaMinutes, {
+    // L1: registrada — son los MINUTOS FACTURABLES. Perderlas en un apagado es
+    // dinero que no se cobra, y era justo lo que el drenado creía cubrir.
+    track(db.incrementMinutesUsed(businessId, deltaMinutes, {
       llmTokens: callData.metrics?.llmTokens  || 0,
       toolCalls: callData.metrics?.toolCalls  || 0,
       cost:      callData.cost?.total         || 0,
-    }).catch(e => clog.warn('usage increment failed', { err: e.message }));
+    }).catch(e => clog.warn('usage increment failed', { err: e.message })));
   }
 
   // Teléfono del CLIENTE de la llamada (para el CRM, seguimientos y webhooks).
@@ -173,14 +183,14 @@ async function handle(callData) {
   const webhookEvent = (!callData.outcome || missedOutcomes.includes(callData.outcome))
     ? EVENTS.CALL_MISSED
     : EVENTS.CALL_COMPLETED;
-  webhookDispatcher.fire(businessId, webhookEvent, {
+  track(webhookDispatcher.fire(businessId, webhookEvent, {
     callId:       callData.id,
     outcome:      callData.outcome      || 'unknown',
     duration:     callData.duration     || 0,
     callerNumber: clientPhone || null,
     transcript:   callData.transcript   || [],
     bookedAppointment: callData.bookedAppointment || null,
-  }).catch(() => {});
+  }).catch(() => {}));
 
   // ── 7b. Auditor IA + alerta al fundador (self-diagnosing product) ───────────
   // Cada llamada se audita sola; el veredicto se persiste junto al score
@@ -189,17 +199,17 @@ async function handle(callData) {
   try {
     const { auditCall } = require('../lifecycle/call-auditor');
     const { sendFounderAlert, shouldAlert } = require('../notifications/founder-alert');
-    auditCall(callData).then(async (audit) => {
+    track(auditCall(callData).then(async (audit) => {
       if (audit) {
         callData.metrics = callData.metrics || {};
         callData.metrics.audit = audit;
         const { saveCallEnd } = require('../db/call-store');
-        await saveCallEnd(callData);
+        await saveCallEnd(callData);   // 2º upsert: añade el veredicto del auditor
       }
       if (shouldAlert(callData, audit)) {
         await sendFounderAlert(callData, audit, config).catch(() => {});
       }
-    }).catch(e => clog.warn(`auditor: ${e.message}`));
+    }).catch(e => clog.warn(`auditor: ${e.message}`)));
   } catch (e) { clog.warn(`auditor init: ${e.message}`); }
 
   // ── 8+9. Upsert contact → then async transcript analysis ────────────────────
@@ -215,7 +225,7 @@ async function handle(callData) {
     const rawName = apt?.patientName?.trim() || '';
     const pName  = rawName && !GENERIC_NAME.test(rawName) ? rawName : null;
     const pEmail = apt?.email || callData.clientEmail || null;
-    db.client.rpc('upsert_contact', {
+    track(db.client.rpc('upsert_contact', {
       p_org_id:       businessId,
       p_phone:        clientPhone,
       p_name:         pName,
@@ -262,18 +272,18 @@ async function handle(callData) {
             // 2026-07-04: el asistente lo verbalizó sin invocarlo).
             const leadRegistered = (callData.metrics?.turns || []).some(t =>
               (t.tools || []).some(x => x && (x.name === 'register_lead' || x.name === 'register_prospect')));
-            processCallAsync({
+            track(processCallAsync({
               callSessionId: callData.id         || null,
               contactId:     contact.id,
               orgId:         businessId,
               transcript:    callData.transcript || [],
               callerNumber:  clientPhone || null,
               leadRegistered,
-            }).catch(e => clog.warn('transcript async processing failed', { err: e.message }));
+            }).catch(e => clog.warn('transcript async processing failed', { err: e.message })));
           }
         })
         .catch(e => clog.warn('contact lookup failed', { err: e.message }));
-    }).catch(e => clog.warn('contact upsert failed', { err: e.message }));
+    }).catch(e => clog.warn('contact upsert failed', { err: e.message })));
   }
 }
 

@@ -49,7 +49,20 @@ const log = new Logger('SERVER');
 const PORT = process.env.PORT || 3001;
 
 // Capturar errores no manejados a nivel de proceso (alertan por email)
-installProcessHandlers({ onFatal: () => { try { server.close(); } catch (_) {} } });
+// PILOT-001 (L2): un error fatal (OOM, excepción no capturada) también debe
+// PERSISTIR las llamadas vivas antes de morir — antes solo cerraba el socket y
+// se perdían transcript y minutos igual que en un despliegue. Devuelve promesa:
+// el manejador la espera con techo de tiempo (FATAL_PERSIST_MS).
+installProcessHandlers({
+  onFatal: async () => {
+    try { require('./src/utils/lifecycle').markShuttingDown(); } catch (_) {}
+    try { server.close(); } catch (_) {}
+    try {
+      const { closed, unwritten } = await pipeline.shutdownPersist(4000);
+      if (closed || unwritten) log.warn(`fatal — ${closed} llamada(s) persistida(s), ${unwritten} escritura(s) sin confirmar`);
+    } catch (_) {}
+  },
+});
 
 // ─── Validate Config ───
 const requiredEnvVars = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY'];
@@ -724,19 +737,54 @@ let _shuttingDown = false;
 async function gracefulShutdown(signal) {
   if (_shuttingDown) return;
   _shuttingDown = true;
-  const active = () => pipeline.activeCalls?.size || 0;
-  if (active() > 0) {
-    log.warn(`${signal} — drenando ${active()} llamada(s) activa(s) antes de cerrar (máx. 45s)`);
-    const started = Date.now();
-    while (active() > 0 && Date.now() - started < 45000) {
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    if (active() > 0) log.warn(`${signal} — cierre con ${active()} llamada(s) aún activas tras el drenaje`);
-  } else {
-    log.info(`${signal} — sin llamadas activas, cierre inmediato`);
-  }
-  try { assistantManager.destroy(); } catch (_) {}
+  // PILOT-001 (L4): DEJAR DE ACEPTAR TRABAJO NUEVO lo primero. Antes el
+  // `server.close()` iba al final, así que durante todo el apagado el proceso
+  // seguía aceptando conexiones y respondiendo "sano" en /health: la telefonía
+  // le enrutaba llamadas nuevas que morirían segundos después, con su alta a
+  // medio escribir. Cerrar el listener NO corta las llamadas en curso (las
+  // conexiones ya establecidas siguen vivas); solo impide que entren más.
+  try { require('./src/utils/lifecycle').markShuttingDown(); } catch (_) {}
   try { server.close(); } catch (_) {}
+  const active = () => pipeline.activeCalls?.size || 0;
+  // ── PRESUPUESTO DE APAGADO (PILOT-001/F1, corregido tras revisión) ───────
+  // Antes: se esperaba hasta 45 s a que las llamadas colgaran solas y DESPUÉS
+  // se persistía. Con llamadas activas eso era una trampa: el orquestador de
+  // contenedores manda SIGKILL a los ~10 s por defecto, así que la espera se
+  // comía todo el tiempo y la persistencia NUNCA llegaba a ejecutarse — justo
+  // en el escenario que debía proteger.
+  // Ahora hay UN presupuesto total (env SHUTDOWN_BUDGET_MS) del que se RESERVA
+  // una parte para persistir. Nunca se suman dos temporizadores a ciegas.
+  // Ajusta SHUTDOWN_BUDGET_MS por debajo del grace period real del contenedor.
+  const BUDGET  = Math.max(2000, Number(process.env.SHUTDOWN_BUDGET_MS) || 8000);
+  const RESERVE = Math.min(Math.round(BUDGET * 0.6), BUDGET - 500); // para escribir
+  if (active() > 0) {
+    log.warn(`${signal} — ${active()} llamada(s) activa(s); presupuesto ${BUDGET}ms (${RESERVE}ms reservados para persistir)`);
+    const waitUntil = Date.now() + (BUDGET - RESERVE);
+    while (active() > 0 && Date.now() < waitUntil) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+    if (active() > 0) log.warn(`${signal} — ${active()} llamada(s) siguen vivas: se cierran y persisten ahora`);
+  } else {
+    log.info(`${signal} — sin llamadas activas`);
+  }
+  // ── PILOT-001 (F1): PERSISTIR antes de morir ────────────────────────────
+  // El drenaje de arriba solo espera a que `activeCalls` llegue a 0, pero esa
+  // cuenta baja ANTES de que la escritura viaje a la BD (endCall borra de
+  // activeCalls y luego dispara saveCallEnd + post-call sin esperarlos). El
+  // process.exit(0) mataba esas escrituras: transcript perdido para siempre y
+  // los minutos de la última llamada de cada despliegue sin facturar.
+  // Ahora: (1) se cierran las llamadas que aún vivan —para que se escriban en
+  // vez de evaporarse— y (2) se espera a las escrituras en vuelo. Con techo de
+  // tiempo y sin lanzar: un apagado nunca puede quedarse colgado.
+  try {
+    const { closed, unwritten } = await pipeline.shutdownPersist(8000);
+    if (closed) log.warn(`${signal} — ${closed} llamada(s) cerrada(s) y persistida(s) en el apagado`);
+    if (unwritten) log.error(`${signal} — ${unwritten} escritura(s) de persistencia NO confirmadas antes de cerrar`);
+    else log.info(`${signal} — persistencia drenada, nada en vuelo`);
+  } catch (e) { log.warn(`${signal} — drenado de persistencia: ${e.message}`); }
+
+  try { assistantManager.destroy(); } catch (_) {}
+  // (el listener ya se cerró al empezar el apagado — L4)
   process.exit(0);
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

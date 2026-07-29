@@ -85,7 +85,74 @@ async function collectDigestItems(deps = {}) {
     if (q && q !== 'GREEN') items.push({ sev: q === 'RED' ? 'crit' : 'warn', txt: `Calidad del número de WhatsApp: ${q}`, sub: 'Meta puede limitar el volumen de envío' });
   } catch (_) {}
 
+  // 5) INTEGRIDAD DE LOS DATOS DE LLAMADA (PILOT-001/F7)
+  // Hasta ahora nadie vigilaba si una llamada se perdía o quedaba a medias: la
+  // única señal era un log.warn que no lee nadie. Estas tres señales delatan
+  // pérdida de datos (y de dinero) en 24h.
+  try {
+    const items2 = await callIntegrityItems(db);
+    for (const it of items2) items.push(it);
+  } catch (e) { log.warn(`digest integridad: ${e.message}`); }
+
   return items;
+}
+
+/**
+ * Señales de integridad de `nf_calls` en las últimas 24h. Solo lectura, y
+ * fail-open: si la consulta falla, el digest sigue con el resto de avisos.
+ *  · huérfanas   → el proceso murió sin cerrar la llamada (o el reap no corre)
+ *  · sin dueño   → la fila existe pero NINGÚN panel del cliente la muestra
+ *  · sin cerrar  → 'ended' sin outcome: cierre a medias, KPIs y embudo mienten
+ */
+const HUERFANA_HORAS = 3;   // reaper: 90 min de antigüedad + tick horario → 3h
+const LIMITE_FILAS   = 2000;
+
+async function callIntegrityItems(db) {
+  const out = [];
+  const ahora = Date.now();
+  const since = new Date(ahora - 24 * 3600 * 1000).toISOString();
+  // D6: `.order()` explícito — sin él PostgREST devuelve filas ARBITRARIAS al
+  // truncar, y los contadores salían mal sin avisar. Con orden + aviso de tope,
+  // el resultado es determinista y el truncamiento es visible.
+  const { data } = await db.client.from('nf_calls')
+    .select('id, status, org_id, outcome, started_at, duration_ms')
+    .gte('started_at', since)
+    .order('started_at', { ascending: false })
+    .limit(LIMITE_FILAS);
+  const rows = data || [];
+  if (!rows.length) return out;
+
+  // D8: comparar INSTANTES, no cadenas. `started_at` llega con offset
+  // (`+00:00`) y el corte era un `toISOString()` (`.000Z`): al compararse como
+  // texto, el mismo instante ordenaba distinto y el borde daba falsos positivos.
+  // D7: el umbral debe superar la ventana del reaper (90 min + tick horario),
+  // o el digest grita por huérfanas que el sistema ya está limpiando solo.
+  const corte = ahora - HUERFANA_HORAS * 3600 * 1000;
+  const esVieja = (r) => { const t = Date.parse(r.started_at); return Number.isFinite(t) && t < corte; };
+
+  const huerfanas  = rows.filter(r => r.status === 'active' && esVieja(r)).length;
+  // A7.1 — LA señal que faltaba: `lost` es lo que escribe la limpieza automática
+  // cuando una llamada murió sin cerrarse. Es decir, es la PRUEBA de que un
+  // despliegue o una caída se llevó llamadas por delante… y el vigilante solo
+  // miraba 'active' y 'ended', así que era ciego justo a eso.
+  const perdidas   = rows.filter(r => r.status === 'lost').length;
+  // A7.4 — solo cuentan las TERMINADAS: una llamada en curso puede no tener
+  // org_id todavía de forma legítima (demo del navegador, "Llámame", salientes
+  // de campaña: números que no están en el pool). Contarlas despertaba al
+  // fundador por llamadas perfectamente sanas.
+  const sinDuenyo  = rows.filter(r => r.status !== 'active' && !r.org_id).length;
+  const sinCerrar  = rows.filter(r => r.status === 'ended' && !r.outcome).length;
+  const imposibles = rows.filter(r => Number(r.duration_ms) > 3600000 || Number(r.duration_ms) < 0).length;
+
+  if (huerfanas) out.push({ sev: 'crit', txt: `${huerfanas} llamada(s) colgada(s) sin cerrar (>${HUERFANA_HORAS}h)`, sub: 'el proceso murió sin persistir, o la limpieza automática no está corriendo' });
+  if (perdidas)  out.push({ sev: 'crit', txt: `${perdidas} llamada(s) marcadas como PERDIDAS`, sub: 'murieron sin cerrarse (deploy/caída): sin transcript, sin resultado y sin minutos' });
+  if (sinDuenyo) out.push({ sev: 'crit', txt: `${sinDuenyo} llamada(s) terminadas sin negocio asignado`, sub: 'existen en BD pero NINGÚN panel de cliente las muestra' });
+  if (sinCerrar) out.push({ sev: 'warn', txt: `${sinCerrar} llamada(s) cerradas sin resultado`, sub: 'cierre a medias: el embudo y los KPIs las ignoran' });
+  if (imposibles) out.push({ sev: 'warn', txt: `${imposibles} llamada(s) con duración imposible`, sub: 'contaminan ROI, salud del cliente y minutos' });
+  // El truncamiento no puede ser silencioso: si se alcanza el tope, los
+  // contadores de arriba miran solo una parte del día.
+  if (rows.length >= LIMITE_FILAS) out.push({ sev: 'warn', txt: `Revisión de integridad truncada a ${LIMITE_FILAS} llamadas/24h`, sub: 'los contadores anteriores cubren solo las más recientes' });
+  return out;
 }
 
 /**
@@ -146,4 +213,4 @@ function startFounderDigestCron() {
 }
 function stopFounderDigestCron() { if (_interval) { clearInterval(_interval); _interval = null; } }
 
-module.exports = { collectDigestItems, runFounderDigest, startFounderDigestCron, stopFounderDigestCron };
+module.exports = { collectDigestItems, callIntegrityItems, runFounderDigest, startFounderDigestCron, stopFounderDigestCron };

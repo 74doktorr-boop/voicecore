@@ -101,6 +101,13 @@ class VoicePipeline {
     this.webhookUrl = config.webhookUrl || null;
     // Persistencia de llamadas (nf_calls) — inyectable en tests.
     this.callStore = config.callStore || defaultCallStore;
+    // ── PILOT-001 (F1): escrituras de persistencia EN VUELO ────────────────
+    // El cierre de llamada dispara la escritura y NO la espera (fail-open, para
+    // no bloquear el colgado). Problema: en un apagado, `activeCalls` llega a 0
+    // en cuanto la llamada cuelga, pero la escritura sigue viajando a la BD —
+    // y `process.exit(0)` la mataba, perdiendo transcript y minutos facturables.
+    // Aquí se registran esas promesas para que el apagado pueda ESPERARLAS.
+    this._pendingWrites = new Set();
 
     // Cap de llamadas concurrentes por asistente (= identidad de negocio).
     // Control de coste/abuso a escala. Override por-asistente con el campo
@@ -358,6 +365,23 @@ class VoicePipeline {
       }
     } catch (e) { log.warn(`[${callId}] learned-rules inject fail-open: ${e.message}`); }
 
+    // ── PILOT-001 (F3): ALTA TEMPRANA en BD ───────────────────────────────
+    // Antes el alta se hacía al final de startCall, DESPUÉS del `await` del TTS
+    // del saludo (2-10 s). Si el proceso moría en esa ventana —un deploy justo
+    // cuando entra una llamada— NO quedaba ni rastro: la llamada no existía en
+    // ninguna parte y reapOrphanCalls no puede recuperar lo que nunca se
+    // escribió. Ahora se da de alta aquí: ya se ha resuelto `session.orgId`
+    // (arriba), así que la fila nace CON dueño, y aún no hemos gastado los
+    // segundos del saludo. Sigue siendo fail-open: jamás bloquea la llamada.
+    // Se REGISTRA (revisión A2): una llamada que entra mientras el proceso se
+    // apaga también debe poder escribir su alta antes de morir.
+    // L5: se guarda la promesa para poder ORDENAR alta → cierre. Las dos son
+    // peticiones sueltas: si el alta aterrizaba después del cierre, devolvía la
+    // fila a 'active' (reloj corriendo en el portal y, a los 90 min, marcada
+    // como perdida… habiendo terminado bien).
+    session._startWrite = this.callStore.saveCallStart(session).catch(() => {});
+    this._trackWrite(session._startWrite);
+
     // Códec de entrada por proveedor. CRÍTICO: el STT debe recibir el códec
     // REAL — decodificar PCMA (Europa) como PCMU destroza la transcripción
     // sin enmudecerla (causa raíz del 2026-07-03, confidence 0.78 → 0.995).
@@ -498,8 +522,7 @@ class VoicePipeline {
 
     // Fire webhook
     this._fireWebhook('call.started', session.toJSON());
-    // Persistencia (C1): alta fail-open — jamás bloquea ni tumba la llamada.
-    this.callStore.saveCallStart(session).catch(() => {});
+    // (El alta en BD ya se hizo ANTES del saludo — ver PILOT-001/F3 arriba.)
     log.call(`[${callId}] Call started — ${callerNumber} → ${calledNumber}`);
     return session;
   }
@@ -1254,8 +1277,16 @@ class VoicePipeline {
     if (this.callHistory.length > this.maxHistory) this.callHistory.pop();
     // Persistencia (C1): registro completo, upsert idempotente — recupera
     // incluso las llamadas cuya alta falló (BD caída al inicio).
-    this.callStore.saveCallEnd(callData).catch(() => {});
-    this._fireWebhook('call.ended', callData);
+    // PILOT-001 (F1): se REGISTRA la escritura para que un apagado la espere.
+    // L5: el cierre espera al alta ANTES de escribir. Así el upsert de alta no
+    // puede aterrizar después y devolver la fila a 'active'. No bloquea la
+    // llamada (sigue siendo fire-and-forget) y el registro tiene techo de tiempo.
+    const _startWrite = session._startWrite || Promise.resolve();
+    this._trackWrite(_startWrite.then(() => this.callStore.saveCallEnd(callData)).catch(() => {}));
+    // D4: el webhook al sistema del cliente también moría con el proceso —
+    // una integración que nunca se entera de la llamada. Se registra si el
+    // disparo devuelve promesa (no todas las rutas lo hacen).
+    this._trackWrite(this._fireWebhook('call.ended', callData));
 
     // BUG-32 FIX: Wire analytics so admin dashboard callsToday reflects real calls.
     // Must run before System A (which may throw) to guarantee recording.
@@ -1267,14 +1298,99 @@ class VoicePipeline {
     }
 
     // System A: post-call automations (fire-and-forget — never blocks endCall)
-    try {
-      const { postCallHandler } = require('../automations/post-call-handler');
-      postCallHandler.handle(callData).catch(e => log.warn('post-call handler error', { err: e.message }));
-    } catch (e) {
-      // require() failure (missing module) must not break call teardown
+    // PILOT-001 (F1): se registra — aquí viven los minutos facturables.
+    // PERO en un APAGADO no se ejecuta (revisión D5): el post-call manda
+    // WhatsApps de confirmación y emails al dueño, y cerrar por SIGTERM una
+    // llamada que estaba en el saludo enviaría mensajes REALES por una
+    // conversación que no ocurrió (y marcaría 'abandoned' inflando los KPIs).
+    // En el apagado se PERSISTE la llamada, que es lo que se estaba perdiendo;
+    // el resto de automatizaciones no deben nacer de un cierre forzado.
+    if (!this._shuttingDown) {
+      try {
+        const { postCallHandler } = require('../automations/post-call-handler');
+        // L1: se le pasa el registrador para que SUS escrituras internas
+        // (minutos facturables, webhook, contacto, auditoría, análisis) queden
+        // en vuelo controlado. Esperar solo a `handle()` era un falso "todo OK":
+        // esa promesa solo aguarda a los emails, no a lo que vale dinero.
+        this._trackWrite(postCallHandler.handle(callData, { track: (p) => this._trackWrite(p) })
+          .catch(e => log.warn('post-call handler error', { err: e.message })));
+      } catch (e) {
+        // require() failure (missing module) must not break call teardown
+      }
     }
 
     return callData;
+  }
+
+  // ── PILOT-001 (F1): drenado de persistencia para el apagado ──────────────
+
+  /**
+   * Registra una escritura en vuelo para que el apagado pueda esperarla.
+   * Se acota con un techo de tiempo (revisión D2): una promesa que NUNCA
+   * resuelve —un fetch sin timeout a Meta/Stripe/Supabase— dejaría la entrada
+   * en el Set para siempre, y cada entrada retiene el `callData` completo
+   * (transcript incluido) → fuga de memoria en un proceso de días.
+   * El `.catch` tras el `.finally` (D3) evita un unhandledRejection si algún
+   * llamante futuro no encadena el suyo.
+   */
+  _trackWrite(p, ttlMs = 60000) {
+    if (!p || typeof p.finally !== 'function') return p;
+    let timer;
+    const bounded = Promise.race([
+      p,
+      new Promise(res => { timer = setTimeout(res, ttlMs); if (timer.unref) timer.unref(); }),
+    ]);
+    this._pendingWrites.add(bounded);
+    bounded.finally(() => { clearTimeout(timer); this._pendingWrites.delete(bounded); }).catch(() => {});
+    return p;
+  }
+
+  /** Nº de escrituras de persistencia aún en vuelo. */
+  pendingWrites() { return this._pendingWrites.size; }
+
+  /**
+   * Espera a que terminen las escrituras en vuelo (con techo de tiempo).
+   * @returns {Promise<number>} cuántas quedaron sin confirmar (0 = todo persistido)
+   */
+  async drainPendingWrites(timeoutMs = 5000) {
+    const started = Date.now();
+    while (this._pendingWrites.size > 0 && Date.now() - started < timeoutMs) {
+      await Promise.race([
+        Promise.allSettled([...this._pendingWrites]),
+        new Promise(r => setTimeout(r, 200)),
+      ]);
+    }
+    return this._pendingWrites.size;
+  }
+
+  /**
+   * Cierre ordenado para un apagado (SIGTERM de un despliegue):
+   *   1) cierra las llamadas que sigan vivas → su transcript, outcome y minutos
+   *      se ESCRIBEN en vez de evaporarse con el proceso;
+   *   2) espera a que las escrituras en vuelo lleguen de verdad a la BD.
+   * Nunca lanza: un apagado no puede colgarse por un error aquí.
+   * @returns {Promise<{closed:number, unwritten:number}>}
+   */
+  async shutdownPersist(timeoutMs = 8000) {
+    // Marca el modo apagado: endCall persiste, pero NO dispara el post-call
+    // (nada de WhatsApps/emails reales por un cierre forzado — revisión D5).
+    this._shuttingDown = true;
+    let closed = 0, failed = 0;
+    for (const callId of [...this.activeCalls.keys()]) {
+      try {
+        // Solo cuenta como cerrada si endCall devolvió datos (revisión D1:
+        // antes se contaba aunque devolviera null y el log mentía).
+        if (this.endCall(callId)) closed++;
+      } catch (e) {
+        // D1: un fallo aquí borra la llamada de activeCalls sin persistirla.
+        // Es EXACTAMENTE la pérdida que esta feature evita → nunca en silencio.
+        failed++;
+        log.error(`apagado: no se pudo cerrar/persistir la llamada ${callId}: ${e.message}`);
+      }
+    }
+    let unwritten = this._pendingWrites.size;
+    try { unwritten = await this.drainPendingWrites(timeoutMs); } catch (_) {}
+    return { closed, unwritten, failed };
   }
 
   /**
