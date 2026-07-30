@@ -6,21 +6,22 @@
   <title>¡Bienvenido a NodeFlow! — Pago confirmado</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  
   <style>
     :root {
-      --bg:#0a0b0d; --card:#14141e;
+      --bg:#0a0b0d; --card:#191E14;
       --accent:#c4f546; --accent-l:#d6ff5c;
       --glow:rgba(196,245,70,0.3);
       --green:#d6ff5c; --green2:#00b894;
-      --text:#e8e8f0; --dim:#8888a8; --muted:#3a3a52;
+      --text:#EEF3E4; --dim:#818B76; --muted:#818B76;
       --border:rgba(255,255,255,0.07);
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{
-      font-family:'Inter',-apple-system,sans-serif;
+      font-family:'Satoshi',system-ui,sans-serif;
       background:var(--bg);color:var(--text);
       min-height:100vh;display:flex;flex-direction:column;
       align-items:center;justify-content:center;
@@ -183,7 +184,7 @@
       0%{transform:translateY(0) rotate(0deg);opacity:1}
       100%{transform:translateY(110vh) rotate(720deg);opacity:0}
     }
-      h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
+      h1 { font-family:'Clash Display',system-ui,sans-serif; font-weight:600; letter-spacing:-0.5px; }
       a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#d6ff5c);outline-offset:3px;border-radius:6px;}
 
     @media (prefers-reduced-motion: reduce){

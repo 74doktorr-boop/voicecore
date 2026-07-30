@@ -17,12 +17,13 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow para Farmacias","description":"Recepcionista IA para farmacias en Bilbao, Donostia y Vitoria. Responde consultas, gestiona reservas de medicamentos y llamadas 24/7. Habla euskera. Desde 49€/mes.","url":"https://nodeflow.es/farmacias","applicationCategory":"BusinessApplication","operatingSystem":"Cloud","offers":[{"@type":"Offer","name":"Plan Negocio","price":"49","priceCurrency":"EUR"}],"provider":{"@type":"Organization","name":"NodeFlow","url":"https://nodeflow.es","areaServed":["Bilbao","Donostia","Vitoria-Gasteiz","País Vasco"]}}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Puede el asistente dar información sobre medicamentos?","acceptedAnswer":{"@type":"Answer","text":"Puede informar sobre medicamentos sin receta habituales y orientar sobre síntomas comunes. Para consultas con criterio farmacéutico, deriva a la farmacia o recomienda consultar al médico."}},{"@type":"Question","name":"¿Puede informar sobre farmacias de guardia?","acceptedAnswer":{"@type":"Answer","text":"Sí. Si tu farmacia no está de guardia, el asistente informa de cuál lo está en tu zona esa noche."}},{"@type":"Question","name":"¿Puede gestionar reservas de medicación crónica?","acceptedAnswer":{"@type":"Answer","text":"Sí. Los clientes con medicación habitual pueden reservar por teléfono. El asistente recoge el pedido y lo tienes preparado cuando llegan."}},{"@type":"Question","name":"¿Funciona en euskera?","acceptedAnswer":{"@type":"Answer","text":"Sí. En euskera, el asistente saluda y se despide en euskera y entiende a quien le hable en euskera; el cuerpo de la conversación es en castellano. La voz vasca completa está en camino. Fundamental para farmacias en zonas euskaldunes."}},{"@type":"Question","name":"¿Cuánto tarda la configuración?","acceptedAnswer":{"@type":"Answer","text":"En pocos minutos. Sin instalar nada ni cambiar tu número."}}]}</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  
   <style>
-    :root{--bg:#0c0a08;--card:#14141e;--card-hover:#1c1c28;--accent:#e0a23c;--accent-l:#f2bd5e;--glow:rgba(224,162,60,0.3);--green:#00cec9;--red:#ff6b6b;--text:#e8e8f0;--dim:#8888a8;--muted:#3a3a52;--border:rgba(255,255,255,0.07);--border-accent:rgba(224,162,60,0.3);}
+    :root{--bg:#0F110C;--card:#191E14;--card-hover:#1F251A;--accent:#c4f546;--accent-l:#A8DC2A;--glow:rgba(224,162,60,0.3);--green:#c4f546;--red:#ff6f5e;--text:#EEF3E4;--dim:#818B76;--muted:#818B76;--border:rgba(255,255,255,0.07);--border-accent:rgba(224,162,60,0.3);}
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
-    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
+    body{font-family:'Satoshi',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
     .container{max-width:1100px;margin:0 auto;padding:0 24px;}a{text-decoration:none;color:inherit;}
     .noise{position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;opacity:0.025;animation:grain .4s steps(1) infinite;}
     @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,-2%)}40%{transform:translate(2%,3%)}60%{transform:translate(-1%,2%)}80%{transform:translate(3%,-1%)}}
@@ -33,7 +34,7 @@
     .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.035) 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 40%,transparent 100%);}
     .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;transition:all .25s;cursor:pointer;border:none;white-space:nowrap;position:relative;overflow:hidden;}
     .btn-primary{background:var(--accent);color:#241803;box-shadow:0 4px 24px var(--glow);}
-    .btn-primary:hover{background:#f2bd5e;transform:translateY(-2px);box-shadow:0 10px 36px var(--glow);}
+    .btn-primary:hover{background:#A8DC2A;transform:translateY(-2px);box-shadow:0 10px 36px var(--glow);}
     .btn-outline{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.15);}
     .btn-outline:hover{border-color:var(--accent-l);background:rgba(224,162,60,0.08);transform:translateY(-2px);}
     .btn-lg{padding:16px 36px;font-size:16px;border-radius:12px;}
@@ -68,7 +69,7 @@
     .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;}@media(max-width:768px){.problem-grid{grid-template-columns:1fr;}}
     .problem-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;overflow:hidden;transition:all .3s;}
     .problem-card:hover{border-color:rgba(255,107,107,0.3);transform:translateY(-4px);}
-    .problem-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff6b6b,transparent);}
+    .problem-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff6f5e,transparent);}
     .problem-icon{font-size:28px;margin-bottom:14px;}.problem-card h3{font-size:16px;font-weight:700;margin-bottom:10px;}.problem-card p{font-size:14px;color:var(--dim);line-height:1.7;}
     .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:48px;position:relative;}
     .steps::before{content:'';position:absolute;top:28px;left:16.6%;right:16.6%;height:1px;background:linear-gradient(90deg,transparent,var(--border-accent),transparent);}
@@ -91,7 +92,7 @@
     .roi-chart h4{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px;}
     .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}.bar-label{font-size:13px;color:var(--dim);width:130px;flex-shrink:0;}
     .bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:4px;height:10px;overflow:hidden;}.bar-fill{height:100%;border-radius:4px;animation:barGrow 1.2s ease forwards;}
-    .bar-fill-accent{background:linear-gradient(90deg,var(--accent),var(--accent-l));}.bar-fill-green{background:linear-gradient(90deg,var(--green),#55efc4);}.bar-fill-red{background:linear-gradient(90deg,#ff6b6b,#fd79a8);}
+    .bar-fill-accent{background:linear-gradient(90deg,var(--accent),var(--accent-l));}.bar-fill-green{background:linear-gradient(90deg,var(--green),#55efc4);}.bar-fill-red{background:linear-gradient(90deg,#ff6f5e,#fd79a8);}
     @keyframes barGrow{from{width:0}}.bar-val{font-size:13px;font-weight:700;color:var(--text);width:36px;flex-shrink:0;text-align:right;}
     .testimonial{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 40px;position:relative;margin-top:20px;}
     .testimonial::before{content:'"';position:absolute;top:16px;left:28px;font-size:80px;color:var(--accent);opacity:0.3;font-family:Georgia,serif;line-height:1;}
@@ -115,9 +116,21 @@
     .footer-brand{font-weight:700;font-size:16px;}.footer-brand span{color:var(--accent-l);}
     .footer-links{display:flex;gap:20px;flex-wrap:wrap;}.footer-links a{font-size:13px;color:var(--dim);transition:color .2s;}.footer-links a:hover{color:var(--text);}
     .footer-copy{font-size:12px;color:var(--muted);}
-    .hero h1, .section-title, .cta-card h2 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-1px; }
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
-  </style>
+    .hero h1, .section-title, .cta-card h2 { font-family:'Clash Display',system-ui,sans-serif; font-weight:600; letter-spacing:-1px; }
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#A8DC2A);outline-offset:3px;border-radius:6px;}
+  
+/* Bloque de prueba real — unificar-marca-landings.js */
+.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
+.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
+.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
+.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
+.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
+.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
+.nf-prueba-f img{width:100%;display:block;height:auto}
+/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
+   móvil. Es el fallo más repetido de estas páginas. */
+.nf-prueba-in > *{min-width:0}
+</style>
   <!-- Plausible Analytics -->
   <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
 </head>
@@ -204,6 +217,21 @@
   <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Desde 49€/mes →</a>
   <div class="cta-price">Desde 49€/mes · Sin permanencia · Sin instalación</div>
 </div></div></section>
+
+<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
+     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
+     demostraba que el producto existe. -->
+<section class="nf-prueba">
+  <div class="nf-prueba-in">
+    <p class="nf-prueba-k">Esto no es un montaje</p>
+    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
+    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
+    <figure class="nf-prueba-f">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
+    </figure>
+  </div>
+</section>
 <footer><div class="container"><div class="footer-inner">
   <div><div class="footer-brand">Node<span>Flow</span></div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Asistente de voz IA para farmacias · País Vasco</div></div>
   <div class="footer-links">

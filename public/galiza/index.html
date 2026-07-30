@@ -13,17 +13,18 @@
   <meta property="og:description" content="O primeiro asistente de voz con IA que fala galego nativo. Atende as túas chamadas 24h, reserva citas e nunca pon o negocio en espera.">
   <meta property="og:url" content="https://nodeflow.es/galiza">
   <meta property="og:type" content="website">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
   <style>
     :root {
-      --bg:#07070e; --card:#0f0f18; --card2:#14141e;
+      --bg:#07070e; --card:#0f0f18; --card2:#191E14;
       --accent:#1e8a5e; --accent-l:#2ecc8a; --accent-d:#166a48;
       --glow:rgba(46,204,138,0.28);
-      --green:#00cec9; --green2:#00b894;
+      --green:#c4f546; --green2:#00b894;
       --text:#e8f0ea; --dim:#8898a0; --muted:#2a3a32;
       --border:rgba(255,255,255,0.07);
       --border-accent:rgba(46,204,138,0.25);
@@ -31,7 +32,7 @@
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;font-size:15px}
+    body{font-family:'Satoshi',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;font-size:15px}
 
     /* Background */
     .noise{position:fixed;inset:0;z-index:9999;pointer-events:none;
@@ -200,8 +201,20 @@
 
     /* Reveal */
     .reveal{will-change:transform,opacity}
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
-  </style>
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#A8DC2A);outline-offset:3px;border-radius:6px;}
+  
+/* Bloque de prueba real — unificar-marca-landings.js */
+.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
+.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
+.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
+.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
+.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
+.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
+.nf-prueba-f img{width:100%;display:block;height:auto}
+/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
+   móvil. Es el fallo más repetido de estas páginas. */
+.nf-prueba-in > *{min-width:0}
+</style>
   <!-- Plausible Analytics -->
   <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
 </head>
@@ -515,6 +528,21 @@
 </section>
 
 <!-- Footer -->
+
+<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
+     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
+     demostraba que el producto existe. -->
+<section class="nf-prueba">
+  <div class="nf-prueba-in">
+    <p class="nf-prueba-k">Esto no es un montaje</p>
+    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
+    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
+    <figure class="nf-prueba-f">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
+    </figure>
+  </div>
+</section>
 <footer>
   <div class="footer-logo">⚡ Node<em>Flow</em> Galicia</div>
   <p style="margin-top:6px">A IA de voz para os negocios de Galicia · Feito con 💚 dende Euskal Herria</p>
