@@ -582,6 +582,18 @@ class VoicePipeline {
     // pero NADIE los asignaba nunca (F4): totalSttTime era siempre 0 y el TTS no
     // se podía atribuir a ningún turno concreto.
     session._turnTtsMs = 0;
+    // DESGLOSE del primer audio (2026-07-30). `firstAudioMs` dice CUÁNTO se
+    // tardó en contestar, pero no en QUÉ se fue el tiempo, y sin eso no se
+    // puede decidir si merece la pena hacer el TTS en streaming — que es el
+    // cambio grande que queda pendiente y toca los cuatro proveedores.
+    //
+    //   firstAudioMs ≈ llmFirstTokenMs + (generar hasta el primer fragmento)
+    //                  + firstFragmentTtsMs + red
+    //
+    // Si manda el LLM, el streaming de TTS no arregla nada. Si manda el TTS, sí.
+    // Se mide antes de tocar nada (charter: instrumentar primero).
+    session._turnFirstTokenMs = null;
+    session._turnFirstTtsMs = null;
     // Cadena de habla limpia por turno (F10): una cadena del turno anterior no
     // debe encadenar el habla de este. Cada turno espera SU cola al terminar.
     session._speechChain = Promise.resolve();
@@ -622,7 +634,7 @@ class VoicePipeline {
       // y el lead es fire-and-forget.
       if (misunderstoodTurn && session._consecMisunderstand >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
         await this._takeMessageAndNotify(callId, session, turnMetrics, `${session._consecMisunderstand} malentendidos seguidos`);
-        if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
+        this._sealTurnLatency(session, turnMetrics);
         session.recordTurn(turnMetrics);
         return;
       }
@@ -635,7 +647,7 @@ class VoicePipeline {
         log.warn(`[${callId}] Confianza nivel 4 (${conf.toFixed(2)}) — turno sin acción, se pide repetición`);
         await this._speakText(callId, ask, { cache: true });
         session.addAssistantMessage(ask);
-        if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
+        this._sealTurnLatency(session, turnMetrics);
         session.recordTurn(turnMetrics);
         return;
       }
@@ -701,6 +713,9 @@ class VoicePipeline {
         if (session.interrupted) break;
 
         if (chunk.type === 'text') {
+          // Primer token del LLM: el suelo de la latencia. Por debajo de esto no
+          // se puede bajar sin cambiar de modelo o de proveedor.
+          if (session._turnFirstTokenMs == null) session._turnFirstTokenMs = Date.now() - turnStart;
           rawResponse += chunk.content;
           // Criterio de relevancia: si el LLM emite [NO_DIRIGIDO], la frase del
           // cliente no iba con ella (habló con otro, tele, ruido). Se descarta
@@ -715,6 +730,7 @@ class VoicePipeline {
           // Stream TTS in sentences for low latency
           const sentences = this._extractCompleteSentences(accumulatedText);
           if (sentences.complete.length > 0) {
+            if (!spokeFirstFragment) turnMetrics.llmFirstFragmentMs = Date.now() - turnStart;
             spokeFirstFragment = true;
             for (const sentence of sentences.complete) {
               if (session.interrupted) break;
@@ -732,6 +748,7 @@ class VoicePipeline {
             // Raúl," suena mientras el resto de la frase aún se genera).
             const frag = accumulatedText.match(/^(.{24,}?[,;:])\s+/s);
             if (frag) {
+              turnMetrics.llmFirstFragmentMs = Date.now() - turnStart;
               spokeFirstFragment = true;
               this._speakQueued(callId, frag[1]);
               accumulatedText = accumulatedText.slice(frag[0].length);
@@ -849,7 +866,7 @@ class VoicePipeline {
       }
 
       turnMetrics.totalTime = Date.now() - turnStart;
-      if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
+      this._sealTurnLatency(session, turnMetrics);
       session.recordTurn(turnMetrics);
 
       // Colgado determinista por despedida: si el CLIENTE se despide y la
@@ -1105,6 +1122,23 @@ class VoicePipeline {
   /**
    * Convert text to speech via TTS Router and send to Twilio
    */
+  /**
+   * Cierra las métricas de latencia del turno.
+   *
+   * Existe porque `_processTurn` tiene TRES salidas (escalado por malentendidos,
+   * petición de repetición, y el camino normal) y cada una copiaba a mano lo que
+   * quería guardar. Cuando el desglose pasó de un campo a tres, la duplicación
+   * dejó de ser aceptable: la salida que se olvidara de copiar uno mentiría por
+   * omisión, y sería justo el turno lento el que no se pudiera diagnosticar.
+   */
+  _sealTurnLatency(session, turnMetrics) {
+    if (!session || !turnMetrics) return turnMetrics;
+    if (session._turnFirstAudioMs != null) turnMetrics.firstAudioMs = session._turnFirstAudioMs;
+    if (session._turnFirstTokenMs != null) turnMetrics.llmFirstTokenMs = session._turnFirstTokenMs;
+    if (session._turnFirstTtsMs != null) turnMetrics.firstFragmentTtsMs = session._turnFirstTtsMs;
+    return turnMetrics;
+  }
+
   async _speakText(callId, text, opts = {}) {
     const session = this.activeCalls.get(callId);
     if (!session || session.interrupted) return;
@@ -1187,6 +1221,10 @@ class VoicePipeline {
       // …y por TURNO (F4), para poder decir QUÉ turno fue lento por culpa del TTS
       // y para descontarlo del llmTime, que lo estaba absorbiendo.
       session._turnTtsMs = (session._turnTtsMs || 0) + ttsTime;
+      // Solo la síntesis del PRIMER fragmento entra en el camino crítico: las
+      // siguientes ya suenan mientras el cliente escucha. Es el número que
+      // decide si el TTS en streaming merece la pena.
+      if (session._turnFirstTtsMs == null) session._turnFirstTtsMs = ttsTime;
       // Tiempo hasta el PRIMER audio del turno = la latencia que percibe el
       // cliente al teléfono (la métrica que importa, no el total del turno).
       if (session._turnT0 && session._turnFirstAudioMs == null) {
@@ -1224,6 +1262,12 @@ class VoicePipeline {
     const { latencySummary } = require('../analytics/percentiles');
     const firstAudio = latencySummary(turns.map(t => t.firstAudioMs));
     const turnLatency = latencySummary(lats);
+    // DESGLOSE del primer audio (2026-07-30). Sin esto, `firstAudioMs` dice que
+    // se tarda 974 ms en contestar pero no en qué se van. Y el cambio grande que
+    // queda —TTS en streaming, que toca los cuatro proveedores— solo merece la
+    // pena si el que manda es el TTS. Se mide antes de tocar nada.
+    const llmFirstToken = latencySummary(turns.map(t => t.llmFirstTokenMs));
+    const firstFragmentTts = latencySummary(turns.map(t => t.firstFragmentTtsMs));
     const clarifications = session.metrics.clarifications || 0;
     const recoveries = session.metrics.recoveries || 0;
     const interruptions = session.metrics.interruptions || 0;
@@ -1261,6 +1305,12 @@ class VoicePipeline {
       // p95 con 3 muestras no significa nada y quien lo lea debe poder saberlo.
       firstAudio,
       turnLatency,
+      // En qué se va ese primer audio. Los dos sumados no dan el total (falta
+      // el tiempo de generar hasta el primer fragmento, y la red), pero dicen
+      // cuál de los dos manda — que es la pregunta que hay que responder antes
+      // de meterse con el TTS en streaming.
+      llmFirstToken,
+      firstFragmentTts,
       // Atajo para el panel y las alertas (evita que cada consumidor rebusque).
       p50FirstAudioMs: firstAudio.p50,
       p95FirstAudioMs: firstAudio.p95,
