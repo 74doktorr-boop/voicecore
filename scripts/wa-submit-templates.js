@@ -2,10 +2,15 @@
 // ============================================================
 // NodeFlow — Alta de plantillas WhatsApp en Meta (Cloud API)
 //
-// Da de alta las 3 plantillas UTILITY de NodeFlow en el WABA propio
-// de NodeFlow (número compartido, Fase 1). El equivalente para 360dialog
-// vive en routes-whatsapp-connect.js (submitTemplates); esto es para
-// el número Meta directo.
+// Da de alta en el WABA propio de NodeFlow (número compartido) TODAS las
+// plantillas de `src/whatsapp/templates.js` — se leen de ahí, así que añadir una
+// al array y volver a lanzar esto es todo lo que hay que hacer. El equivalente
+// para 360dialog vive en routes-whatsapp-connect.js (submitTemplates); esto es
+// para el número Meta directo.
+//
+// OJO: los números YA conectados no reciben las plantillas nuevas solos —
+// `submitTemplates` solo corre al conectar. Cada vez que se añada una plantilla,
+// hay que pasar esto por el número compartido.
 //
 // Uso:
 //   WA_ACCESS_TOKEN=EAAG... WA_BUSINESS_ACCOUNT_ID=1234567890 \

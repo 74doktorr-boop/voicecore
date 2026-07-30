@@ -43,6 +43,34 @@ const WA_TEMPLATES = [
     ],
   },
   {
+    // La MISMA cita, cuando el negocio todavía no nos ha dicho su horario.
+    //
+    // POR QUÉ EXISTE (2026-07-30): en el alta, `assistant_config` se siembra sin
+    // horario, así que el asistente reserva contra un calendario por defecto que
+    // el dueño no ha visto nunca. Por voz ya se avisa ("le confirmamos desde el
+    // centro"), pero el WhatsApp seguía diciendo "ha sido confirmada" — la misma
+    // hora, afirmada dos veces con distinta certeza.
+    //
+    // No se podía parchear metiendo "(por confirmar)" en el parámetro de la
+    // hora: el cuerpo aprobado dice "ha sido confirmada", y saldría
+    // "ha sido confirmada ... a las 10:00 (por confirmar)". Contradicción.
+    //
+    // MISMOS 5 parámetros que nodeflow_cita_confirmada, a propósito: así el
+    // código solo cambia el NOMBRE de la plantilla y no puede desalinear los
+    // argumentos. Y como toda plantilla Meta, ni empieza ni termina en variable.
+    name: 'nodeflow_cita_por_confirmar',
+    category: 'UTILITY',
+    language: 'es',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, hemos anotado tu cita en {{2}} para el {{3}} a las {{4}}. Servicio: {{5}}. Te confirmamos la hora en breve.',
+        example: { body_text: [['María', 'Clínica Osakin', '5 de julio', '10:00', 'Fisioterapia']] },
+      },
+      { type: 'FOOTER', text: 'NodeFlow — Sistema de citas inteligente' },
+    ],
+  },
+  {
     name: 'nodeflow_cita_recordatorio',
     category: 'UTILITY',
     language: 'es',

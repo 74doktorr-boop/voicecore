@@ -472,10 +472,43 @@ async function sendWaReactivation(client, config = {}, deps = {}) {
   }
 }
 
+// ¿Nos ha dicho este negocio a qué hora abre?
+//
+// No se puede mirar en `config`: esa es la del scheduler, que YA trae el horario
+// por defecto rellenado, así que un negocio sin configurar es indistinguible de
+// uno configurado. Hay que ir al `assistant_config` crudo.
+//
+// Caché corta: esto se consulta una vez por cita reservada, y el dato cambia
+// como mucho una vez en la vida del negocio (el día que lo rellena).
+const _horarioCache = new Map();
+const HORARIO_TTL_MS = 5 * 60 * 1000;
+
+async function _tieneHorarioConfigurado(businessId) {
+  if (!businessId) return true;   // sin org no se puede afirmar que falte: no se alarma
+  const hit = _horarioCache.get(businessId);
+  if (hit && Date.now() - hit.at < HORARIO_TTL_MS) return hit.v;
+  try {
+    const { getDatabase } = require('../db/database');
+    const db = getDatabase();
+    if (!db.enabled) return true;
+    const { data } = await db.client.from('organizations')
+      .select('assistant_config').eq('id', businessId).maybeSingle();
+    const { tieneHorarioConfigurado } = require('../assistants/prompt-generator');
+    const v = tieneHorarioConfigurado(data && data.assistant_config && data.assistant_config.schedule);
+    _horarioCache.set(businessId, { v, at: Date.now() });
+    return v;
+  } catch (e) {
+    // Fail-open: si no se puede saber, se manda la confirmación de siempre.
+    log.warn(`No se pudo comprobar el horario de ${businessId}: ${e.message}`);
+    return true;
+  }
+}
+
 async function sendWaConfirmation(apt, config, deps = {}) {
   const _sendTemplate    = deps.sendTemplate    || sendTemplate;
   const _getWaCreds      = deps.getWaCredentials || getWaCredentials;
   const _waIsConfigured  = deps.waIsConfigured   || waIsConfigured;
+  const _tieneHorario    = deps.tieneHorario     || _tieneHorarioConfigurado;
 
   if (!apt.phone) return false;
 
@@ -505,10 +538,33 @@ async function sendWaConfirmation(apt, config, deps = {}) {
     },
   ];
 
+  // Si el negocio no nos ha dado su horario, la hora que acaba de reservar el
+  // asistente sale de un calendario por defecto. Por voz ya se avisa ("le
+  // confirmamos desde el centro"); aquí se decía "ha sido confirmada" — la misma
+  // hora afirmada dos veces con distinta certeza, y por escrito.
+  //
+  // El `catch` no es decorativo: esto es una PREFERENCIA sobre el texto, y si
+  // reventara se llevaría por delante la confirmación entera de una cita ya
+  // reservada. Ante la duda, la plantilla de siempre.
+  let horarioOk = true;
+  try { horarioOk = await _tieneHorario(apt.businessId); }
+  catch (e) { log.warn(`WA: no se pudo saber el horario de ${apt.businessId}: ${e.message}`); }
+  const plantilla = horarioOk ? 'nodeflow_cita_confirmada' : 'nodeflow_cita_por_confirmar';
+
   try {
-    const result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, components, credentials);
+    let result = await _sendTemplate(apt.phone, plantilla, langCode, components, credentials);
+
+    // La plantilla nueva puede estar aún en revisión de Meta. Que el cliente se
+    // quede SIN aviso es peor que un aviso demasiado rotundo: se cae a la de
+    // siempre. Nunca al revés — si hay horario, jamás se manda la de "por
+    // confirmar".
+    if (!result?.ok && plantilla !== 'nodeflow_cita_confirmada') {
+      log.warn(`WA: ${plantilla} no disponible (${result?.error}) — se cae a nodeflow_cita_confirmada`);
+      result = await _sendTemplate(apt.phone, 'nodeflow_cita_confirmada', langCode, components, credentials);
+    }
+
     if (result?.ok) {
-      log.info(`WA confirmation sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}]`);
+      log.info(`WA confirmation sent → ${apt.id} (${apt.phone}) [${credentials ? 'business' : 'global'}] [${plantilla}]`);
       _logWaOut(apt, 'confirmacion', `Confirmación de cita: ${apt.service || 'tu cita'} — ${apt.date} ${apt.time}h`);
       return true;
     }

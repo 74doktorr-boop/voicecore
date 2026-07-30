@@ -34,7 +34,7 @@ App de Meta → **WhatsApp → Configuration → Webhook** → *Edit*:
 - *Verify and save* → debe quedar en verde (el servidor responde el `hub.challenge`).
 - **Subscribe** al campo **`messages`** (imprescindible para recibir CONFIRMAR/CANCELAR y opt-out).
 
-### 3) Dar de alta las 3 plantillas
+### 3) Dar de alta las plantillas
 Desde tu máquina (el token se pasa por entorno, no se guarda):
 
 ```powershell
@@ -42,8 +42,14 @@ $env:WA_ACCESS_TOKEN="EAAG..."; $env:WA_BUSINESS_ACCOUNT_ID="123..."
 node scripts/wa-submit-templates.js
 ```
 
-Crea `nodeflow_cita_confirmada`, `nodeflow_cita_recordatorio` y `nodeflow_resena`
-(categoría UTILITY). Meta las aprueba en ~1-24h. Estado en WhatsApp Manager → Plantillas.
+Da de alta **todas** las de `src/whatsapp/templates.js` (categoría UTILITY). Meta
+las aprueba en ~1-24h. Estado en WhatsApp Manager → Plantillas.
+
+> **Hay que repetir este paso cada vez que se añada una plantilla.** El alta
+> automática (`submitTemplates`) solo corre al conectar un número: los ya
+> conectados no reciben las nuevas solas. Es idempotente — las que ya existen dan
+> "already exists" y se ignoran, así que se puede relanzar sin miedo.
+> Para ver cuáles faltan: `node scripts/wa-check-templates.js`.
 
 ### 4) Verificar
 - **Estado de config** (sin exponer secretos): `GET /api/admin/diagnostics` con
