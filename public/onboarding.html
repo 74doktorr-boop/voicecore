@@ -623,7 +623,7 @@ function paintSvcChips(sug) {
   box.innerHTML = all.map(name => {
     const on = _svcSel.has(name);
     return '<span onclick="toggleSvc(this.textContent)" style="cursor:pointer;user-select:none;padding:7px 14px;border-radius:20px;font-size:13px;border:1px solid ' +
-      (on ? 'rgba(108,92,231,.9);background:rgba(108,92,231,.25);font-weight:600' : 'rgba(255,255,255,.18);background:rgba(255,255,255,.04);opacity:.8') + '">' + name + '</span>';
+      (on ? 'rgba(196, 245, 70,.9);background:rgba(196, 245, 70,.25);font-weight:600' : 'rgba(255,255,255,.18);background:rgba(255,255,255,.04);opacity:.8') + '">' + name + '</span>';
   }).join('');
 }
 function toggleSvc(name) {

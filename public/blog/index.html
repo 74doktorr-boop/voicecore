@@ -52,13 +52,13 @@
     .hero{padding:110px 0 48px;position:relative;z-index:2;text-align:center}
     .hero h1{font-size:clamp(30px,5vw,54px);font-weight:900;letter-spacing:-2px;margin-bottom:14px}
     .hero p{color:var(--dim);font-size:17px;max-width:540px;margin:0 auto 20px}
-    .hero-count{display:inline-block;font-size:13px;color:var(--accent-l);background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);padding:6px 14px;border-radius:100px}
+    .hero-count{display:inline-block;font-size:13px;color:var(--accent-l);background:rgba(196, 245, 70,0.1);border:1px solid rgba(196, 245, 70,0.2);padding:6px 14px;border-radius:100px}
     .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 0 80px;position:relative;z-index:2}
     @media(max-width:600px){.posts-grid{grid-template-columns:1fr}}
     .post-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:12px;transition:all .3s;color:var(--text)}
     .post-card:hover{border-color:var(--border-accent);transform:translateY(-4px);background:var(--card-hover);box-shadow:0 16px 48px rgba(0,0,0,0.4)}
     .post-card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .tag{font-size:11px;padding:3px 9px;border-radius:100px;background:rgba(108,92,231,0.15);border:1px solid rgba(196,245,70,0.22);color:var(--accent-l);font-weight:500}
+    .tag{font-size:11px;padding:3px 9px;border-radius:100px;background:rgba(196, 245, 70,0.15);border:1px solid rgba(196,245,70,0.22);color:var(--accent-l);font-weight:500}
     .post-card h2{font-size:18px;font-weight:700;letter-spacing:-0.4px;line-height:1.3}
     .post-card p{font-size:14px;color:var(--dim);line-height:1.65;flex:1}
     .read-more{font-size:13px;font-weight:600;color:var(--text)}
@@ -68,7 +68,19 @@
     .footer-links a{font-size:13px;color:var(--dim)}
     .footer-links a:hover{color:var(--text)}
     .footer-copy{font-size:12px;color:var(--muted)}
-  </style>
+  
+/* Bloque de prueba real — unificar-marca-landings.js */
+.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
+.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
+.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
+.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
+.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
+.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
+.nf-prueba-f img{width:100%;display:block;height:auto}
+/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
+   móvil. Es el fallo más repetido de estas páginas. */
+.nf-prueba-in > *{min-width:0}
+</style>
 </head>
 <body>
 <nav>
@@ -703,6 +715,21 @@
     </div>
   </div>
 </main>
+
+<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
+     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
+     demostraba que el producto existe. -->
+<section class="nf-prueba">
+  <div class="nf-prueba-in">
+    <p class="nf-prueba-k">Esto no es un montaje</p>
+    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
+    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
+    <figure class="nf-prueba-f">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
+    </figure>
+  </div>
+</section>
 <footer>
   <div class="container">
     <div class="footer-inner">

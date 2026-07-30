@@ -3,40 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Página no encontrada — NodeFlow</title>
+  <title>Esta página no existe — NodeFlow</title>
   <meta name="robots" content="noindex">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    :root {
-      --bg:#0F110C; --card:#191E14; --accent:#c4f546; --accent-l:#A8DC2A;
-      --green:#c4f546; --text:#EEF3E4; --dim:#818B76; --border:rgba(255,255,255,0.07);
-    }
-    body { font-family:'Satoshi',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; overflow:hidden; }
-    .orb { position:fixed; border-radius:50%; filter:blur(90px); pointer-events:none; z-index:0; }
-    .orb-1 { width:500px; height:500px; top:-150px; left:-100px; background:radial-gradient(circle,rgba(224,162,60,0.3) 0%,transparent 70%); }
-    .orb-2 { width:400px; height:400px; bottom:0; right:-100px; background:radial-gradient(circle,rgba(0,206,201,0.2) 0%,transparent 70%); }
-    .content { position:relative; z-index:1; max-width:480px; }
-    .code { font-size:120px; font-weight:900; letter-spacing:-6px; line-height:1; color:var(--accent-l); margin-bottom:12px; }
-    h1 { font-size:24px; font-weight:700; margin-bottom:12px; }
-    p { color:var(--dim); font-size:15px; line-height:1.7; margin-bottom:32px; }
-    .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:10px; font-size:14px; font-weight:600; background:var(--accent); color:#241803; text-decoration:none; box-shadow:0 4px 24px rgba(224,162,60,0.35); transition:all .25s; }
-    .btn:hover { background:#A8DC2A; transform:translateY(-2px); }
-    .logo { margin-bottom:48px; font-size:18px; font-weight:800; color:var(--text); text-decoration:none; }
-    .logo em { color:var(--accent-l); font-style:normal; }
-      h1 { font-family:'Clash Display',system-ui,sans-serif; font-weight:600; letter-spacing:-0.5px; }
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#A8DC2A);outline-offset:3px;border-radius:6px;}
+  /* ── 404 ──────────────────────────────────────────────────────────────────
+     Un 404 no es una disculpa: es una bifurcación. El anterior tenía un solo
+     enlace ("volver al inicio"), que en una web con 45 páginas de sector y
+     103 artículos es un callejón sin salida. Aquí se ofrecen los caminos que
+     la gente venía buscando de verdad.
+     ────────────────────────────────────────────────────────────────────── */
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0F110C; --surf:#191E14; --lime:#c4f546; --lime-d:#A8DC2A;
+    --ink:#EEF3E4; --ink-2:#B9C2AC; --ink-3:#818B76;
+    --line:rgba(226,236,214,.11); --line-2:rgba(226,236,214,.21);
+  }
+  body{
+    font-family:'Satoshi',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--ink-2);min-height:100vh;
+    display:flex;flex-direction:column;padding:28px 24px 48px;
+    -webkit-font-smoothing:antialiased;line-height:1.6;
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:5px}
+  .wrap{width:100%;max-width:760px;margin:0 auto}
+  /* Área táctil de 44 px sin agrandar la letra: crece por relleno. El enlace
+     del teléfono va EN LÍNEA dentro de un párrafo, y ahí la regla de tamaño
+     mínimo no aplica — agrandarlo rompería el renglón. */
+  .logo{display:inline-flex;align-items:center;min-height:44px;font-family:'Clash Display',system-ui,sans-serif;font-size:19px;font-weight:700;letter-spacing:-.03em;color:var(--ink)}
+  .logo b{color:var(--lime)}
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 0}
+  .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.16em;color:var(--ink-3);margin-bottom:16px}
+  h1{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.9rem,5.2vw,2.9rem);line-height:1.06;letter-spacing:-.03em;font-weight:600;color:var(--ink);text-wrap:balance;max-width:16ch}
+  .lead{margin-top:16px;font-size:1.05rem;color:var(--ink-2);max-width:52ch;text-wrap:pretty}
+  /* Los caminos. Lista con separadores, no una cuadrícula de tarjetas. */
+  .paths{margin-top:36px;border-top:1px solid var(--line)}
+  .path{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line);transition:padding-left .18s cubic-bezier(.2,.8,.3,1)}
+  .path:hover{padding-left:8px}
+  .path b{display:block;font-family:'Clash Display',system-ui,sans-serif;font-size:1.04rem;font-weight:600;color:var(--ink);letter-spacing:-.015em}
+  .path span{display:block;font-size:.92rem;color:var(--ink-3);margin-top:3px}
+  .path i{font-style:normal;color:var(--ink-3);font-size:.9rem;white-space:nowrap;transition:color .18s}
+  .path:hover i{color:var(--lime)}
+  .ayuda{margin-top:34px;padding:18px 20px;border:1px solid var(--line);border-radius:10px;background:var(--surf);font-size:.95rem;color:var(--ink-2);max-width:60ch}
+  .ayuda a{color:var(--lime);font-weight:600}
+  footer{border-top:1px solid var(--line);padding-top:22px;font-size:.82rem;color:var(--ink-3)}
+  @media (prefers-reduced-motion:reduce){.path{transition:none}.path:hover{padding-left:0}}
   </style>
 </head>
 <body>
-  <div class="content">
-    <a href="/" class="logo">Node<em>Flow</em></a>
-    <div class="code">404</div>
-    <h1>Página no encontrada</h1>
-    <p>La dirección que buscas no existe o ha sido movida.<br>Vuelve al inicio y encuentra lo que necesitas.</p>
-    <a href="/" class="btn">Volver al inicio →</a>
+
+<div class="wrap">
+  <a class="logo" href="/">node<b>flow</b></a>
+</div>
+
+<main>
+  <div class="wrap">
+    <p class="code">ERROR 404</p>
+    <h1>Esta página no existe.</h1>
+    <p class="lead">
+      O la hemos movido, o el enlace venía mal. No es culpa tuya. Esto es lo que
+      suele buscar la gente que acaba aquí:
+    </p>
+
+    <div class="paths">
+      <a class="path" href="/recepcion">
+        <span><b>NodeFlow Recepción</b><span>Qué es, cómo suena y cuánto cuesta</span></span>
+        <i>Ver producto →</i>
+      </a>
+      <a class="path" href="/clinicas">
+        <span><b>Tu sector</b><span>Clínicas, talleres, peluquerías, veterinarias y 20 más</span></span>
+        <i>Ver sectores →</i>
+      </a>
+      <a class="path" href="/blog">
+        <span><b>El blog</b><span>Lo que cuesta una llamada perdida, y qué hacer</span></span>
+        <i>Leer →</i>
+      </a>
+      <a class="path" href="/portal">
+        <span><b>Ya soy cliente</b><span>Entrar a mi panel</span></span>
+        <i>Acceder →</i>
+      </a>
+    </div>
+
+    <p class="ayuda">
+      ¿Habías llegado aquí desde un enlace nuestro? Dínoslo y lo arreglamos:
+      <a href="https://wa.me/34666351319">666 351 319</a>. Contesta una persona.
+    </p>
   </div>
+</main>
+
+<div class="wrap">
+  <footer>© 2026 NodeFlow IA S.L. · Andoain, Gipuzkoa</footer>
+</div>
+
 </body>
 </html>

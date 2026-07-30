@@ -109,7 +109,7 @@
   
 
   <style>
-    :root{--bg:#0F110C;--card:#191E14;--accent:#c4f546;--accent-l:#A8DC2A;--glow:rgba(224,162,60,0.3);--green:#c4f546;--text:#EEF3E4;--dim:#818B76;--muted:#818B76;--border:rgba(226,236,214,0.11);--border-accent:rgba(224,162,60,0.3)}
+    :root{--bg:#0F110C;--card:#191E14;--accent:#c4f546;--accent-l:#A8DC2A;--glow:rgba(196, 245, 70,0.3);--green:#c4f546;--text:#EEF3E4;--dim:#818B76;--muted:#818B76;--border:rgba(226,236,214,0.11);--border-accent:rgba(196, 245, 70,0.3)}
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{font-family:'Satoshi',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
@@ -135,7 +135,7 @@
     .bc-list a:hover{color:#fff}
     .post-header{padding:32px 0 40px;position:relative;z-index:2}
     .post-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-    .tag{font-size:11px;padding:4px 10px;border-radius:100px;background:rgba(224,162,60,0.15);border:1px solid rgba(224,162,60,0.3);color:var(--accent-l);font-weight:500}
+    .tag{font-size:11px;padding:4px 10px;border-radius:100px;background:rgba(196, 245, 70,0.15);border:1px solid rgba(196, 245, 70,0.3);color:var(--accent-l);font-weight:500}
     .post-header h1{font-size:clamp(26px,5vw,50px);font-weight:900;letter-spacing:-2px;line-height:1.1;margin-bottom:18px;color:#fff}
     .post-meta{display:flex;gap:20px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
     .post-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0}
@@ -151,10 +151,10 @@
     .post-body h2:first-of-type{border-top:none}
     .post-section{margin-bottom:8px}
     .post-divider{border:none;border-top:1px solid var(--border);margin:48px 0}
-    .cta-mid{background:rgba(224,162,60,0.08);border:1px solid rgba(224,162,60,0.2);border-radius:14px;padding:24px 28px;margin:40px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .cta-mid{background:rgba(196, 245, 70,0.08);border:1px solid rgba(196, 245, 70,0.2);border-radius:14px;padding:24px 28px;margin:40px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
     .cta-mid p{color:var(--dim);font-size:14px;flex:1;min-width:200px;margin:0}
     .cta-mid strong{color:var(--text);display:block;margin-bottom:4px;font-size:15px}
-    .cta-box{background:linear-gradient(135deg,rgba(224,162,60,0.14),rgba(0,206,201,0.07));border:1px solid var(--border-accent);border-radius:20px;padding:44px 40px;text-align:center;margin:48px 0}
+    .cta-box{background:linear-gradient(135deg,rgba(196, 245, 70,0.14),rgba(196, 245, 70,0.07));border:1px solid var(--border-accent);border-radius:20px;padding:44px 40px;text-align:center;margin:48px 0}
     .cta-box h3{font-size:24px;font-weight:900;margin-bottom:12px;letter-spacing:-0.5px}
     .cta-box p{color:var(--dim);margin-bottom:24px;font-size:15px}
     .btn-lg{padding:14px 32px;font-size:15px;border-radius:12px}
@@ -162,7 +162,7 @@
     .faq-section>h2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.8px;margin-bottom:24px;color:#fff;padding-top:8px;border-top:1px solid var(--border);scroll-margin-top:90px}
     .faq-list{display:flex;flex-direction:column;gap:8px}
     .faq-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
-    .faq-item:hover{border-color:rgba(224,162,60,0.3)}
+    .faq-item:hover{border-color:rgba(196, 245, 70,0.3)}
     .faq-q{width:100%;background:var(--card);border:none;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer;text-align:left;color:var(--text);font-size:15px;font-weight:600;font-family:inherit;transition:background .2s}
     .faq-q:hover{background:#1F251A}
     .faq-icon{color:var(--accent-l);font-size:20px;font-weight:300;flex-shrink:0;transition:transform .3s}
@@ -171,8 +171,8 @@
     .faq-a p{font-size:15px;color:var(--dim);line-height:1.7;margin:0}
     .related-links{margin:40px 0;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:14px}
     .related-grid{display:flex;flex-wrap:wrap;gap:10px}
-    .related-link{font-size:13px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;color:var(--accent-l);transition:all .2s;background:rgba(224,162,60,0.05)}
-    .related-link:hover{border-color:var(--border-accent);background:rgba(224,162,60,0.12)}
+    .related-link{font-size:13px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;color:var(--accent-l);transition:all .2s;background:rgba(196, 245, 70,0.05)}
+    .related-link:hover{border-color:var(--border-accent);background:rgba(196, 245, 70,0.12)}
     .wa-float{position:fixed;bottom:24px;right:24px;z-index:200;width:56px;height:56px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:28px;text-decoration:none;box-shadow:0 4px 24px rgba(37,211,102,0.5);transition:transform .2s}
     .wa-float:hover{transform:scale(1.1)}
     footer{border-top:1px solid var(--border);padding:32px 0}
@@ -187,7 +187,19 @@
     /* Ancho de lectura. Medido: 94 caracteres por línea en un artículo largo. El rango cómodo es 65-75; por encima, la vista pierde el salto de línea y se abandona. Es el motor de tráfico: que se lea importa. */
     .article-body,.post-body{max-width:600px;font-size:17px}
     .article-body p,.post-body p{margin-bottom:1.15em}
-  </style>
+  
+/* Bloque de prueba real — unificar-marca-landings.js */
+.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
+.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
+.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
+.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
+.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
+.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
+.nf-prueba-f img{width:100%;display:block;height:auto}
+/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
+   móvil. Es el fallo más repetido de estas páginas. */
+.nf-prueba-in > *{min-width:0}
+</style>
 </head>
 <body>
 <div class="progress-bar" id="pb"></div>
@@ -354,6 +366,21 @@
   </div>
 </article>
 
+
+<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
+     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
+     demostraba que el producto existe. -->
+<section class="nf-prueba">
+  <div class="nf-prueba-in">
+    <p class="nf-prueba-k">Esto no es un montaje</p>
+    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
+    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
+    <figure class="nf-prueba-f">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
+    </figure>
+  </div>
+</section>
 <footer>
   <div class="container-wide">
     <div class="footer-inner">

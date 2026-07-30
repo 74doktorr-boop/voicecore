@@ -32,7 +32,9 @@ const PUBLIC = path.join(__dirname, '..', 'public');
 // Carpetas que NO son landings: tienen su propia identidad o su propio ciclo.
 // hementxe es OTRA MARCA (empresa aparte): queda fuera de los barridos de
 // NodeFlow a propósito. blog/portal/admin tienen su propio ciclo.
-const EXCLUIR = new Set(['blog', 'portal', 'admin', 'hementxe', 'recepcion']);
+// El blog entra en los barridos de COLOR (su generador ya está migrado, pero
+// los 102 posts publicados llevan los colores viejos en formato rgba).
+const EXCLUIR = new Set(['portal', 'admin', 'hementxe']);
 // Las legales SÍ se unifican de marca —tienen que parecer de la misma casa—
 // pero NO llevan captura del producto: una pantalla de ventas en mitad de la
 // política de privacidad es exactamente lo que nadie quiere encontrarse.
@@ -64,6 +66,19 @@ const COLORES = [
   ['#00cec9', '#c4f546'],   // "verde" turquesa → lima
   ['#feca57', '#E8B84B'],   // amarillo → ámbar semántico (pendiente)
   ['#ff6b6b', '#ff6f5e'],   // rojo → el rojo de la marca
+];
+
+// Los mismos colores viven TAMBIÉN en formato rgb/rgba, dentro de resplandores
+// y degradados: `rgba(224,162,60,.35)` es el dorado, `rgba(0,206,201,.2)` el
+// turquesa y `rgba(108,92,231,.3)` el morado del blog. El reemplazo por
+// hexadecimal no los ve, y quedaban 166 páginas con un botón lima rodeado de
+// un halo dorado. Se sustituye la TERNA, respetando la opacidad de cada uso.
+const TERNAS = [
+  [/224,\s*162,\s*60/g,  '196, 245, 70'],  // dorado
+  [/0,\s*206,\s*201/g,   '196, 245, 70'],  // turquesa
+  [/108,\s*92,\s*231/g,  '196, 245, 70'],  // morado
+  [/162,\s*155,\s*254/g, '168, 220, 42'],  // morado claro
+  [/254,\s*202,\s*87/g,  '232, 184, 75'],  // amarillo → ámbar
 ];
 
 // ── La captura real que falta ─────────────────────────────────────────────
@@ -126,17 +141,24 @@ function migrar(html, nombre) {
     const n = (s.match(re) || []).length;
     if (n) { s = s.replace(re, a.slice(1)); tocados += n; }
   }
+  for (const [re, a] of TERNAS) {
+    const n = (s.match(re) || []).length;
+    if (n) { s = s.replace(re, a); tocados += n; }
+  }
   if (tocados) cambios.push(`paleta(${tocados})`);
 
   // 3) Fuera los orbes y el ruido: <div> vacíos con filter:blur(90px) fijados
   //    al viewport. Decoración sin significado que además compone en cada
   //    frame. Estaban en las landings Y en el blog.
   const antesOrbes = s;
+  // `\s*` antes de la llave: la primera versión no llevaba y se dejó fuera el
+  // CSS de 19 páginas que lo escribían con espacio (`.orb { … }`), dejando
+  // reglas muertas apuntando a colores que ya no existen.
   s = s.replace(/\s*<div class="orb orb-\d"><\/div>/g, '')
        .replace(/\s*<div class="noise"><\/div>/g, '')
-       .replace(/\.orb\{[^}]*\}/g, '')
-       .replace(/\.orb-\d\{[^}]*\}/g, '')
-       .replace(/\.noise\{[^}]*\}/g, '');
+       .replace(/\.orb\s*\{[^}]*\}/g, '')
+       .replace(/\.orb-\d\s*\{[^}]*\}/g, '')
+       .replace(/\.noise\s*\{[^}]*\}/g, '');
   if (s !== antesOrbes) cambios.push('orbes');
 
   // 4) Texto BLANCO sobre el acento: con el dorado se leía, con el lima no.

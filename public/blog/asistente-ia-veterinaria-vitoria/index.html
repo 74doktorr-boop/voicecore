@@ -86,13 +86,13 @@
     .breadcrumb a{color:var(--dim);text-decoration:none}.breadcrumb a:hover{color:var(--accent-l)}
     h1{font-size:clamp(26px,5vw,46px);font-weight:900;letter-spacing:-1.5px;color:var(--white);margin:18px 0 14px;line-height:1.15}
     .meta{font-size:13px;color:var(--dim);margin-bottom:28px}
-    .toc{background:rgba(224,162,60,0.07);border:1px solid rgba(224,162,60,0.2);border-radius:12px;padding:20px 24px;margin-bottom:36px}
+    .toc{background:rgba(196, 245, 70,0.07);border:1px solid rgba(196, 245, 70,0.2);border-radius:12px;padding:20px 24px;margin-bottom:36px}
     .toc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-l);margin-bottom:10px}
     .toc ol{padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
     .article-body{font-size:16px;line-height:1.75}
     .article-body h2{font-size:clamp(18px,3vw,26px);font-weight:800;color:var(--white);margin:42px 0 14px;letter-spacing:-.5px}
     .article-body p{margin-bottom:18px}
-    .cta-mid{background:linear-gradient(135deg,rgba(224,162,60,.12),rgba(242,189,94,.06));border:1px solid rgba(224,162,60,.2);border-radius:16px;padding:28px 32px;margin:40px 0;text-align:center}
+    .cta-mid{background:linear-gradient(135deg,rgba(196, 245, 70,.12),rgba(242,189,94,.06));border:1px solid rgba(196, 245, 70,.2);border-radius:16px;padding:28px 32px;margin:40px 0;text-align:center}
     .cta-mid h3{font-size:20px;font-weight:800;color:var(--white);margin-bottom:8px}
     .cta-mid p{color:var(--dim);margin-bottom:18px;font-size:15px}
     .faq-section{margin-top:48px}
@@ -120,7 +120,19 @@
     /* Ancho de lectura. Medido: 94 caracteres por línea en un artículo largo. El rango cómodo es 65-75; por encima, la vista pierde el salto de línea y se abandona. Es el motor de tráfico: que se lea importa. */
     .article-body,.post-body{max-width:600px;font-size:17px}
     .article-body p,.post-body p{margin-bottom:1.15em}
-  </style>
+  
+/* Bloque de prueba real — unificar-marca-landings.js */
+.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
+.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
+.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
+.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
+.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
+.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
+.nf-prueba-f img{width:100%;display:block;height:auto}
+/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
+   móvil. Es el fallo más repetido de estas páginas. */
+.nf-prueba-in > *{min-width:0}
+</style>
 </head>
 <body>
 <div class="progress-bar" id="pb"></div>
@@ -199,13 +211,28 @@
   <div class="container">
     <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--white)">📚 Artículos relacionados</h2>
     <div style="display:flex;flex-wrap:wrap;gap:10px;">
-      <a href="/blog/recepcionista-virtual-para-veterinarias-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">IA para veterinarias en España →</a>
-      <a href="/blog/recepcionista-ia-veterinaria-bilbao" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">IA veterinaria Bilbao →</a>
-      <a href="/blog/recepcionista-ia-veterinaria-donostia" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(224,162,60,0.06);transition:all .2s;text-decoration:none">IA veterinaria Donostia →</a>
+      <a href="/blog/recepcionista-virtual-para-veterinarias-espana" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(196, 245, 70,0.06);transition:all .2s;text-decoration:none">IA para veterinarias en España →</a>
+      <a href="/blog/recepcionista-ia-veterinaria-bilbao" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(196, 245, 70,0.06);transition:all .2s;text-decoration:none">IA veterinaria Bilbao →</a>
+      <a href="/blog/recepcionista-ia-veterinaria-donostia" style="font-size:14px;padding:10px 18px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--accent-l);background:rgba(196, 245, 70,0.06);transition:all .2s;text-decoration:none">IA veterinaria Donostia →</a>
     </div>
   </div>
 </section>
 
+
+<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
+     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
+     demostraba que el producto existe. -->
+<section class="nf-prueba">
+  <div class="nf-prueba-in">
+    <p class="nf-prueba-k">Esto no es un montaje</p>
+    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
+    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
+    <figure class="nf-prueba-f">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
+    </figure>
+  </div>
+</section>
 <footer>
   <div class="container">
     <div class="footer-inner">
