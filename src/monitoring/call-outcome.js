@@ -57,6 +57,39 @@ function esTraficoInterno(llamada, nums = {}) {
 }
 
 /**
+ * ¿Esta ORGANIZACIÓN es nuestra, y no un cliente?
+ *
+ * POR QUÉ (2026-07-30): al buscar por qué un número asignado no recibía
+ * llamadas, salió "Centro Osakin: 15 días con número y ni una entrante". Parecía
+ * un cliente con el desvío roto. Su owner_email era
+ * `74doktorr+metarevisor@gmail.com` y su config decía "Meta app review demo":
+ * era la cuenta que montamos NOSOTROS para que Meta revisara la app. Igual que
+ * `unai+googlereview@nodeflow.es` para la revisión de Google.
+ *
+ * Sin esto, la auditoría avisa cada noche de un cliente que no existe. Es
+ * exactamente el mismo fallo que `esTraficoInterno` arregla en las llamadas:
+ * juzgar el negocio con datos que hemos generado nosotros.
+ *
+ * Compara ignorando el `+etiqueta`, que es justo el truco que usamos para crear
+ * estas cuentas.
+ *
+ * @param {string} email  owner_email de la organización
+ * @param {string[]} internos  direcciones nuestras (env INTERNAL_EMAILS)
+ */
+function esCuentaInterna(email, internos = []) {
+  const base = (e) => {
+    const s = String(e || '').trim().toLowerCase();
+    const at = s.lastIndexOf('@');
+    if (at < 1) return '';
+    const local = s.slice(0, at).split('+')[0];
+    return local ? `${local}@${s.slice(at + 1)}` : '';
+  };
+  const mio = base(email);
+  if (!mio) return false;
+  return internos.map(base).filter(Boolean).includes(mio);
+}
+
+/**
  * Clasifica una llamada. PURA.
  * @returns {{tipo:'conversacion'|'colgo_en_saludo'|'fallo_sistema'|'sin_audio', motivo:string}}
  */
@@ -111,4 +144,4 @@ function resumirSalud(llamadas, nums = {}) {
   };
 }
 
-module.exports = { esTraficoInterno, clasificarLlamada, resumirSalud, SALUDO_MAX_MS };
+module.exports = { esTraficoInterno, esCuentaInterna, clasificarLlamada, resumirSalud, SALUDO_MAX_MS };

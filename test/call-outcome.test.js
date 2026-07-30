@@ -16,7 +16,7 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { esTraficoInterno, clasificarLlamada, resumirSalud } = require('../src/monitoring/call-outcome');
+const { esTraficoInterno, esCuentaInterna, clasificarLlamada, resumirSalud } = require('../src/monitoring/call-outcome');
 
 const NUESTRO = '+34843700849';     // número del pool de NodeFlow
 const PRUEBA  = '+34666351319';     // móvil de Unai
@@ -43,6 +43,43 @@ describe('esTraficoInterno', () => {
   test('sin número o sin listas, no se marca nada por si acaso', () => {
     assert.strictEqual(esTraficoInterno({}, { propios: [NUESTRO] }), false);
     assert.strictEqual(esTraficoInterno({ caller_number: CLIENTE }), false);
+  });
+});
+
+describe('esCuentaInterna — una demo nuestra no es un cliente', () => {
+  const MIOS = ['unai@nodeflow.es', '74doktorr@gmail.com'];
+
+  test('EL CASO REAL: "Centro Osakin" era la demo de la revisión de Meta', () => {
+    // owner_email = 74doktorr+metarevisor@gmail.com, y su config decía
+    // "Meta app review demo". Parecía un cliente con el desvío roto.
+    assert.strictEqual(esCuentaInterna('74doktorr+metarevisor@gmail.com', MIOS), true);
+  });
+
+  test('y "Clínica Demo NodeFlow" la de la revisión de Google', () => {
+    assert.strictEqual(esCuentaInterna('unai+googlereview@nodeflow.es', MIOS), true);
+  });
+
+  test('la cuenta base sin etiqueta también es nuestra', () => {
+    assert.strictEqual(esCuentaInterna('unai@nodeflow.es', MIOS), true);
+  });
+
+  test('un cliente DE VERDAD no se descarta', () => {
+    assert.strictEqual(esCuentaInterna('gabrieljimenez0009@gmail.com', MIOS), false);
+  });
+
+  test('el dominio cuenta: mismo local, otro dominio, es otra persona', () => {
+    assert.strictEqual(esCuentaInterna('unai@otraempresa.com', MIOS), false);
+  });
+
+  test('mayúsculas y espacios no engañan', () => {
+    assert.strictEqual(esCuentaInterna('  Unai+Demo@NodeFlow.es ', MIOS), true);
+  });
+
+  test('sin lista o sin email no descarta a nadie (fallo hacia mostrar)', () => {
+    assert.strictEqual(esCuentaInterna('unai@nodeflow.es', []), false);
+    assert.strictEqual(esCuentaInterna('', MIOS), false);
+    assert.strictEqual(esCuentaInterna(null, MIOS), false);
+    assert.strictEqual(esCuentaInterna('sinarroba', MIOS), false);
   });
 });
 

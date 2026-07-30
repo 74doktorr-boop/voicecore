@@ -258,6 +258,7 @@ async function runSystemAudit(deps = {}) {
     // bajada de tráfico, sino la ausencia TOTAL de él.
     const numerosMudos = [];
     try {
+      const { esCuentaInterna } = require('./call-outcome');
       const { data: pool } = await db.client.from('nf_phone_pool')
         .select('phone_number,org_id,status,assigned_at').eq('status', 'assigned').limit(200);
       const asignados = pool || [];
@@ -266,14 +267,21 @@ async function runSystemAudit(deps = {}) {
         const { data: ent } = await db.client.from('nf_calls')
           .select('called_number,direction').gte('started_at', desde90).limit(5000);
         const recibidas = new Set((ent || []).filter(c => c.direction !== 'outbound').map(c => c.called_number));
-        const { data: orgs } = await db.client.from('organizations').select('id,name').limit(200);
-        const nombre = Object.fromEntries((orgs || []).map(o => [o.id, o.name]));
+        const { data: orgs } = await db.client.from('organizations').select('id,name,owner_email').limit(200);
+        const porId = Object.fromEntries((orgs || []).map(o => [o.id, o]));
+        // Nuestras propias cuentas (demos de revisión de Meta/Google, pruebas)
+        // no son clientes. Sin esto la auditoría avisa cada noche de un cliente
+        // que no existe — ver esCuentaInterna.
+        const internos = String(process.env.INTERNAL_EMAILS || process.env.NOTIFY_EMAIL || '')
+          .split(',').map(s => s.trim()).filter(Boolean);
         for (const p of asignados) {
           if (recibidas.has(p.phone_number)) continue;
+          const org = porId[p.org_id];
+          if (org && esCuentaInterna(org.owner_email, internos)) continue;
           const t = p.assigned_at ? Date.parse(p.assigned_at) : NaN;
           numerosMudos.push({
             numero: p.phone_number,
-            negocio: nombre[p.org_id] || '(org desconocida)',
+            negocio: (org && org.name) || '(org desconocida)',
             diasAsignado: Number.isFinite(t) ? Math.round((Date.now() - t) / 864e5) : 0,
           });
         }
