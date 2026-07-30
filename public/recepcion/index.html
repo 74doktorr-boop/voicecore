@@ -36,10 +36,13 @@
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0a0b0d; --bg-2:#101216;
-  --ink:#f3f5f1; --ink-2:#9aa09a; --ink-3:#636963;
-  --line:rgba(240,244,240,.13); --line-2:rgba(240,244,240,.28);
-  --lime:#c4f546; --lime-d:#aee02c; --red:#ff6f5e;
+  /* Mismo sistema que la portada: grafito CÁLIDO con sesgo verde, no negro
+     azulado. El lima vuelve a significar "hecho" y entra el ámbar para
+     "pendiente/programado" — el color dice algo, no decora. */
+  --bg:#0F110C; --bg-2:#141810; --surf:#191E14; --surf-2:#1F251A;
+  --ink:#EEF3E4; --ink-2:#B9C2AC; --ink-3:#818B76;
+  --line:rgba(226,236,214,.11); --line-2:rgba(226,236,214,.21);
+  --lime:#c4f546; --lime-d:#A8DC2A; --red:#ff6f5e; --wait:#E8B84B;
   --disp:'Clash Display',system-ui,sans-serif;
   --sans:'Satoshi',system-ui,sans-serif;
   --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
@@ -297,6 +300,41 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   .mobile-cta .btn{width:100%;justify-content:center}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ── LO PUEDES REVISAR ────────────────────────────────────────────────────
+   La sección que faltaba, y es la que más venta desbloquea: dos de cada tres
+   negocios no compran porque no se fían de dejar una IA hablando con sus
+   clientes. La caja negra y el tope de gasto están CONSTRUIDOS desde julio y
+   no se contaban en ninguna parte. */
+.rev-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(26px,4vw,52px);align-items:start;margin-top:42px}
+@media(max-width:960px){.rev-grid{grid-template-columns:1fr}}
+.rev-shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf,#191E14);margin:0}
+.rev-shot img{width:100%;display:block}
+.rev-shot figcaption{padding:12px 16px;border-top:1px solid var(--line);font-size:.82rem;color:var(--ink-3);line-height:1.5}
+.rev-shot figcaption b{color:var(--ink-2)}
+.rev-cards{display:flex;flex-direction:column;gap:14px}
+.rev-card{border:1px solid var(--line);border-radius:12px;padding:20px 22px;background:var(--bg-2)}
+.rev-card h3{font-family:var(--disp);font-size:1.08rem;color:var(--ink);margin:0 0 8px;letter-spacing:-.015em}
+.rev-card p{font-size:.94rem;color:var(--ink-2);line-height:1.55;margin:0}
+.rev-card .badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:11px}
+.rev-card .badge i{width:5px;height:5px;border-radius:50%}
+.b-ok{color:var(--lime)} .b-ok i{background:var(--lime)}
+.b-wait{color:var(--wait)} .b-wait i{background:var(--wait)}
+.b-log{color:var(--ink-3)} .b-log i{background:var(--ink-3)}
+
+/* Áreas táctiles: las pestañas de sector medían 16 px de alto y el botón de
+   escuchar 32. En un móvil, con el dedo, eso se falla. Se agrandan SIN tocar
+   la tipografía — el área crece por relleno, no por tamaño de letra. */
+@media (max-width:820px){
+  .cc-tab{min-height:44px;padding-left:14px;padding-right:14px}
+  .cc-playbtn{min-height:44px;padding-left:16px;padding-right:16px}
+}
+
+/* Desbordamiento horizontal en móvil (13 px): un hijo de rejilla del hero
+   llevaba `min-width:auto` —el valor por defecto— y se negaba a encogerse por
+   debajo de su contenido: 331 px de hueco contra 365 px de hijo. No lo veías
+   mirando; se ve midiendo. `min-width:0` es la cura de siempre. */
+.hero-lower > *{min-width:0}
 </style>
 </head>
 <body>
@@ -304,7 +342,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
 <nav id="nav"><div class="wrap"><div class="nav-in">
   <a href="/" class="logo" style="display:flex;align-items:baseline;gap:9px;text-decoration:none" title="Volver a NodeFlow">node<b>flow</b><span style="font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)">/ Recepción</span></a>
   <div class="nav-links">
-    <a href="#como">Cómo funciona</a><a href="#capacidades">Qué hace</a><a href="#sectores">Sectores</a><a href="#precio">Precio</a>
+    <a href="#como">Cómo funciona</a><a href="#capacidades">Qué hace</a><a href="#revisar">Lo puedes revisar</a><a href="#sectores">Sectores</a><a href="#precio">Precio</a>
   </div>
   <div class="nav-right">
     <a href="/portal/" class="nav-login">Entrar</a>
@@ -490,6 +528,44 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     <div class="quote">
       <div class="q">Detrás de NodeFlow hay una persona, no un centro de llamadas. Trato directo y soporte humano en español siempre que lo necesites.</div>
       <div class="by"><div class="fa">U</div><div><div class="fn">Unai · fundador de NodeFlow</div><div class="fr">Euskal Herria · soporte humano en español</div></div></div>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- 05b LO PUEDES REVISAR — la objeción real, contestada con lo que existe -->
+<section class="section" id="revisar"><div class="wrap">
+  <div class="sec-kicker"><b>05b</b> Lo puedes revisar</div>
+  <h2 class="h2">No te pedimos que te fíes.<br>Te pedimos que lo revises.</h2>
+  <p class="price-note" style="max-width:56ch">
+    Dejar que una máquina hable con tus clientes da respeto, y hace bien. Por eso
+    lo construimos al revés que casi todo el mundo: <strong>primero el freno,
+    después el motor</strong>.
+  </p>
+
+  <div class="rev-grid">
+    <figure class="rev-shot">
+      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
+           alt="Pantalla de llamadas de NodeFlow: cada llamada con su duración, su resultado (reserva, info, abandonada), la cita reservada y el contacto.">
+      <figcaption><b>Tu panel, tal cual es.</b> Cada llamada con su resultado, su duración, su transcripción y qué decidió el asistente en cada momento.</figcaption>
+    </figure>
+
+    <div class="rev-cards">
+      <div class="rev-card">
+        <span class="badge b-ok"><i></i>Queda registrado</span>
+        <h3>Cada decisión, con su porqué</h3>
+        <p>Por qué ofreció esa hora y no otra, qué apuntó en la ficha y cuándo te avisó a ti. Lo abres cuando quieras, sin pedírnoslo y sin esperar a nadie.</p>
+      </div>
+      <div class="rev-card">
+        <span class="badge b-wait"><i></i>Se frena</span>
+        <h3>Un tope de gasto que no se salta</h3>
+        <p>Tú pones el máximo del mes. Y si en algún momento no puede comprobar cuánto lleva gastado, <strong>no llama</strong>: prefiere pararse a arriesgarse con tu dinero.</p>
+      </div>
+      <div class="rev-card">
+        <span class="badge b-log"><i></i>Siempre lo dice</span>
+        <h3>Avisa de que es una IA</h3>
+        <p>Al principio de cada llamada, sin que haya que preguntárselo. Lo pide el Reglamento europeo de IA y, sobre todo, es lo que haríamos igual si no lo pidiera.</p>
+      </div>
     </div>
   </div>
 </div></section>
