@@ -272,29 +272,56 @@ commit explica el fallo concreto que corrige y por qué importaba.
 
 ### Pendiente de Unai (no es código)
 
-1. **Aplicar `db/migration-appointment-staff.sql`** en Supabase. Hasta entonces
-   la reserva por profesional guarda la cita sin profesional (y lo grita en los
-   logs).
-2. **`TELNYX_PUBLIC_KEY`** en EasyPanel → convierte la verificación de firma en
-   fail-closed. Hoy se ve como `UNVERIFIED` en `/health`.
-3. **Confirmar `JWT_SECRET`** en EasyPanel (local está). Ya no hay fallback.
-4. **`STRIPE_OVERAGE_METER_EVENT` y `STRIPE_MSG_METER_EVENT`**: sin ellas el
-   excedente se cuenta y **no se cobra** — es el único agujero que se vuelve
-   negativo con un cliente legítimo.
-5. **Datos del Registro Mercantil** en el aviso legal (tomo, folio, hoja,
-   inscripción): lo exige el art. 10.1 de la LSSI y no puedo inventarlos.
-6. Revisar el **default de tier a `basico`**: hoy toda org sin tier explícito
-   recibe ~64€/mes de add-ons dentro de un plan de 49€.
+Los seis puntos originales (migración de `staff`, `TELNYX_PUBLIC_KEY`,
+`JWT_SECRET`, los dos meters de Stripe, Registro Mercantil, default de tier)
+**están hechos**, más `TEST_PHONE_NUMBERS` e `INTERNAL_EMAILS` del 30/07.
+
+Queda uno solo, y son cinco minutos: **watchdog externo** (UptimeRobot contra
+`/health`). Hoy el servicio se vigila a sí mismo, que es como no vigilarlo.
+
+### Cerrado después de escribir esto (30/07)
+
+| Qué | Por qué importaba |
+|---|---|
+| V3 reconexión de STT en vuelo · V5 formato de audio del failover | La IA se quedaba sorda en silencio |
+| Festivos, vacaciones y buffers entre citas | `business-calendar.js` |
+| **"Llamada rota" no era una sola cosa** | La auditoría nocturna avisaba de "10 rotas de 54": 8 eran pruebas de madrugada y 2 clientes que colgaron al oír el saludo. Cero averías. `call-outcome.js` separa fallo del sistema de cuelgue del cliente, y descuenta el tráfico interno |
+| **Número asignado que no recibe NUNCA una llamada** | El detector de silencio exige ≥3 llamadas previas: un número que nunca recibió ninguna le era invisible. Aviso a los 15 días, crítico al mes |
+| **Cuentas internas fuera del recuento** | Las demos de revisión de Meta/Google parecían clientes. Se excluyen **y se dicen**: excluirlas en silencio taparía a un cliente real con el `owner_email` mal puesto |
+| **Control de gasto en llamadas ENTRANTES** | `checkUsageLimits` vivía solo en `/api/calls/outbound`. El producto no pasaba por ningún control |
+| **Desglose del primer audio** | `llmFirstTokenMs` / `llmFirstFragmentMs` / `firstFragmentTtsMs`, con percentiles |
+
+**Sobre el tope de gasto — se contradice lo que decía este documento.** Aquí se
+recomendaba bajar `hardCapMultiplier` de 3 a 2. Al ir a hacerlo se vio que era la
+respuesta equivocada: cortarle las llamadas a quien consume 1.000 minutos es
+autolesión **si se le está cobrando** el overage. Lo que decide no es cuántos
+minutos son, sino **quién los paga**:
+
+- Con suscripción → los extra se facturan. **No se corta nunca**, ni llegando al
+  tope. Su contador se resetea con el webhook `invoice.paid`; si ese webhook se
+  pierde una vez, `monthly_minutes_used` no vuelve a bajar y colgaríamos las
+  llamadas de un cliente al día por un fallo nuestro. Se avisa y decide un humano.
+- Sin suscripción → nadie paga esos minutos. Tope estrecho (incluidos + 20%).
+
+Hoy en producción **ninguna org tiene suscripción**, así que el segundo caso no
+es el raro: es el único que hay.
 
 ### Sigue abierto (no bloqueante para vender)
 
-- **Reconexión de STT en vuelo** (V3): si Deepgram cierra el socket a media
-  llamada, la IA se queda sorda en silencio. Hay que reabrir la conexión.
-- **Failover de STT roto en la práctica** (V5): el respaldo de Google configura
-  LINEAR16 sobre bytes A-law y se traga los errores.
 - **TTS no es streaming**: `streamSynthesize` existe en cuatro proveedores y no
-  lo llama nadie; LLM y TTS están serializados (causa de los huecos).
+  lo llama nadie. Ya está instrumentado (arriba); **falta el dato de llamadas
+  reales** para decidir si el que manda es el TTS o el LLM. Sin ese dato, tocarlo
+  sería optimizar a ciegas.
 - **Agenda en memoria**: bloquea el multi-réplica. Necesita Redis primero.
-- **Festivos, vacaciones y buffers entre citas**: no existen.
 - **Cookies de terceros** (Fontshare, Google Fonts) no declaradas.
 - **Watchdog externo de uptime**: el servicio sigue monitorizándose a sí mismo.
+- **Hueco de 12 s en `worstFragmentGapMs`**: un solo caso, y los comentarios del
+  código dicen que en julio se arregló un falso positivo idéntico. Sin reproducir.
+
+### Lo que ninguna de estas correcciones arregla
+
+Verificado contra la base de datos el 30/07: las cuatro organizaciones activas
+son cuentas de Unai, ninguna tiene suscripción de Stripe, y en 30 días entraron
+**4 llamadas de números desconocidos**. El sistema no está roto: está vacío. Todo
+lo anterior protege algo que hoy atiende unas 4 llamadas reales al mes, y el
+cuello de botella es de activación y venta, no técnico.
