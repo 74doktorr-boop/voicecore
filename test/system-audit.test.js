@@ -106,23 +106,32 @@ describe('buildSystemAudit — lo que percibe el cliente', () => {
 });
 
 describe('buildSystemAudit — números asignados que no reciben nada', () => {
-  test('EL CASO OSAKIN: número asignado, cero entrantes → CRÍTICO', () => {
+  test('EL CASO OSAKIN: 15 días con número y ni una llamada → aviso', () => {
     // El detector de silencio de client-health exige ≥3 llamadas previas para
     // avisar de que han parado. Un número que NUNCA recibió ninguna le es
     // invisible — y es el caso peor: el cliente cree tener el servicio.
     const r = buildSystemAudit({
       llamadas: sanas(5),
-      numerosMudos: [{ numero: '+34843700832', negocio: 'Centro Osakin' }],
+      numerosMudos: [{ numero: '+34843700832', negocio: 'Centro Osakin', diasAsignado: 15 }],
+    });
+    assert.strictEqual(r.severidad, 'aviso', 'un alta que va lenta no es una avería');
+    const l = r.lineas.find(x => /NUNCA una llamada/.test(x.titulo));
+    assert.match(l.titulo, /Centro Osakin/);
+    assert.match(l.detalle, /15 días/);
+    assert.match(l.detalle, /no han desviado su línea/);
+  });
+
+  test('pasado el mes sí es CRÍTICO: lleva un mes creyendo que tiene servicio', () => {
+    const r = buildSystemAudit({
+      llamadas: sanas(5),
+      numerosMudos: [{ numero: '+34843700832', negocio: 'Centro Osakin', diasAsignado: 31 }],
     });
     assert.strictEqual(r.severidad, 'critico');
-    const l = r.lineas.find(x => /no recibe llamadas/.test(x.titulo));
-    assert.match(l.titulo, /Centro Osakin/);
-    assert.match(l.detalle, /no han desviado su línea/);
   });
 
   test('sin números mudos no dice nada', () => {
     const r = buildSystemAudit({ llamadas: sanas(5), numerosMudos: [] });
-    assert.ok(!r.lineas.some(x => /no recibe llamadas/.test(x.titulo)));
+    assert.ok(!r.lineas.some(x => /NUNCA una llamada/.test(x.titulo)));
   });
 });
 

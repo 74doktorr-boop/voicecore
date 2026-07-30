@@ -26,6 +26,7 @@ const log = new Logger('AUDIT');
 const OBJETIVO_MS = 700;        // charter: <700ms hasta contestar
 const P95_ALERTA_MS = 2000;     // por encima, el cliente cree que se ha cortado
 const ROTAS_ALERTA = 0.25;      // 1 de cada 4 llamadas rotas ya es un problema
+const MUDO_CRITICO_DIAS = 30;   // un mes con número y sin una llamada ya no es "el alta va lenta"
 
 function _pct(valores, p) {
   const xs = (valores || []).filter(Number.isFinite).sort((a, b) => a - b);
@@ -140,9 +141,13 @@ function buildSystemAudit(d = {}) {
   // para él — y es el caso peor: el cliente pagó, se le dio número, y no ha
   // desviado su línea. Se descubrió con Centro Osakin: número asignado, CERO
   // entrantes en 90 días, y nadie se había enterado.
+  // Sube a crítico al mes: por debajo de eso es un alta que va lenta, que pasa;
+  // por encima es un cliente que lleva un mes creyendo que tiene el servicio.
   for (const n of (d.numerosMudos || [])) {
-    marca('critico', `${n.negocio}: su número no recibe llamadas`,
-      `${n.numero} lleva asignado y sin una sola entrante. O no han desviado su línea, o el desvío está roto — en ambos casos el cliente cree tener el servicio y no lo tiene.`);
+    const dias = Number(n.diasAsignado) || 0;
+    marca(dias >= MUDO_CRITICO_DIAS ? 'critico' : 'aviso',
+      `${n.negocio}: su número no ha recibido NUNCA una llamada`,
+      `${n.numero} lleva ${dias} días asignado y sin una sola entrante. O no han desviado su línea, o el desvío está roto: el cliente cree tener el servicio y no lo tiene. Se paga el número igual.`);
   }
 
   // ── 6. Qué versión corre y con qué protecciones ───────────────────────────
@@ -254,7 +259,7 @@ async function runSystemAudit(deps = {}) {
     const numerosMudos = [];
     try {
       const { data: pool } = await db.client.from('nf_phone_pool')
-        .select('phone_number,org_id,status').eq('status', 'assigned').limit(200);
+        .select('phone_number,org_id,status,assigned_at').eq('status', 'assigned').limit(200);
       const asignados = pool || [];
       if (asignados.length) {
         const desde90 = new Date(Date.now() - 90 * 864e5).toISOString();
@@ -264,9 +269,13 @@ async function runSystemAudit(deps = {}) {
         const { data: orgs } = await db.client.from('organizations').select('id,name').limit(200);
         const nombre = Object.fromEntries((orgs || []).map(o => [o.id, o.name]));
         for (const p of asignados) {
-          if (!recibidas.has(p.phone_number)) {
-            numerosMudos.push({ numero: p.phone_number, negocio: nombre[p.org_id] || '(org desconocida)' });
-          }
+          if (recibidas.has(p.phone_number)) continue;
+          const t = p.assigned_at ? Date.parse(p.assigned_at) : NaN;
+          numerosMudos.push({
+            numero: p.phone_number,
+            negocio: nombre[p.org_id] || '(org desconocida)',
+            diasAsignado: Number.isFinite(t) ? Math.round((Date.now() - t) / 864e5) : 0,
+          });
         }
       }
     } catch (_) {}
