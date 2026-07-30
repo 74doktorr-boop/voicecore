@@ -413,8 +413,13 @@ function setupBillingRoutes(app, config) {
                       },
                     }).eq('id', org.id);
 
-                    // Enviar email de activación con guía de desvío (automático)
-                    sendActivacion(registro, assignedNumber)
+                    // Enviar email de activación con guía de desvío (automático).
+                    // horarioConfigurado: false SIEMPRE en el alta — la semilla
+                    // de assistant_config (arriba) escribe nombre, voz y saludo,
+                    // nunca el horario. Decir "ya está configurado y listo"
+                    // mientras el asistente reserva contra un calendario por
+                    // defecto sería una promesa falsa en el primer email.
+                    sendActivacion(registro, assignedNumber, { horarioConfigurado: false })
                       .catch(e => log.warn(`Activation email failed: ${e.message}`));
 
                     log.info(`Auto-asignado ${assignedNumber} a ${org.id} (${registro.negocio})`);

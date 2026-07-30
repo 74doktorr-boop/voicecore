@@ -464,7 +464,13 @@ function setupAdminRoutes(app, config, assistantManager) {
         plan:     org.plan,
         sector:   (org.assistant_config && org.assistant_config.sector) || '',
       };
-      await sendActivacion(registro, numeroNodeflow);
+      // Aquí SÍ se puede saber: la activación manual puede llegar semanas
+      // después del alta, con el dueño habiendo puesto ya su horario. Se mira
+      // en vez de suponer — si lo tiene, el email no le pide algo que ya hizo.
+      const { tieneHorarioConfigurado } = require('../assistants/prompt-generator');
+      await sendActivacion(registro, numeroNodeflow, {
+        horarioConfigurado: tieneHorarioConfigurado(org.assistant_config && org.assistant_config.schedule),
+      });
 
       log.info(`Cliente activado: ${org.name} → ${numeroNodeflow}`);
       recordAudit({ action: 'client_activate', targetType: 'org', targetId: org.id, ip: ipOf(req), details: { org: org.name, numero: numeroNodeflow } });

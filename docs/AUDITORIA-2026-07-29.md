@@ -312,8 +312,13 @@ es el raro: es el único que hay.
   lo llama nadie. Ya está instrumentado (arriba); **falta el dato de llamadas
   reales** para decidir si el que manda es el TTS o el LLM. Sin ese dato, tocarlo
   sería optimizar a ciegas.
-- **Agenda en memoria**: bloquea el multi-réplica. Necesita Redis primero.
+- **Agenda en memoria**: bloquea el multi-réplica. Necesita Redis primero. No
+  urge: con 4 llamadas reales al mes no hay nada que repartir entre réplicas.
 - **Watchdog externo de uptime**: el servicio sigue monitorizándose a sí mismo.
+- **La confirmación por WhatsApp sigue diciendo la hora como definitiva** aunque
+  el negocio no haya configurado su horario. Va en plantilla aprobada por Meta
+  (`nodeflow_cita_confirmada`) y cambiar el texto exige plantilla nueva y
+  revisión. La voz sí avisa de que la hora está por confirmar; el WhatsApp no.
 - **Las tipografías siguen viniendo de un tercero.** Ya está declarado (apartado
   09 de privacidad), pero la conexión sigue existiendo: cada visita manda la IP a
   `api.fontshare.com`. **No se puede arreglar auto-alojándolas**: la licencia ITF

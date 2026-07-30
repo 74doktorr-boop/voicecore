@@ -603,8 +603,20 @@ async function sendWelcomePortalEmail(registro, magicToken) {
 // sendActivacion — Email enviado por Unai cuando el asistente está listo
 // Incluye el número asignado + guía de desvío por operador
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendActivacion(registro, numeroNodeflow) {
-  if (!registro?.email) { log.warn('sendActivacion: email nulo'); return false; }
+/**
+ * @param {object} registro
+ * @param {string} numeroNodeflow
+ * @param {{horarioConfigurado?: boolean}} [opts]
+ *   horarioConfigurado — por defecto FALSE, que es la realidad del alta: la
+ *   semilla de `assistant_config` escribe nombre, voz y saludo, nunca el
+ *   horario. Este email decía "ya está configurado y listo" cuando aún no se le
+ *   ha preguntado al negocio a qué hora abre, y entretanto el asistente reserva
+ *   citas contra un horario por defecto inventado. Se pide el dato aquí, que es
+ *   el único momento en que el dueño está mirando.
+ */
+function buildActivacionEmail(registro, numeroNodeflow, opts = {}) {
+  const horarioConfigurado = opts.horarioConfigurado === true;
+  const panelUrl = `${process.env.PUBLIC_URL || 'https://nodeflow.es'}/portal`;
   const nombre   = (registro.contacto || 'Cliente').split(' ')[0];
   const numLimpio = numeroNodeflow.replace(/\s/g, '');
   const numMostrar = numeroNodeflow;
@@ -634,9 +646,23 @@ async function sendActivacion(registro, numeroNodeflow) {
 
     <p style="font-size:16px;font-weight:700;color:#0f0f23;margin:0 0 8px;">Hola ${esc(nombre)},</p>
     <p style="font-size:15px;color:#334155;margin:0 0 24px;line-height:1.7;">
-      Tu asistente de voz para <strong>${esc(registro.negocio)}</strong> ya está configurado y listo.
-      Solo falta un paso: activar el desvío de llamadas.
+      ${horarioConfigurado
+        ? `Tu asistente de voz para <strong>${esc(registro.negocio)}</strong> ya está configurado y listo. Solo falta un paso: activar el desvío de llamadas.`
+        : `Tu asistente de voz para <strong>${esc(registro.negocio)}</strong> ya tiene número. Faltan dos cosas para que atienda de verdad: <strong>decirnos tu horario</strong> y activar el desvío.`}
     </p>
+
+    ${horarioConfigurado ? '' : `
+    <!-- HORARIO SIN CONFIRMAR -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;margin:0 0 28px;">
+      <tr><td style="padding:18px 22px;">
+        <div style="font-size:11px;font-weight:800;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Antes de nada</div>
+        <div style="font-size:15px;font-weight:700;color:#0f0f23;margin-bottom:6px;">Dinos a qué hora abres</div>
+        <div style="font-size:13px;color:#78350f;line-height:1.6;margin-bottom:14px;">
+          Todavía no nos lo has dicho, así que tu asistente no puede confirmar horas: cuando alguien pida cita, la coge y avisa de que se la confirmáis vosotros. En cuanto pongas tu horario, cerrará las citas él solo y dejaréis de tener que llamar para confirmar.
+        </div>
+        <a href="${panelUrl}" style="display:block;background:#f59e0b;color:#fff;text-decoration:none;text-align:center;font-size:15px;font-weight:700;padding:13px;border-radius:10px;">Poner mi horario →</a>
+      </td></tr>
+    </table>`}
 
     <!-- Número asignado -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf5ff;border-radius:12px;margin:0 0 28px;">
@@ -700,10 +726,11 @@ async function sendActivacion(registro, numeroNodeflow) {
     <p style="font-size:14px;font-weight:700;color:#0f0f23;margin:0 0 12px;">Una vez activo el desvío:</p>
     <table width="100%" cellpadding="0" cellspacing="0">
       ${[
-        ['1', 'Llama a tu propio número', 'Comprueba que el asistente coge la llamada y suena como esperabas.'],
-        ['2', 'Dinos que funciona', 'Mándanos un WhatsApp confirmando que todo va bien.'],
-        ['3', 'Listo', 'Tu asistente ya está atendiendo llamadas de clientes reales.'],
-      ].map(([n, t, d]) => `
+        ...(horarioConfigurado ? [] : [['1', 'Pon tu horario en el panel', 'Hasta que lo hagas, el asistente coge las citas pero no puede confirmar la hora.']]),
+        ['x', 'Llama a tu propio número', 'Comprueba que el asistente coge la llamada y suena como esperabas.'],
+        ['x', 'Dinos que funciona', 'Mándanos un WhatsApp confirmando que todo va bien.'],
+        ['x', 'Listo', 'Tu asistente ya está atendiendo llamadas de clientes reales.'],
+      ].map(([, t, d], i) => [String(i + 1), t, d]).map(([n, t, d]) => `
       <tr>
         <td style="vertical-align:top;padding:0 12px 14px 0;width:32px;">
           <div style="width:28px;height:28px;border-radius:50%;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px;">${n}</div>
@@ -741,8 +768,16 @@ async function sendActivacion(registro, numeroNodeflow) {
 </body></html>`;
 
   const text = [
-    `✅ Tu asistente NodeFlow está listo, ${nombre}.`,
+    horarioConfigurado
+      ? `✅ Tu asistente NodeFlow está listo, ${nombre}.`
+      : `Tu asistente NodeFlow ya tiene número, ${nombre}. Faltan dos cosas.`,
     ``,
+    ...(horarioConfigurado ? [] : [
+      `1) DINOS TU HORARIO en ${panelUrl}`,
+      `   Hasta que lo hagas, el asistente coge las citas pero avisa de que la`,
+      `   hora se la confirmáis vosotros — no nos has dicho cuándo abrís.`,
+      ``,
+    ]),
     `Tu número NodeFlow: ${numMostrar}`,
     ``,
     `CÓMO ACTIVAR EL DESVÍO (desde el móvil de tu negocio):`,
@@ -758,6 +793,23 @@ async function sendActivacion(registro, numeroNodeflow) {
     `Cualquier duda: WhatsApp +34 666 351 319`,
   ].join('\n');
 
+  return { subject, html, text };
+}
+
+/**
+ * @param {object} registro
+ * @param {string} numeroNodeflow
+ * @param {{horarioConfigurado?: boolean}} [opts]
+ *   horarioConfigurado — por defecto FALSE, que es la realidad del alta: la
+ *   semilla de `assistant_config` (routes-billing) escribe nombre, voz y saludo,
+ *   nunca el horario. Este email decía "ya está configurado y listo" cuando aún
+ *   no se le ha preguntado al negocio a qué hora abre, y entretanto el asistente
+ *   reserva citas contra un horario por defecto que el dueño no ha visto nunca.
+ *   Se le pide aquí, que es el único momento en que está mirando.
+ */
+async function sendActivacion(registro, numeroNodeflow, opts = {}) {
+  if (!registro?.email) { log.warn('sendActivacion: email nulo'); return false; }
+  const { subject, html, text } = buildActivacionEmail(registro, numeroNodeflow, opts);
   return sendEmail({ to: registro.email, subject, html, text });
 }
 
@@ -873,6 +925,7 @@ module.exports = {
   sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
   sendAcknowledgement,
   sendActivacion,
+  buildActivacionEmail,
   notifyNuevoLead,
   sendWelcomePortalEmail,
   sendMagicLinkEmail,

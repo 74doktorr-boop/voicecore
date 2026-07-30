@@ -7,8 +7,20 @@ const { buildCallContext } = require('../lifecycle/call-memory');
 
 const DAY_NAMES = { mon:'lunes', tue:'martes', wed:'miércoles', thu:'jueves', fri:'viernes', sat:'sábado', sun:'domingo' };
 
+/** ¿El negocio nos ha dicho de verdad a qué hora abre? PURA.
+ *
+ *  No es una comprobación cosmética. En el alta (routes-billing) se siembra
+ *  `assistant_config` con nombre, voz y saludo — SIN horario. El horario por
+ *  defecto se escribe solo en el scheduler EN MEMORIA, que se pierde al
+ *  reiniciar y se rehidrata desde `assistant_config`, que no lo tiene. Así que
+ *  todo cliente recién dado de alta cae en DEFAULT_SCHEDULE: no es un caso raro,
+ *  es el camino normal. */
+function tieneHorarioConfigurado(schedule) {
+  return !!schedule && typeof schedule === 'object' && Object.keys(schedule).length > 0;
+}
+
 function formatSchedule(schedule) {
-  if (!schedule || typeof schedule !== 'object') return 'Consultar horario';
+  if (!tieneHorarioConfigurado(schedule)) return 'Consultar horario';
   const lines = [];
   for (const [day, slot] of Object.entries(schedule)) {
     if (!slot) {
@@ -250,6 +262,22 @@ function generatePrompt(config, orgName) {
   const assistantName = config.assistantName || 'Laura';
   const language      = config.language || 'es';
   const scheduleStr   = formatSchedule(config.schedule);
+  // Sin horario del negocio, la herramienta de reservas NO se queda sin
+  // respuesta: cae a un horario por defecto (L-J 9-14 y 15:30-19:30, V 9-14) y
+  // ofrece huecos dentro de él. O sea que la asistente tiene prohibido decir el
+  // horario —y no lo dice— pero sí confirmaría una hora inventada. El cliente
+  // colgaría con una cita para un momento en que el negocio puede estar cerrado.
+  //
+  // No se corta la reserva (perder al cliente es peor y el negocio se queda sin
+  // el aviso): se coge la cita y se dice la verdad, que la hora está por
+  // confirmar. Ver org-readiness.js, que además se lo grita al dueño.
+  const horarioSinConfirmar = !tieneHorarioConfigurado(config.schedule) ? `
+⚠️ ESTE NEGOCIO AÚN NO NOS HA CONFIRMADO SU HORARIO (regla que manda sobre cualquier hueco que te dé la herramienta):
+- Las horas que te ofrezca check_availability son una ESTIMACIÓN, no el horario real. Puedes usarlas para proponer, JAMÁS para afirmar.
+- NUNCA digas ni des a entender a qué hora abre o cierra, ni qué días. No lo sabes.
+- Puedes reservar con normalidad, pero al cerrar la cita di SIEMPRE, con naturalidad, que la hora queda pendiente de confirmar: «Se la dejo anotada para el martes a las diez y le confirmamos desde el centro, ¿de acuerdo?».
+- Si el cliente insiste en saber el horario: «No lo tengo aquí delante; se lo confirman al llamarle». Nunca te lo inventes ni leas el hueco como si fuera el horario.
+` : '';
   const services      = config.services || '';
   const serviceListStr = formatServiceList(config.serviceList);
   const extraInfo     = config.extraInfo || '';
@@ -295,7 +323,7 @@ CÓMO GESTIONAR LA CONVERSACIÓN:
 - NUNCA pidas algo que ya te hayan dicho.
 ${sectorNorms}
 
-HORARIO: ${scheduleStr}
+HORARIO: ${scheduleStr}${horarioSinConfirmar}
 ${address ? `DIRECCIÓN Y CÓMO LLEGAR (dato EXACTO — úsalo tal cual si preguntan dónde estáis; no añadas calles, números ni aparcamiento que no figuren aquí): ${address}` : ''}
 ${serviceListStr || (services ? `SERVICIOS: ${services}` : '')}
 ${sectorStr}${staffBlock}
@@ -383,4 +411,4 @@ async function buildMemoryBlock(contactId, orgId) {
   return lines.join('\n');
 }
 
-module.exports = { generatePrompt, buildMemoryBlock, formatServiceList, formatLanguage, CORE_GUARDRAILS };
+module.exports = { generatePrompt, buildMemoryBlock, formatServiceList, formatLanguage, tieneHorarioConfigurado, CORE_GUARDRAILS };
