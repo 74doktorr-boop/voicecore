@@ -629,6 +629,18 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // fail-open en silencio desde 2026-07-16 y nadie lo sabía (hallazgo S3).
     let telnyxSignature = 'unknown';
     try { telnyxSignature = require('../utils/telnyx-signature').telnyxSignatureStatus().enforced ? 'enforced' : 'UNVERIFIED'; } catch (_) {}
+    // Config que decide si se COBRA. Mismo criterio que telnyxSignature: si algo
+    // puede fallar en silencio y cuesta dinero, hay que poder VERLO desde fuera.
+    //
+    // Sin los dos medidores de Stripe, el excedente de minutos y de mensajes se
+    // cuenta y no se cobra — el único agujero que se vuelve negativo con un
+    // cliente legítimo. Hoy la única forma de saberlo era esperar a la auditoría
+    // de las 07:30, y en local sale como ausente aunque en producción esté.
+    //
+    // Se publica PRESENCIA, nunca el valor.
+    const cobroConfigurado = ['STRIPE_OVERAGE_METER_EVENT', 'STRIPE_MSG_METER_EVENT', 'ENCRYPTION_KEY']
+      .filter(k => !process.env[k]);
+
     res.json({
       status,
       version: '2.0.0',
@@ -644,6 +656,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       redis,
       leader,
       telnyxSignature,
+      billingConfig: cobroConfigurado.length ? `FALTA: ${cobroConfigurado.join(', ')}` : 'ok',
     });
   });
 
