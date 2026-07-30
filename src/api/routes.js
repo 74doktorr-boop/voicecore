@@ -282,10 +282,13 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     // explícito del stream. Prioridad: pool (org del cliente → su asistente
     // del portal) → asistentes de archivo → default.
     let assistantId = req.query.assistantId || null;
+    // Se guarda aparte del assistantId: este último puede ser un asistente de
+    // fichero, y el control de gasto solo aplica a organizaciones de verdad.
+    let orgIdFacturable = null;
     if (!assistantId && calledNumber !== 'unknown') {
       try {
         const orgId = await pipeline._resolveOrgId(calledNumber);
-        if (orgId) assistantId = orgId;
+        if (orgId) { assistantId = orgId; orgIdFacturable = orgId; }
       } catch (e) { log.warn(`[Telnyx] pool resolve fallo: ${e.message}`); }
       if (!assistantId) {
         const byNumber = assistantManager.getByPhoneNumber(calledNumber);
@@ -314,6 +317,61 @@ function setupRoutes(app, pipeline, assistantManager, config) {
         return res.type('text/xml').send(generateBusyTeXML(asis?.language));
       }
     } catch (e) { log.warn(`[Telnyx] check de cupo falló (se atiende igual): ${e.message}`); }
+
+    // Tope de GASTO. Hasta hoy `checkUsageLimits` solo se aplicaba a
+    // /api/calls/outbound: las entrantes —el producto— no pasaban por ningún
+    // control, y cada minuto cuesta dinero real (Telnyx + STT + LLM + TTS).
+    //
+    // No se corta por consumir mucho, sino por consumir SIN QUE NADIE LO PAGUE
+    // (ver voice-spend-guard.js). Un cliente con suscripción activa que se pasa
+    // de minutos genera ingreso: cortarle sería autolesión.
+    //
+    // Fail-open a propósito: si esta comprobación falla, se atiende la llamada.
+    // Perder la llamada de un cliente por un fallo NUESTRO de consulta es peor
+    // que un minuto de más.
+    try {
+      const { voiceSpendStatus, debeRechazarLlamada } = require('../billing/voice-spend-guard');
+      const { PLAN_LIMITS } = require('../auth/middleware');
+      const dbf = require('../db/database').getDatabase();
+      const { data: orgRow } = (orgIdFacturable && dbf.enabled)
+        ? await dbf.client.from('organizations')
+            .select('id,name,plan,monthly_minutes_used,stripe_subscription_id')
+            .eq('id', orgIdFacturable).maybeSingle()
+        : { data: null };
+      if (orgRow) {
+        const estado = voiceSpendStatus(orgRow, PLAN_LIMITS[orgRow.plan] || PLAN_LIMITS.negocio);
+        const corta = debeRechazarLlamada(estado);
+
+        // El aviso va FUERA del corte a propósito: a un cliente que paga no se
+        // le cuelga nunca, pero llegar al tope tiene que verse igual. Si el
+        // aviso viviera dentro del `if`, el caso que más dinero mueve —el que
+        // paga y dispara— sería justo el único mudo.
+        if (estado.nivel === 'tope') {
+          log.warn(`[Telnyx] ${calledNumber} en tope de gasto (${estado.motivo}) — ${corta ? 'se avisa por voz y se cuelga' : 'SE ATIENDE IGUAL (paga)'}`);
+          try {
+            require('../monitoring/error-tracker').capture(
+              new Error(`Tope de gasto de voz alcanzado: ${estado.motivo}`),
+              'voice_spend_cap_reached',
+              {
+                negocio: orgRow.name || assistantId,
+                minutos: `${Math.round(estado.usados)} usados / ${estado.incluidos} incluidos / tope ${estado.tope}`,
+                loPaga: estado.loPaga ? 'sí — suscripción activa' : 'NO — sin suscripción de Stripe',
+                llamada: corta ? 'RECHAZADA' : 'atendida igualmente',
+                accion: corta
+                  ? 'ESTE NEGOCIO ESTÁ PERDIENDO LLAMADAS: o se le da de alta el cobro, o se le sube el cupo'
+                  : 'cliente al día: mirar si es un bucle o si su contador no se reseteó (webhook invoice.paid perdido)',
+              },
+            );
+          } catch (_) {}
+        }
+
+        if (corta) {
+          const asis2 = assistantId ? assistantManager.get(assistantId) : null;
+          const { generateUnavailableTeXML } = require('../telephony/telnyx-handler');
+          return res.type('text/xml').send(generateUnavailableTeXML(asis2?.language));
+        }
+      }
+    } catch (e) { log.warn(`[Telnyx] check de gasto falló (se atiende igual): ${e.message}`); }
 
     res.type('text/xml').send(generateTeXML(wsUrl, assistantId));
   });

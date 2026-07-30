@@ -11,8 +11,41 @@
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
-const { generateBusyTeXML, generateTeXML } = require('../src/telephony/telnyx-handler');
+const { generateBusyTeXML, generateUnavailableTeXML, generateTeXML } = require('../src/telephony/telnyx-handler');
 const { VoicePipeline } = require('../src/core/voice-pipeline');
+
+describe('generateUnavailableTeXML — tope de gasto', () => {
+  test('tampoco abre stream: el sentido del corte es no gastar', () => {
+    const xml = generateUnavailableTeXML('es');
+    assert.match(xml, /<Say/);
+    assert.match(xml, /<Hangup\s*\/>/);
+    assert.ok(!xml.includes('<Stream'), 'si se corta por gasto, abrir STT/LLM/TTS lo haría inútil');
+  });
+
+  test('NO reutiliza el mensaje de saturación, que aquí sería mentira', () => {
+    // "estamos atendiendo otras llamadas" es falso cuando el motivo es un tope
+    // de gasto: no hay ninguna otra llamada.
+    const xml = generateUnavailableTeXML('es');
+    assert.ok(!/atendiendo otras llamadas/.test(xml));
+    assert.match(xml, /no podemos atender su llamada/);
+  });
+
+  test('no le cuenta al que llama nada de facturación: es cliente del negocio', () => {
+    for (const l of ['es', 'gl', 'eu']) {
+      const xml = generateUnavailableTeXML(l).toLowerCase();
+      for (const palabra of ['minut', 'plan', 'cuota', 'pago', 'factur', 'suscrip', 'nodeflow']) {
+        assert.ok(!xml.includes(palabra), `el mensaje (${l}) no debe decir "${palabra}"`);
+      }
+    }
+  });
+
+  test('en el idioma del asistente, y los combos por el idioma base', () => {
+    assert.match(generateUnavailableTeXML('gl'), /non podemos atender/);
+    assert.match(generateUnavailableTeXML('eu'), /ezin dugu zure deia/);
+    assert.match(generateUnavailableTeXML('es+gl'), /no podemos atender/);
+    assert.match(generateUnavailableTeXML(), /no podemos atender/);
+  });
+});
 
 describe('generateBusyTeXML', () => {
   test('habla antes de colgar (y no abre stream, que costaría dinero)', () => {

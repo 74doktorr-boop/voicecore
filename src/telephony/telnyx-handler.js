@@ -309,4 +309,31 @@ function generateBusyTeXML(language = 'es') {
 </Response>`;
 }
 
-module.exports = { setupTelnyxStreams, generateTeXML, generateBusyTeXML };
+/**
+ * TeXML de "no podemos atender", para cuando se alcanza el tope de gasto.
+ *
+ * POR QUÉ SEPARADO de `generateBusyTeXML` (2026-07-30): el mensaje de saturación
+ * dice "estamos atendiendo otras llamadas", y en este caso eso sería MENTIRA —
+ * no hay ninguna otra llamada, hay un tope de gasto. Al que llama no le importa
+ * el motivo, pero tampoco se le cuenta algo falso.
+ *
+ * Y NO se le menciona nada de facturación: quien llama es el cliente del
+ * negocio, no el nuestro.
+ *
+ * @param {string} [language] idioma del asistente
+ */
+function generateUnavailableTeXML(language = 'es') {
+  const lang = String(language || 'es').toLowerCase().split(/[-+_]/)[0];
+  const { texto, voice } = {
+    gl: { texto: 'Grazas por chamar. Neste momento non podemos atender a súa chamada. Por favor, ténteo de novo máis tarde.', voice: 'Polly.Conchita' },
+    eu: { texto: 'Eskerrik asko deitzeagatik. Une honetan ezin dugu zure deia hartu. Mesedez, saiatu berriro geroago.', voice: 'Polly.Conchita' },
+  }[lang] || { texto: 'Gracias por llamar. En este momento no podemos atender su llamada. Por favor, inténtelo de nuevo más tarde.', voice: 'Polly.Conchita' };
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="${voice}" language="es-ES">${escapeXmlAttr(texto)}</Say>
+  <Hangup/>
+</Response>`;
+}
+
+module.exports = { setupTelnyxStreams, generateTeXML, generateBusyTeXML, generateUnavailableTeXML };
