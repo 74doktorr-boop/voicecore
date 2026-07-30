@@ -76,17 +76,53 @@ describe('buildSystemAudit — lo que percibe el cliente', () => {
     assert.ok(r.lineas.some(x => /entrecortan/.test(x.titulo)));
   });
 
-  test('llamadas rotas por encima del 25% es CRÍTICO', () => {
+  test('fallos NUESTROS por encima del 25% es CRÍTICO', () => {
+    // `llamada(0)` no tiene transcript: la IA no llegó a hablar. Eso sí es
+    // culpa nuestra, a diferencia de "el cliente colgó al oír el saludo".
     const l = [...sanas(5), llamada(0), llamada(0), llamada(0)];
     const r = buildSystemAudit({ llamadas: l });
     assert.strictEqual(r.severidad, 'critico');
-    assert.ok(r.lineas.some(x => /llamadas rotas/.test(x.titulo)));
+    assert.ok(r.lineas.some(x => /fallo NUESTRO/.test(x.titulo)), 'debe distinguirlo de que el cliente cuelgue');
+  });
+
+  test('el cliente que cuelga al oír el saludo NO cuenta como fallo', () => {
+    // Es el caso real que disparó todo esto: la alarma del 18% eran pruebas de
+    // madrugada más dos personas que colgaron. Cero averías.
+    const colgadas = Array.from({ length: 3 }, () => ({
+      status: 'ended', turn_count: 0, duration_ms: 6000,
+      transcript: [{ role: 'assistant', content: 'Hola, ha llamado a…' }],
+      metrics: { turns: [], quality: {} },
+    }));
+    const r = buildSystemAudit({ llamadas: [...sanas(5), ...colgadas] });
+    assert.notStrictEqual(r.severidad, 'critico');
+    assert.ok(r.lineas.some(x => /cuelga al oír el saludo/.test(x.titulo)), 'y la señal de producto sí aparece');
   });
 
   test('sin llamadas avisa, pero admite que puede ser normal', () => {
     const r = buildSystemAudit({ llamadas: [] });
     const aviso = r.lineas.find(l => l.nivel === 'aviso');
     assert.match(aviso.detalle, /puede ser normal/);
+  });
+});
+
+describe('buildSystemAudit — números asignados que no reciben nada', () => {
+  test('EL CASO OSAKIN: número asignado, cero entrantes → CRÍTICO', () => {
+    // El detector de silencio de client-health exige ≥3 llamadas previas para
+    // avisar de que han parado. Un número que NUNCA recibió ninguna le es
+    // invisible — y es el caso peor: el cliente cree tener el servicio.
+    const r = buildSystemAudit({
+      llamadas: sanas(5),
+      numerosMudos: [{ numero: '+34843700832', negocio: 'Centro Osakin' }],
+    });
+    assert.strictEqual(r.severidad, 'critico');
+    const l = r.lineas.find(x => /no recibe llamadas/.test(x.titulo));
+    assert.match(l.titulo, /Centro Osakin/);
+    assert.match(l.detalle, /no han desviado su línea/);
+  });
+
+  test('sin números mudos no dice nada', () => {
+    const r = buildSystemAudit({ llamadas: sanas(5), numerosMudos: [] });
+    assert.ok(!r.lineas.some(x => /no recibe llamadas/.test(x.titulo)));
   });
 });
 

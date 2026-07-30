@@ -96,20 +96,56 @@ function buildSystemAudit(d = {}) {
     }
   }
 
-  // ── 4. Llamadas que conectaron y no funcionaron ───────────────────────────
+  // ── 4. Fallos NUESTROS, separados de "el cliente colgó" ───────────────────
+  // Antes esto decía "18% de llamadas rotas" y era falso: 8 de las 10 eran
+  // pruebas de madrugada con asistentes de broma, y las otras 2 eran gente que
+  // oyó el saludo y colgó — el sistema funcionó. Una alarma que cría lobo se
+  // acaba ignorando, y entonces no avisa el día que importa. Ver call-outcome.js.
   if (llamadas.length) {
-    const rotas = llamadas.filter(c => c.status === 'lost' || (c.turn_count || 0) === 0).length;
-    const ratio = rotas / llamadas.length;
-    if (ratio >= ROTAS_ALERTA) {
-      marca('critico', `${Math.round(ratio * 100)}% de llamadas rotas`, `${rotas} de ${llamadas.length} conectaron y no hubo conversación`);
+    const { resumirSalud } = require('./call-outcome');
+    const r = resumirSalud(llamadas, d.numeros || {});
+
+    if (r.externas === 0) {
+      marca('aviso', 'Ninguna llamada de clientes reales en la ventana',
+        `${r.internas} de nuestro propio tráfico (pruebas/salientes). Puede ser normal, o el desvío está caído`);
     } else {
-      lineas.push({ nivel: 'ok', titulo: `Llamadas rotas: ${rotas} de ${llamadas.length}`, detalle: '' });
+      if (r.tasaFallo >= ROTAS_ALERTA) {
+        marca('critico', `${Math.round(r.tasaFallo * 100)}% de llamadas con fallo NUESTRO`,
+          `${r.fallo_sistema + r.sin_audio} de ${r.externas} — la IA no habló o la llamada murió a media conversación`);
+      } else if (r.fallo_sistema + r.sin_audio > 0) {
+        marca('aviso', `${r.fallo_sistema + r.sin_audio} llamada(s) con fallo nuestro`,
+          `de ${r.externas} de clientes reales · ${r.fallos.slice(0, 3).map(f => f.motivo).join(' · ')}`);
+      } else {
+        lineas.push({ nivel: 'ok', titulo: `Sin fallos del sistema en ${r.externas} llamadas de clientes`, detalle: r.internas ? `(${r.internas} internas excluidas)` : '' });
+      }
+
+      // Señal de PRODUCTO, no de sistema: cuánta gente cuelga al oír a la IA.
+      // Se arregla con el saludo y la voz, no con código — por eso va aparte.
+      if (r.colgo_en_saludo > 0) {
+        const pct = Math.round(r.tasaCuelgueSaludo * 100);
+        lineas.push({
+          nivel: pct >= 40 ? 'aviso' : 'ok',
+          titulo: `${pct}% cuelga al oír el saludo (${r.colgo_en_saludo} de ${r.externas})`,
+          detalle: pct >= 40 ? 'el sistema funciona; es el saludo o la voz lo que espanta' : 'el sistema funcionó: descolgó y habló',
+        });
+      }
     }
   } else {
     marca('aviso', 'Ninguna llamada en la ventana', 'puede ser normal, o el desvío está caído');
   }
 
-  // ── 5. Qué versión corre y con qué protecciones ───────────────────────────
+  // ── 5. Números asignados que NO reciben llamadas ──────────────────────────
+  // El detector de silencio de client-health exige ≥3 llamadas previas para
+  // avisar de que han parado. Un número que NUNCA recibió ninguna es invisible
+  // para él — y es el caso peor: el cliente pagó, se le dio número, y no ha
+  // desviado su línea. Se descubrió con Centro Osakin: número asignado, CERO
+  // entrantes en 90 días, y nadie se había enterado.
+  for (const n of (d.numerosMudos || [])) {
+    marca('critico', `${n.negocio}: su número no recibe llamadas`,
+      `${n.numero} lleva asignado y sin una sola entrante. O no han desviado su línea, o el desvío está roto — en ambos casos el cliente cree tener el servicio y no lo tiene.`);
+  }
+
+  // ── 6. Qué versión corre y con qué protecciones ───────────────────────────
   const v = d.version || {};
   if (v.telnyxSignature && v.telnyxSignature !== 'enforced') {
     marca('critico', 'Los webhooks de voz NO verifican firma',
@@ -186,7 +222,20 @@ async function runSystemAudit(deps = {}) {
 
     const desde = new Date(Date.now() - dias * 864e5).toISOString();
     const { data: llamadas } = await db.client.from('nf_calls')
-      .select('status,turn_count,metrics').gte('started_at', desde).limit(3000);
+      .select('id,status,turn_count,duration_ms,caller_number,transcript,metrics').gte('started_at', desde).limit(3000);
+
+    // Nuestro propio tráfico no cuenta para juzgar la salud del producto: son
+    // pruebas y salientes. Los números propios salen del pool; los de prueba,
+    // de TEST_PHONE_NUMBERS (lista separada por comas) y OWNER_PHONE.
+    let numeros = { propios: [], prueba: [] };
+    try {
+      const { data: pool } = await db.client.from('nf_phone_pool').select('phone_number').limit(500);
+      numeros.propios = (pool || []).map(p => p.phone_number).filter(Boolean);
+    } catch (_) {}
+    numeros.prueba = [
+      ...String(process.env.TEST_PHONE_NUMBERS || '').split(',').map(s => s.trim()).filter(Boolean),
+      ...(process.env.OWNER_PHONE ? [process.env.OWNER_PHONE] : []),
+    ];
 
     let version = {};
     try {
@@ -199,7 +248,30 @@ async function runSystemAudit(deps = {}) {
       };
     } catch (_) {}
 
-    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version });
+    // Números asignados que no reciben nada: el cliente cree tener el servicio
+    // y no lo tiene. Ventana amplia a propósito (90 días): aquí no buscamos una
+    // bajada de tráfico, sino la ausencia TOTAL de él.
+    const numerosMudos = [];
+    try {
+      const { data: pool } = await db.client.from('nf_phone_pool')
+        .select('phone_number,org_id,status').eq('status', 'assigned').limit(200);
+      const asignados = pool || [];
+      if (asignados.length) {
+        const desde90 = new Date(Date.now() - 90 * 864e5).toISOString();
+        const { data: ent } = await db.client.from('nf_calls')
+          .select('called_number,direction').gte('started_at', desde90).limit(5000);
+        const recibidas = new Set((ent || []).filter(c => c.direction !== 'outbound').map(c => c.called_number));
+        const { data: orgs } = await db.client.from('organizations').select('id,name').limit(200);
+        const nombre = Object.fromEntries((orgs || []).map(o => [o.id, o.name]));
+        for (const p of asignados) {
+          if (!recibidas.has(p.phone_number)) {
+            numerosMudos.push({ numero: p.phone_number, negocio: nombre[p.org_id] || '(org desconocida)' });
+          }
+        }
+      }
+    } catch (_) {}
+
+    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos });
     const to = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
     const prefijo = informe.severidad === 'critico' ? '🚨' : informe.severidad === 'aviso' ? '⚠️' : '✅';
     await enviar({ to, subject: `${prefijo} NodeFlow · auditoría técnica — ${informe.resumen}`, html: renderSystemAudit(informe, dias) });
