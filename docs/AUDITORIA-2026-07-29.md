@@ -313,8 +313,13 @@ es el raro: es el único que hay.
   reales** para decidir si el que manda es el TTS o el LLM. Sin ese dato, tocarlo
   sería optimizar a ciegas.
 - **Agenda en memoria**: bloquea el multi-réplica. Necesita Redis primero.
-- **Cookies de terceros** (Fontshare, Google Fonts) no declaradas.
 - **Watchdog externo de uptime**: el servicio sigue monitorizándose a sí mismo.
+- **Las tipografías siguen viniendo de un tercero.** Ya está declarado (apartado
+  09 de privacidad), pero la conexión sigue existiendo: cada visita manda la IP a
+  `api.fontshare.com`. **No se puede arreglar auto-alojándolas**: la licencia ITF
+  FFL de Satoshi y Clash Display lo prohíbe expresamente (cláusula 02) y concede
+  el uso web solo vía su API. La única salida es cambiar a una tipografía con
+  licencia que permita alojarla (las OFL sí) — decisión de marca, no técnica.
 - **Hueco de 12 s en `worstFragmentGapMs`**: un solo caso, y los comentarios del
   código dicen que en julio se arregló un falso positivo idéntico. Sin reproducir.
 
