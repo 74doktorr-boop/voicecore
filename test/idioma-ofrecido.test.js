@@ -76,6 +76,38 @@ test('ningún desplegable de la interfaz ofrece euskera', () => {
   assert.deepEqual(culpables, [], 'Desplegables que aún ofrecen euskera:\n  ' + culpables.join('\n  '));
 });
 
+test('ningún desplegable ofrece una lengua minoritaria PURA', () => {
+  // Regla de Unai tras el incidente Freixa (2026-07-19): con 'gl' a secas el
+  // modelo no sostiene el gallego, deriva al castellano a mitad de llamada y
+  // sale una mezcla —cuerpo en castellano, despedida en gallego—. El combo
+  // 'es+gl' espeja al cliente y no mezcla; verificado en las dos llamadas
+  // reales posteriores al cambio, 0 fragmentos gallegos.
+  // Inglés y francés puros SÍ se ofrecen: el problema es de lenguas con poco
+  // material de entrenamiento, no de tener un solo idioma.
+  const MINORITARIAS = ['gl', 'eu', 'ca'];
+  const culpables = [];
+  for (const p of ['public/portal/index.html', 'public/onboarding.html']) {
+    for (const m of leer(...p.split('/')).matchAll(/<option value="([^"]*)"/g)) {
+      if (MINORITARIAS.includes(m[1])) culpables.push(`${p} → value="${m[1]}"`);
+    }
+  }
+  assert.deepEqual(culpables, [],
+    'Se vuelve a ofrecer una lengua minoritaria en solitario. Debe ser el combo ' +
+    `(es+gl), no el idioma puro:\n  ${culpables.join('\n  ')}`);
+});
+
+test('la landing gallega sigue funcionando: ?idioma=gl traduce al combo', () => {
+  // El enlace ?idioma=gl está en anuncios y en páginas que no controlamos. Si
+  // al quitar la opción pura se hubiera FILTRADO en vez de TRADUCIDO, el lead
+  // gallego llegaría al alta con «Castellano» puesto y nadie se enteraría:
+  // no falla nada, sólo se pierde la intención.
+  const src = leer('public', 'onboarding.html');
+  const m = src.match(/const IDIOMA_URL = \{([^}]*)\}/);
+  assert.ok(m, 'onboarding.html ya no traduce el ?idioma= de la URL');
+  assert.match(m[1], /gl:\s*'es\+gl'/,
+    `?idioma=gl ya no lleva al combo. Mapa actual: {${m[1].trim()}}`);
+});
+
 test('el onboarding no reproduce un saludo de ejemplo en euskera', () => {
   // Esto era lo peor de todo: no lo PROMETÍA, lo DEMOSTRABA. En el paso
   // «Escuchar mi asistente», durante el alta.

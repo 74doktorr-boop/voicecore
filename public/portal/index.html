@@ -302,8 +302,9 @@
             <div class="form-group"><label class="form-label">Nombre del asistente</label><input class="form-ctrl" id="asis-name" placeholder="Laura"></div>
             <div class="form-group"><label class="form-label">Idioma</label>
               <select class="form-ctrl" id="asis-lang">
-                <!-- Euskera retirado 2026-07-31: el producto no lo habla. Ver src/api/routes-portal.js -->
-                <option value="es">Castellano</option><option value="gl">Galego</option><option value="es+gl">Castellano + Galego</option><option value="en">Inglés</option><option value="fr">Francés</option><option value="es+en">Castellano + Inglés</option><option value="es+fr">Castellano + Francés</option>
+                <!-- Euskera retirado 2026-07-31: el producto no lo habla. Ver src/api/routes-portal.js
+                     Galego sólo en combo: con 'gl' puro el modelo deriva y mezcla (incidente Freixa). -->
+                <option value="es">Castellano</option><option value="es+gl">Castellano + Galego</option><option value="en">Inglés</option><option value="fr">Francés</option><option value="es+en">Castellano + Inglés</option><option value="es+fr">Castellano + Francés</option>
               </select>
             </div>
           </div>

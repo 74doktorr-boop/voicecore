@@ -151,9 +151,12 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
     <div class="form-group">
       <label for="idioma">Idioma de tu asistente *</label>
       <select id="idioma">
-        <!-- Euskera retirado 2026-07-31: el producto no lo habla y esto es el alta. -->
+        <!-- Euskera retirado 2026-07-31: el producto no lo habla y esto es el alta.
+             Y el galego se ofrece SÓLO en combo, nunca puro: con 'gl' a secas el
+             modelo deriva al castellano a mitad de llamada y sale una mezcla
+             (incidente Freixa, 2026-07-19). Con 'es+gl' espeja al cliente. -->
         <option value="es">Castellano</option>
-        <option value="gl">Galego</option>
+        <option value="es+gl">Castellano + Galego</option>
       </select>
     </div>
     <div class="error-msg" id="step1-error" role="alert" aria-live="assertive"></div>
@@ -304,11 +307,16 @@ if (urlSector) {
   }
 }
 // Pre-select language if a landing (e.g. Galicia) passed ?idioma=
-// 'eu' fuera de la lista a propósito: un enlace antiguo con ?idioma=eu no debe
-// poder colar un valor que ya no existe en el desplegable.
-if (['es', 'gl'].includes(urlIdioma)) {
+//
+// Se TRADUCE, no se filtra. La landing gallega enlaza con ?idioma=gl y ese
+// enlace está impreso en anuncios y en páginas que no controlamos: si aquí
+// sólo se aceptaran los valores nuevos, el lead gallego llegaría al alta con
+// «Castellano» puesto y nadie se enteraría. 'gl' pasa a ser el combo; 'eu' ya
+// no existe y cae a castellano a propósito.
+const IDIOMA_URL = { es: 'es', gl: 'es+gl', 'es+gl': 'es+gl' };
+if (IDIOMA_URL[urlIdioma]) {
   const idiomaEl = document.getElementById('idioma');
-  if (idiomaEl) idiomaEl.value = urlIdioma;
+  if (idiomaEl) idiomaEl.value = IDIOMA_URL[urlIdioma];
 }
 
 // ── Onboarding self-serve: al escribir el nombre, deducimos el sector ────────
@@ -376,7 +384,11 @@ const vpAudio = new Audio();
 function greetingText() {
   const n = (document.getElementById('negocio').value.trim()) || 'tu negocio';
   const idioma = document.getElementById('idioma').value;
-  if (idioma === 'gl') return '¡Ola! Chamou a ' + n + '. Son o seu asistente virtual. En que podo axudarlle?';
+  // La muestra tiene que sonar como lo que el motor va a decir de verdad:
+  // defaultFirstMessage('es+gl') saluda en galego (i18n.baseLang de un combo es
+  // la lengua minoritaria). Si aquí se enseñara castellano, el alta prometería
+  // un saludo que el cliente no va a oír.
+  if (idioma === 'es+gl') return '¡Ola! Chamou a ' + n + '. Son o seu asistente virtual. En que podo axudarlle?';
   return '¡Hola! Ha llamado a ' + n + '. Soy su asistente virtual. ¿En qué puedo ayudarle?';
 }
 
@@ -515,7 +527,7 @@ async function _submitRegistroInner() {
     // Build summary
     const basePrice  = (typeof plan.priceEur === 'number') ? plan.priceEur : PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
-    const idiomaLabels = { es: 'Castellano', gl: 'Galego' };
+    const idiomaLabels = { es: 'Castellano', 'es+gl': 'Castellano + Galego' };
     const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Cristina';
     const summary = document.getElementById('summary-rows');
     summary.innerHTML =
