@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NodeFlow — El trabajo no termina cuando cuelgas</title>
-<meta name="description" content="NodeFlow construye software que hace el trabajo, no que lo espera: atiende el teléfono de tu negocio, deja la cita en tu agenda, avisa a quien corresponde y guarda por qué lo hizo. Tres productos en producción. Desde Andoain, Gipuzkoa.">
-<meta name="keywords" content="NodeFlow, software IA, inteligencia artificial aplicada, recepcionista IA, atención telefónica, visión artificial, Gipuzkoa, Euskadi">
+<meta name="description" content="NodeFlow construye software que hace el trabajo, no que lo espera: atiende el teléfono de tu negocio, deja la cita en tu agenda, avisa a quien corresponde y guarda por qué lo hizo. Tres productos en producción.">
+<meta name="keywords" content="NodeFlow, software IA, inteligencia artificial aplicada, recepcionista IA, atención telefónica, visión artificial">
 <meta name="author" content="NodeFlow IA">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0F110C">
@@ -24,7 +24,7 @@
 <meta name="twitter:description" content="Software que hace el trabajo, no que lo espera.">
 <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software que construye inteligencia artificial aplicada al negocio real.","address":{"@type":"PostalAddress","addressLocality":"Andoain","addressRegion":"Gipuzkoa","addressCountry":"ES"},"contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
+{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software que construye inteligencia artificial aplicada al negocio real.","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
 </script>
 <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
@@ -34,10 +34,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
    NODEFLOW — SISTEMA VISUAL
    ──────────────────────────────────────────────────────────────────────────
-   Concepto: EL HILO. Una llamada entra y no termina — deja un hilo que sigue
-   moviéndose (ficha, cita, aviso, registro). El hilo es literal aquí: recorre
-   el margen de la página y avanza con el scroll. Es lo que hace reconocible
-   la marca aunque tapes el logotipo.
+   Concepto: A SANGRE. El producto no se enseña dentro de una tarjeta con
+   márgenes: entra por el borde de la pantalla y ocupa la mitad del hero. Lo
+   que hace reconocible la página no es un adorno, es que lo primero que ves
+   es software funcionando de verdad, a tamaño real.
 
    Una sola atmósfera (grafito cálido con sesgo verde), a propósito: esto es
    una identidad, no un panel de control con tema claro y oscuro.
@@ -46,14 +46,20 @@
   --bg:#0F110C; --bg-2:#141810; --surf:#191E14; --surf-2:#1F251A;
   --line:rgba(226,236,214,.11); --line-2:rgba(226,236,214,.21);
   --ink:#EEF3E4; --ink-2:#B9C2AC; --ink-3:#818B76;
-  /* Lima: SÓLO estado vivo, acción hecha, el hilo y la acción principal */
+  /* Lima: SÓLO estado vivo, acción hecha y la acción principal */
   --lime:#C4F546; --lime-d:#A8DC2A; --lime-ink:#0F110C;
   /* El color significa algo: ámbar = pendiente/programado */
   --wait:#E8B84B;
   --disp:'Clash Display',ui-sans-serif,system-ui,sans-serif;
   --sans:'Satoshi',ui-sans-serif,system-ui,-apple-system,sans-serif;
   --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-  --wrap:1220px;
+  /* Antes 1220 px centrados: en una pantalla de 1900 dejaba 350 px de margen a
+     cada lado y la página se leía como una columna flotando en el vacío. Las
+     webs que transmiten escala no tienen márgenes: el contenido llega al borde.
+     De aquí en adelante el ancho se calcula contra el viewport, no contra una
+     cifra fija, y el hero va A SANGRE. */
+  --pad:clamp(24px,4.4vw,72px);
+  --wrap:1560px;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
@@ -62,35 +68,22 @@ img{max-width:100%;height:auto;display:block}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--lime);color:var(--lime-ink)}
 :focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:3px}
-.wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
 /* Enlace de salto: se oculta recortándolo, no mandándolo a -9999px — así no
    puede provocar desbordamiento horizontal en ningún ancho. */
 .skip{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .skip:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;clip-path:none;z-index:99;background:var(--lime);color:var(--lime-ink);padding:10px 16px;border-radius:6px;font-weight:700}
 
-/* ── EL HILO ─────────────────────────────────────────────────────────────
-   Avanza solo donde el navegador soporta línea de tiempo de scroll: cero JS.
-   Donde no, se queda como una línea fina y no pasa nada. */
-/* El hilo va PEGADO al contenido (8 px dentro del contenedor), no 26 px fuera.
-   Flotando en el margen dibujaba una vertical que hacía leer los 350 px de la
-   izquierda como una columna vacía en vez de como un margen. Un motivo de
-   marca no puede crear un agujero. */
-.thread{position:fixed;left:max(10px,calc(50vw - var(--wrap)/2 + 8px));top:0;width:1px;height:100vh;background:var(--line);z-index:2;pointer-events:none}
-/* En propiedades sueltas a propósito: el atajo `animation:` fija la duración a
-   0s, y una animación gobernada por el scroll necesita `auto` para repartirse
-   a lo largo del recorrido. Con el atajo, el hilo se quedaba clavado en 0. */
-.thread::after{content:"";position:absolute;left:0;top:0;width:1px;height:100%;
-  background:linear-gradient(180deg,var(--lime),rgba(196,245,70,.12));
-  transform-origin:top;transform:scaleY(1);
-  animation-name:hilo;animation-timing-function:linear;
-  animation-fill-mode:both;animation-timeline:scroll(root block)}
-@keyframes hilo{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@media (max-width:980px){.thread{display:none}}
+/* EL HILO, RETIRADO. Era una línea vertical fija en el margen izquierdo. La
+   idea era buena sobre el papel y en pantalla hacía justo lo contrario:
+   delimitaba los 350 px de margen y los convertía en una columna hueca. Un
+   motivo de marca que crea un agujero no es un motivo de marca. La continuidad
+   ahora la lleva la propia composición: el producto entra por el borde. */
 
 /* ── Navegación ─────────────────────────────────────────────────────────*/
 .nav{position:sticky;top:0;z-index:20;background:rgba(15,17,12,.85);border-bottom:1px solid transparent;transition:border-color .25s}
 .nav.stuck{border-bottom-color:var(--line);backdrop-filter:blur(10px)}
-.nav-in{display:flex;align-items:center;gap:28px;height:64px;max-width:var(--wrap);margin:0 auto;padding:0 24px}
+.nav-in{display:flex;align-items:center;gap:28px;height:68px;max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
 .logo{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)}
 .logo b{color:var(--lime)}
 .nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px}
@@ -125,29 +118,36 @@ section+section{border-top:1px solid var(--line)}
 .btn-2:hover{border-color:var(--ink-3);background:var(--surf)}
 .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
 
-/* ── Hero ───────────────────────────────────────────────────────────────
-   A dos columnas a partir de 1080 px. Antes era una sola columna de texto
-   alineada a la izquierda: en una pantalla ancha dejaba media página vacía, y
-   con el hilo marcando una vertical a su izquierda el margen se leía como una
-   columna hueca en vez de como un margen. Ahora el ancho se usa entero y la
-   prueba —el producto de verdad— entra en la primera pantalla. */
-.hero{padding-top:clamp(52px,7vw,84px)}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:clamp(30px,4.5vw,64px);align-items:center}
-@media (max-width:1080px){.hero-grid{grid-template-columns:1fr;gap:38px}}
-.hero h1{max-width:14ch;margin-top:20px}
-.hero .lead{margin-top:22px}
+/* ── Hero A SANGRE ──────────────────────────────────────────────────────
+   Sin contenedor centrado y sin margen a la derecha: el producto SALE por el
+   borde de la pantalla. Es la diferencia entre una página que parece un
+   documento y una que parece una empresa. El texto respira a la izquierda con
+   el mismo aire que el resto del sitio; la imagen se come todo lo demás. */
+.hero{padding:0;border-bottom:1px solid var(--line)}
+.hero-grid{
+  display:grid;grid-template-columns:minmax(0,44fr) minmax(0,56fr);
+  min-height:min(88vh,860px);align-items:center;
+}
+.hero-txt{padding:clamp(48px,7vw,96px) clamp(32px,4vw,72px) clamp(48px,7vw,96px) max(var(--pad),calc(50vw - var(--wrap)/2));}
+.hero-vis{position:relative;height:100%;min-height:min(88vh,860px);overflow:hidden;border-left:1px solid var(--line);background:var(--surf)}
+.hero-vis img{width:100%;height:100%;object-fit:cover;object-position:left top;display:block}
+/* Degradado en el canto izquierdo para que la imagen no choque contra el texto
+   con un corte seco. Es funcional, no decorativo. */
+.hero-vis::before{content:"";position:absolute;inset:0 auto 0 0;width:90px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,var(--bg),transparent)}
+.hero-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;gap:9px;
+  padding:14px clamp(18px,2.4vw,32px);font-size:12.5px;color:var(--ink-2);
+  background:linear-gradient(0deg,rgba(15,17,12,.94),rgba(15,17,12,0));line-height:1.4}
+.hero-cap i{width:6px;height:6px;border-radius:50%;background:var(--lime);flex:none}
+.hero h1{max-width:13ch}
+.hero .lead{margin-top:24px;max-width:46ch}
 .hero-note{margin-top:16px;font-size:13.5px;color:var(--ink-3)}
-
-/* La captura del panel, recortada por arriba a propósito: ahí está lo que
-   prueba el titular (lo que el sistema hizo mientras nadie miraba). El corte
-   evita además el bloque de minutos incluidos, que es un dato de tarifa y
-   cambia — una captura no puede contradecir a la página de precio. */
-.hero-shot{margin:0;border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:var(--surf)}
-.hero-shot-win{position:relative;aspect-ratio:1400/860;overflow:hidden}
-.hero-shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
-.hero-shot figcaption{display:flex;align-items:center;gap:9px;padding:12px 16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.45}
-.hero-shot figcaption i{width:6px;height:6px;border-radius:50%;background:var(--lime);flex:none}
-@media (max-width:520px){.hero-shot-win{aspect-ratio:1400/1000}}
+@media (max-width:1080px){
+  .hero-grid{grid-template-columns:1fr;min-height:0}
+  .hero-txt{padding:clamp(44px,9vw,72px) var(--pad)}
+  .hero-vis{min-height:0;aspect-ratio:1400/900;border-left:0;border-top:1px solid var(--line)}
+  .hero-vis::before{display:none}
+}
 
 /* Muestra de voz real: es la prueba, no un adorno */
 .play{display:inline-flex;align-items:center;gap:12px;margin-top:30px;padding:11px 18px 11px 12px;background:var(--surf);border:1px solid var(--line-2);border-radius:999px;cursor:pointer;font-family:var(--sans);font-size:14.5px;font-weight:600;color:var(--ink);transition:border-color .18s,background .18s}
@@ -284,7 +284,6 @@ html.anim .rev.in{opacity:1;transform:none}
 <body>
 
 <a class="skip" href="#contenido">Saltar al contenido</a>
-<div class="thread" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
   <div class="nav-in">
@@ -303,36 +302,31 @@ html.anim .rev.in{opacity:1;transform:none}
 
 <!-- ══ HERO ══ Una verdad operativa, no una promesa de marca. -->
 <section class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <p class="mark rev">Andoain · Gipuzkoa</p>
-        <h1 class="rev">El trabajo no termina cuando cuelgas.</h1>
-        <p class="lead rev">
-          Termina cuando la cita está en la agenda, el cliente tiene su confirmación y
-          alguien sabe qué pasó. <strong>Construimos el software que hace esa parte</strong> —
-          la que se queda a medias cuando nadie tiene tiempo.
-        </p>
-        <div class="btns rev">
-          <a class="btn btn-1" href="/recepcion">Ver NodeFlow Recepción</a>
-          <a class="btn btn-2" href="#escena">Ver una llamada entera</a>
-        </div>
-        <button class="play rev" id="play" type="button">
-          <span class="play-ico" aria-hidden="true">▶</span>
-          <span id="play-txt">Escuchar cómo suena</span>
-          <span class="play-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        </button>
-        <p class="hero-note rev">Grabación real de una llamada. Castellano, euskera y galego.</p>
+  <div class="hero-grid">
+    <div class="hero-txt">
+      <h1 class="rev">El trabajo no termina cuando cuelgas.</h1>
+      <p class="lead rev">
+        Termina cuando la cita está en la agenda, el cliente tiene su confirmación y
+        alguien sabe qué pasó. <strong>Construimos el software que hace esa parte</strong> —
+        la que se queda a medias cuando nadie tiene tiempo.
+      </p>
+      <div class="btns rev">
+        <a class="btn btn-1" href="/recepcion">Ver NodeFlow Recepción</a>
+        <a class="btn btn-2" href="#escena">Ver una llamada entera</a>
       </div>
-
-      <figure class="hero-shot rev">
-        <div class="hero-shot-win">
-          <img src="/guia-img/dashboard.jpg" width="1400" height="940" fetchpriority="high" decoding="async"
-               alt="Panel de NodeFlow de una clínica dental: 6 llamadas atendidas, 3 citas reservadas, 4 avisos enviados, 240 € en reservas y 1 hora y media sin estar el dueño al teléfono.">
-        </div>
-        <figcaption><i aria-hidden="true"></i>El panel de una clínica, un lunes por la mañana. Producto real, sin retocar.</figcaption>
-      </figure>
+      <button class="play rev" id="play" type="button">
+        <span class="play-ico" aria-hidden="true">▶</span>
+        <span id="play-txt">Escuchar cómo suena</span>
+        <span class="play-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <p class="hero-note rev">Grabación real de una llamada atendida por NodeFlow.</p>
     </div>
+
+    <figure class="hero-vis">
+      <img src="/guia-img/dashboard.jpg" width="1400" height="940" fetchpriority="high" decoding="async"
+           alt="Panel de NodeFlow de una clínica dental: 6 llamadas atendidas, 3 citas reservadas, 4 avisos enviados, 240 € en reservas y 1 hora y media sin estar el dueño al teléfono.">
+      <figcaption class="hero-cap"><i aria-hidden="true"></i>El panel de una clínica, un lunes por la mañana. Producto real, sin retocar.</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -579,8 +573,8 @@ html.anim .rev.in{opacity:1;transform:none}
         <span>Lo que tarda en contestar cuando terminas de hablar. Medido en producción, no estimado.</span>
       </div>
       <div class="ev-i rev">
-        <b>es · eu · gl</b>
-        <span>Castellano, euskera y galego. La conversación cambia de idioma si el cliente cambia.</span>
+        <b>es · gl</b>
+        <span>Castellano y galego. La conversación cambia de idioma si el cliente cambia.</span>
       </div>
       <div class="ev-i rev">
         <b class="num">24/7</b>
@@ -625,7 +619,7 @@ html.anim .rev.in{opacity:1;transform:none}
       <div>
         <a class="logo" href="/">node<b>flow</b></a>
         <p class="small" style="margin-top:14px;max-width:34ch">
-          Software que hace el trabajo, no que lo espera. Desde Andoain, Gipuzkoa.
+          Software que hace el trabajo, no que lo espera.
         </p>
       </div>
       <div>
@@ -656,8 +650,8 @@ html.anim .rev.in{opacity:1;transform:none}
       </div>
     </div>
     <div class="f-bot">
-      <span>© 2026 NodeFlow IA S.L. · B88840202 · Andoain, Gipuzkoa</span>
-      <span>Hecho aquí, en castellano y en euskera.</span>
+      <span>© 2026 NodeFlow IA S.L. · B88840202</span>
+      <span>Software que hace el trabajo, no que lo espera.</span>
     </div>
   </div>
 </footer>

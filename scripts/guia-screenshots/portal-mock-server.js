@@ -57,8 +57,12 @@ const ME = {
   nodeflowNumber: NF_NUMBER,
   city: 'Irun',
   has_password: true,
-  monthly_minutes_used: 186,
-  monthly_minutes_limit: 500,
+  // Cupo real del plan Negocio: 200 min (src/auth/middleware.js → PLAN_LIMITS).
+  // Si vuelve a cambiar, hay que tocarlo AQUÍ y recapturar: una captura que
+  // enseña un cupo que ya no existe es una promesa falsa, y esta acaba en la
+  // guía y en el PDF del email de bienvenida.
+  monthly_minutes_used: 74,
+  monthly_minutes_limit: 200,
 };
 
 const CONTACTS = [
@@ -400,13 +404,13 @@ const SECTORS = {
 // ── Billing / usage ───────────────────────────────────────────────────────
 const BILLING_USAGE = {
   plan: 'pro',
-  minutesUsed: 186,
-  minutesLimit: 500,
-  minutesRemaining: 314,
+  minutesUsed: 74,
+  minutesLimit: 200,
+  minutesRemaining: 126,
   percentUsed: 37,
   overage: 0,
   overageCost: 0,
-  overageRate: 0.10,
+  overageRate: 0.15,   // igual que overagePerMinute en src/billing/stripe.js
 };
 
 const BILLING_INVOICES = {
