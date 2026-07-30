@@ -54,52 +54,44 @@
 
   <!-- Schema: FAQPage -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "¿Puede el asistente IA gestionar citas para diferentes estilistas?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Sí. NodeFlow se configura con los horarios y disponibilidad de cada profesional de tu peluquería. El asistente pregunta al cliente qué estilista prefiere y busca el hueco disponible en tiempo real según tu Google Calendar."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "¿Qué pasa si un cliente llama para cancelar una cita?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "El asistente gestiona cancelaciones y modificaciones automáticamente. Actualiza el calendario, libera el hueco y puede ofrecer al cliente otra fecha si lo desea. Tú recibes una notificación en tiempo real."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "¿El asistente puede informar sobre precios y servicios de la peluquería?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Absolutamente. Durante la configuración inicial le proporcionas tu carta de servicios y tarifas. El asistente responde preguntas como '¿cuánto cuesta un mechas?' o '¿hacéis alisado brasileño?' con total precisión."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "¿Funciona en euskera para clientes del País Vasco?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Sí. NodeFlow detecta automáticamente si el cliente habla en euskera o castellano y responde en el mismo idioma. En euskera, el asistente saluda y se despide en euskera y entiende a quien le hable en euskera; el cuerpo de la conversación es en castellano. La voz vasca completa está en camino. Perfecto para peluquerías en Bilbao, Donostia o cualquier pueblo de Gipuzkoa y Bizkaia."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "¿Cuántas llamadas puede gestionar a la vez?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Atiende varias llamadas a la vez: si a las 10h del sábado te entran cinco, no se quedan esperando. El límite por defecto son 10 simultáneas por negocio, ampliable si lo necesitas."
-        }
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "¿Puede el asistente IA gestionar citas para diferentes estilistas?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí. NodeFlow se configura con los horarios y disponibilidad de cada profesional de tu peluquería. El asistente pregunta al cliente qué estilista prefiere y busca el hueco disponible en tiempo real según tu Google Calendar."
       }
-    ]
-  }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué pasa si un cliente llama para cancelar una cita?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "El asistente gestiona cancelaciones y modificaciones automáticamente. Actualiza el calendario, libera el hueco y puede ofrecer al cliente otra fecha si lo desea. Tú recibes una notificación en tiempo real."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿El asistente puede informar sobre precios y servicios de la peluquería?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutamente. Durante la configuración inicial le proporcionas tu carta de servicios y tarifas. El asistente responde preguntas como '¿cuánto cuesta un mechas?' o '¿hacéis alisado brasileño?' con total precisión."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cuántas llamadas puede gestionar a la vez?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Atiende varias llamadas a la vez: si a las 10h del sábado te entran cinco, no se quedan esperando. El límite por defecto son 10 simultáneas por negocio, ampliable si lo necesitas."
+      }
+    }
+  ]
+}
   </script>
 
   <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
@@ -366,7 +358,6 @@
     <div class="hero-trust">
       <span><span class="dot"></span> Sin permanencia</span>
       <span><span class="dot"></span> Configuración en minutos</span>
-      <span><span class="dot"></span> Habla euskera nativo</span>
       <span><span class="dot"></span> Desde 49€/mes</span>
     </div>
 
@@ -457,13 +448,6 @@
         <div>
           <h3>Gestión por estilista</h3>
           <p>El asistente conoce la agenda de cada profesional de tu equipo. Si la clienta quiere con María, el asistente busca el próximo hueco libre de María — no el primero disponible en general.</p>
-        </div>
-      </div>
-      <div class="benefit-card">
-        <div class="benefit-icon">🌐</div>
-        <div>
-          <h3>Bilingüe euskera-castellano</h3>
-          <p>En Gipuzkoa y Bizkaia, muchos clientes prefieren hablar en euskera. NodeFlow detecta el idioma del cliente al instante y responde en el mismo. En euskera, el asistente saluda y se despide en euskera y entiende a quien le hable en euskera; el cuerpo de la conversación es en castellano. La voz vasca completa está en camino.</p>
         </div>
       </div>
       <div class="benefit-card">
@@ -604,15 +588,6 @@
           </div>
           <div class="faq-a">
             <div class="faq-a-inner">Absolutamente. Durante la configuración inicial le proporcionas tu carta de servicios y tarifas. El asistente responde preguntas como "¿cuánto cuesta un mechas?" o "¿hacéis alisado brasileño?" con total precisión y sin errores.</div>
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-q">
-            ¿Funciona en euskera para clientes del País Vasco?
-            <div class="faq-icon">+</div>
-          </div>
-          <div class="faq-a">
-            <div class="faq-a-inner">Sí. NodeFlow detecta automáticamente si el cliente habla en euskera o castellano y responde en el mismo idioma. En euskera, el asistente saluda y se despide en euskera y entiende a quien le hable en euskera; el cuerpo de la conversación es en castellano. La voz vasca completa está en camino. Perfecto para peluquerías en Bilbao, Donostia o cualquier pueblo de Gipuzkoa y Bizkaia.</div>
           </div>
         </div>
         <div class="faq-item">
