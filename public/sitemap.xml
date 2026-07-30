@@ -872,4 +872,11 @@
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <url>
+    <loc>https://nodeflow.es/blog/guia-elegir-asistente-voz-negocio-2026</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
