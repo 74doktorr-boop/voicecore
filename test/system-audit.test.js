@@ -105,6 +105,37 @@ describe('buildSystemAudit — lo que percibe el cliente', () => {
   });
 });
 
+describe('buildSystemAudit — altas sin terminar', () => {
+  test('un negocio con número y sin horario es CRÍTICO, y se dice el daño', () => {
+    // No es "falta un campo": es que reserva citas en un horario inventado
+    // mientras la IA tiene prohibido decir cuál es su horario.
+    const r = buildSystemAudit({
+      llamadas: sanas(5),
+      altasIncompletas: [{
+        negocio: 'Centro Osakin', gravedad: 'critico',
+        faltan: [{ falta: 'sin horario configurado', consecuencia: 'reserva citas en un horario INVENTADO' }],
+      }],
+    });
+    assert.strictEqual(r.severidad, 'critico');
+    const l = r.lineas.find(x => /alta está sin terminar/.test(x.titulo));
+    assert.match(l.titulo, /Centro Osakin/);
+    assert.match(l.detalle, /horario INVENTADO/);
+  });
+
+  test('si solo falta lo accesorio, es aviso', () => {
+    const r = buildSystemAudit({
+      llamadas: sanas(5),
+      altasIncompletas: [{ negocio: 'X', gravedad: 'aviso', faltan: [{ falta: 'sin saludo propio', consecuencia: 'fórmula genérica' }] }],
+    });
+    assert.strictEqual(r.severidad, 'aviso');
+  });
+
+  test('sin altas incompletas no dice nada', () => {
+    const r = buildSystemAudit({ llamadas: sanas(5), altasIncompletas: [] });
+    assert.ok(!r.lineas.some(x => /alta está sin terminar/.test(x.titulo)));
+  });
+});
+
 describe('buildSystemAudit — números asignados que no reciben nada', () => {
   test('EL CASO OSAKIN: 15 días con número y ni una llamada → aviso', () => {
     // El detector de silencio de client-health exige ≥3 llamadas previas para

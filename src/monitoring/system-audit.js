@@ -151,6 +151,15 @@ function buildSystemAudit(d = {}) {
       `${d.internasExcluidas.map(x => `${x.negocio} (${x.email})`).join(', ')}. Si alguna es un cliente de verdad, tiene mal el owner_email y no le llegan ni los resúmenes de sus llamadas.`);
   }
 
+  // Altas a medias. Va ANTES de los números mudos a propósito: un negocio con
+  // el alta sin terminar y llamadas entrando hace daño AHORA, mientras que uno
+  // que no recibe llamadas solo pierde oportunidad.
+  for (const o of (d.altasIncompletas || [])) {
+    marca(o.gravedad === 'critico' ? 'critico' : 'aviso',
+      `${o.negocio}: el alta está sin terminar`,
+      (o.faltan || []).map(f => `${f.falta} → ${f.consecuencia}`).join(' | '));
+  }
+
   for (const n of (d.numerosMudos || [])) {
     const dias = Number(n.diasAsignado) || 0;
     marca(dias >= MUDO_CRITICO_DIAS ? 'critico' : 'aviso',
@@ -266,8 +275,10 @@ async function runSystemAudit(deps = {}) {
     // bajada de tráfico, sino la ausencia TOTAL de él.
     const numerosMudos = [];
     const internasExcluidas = [];
+    const altasIncompletas = [];
     try {
       const { esCuentaInterna } = require('./call-outcome');
+      const { orgReadiness } = require('./org-readiness');
       const { data: pool } = await db.client.from('nf_phone_pool')
         .select('phone_number,org_id,status,assigned_at').eq('status', 'assigned').limit(200);
       const asignados = pool || [];
@@ -276,7 +287,8 @@ async function runSystemAudit(deps = {}) {
         const { data: ent } = await db.client.from('nf_calls')
           .select('called_number,direction').gte('started_at', desde90).limit(5000);
         const recibidas = new Set((ent || []).filter(c => c.direction !== 'outbound').map(c => c.called_number));
-        const { data: orgs } = await db.client.from('organizations').select('id,name,owner_email').limit(200);
+        const { data: orgs } = await db.client.from('organizations')
+          .select('id,name,owner_email,assistant_config,automation_config').limit(200);
         const porId = Object.fromEntries((orgs || []).map(o => [o.id, o]));
         // Nuestras propias cuentas (demos de revisión de Meta/Google, pruebas)
         // no son clientes. Sin esto la auditoría avisa cada noche de un cliente
@@ -284,8 +296,17 @@ async function runSystemAudit(deps = {}) {
         const internos = String(process.env.INTERNAL_EMAILS || process.env.NOTIFY_EMAIL || '')
           .split(',').map(s => s.trim()).filter(Boolean);
         for (const p of asignados) {
+          const orgCfg = porId[p.org_id];
+          if (orgCfg && !esCuentaInterna(orgCfg.owner_email, internos)) {
+            // Alta a medias: se juzga aunque el número SÍ reciba llamadas — de
+            // hecho ahí es donde hace daño, porque cada llamada que entra cae en
+            // un asistente sin horario y sin servicios.
+            const listo = orgReadiness(orgCfg);
+            if (listo.gravedad !== 'ok') altasIncompletas.push(listo);
+          }
+
           if (recibidas.has(p.phone_number)) continue;
-          const org = porId[p.org_id];
+          const org = orgCfg;
           if (org && esCuentaInterna(org.owner_email, internos)) {
             internasExcluidas.push({ negocio: org.name || p.phone_number, email: org.owner_email });
             continue;
@@ -300,7 +321,7 @@ async function runSystemAudit(deps = {}) {
       }
     } catch (_) {}
 
-    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos, internasExcluidas });
+    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos, internasExcluidas, altasIncompletas });
     const to = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
     const prefijo = informe.severidad === 'critico' ? '🚨' : informe.severidad === 'aviso' ? '⚠️' : '✅';
     await enviar({ to, subject: `${prefijo} NodeFlow · auditoría técnica — ${informe.resumen}`, html: renderSystemAudit(informe, dias) });
