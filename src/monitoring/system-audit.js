@@ -151,6 +151,14 @@ function buildSystemAudit(d = {}) {
       `${d.internasExcluidas.map(x => `${x.negocio} (${x.email})`).join(', ')}. Si alguna es un cliente de verdad, tiene mal el owner_email y no le llegan ni los resúmenes de sus llamadas.`);
   }
 
+  // WhatsApp. Va lo primero de este bloque porque, cuando falla, no falla un
+  // aviso: fallan TODOS a la vez y en silencio (cada envío escribe un log.warn
+  // y sigue). Se descubrió el 30/07 con «API access blocked» de Meta.
+  if (d.whatsapp && d.whatsapp.estado && d.whatsapp.estado !== 'ok' && d.whatsapp.estado !== 'sin_configurar') {
+    const { nivelDe } = require('./whatsapp-health');
+    marca(nivelDe(d.whatsapp.estado), d.whatsapp.titulo, d.whatsapp.detalle);
+  }
+
   // Altas a medias. Va ANTES de los números mudos a propósito: un negocio con
   // el alta sin terminar y llamadas entrando hace daño AHORA, mientras que uno
   // que no recibe llamadas solo pierde oportunidad.
@@ -273,6 +281,12 @@ async function runSystemAudit(deps = {}) {
     // Números asignados que no reciben nada: el cliente cree tener el servicio
     // y no lo tiene. Ventana amplia a propósito (90 días): aquí no buscamos una
     // bajada de tráfico, sino la ausencia TOTAL de él.
+    // Una sola llamada a Meta al día. Si está bloqueado, no sale ni una
+    // confirmación de cita ni un recordatorio, y hasta hoy eso solo existía en
+    // un log.warn.
+    let whatsapp = { estado: 'sin_configurar' };
+    try { whatsapp = await require('./whatsapp-health').sondearWhatsApp(); } catch (_) {}
+
     const numerosMudos = [];
     const internasExcluidas = [];
     const altasIncompletas = [];
@@ -321,7 +335,7 @@ async function runSystemAudit(deps = {}) {
       }
     } catch (_) {}
 
-    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos, internasExcluidas, altasIncompletas });
+    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos, internasExcluidas, altasIncompletas, whatsapp });
     const to = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
     const prefijo = informe.severidad === 'critico' ? '🚨' : informe.severidad === 'aviso' ? '⚠️' : '✅';
     await enviar({ to, subject: `${prefijo} NodeFlow · auditoría técnica — ${informe.resumen}`, html: renderSystemAudit(informe, dias) });
