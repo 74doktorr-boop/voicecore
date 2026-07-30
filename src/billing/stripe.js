@@ -54,7 +54,13 @@ class StripeBilling {
         // 0,15€/min — decisión Unai 2026-07-04, precio ÚNICO de overage en
         // todas partes (landing, portal, voices.json, KPIs). El Meter de
         // Stripe debe decir lo mismo. (Antes 0.05: por debajo de coste.)
-        minutes: 500, assistants: 999, overagePerMinute: 0.15,
+        // 200 incluidos (2026-07-29). Coste real medido: 0,0969 €/min → el
+        // equilibrio de un plan de 49 € está en ~506 min, y el cupo anterior
+        // eran 500: estaba puesto justo en el coste. Este número tiene que ir
+        // SIEMPRE igual que PLAN_LIMITS.minutesPerMonth en src/auth/middleware.js
+        // — uno cobra y el otro limita; si se separan, el cliente ve una cosa y
+        // paga otra. Hay un test que lo vigila.
+        minutes: 200, assistants: 999, overagePerMinute: 0.15,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,

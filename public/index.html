@@ -53,7 +53,7 @@
   --disp:'Clash Display',ui-sans-serif,system-ui,sans-serif;
   --sans:'Satoshi',ui-sans-serif,system-ui,-apple-system,sans-serif;
   --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-  --wrap:1140px;
+  --wrap:1220px;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
@@ -71,7 +71,11 @@ a{color:inherit;text-decoration:none}
 /* ── EL HILO ─────────────────────────────────────────────────────────────
    Avanza solo donde el navegador soporta línea de tiempo de scroll: cero JS.
    Donde no, se queda como una línea fina y no pasa nada. */
-.thread{position:fixed;left:max(16px,calc(50vw - var(--wrap)/2 - 26px));top:0;width:1px;height:100vh;background:var(--line);z-index:2;pointer-events:none}
+/* El hilo va PEGADO al contenido (8 px dentro del contenedor), no 26 px fuera.
+   Flotando en el margen dibujaba una vertical que hacía leer los 350 px de la
+   izquierda como una columna vacía en vez de como un margen. Un motivo de
+   marca no puede crear un agujero. */
+.thread{position:fixed;left:max(10px,calc(50vw - var(--wrap)/2 + 8px));top:0;width:1px;height:100vh;background:var(--line);z-index:2;pointer-events:none}
 /* En propiedades sueltas a propósito: el atajo `animation:` fija la duración a
    0s, y una animación gobernada por el scroll necesita `auto` para repartirse
    a lo largo del recorrido. Con el atajo, el hilo se quedaba clavado en 0. */
@@ -121,11 +125,29 @@ section+section{border-top:1px solid var(--line)}
 .btn-2:hover{border-color:var(--ink-3);background:var(--surf)}
 .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
 
-/* ── Hero ───────────────────────────────────────────────────────────────*/
-.hero{padding-top:clamp(52px,7vw,92px)}
+/* ── Hero ───────────────────────────────────────────────────────────────
+   A dos columnas a partir de 1080 px. Antes era una sola columna de texto
+   alineada a la izquierda: en una pantalla ancha dejaba media página vacía, y
+   con el hilo marcando una vertical a su izquierda el margen se leía como una
+   columna hueca en vez de como un margen. Ahora el ancho se usa entero y la
+   prueba —el producto de verdad— entra en la primera pantalla. */
+.hero{padding-top:clamp(52px,7vw,84px)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:clamp(30px,4.5vw,64px);align-items:center}
+@media (max-width:1080px){.hero-grid{grid-template-columns:1fr;gap:38px}}
 .hero h1{max-width:14ch;margin-top:20px}
 .hero .lead{margin-top:22px}
 .hero-note{margin-top:16px;font-size:13.5px;color:var(--ink-3)}
+
+/* La captura del panel, recortada por arriba a propósito: ahí está lo que
+   prueba el titular (lo que el sistema hizo mientras nadie miraba). El corte
+   evita además el bloque de minutos incluidos, que es un dato de tarifa y
+   cambia — una captura no puede contradecir a la página de precio. */
+.hero-shot{margin:0;border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:var(--surf)}
+.hero-shot-win{position:relative;aspect-ratio:1400/860;overflow:hidden}
+.hero-shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.hero-shot figcaption{display:flex;align-items:center;gap:9px;padding:12px 16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.45}
+.hero-shot figcaption i{width:6px;height:6px;border-radius:50%;background:var(--lime);flex:none}
+@media (max-width:520px){.hero-shot-win{aspect-ratio:1400/1000}}
 
 /* Muestra de voz real: es la prueba, no un adorno */
 .play{display:inline-flex;align-items:center;gap:12px;margin-top:30px;padding:11px 18px 11px 12px;background:var(--surf);border:1px solid var(--line-2);border-radius:999px;cursor:pointer;font-family:var(--sans);font-size:14.5px;font-weight:600;color:var(--ink);transition:border-color .18s,background .18s}
@@ -282,23 +304,35 @@ html.anim .rev.in{opacity:1;transform:none}
 <!-- ══ HERO ══ Una verdad operativa, no una promesa de marca. -->
 <section class="hero">
   <div class="wrap">
-    <p class="mark rev">Andoain · Gipuzkoa</p>
-    <h1 class="rev">El trabajo no termina cuando cuelgas.</h1>
-    <p class="lead rev">
-      Termina cuando la cita está en la agenda, el cliente tiene su confirmación y
-      alguien sabe qué pasó. <strong>Construimos el software que hace esa parte</strong> —
-      la que se queda a medias cuando nadie tiene tiempo.
-    </p>
-    <div class="btns rev">
-      <a class="btn btn-1" href="/recepcion">Ver NodeFlow Recepción</a>
-      <a class="btn btn-2" href="#escena">Ver una llamada entera</a>
+    <div class="hero-grid">
+      <div>
+        <p class="mark rev">Andoain · Gipuzkoa</p>
+        <h1 class="rev">El trabajo no termina cuando cuelgas.</h1>
+        <p class="lead rev">
+          Termina cuando la cita está en la agenda, el cliente tiene su confirmación y
+          alguien sabe qué pasó. <strong>Construimos el software que hace esa parte</strong> —
+          la que se queda a medias cuando nadie tiene tiempo.
+        </p>
+        <div class="btns rev">
+          <a class="btn btn-1" href="/recepcion">Ver NodeFlow Recepción</a>
+          <a class="btn btn-2" href="#escena">Ver una llamada entera</a>
+        </div>
+        <button class="play rev" id="play" type="button">
+          <span class="play-ico" aria-hidden="true">▶</span>
+          <span id="play-txt">Escuchar cómo suena</span>
+          <span class="play-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        </button>
+        <p class="hero-note rev">Grabación real de una llamada. Castellano, euskera y galego.</p>
+      </div>
+
+      <figure class="hero-shot rev">
+        <div class="hero-shot-win">
+          <img src="/guia-img/dashboard.jpg" width="1400" height="940" fetchpriority="high" decoding="async"
+               alt="Panel de NodeFlow de una clínica dental: 6 llamadas atendidas, 3 citas reservadas, 4 avisos enviados, 240 € en reservas y 1 hora y media sin estar el dueño al teléfono.">
+        </div>
+        <figcaption><i aria-hidden="true"></i>El panel de una clínica, un lunes por la mañana. Producto real, sin retocar.</figcaption>
+      </figure>
     </div>
-    <button class="play rev" id="play" type="button">
-      <span class="play-ico" aria-hidden="true">▶</span>
-      <span id="play-txt">Escuchar cómo suena</span>
-      <span class="play-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-    </button>
-    <p class="hero-note rev">Grabación real de una llamada. Castellano, euskera y galego.</p>
   </div>
 </section>
 

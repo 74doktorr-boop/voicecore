@@ -32,7 +32,19 @@ const RATE_LIMIT_WINDOW = 60000; // 1 minute
 //                         para que un bucle/abuso no dispare el coste. Avisa
 //                         antes de llegar (banda de overage).
 const PLAN_LIMITS = {
-  negocio:    { minutesPerMonth: 500,   assistants: 999, callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 3 },
+  // 200 minutos incluidos, no 500 (2026-07-29). Con el coste real medido —0,0969
+  // €/min sobre 52 llamadas— el punto de equilibrio de un plan de 49 € está en
+  // ~506 minutos: el cupo anterior estaba puesto JUSTO en el coste, así que un
+  // cliente que lo agotara dejaba 55 céntimos. No dolía porque el uso real es de
+  // ~15 min/mes (el 3%), pero deja de no doler en cuanto entre volumen de verdad.
+  //
+  // El multiplicador sube de 3 a 8 A PROPÓSITO: el tope de seguridad es
+  // incluidos × multiplicador, o sea 1600 min, prácticamente los 1500 de antes.
+  // Bajar el cupo sin tocarlo lo habría dejado en 600, y una clínica del perfil
+  // al que vamos (≈464 min/mes) se quedaría SIN QUE LE COJAN EL TELÉFONO al
+  // final de mes. El cupo es comercial; el tope es una red contra fugas de
+  // coste. No tienen por qué moverse juntos.
+  negocio:    { minutesPerMonth: 200,   assistants: 999, callsPerMinute: 20,  concurrentCalls: 3,   overage: true,  hardCapMultiplier: 8 },
   enterprise: { minutesPerMonth: 99999, assistants: 999, callsPerMinute: 200, concurrentCalls: 100, overage: true,  hardCapMultiplier: 10 },
 };
 

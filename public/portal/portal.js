@@ -8220,7 +8220,7 @@ var FAQ_DATA = [
       {
         q: '¿Qué incluye el plan Negocio (49€/mes)?',
         a: '<ul>' +
-           '<li>Hasta 500 minutos de llamadas atendidas al mes</li>' +
+           '<li>Hasta 200 minutos de llamadas atendidas al mes</li>' +
            '<li>Asistente de voz personalizado con tu información</li>' +
            '<li>Recordatorios automáticos de citas</li>' +
            '<li>Emails post-llamada y recuperación de no-shows</li>' +
@@ -8229,7 +8229,7 @@ var FAQ_DATA = [
            '</ul>',
       },
       {
-        q: '¿Qué pasa si supero los 500 minutos del plan Negocio?',
+        q: '¿Qué pasa si supero los 200 minutos del plan Negocio?',
         a: '<p>Te avisaremos cuando te acerques al límite. Si lo superas, el asistente seguirá funcionando y te contactaremos para ajustar el plan al volumen real de llamadas de tu negocio.</p>',
       },
     ],
