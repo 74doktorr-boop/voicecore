@@ -616,7 +616,10 @@ async function sendWelcomePortalEmail(registro, magicToken) {
  */
 function buildActivacionEmail(registro, numeroNodeflow, opts = {}) {
   const horarioConfigurado = opts.horarioConfigurado === true;
-  const panelUrl = `${process.env.PUBLIC_URL || 'https://nodeflow.es'}/portal`;
+  // ?go=horario deja al dueño directamente en Asistente ▸ 🕐 Horario. Sin eso
+  // aterriza en el panel y tiene que adivinar dónde está — y un paso del alta
+  // que depende de que el cliente encuentre algo, se pierde ahí.
+  const panelUrl = `${process.env.PUBLIC_URL || 'https://nodeflow.es'}/portal?go=horario`;
   const nombre   = (registro.contacto || 'Cliente').split(' ')[0];
   const numLimpio = numeroNodeflow.replace(/\s/g, '');
   const numMostrar = numeroNodeflow;

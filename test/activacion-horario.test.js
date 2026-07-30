@@ -54,6 +54,36 @@ describe('email de activación — sin horario configurado (el alta real)', () =
   });
 });
 
+describe('el botón "Poner mi horario" tiene que aterrizar en algún sitio', () => {
+  // Un CTA roto en el email del alta no da error: deja al dueño en el panel sin
+  // saber qué hacer, y el paso se pierde sin que nadie se entere. Esto ata las
+  // tres piezas —email, router del portal y DOM— para que renombrar cualquiera
+  // de ellas rompa un test en vez de romper el alta de un cliente.
+  const fs = require('fs');
+  const path = require('path');
+  const raiz = path.join(__dirname, '..', 'public', 'portal');
+  const portalJs = fs.readFileSync(path.join(raiz, 'portal.js'), 'utf8');
+  const portalHtml = fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
+
+  test('el email enlaza con ?go=horario, en HTML y en texto', async () => {
+    const m = await htmlDeActivacion({ horarioConfigurado: false });
+    assert.match(m.html, /\/portal\?go=horario/);
+    assert.match(m.text, /\/portal\?go=horario/);
+  });
+
+  test('el portal reconoce ese parámetro', () => {
+    assert.match(portalJs, /_go === 'horario'/);
+  });
+
+  test('y lo que busca para hacer clic EXISTE en el HTML', () => {
+    assert.match(portalJs, /btn-subtab\[data-subtab="horario"\]/, 'el selector cambió');
+    assert.ok(portalHtml.includes('data-subtab="horario"'), 'la subpestaña ya no se llama así');
+    assert.ok(portalHtml.includes('id="sec-asistente"'), 'la sección Asistente cambió de id');
+    assert.ok(portalHtml.includes('id="asis-horario"'), 'el panel del horario cambió de id');
+    assert.ok(portalHtml.includes('id="asis-schedule-grid"'), 'la rejilla del horario cambió de id');
+  });
+});
+
 describe('email de activación — con horario ya puesto', () => {
   test('vuelve al mensaje de siempre y no pide lo que ya hizo', async () => {
     const m = await htmlDeActivacion({ horarioConfigurado: true });

@@ -897,7 +897,8 @@ function showApp() {
   // queda descartado de forma permanente; ese flujo ya no existe.
 
   // Deep-links desde emails: ?go=reglas → Seguimientos ▸ Reglas (informe semanal);
-  // ?go=seguimientos → Personalizados (briefing diario).
+  // ?go=seguimientos → Personalizados (briefing diario);
+  // ?go=horario → Asistente ▸ 🕐 Horario (email de activación).
   var _go = new URLSearchParams(location.search).get('go');
   if (_go === 'reglas' || _go === 'seguimientos') {
     history.replaceState(null, '', location.pathname);
@@ -908,6 +909,25 @@ function showApp() {
         if (btn) btn.click();
       }, 300);
     }
+    return;
+  }
+  // El email de activación pide al dueño que ponga su horario: sin él, el
+  // asistente reserva citas contra un calendario por defecto que el negocio no
+  // ha visto nunca. El botón le dejaba en /portal a secas, y desde ahí hay que
+  // adivinar que el horario vive en Asistente ▸ 🕐 Horario. Un paso del alta que
+  // depende de que el cliente ENCUENTRE algo, se pierde ahí.
+  if (_go === 'horario') {
+    history.replaceState(null, '', location.pathname);
+    navigate('asistente');
+    // loadAsistente() es asíncrono y repinta los paneles: la subpestaña se
+    // cambia después para que no se la coma el repintado (mismo motivo y mismo
+    // retardo que el ?go=reglas de arriba).
+    setTimeout(function() {
+      var btn = document.querySelector('#sec-asistente .btn-subtab[data-subtab="horario"]');
+      if (btn) btn.click();
+      var el = document.getElementById('asis-horario');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
     return;
   }
 
