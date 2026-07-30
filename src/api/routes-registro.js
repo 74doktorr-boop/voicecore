@@ -324,7 +324,14 @@ function setupRegistroRoutes(app) {
 
       // Optional fields with sensible defaults
       const efectivoVoz    = voz    || VOZ_POR_DEFECTO;
-      const efectivoIdioma = idioma || 'es';
+      // El alta es la OTRA puerta al idioma: aquí no hay desplegable que limite
+      // nada, se acepta lo que venga en el cuerpo. Un enlace antiguo, una landing
+      // vieja en caché o una llamada directa podían dar de alta una organización
+      // en euskera, que el producto no habla. Se normaliza a castellano en vez de
+      // rechazar el alta: perder un cliente por un parámetro heredado sería peor
+      // que darlo de alta en el idioma que sí funciona.
+      const IDIOMAS_OFRECIDOS = ['es', 'gl', 'es+gl', 'en', 'fr', 'es+en', 'es+fr'];
+      const efectivoIdioma = IDIOMAS_OFRECIDOS.includes(idioma) ? idioma : 'es';
       const efectivoCiudad = ciudad || 'España';
       const efectivoSaludo = saludo || `Hola, gracias por llamar a ${negocio}. ¿En qué puedo ayudarte?`;
 
@@ -334,7 +341,7 @@ function setupRegistroRoutes(app) {
         ? String(formSource).toLowerCase().replace(/[^a-z0-9/:_-]/g, '').slice(0, 60)
         : null;
       const effectiveSource   = couponData?.source || cleanFormSource || null;
-      const effectiveLanguage = formLanguage || efectivoIdioma;
+      const effectiveLanguage = IDIOMAS_OFRECIDOS.includes(formLanguage) ? formLanguage : efectivoIdioma;
       // Fundador → prefijo en el source almacenado, preservando la atribución
       // original tras los dos puntos (la lógica de referido usa effectiveSource
       // sin tocar).

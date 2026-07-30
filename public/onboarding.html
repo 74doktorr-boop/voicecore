@@ -151,8 +151,8 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
     <div class="form-group">
       <label for="idioma">Idioma de tu asistente *</label>
       <select id="idioma">
+        <!-- Euskera retirado 2026-07-31: el producto no lo habla y esto es el alta. -->
         <option value="es">Castellano</option>
-        <option value="eu">Euskera</option>
         <option value="gl">Galego</option>
       </select>
     </div>
@@ -303,8 +303,10 @@ if (urlSector) {
     if (opt) sectorEl.value = opt.value;
   }
 }
-// Pre-select language if a landing (e.g. Galicia/Euskadi) passed ?idioma=
-if (['es', 'eu', 'gl'].includes(urlIdioma)) {
+// Pre-select language if a landing (e.g. Galicia) passed ?idioma=
+// 'eu' fuera de la lista a propósito: un enlace antiguo con ?idioma=eu no debe
+// poder colar un valor que ya no existe en el desplegable.
+if (['es', 'gl'].includes(urlIdioma)) {
   const idiomaEl = document.getElementById('idioma');
   if (idiomaEl) idiomaEl.value = urlIdioma;
 }
@@ -374,7 +376,6 @@ const vpAudio = new Audio();
 function greetingText() {
   const n = (document.getElementById('negocio').value.trim()) || 'tu negocio';
   const idioma = document.getElementById('idioma').value;
-  if (idioma === 'eu') return '¡Kaixo! ' + n + '-era deitu duzu. Zure laguntzaile birtuala naiz. Zertan lagundu diezazuket?';
   if (idioma === 'gl') return '¡Ola! Chamou a ' + n + '. Son o seu asistente virtual. En que podo axudarlle?';
   return '¡Hola! Ha llamado a ' + n + '. Soy su asistente virtual. ¿En qué puedo ayudarle?';
 }
@@ -514,7 +515,7 @@ async function _submitRegistroInner() {
     // Build summary
     const basePrice  = (typeof plan.priceEur === 'number') ? plan.priceEur : PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
-    const idiomaLabels = { es: 'Castellano', eu: 'Euskera', gl: 'Galego' };
+    const idiomaLabels = { es: 'Castellano', gl: 'Galego' };
     const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Cristina';
     const summary = document.getElementById('summary-rows');
     summary.innerHTML =

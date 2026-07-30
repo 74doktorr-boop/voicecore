@@ -20,7 +20,7 @@
       "automatizar citas peluquería Bilbao",
       "asistente virtual peluquería Bizkaia"
     ],
-    "focus": "Cómo una peluquería en Bilbao puede automatizar sus llamadas y citas con IA. Casos de uso, integración con Google Calendar, atención en euskera.",
+    "focus": "Cómo una peluquería en Bilbao puede automatizar sus llamadas y citas con IA. Casos de uso, integración con Google Calendar, recuperación de huecos por cancelación.",
     "sector": "peluquerias",
     "city": "bilbao",
     "generated": true
@@ -566,7 +566,7 @@
       "automatizar citas veterinario Bizkaia",
       "asistente virtual clínica veterinaria Bilbao"
     ],
-    "focus": "Cómo las clínicas veterinarias de Bilbao y Bizkaia pueden gestionar urgencias, vacunaciones y citas de revisión automáticamente con IA en castellano y euskera.",
+    "focus": "Cómo las clínicas veterinarias de Bilbao y Bizkaia pueden gestionar urgencias, vacunaciones y citas de revisión automáticamente con IA.",
     "sector": "veterinarias",
     "city": "bilbao",
     "generated": true
@@ -616,7 +616,7 @@
       "recepcionista virtual dentista San Sebastián",
       "automatizar citas dentista Gipuzkoa"
     ],
-    "focus": "Cómo las clínicas dentales de Donostia-San Sebastián pueden reducir llamadas perdidas, automatizar triaje de urgencias y gestionar recordatorios con IA en euskera y castellano.",
+    "focus": "Cómo las clínicas dentales de Donostia-San Sebastián pueden reducir llamadas perdidas, automatizar triaje de urgencias y gestionar recordatorios con IA.",
     "sector": "clinicas",
     "city": "donostia"
   },
@@ -651,7 +651,7 @@
       "mejor recepcionista virtual 2026",
       "checklist IA negocio"
     ],
-    "focus": "Checklist de compra: latencia inferior a un segundo, agenda unificada real (que consulte tu calendario, no una copia), idiomas incluidos euskera y galego, WhatsApp oficial verificado por Meta, RGPD y no-entrenamiento con tus datos, informe de resultados en euros y sin permanencia. Posicionar cada punto como pregunta que el lector debe hacer a cualquier proveedor, y responder cómo lo cumple NodeFlow.",
+    "focus": "Checklist de compra: latencia inferior a un segundo, agenda unificada real (que consulte tu calendario, no una copia), tope de gasto que no se pueda saltar, registro consultable de lo que decidió la IA en cada llamada, WhatsApp oficial verificado por Meta, RGPD y no-entrenamiento con tus datos, informe de resultados en euros y sin permanencia. Posicionar cada punto como pregunta que el lector debe hacer a cualquier proveedor, y responder cómo lo cumple NodeFlow.",
     "sector": "producto"
   },
   {
@@ -685,7 +685,7 @@
       "recepcionista virtual farmacia San Sebastián",
       "turno guardia farmacia IA Gipuzkoa"
     ],
-    "focus": "Cómo las farmacias de Donostia pueden automatizar consultas de turno de guardia, disponibilidad y horarios en castellano y euskera con IA.",
+    "focus": "Cómo las farmacias de Donostia pueden automatizar consultas de turno de guardia, disponibilidad y horarios con IA.",
     "sector": "farmacias",
     "city": "donostia"
   },
@@ -708,7 +708,7 @@
       "recepcionista virtual taller San Sebastián",
       "automatizar citas taller Gipuzkoa"
     ],
-    "focus": "Cómo los talleres mecánicos de Donostia pueden gestionar citas, presupuestos y llamadas de seguimiento automáticamente con IA en euskera y castellano.",
+    "focus": "Cómo los talleres mecánicos de Donostia pueden gestionar citas, presupuestos y llamadas de seguimiento automáticamente con IA.",
     "sector": "talleres",
     "city": "donostia"
   },
@@ -792,7 +792,7 @@
       "IA para pymes verdad",
       "miedos IA negocio"
     ],
-    "focus": "Desmontar con datos los mitos: 'mis clientes colgarán a un robot' (voces naturales y latencia real), 'es caro' (49€/mes vs valor de una llamada), 'es complicado' (activo en minutos, sin hardware), 'la IA dirá barbaridades' (reglas de negocio fuera del LLM), 'mis datos entrenarán a otros' (compromiso de no-entrenamiento), 'quita trabajo a personas' (hace el trabajo que nadie hacía), 'no habla mi idioma' (euskera y galego nativos).",
+    "focus": "Desmontar con datos los mitos: 'mis clientes colgarán a un robot' (voces naturales y latencia real), 'es caro' (49€/mes vs valor de una llamada), 'es complicado' (activo en minutos, sin hardware), 'la IA dirá barbaridades' (reglas de negocio fuera del LLM), 'mis datos entrenarán a otros' (compromiso de no-entrenamiento), 'quita trabajo a personas' (hace el trabajo que nadie hacía), 'se va a inventar cosas y no me voy a enterar' (cada decisión queda registrada y se puede repasar).",
     "sector": "producto"
   },
   {
@@ -845,13 +845,13 @@
   },
   {
     "slug": "ia-multiidioma-turismo-pais-vasco",
-    "title": "IA multiidioma para negocios turísticos del País Vasco: euskera, castellano, inglés y francés",
+    "title": "IA multiidioma para negocios turísticos del País Vasco: castellano, inglés y francés",
     "keywords": [
       "IA multiidioma turismo País Vasco",
       "asistente virtual turismo Bilbao inglés francés",
       "recepcionista IA varios idiomas negocios turísticos"
     ],
-    "focus": "Por qué los negocios turísticos del País Vasco necesitan IA que responda en euskera, castellano, inglés y francés. Restaurantes, hoteles y actividades ante turistas internacionales.",
+    "focus": "Por qué los negocios turísticos del País Vasco necesitan IA que responda en castellano, inglés y francés. Restaurantes, hoteles y actividades ante turistas internacionales.",
     "sector": null,
     "city": null,
     "generated": true

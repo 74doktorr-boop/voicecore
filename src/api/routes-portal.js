@@ -1860,8 +1860,21 @@ function setupPortalRoutes(app, pipeline, config) {
     // Config avanzada (motores de la crítica sectorial). Todo opt-in.
     const { guardrailExtra, costAlertThresholdEur, costCapEur, deposit, stayUnits, integrations, staff, icalFeeds } = req.body;
 
-    if (language && !['es', 'eu', 'gl', 'es+eu', 'es+gl', 'en', 'fr', 'es+en', 'es+fr'].includes(language)) {
-      return res.status(400).json({ error: "language no válido (es, eu, gl, en, fr o combos es+eu/es+gl/es+en/es+fr)" });
+    // EUSKERA RETIRADO DE LA OFERTA (2026-07-31). El portal dejaba al cliente
+    // elegir 'eu' o 'es+eu' como idioma de su asistente, y el producto no lo
+    // habla. Eso ya no es una exageración de marketing: es una opción que un
+    // cliente puede activar hoy y que promete algo que no ocurre.
+    //
+    // Se cierra AQUÍ, en el validador, no sólo en el desplegable: quitar la
+    // opción de la interfaz y dejar la API abierta significa que sigue siendo
+    // configurable por cualquiera que llame al endpoint.
+    //
+    // NO se toca el motor: `src/assistants/i18n.js` conserva el euskera. Retirar
+    // la OFERTA no es lo mismo que borrar la CAPACIDAD, y el día que las voces
+    // en euskera estén listas esto vuelve cambiando una lista.
+    const IDIOMAS_OFRECIDOS = ['es', 'gl', 'es+gl', 'en', 'fr', 'es+en', 'es+fr'];
+    if (language && !IDIOMAS_OFRECIDOS.includes(language)) {
+      return res.status(400).json({ error: "language no válido (es, gl, en, fr o combos es+gl/es+en/es+fr)" });
     }
     // Saneado de la config avanzada (seguridad: URLs http(s), no internas; topes).
     const advPatch = {};
