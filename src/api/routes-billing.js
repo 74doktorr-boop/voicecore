@@ -1,3 +1,4 @@
+const { VOZ_POR_DEFECTO } = require('../tts/voice-quota');
 // ============================================
 // VoiceCore — Billing API Routes
 // Stripe checkout, portal, usage, invoices
@@ -355,7 +356,7 @@ function setupBillingRoutes(app, config) {
                     assistant_config: {
                       ...ac,
                       assistantName: `Asistente de ${registro.negocio}`,
-                      voice:         registro.voz || 'nova',
+                      voice:         registro.voz || VOZ_POR_DEFECTO,
                       firstMessage:  registro.saludo || defaultGreeting,
                     },
                   }).eq('id', org.id);

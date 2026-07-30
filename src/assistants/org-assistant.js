@@ -130,7 +130,7 @@ async function getOrgAssistant(orgId) {
           log.info(`[${orgId}] Voz ${cfg.voice} (${entry.tier}) degradada a ${fbId} (${fb?.provider || 'incluida'}) — cupo agotado (${minutesUsed} min)`);
           return fb
             ? { voice: fb.providerVoiceId, ttsProvider: fb.provider, voiceDowngraded: true }
-            : { voice: cfg.voice || 'nova', voiceDowngraded: true };
+            : { voice: cfg.voice || VOZ_POR_DEFECTO, voiceDowngraded: true };
         }
         if (entry && entry.provider === 'local')    return { voice: entry.providerVoiceId, ttsProvider: 'local' };
         if (entry && entry.provider === 'cartesia') return { voice: entry.providerVoiceId, ttsProvider: 'cartesia' }; // tier incluido
@@ -138,7 +138,7 @@ async function getOrgAssistant(orgId) {
         // en no-castellano — una llamada en GALEGO (brais-gl) se iría a local-gl o
         // se quedaría sin proveedor. Con provider explícito, Brais suena en llamadas.
         if (entry && entry.provider === 'elevenlabs') return { voice: entry.providerVoiceId, ttsProvider: 'elevenlabs' };
-        return { voice: cfg.voice || 'nova' }; // sin entry: elevenlabs por defecto (voice-map traduce el alias)
+        return { voice: cfg.voice || VOZ_POR_DEFECTO }; // sin entrada en catálogo: cae en la voz incluida
       })(),
       language,
       // Palanca admin-only para experimentos A/B de cerebro (2026-07-03):

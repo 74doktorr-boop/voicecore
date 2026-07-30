@@ -36,6 +36,25 @@ function shouldDowngradeVoice(voiceTier, minutesUsedThisMonth, hasVoiceAddon, ex
  * (Cartesia, tier estándar). Protege el margen: sale más barata que ElevenLabs
  * y suena natural. Mismo género que la voz premium.
  */
+/**
+ * Voz por defecto de un asistente nuevo.
+ *
+ * Hasta el 2026-07-31 era 'nova', que NO está en el catálogo: al no resolver a
+ * ninguna entrada, la llamada caía por descarte en ElevenLabs vía voice-map.
+ * O sea que el tier "Estándar = Cartesia (incluida)" estaba construido entero
+ * —router con prioridad 1, seis voces, degradación por cupo— y no lo usaba
+ * NADIE: de las últimas llamadas reales, 30 fueron con ElevenLabs y 0 con
+ * Cartesia. El coste medido: 0,10 €/min contra 0,015.
+ *
+ * Se usa la MISMA voz que el sistema ya elige cuando degrada por cupo agotado
+ * (`includedFallbackFor`), para que la voz por defecto y la de respaldo sean la
+ * misma y el cliente no note un cambio de timbre al agotar el premium.
+ *
+ * Sobrescribible por entorno: si en producción no convence cómo suena, se
+ * cambia con una variable y un reinicio, sin tocar código ni desplegar.
+ */
+const VOZ_POR_DEFECTO = process.env.DEFAULT_VOICE_ID || 'blanca-ca';
+
 function includedFallbackFor(gender) {
   return gender === 'male' ? 'marcos-ca' : 'blanca-ca';
 }
@@ -94,6 +113,7 @@ function depletePackOnReset({ minutesUsed, hasVoiceAddon, extraMinutes = 0 }) {
 }
 
 module.exports = {
+  VOZ_POR_DEFECTO,
   QUOTA_BASIC, QUOTA_ADDON, premiumQuota, shouldDowngradeVoice,
   includedFallbackFor, voiceQuotaSummary, depletePackOnReset,
 };

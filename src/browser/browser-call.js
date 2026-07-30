@@ -1,3 +1,4 @@
+const { VOZ_POR_DEFECTO } = require('../tts/voice-quota');
 // Browser Voice Test — Low-latency streaming version
 // Stream: Mic → Deepgram STT → LLM Router (streaming, groq>openai) → TTS (per-sentence) → Audio
 const { createClient } = require('@deepgram/sdk');
@@ -286,7 +287,7 @@ class BrowserCallHandler {
     try {
       const response = await this.openai.audio.speech.create({
         model: 'tts-1',
-        voice: assistant.voice || 'nova',
+        voice: assistant.voice || VOZ_POR_DEFECTO,
         input: text,
         response_format: 'mp3',
         speed: assistant.speed || 1.0

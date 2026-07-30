@@ -1,3 +1,4 @@
+const { VOZ_POR_DEFECTO } = require('../tts/voice-quota');
 // ============================================
 // VoiceCore — Database Client
 // Supabase PostgreSQL connection + queries
@@ -108,7 +109,7 @@ class Database {
       name: config.name,
       system_prompt: config.systemPrompt || config.system_prompt,
       first_message: config.firstMessage || config.first_message,
-      voice: config.voice || 'nova',
+      voice: config.voice || VOZ_POR_DEFECTO,
       language: config.language || 'es',
       // null explícito = el router LLM elige el más rápido (groq > openai).
       // OJO: la columna tiene DEFAULT 'gpt-4o-mini'; si se OMITE el campo,

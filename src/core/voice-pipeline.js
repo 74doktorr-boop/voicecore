@@ -1,3 +1,4 @@
+const { VOZ_POR_DEFECTO } = require('../tts/voice-quota');
 // ============================================
 // VoiceCore v2.0 — Voice Pipeline
 // Main orchestrator: STT → LLM → TTS
@@ -1182,7 +1183,7 @@ class VoicePipeline {
           callId,
           text,
           provider: session.assistant.ttsProvider || null,
-          voice: session.assistant.voice || 'nova',
+          voice: session.assistant.voice || VOZ_POR_DEFECTO,
           speed: session.assistant.speed || 1.0,
           language: session.assistant.language || 'es',
           strategy: session.assistant.ttsStrategy || 'latency',

@@ -1,3 +1,4 @@
+const { VOZ_POR_DEFECTO } = require('../tts/voice-quota');
 // ============================================
 // NodeFlow — Registro de nuevos clientes
 // POST /api/registro  → guarda datos, devuelve ID
@@ -322,7 +323,7 @@ function setupRegistroRoutes(app) {
 
 
       // Optional fields with sensible defaults
-      const efectivoVoz    = voz    || 'nova';
+      const efectivoVoz    = voz    || VOZ_POR_DEFECTO;
       const efectivoIdioma = idioma || 'es';
       const efectivoCiudad = ciudad || 'España';
       const efectivoSaludo = saludo || `Hola, gracias por llamar a ${negocio}. ¿En qué puedo ayudarte?`;
