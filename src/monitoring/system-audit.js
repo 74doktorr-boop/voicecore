@@ -143,6 +143,14 @@ function buildSystemAudit(d = {}) {
   // entrantes en 90 días, y nadie se había enterado.
   // Sube a crítico al mes: por debajo de eso es un alta que va lenta, que pasa;
   // por encima es un cliente que lleva un mes creyendo que tiene el servicio.
+  // Excluir en SILENCIO sería tapar la señal: si una cuenta de cliente real
+  // tiene puesto un email nuestro por error, desaparecería del informe justo
+  // por estar mal configurada. Se excluye, pero se dice.
+  if ((d.internasExcluidas || []).length) {
+    marca('info', `${d.internasExcluidas.length} cuentas internas fuera del recuento`,
+      `${d.internasExcluidas.map(x => `${x.negocio} (${x.email})`).join(', ')}. Si alguna es un cliente de verdad, tiene mal el owner_email y no le llegan ni los resúmenes de sus llamadas.`);
+  }
+
   for (const n of (d.numerosMudos || [])) {
     const dias = Number(n.diasAsignado) || 0;
     marca(dias >= MUDO_CRITICO_DIAS ? 'critico' : 'aviso',
@@ -257,6 +265,7 @@ async function runSystemAudit(deps = {}) {
     // y no lo tiene. Ventana amplia a propósito (90 días): aquí no buscamos una
     // bajada de tráfico, sino la ausencia TOTAL de él.
     const numerosMudos = [];
+    const internasExcluidas = [];
     try {
       const { esCuentaInterna } = require('./call-outcome');
       const { data: pool } = await db.client.from('nf_phone_pool')
@@ -277,7 +286,10 @@ async function runSystemAudit(deps = {}) {
         for (const p of asignados) {
           if (recibidas.has(p.phone_number)) continue;
           const org = porId[p.org_id];
-          if (org && esCuentaInterna(org.owner_email, internos)) continue;
+          if (org && esCuentaInterna(org.owner_email, internos)) {
+            internasExcluidas.push({ negocio: org.name || p.phone_number, email: org.owner_email });
+            continue;
+          }
           const t = p.assigned_at ? Date.parse(p.assigned_at) : NaN;
           numerosMudos.push({
             numero: p.phone_number,
@@ -288,7 +300,7 @@ async function runSystemAudit(deps = {}) {
       }
     } catch (_) {}
 
-    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos });
+    const informe = buildSystemAudit({ llamadas: llamadas || [], esquema, entorno, version, numeros, numerosMudos, internasExcluidas });
     const to = process.env.NOTIFY_EMAIL || 'unai@nodeflow.es';
     const prefijo = informe.severidad === 'critico' ? '🚨' : informe.severidad === 'aviso' ? '⚠️' : '✅';
     await enviar({ to, subject: `${prefijo} NodeFlow · auditoría técnica — ${informe.resumen}`, html: renderSystemAudit(informe, dias) });

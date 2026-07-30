@@ -129,6 +129,20 @@ describe('buildSystemAudit — números asignados que no reciben nada', () => {
     assert.strictEqual(r.severidad, 'critico');
   });
 
+  test('las cuentas internas se excluyen PERO se dicen', () => {
+    // Excluirlas en silencio sería tapar la señal: un cliente real con el
+    // owner_email mal puesto desaparecería del informe justo por estar mal.
+    const r = buildSystemAudit({
+      llamadas: sanas(5),
+      internasExcluidas: [{ negocio: 'Centro Osakin', email: '74doktorr+metarevisor@gmail.com' }],
+    });
+    const l = r.lineas.find(x => /cuentas internas/.test(x.titulo));
+    assert.ok(l, 'la exclusión tiene que ser visible');
+    assert.match(l.detalle, /Centro Osakin/);
+    assert.match(l.detalle, /mal el owner_email/);
+    assert.strictEqual(r.severidad, 'ok', 'pero no es una alarma');
+  });
+
   test('sin números mudos no dice nada', () => {
     const r = buildSystemAudit({ llamadas: sanas(5), numerosMudos: [] });
     assert.ok(!r.lineas.some(x => /NUNCA una llamada/.test(x.titulo)));
