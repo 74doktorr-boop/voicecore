@@ -299,8 +299,15 @@ describe('weekly-report', () => {
     assert.match(to, /^\d{4}-\d{2}-\d{2}$/);
     const days = (new Date(to) - new Date(from)) / 86400000;
     assert.strictEqual(days, 6); // from..to inclusive = 7 días
-    const hoy = new Date().toLocaleDateString('sv-SE');
-    assert.ok(to < hoy, 'el rango debe terminar antes de hoy');
+    // "Hoy" hay que medirlo en MADRID, que es donde razona lastWeekRange
+    // (usa madridToday). Sin el timeZone, esto medía el "hoy" del proceso: en
+    // el portátil da igual, pero el runner de CI va en UTC, y entre las 22:00 y
+    // las 00:00 UTC —o sea, de medianoche a las dos de Madrid— el día de Madrid
+    // ya ha cambiado y el de UTC no. Resultado: to == hoy y el test en rojo sin
+    // que nadie hubiera tocado el informe. Rompió el build de ab838215.
+    // El código estaba bien; lo que medía en otra zona horaria era el test.
+    const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    assert.ok(to < hoy, `el rango debe terminar antes de hoy (to=${to}, hoy en Madrid=${hoy})`);
   });
 });
 
