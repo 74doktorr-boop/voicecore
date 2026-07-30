@@ -30,11 +30,22 @@ function freshBiz() {
   });
 }
 
-// Próximo día laborable (lunes-viernes) en el futuro
+// Próximo día laborable (lunes-viernes) en el futuro.
+//
+// OJO CON LA ZONA HORARIA: el día se elige en hora LOCAL (`getDay()`) pero
+// antes se formateaba con `toISOString()`, que es UTC. En Madrid, entre
+// medianoche y las dos de la mañana, el lunes local es domingo en UTC — así
+// que el test pedía cita un domingo sin saberlo. No se notó hasta que entró el
+// calendario de negocio, que rechaza reservar con el negocio cerrado: cuatro
+// tests en rojo, sólo de madrugada, y sin haber tocado nada de multi-sede.
+// La fecha se compone a mano en local para que el día que se comprueba sea
+// exactamente el día que se envía.
 function nextWeekday() {
   const d = new Date();
   do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
-  return d.toISOString().split('T')[0];
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
 describe('multi-sede: scheduler', () => {
