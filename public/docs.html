@@ -5,29 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoiceCore API Docs</title>
   <meta name="robots" content="noindex, nofollow">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
   <style>
-    :root { --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e; --accent: #e0a23c; --green: #00d2d3; --text: #e8e8f0; --dim: #8888a8; --muted: #55556a; --border: rgba(255,255,255,0.06); }
+    :root { --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e; --accent: #c4f546; --green: #00d2d3; --text: #EEF3E4; --dim: #818B76; --muted: #55556a; --border: rgba(255,255,255,0.06); }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+    body { font-family: 'Satoshi',system-ui,sans-serif; background: var(--bg); color: var(--text); }
     .layout { display: flex; min-height: 100vh; }
     .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px; position: fixed; top: 0; bottom: 0; overflow-y: auto; }
     .sidebar h2 { font-size: 18px; margin-bottom: 24px; }
-    .sidebar h2 span { color: #f2bd5e; }
+    .sidebar h2 span { color: #A8DC2A; }
     .sidebar h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 20px 0 8px; }
     .sidebar a { display: block; padding: 6px 12px; margin: 2px 0; border-radius: 6px; color: var(--dim); text-decoration: none; font-size: 13px; transition: all 0.2s; }
     .sidebar a:hover, .sidebar a.active { background: rgba(224,162,60,0.15); color: var(--text); }
     .main { margin-left: 260px; padding: 40px 48px; max-width: 900px; }
     h1 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
     h2 { font-size: 22px; font-weight: 700; margin: 48px 0 16px; padding-top: 24px; border-top: 1px solid var(--border); }
-    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: #f2bd5e; }
+    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; color: #A8DC2A; }
     p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; font-size: 14px; }
     .endpoint { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
     .method { padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
     .method-get { background: rgba(0,210,211,0.15); color: var(--green); }
-    .method-post { background: rgba(224,162,60,0.15); color: #f2bd5e; }
-    .method-put { background: rgba(254,202,87,0.15); color: #feca57; }
-    .method-delete { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .method-post { background: rgba(224,162,60,0.15); color: #A8DC2A; }
+    .method-put { background: rgba(254,202,87,0.15); color: #E8B84B; }
+    .method-delete { background: rgba(255,107,107,0.15); color: #ff6f5e; }
     .path { color: var(--text); }
     .desc { color: var(--dim); font-size: 12px; margin-left: auto; }
     code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); }
@@ -35,11 +36,11 @@
     .param-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     .param-table th, .param-table td { padding: 8px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
     .param-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
-    .required { color: #ff6b6b; font-size: 11px; font-weight: 600; }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(224,162,60,0.15); color: #f2bd5e; margin-left: 8px; }
+    .required { color: #ff6f5e; font-size: 11px; font-weight: 600; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(224,162,60,0.15); color: #A8DC2A; margin-left: 8px; }
     @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 24px; } }
-      h1 { font-family:'Fraunces',Georgia,serif; font-weight:600; letter-spacing:-0.5px; }
-      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#f2bd5e);outline-offset:3px;border-radius:6px;}
+      h1 { font-family:'Clash Display',system-ui,sans-serif; font-weight:600; letter-spacing:-0.5px; }
+      a:focus-visible,button:focus-visible,.btn:focus-visible,.faq-q:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-l,#A8DC2A);outline-offset:3px;border-radius:6px;}
   </style>
 </head>
 <body>

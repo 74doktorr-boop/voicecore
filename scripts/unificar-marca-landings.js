@@ -36,7 +36,10 @@ const EXCLUIR = new Set(['blog', 'portal', 'admin', 'hementxe', 'recepcion']);
 // Las legales SÍ se unifican de marca —tienen que parecer de la misma casa—
 // pero NO llevan captura del producto: una pantalla de ventas en mitad de la
 // política de privacidad es exactamente lo que nadie quiere encontrarse.
-const SIN_CAPTURA = new Set(['privacidad', 'terminos', 'condiciones', 'aviso-legal', 'gracias', 'status', 'guias']);
+// Y tampoco las de sistema: un 404 o un formulario de alta con una pantalla
+// de ventas encajada en medio es lo contrario de ayudar.
+const SIN_CAPTURA = new Set(['privacidad', 'terminos', 'condiciones', 'aviso-legal', 'gracias', 'status', 'guias',
+  '404', 'docs', 'onboarding', 'demo', '_landing-v3', 'index-old']);
 
 // ── Tipografía ────────────────────────────────────────────────────────────
 const FUENTES_MARCA =
@@ -125,6 +128,22 @@ function migrar(html, nombre) {
   }
   if (tocados) cambios.push(`paleta(${tocados})`);
 
+  // 3) Fuera los orbes y el ruido: <div> vacíos con filter:blur(90px) fijados
+  //    al viewport. Decoración sin significado que además compone en cada
+  //    frame. Estaban en las landings Y en el blog.
+  const antesOrbes = s;
+  s = s.replace(/\s*<div class="orb orb-\d"><\/div>/g, '')
+       .replace(/\s*<div class="noise"><\/div>/g, '')
+       .replace(/\.orb\{[^}]*\}/g, '')
+       .replace(/\.orb-\d\{[^}]*\}/g, '')
+       .replace(/\.noise\{[^}]*\}/g, '');
+  if (s !== antesOrbes) cambios.push('orbes');
+
+  // 4) Texto BLANCO sobre el acento: con el dorado se leía, con el lima no.
+  const antesBtn = s;
+  s = s.replace(/background:var\(--accent\);color:#fff/g, 'background:var(--accent);color:#0F110C');
+  if (s !== antesBtn) cambios.push('boton');
+
   // 3) La captura, sólo si la página no tiene NINGUNA imagen y hay dónde meterla
   if (!SIN_CAPTURA.has(nombre) && !/<img\s/i.test(s) && /<\/body>/i.test(s)) {
     const cierre = s.lastIndexOf('</style>');
@@ -144,20 +163,32 @@ const dry  = process.argv.includes('--dry');
 const iSolo = process.argv.indexOf('--solo');
 const solo = iSolo !== -1 ? process.argv[iSolo + 1] : null;
 
-const carpetas = fs.readdirSync(PUBLIC, { withFileTypes: true })
-  .filter(d => d.isDirectory() && !EXCLUIR.has(d.name))
-  .map(d => d.name)
-  .filter(n => !solo || n === solo)
-  .filter(n => fs.existsSync(path.join(PUBLIC, n, 'index.html')));
+function recorrer(dir, acc) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const ruta = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      if (EXCLUIR.has(e.name)) continue;
+      recorrer(ruta, acc);
+    } else if (e.name.endsWith('.html')) {
+      acc.push(ruta);
+    }
+  }
+  return acc;
+}
+
+const ficheros = recorrer(PUBLIC, [])
+  .filter(f => !solo || f.includes(path.sep + solo + path.sep));
 
 let tocadas = 0;
-for (const c of carpetas) {
-  const f = path.join(PUBLIC, c, 'index.html');
+for (const f of ficheros) {
+  const rel = path.relative(PUBLIC, f).split(path.sep).join('/');
+  const carpeta = rel.split('/')[0].replace(/\.html$/, '');
   const antes = fs.readFileSync(f, 'utf8');
-  const { s, cambios } = migrar(antes, c);
-  if (!cambios.length) { console.log(`  ·  ${c.padEnd(20)} sin cambios`); continue; }
+  const { s, cambios } = migrar(antes, carpeta);
+  if (!cambios.length) continue;
   if (!dry) fs.writeFileSync(f, s);
   tocadas++;
-  console.log(`  ${dry ? '~' : '✓'}  ${c.padEnd(20)} ${cambios.join(' · ')}`);
+  console.log(`  ${dry ? '~' : '✓'}  ${rel.padEnd(46)} ${cambios.join(' · ')}`);
 }
-console.log(`\n${dry ? 'ENSAYO — no se ha escrito nada. ' : ''}Landings afectadas: ${tocadas} de ${carpetas.length}`);
+console.log(`
+${dry ? 'ENSAYO — no se ha escrito nada. ' : ''}Paginas tocadas: ${tocadas} de ${ficheros.length}`);
