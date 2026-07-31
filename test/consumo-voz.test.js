@@ -123,3 +123,44 @@ test('el coste llega a la fila: se escribe callData.cost', () => {
     'el coste se adjunta antes de end(): end() devuelve el objeto que se guarda, ' +
     'así que asignarlo antes no llega a la fila');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UN PROVEEDOR QUE RECHAZA POR PLAN NO SE REINTENTA EN CADA FRASE
+//
+// Medido el 2026-07-31 contra la API real: la clave de ElevenLabs de producción
+// está en plan GRATUITO y devuelve 402 «Free users cannot use library voices
+// via the API». Siempre. Cero caracteres consumidos en 90 días — nunca ha
+// sintetizado nada.
+//
+// Y como para el castellano tiene afinidad de idioma, iba PRIMERA en la cadena:
+// cada frase de cada llamada gastaba ~150 ms pidiéndole audio a un proveedor
+// que se sabía que iba a decir que no. En un producto de teléfono eso es
+// silencio para el que llama, en cada frase.
+//
+// Un 401/402/403 no es un hipo: es una respuesta estable. El plan no cambia
+// entre una llamada y la siguiente.
+// ─────────────────────────────────────────────────────────────────────────────
+test('un 402 aparta al proveedor; un fallo normal no', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'tts', 'router.js'), 'utf8');
+  // Comparación de texto, no una expresión regular que describa otra expresión
+  // regular: escribir eso en un heredoc se come las barras invertidas y el
+  // test acaba buscando un carácter de retroceso. Ya ha pasado tres veces en
+  // este repo.
+  assert.ok(src.includes('(401|402|403)') && src.includes('.test(err.message)'),
+    'Ya no se distingue el rechazo por plan de un fallo transitorio, así que se ' +
+    'vuelve a reintentar en cada frase un proveedor que siempre dice que no.');
+  assert.match(src, /_apartadoHasta = Date\.now\(\) \+ 30 \* 60 \* 1000/,
+    'El apartado debe ser temporal: si fuera para siempre, contratar el plan ' +
+    'obligaría a reiniciar el proceso para que volviera.');
+});
+
+test('el proveedor apartado se SALTA, no sólo se registra', () => {
+  // Sin el salto en la cabecera del bucle, el corte sólo serviría para escribir
+  // un log más bonito: se le seguiría pidiendo audio y los ~150 ms seguirían ahí.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'tts', 'router.js'), 'utf8');
+  const bucle = src.slice(src.indexOf('for (const providerName of chain)'));
+  const posSalto = bucle.indexOf('_apartadoHasta && Date.now()');
+  const posTry = bucle.indexOf('try {');
+  assert.ok(posSalto > -1 && posSalto < posTry,
+    'el salto tiene que estar ANTES del try, o se le pide audio igualmente');
+});

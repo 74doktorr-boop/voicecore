@@ -260,6 +260,10 @@ class TTSRouter {
     for (const providerName of chain) {
       const info = this.providers.get(providerName);
       if (!info) continue;
+      // Apartado por rechazo de plan/credenciales: se salta sin pedirle nada.
+      // Es lo que ahorra los ~150 ms por frase; sin este salto, el corte de
+      // abajo sólo serviría para escribir un log más bonito.
+      if (info._apartadoHasta && Date.now() < info._apartadoHasta) continue;
 
       try {
         const t0 = Date.now();
@@ -297,7 +301,28 @@ class TTSRouter {
         return audio;
 
       } catch (err) {
-        log.warn(`[${callId}] TTS '${providerName}' failed: ${err.message} — trying next`);
+        // Un 401/402/403 NO es un hipo: es una respuesta estable. El plan no
+        // cambia entre una llamada y la siguiente.
+        //
+        // Medido el 2026-07-31: la clave de ElevenLabs está en plan gratuito y
+        // devuelve 402 «Free users cannot use library voices via the API».
+        // SIEMPRE. Cero caracteres consumidos en 90 días. Y como para el
+        // castellano tiene afinidad de idioma, iba PRIMERA en la cadena: cada
+        // síntesis de cada llamada gastaba ~150 ms en pedirle audio a un
+        // proveedor que se sabía que iba a decir que no, y luego caía al
+        // siguiente. En un producto de teléfono en tiempo real eso es tiempo
+        // que el que llama pasa oyendo silencio, en cada frase.
+        //
+        // Se aparta el proveedor y se revisa dentro de media hora, por si
+        // alguien contrata el plan: apartarlo para siempre obligaría a
+        // reiniciar el proceso para que volviera.
+        if (/\b(401|402|403)\b/.test(err.message)) {
+          info._apartadoHasta = Date.now() + 30 * 60 * 1000;
+          log.error(`[${callId}] TTS '${providerName}' rechaza por plan/credenciales (${err.message}). ` +
+            'Apartado 30 min: seguir pidiéndole audio en cada frase sólo añade latencia.');
+        } else {
+          log.warn(`[${callId}] TTS '${providerName}' failed: ${err.message} — trying next`);
+        }
         this._updateMetrics(providerName, 0, true);
       }
     }
