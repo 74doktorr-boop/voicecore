@@ -19,6 +19,95 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('TTS:ROUTER');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LIBRO DE CONSUMO DE VOZ
+//
+// Por qué existe: la columna `cost` de nf_calls llevaba desde el principio a
+// 0,0000 en TODAS las llamadas, y no se guardaba qué proveedor había atendido
+// ninguna. Es decir, el coste de voz —que es el 88% del coste variable de la
+// empresa— no estaba medido en ningún sitio. Se manejaban DOS constantes
+// distintas escritas a mano para lo mismo (0,07 en este fichero y 0,10 en el
+// resto), y no había forma de contrastar ninguna con una factura porque no
+// había nada contra lo que contrastar.
+//
+// SE GUARDAN CARACTERES, NO EUROS. El carácter es la unidad que factura el
+// proveedor: es lo que aparece en la factura y lo que se puede cuadrar línea a
+// línea. El euro es un derivado, y guardarlo congelaría el precio del día en
+// que se escribió — el día que cambie la tarifa, el histórico entero pasaría a
+// ser mentira. Con los caracteres guardados, el coste se recalcula cuando haga
+// falta y las llamadas viejas siguen siendo verdad.
+// ─────────────────────────────────────────────────────────────────────────────
+const _consumo = new Map();     // callId → { proveedor: { caracteres, sintesis } }
+const _nacimiento = new Map();  // callId → cuándo se abrió, para la purga
+
+function anotarConsumo(callId, proveedor, caracteres) {
+  if (!callId || !caracteres) return;
+  let llamada = _consumo.get(callId);
+  if (!llamada) { llamada = {}; _consumo.set(callId, llamada); _nacimiento.set(callId, Date.now()); }
+  const p = llamada[proveedor] || (llamada[proveedor] = { caracteres: 0, sintesis: 0 });
+  p.caracteres += caracteres;
+  p.sintesis += 1;
+}
+
+/** Lo consumido por una llamada, sin borrarlo. */
+function consumoDeLlamada(callId) {
+  return _consumo.get(callId) || {};
+}
+
+/**
+ * Devuelve el consumo y lo saca del mapa. Se llama al cerrar la llamada.
+ *
+ * El olvido importa: sin esto el mapa crece durante toda la vida del proceso y
+ * acaba siendo una fuga de memoria lenta, de las que sólo se notan semanas
+ * después y cuando ya no se sabe por qué. Por si alguna llamada no llega a
+ * cerrarse bien (cuelgue abrupto, reinicio a medias), hay además una purga por
+ * antigüedad más abajo.
+ */
+function cerrarConsumo(callId) {
+  const c = _consumo.get(callId) || {};
+  _consumo.delete(callId);
+  _nacimiento.delete(callId);
+  return c;
+}
+
+// Red de seguridad: nada vive aquí más de una hora. Una llamada de teléfono no
+// dura eso ni de lejos, así que lo que quede es de una que no llegó a cerrarse
+// (cuelgue abrupto, reinicio a medias). Sin esto el mapa crece durante toda la
+// vida del proceso: una fuga lenta, de las que se notan semanas después y ya no
+// se sabe por qué.
+function purgarConsumo(ahora = Date.now()) {
+  const limite = ahora - 3600000;
+  let purgadas = 0;
+  for (const [id, t] of _nacimiento) {
+    if (t < limite) { _consumo.delete(id); _nacimiento.delete(id); purgadas++; }
+  }
+  return purgadas;
+}
+// .unref() para que este temporizador NO mantenga vivo el proceso: sin él, un
+// script que sólo importe este módulo se queda colgado sin decir por qué.
+setInterval(purgarConsumo, 600000).unref?.();
+
+/**
+ * Convierte el consumo en euros con la tarifa de cada proveedor.
+ *
+ * Se calcula al leer, nunca al guardar: así una subida de tarifa no reescribe
+ * el pasado y el histórico sigue siendo comparable con las facturas viejas.
+ */
+function costeDeConsumo(consumo, tarifas) {
+  let total = 0;
+  const desglose = {};
+  for (const [proveedor, d] of Object.entries(consumo || {})) {
+    // ~14 caracteres por segundo de habla en castellano a ritmo normal. Es una
+    // conversión, no una medida: por eso se guardan los caracteres y esto se
+    // puede afinar después contra la duración real sin tocar los datos.
+    const minutos = d.caracteres / 14 / 60;
+    const eur = minutos * (tarifas?.[proveedor] ?? 0);
+    desglose[proveedor] = { ...d, minutosEstimados: +minutos.toFixed(3), eur: +eur.toFixed(4) };
+    total += eur;
+  }
+  return { total: +total.toFixed(4), desglose };
+}
+
 class TTSRouter {
   constructor(config = {}) {
     this.providers = new Map();
@@ -194,6 +283,14 @@ class TTSRouter {
         }
 
         this._updateMetrics(providerName, latency, false);
+        // Se apunta lo que de verdad se ha sintetizado. Va AQUÍ, dentro del
+        // bucle y después de comprobar que el audio no viene vacío, por dos
+        // motivos que cambian la cifra:
+        //   · un acierto de caché sale por arriba y no llega hasta aquí — y no
+        //     cuesta nada, así que contarlo inflaría la factura;
+        //   · un proveedor que falla tampoco cuenta: lo que se paga es lo que
+        //     devolvió audio, no lo que se intentó.
+        anotarConsumo(callId, providerName, text.length);
         this._addToCache(cacheKey, audio);
 
         log.metric(`[${callId}] TTS via ${providerName} in ${latency}ms`);
@@ -207,6 +304,18 @@ class TTSRouter {
 
     log.error(`[${callId}] All TTS providers failed`);
     return Buffer.alloc(0);
+  }
+
+  /**
+   * Tarifa por minuto de cada proveedor REGISTRADO, tal cual está declarada
+   * arriba. No se copia la cifra a ningún otro sitio a propósito: ya había dos
+   * constantes distintas para ElevenLabs (0,07 aquí y 0,10 en el resto del
+   * sistema) y nadie sabía cuál era la buena. Una sola fuente.
+   */
+  tarifasPorProveedor() {
+    const t = {};
+    for (const [nombre, info] of this.providers) t[nombre] = info.costPerMinute ?? 0;
+    return t;
   }
 
   // ── Chain builder ─────────────────────────────────────────────────────────
@@ -375,4 +484,7 @@ class TTSRouter {
   }
 }
 
-module.exports = { TTSRouter };
+module.exports = {
+  TTSRouter,
+  anotarConsumo, consumoDeLlamada, cerrarConsumo, purgarConsumo, costeDeConsumo,
+};

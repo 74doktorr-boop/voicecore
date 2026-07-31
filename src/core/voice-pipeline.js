@@ -1368,10 +1368,44 @@ class VoicePipeline {
     // medido. Persiste en nf_calls.metrics.quality: "hoy 97 llamadas, 95
     // con score >80" sustituye a leer logs. v2 (auditor IA) tras validar E2E.
     session.metrics.quality = this._computeQuality(session, callSeconds);
+
+    // ── Consumo de voz: lo que de verdad se ha sintetizado en esta llamada ──
+    // La columna `cost` de nf_calls llevaba desde el principio a 0,0000 en TODAS
+    // las llamadas y no se guardaba qué proveedor había atendido ninguna. O sea
+    // que el coste de voz —el 88% del coste variable— no estaba medido en
+    // ningún sitio, y por eso la tarea «validar la factura de ElevenLabs»
+    // llevaba abierta sin poder cerrarse: no había contra qué contrastarla.
+    //
+    // Se guardan CARACTERES por proveedor, que es la unidad que factura el
+    // proveedor y la que aparece en la factura. Los euros se derivan al leer,
+    // así una subida de tarifa no reescribe el pasado.
+    try {
+      const { cerrarConsumo, costeDeConsumo } = require('../tts/router');
+      const consumo = cerrarConsumo(callId);
+      if (Object.keys(consumo).length) {
+        const tarifas = this.ttsRouter?.tarifasPorProveedor?.() || {};
+        const { total, desglose } = costeDeConsumo(consumo, tarifas);
+        session.metrics.voz = { proveedores: desglose, eurEstimado: total };
+        // Y a la columna `cost`, que es JSONB y llevaba desde el principio en
+        // `{}` porque nadie la escribía. De ahí salía el «0,0000» de las 40
+        // llamadas: no es que el coste fuera cero, es que no se guardaba.
+        session._coste = { voz: desglose, eurEstimado: total, tarifas };
+      }
+    } catch (e) {
+      // Medir no puede tumbar una llamada: si esto falla, la llamada ya ha
+      // terminado bien y lo único que se pierde es el dato de coste.
+      log.warn(`[${callId}] no se pudo anotar el consumo de voz: ${e.message}`);
+    }
+
     sttDebug.finalize(callId);
 
     this.sttRouter.closeSession(callId);
     const callData = session.end();
+    // El coste se adjunta AQUÍ, después de end(), porque callData es lo que
+    // acaba en la fila. Se guarda la tarifa usada junto al desglose: dentro de
+    // seis meses, cuando el precio haya cambiado, esa llamada seguirá diciendo
+    // con qué tarifa se calculó y podrá cuadrarse con la factura de su mes.
+    if (session._coste) callData.cost = session._coste;
     this.activeCalls.delete(callId);
     // Baja del contador del clúster (DORMANTE — no-op si CLUSTER_MODE off).
     // Fire-and-forget; si fallara, la clave caduca sola por TTL de auto-cura.
