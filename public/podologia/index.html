@@ -314,7 +314,33 @@
 /* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
    móvil. Es el fallo más repetido de estas páginas. */
 .nf-prueba-in > *{min-width:0}
-</style>
+
+    /* Calculadora — sustituye a la tabla de impacto inventada */
+    .calc { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; }
+    .calc h4 { font-size:17px; font-weight:700; margin-bottom:6px; color:var(--text); }
+    .calc-sub { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:22px; }
+    .calc-f { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .calc-f label { font-size:13.5px; color:var(--text); flex:1; min-width:150px; }
+    .calc-f input[type=number] { width:92px; background:var(--bg); border:1px solid var(--border);
+      color:var(--text); border-radius:8px; padding:9px 11px; font:inherit; font-size:14px;
+      text-align:right; font-variant-numeric:tabular-nums; min-height:44px; }
+    /* 44 px es el mínimo para acertar con el pulgar. Sin el min-height se
+       quedaban en 42 y en un móvil eso se falla, y quien falla no reintenta. */
+    .calc-f input:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+    .calc-f .u { font-size:12.5px; color:var(--muted); min-width:56px; }
+    .calc-note { font-size:11.5px; color:var(--muted); line-height:1.55; margin:-8px 0 18px; }
+    .calc-note a { color:var(--accent); }
+    .calc-out { border-top:1px solid var(--border); margin-top:22px; padding-top:22px; }
+    .calc-big { font-size:clamp(26px,4.6vw,38px); font-weight:800; color:var(--accent);
+      line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+    .calc-big small { display:block; font-size:13px; font-weight:500; color:var(--text);
+      letter-spacing:0; margin-top:6px; }
+    .calc-cuenta { font-size:12px; color:var(--muted); line-height:1.7; margin-top:16px;
+      font-variant-numeric:tabular-nums; }
+    .calc-cuenta b { color:var(--text); font-weight:600; }
+    @media (prefers-reduced-motion:no-preference){ .calc-big { transition:color .2s; } }
+
+  </style>
   <!-- Plausible Analytics -->
   <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
 </head>
@@ -517,29 +543,40 @@
           </div>
         </div>
         <div>
-          <div class="roi-chart">
-            <h4>Impacto mensual · clínica de podología típica</h4>
-            <div class="bar-row">
-              <span class="bar-label">Revisiones completadas</span>
-              <div class="bar-wrap"><div class="bar-fill bar-fill-green" style="width:82%"></div></div>
-              <span class="bar-val">+50%</span>
+          <div class="calc">
+            <h4>Échale la cuenta con tus números</h4>
+            <p class="calc-sub">No tenemos clientes de los que sacar porcentajes, así que no te los vamos a enseñar. Pon lo tuyo y sale tu cifra.</p>
+
+            <div class="calc-f">
+              <label for="c-lla">Llamadas que recibes al día</label>
+              <input type="number" id="c-lla" value="20" min="0" max="500" step="1">
+              <span class="u">al día</span>
             </div>
-            <div class="bar-row">
-              <span class="bar-label">Tiempo al teléfono</span>
-              <div class="bar-wrap"><div class="bar-fill bar-fill-red" style="width:22%"></div></div>
-              <span class="bar-val">-78%</span>
+            <div class="calc-f">
+              <label for="c-per">De cada 100, cuántas se quedan sin coger</label>
+              <input type="number" id="c-per" value="27" min="0" max="100" step="1">
+              <span class="u">de 100</span>
             </div>
-            <div class="bar-row">
-              <span class="bar-label">Pacientes perdidos</span>
-              <div class="bar-wrap"><div class="bar-fill bar-fill-red" style="width:28%"></div></div>
-              <span class="bar-val">-50%</span>
+            <p class="calc-note">El 27 de partida no es nuestro: es lo que midió Invoca en 2024 analizando más de 60 millones de llamadas a negocios de servicios. Si crees que en tu caso es menos, bájalo — la cuenta se rehace sola.</p>
+            <div class="calc-f">
+              <label for="c-con">De las que se pierden, cuántas habrían acabado en cliente</label>
+              <input type="number" id="c-con" value="30" min="0" max="100" step="1">
+              <span class="u">de 100</span>
             </div>
-            <div class="bar-row">
-              <span class="bar-label">Ingresos/mes</span>
-              <div class="bar-wrap"><div class="bar-fill bar-fill-accent" style="width:74%"></div></div>
-              <span class="bar-val">+18%</span>
+            <div class="calc-f">
+              <label for="c-val">Lo que te deja de media un cliente</label>
+              <input type="number" id="c-val" value="60" min="0" max="100000" step="5">
+              <span class="u">euros</span>
             </div>
-            <p style="font-size:12px;color:var(--muted);margin-top:16px;">Estimaciones basadas en clínicas de podología con 30-70 pacientes activos en Bizkaia y Gipuzkoa.</p>
+
+            <div class="calc-out">
+              <p class="calc-big" id="c-res" aria-live="polite">2.160 €<small>al mes que hoy se quedan en el teléfono sin coger</small></p>
+              <p class="calc-cuenta" id="c-cuenta">
+                20 llamadas/día × 22 días laborables = <b>440 al mes</b>.<br>
+                El 27% sin coger = <b>119</b>. De ésas, 30 de cada 100 habrían sido cliente = <b>36</b>.<br>
+                36 × 60 € = <b>2.160 € al mes</b>. NodeFlow cuesta 49 €.
+              </p>
+            </div>
           </div>
 
           <div class="testimonial">
@@ -710,6 +747,44 @@
     q.addEventListener('click', toggle);
     q.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
+</script>
+<script>
+/* La calculadora que sustituyó a la tabla de impacto inventada.
+   Todo el resultado sale de lo que teclea el visitante: aquí no hay ni un
+   número nuestro. Y la cuenta se imprime entera debajo — una calculadora que
+   esconde su aritmética es otra caja negra, y vendemos justo lo contrario. */
+(function(){
+  var e=function(i){return document.getElementById(i)};
+  var lla=e('c-lla'), per=e('c-per'), con=e('c-con'), val=e('c-val'),
+      res=e('c-res'), cue=e('c-cuenta');
+  if(!lla||!res) return;
+  /* Separador de miles a mano, no toLocaleString: al probarlo, 9600 salió
+     «9600» en vez de «9.600» porque el entorno no traía los datos de locale
+     completos. Una cifra de dinero sin puntos se lee mal y encima delata que
+     no se ha probado. Esto no depende de nada. */
+  var eur=function(n){
+    n=Math.round(n);
+    var s=String(n), out='', c=0;
+    for(var i=s.length-1;i>=0;i--){ out=s[i]+out; if(++c%3===0&&i>0) out='.'+out; }
+    return out;
+  };
+  function calc(){
+    var L=Math.max(0,+lla.value||0), P=Math.min(100,Math.max(0,+per.value||0)),
+        C=Math.min(100,Math.max(0,+con.value||0)), V=Math.max(0,+val.value||0);
+    var mes=L*22, perdidas=Math.round(mes*P/100), clientes=Math.round(perdidas*C/100),
+        euros=clientes*V;
+    res.innerHTML=eur(euros)+' €<small>al mes que hoy se quedan en el teléfono sin coger</small>';
+    cue.innerHTML=eur(L)+' llamadas/día × 22 días laborables = <b>'+eur(mes)+' al mes</b>.<br>'+
+      'El '+P+'% sin coger = <b>'+eur(perdidas)+'</b>. De ésas, '+C+' de cada 100 habrían sido cliente = <b>'+eur(clientes)+'</b>.<br>'+
+      eur(clientes)+' × '+eur(V)+' € = <b>'+eur(euros)+' € al mes</b>. NodeFlow cuesta 49 €.';
+  }
+  [lla,per,con,val].forEach(function(i){ i.addEventListener('input',calc); });
+  /* Y se recalcula al cargar. Si no, lo que ve el visitante hasta que toca algo
+     es lo que yo dejé escrito a mano en el HTML — y la primera vez lo dejé mal:
+     puse 2.376 € donde salían 2.160. Que la única cifra de la página la calcule
+     la máquina y no yo es justo el punto de todo esto. */
+  calc();
+})();
 </script>
 </body>
 </html>
