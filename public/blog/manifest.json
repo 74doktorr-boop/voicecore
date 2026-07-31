@@ -4,7 +4,6 @@
     "recepcionista-ia-peluqueria-bilbao",
     "asistente-voz-clinica-dental-pais-vasco",
     "como-no-perder-llamadas-negocio-euskadi",
-    "recepcionista-virtual-euskera-nativo",
     "automatizar-reservas-restaurante-donostia",
     "ia-atencion-telefonica-pymes-espana",
     "recepcionista-ia-taller-mecanico-bilbao",
@@ -33,7 +32,6 @@
     "ia-para-inmobiliarias-gestion-llamadas",
     "recepcionista-virtual-clinica-fisioterapia",
     "integracion-whatsapp-business-ia-negocio",
-    "recepcionista-ia-multiidioma-euskera-galego",
     "ia-telefonica-rgpd-cumplimiento-espana",
     "como-elegir-asistente-ia-telefono-pyme",
     "estadisticas-llamadas-perdidas-pymes-espana",
@@ -50,7 +48,6 @@
     "novedades-nodeflow-verano-2026",
     "seguridad-privacidad-ia-rgpd-negocios",
     "telefono-whatsapp-email-un-solo-cerebro",
-    "negocio-que-atiende-euskera-galego-ia",
     "ficha-viva-crm-que-se-escribe-solo",
     "lo-que-recupere-por-ti-roi-medible-ia",
     "fin-doble-agenda-overbooking-negocios",
@@ -212,21 +209,6 @@
       "sector": "producto",
       "city": null,
       "readingMinutes": 8
-    },
-    {
-      "slug": "negocio-que-atiende-euskera-galego-ia",
-      "title": "Kaixo, bos días: la IA que atiende tu negocio en euskera y galego",
-      "metaTitle": "IA en euskera y galego para tu negocio | NodeFlow",
-      "description": "La única recepcionista IA que atiende en euskera y galego con voces propias. Cercanía que las multinacionales no pueden copiar. Descubre cómo suena.",
-      "date": "2026-07-18",
-      "keywords": [
-        "IA en euskera",
-        "atención telefónica galego",
-        "recepcionista virtual euskera"
-      ],
-      "sector": "producto",
-      "city": null,
-      "readingMinutes": 6
     },
     {
       "slug": "telefono-whatsapp-email-un-solo-cerebro",
@@ -467,21 +449,6 @@
       "sector": null,
       "city": null,
       "readingMinutes": 6
-    },
-    {
-      "slug": "recepcionista-ia-multiidioma-euskera-galego",
-      "title": "Recepcionista IA Multiidioma en España: Castellano, Euskera y Galego",
-      "metaTitle": "Recepcionista IA Multiidioma: Castellano, Euskera y Galego",
-      "description": "Descubre cómo una recepcionista IA multiidioma en España puede transformar tu negocio. Visita nodeflow.es para más información.",
-      "date": "2026-05-27",
-      "keywords": [
-        "recepcionista IA multiidioma España",
-        "asistente virtual euskera castellano galego",
-        "IA varios idiomas negocio"
-      ],
-      "sector": null,
-      "city": null,
-      "readingMinutes": 7
     },
     {
       "slug": "integracion-whatsapp-business-ia-negocio",
@@ -902,21 +869,6 @@
       "sector": "restaurantes",
       "city": "donostia",
       "readingMinutes": 8
-    },
-    {
-      "slug": "recepcionista-virtual-euskera-nativo",
-      "title": "Recepcionista Virtual en Euskera: ¿Futuro o Realidad en 2026?",
-      "metaTitle": "Recepcionista virtual euskera: futuro en 2026",
-      "description": "Descubre cómo un recepcionista virtual que habla euskera nativo puede transformar tu negocio en 2026. ¡Infórmate en NodeFlow!",
-      "date": "2026-05-27",
-      "keywords": [
-        "recepcionista virtual euskera",
-        "asistente IA euskera nativo",
-        "IA habla euskera negocio"
-      ],
-      "sector": null,
-      "city": null,
-      "readingMinutes": 7
     },
     {
       "slug": "como-no-perder-llamadas-negocio-euskadi",

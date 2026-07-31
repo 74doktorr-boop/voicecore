@@ -401,9 +401,32 @@ app.get(['/blog', '/blog/'], (req, res) => {
   if (fs.existsSync(f)) return res.sendFile(f);
   res.redirect('/');
 });
+// ─── Artículos RETIRADOS: 410 Gone, no 404 ───
+// Estos cuatro afirmaban que el asistente de voz atiende en euskera. No es
+// cierto y no se arreglaba tachando una frase: el euskera ERA el tema. Se
+// retiraron el 2026-07-31 (scripts/retirar-articulos-euskera.js).
+//
+// 410 y no 404 porque el matiz importa de verdad: 404 dice «no lo encuentro» y
+// Google reintenta durante meses; 410 dice «existía y lo hemos quitado a
+// propósito» y lo desindexa mucho antes. Y no un 301 a otro artículo: redirigir
+// «recepcionista en euskera» a algo que va de otra cosa es lo que Google trata
+// como soft-404, y el visitante aterriza donde no ha pedido.
+//
+// Se sirve CON página, no un error seco: quien llega viene de una búsqueda y
+// merece saber qué pasó y adónde ir.
+const ARTICULOS_RETIRADOS = new Set([
+  'recepcionista-virtual-euskera-nativo',
+  'recepcionista-ia-multiidioma-euskera-galego',
+  'ia-multiidioma-turismo-pais-vasco',
+  'negocio-que-atiende-euskera-galego-ia',
+]);
+
 app.get('/blog/:slug', (req, res) => {
   // Sanitize slug to prevent path traversal (e.g. '../../../etc/passwd')
   const slug = req.params.slug.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (ARTICULOS_RETIRADOS.has(slug)) {
+    return res.status(410).sendFile(path.join(__dirname, 'public', 'blog', 'retirado.html'));
+  }
   if (!slug) return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
   const f = path.join(__dirname, 'public', 'blog', slug, 'index.html');
   // Extra guard: confirm resolved path is inside public/blog/

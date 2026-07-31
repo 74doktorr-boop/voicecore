@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artículo retirado — NodeFlow</title>
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#0F110C">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&f[]=satoshi@400,600,700&display=swap" rel="stylesheet">
+<style>
+/* Página que acompaña a un 410 Gone. Se sirve con ese código a propósito: el
+   artículo existía y se ha retirado, no es que no se encuentre. Lo que ve el
+   visitante no puede ser un error seco — viene de una búsqueda y hay que
+   decirle qué ha pasado y adónde ir. */
+:root{
+  --bg:#0F110C; --surf:#191E14; --ink:#EEF3E4; --ink-2:#B9C2AC; --ink-3:#818B76;
+  --line:rgba(226,236,214,.11); --line-2:rgba(226,236,214,.21); --lime:#c4f546;
+  --disp:'Clash Display',system-ui,sans-serif; --sans:'Satoshi',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono',Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.6;
+  min-height:100vh;display:grid;place-items:center;padding:clamp(24px,6vw,72px)}
+a{color:inherit;text-decoration:none}
+.caja{max-width:62ch}
+.marca{font-family:var(--disp);font-weight:600;font-size:1.35rem;letter-spacing:-.03em;color:var(--ink)}
+.marca b{color:var(--lime);font-weight:600}
+.cod{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-3);margin:34px 0 14px}
+h1{font-family:var(--disp);font-weight:600;font-size:clamp(1.9rem,4.6vw,2.9rem);
+  line-height:1.05;letter-spacing:-.03em;color:var(--ink);text-wrap:balance}
+p{margin-top:18px;font-size:1.05rem;max-width:56ch}
+p b{color:var(--ink);font-weight:600}
+.salidas{display:flex;gap:14px;flex-wrap:wrap;margin-top:36px}
+.b{display:inline-flex;align-items:center;min-height:48px;padding:14px 22px;font-weight:700;
+  border:1px solid transparent;transition:background .2s,border-color .2s,color .2s}
+.b1{background:var(--lime);color:#0a0b0d}
+.b1:hover{background:#fff}
+.b2{border-color:var(--line-2);color:var(--ink)}
+.b2:hover{border-color:var(--lime);color:var(--lime)}
+.pie{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;color:var(--ink-3)}
+</style>
+</head>
+<body>
+  <div class="caja">
+    <a class="marca" href="/">node<b>flow</b></a>
+
+    <p class="cod">410 · Retirado</p>
+    <h1>Este artículo lo hemos retirado nosotros.</h1>
+
+    <p>
+      Decía que nuestro asistente de voz atiende en euskera. <b>No es cierto</b>:
+      el producto no lo habla. Lo escribimos, lo publicamos y estuvo indexado un
+      tiempo, y lo correcto no era corregir una frase para dejarlo pasar — era
+      quitarlo.
+    </p>
+    <p>
+      Lo que sí hace, con lo que se puede comprobar delante: atiende en
+      castellano, gallego, inglés y francés; deja la cita en tu agenda de
+      verdad; y guarda por qué tomó cada decisión, para que puedas revisarlo.
+    </p>
+
+    <div class="salidas">
+      <a class="b b1" href="/recepcion">Ver qué hace de verdad</a>
+      <a class="b b2" href="/blog">Volver al blog</a>
+    </div>
+
+    <p class="pie">NodeFlow IA S.L. · Si buscabas algo concreto: 666 351 319</p>
+  </div>
+</body>
+</html>

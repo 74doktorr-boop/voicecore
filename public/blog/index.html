@@ -29,12 +29,11 @@
   <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
   <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
-  
   <style>
     :root{--bg:#0F110C;--card:#191E14;--card-hover:#1F251A;--accent:#c4f546;--accent-l:#A8DC2A;--glow:rgba(196,245,70,0.22);--green:#c4f546;--text:#EEF3E4;--dim:#818B76;--muted:#818B76;--border:rgba(226,236,214,0.11);--border-accent:rgba(196,245,70,0.22)}
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{font-family:'Satoshi',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    body{font-family:'Satoshi',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
     .container{max-width:1100px;margin:0 auto;padding:0 24px}
     a{text-decoration:none;color:inherit}
     
@@ -52,13 +51,13 @@
     .hero{padding:110px 0 48px;position:relative;z-index:2;text-align:center}
     .hero h1{font-size:clamp(30px,5vw,54px);font-weight:900;letter-spacing:-2px;margin-bottom:14px}
     .hero p{color:var(--dim);font-size:17px;max-width:540px;margin:0 auto 20px}
-    .hero-count{display:inline-block;font-size:13px;color:var(--accent-l);background:rgba(196, 245, 70,0.1);border:1px solid rgba(196, 245, 70,0.2);padding:6px 14px;border-radius:100px}
+    .hero-count{display:inline-block;font-size:13px;color:var(--accent-l);background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.2);padding:6px 14px;border-radius:100px}
     .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:32px 0 80px;position:relative;z-index:2}
     @media(max-width:600px){.posts-grid{grid-template-columns:1fr}}
     .post-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:12px;transition:all .3s;color:var(--text)}
     .post-card:hover{border-color:var(--border-accent);transform:translateY(-4px);background:var(--card-hover);box-shadow:0 16px 48px rgba(0,0,0,0.4)}
     .post-card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .tag{font-size:11px;padding:3px 9px;border-radius:100px;background:rgba(196, 245, 70,0.15);border:1px solid rgba(196,245,70,0.22);color:var(--accent-l);font-weight:500}
+    .tag{font-size:11px;padding:3px 9px;border-radius:100px;background:rgba(108,92,231,0.15);border:1px solid rgba(196,245,70,0.22);color:var(--accent-l);font-weight:500}
     .post-card h2{font-size:18px;font-weight:700;letter-spacing:-0.4px;line-height:1.3}
     .post-card p{font-size:14px;color:var(--dim);line-height:1.65;flex:1}
     .read-more{font-size:13px;font-weight:600;color:var(--text)}
@@ -68,19 +67,7 @@
     .footer-links a{font-size:13px;color:var(--dim)}
     .footer-links a:hover{color:var(--text)}
     .footer-copy{font-size:12px;color:var(--muted)}
-  
-/* Bloque de prueba real — unificar-marca-landings.js */
-.nf-prueba{padding:clamp(56px,8vw,104px) 0;border-top:1px solid rgba(226,236,214,.11)}
-.nf-prueba-in{max-width:1040px;margin:0 auto;padding:0 22px}
-.nf-prueba-k{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#818B76;margin:0 0 14px}
-.nf-prueba-h{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.5rem);line-height:1.1;letter-spacing:-.03em;color:#EEF3E4;margin:0 0 14px;text-wrap:balance}
-.nf-prueba-p{font-size:1.02rem;line-height:1.6;color:#B9C2AC;margin:0 0 30px;max-width:60ch}
-.nf-prueba-f{margin:0;border:1px solid rgba(226,236,214,.11);border-radius:12px;overflow:hidden;background:#191E14}
-.nf-prueba-f img{width:100%;display:block;height:auto}
-/* Un hijo de rejilla con min-width:auto se niega a encogerse y desborda en
-   móvil. Es el fallo más repetido de estas páginas. */
-.nf-prueba-in > *{min-width:0}
-</style>
+  </style>
 </head>
 <body>
 <nav>
@@ -95,7 +82,7 @@
   <div class="container">
     <h1>Blog <span style="color:var(--accent-l)">NodeFlow</span></h1>
     <p>Guías prácticas sobre IA para negocios: recepcionistas virtuales, automatización de llamadas y mucho más.</p>
-    <span class="hero-count">61 artículos publicados</span>
+    <span class="hero-count">58 artículos publicados</span>
   </div>
 </section>
 <main>
@@ -169,7 +156,7 @@
           <time datetime="2026-07-18" style="margin-left:auto;color:var(--muted);font-size:12px">2026-07-18</time>
         </div>
         <h2>Voces IA casi humanas: por qué a NodeFlow no le cuelgan el teléfono</h2>
-        <p>La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo y hasta galego nativos. Así se hace.</p>
+        <p>La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo y hasta euskera y galego nativos. Así se hace.</p>
         <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
       </a>
       <a href="/blog/fin-doble-agenda-overbooking-negocios" class="post-card">
@@ -201,16 +188,6 @@
         <h2>La ficha viva: el CRM que se escribe solo mientras tú trabajas</h2>
         <p>El coche del cliente, su mascota, su póliza: NodeFlow lo apunta solo y programa los avisos que te traen ventas. El CRM que ningún pequeño negocio rellena, por fin sin rellenar.</p>
         <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
-      </a>
-      <a href="/blog/negocio-que-atiende-euskera-galego-ia" class="post-card">
-        <div class="post-card-meta">
-          
-          <span class="tag">producto</span>
-          <time datetime="2026-07-18" style="margin-left:auto;color:var(--muted);font-size:12px">2026-07-18</time>
-        </div>
-        <h2>Kaixo, bos días: la IA que atiende tu negocio en galego</h2>
-        <p>La única recepcionista IA que atiende en galego con voces propias. Cercanía que las multinacionales no pueden copiar. Descubre cómo suena.</p>
-        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
       </a>
       <a href="/blog/telefono-whatsapp-email-un-solo-cerebro" class="post-card">
         <div class="post-card-meta">
@@ -371,16 +348,6 @@
         <h2>IA telefónica y RGPD: Cumple con la Ley en España</h2>
         <p>Descubre cómo cumplir con la RGPD usando IA telefónica. Protege tus datos y mejora la atención. Visita nodeflow.es</p>
         <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">6 min</span></span>
-      </a>
-      <a href="/blog/recepcionista-ia-multiidioma-euskera-galego" class="post-card">
-        <div class="post-card-meta">
-          
-          
-          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
-        </div>
-        <h2>Recepcionista IA Multiidioma en España: castellano y galego</h2>
-        <p>Descubre cómo una recepcionista IA multiidioma en España puede transformar tu negocio. Visita nodeflow.es para más información.</p>
-        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
       </a>
       <a href="/blog/integracion-whatsapp-business-ia-negocio" class="post-card">
         <div class="post-card-meta">
@@ -662,16 +629,6 @@
         <p>Descubre cómo automatizar reservas en tu restaurante en Donostia con IA. Mejora la gestión y atrae más clientes. ¡Descúbrelo ya!</p>
         <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">8 min</span></span>
       </a>
-      <a href="/blog/recepcionista-virtual-euskera-nativo" class="post-card">
-        <div class="post-card-meta">
-          
-          
-          <time datetime="2026-05-27" style="margin-left:auto;color:var(--muted);font-size:12px">2026-05-27</time>
-        </div>
-        <h2>Recepcionista virtual: qué hace y qué no</h2>
-        <p>Descubre cómo Un recepcionista virtual que no falla una llamada puede transformar tu negocio en 2026. ¡Infórmate en NodeFlow!</p>
-        <span class="read-more">Leer artículo <span style="color:var(--accent-l)">→</span> <span style="color:var(--muted);font-size:12px">7 min</span></span>
-      </a>
       <a href="/blog/como-no-perder-llamadas-negocio-euskadi" class="post-card">
         <div class="post-card-meta">
           
@@ -715,21 +672,6 @@
     </div>
   </div>
 </main>
-
-<!-- Captura REAL del producto. Añadida por scripts/unificar-marca-landings.js:
-     42 de 43 landings no tenían ni una sola imagen, y por eso ninguna
-     demostraba que el producto existe. -->
-<section class="nf-prueba">
-  <div class="nf-prueba-in">
-    <p class="nf-prueba-k">Esto no es un montaje</p>
-    <h2 class="nf-prueba-h">Así queda cada llamada en tu panel.</h2>
-    <p class="nf-prueba-p">Con su resultado, su duración, la transcripción entera y qué decidió el asistente en cada momento. Lo abres cuando quieras.</p>
-    <figure class="nf-prueba-f">
-      <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
-           alt="Panel de llamadas de NodeFlow: cada llamada con su duración, su resultado, la cita reservada y el contacto.">
-    </figure>
-  </div>
-</section>
 <footer>
   <div class="container">
     <div class="footer-inner">

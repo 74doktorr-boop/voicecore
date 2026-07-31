@@ -52,19 +52,6 @@
     "generated": true
   },
   {
-    "slug": "recepcionista-virtual-euskera-nativo",
-    "title": "Recepcionista virtual que habla euskera nativo: ¿es posible en 2026?",
-    "keywords": [
-      "recepcionista virtual euskera",
-      "asistente IA euskera nativo",
-      "IA habla euskera negocio"
-    ],
-    "focus": "Estado de la IA en euskera, diferencias entre síntesis genérica y voces clonadas de locutores vascos reales. Por qué importa para los negocios del País Vasco.",
-    "sector": null,
-    "city": null,
-    "generated": true
-  },
-  {
     "slug": "automatizar-reservas-restaurante-donostia",
     "title": "Cómo automatizar las reservas de tu restaurante en Donostia",
     "keywords": [
@@ -424,19 +411,6 @@
       "WhatsApp automatizado negocio España"
     ],
     "focus": "Cómo combinar la atención por WhatsApp y la IA telefónica para crear una experiencia de cliente omnicanal. Configuración, ejemplos, ventajas.",
-    "sector": null,
-    "city": null,
-    "generated": true
-  },
-  {
-    "slug": "recepcionista-ia-multiidioma-euskera-galego",
-    "title": "Recepcionista IA multiidioma: castellano, euskera y galego en un solo sistema",
-    "keywords": [
-      "recepcionista IA multiidioma España",
-      "asistente virtual euskera castellano galego",
-      "IA varios idiomas negocio"
-    ],
-    "focus": "Por qué los negocios en el País Vasco y Galicia necesitan IA que responda en el idioma del cliente. Cómo funciona el multiidioma en NodeFlow.",
     "sector": null,
     "city": null,
     "generated": true
@@ -842,19 +816,6 @@
     ],
     "focus": "El caos típico del bono de 10 sesiones llevado en Excel o cartulina: sesiones sin descontar, bonos caducados sin avisar, discusiones incómodas. Cómo NodeFlow gestiona alta, consumo y caducidad de bonos desde el portal, integrado con las citas que da el asistente. Dirigido a fisioterapia, estética y bienestar, que viven del bono.",
     "sector": "producto"
-  },
-  {
-    "slug": "ia-multiidioma-turismo-pais-vasco",
-    "title": "IA multiidioma para negocios turísticos del País Vasco: castellano, inglés y francés",
-    "keywords": [
-      "IA multiidioma turismo País Vasco",
-      "asistente virtual turismo Bilbao inglés francés",
-      "recepcionista IA varios idiomas negocios turísticos"
-    ],
-    "focus": "Por qué los negocios turísticos del País Vasco necesitan IA que responda en castellano, inglés y francés. Restaurantes, hoteles y actividades ante turistas internacionales.",
-    "sector": null,
-    "city": null,
-    "generated": true
   },
   {
     "slug": "reserva-online-o-telefono-datos-reales",
@@ -1296,5 +1257,17 @@
     "sector": "yoga",
     "city": "bilbao",
     "generated": true
+  },
+  {
+    "slug": "atender-turistas-ingles-frances-pais-vasco",
+    "title": "Atender al turista en inglés y francés sin contratar a nadie",
+    "keywords": [
+      "atender turistas ingles frances",
+      "recepcion multiidioma hotel Pais Vasco",
+      "asistente virtual turismo ingles"
+    ],
+    "focus": "El turista que llega a Donostia o Bilbao desde Biarritz o de un crucero no habla castellano, y el negocio pequeño no tiene a nadie que le atienda en inglés o francés a las nueve de la noche. Cómo un asistente de voz cubre esas llamadas, qué preguntan de verdad (horarios, disponibilidad, cómo llegar) y por qué se pierden reservas concretas sin ello. NADA de euskera: el producto no lo habla.",
+    "sector": "hoteles",
+    "city": "donostia"
   }
 ]
