@@ -85,6 +85,41 @@ test('no vuelven los clientes inventados que ya cazamos', () => {
   assert.deepEqual(hits, [], 'Clientes inventados de vuelta:\n  ' + hits.join('\n  '));
 });
 
+test('ningún artículo abre con una cifra sin fuente', () => {
+  // Los 39 «¿Sabías que el 70%…?» eran el mismo porcentaje reciclado con
+  // distinto sujeto, y con precisión local inventada: «el 45% de las clínicas
+  // de fisioterapia EN VITORIA-GASTEIZ». Nadie ha encuestado a los fisios de
+  // Vitoria. Ahora, o llevan fuente citada con sus límites, o son una pregunta
+  // concreta sin cifra — que además interpela más que el porcentaje.
+  const FUENTES = /Invoca|INE|revisiones sistemáticas|Gloria Mark/;
+  const hits = recorrer((r, h, acc) => {
+    for (const m of texto(h).matchAll(/¿Sabías que[^?]{0,200}\?/g)) {
+      if (/\d{1,3}\s?%/.test(m[0]) && !FUENTES.test(m[0])) {
+        acc.push(`${r}: «${m[0].replace(/\s+/g, ' ').trim().slice(0, 100)}»`);
+      }
+    }
+  });
+  assert.deepEqual(hits, [],
+    'Artículos que vuelven a abrir con un porcentaje que nadie ha medido:\n  ' +
+    hits.join('\n  '));
+});
+
+test('las fuentes citadas son las tres que se verificaron', () => {
+  // Contrapeso del test anterior: éste pasaría igual si alguien inventara una
+  // fuente nueva de nombre convincente. Estas tres se comprobaron una a una y
+  // son las únicas admitidas hasta que se verifique otra:
+  //   · Invoca (2024), 60M+ llamadas analizadas
+  //   · revisiones sistemáticas de recordatorios de cita en sanidad
+  //   · INE, encuesta de TIC y comercio electrónico
+  // Se descartó a propósito el famoso «62%»: sale de un estudio de 411 Locals
+  // de 2016 SIN metodología publicada, y no pasa el mismo listón con el que se
+  // barrieron 76 afirmaciones.
+  const hits = recorrer((r, h, acc) => {
+    if (/411 Locals|el 62% de las llamadas/i.test(texto(h))) acc.push(`${r}: vuelve el 62% de 411 Locals`);
+  });
+  assert.deepEqual(hits, [], hits.join('\n  '));
+});
+
 test('la fuente real de la interrupción sigue atribuida', () => {
   // La otra cara: al barrer citas falsas es fácil llevarse por delante la única
   // que SÍ es real. El dato de cuánto cuesta recuperar la concentración tras una
