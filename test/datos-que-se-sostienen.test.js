@@ -131,3 +131,31 @@ test('la fuente real de la interrupción sigue atribuida', () => {
     'Se ha perdido la atribución real (Gloria Mark, UC Irvine). Ese dato no era ' +
     'inventado: le faltaba la fuente, y ahora la tiene.');
 });
+
+test('tampoco se atribuye un resultado a un cliente SIN cifra', () => {
+  // Este test existe por un error mio, y merece quedar escrito. Anoche di por
+  // cerrado esto con un "cero" que era falso, por dos motivos a la vez:
+  //
+  //   1. El recuento que use llevaba `return` donde iba `continue` al recorrer
+  //      directorios: abandonaba la carpeta al primer fichero no-HTML. Miraba
+  //      una fraccion del sitio y daba cero con aplomo.
+  //   2. Y el patron solo cazaba «han visto», «reporto», «tras implementar».
+  //      No cazaba «los negocios de Andoain QUE LO USAN», ni «las clinicas QUE
+  //      USAN recordatorios», ni «un caso de exito es una clinica en San
+  //      Sebastian que paso una auditoria de RGPD» — que dicen lo mismo, sin
+  //      un solo porcentaje, y por eso ningun patron numerico las veia.
+  //
+  // Un recuento no demuestra ausencia: demuestra que TU patron no encontro
+  // nada. Sobrevivieron 13 afirmaciones a la primera pasada.
+  const RE = /caso[s]? de exito(?! de un folleto)|caso[s]? de éxito(?! de un folleto)|que (lo |la )?usan reportan|que (lo |la )?utilizan han visto|han visto un|reportan un aumento|tras adoptar NodeFlow|tras implementar NodeFlow/i;
+  const hits = recorrer((r, h, acc) => {
+    const t = texto(h);
+    for (const m of t.matchAll(new RegExp(RE.source, 'gi'))) {
+      acc.push(`${r}: «…${t.slice(Math.max(0, m.index - 30), m.index + 70).trim()}…»`);
+    }
+  });
+  assert.deepEqual(hits, [],
+    'Vuelven las afirmaciones sobre lo que consiguen los clientes. No hay ' +
+    'clientes: cuatro organizaciones en producción, las cuatro propias:\n  ' +
+    hits.join('\n  '));
+});
