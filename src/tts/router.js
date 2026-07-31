@@ -366,7 +366,13 @@ class TTSRouter {
     // 3. Remaining compatible providers sorted by strategy
     const remaining = Array.from(this.providers.entries())
       .filter(([name]) => !chain.includes(name))
-      .filter(([, info]) => info.languages.includes(language))
+      // Un idioma COMBINADO ('es+gl', 'es+en') no está en la lista de ningún
+      // proveedor, así que este filtro los descartaba todos y sólo quedaba el
+      // fallback declarado. Medido: con 'es+gl' la cadena era «openai» a secas
+      // — el cliente gallego perdía Cartesia, que es la voz por defecto y la
+      // más barata (0,015 frente a 0,02 €/min), sin que nada fallara ni se
+      // registrara. Se comprueba cada parte del combo por separado.
+      .filter(([, info]) => String(language).split('+').some(l => info.languages.includes(l)))
       .sort(([nameA, a], [nameB, b]) => {
         switch (strategy) {
           case 'latency':
@@ -394,6 +400,32 @@ class TTSRouter {
 
   _buildParams(providerName, voice, speed, language) {
     const params = { speed: speed ?? 1.0 };
+
+    // Una voz de un proveedor NO vale en otro.
+    //
+    // El asistente pide la voz con el id del proveedor al que pertenece. Si ese
+    // proveedor no atiende —no está registrado, o rechaza— el router pasa al
+    // siguiente de la cadena… y hasta ahora le entregaba el MISMO id. Cartesia
+    // recibiendo un id de ElevenLabs no sintetiza: falla. Y el siguiente
+    // tampoco. La cadena entera se agota por un id que no era suyo, y lo que
+    // oye el que llama es silencio.
+    //
+    // Caso real: la única org con voz premium (Freixa, 'ana-es' → ElevenLabs)
+    // pide un proveedor que devuelve 402 desde siempre. Al caer a Cartesia le
+    // llegaba el id de ElevenLabs. Se descubrió al ir a quitar la clave, y sin
+    // esto quitarla habría dejado la cadena sin salida.
+    //
+    // Si la voz no es de este proveedor, se ignora y cada uno usa la suya por
+    // defecto: mejor una voz distinta que ninguna. La preferencia del cliente
+    // NO se toca en la base de datos — el día que se contrate el plan, su voz
+    // vuelve sola.
+    if (voice) {
+      try {
+        const { resolveVoiceEntry } = require('./voice-catalog');
+        const entrada = resolveVoiceEntry(voice);
+        if (entrada && entrada.provider && entrada.provider !== providerName) voice = null;
+      } catch (_) { /* sin catálogo se sigue como antes */ }
+    }
 
     switch (providerName) {
       case 'cartesia':
