@@ -26,64 +26,95 @@
   <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
 
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Article",
-        "@id": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao#article",
-        "headline": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y consultas",
-        "description": "Las farmacias de Bilbao usan IA para informar de turnos de guardia, horarios, disponibilidad de medicamentos y consultas básicas. Sin espera, 24/7.",
-        "url": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao",
-        "datePublished": "2026-05-29",
-        "dateModified": "2026-05-29",
-        "author": {"@type": "Organization", "name": "NodeFlow", "url": "https://nodeflow.es"},
-        "publisher": {
-          "@type": "Organization",
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "@id": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao#article",
+      "headline": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y consultas",
+      "description": "Las farmacias de Bilbao usan IA para informar de turnos de guardia, horarios, disponibilidad de medicamentos y consultas básicas. Sin espera, 24/7.",
+      "url": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao",
+      "datePublished": "2026-05-29",
+      "dateModified": "2026-05-29",
+      "author": {
+        "@type": "Organization",
+        "name": "NodeFlow",
+        "url": "https://nodeflow.es"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NodeFlow",
+        "url": "https://nodeflow.es",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://nodeflow.es/favicon.svg"
+        }
+      },
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://nodeflow.es/og-image.png",
+        "width": 1200,
+        "height": 630
+      },
+      "keywords": "recepcionista IA farmacia Bilbao, asistente virtual farmacia Bizkaia, farmacia guardia IA Bilbao",
+      "wordCount": 1100,
+      "timeRequired": "PT5M"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
           "name": "NodeFlow",
-          "url": "https://nodeflow.es",
-          "logo": {"@type": "ImageObject", "url": "https://nodeflow.es/favicon.svg"}
+          "item": "https://nodeflow.es"
         },
-        "image": {"@type": "ImageObject", "url": "https://nodeflow.es/og-image.png", "width": 1200, "height": 630},
-        "keywords": "recepcionista IA farmacia Bilbao, asistente virtual farmacia Bizkaia, farmacia guardia IA Bilbao",
-        "wordCount": 1100,
-        "timeRequired": "PT5M"
-      },
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {"@type": "ListItem", "position": 1, "name": "NodeFlow", "item": "https://nodeflow.es"},
-          {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://nodeflow.es/blog"},
-          {"@type": "ListItem", "position": 3, "name": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y consultas", "item": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao"}
-        ]
-      },
-      {
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "¿Puede actualizar los turnos de guardia automáticamente?",
-            "acceptedAnswer": {"@type": "Answer", "text": "Los turnos de guardia se configuran en el portal de NodeFlow con antelación. El asistente los consulta en tiempo real y responde con precisión. Si la farmacia pertenece a un colegio que publica turnos online, podemos configurar una sincronización automatizada."}
-          },
-          {
-            "@type": "Question",
-            "name": "¿El asistente habla en euskera?",
-            "acceptedAnswer": {"@type": "Answer", "text": "Sí. NodeFlow detecta automáticamente si el cliente habla en euskera o castellano y responde en el mismo idioma. En los barrios de Bilbao con alta presencia euskaldun (Deusto, Begoña, Rekalde), este punto marca una diferencia real en la percepción de servicio."}
-          },
-          {
-            "@type": "Question",
-            "name": "¿Puede decirle al cliente si tenemos un medicamento concreto?",
-            "acceptedAnswer": {"@type": "Answer", "text": "Puedes configurar un listado de medicamentos de alta rotación. Para consultas de stock en tiempo real, actualmente se requiere integración con tu sistema de gestión de farmacia. Consúltanos para ver si tu software tiene API disponible."}
-          },
-          {
-            "@type": "Question",
-            "name": "¿Puede una farmacia pequeña de barrio permitirse NodeFlow?",
-            "acceptedAnswer": {"@type": "Answer", "text": "El plan Negocio cuesta 49€/mes — menos que 2 horas del tiempo de un auxiliar. Para una farmacia que evita 20 llamadas diarias de "¿están de guardia?", el ahorro de tiempo justifica la inversión desde el primer mes."}
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://nodeflow.es/blog"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Recepcionista IA para farmacias en Bilbao: turnos, horarios y consultas",
+          "item": "https://nodeflow.es/blog/recepcionista-ia-farmacia-bilbao"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿Puede actualizar los turnos de guardia automáticamente?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Los turnos de guardia se configuran en el portal de NodeFlow con antelación. El asistente los consulta en tiempo real y responde con precisión. Si la farmacia pertenece a un colegio que publica turnos online, podemos configurar una sincronización automatizada."
           }
-        ]
-      }
-    ]
-  }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Puede decirle al cliente si tenemos un medicamento concreto?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Puedes configurar un listado de medicamentos de alta rotación. Para consultas de stock en tiempo real, actualmente se requiere integración con tu sistema de gestión de farmacia. Consúltanos para ver si tu software tiene API disponible."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Puede una farmacia pequeña de barrio permitirse NodeFlow?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "El plan Negocio cuesta 49€/mes — menos que 2 horas del tiempo de un auxiliar. Para una farmacia que evita 20 llamadas diarias de «¿están de guardia?», el ahorro de tiempo justifica la inversión desde el primer mes."
+          }
+        }
+      ]
+    }
+  ]
+}
   </script>
 
   <!-- GA4 -->
@@ -241,7 +272,7 @@
         <li><a href="#s1">Las farmacias de Bilbao reciben decenas de llamadas repetitivas al día</a></li>
         <li><a href="#s2">IA que informa de turnos de guardia y horarios en tiempo real</a></li>
         <li><a href="#s3">Consultas sobre disponibilidad de medicamentos sin molestar al farmacéutico</a></li>
-        <li><a href="#s4">Atención en euskera: esencial en los barrios de Bilbao</a></li>
+        <li><a href="#s4">Se conecta con la agenda que el negocio ya usaba</a></li>
         <li><a href="#s5">Cómo implantar un asistente IA en una farmacia bilbaína</a></li>
         <li><a href="#faq">Preguntas frecuentes</a></li>
       </ol>
@@ -276,7 +307,7 @@
     </div>
 
     <div class="post-section" id="s4">
-      <h2>Atención en euskera: esencial en los barrios de Bilbao</h2>
+      <h2>Se conecta con la agenda que el negocio ya usaba</h2>
       <p>La integración del asistente IA con los flujos de trabajo existentes es más sencilla de lo que parece. El punto de partida más habitual es la integración con Google Calendar para la gestión de agenda, que se configura en menos de una hora y permite al asistente consultar disponibilidad real y reservar citas directamente.</p>
       <p>Para negocios con requisitos más específicos, NodeFlow ofrece integraciones adicionales con software de gestión sectorial, CRMs y sistemas de notificación por WhatsApp o email. Cada integración se evalúa caso por caso para garantizar que encaja con los procesos actuales del negocio.</p>
     </div>
@@ -302,15 +333,6 @@
           </div>
         </div>
         <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-          <button class="faq-q" onclick="toggleFaq(1)" aria-expanded="false" aria-controls="faq-a-1">
-            <span itemprop="name">¿El asistente habla en euskera?</span>
-            <span class="faq-icon" id="faq-icon-1">+</span>
-          </button>
-          <div class="faq-a" id="faq-a-1" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-            <p itemprop="text">Sí. NodeFlow detecta automáticamente si el cliente habla en euskera o castellano y responde en el mismo idioma. En los barrios de Bilbao con alta presencia euskaldun (Deusto, Begoña, Rekalde), este punto marca una diferencia real en la percepción de servicio.</p>
-          </div>
-        </div>
-        <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
           <button class="faq-q" onclick="toggleFaq(2)" aria-expanded="false" aria-controls="faq-a-2">
             <span itemprop="name">¿Puede decirle al cliente si tenemos un medicamento concreto?</span>
             <span class="faq-icon" id="faq-icon-2">+</span>
@@ -325,7 +347,7 @@
             <span class="faq-icon" id="faq-icon-3">+</span>
           </button>
           <div class="faq-a" id="faq-a-3" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-            <p itemprop="text">El plan Negocio cuesta 49€/mes — menos que 2 horas del tiempo de un auxiliar. Para una farmacia que evita 20 llamadas diarias de "¿están de guardia?", el ahorro de tiempo justifica la inversión desde el primer mes.</p>
+            <p itemprop="text">El plan Negocio cuesta 49€/mes — menos que 2 horas del tiempo de un auxiliar. Para una farmacia que evita 20 llamadas diarias de «¿están de guardia?», el ahorro de tiempo justifica la inversión desde el primer mes.</p>
           </div>
         </div>
       </div>
