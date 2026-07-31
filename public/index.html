@@ -192,6 +192,85 @@ section+section{border-top:1px solid var(--line)}
   .step-t{padding-top:0;font-size:11px;letter-spacing:.04em}
   .life-head b{font-size:11.5px}
 }
+/* ── La llamada se REPRODUCE ───────────────────────────────────────────────
+   La sección se titula «esto es lo que pasa después» y era una lista de siete
+   filas existiendo a la vez: no había ningún después, había un póster.
+
+   Regla que gobierna todo lo de abajo: el HTML por defecto trae la llamada
+   ENTERA y TERMINADA. Todo lo que se esconde se esconde con la clase .repro,
+   que sólo pone el JS. Si el JS no corre, si es un rastreador, si la pestaña
+   está en segundo plano o si el usuario pidió menos movimiento, se lee la
+   escena completa. Se rebobina para reproducir; nunca se construye vacía.
+   (En esta misma página ya se coló una vez lo contrario: 48 elementos a
+   opacidad 0 esperando un observador que en segundo plano no dispara.)
+
+   Se llama .repro y NO .play porque .play ya existe en esta hoja: es el botón
+   de «escuchar cómo suena», con display:inline-flex. Ponérsela a la tarjeta la
+   convertía en contenedor flex y le colocaba los siete pasos EN FILA dentro de
+   327 px. No dio ningún error de consola: simplemente se veía mal. */
+.life{position:relative}
+.life-bar{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden}
+.life-bar i{display:block;height:100%;width:0;background:var(--lime)}
+.life.repro .life-bar i{transition:width .2s linear}
+
+/* Nivel de audio. No existe fuera del modo reproducción: un adorno quieto en
+   una tarjeta estática sólo sería ruido. */
+.wave{display:none;gap:2px;align-items:center;height:13px;margin-left:2px}
+.life.repro .wave{display:flex}
+.wave i{width:2px;height:3px;border-radius:1px;background:var(--line-2)}
+.life.live .wave i{background:var(--lime);animation:wv .9s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.12s}
+.wave i:nth-child(3){animation-delay:.28s}
+.wave i:nth-child(4){animation-delay:.07s}
+.wave i:nth-child(5){animation-delay:.34s}
+@keyframes wv{0%,100%{height:3px;opacity:.55}50%{height:12px;opacity:1}}
+/* En móvil la cabecera sumaba 315 px de contenido en los 289 útiles: el estado
+   y el número se encogían y se partían en dos líneas CADA UNO, y la barra
+   pasaba de 38 a 66 px de alto. Se van las dos cosas prescindibles —el nivel de
+   audio es decoración y el número es atmósfera— y queda lo que importa, que es
+   el reloj corriendo.
+   Va AQUÍ y no en el bloque móvil de arriba: allí quedaba antes en la hoja que
+   la regla que enciende la onda, misma especificidad, y perdía por orden. */
+@media (max-width:560px){ .life.repro .wave,.life-head .tel{display:none} }
+
+/* El reloj corre. Es lo único que convierte una lista en una grabación. */
+#lifeClock{font-variant-numeric:tabular-nums}
+.life.live #lifeClock{color:var(--lime)}
+.life.repro .dot{animation:none;background:var(--line-2)}
+.life.repro.live .dot{background:var(--lime);animation:pulso 2.4s ease-out infinite}
+
+.life.repro .step{opacity:0;transform:translateY(9px)}
+.life.repro .step.on{opacity:1;transform:none;
+  transition:opacity .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1)}
+/* La etiqueta entra DESPUÉS de la línea: primero se lee lo que hace y luego se
+   ve que ha quedado hecho, que es el orden en el que ocurre de verdad. */
+.life.repro .step .tag{opacity:0}
+.life.repro .step.on .tag{opacity:1;transition:opacity .3s .38s}
+.life.repro .life-foot{opacity:0}
+.life.repro .life-foot.on{opacity:1;transition:opacity .55s}
+
+.life-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.life-foot p{margin:0}
+.replay{display:none;margin-left:auto;align-items:center;gap:7px;background:none;
+  border:1px solid var(--line-2);color:var(--ink-3);border-radius:6px;padding:6px 11px;
+  font:inherit;font-size:12.5px;cursor:pointer;transition:color .2s,border-color .2s}
+.life.repro .replay{display:inline-flex}
+.replay:hover{color:var(--ink);border-color:var(--ink-3)}
+.replay:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+
+/* Al acabar la llamada, la captura se enciende un instante: es el momento en
+   que lo que acabas de ver contado se convierte en una fila del panel. */
+.shot{transition:border-color .6s}
+.shot.linked{border-color:rgba(196,245,70,.45)}
+.shot.linked figcaption b{color:var(--lime);transition:color .6s}
+
+@media (prefers-reduced-motion:reduce){
+  /* Ni reproducción ni rebobinado: la escena completa, quieta. */
+  .life.repro .step,.life.repro .life-foot,.life.repro .step .tag{opacity:1;transform:none}
+  .life.repro .wave,.life.repro .replay{display:none}
+  .wave i,.dot{animation:none}
+}
+
 /* Captura real del producto */
 .shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf)}
 .shot figcaption{padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3);line-height:1.5}
@@ -341,60 +420,72 @@ html.anim .rev.in{opacity:1;transform:none}
     </p>
 
     <div class="scene">
-      <div class="life rev">
+      <!-- Los data-at son segundos desde que descuelga. La llamada dura 138 s
+           (12:47:02 → 12:49:20), que es exactamente lo que marca la primera
+           fila de la captura de al lado: 2m 18s. Antes el relato decía 1m 27s
+           y reservaba «jueves» mientras el panel enseñaba 2m 18s y una cita el
+           miércoles 15. Puestas una al lado de otra, se contradecían. -->
+      <div class="life rev" id="life" data-dur="138">
+        <div class="life-bar" aria-hidden="true"><i></i></div>
         <div class="life-head">
           <i class="dot" aria-hidden="true"></i>
-          <span>LLAMADA EN CURSO</span>
-          <b>+34 6·· ··· 114</b>
+          <span id="lifeState">LLAMADA ATENDIDA</span>
+          <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <b><span id="lifeClock">02:18</span><span class="tel"> · +34 6·· ··· 114</span></b>
         </div>
 
-        <div class="step">
+        <div class="step" data-at="0">
           <div class="step-t">12:47:02</div>
           <div class="step-b"><b>Descuelga al segundo tono</b>
             <em>Saluda con el nombre de la clínica. Y dice que es una IA, siempre.</em></div>
         </div>
-        <div class="step">
+        <div class="step" data-at="7">
           <div class="step-t">12:47:09</div>
           <div class="step-b"><b>Reconoce a Aitor por su número</b>
             <em>Ya vino en marzo. Recupera su ficha antes de la segunda frase.</em></div>
         </div>
-        <div class="step">
+        <div class="step" data-at="39">
           <div class="step-t">12:47:41</div>
           <div class="step-b"><b>Entiende que quiere una limpieza</b>
             <em>Mira huecos reales en la agenda, no una lista inventada.</em></div>
         </div>
-        <div class="step">
-          <div class="step-t">12:48:20</div>
-          <div class="step-b"><b>Reserva: jueves 12:30</b>
+        <div class="step" data-at="113">
+          <div class="step-t">12:48:55</div>
+          <div class="step-b"><b>Reserva: miércoles 15, a las 12:30</b>
             <em>Escribe la cita en el calendario que la clínica ya usaba.</em>
             <span class="tag tag-ok">hecho</span></div>
         </div>
-        <div class="step">
-          <div class="step-t">12:48:26</div>
+        <div class="step" data-at="132">
+          <div class="step-t">12:49:14</div>
           <div class="step-b"><b>Le manda la confirmación por WhatsApp</b>
             <em>Con la dirección y cómo cambiarla si no le viene bien.</em>
             <span class="tag tag-ok">hecho</span></div>
         </div>
-        <div class="step">
-          <div class="step-t">12:48:27</div>
+        <div class="step" data-at="136">
+          <div class="step-t">12:49:18</div>
           <div class="step-b"><b>Programa el recordatorio de 24 horas antes</b>
-            <em>El plantón se evita el miércoles, no el jueves.</em>
+            <em>El plantón se evita el martes, no el miércoles.</em>
             <span class="tag tag-wait">programado</span></div>
         </div>
-        <div class="step">
-          <div class="step-t">12:48:29</div>
+        <div class="step" data-at="138">
+          <div class="step-t">12:49:20</div>
           <div class="step-b"><b>Deja escrito por qué hizo cada cosa</b>
             <em>Decisión por decisión, revisable. Es la parte que deja dormir tranquilo.</em>
             <span class="tag tag-ok">registrado</span></div>
         </div>
 
-        <p class="life-foot"><b>1 minuto y 27 segundos.</b> Ni un teléfono sonando en la sala.</p>
+        <div class="life-foot">
+          <p><b>2 minutos y 18 segundos.</b> Ni un teléfono sonando en la sala.</p>
+          <button class="replay" type="button" id="replay">↻ Repetir</button>
+        </div>
       </div>
 
-      <figure class="shot rev">
+      <figure class="shot rev" id="shot">
         <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
              alt="Pantalla de llamadas de NodeFlow: seis llamadas con su duración, el resultado de cada una (reserva, info, abandonada), el detalle de la cita reservada y el contacto.">
-        <figcaption><b>La misma llamada, en el panel.</b> Producto real, sin retocar: resultado, duración, transcripción y contacto de cada llamada.</figcaption>
+        <figcaption><b>Así queda registrada.</b> El panel es producto real, sin retocar: resultado,
+          duración, transcripción y contacto de cada llamada. La reconstrucción de la izquierda
+          sigue su primera fila, minuto a minuto.</figcaption>
       </figure>
     </div>
   </div>
@@ -687,6 +778,131 @@ html.anim .rev.in{opacity:1;transform:none}
     });
   },{rootMargin:'0px 0px -8% 0px',threshold:.05});
   els.forEach(function(e){ io.observe(e); });
+})();
+
+// La llamada se REPRODUCE, no se enseña.
+//
+// La sección promete «esto es lo que pasa después» y sin tiempo no hay después.
+// Aquí el tiempo es lo único que hay que fabricar: los siete pasos ya están en
+// el HTML, terminados. Esto los rebobina y los suelta con el reloj corriendo.
+//
+// Dos decisiones que no son de adorno:
+//
+//  · Se sale ANTES de ocultar nada si no hay observador o si el usuario pidió
+//    menos movimiento. Ocultar primero y confiar en que algo lo destape es
+//    justo el error que dejó esta página en blanco para los rastreadores.
+//  · Los huecos reales de la llamada son de 7, 32, 74, 19, 4 y 2 segundos. A
+//    escala real esto duraría 2 minutos y 18: nadie lo mira. Pero repartir el
+//    tiempo por igual mataría lo único interesante, que es el ritmo desigual
+//    —dos ráfagas rápidas separadas por una espera larga mientras mira la
+//    agenda—. Así que se comprime cada hueco por separado, con suelo y techo:
+//    se conserva la FORMA del ritmo aunque no la duración.
+(function(){
+  var life=document.getElementById('life'); if(!life) return;
+  var pasos=[].slice.call(life.querySelectorAll('.step'));
+  var reloj=document.getElementById('lifeClock');
+  var estado=document.getElementById('lifeState');
+  var barra=life.querySelector('.life-bar i');
+  var pie=life.querySelector('.life-foot');
+  var boton=document.getElementById('replay');
+  var shot=document.getElementById('shot');
+  var total=parseInt(life.dataset.dur,10)||138;
+
+  if(!('IntersectionObserver' in window) ||
+     matchMedia('(prefers-reduced-motion: reduce)').matches) return; // se queda entera
+
+  var mmss=function(s){ s=Math.max(0,Math.round(s));
+    return ('0'+Math.floor(s/60)).slice(-2)+':'+('0'+(s%60)).slice(-2); };
+
+  // Hueco real (s) → espera en pantalla (ms). El techo evita que la espera de
+  // 74 s se haga eterna; el suelo evita que los tres últimos pasos, separados
+  // por 2 y 4 segundos, salgan de golpe y no se lean.
+  var espera=function(seg){ return Math.min(2000, Math.max(560, seg*95)); };
+
+  var timers=[], raf=0;
+  function parar(){ timers.forEach(clearTimeout); timers=[]; cancelAnimationFrame(raf); }
+
+  function correrReloj(desde,hasta,ms){
+    var t0=performance.now();
+    (function paso(t){
+      var k=Math.min(1,(t-t0)/ms);
+      var s=desde+(hasta-desde)*k;
+      reloj.textContent=mmss(s);
+      barra.style.width=(s/total*100)+'%';
+      if(k<1) raf=requestAnimationFrame(paso);
+    })(t0);
+  }
+
+  function reproducir(){
+    parar();
+    life.classList.add('repro','live');
+    pasos.forEach(function(p){ p.classList.remove('on'); });
+    pie.classList.remove('on'); if(shot) shot.classList.remove('linked');
+    reloj.textContent='00:00'; barra.style.width='0%';
+    estado.textContent='LLAMADA EN CURSO';
+
+    var acc=380, previo=0;
+    pasos.forEach(function(p,i){
+      var at=parseInt(p.dataset.at,10)||0;
+      var ms=i?espera(at-previo):0, desde=previo, inicio=acc;
+      acc+=ms;
+      // El reloj avanza DURANTE la espera, no al aterrizar: si sólo saltara con
+      // cada paso, los 74 segundos de mirar la agenda serían una pausa muerta.
+      if(i) timers.push(setTimeout(function(){ correrReloj(desde,at,ms); }, inicio));
+      timers.push(setTimeout(function(){
+        p.classList.add('on');
+        reloj.textContent=mmss(at); barra.style.width=(at/total*100)+'%';
+      }, acc));
+      previo=at;
+    });
+
+    timers.push(setTimeout(function(){
+      life.classList.remove('live');
+      estado.textContent='LLAMADA ATENDIDA';
+      pie.classList.add('on');
+      if(shot) shot.classList.add('linked');
+    }, acc+520));
+  }
+
+  // Saltar al final: quien no quiera esperar, toca y lo tiene entero.
+  life.addEventListener('click', function(e){
+    if(e.target.closest('#replay') || !life.classList.contains('live')) return;
+    parar();
+    pasos.forEach(function(p){ p.classList.add('on'); });
+    reloj.textContent=mmss(total); barra.style.width='100%';
+    life.classList.remove('live'); estado.textContent='LLAMADA ATENDIDA';
+    pie.classList.add('on'); if(shot) shot.classList.add('linked');
+  });
+  if(boton) boton.addEventListener('click', reproducir);
+
+  // El disparo NO usa IntersectionObserver, y es a propósito.
+  //
+  // Primer intento: umbral 0,35. La tarjeta mide ~2600 px, así que pedía 900 px
+  // visibles: en un móvil de 700 no se cumple nunca y la escena se habría
+  // quedado congelada justo en los teléfonos.
+  //
+  // Segundo intento: umbral 0 con margen inferior. Correcto sobre el papel, pero
+  // al probarlo el observador NO disparó ni una vez con la tarjeta a plena
+  // vista. En esta misma página ya sabemos que hay contextos donde no responde
+  // —por eso la aparición escalonada lleva una red de 1,2 s—.
+  //
+  // Medir la posición a mano siempre funciona, cuesta un rAF por scroll y se
+  // desengancha en cuanto arranca. No hay razón para preferir la API elegante
+  // cuando la que no falla es igual de barata.
+  var pedido=0;
+  function mirar(){
+    pedido=0;
+    var r=life.getBoundingClientRect();
+    var alto=innerHeight||document.documentElement.clientHeight;
+    if(r.top<alto*0.78 && r.bottom>0){
+      removeEventListener('scroll',alScroll); removeEventListener('resize',alScroll);
+      reproducir();
+    }
+  }
+  function alScroll(){ if(!pedido) pedido=requestAnimationFrame(mirar); }
+  addEventListener('scroll',alScroll,{passive:true});
+  addEventListener('resize',alScroll);
+  mirar(); // por si ya está a la vista al cargar
 })();
 
 // Muestra de voz real. El audio se carga SÓLO al pulsar: cero peso en la
