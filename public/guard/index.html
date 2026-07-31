@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeFlow Guard — Central de mando para equipos de seguridad</title>
+<meta name="description" content="Fichajes con GPS, rondas con puntos de control, incidencias y aviso de emergencia en una sola pantalla. En producción en una red de transporte público. Todo lo que pasa queda registrado y se puede auditar.">
+<meta name="keywords" content="software vigilancia, control de rondas, fichaje GPS vigilantes, gestión de incidencias seguridad, central de mando seguridad privada">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0F110C">
+<link rel="canonical" href="https://nodeflow.es/guard">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NodeFlow">
+<meta property="og:url" content="https://nodeflow.es/guard">
+<meta property="og:title" content="NodeFlow Guard — Central de mando para equipos de seguridad">
+<meta property="og:description" content="Cinco segundos para saber si hay un problema. Fichajes con GPS, rondas, incidencias y emergencias en una sola pantalla.">
+<meta property="og:image" content="https://nodeflow.es/guard-img/panel.jpg">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NodeFlow Guard — Central de mando para equipos de seguridad">
+<meta name="twitter:description" content="Cinco segundos para saber si hay un problema.">
+<meta name="twitter:image" content="https://nodeflow.es/guard-img/panel.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"NodeFlow Guard","applicationCategory":"SecurityApplication","operatingSystem":"Web, Android","description":"Plataforma de operaciones para equipos de seguridad: fichajes geolocalizados, rondas con puntos de control, incidencias, avisos de emergencia y analítica.","publisher":{"@type":"Organization","name":"NodeFlow IA S.L.","url":"https://nodeflow.es"},"offers":{"@type":"Offer","priceCurrency":"EUR","price":"0","description":"Demostración sin coste"}}
+</script>
+<script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   NODEFLOW GUARD — PÁGINA DE PRODUCTO
+   ──────────────────────────────────────────────────────────────────────────
+   Misma marca que el resto de nodeflow.es (grafito cálido, lima, Clash +
+   Satoshi) pero OTRO REGISTRO. Guard no se vende como un SaaS: se vende como
+   una sala de control. Su propio PRODUCT.md declara las anti-referencias —
+   nada de parrillas de tarjetas idénticas, nada de glow ni degradados, nada
+   de color decorativo— y esta página las respeta, porque una página que
+   contradice al producto que enseña ya está mintiendo antes del primer
+   párrafo.
+
+   LA REGLA DEL COLOR, que aquí es de verdad una regla: el cromo es neutro y
+   el color SIGNIFICA. Lima = nominal / hecho. Ámbar = requiere atención.
+   Rojo = crítico. El lima nunca se usa para decorar un borde bonito.
+
+   Todas las capturas son de la aplicación funcionando, regeneradas el
+   2026-07-29 por scripts/capturas.mjs del repo de Guard. No hay ni un mockup.
+   Se han descartado a propósito las 13 capturas del 3 de julio: ese mismo día
+   la barra pasó de 7 pestañas a 4 y enseñarían una app que ya no existe.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0F110C; --bg-2:#141810; --surf:#191E14; --surf-2:#1F251A;
+  --ink:#EEF3E4; --ink-2:#B9C2AC; --ink-3:#818B76;
+  --line:rgba(226,236,214,.11); --line-2:rgba(226,236,214,.21);
+  --lime:#c4f546; --lime-d:#A8DC2A; --red:#ff6f5e; --wait:#E8B84B;
+  --disp:'Clash Display',system-ui,sans-serif;
+  --sans:'Satoshi',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+  --pad:clamp(22px,4.4vw,72px);
+  --wrap:1560px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink-2);line-height:1.55;overflow-x:hidden;font-size:16px}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+::selection{background:var(--lime);color:#0a0b0d}
+h1,h2,h3{font-family:var(--disp);color:var(--ink);font-weight:600;letter-spacing:-.025em;line-height:1.02;text-wrap:balance}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lime{color:var(--lime)}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+
+/* ── navegación ─────────────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:50;background:rgba(15,17,12,.88);backdrop-filter:blur(8px);border-bottom:1px solid transparent;transition:border-color .25s}
+.nav.stuck{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:20px}
+.logo{font-family:var(--disp);font-weight:600;font-size:1.4rem;letter-spacing:-.03em;color:var(--ink);white-space:nowrap}
+.logo b{color:var(--lime);font-weight:600}
+.logo .sub{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-left:10px}
+.nav-links{display:flex;gap:clamp(18px,2.2vw,30px);font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.nav-links a{transition:color .2s}.nav-links a:hover{color:var(--ink)}
+.nav-cta{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0a0b0d;background:var(--lime);padding:11px 18px;white-space:nowrap;transition:background .2s}
+.nav-cta:hover{background:#fff}
+@media (max-width:900px){
+  .nav-links{display:none}
+  /* 40 px de alto en un móvil es un objetivo táctil por debajo del mínimo:
+     se falla al pulsarlo con el pulgar y el que falla no vuelve a intentarlo. */
+  .nav-cta{min-height:44px;display:inline-flex;align-items:center}
+}
+
+/* ── botones ─────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);font-weight:700;font-size:1rem;padding:16px 26px;transition:background .2s,color .2s,border-color .2s;cursor:pointer;border:1px solid transparent;min-height:48px}
+.btn-fill{background:var(--lime);color:#0a0b0d}
+.btn-fill:hover{background:#fff}
+.btn-line{background:none;border-color:var(--line-2);color:var(--ink)}
+.btn-line:hover{border-color:var(--lime);color:var(--lime)}
+
+/* ── andamiaje de sección ────────────────────────────────────────────────── */
+.section{padding:clamp(72px,8.5vw,128px) 0;border-top:1px solid var(--line)}
+.kicker{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:.73rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:clamp(34px,4vw,52px)}
+.kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+.h2{font-size:clamp(1.9rem,4.2vw,3.2rem);max-width:22ch}
+.deck{font-size:1.1rem;color:var(--ink-2);line-height:1.55;max-width:56ch;margin-top:18px}
+.deck b{color:var(--ink);font-weight:600}
+
+/* ── hero a sangre ───────────────────────────────────────────────────────
+   Igual que la portada: el producto entra por el borde de la pantalla. Lo
+   primero que se ve no es una promesa, es la pantalla real de la central. */
+.hero-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  padding:26px 0;border-bottom:1px solid var(--line)}
+.hero-top .live{display:inline-flex;align-items:center;gap:9px;color:var(--lime)}
+.hero-top .live i{width:7px;height:7px;border-radius:50%;background:var(--lime);animation:pulso 2.4s ease-out infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(196,245,70,.5)}70%{box-shadow:0 0 0 9px rgba(196,245,70,0)}100%{box-shadow:0 0 0 0 rgba(196,245,70,0)}}
+.hero-grid{display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);align-items:center;min-height:min(84vh,820px)}
+.hero-txt{padding:clamp(44px,5vw,74px) clamp(32px,3.4vw,56px) clamp(44px,5vw,74px) max(var(--pad),calc(50vw - var(--wrap)/2))}
+.hero h1{font-size:clamp(2.5rem,5.4vw,4.6rem);line-height:.98;letter-spacing:-.035em}
+.hero-lead{font-size:1.18rem;line-height:1.55;color:var(--ink-2);max-width:46ch;margin-top:26px}
+.hero-lead b{color:var(--ink);font-weight:600}
+.hero-ctas{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:34px}
+.hero-vis{position:relative;height:100%;overflow:hidden;border-left:1px solid var(--line);background:var(--bg-2);display:flex;align-items:center}
+.hero-vis img{width:100%;height:auto}
+.hero-cap{position:absolute;left:0;right:0;bottom:0;padding:12px 18px;background:linear-gradient(transparent,rgba(15,17,12,.94) 42%);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+@media (max-width:960px){
+  .hero-grid{grid-template-columns:1fr;min-height:0}
+  .hero-txt{padding:clamp(38px,7vw,56px) var(--pad)}
+  .hero-vis{border-left:none;border-top:1px solid var(--line)}
+}
+
+/* ── las tres preguntas ──────────────────────────────────────────────────
+   No es una parrilla de tarjetas: son tres preguntas con su respuesta, en
+   columnas separadas por un filete. Es lo que la pantalla contesta. */
+.q3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line)}
+.q3 > div{padding:clamp(26px,3vw,40px) clamp(20px,2.4vw,34px);border-left:1px solid var(--line)}
+.q3 > div:first-child{border-left:none;padding-left:0}
+.q3 .qn{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.q3 h3{font-size:1.32rem;margin-bottom:10px}
+.q3 p{font-size:.98rem;color:var(--ink-3);line-height:1.55}
+@media (max-width:820px){
+  .q3{grid-template-columns:1fr}
+  .q3 > div{border-left:none;border-top:1px solid var(--line);padding-left:0;padding-right:0}
+  .q3 > div:first-child{border-top:none}
+}
+
+/* ── figura de producto ──────────────────────────────────────────────────── */
+.shot{border:1px solid var(--line);background:var(--surf);overflow:hidden;margin-top:clamp(30px,3.5vw,46px)}
+.shot figcaption{padding:13px 18px;border-top:1px solid var(--line);font-size:.92rem;color:var(--ink-3);line-height:1.5}
+.shot figcaption b{color:var(--ink-2);font-weight:600}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,2.4vw,34px);align-items:start}
+@media (max-width:900px){.dos{grid-template-columns:1fr}}
+
+/* ── el móvil del vigilante ──────────────────────────────────────────────
+   Cuatro pantallas de teléfono en fila. No llevan marco de móvil dibujado:
+   la captura ya ES el móvil, y añadirle un bisel de plástico sería el tipo
+   de adorno que el producto rechaza en su propia ficha. */
+.tel4{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(14px,1.8vw,26px)}
+.tel4 figure{border:1px solid var(--line);background:var(--surf);overflow:hidden}
+.tel4 img{width:100%}
+.tel4 figcaption{padding:12px 14px;border-top:1px solid var(--line);font-size:.88rem;line-height:1.45;color:var(--ink-3)}
+.tel4 figcaption b{display:block;color:var(--ink);font-family:var(--disp);font-weight:600;font-size:1.02rem;margin-bottom:5px;letter-spacing:-.01em}
+@media (max-width:1000px){.tel4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.tel4{grid-template-columns:1fr}}
+
+/* ── el rastro: lista de garantías ───────────────────────────────────────
+   Sin iconos de colorines. Un filete a la izquierda y el estado en mono,
+   que es como lo enseña el propio producto. */
+.gar{display:grid;gap:0;margin-top:clamp(28px,3vw,42px)}
+.gar-i{display:grid;grid-template-columns:minmax(0,15ch) minmax(0,1fr);gap:clamp(18px,2.4vw,38px);
+  padding:clamp(20px,2.2vw,28px) 0;border-top:1px solid var(--line)}
+.gar-i:last-child{border-bottom:1px solid var(--line)}
+.gar-k{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--lime);padding-top:5px}
+.gar-i h3{font-size:1.18rem;margin-bottom:8px}
+.gar-i p{font-size:.99rem;color:var(--ink-3);line-height:1.6;max-width:62ch}
+@media (max-width:680px){.gar-i{grid-template-columns:1fr;gap:8px}.gar-k{padding-top:0}}
+
+/* ── cierre ──────────────────────────────────────────────────────────────── */
+.fin{padding:clamp(76px,9vw,128px) 0;border-top:1px solid var(--line);background:var(--bg-2)}
+.fin h2{font-size:clamp(2rem,4.6vw,3.4rem);max-width:18ch}
+.fin .deck{margin-bottom:34px}
+.fin-ctas{display:flex;gap:16px;flex-wrap:wrap}
+.fin-note{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;color:var(--ink-3);margin-top:24px}
+
+/* ── pie ─────────────────────────────────────────────────────────────────── */
+footer{padding:clamp(52px,6vw,80px) 0 40px;border-top:1px solid var(--line);font-size:.92rem}
+.f-grid{display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:clamp(24px,3vw,48px)}
+footer h3{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:14px}
+footer ul{list-style:none;display:grid;gap:9px}
+footer a{color:var(--ink-2);transition:color .2s}footer a:hover{color:var(--lime)}
+.f-bot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:clamp(38px,4vw,56px);
+  padding-top:22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;color:var(--ink-3)}
+@media (max-width:760px){.f-grid{grid-template-columns:1fr 1fr}}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .hero-top .live i{animation:none}
+  *{transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="/">node<b>flow</b><span class="sub">Guard</span></a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#central">La central</a>
+      <a href="#campo">En el andén</a>
+      <a href="#rastro">El rastro</a>
+      <a href="/">NodeFlow</a>
+    </nav>
+    <a class="nav-cta" href="https://wa.me/34666351319?text=Hola%2C%20quiero%20ver%20NodeFlow%20Guard.">Pedir una demo →</a>
+  </div>
+</header>
+
+<main id="contenido">
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <span class="live"><i aria-hidden="true"></i>En producción</span>
+      <span>Transporte público · una veintena de estaciones</span>
+      <span>Central + móvil del vigilante</span>
+    </div>
+  </div>
+
+  <div class="hero-grid">
+    <div class="hero-txt">
+      <h1>Cinco segundos<br>para saber si hay<br>un problema.</h1>
+      <p class="hero-lead">
+        Un operador de seguridad no necesita otro cuadro de mandos con números
+        grandes. Necesita que la pantalla, al abrirse, ya le esté contestando:
+        <b>qué está ocurriendo, si hay algo mal y qué requiere su atención ahora</b>.
+        Eso es NodeFlow Guard: fichajes con GPS, rondas con puntos de control,
+        incidencias y avisos de emergencia en una sola pantalla — y cada cosa
+        que pasa, escrita donde se puede volver a mirar.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-fill" href="https://wa.me/34666351319?text=Hola%2C%20quiero%20ver%20NodeFlow%20Guard.">Pedir una demo</a>
+        <a class="btn btn-line" href="#central">Ver el producto</a>
+      </div>
+    </div>
+    <div class="hero-vis">
+      <img src="/guard-img/panel.jpg" width="1600" height="1000" fetchpriority="high" decoding="async"
+           alt="Panel principal de NodeFlow Guard: línea de situación con vigilantes en servicio, estaciones cubiertas, incidencias abiertas y actividad reciente de la red.">
+      <p class="hero-cap">Producto real, sin retocar · pantalla principal de la central</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ LA CENTRAL ══ -->
+<section class="section" id="central">
+  <div class="wrap">
+    <p class="kicker">La central</p>
+    <h2 class="h2">La pantalla abre con la respuesta, no con una parrilla.</h2>
+    <p class="deck">
+      La mayoría del software de este sector empieza con doce tarjetas iguales y
+      deja que tú deduzcas si algo va mal. Guard invierte el orden: primero la
+      <b>línea de situación</b>, después el detalle. El color no decora —
+      <b class="lime">verde es nominal</b>, <b style="color:var(--wait)">ámbar
+      requiere atención</b>, <b style="color:var(--red)">rojo es crítico</b> —
+      y ningún estado se comunica sólo con color: siempre lleva su etiqueta.
+    </p>
+
+    <div class="q3" style="margin-top:clamp(34px,4vw,52px)">
+      <div>
+        <p class="qn">Pregunta 1</p>
+        <h3>¿Qué está ocurriendo?</h3>
+        <p>Vigilantes en servicio, estaciones cubiertas y actividad de los últimos minutos. Sin abrir nada.</p>
+      </div>
+      <div>
+        <p class="qn">Pregunta 2</p>
+        <h3>¿Hay algún problema?</h3>
+        <p>Estaciones sin cobertura, rondas que no se han cerrado, incidencias abiertas por encima de su tiempo.</p>
+      </div>
+      <div>
+        <p class="qn">Pregunta 3</p>
+        <h3>¿Qué necesita mi atención?</h3>
+        <p>Ordenado por urgencia real, no por hora de llegada. Lo crítico ocupa más sitio porque importa más.</p>
+      </div>
+    </div>
+
+    <div class="dos" style="margin-top:clamp(34px,4vw,52px)">
+      <figure class="shot" style="margin-top:0">
+        <img src="/guard-img/incidencias.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="Pantalla de incidencias de NodeFlow Guard: listado con tipo, estación, estado y responsable de cada incidencia.">
+        <figcaption><b>Incidencias.</b> Quién la abrió, dónde, qué se hizo y en cuánto tiempo se cerró.</figcaption>
+      </figure>
+      <figure class="shot" style="margin-top:0">
+        <img src="/guard-img/fichajes.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="Pantalla de fichajes de NodeFlow Guard: entradas y salidas de los vigilantes con hora y ubicación.">
+        <figcaption><b>Fichajes.</b> Entrada y salida con hora y posición. No hay que fiarse de una lista en papel.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══ EL CAMPO ══ -->
+<section class="section" id="campo">
+  <div class="wrap">
+    <p class="kicker">En el andén</p>
+    <h2 class="h2">El vigilante lleva la mitad del producto en el bolsillo.</h2>
+    <p class="deck">
+      Sin instalar nada de una tienda: se abre en el móvil como una página y
+      funciona como una aplicación. Y está <b>íntegramente en euskera además de
+      en castellano</b> — no un menú traducido a medias: hay tests que fallan si
+      una sola frase de la app del vigilante se queda sin traducir.
+    </p>
+
+    <div class="tel4" style="margin-top:clamp(30px,3.5vw,46px)">
+      <figure>
+        <img src="/guard-img/movil-inicio.jpg" width="560" height="1212" loading="lazy" decoding="async"
+             alt="Pantalla de inicio de la aplicación móvil del vigilante en NodeFlow Guard.">
+        <figcaption><b>Su turno</b>Qué le toca hoy, dónde y qué queda por hacer.</figcaption>
+      </figure>
+      <figure>
+        <img src="/guard-img/movil-gps.jpg" width="560" height="1212" loading="lazy" decoding="async"
+             alt="Pantalla de ubicación con GPS en la aplicación del vigilante de NodeFlow Guard.">
+        <figcaption><b>Fichar con GPS</b>La hora y el sitio los pone el teléfono, no la memoria de nadie.</figcaption>
+      </figure>
+      <figure>
+        <img src="/guard-img/movil-rondas.jpg" width="560" height="1212" loading="lazy" decoding="async"
+             alt="Pantalla de rondas con puntos de control en la aplicación del vigilante de NodeFlow Guard.">
+        <figcaption><b>Rondas</b>Punto por punto, con la hora y el método con que se validó cada uno.</figcaption>
+      </figure>
+      <figure>
+        <img src="/guard-img/movil-parte.jpg" width="560" height="1212" loading="lazy" decoding="async"
+             alt="Pantalla de parte de incidencia en la aplicación del vigilante de NodeFlow Guard.">
+        <figcaption><b>Parte de incidencia</b>Se puede dictar. A las cuatro de la mañana y con guantes, escribir no es una opción.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══ EL RASTRO ══ La parte que decide si una organización lo compra. -->
+<section class="section" id="rastro">
+  <div class="wrap">
+    <p class="kicker">El rastro</p>
+    <h2 class="h2">Lo que hace que esto se pueda defender delante de un comité.</h2>
+    <p class="deck">
+      Un software de seguridad guarda dónde ha estado cada trabajador y a qué
+      hora. Eso son datos personales de los sensibles, y quien lo compra tiene
+      que poder explicar qué se guarda, cuánto y quién lo mira. No es un extra:
+      es lo que decide si el proyecto pasa o no pasa.
+    </p>
+
+    <div class="gar">
+      <div class="gar-i">
+        <p class="gar-k">Auditoría</p>
+        <div>
+          <h3>Quién miró qué, y no se puede borrar sin que se note</h3>
+          <p>Cada acceso y cada cambio quedan registrados, y el registro se sella periódicamente encadenando cada bloque con el anterior. Manipular una línea vieja rompe la cadena de todas las siguientes: no impide tocarla, pero hace imposible tocarla en silencio.</p>
+        </div>
+      </div>
+      <div class="gar-i">
+        <p class="gar-k">Retención</p>
+        <div>
+          <h3>Dos plazos, porque no todo el rastro vale lo mismo</h3>
+          <p>Las ubicaciones de la ronda rutinaria se borran solas a los treinta días. Las que quedaron fuera de zona —las que pueden acabar en una investigación— aguantan seis meses. Un plazo único obliga a elegir entre guardar de más o quedarse sin la prueba justo cuando hace falta.</p>
+        </div>
+      </div>
+      <div class="gar-i">
+        <p class="gar-k">Derechos</p>
+        <div>
+          <h3>El trabajador descarga sus datos él mismo</h3>
+          <p>Sin pedírselo a nadie y sin que haga falta que un administrador se los prepare. Ve sus fichajes, sus rondas, sus partes y sus mensajes, y los plazos de borrado se los da el servidor: no son un número escrito a mano en una página que envejece.</p>
+        </div>
+      </div>
+      <div class="gar-i">
+        <p class="gar-k">Accesos</p>
+        <div>
+          <h3>Operador y administrador no son lo mismo</h3>
+          <p>El operador trabaja: atiende, coordina, cierra incidencias. La configuración —usuarios, estaciones, plantillas— es de administración. Con segundo factor y sesiones que se pueden cortar de golpe si un móvil se pierde.</p>
+        </div>
+      </div>
+    </div>
+
+    <figure class="shot">
+      <img src="/guard-img/auditoria.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+           alt="Registro de auditoría de NodeFlow Guard: cada acción con su autor, fecha y detalle.">
+      <figcaption><b>El registro de auditoría, tal cual se ve.</b> Cada acción con su autor y su hora. Es la pantalla que se enseña cuando alguien pregunta «¿y esto quién lo cambió?».</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══ INFORMES ══ -->
+<section class="section">
+  <div class="wrap">
+    <p class="kicker">Después</p>
+    <h2 class="h2">El turno acaba y el informe ya está hecho.</h2>
+    <p class="deck">
+      Nadie tiene que sentarse a recopilar lo que pasó: ya está recogido a
+      medida que ocurría. Cobertura por estación, incidencias por tipo, rondas
+      completadas, tiempos de respuesta.
+    </p>
+    <div class="dos" style="margin-top:clamp(30px,3.5vw,46px)">
+      <figure class="shot" style="margin-top:0">
+        <img src="/guard-img/informes.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="Pantalla de informes de NodeFlow Guard con los resultados del periodo.">
+        <figcaption><b>Informes.</b> Lo que hay que enseñar en la reunión del lunes, sin construirlo el lunes.</figcaption>
+      </figure>
+      <figure class="shot" style="margin-top:0">
+        <img src="/guard-img/analitica.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="Pantalla de analítica de NodeFlow Guard con la evolución de la actividad de la red.">
+        <figcaption><b>Analítica.</b> Dónde se repiten las incidencias y a qué horas, que es donde se decide la plantilla.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="fin">
+  <div class="wrap">
+    <h2>Media hora y lo ve con sus estaciones.</h2>
+    <p class="deck">
+      No hay guion de comercial: se abre el producto, se carga una red parecida
+      a la suya y se mira. Si no le encaja, se dice en esa misma media hora y no
+      le hacemos perder más tiempo.
+    </p>
+    <div class="fin-ctas">
+      <a class="btn btn-fill" href="https://wa.me/34666351319?text=Hola%2C%20quiero%20ver%20NodeFlow%20Guard%20con%20mis%20estaciones.">Escribir por WhatsApp</a>
+      <a class="btn btn-line" href="mailto:hola@nodeflow.es?subject=NodeFlow%20Guard%20%E2%80%94%20demo&body=Hola%2C%0A%0AQuiero%20ver%20NodeFlow%20Guard.%0AEquipo%20de%20___%20vigilantes%20en%20___%20emplazamientos.%0A">Escribir un correo</a>
+    </div>
+    <p class="fin-note">Responde una persona, no un formulario. 666 351 319 · hola@nodeflow.es</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="f-grid">
+      <div>
+        <a class="logo" href="/">node<b>flow</b></a>
+        <p style="margin-top:14px;max-width:34ch;color:var(--ink-3)">
+          Software que hace el trabajo, no que lo espera.
+        </p>
+      </div>
+      <div>
+        <h3>Productos</h3>
+        <ul>
+          <li><a href="/recepcion">NodeFlow Recepción</a></li>
+          <li><a href="/guard">NodeFlow Guard</a></li>
+          <li><a href="https://begira.nodeflow.es">Begira</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Guard</h3>
+        <ul>
+          <li><a href="#central">La central</a></li>
+          <li><a href="#campo">En el andén</a></li>
+          <li><a href="#rastro">El rastro</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Empresa</h3>
+        <ul>
+          <li><a href="/">NodeFlow</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="https://wa.me/34666351319">666 351 319</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="f-bot">
+      <span>© 2026 NodeFlow IA S.L. · B88840202</span>
+      <span>Todas las capturas son del producto en funcionamiento.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Separación de la navegación al despegarse de arriba. Mismo gesto que el
+// resto del sitio: un filete que aparece, no una sombra.
+(function(){
+  var n=document.getElementById('nav');
+  var f=function(){ n.classList.toggle('stuck', scrollY>8); };
+  f(); addEventListener('scroll', f, {passive:true});
+})();
+</script>
+</body>
+</html>

@@ -29,8 +29,16 @@ const path = require('path');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
 const EXCLUIR_DIR = new Set(['admin', 'hementxe']);
-// Las 4 que VAN de euskera: se dejan intactas a propósito (ver cabecera).
+// Las que VAN de euskera: se dejan intactas a propósito (ver cabecera).
+//
+// OJO con guard/index.html, que es un caso distinto a todos los demás: ahí el
+// euskera NO es una afirmación falsa. La app del vigilante de NodeFlow Guard
+// está traducida entera, y hay tests en su repo que fallan si una sola frase se
+// queda sin traducir. Lo que se retiró fue la promesa de que el asistente de
+// VOZ habla euskera, que es otro producto y otra cosa. Un barrido que confunda
+// las dos borraría un argumento de venta cierto delante de un cliente vasco.
 const INTOCABLES = new Set([
+  'guard/index.html',
   'blog/ia-multiidioma-turismo-pais-vasco/index.html',
   'blog/negocio-que-atiende-euskera-galego-ia/index.html',
   'blog/recepcionista-ia-multiidioma-euskera-galego/index.html',
