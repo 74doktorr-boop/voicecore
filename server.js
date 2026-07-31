@@ -748,10 +748,31 @@ hydrateSchedulerFromDB()
 // con una sola réplica.
 const { reapOrphanCalls } = require('./src/db/call-store');
 const _reapIfLeader = () => {
-  try { if (!require('./src/utils/leader').isLeader()) return; } catch (_) {}
+  try { if (!require('./src/utils/leader').isLeader()) return false; } catch (_) { return false; }
   reapOrphanCalls({ maxAgeMinutes: 90 }).catch(() => {});
+  return true;
 };
-_reapIfLeader();
+
+// PILOTO-12: la siega DEL ARRANQUE no se puede llamar una sola vez.
+//
+// Con Redis, `startLeaderElection()` lanza un tick ASÍNCRONO y devuelve; el
+// flag `_isLeader` nace en false y sólo cambia cuando Redis contesta. Si aquí
+// se llamaba una vez y en seco, `isLeader()` leía false SIEMPRE y la siega del
+// arranque no se ejecutaba nunca — precisamente la que existe para el caso «un
+// deploy mató el proceso a media llamada». La siguiente oportunidad era la del
+// intervalo: una hora más tarde, con la fila fantasma marcando un reloj que
+// corre en el portal del cliente (caso real: «1989 minutos»).
+//
+// Se reintenta cada 5 s hasta que el liderazgo se asiente, con techo de 2 min
+// para no quedarse insistiendo si esta réplica es seguidora: en ese caso ya
+// siega la líder, y el intervalo horario sigue cubriendo el resto.
+let _intentosSiega = 0;
+const _siegaArranque = setInterval(() => {
+  if (_reapIfLeader() || ++_intentosSiega >= 24) clearInterval(_siegaArranque);
+}, 5000);
+_siegaArranque.unref?.();
+_reapIfLeader();   // por si no hay Redis: ahí isLeader() ya es true de salida
+
 setInterval(_reapIfLeader, 3600000).unref();
 
 // Drenaje elegante: al recibir SIGTERM (deploy/restart), esperar a que las
