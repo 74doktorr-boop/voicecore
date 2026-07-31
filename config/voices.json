@@ -5,17 +5,17 @@
       "label": "Estándar",
       "badge": "INCLUIDA EN TU PLAN",
       "monthlyExtra": 0,
-      "minutesIncluded": 300,
+      "minutesIncluded": 200,
       "overagePerMin": 0.15,
-      "blurb": "Voces naturales de alta calidad incluidas en tu plan · 500 min/mes · minuto extra 0,15€"
+      "blurb": "Voces naturales de alta calidad, incluidas en tu plan sin coste extra."
     },
     "premium": {
       "label": "Premium",
       "badge": "PREMIUM · +10€/mes",
       "monthlyExtra": 10,
-      "minutesIncluded": 300,
+      "minutesIncluded": 40,
       "overagePerMin": 0.15,
-      "blurb": "Voces ultra-realistas ElevenLabs (y tu voz clonada) · +10€/mes · 500 min/mes · minuto extra 0,15€"
+      "blurb": "Voces ultra-realistas. La voz estándar sigue incluida en tu plan."
     }
   },
   "voices": [

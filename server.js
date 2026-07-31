@@ -901,19 +901,14 @@ const { startWaTokenRefreshCron } = require('./src/whatsapp/token-refresh');
 startWaTokenRefreshCron();
 
 // ─── Voice Catalog API ───
-app.get('/api/voices', (req, res) => {
-  try {
-    const catalogPath = path.join(__dirname, 'config', 'voices.json');
-    if (fs.existsSync(catalogPath)) {
-      const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-      res.json(catalog);
-    } else {
-      res.json({ voices: [], defaults: {}, recommended: {} });
-    }
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to load voice catalog' });
-  }
-});
+// AQUÍ HABÍA UN SEGUNDO GET /api/voices que devolvía config/voices.json TAL
+// CUAL, con las 21 voces y sin filtrar por proveedor activo. Nunca llegó a
+// ejecutarse —setupRoutes() registra el suyo en la línea 667, y Express se
+// queda con el primero— así que llevaba meses siendo una mina: el día que
+// alguien reordenara o borrara el de routes.js, el selector habría vuelto a
+// ofrecer 13 voces premium que no suenan, sin que nada fallara ni avisara.
+// Se borra. El bueno vive en src/api/routes.js y filtra por proveedor activo
+// y por tier con voces (ver offerableTiers).
 
 // ─── Voice preview rate limiter (shared by both preview endpoints) ───
 const _ttsPreviewLimit = makeSharedRateLimit({ windowMs: 60000, max: 10, prefix: 'ttsprev' });
@@ -924,6 +919,23 @@ app.get('/api/voices/:id/preview', _ttsPreviewLimit, async (req, res) => {
     const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
     const voice = catalog.voices.find(v => v.id === req.params.id);
     if (!voice) return res.status(404).json({ error: 'Voice not found' });
+
+    // Si el proveedor de esta voz no está activo, NO se sintetiza con otro.
+    //
+    // Sin esto, pedir la muestra de una voz de ElevenLabs (sin clave desde que
+    // se quitó) recorría la cadena y devolvía la voz por defecto de Cartesia:
+    // el cliente pulsa «escuchar» en «Ana Premium» y oye otra voz distinta,
+    // creyendo que oye esa. Es el bug de julio de «todas sonaban igual», que
+    // seguía vivo aquí porque este endpoint no pasa por el filtro del catálogo.
+    // Mejor decir que ahora mismo no se puede que hacerle creer que sí.
+    const activos = ttsRouter && ttsRouter.providers ? ttsRouter.providers : new Map();
+    if (voice.provider && !activos.has(voice.provider)) {
+      return res.status(409).json({
+        error: 'Esa voz no está disponible ahora mismo: su proveedor no está activo. No te ponemos otra para que no juzgues una voz por la de al lado.',
+        voice: voice.id,
+        provider: voice.provider,
+      });
+    }
 
     const audio = await ttsRouter.synthesize({
       callId: 'preview',

@@ -66,7 +66,29 @@ describe('catálogo de voces honesto', () => {
     assert.strictEqual(tiers.ultra, undefined, 'el tier ultra ya no existe');
     assert.strictEqual(tiers.estandar.monthlyExtra, 0);
     assert.strictEqual(tiers.premium.monthlyExtra, 10);
-    assert.ok(tiers.estandar.minutesIncluded > 0 && tiers.estandar.overagePerMin > 0);
+    // Antes esto solo pedía «> 0», y con eso pasaba cualquier número. Pasó:
+    // el tier decía minutesIncluded 300, el blurb decía «500 min/mes» y el plan
+    // real daba 200 (se bajó de 500 a 200 el 29/07 y aquí no se enteró nadie).
+    // Tres cifras distintas para lo mismo, en el fichero que describe lo que se
+    // vende. Ahora se compara contra la FUENTE, que es PLAN_LIMITS: si mañana
+    // se vuelve a mover el cupo, esto se pone rojo en vez de callarse.
+    const { PLAN_LIMITS } = require('../src/auth/middleware');
+    const { StripeBilling } = require('../src/billing/stripe');
+    const planStripe = new StripeBilling({}).plans.negocio;
+    assert.strictEqual(tiers.estandar.minutesIncluded, PLAN_LIMITS.negocio.minutesPerMonth,
+      'los minutos del tier incluido no son los del plan');
+    assert.strictEqual(tiers.estandar.overagePerMin, planStripe.overagePerMinute,
+      'el precio del minuto extra no es el que cobra Stripe');
+    // Los minutos PREMIUM son otro cupo distinto (voice-quota), no los del plan.
+    const { QUOTA_BASIC } = require('../src/tts/voice-quota');
+    assert.strictEqual(tiers.premium.minutesIncluded, QUOTA_BASIC,
+      'los minutos premium del tier no son el cupo real de voice-quota');
+    // Y las cifras NO se repiten dentro del texto: un número escrito a mano en
+    // una frase es el que nadie actualiza. Que lo pinte quien lo sabe.
+    for (const [k, v] of Object.entries(tiers)) {
+      assert.ok(!/\d+\s*min\b/i.test(v.blurb || ''),
+        `el blurb de "${k}" vuelve a llevar los minutos escritos a mano: «${v.blurb}»`);
+    }
     // El tier incluido lo respalda Cartesia (rápido, barato). Azure eliminado 2026-07-04.
     const incluidas = catalog.voices.filter(v => v.tier === 'estandar');
     const provsIncluidos = new Set(incluidas.map(v => v.provider));
@@ -95,6 +117,45 @@ describe('catálogo de voces honesto', () => {
     test('fail-open: sin info de proveedores no oculta nada (no dejar el selector vacío por un bug de wiring)', () => {
       assert.strictEqual(renderableVoices(sample, new Set()).length, 4);
       assert.strictEqual(renderableVoices(sample).length, 4);
+    });
+  });
+
+  describe('offerableTiers — no se anuncia un nivel que no tiene voces dentro', () => {
+    const { offerableTiers } = require('../src/tts/voice-catalog');
+    const TIERS = { estandar: { label: 'Estándar' }, premium: { label: 'Premium', monthlyExtra: 10 } };
+
+    test('sin voces premium, el nivel Premium no sale (es lo que pasa HOY)', () => {
+      // Las 13 voces premium eran todas de ElevenLabs. Al quitar su clave —cuenta
+      // en plan gratuito, 402 desde siempre, nunca sintetizó nada— se fueron las
+      // 13 a la vez y quedaron 6 voces, todas estándar. El apartado con el
+      // «+10€/mes» escrito no puede seguir anunciándose sin nada detrás.
+      const soloEstandar = [{ id: 'a', tier: 'estandar' }, { id: 'b', tier: 'estandar' }];
+      assert.deepStrictEqual(Object.keys(offerableTiers(TIERS, soloEstandar)), ['estandar']);
+    });
+
+    test('en cuanto haya UNA voz premium que suene, el nivel vuelve solo', () => {
+      // Esto es lo que separa un invariante de un apaño: no se tacha «premium» a
+      // mano, se ata a que exista voz. El día que haya una premium de verdad
+      // —otro proveedor, o ElevenLabs de pago— el apartado reaparece sin que
+      // nadie tenga que acordarse de destacharlo. Nadie se acuerda nunca.
+      const conPremium = [{ id: 'a', tier: 'estandar' }, { id: 'c', tier: 'premium' }];
+      assert.deepStrictEqual(Object.keys(offerableTiers(TIERS, conPremium)).sort(), ['estandar', 'premium']);
+    });
+
+    test('sin voces no se anuncia ningún nivel', () => {
+      assert.deepStrictEqual(offerableTiers(TIERS, []), {});
+    });
+
+    test('una voz sin tier cuenta como premium (igual que en el resto del catálogo)', () => {
+      // staticCatalog() y resolveVoiceEntry() ya tratan la ausencia de tier como
+      // 'premium'. Si aquí se tratara como 'estandar', una voz sin etiquetar
+      // haría aparecer el nivel equivocado.
+      assert.deepStrictEqual(Object.keys(offerableTiers(TIERS, [{ id: 'x' }])), ['premium']);
+    });
+
+    test('aguanta entradas rotas sin dejar el selector sin niveles', () => {
+      assert.deepStrictEqual(offerableTiers(null, [{ tier: 'estandar' }]), {});
+      assert.deepStrictEqual(offerableTiers(TIERS, null), {});
     });
   });
 

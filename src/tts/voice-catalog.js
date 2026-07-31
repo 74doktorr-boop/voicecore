@@ -137,4 +137,35 @@ function renderableVoices(voices, availableProviders) {
   return list.filter(v => avail.has(v.provider));
 }
 
-module.exports = { listVoices, normalizeEleven, staticCatalog, getTiers, resolveVoiceEntry, renderableVoices, clearCache, TTL_MS };
+/**
+ * Tiers que se pueden ANUNCIAR: sólo los que tienen alguna voz que suene.
+ *
+ * El filtro de voces existe desde julio, pero los tiers salían del fichero sin
+ * filtrar, y eso dejó en producción un escaparate con un cartel y nada detrás:
+ * el selector ofrecía 6 voces —las 6 de Cartesia, tier «estándar»— y encima un
+ * apartado «Premium · +10€/mes · Voces ultra-realistas ElevenLabs» con CERO
+ * voces dentro. Las 13 premium eran todas de ElevenLabs, y al quitar su clave
+ * (cuenta en plan gratuito, 402 desde siempre, jamás sintetizó una sílaba) se
+ * fueron todas a la vez. El cartel se quedó colgado.
+ *
+ * Es la misma falta que el euskera y el galego, pero en la lista de precios:
+ * ofrecer lo que el producto no puede dar. Y con dinero delante, porque el
+ * apartado lleva un +10€/mes escrito.
+ *
+ * Se filtra por INVARIANTE, no tachando «premium» a mano: un tier se anuncia si
+ * y sólo si queda alguna voz suya que se pueda sintetizar. Así el día que haya
+ * una voz premium de verdad, el apartado vuelve solo, sin que nadie se acuerde
+ * de destacharlo — que es justo lo que no pasa con los apaños a mano.
+ *
+ * @param {object} tiers   getTiers()
+ * @param {Array}  voices  las que YA han pasado por renderableVoices()
+ */
+function offerableTiers(tiers, voices) {
+  const t = tiers && typeof tiers === 'object' ? tiers : {};
+  const conVoz = new Set((Array.isArray(voices) ? voices : []).map(v => v.tier || 'premium'));
+  const out = {};
+  for (const [k, v] of Object.entries(t)) if (conVoz.has(k)) out[k] = v;
+  return out;
+}
+
+module.exports = { listVoices, normalizeEleven, staticCatalog, getTiers, resolveVoiceEntry, renderableVoices, offerableTiers, clearCache, TTL_MS };

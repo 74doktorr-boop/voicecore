@@ -6,9 +6,44 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('BILLING');
 
-// Minutos INCLUIDOS por plan (solo planes con overage). Debe coincidir con
-// PLAN_LIMITS.minutesPerMonth en src/auth/middleware.js.
-const OVERAGE_INCLUDED_MINUTES = { negocio: 500, enterprise: 99999 };
+// ─── Minutos INCLUIDOS por plan ───────────────────────────────────────────
+// AQUÍ HABÍA UNA TERCERA COPIA DEL CUPO, Y ESTABA MAL.
+//
+// Decía `{ negocio: 500 }` cuando el plan lleva 200 desde el 29 de julio. El
+// comentario que tenía encima decía «debe coincidir con PLAN_LIMITS» — y no
+// coincidía. Esto es lo que decide a partir de cuántos minutos se empieza a
+// facturar, así que con 500 escrito aquí un cliente que gastara 400 minutos se
+// llevaba 200 minutos gratis: 30 € sin cobrar, cada mes, en silencio. Medido
+// con el código real antes de tocar nada:
+//
+//     uso 300 min → se cobraba 0 €   (debería 15 €)
+//     uso 400 min → se cobraba 0 €   (debería 30 €)
+//     uso 500 min → se cobraba 0 €   (debería 45 €)
+//
+// Con el coste medido (0,0969 €/min), un cliente de 400 minutos deja 10 € de
+// margen sobre los 49 € en vez de 40 €. No ha costado dinero todavía porque no
+// hay ninguna suscripción viva en Stripe, pero se activa con el primer fundador
+// que use el teléfono de verdad.
+//
+// Había un test vigilando el cupo y no lo vio: comprobaba que `PLANS.minutes` y
+// `PLAN_LIMITS` dijeran lo mismo, y los dos lo decían. Esta tercera copia estaba
+// en el MISMO fichero que ya leía, quince líneas más arriba, fuera de su
+// expresión de búsqueda. Un test verde sobre dos de tres copias se lee como «el
+// cupo está cuadrado», y era justo la que no cuadraba la que cobra.
+//
+// Así que no se corrige el número: se quita la copia. El cupo se lee de
+// PLAN_LIMITS, que es donde se limita, y aquí sólo se decide si el plan factura
+// overage. Con `require` perezoso para no atar el orden de carga de los módulos.
+function includedMinutes(plan) {
+  try {
+    const { PLAN_LIMITS } = require('../auth/middleware');
+    const l = PLAN_LIMITS[plan];
+    if (!l || !l.overage) return 0;   // plan sin overage o desconocido
+    return Number(l.minutesPerMonth) || 0;
+  } catch (_) {
+    return 0;   // fail-closed: sin cupo conocido no se inventa uno, no se cobra
+  }
+}
 
 /**
  * Minutos de overage que aporta una llamada: la parte de [prev, new] que cae por
@@ -16,7 +51,7 @@ const OVERAGE_INCLUDED_MINUTES = { negocio: 500, enterprise: 99999 };
  * @returns {number} minutos extra (≥0)
  */
 function computeOverageDelta(plan, prevMinutes, newMinutes) {
-  const included = OVERAGE_INCLUDED_MINUTES[plan];
+  const included = includedMinutes(plan);
   if (!included) return 0; // plan sin overage (p.ej. starter) o desconocido
   const prev = Math.max(0, Number(prevMinutes) || 0);
   const next = Math.max(0, Number(newMinutes) || 0);
@@ -54,17 +89,17 @@ class StripeBilling {
         // 0,15€/min — decisión Unai 2026-07-04, precio ÚNICO de overage en
         // todas partes (landing, portal, voices.json, KPIs). El Meter de
         // Stripe debe decir lo mismo. (Antes 0.05: por debajo de coste.)
-        // 200 incluidos (2026-07-29). Coste real medido: 0,0969 €/min → el
-        // equilibrio de un plan de 49 € está en ~506 min, y el cupo anterior
-        // eran 500: estaba puesto justo en el coste. Este número tiene que ir
-        // SIEMPRE igual que PLAN_LIMITS.minutesPerMonth en src/auth/middleware.js
-        // — uno cobra y el otro limita; si se separan, el cliente ve una cosa y
-        // paga otra. Hay un test que lo vigila.
-        minutes: 200, assistants: 999, overagePerMinute: 0.15,
+        //
+        // Los minutos ya NO se escriben aquí. Eran la segunda de tres copias
+        // del mismo número a mano, y la tercera (OVERAGE_INCLUDED_MINUTES,
+        // arriba en este fichero) se quedó en 500 al bajar el plan a 200 —
+        // dejando de cobrar el excedente. Ahora hay una sola fuente:
+        // PLAN_LIMITS en src/auth/middleware.js, que es donde se limita.
+        minutes: includedMinutes('negocio'), assistants: 999, overagePerMinute: 0.15,
       },
       enterprise: {
         name: 'Enterprise', price: null, priceId: null,
-        minutes: 99999, assistants: 999, overagePerMinute: 0.03,
+        minutes: includedMinutes('enterprise'), assistants: 999, overagePerMinute: 0.03,
       },
     };
   }
@@ -435,4 +470,4 @@ function getBilling(config) {
   return billingInstance;
 }
 
-module.exports = { StripeBilling, getBilling, computeOverageDelta, OVERAGE_INCLUDED_MINUTES };
+module.exports = { StripeBilling, getBilling, computeOverageDelta, includedMinutes };

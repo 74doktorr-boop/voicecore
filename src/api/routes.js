@@ -97,7 +97,7 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   // voces cuyo proveedor está activo (ver renderableVoices).
   app.get('/api/voices', async (req, res) => {
     try {
-      const { listVoices, getTiers, renderableVoices } = require('../tts/voice-catalog');
+      const { listVoices, getTiers, renderableVoices, offerableTiers } = require('../tts/voice-catalog');
       // Proveedores REALMENTE activos = los que el router registró (tienen
       // key/URL). Fuente de verdad el propio router, no el config (que no
       // arrastra todas las keys). Así una voz solo se ofrece si su proveedor
@@ -105,8 +105,11 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       const rt = config.ttsRouter || (pipeline && pipeline.ttsRouter);
       const available = new Set(rt && rt.providers ? Array.from(rt.providers.keys()) : []);
       const voices = renderableVoices(await listVoices(), available);
+      // Los tiers se filtran con las MISMAS voces que se acaban de ofrecer. Sin
+      // esto el portal pintaba un apartado «Premium · +10€/mes» vacío por dentro.
+      const tiers = offerableTiers(getTiers(), voices);
       res.set('Cache-Control', 'public, max-age=60');
-      res.json({ voices, tiers: getTiers(), count: voices.length });
+      res.json({ voices, tiers, count: voices.length });
     } catch (e) {
       res.status(500).json({ error: 'No se pudo cargar el catálogo de voces' });
     }
