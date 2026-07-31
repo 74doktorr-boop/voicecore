@@ -427,16 +427,35 @@ class TTSRouter {
       } catch (_) { /* sin catálogo se sigue como antes */ }
     }
 
+    // El código de idioma se NORMALIZA a uno que el proveedor entienda.
+    //
+    // Medido contra la API de Cartesia: `language:'es'` sintetiza sin problema,
+    // pero 'es+gl' y 'gl' devuelven «400 Invalid language». O sea que a un
+    // cliente en es+gl, Cartesia le fallaba SIEMPRE por el código —no por la
+    // voz— y la llamada acababa en el siguiente de la cadena, más caro. Meter
+    // Cartesia en la cadena (arreglo anterior) no servía de nada si luego se le
+    // manda un idioma que rechaza.
+    //
+    // Se elige la primera parte del combo que el proveedor declare soportar.
+    // Para 'es+gl' eso es 'es': el texto lo escribe el LLM en galego y la voz
+    // castellana lo lee bien —comprobado sintetizando «Bo día, grazas por
+    // chamar»—. No es una voz gallega nativa, y la web no debe decir que lo sea.
+    const idiomaProveedor = (() => {
+      const soportados = this.providers.get(providerName)?.languages || [];
+      const partes = String(language || 'es').split('+');
+      return partes.find(l => soportados.includes(l)) || partes[0] || 'es';
+    })();
+
     switch (providerName) {
       case 'cartesia':
         params.voice = voice ?? 'a0e99841-438c-4a64-b679-ae501e7d6091';
-        params.language = language;
+        params.language = idiomaProveedor;
         break;
       case 'elevenlabs':
         // El voice puede venir como nombre de OpenAI (nova…) del selector;
         // lo traducimos a un voiceId real de ElevenLabs (default seguro).
         params.voiceId   = require('./voice-map').resolveElevenVoice(voice);
-        params.language  = language;  // lock language — prevents mid-speech switching
+        params.language  = idiomaProveedor;  // lock language — prevents mid-speech switching
         break;
       case 'openai':
         params.voice = voice ?? 'nova';
@@ -446,11 +465,11 @@ class TTSRouter {
         break;
       case 'local':
         params.voice = voice ?? 'ane';
-        params.language = language;
+        params.language = idiomaProveedor;
         break;
       case 'local-gl':
         params.voice = voice ?? 'default';  // Will be updated when GL voices are cloned
-        params.language = language;
+        params.language = idiomaProveedor;
         break;
       default:
         params.voice = voice;

@@ -9,6 +9,23 @@ const { test, describe, afterEach } = require('node:test');
 const assert = require('node:assert');
 const { usageSummary, reportOverageForOrg, monthStartISO } = require('../src/billing/message-usage');
 
+// El mes se calcula donde lo calcula el CÓDIGO: en Madrid.
+//
+// Estos tests construían el marcador con `new Date().toISOString().slice(0,7)`,
+// que es UTC, mientras message-usage.js usa Europe/Madrid. Coinciden 363 días
+// al año, así que el fallo esperó al 1 de agosto a la 01:00 —cuando en Madrid
+// ya es agosto y en UTC sigue siendo julio— para aparecer de golpe, en dos
+// tests de FACTURACIÓN y sin que nadie hubiera tocado nada.
+//
+// Con los meses descuadrados, el marcador de «ya reportado» no se reconoce y
+// el test ve cobrar el excedente entero (30) en vez del delta (20). El código
+// está bien: lo que medía en otra zona horaria era el test. Es la segunda vez
+// en dos días que aparece esta familia de bug en este repo (la primera fue el
+// informe semanal), y por eso va como helper con nombre y no como una línea
+// más: para que la próxima se escriba bien de entrada.
+const mesMadrid = () =>
+  new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date()).slice(0, 7);
+
 afterEach(() => { delete process.env.STRIPE_MSG_METER_EVENT; });
 
 function stubDb({ sentCount = 0, config = null, claimWins = true } = {}) {
@@ -71,7 +88,7 @@ describe('reportOverageForOrg', () => {
 
   test('reporta el DELTA y guarda el marcador (no cobra dos veces)', async () => {
     process.env.STRIPE_MSG_METER_EVENT = 'mensajes_extra';
-    const db = stubDb({ sentCount: 230, config: { _msgOverage: { month: new Date().toISOString().slice(0, 7), reported: 10 } } });
+    const db = stubDb({ sentCount: 230, config: { _msgOverage: { month: mesMadrid(), reported: 10 } } });
     let sent = null;
     const r = await reportOverageForOrg(ORG, { db, billing: { reportUsage: async (p) => { sent = p; } } });
     assert.strictEqual(r.reported, 20);                    // 30 de excedente - 10 ya reportados
@@ -91,7 +108,7 @@ describe('reportOverageForOrg', () => {
   test('carrera: si otra instancia reclama primero, NO se toca Stripe', async () => {
     process.env.STRIPE_MSG_METER_EVENT = 'mensajes_extra';
     let called = false;
-    const db = stubDb({ sentCount: 230, claimWins: false, config: { _msgOverage: { month: new Date().toISOString().slice(0, 7), reported: 10 } } });
+    const db = stubDb({ sentCount: 230, claimWins: false, config: { _msgOverage: { month: mesMadrid(), reported: 10 } } });
     const r = await reportOverageForOrg(ORG, { db, billing: { reportUsage: async () => { called = true; } } });
     assert.strictEqual(r.reported, 0);
     assert.strictEqual(called, false, 'Stripe no debe recibir el delta perdido');
@@ -109,7 +126,7 @@ describe('reportOverageForOrg', () => {
 
   test('si Stripe falla tras reclamar, el marcador se devuelve (reintento mañana)', async () => {
     process.env.STRIPE_MSG_METER_EVENT = 'mensajes_extra';
-    const month = new Date().toISOString().slice(0, 7);
+    const month = mesMadrid();
     const db = stubDb({ sentCount: 230, config: { _msgOverage: { month, reported: 10 } } });
     const r = await reportOverageForOrg(ORG, { db, billing: { reportUsage: async () => { throw new Error('stripe caído'); } } });
     assert.strictEqual(r.reported, 0);
