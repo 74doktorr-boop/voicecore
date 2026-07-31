@@ -9,10 +9,40 @@
 # Esto corre en la infraestructura de GitHub, fuera de EasyPanel. Si falla,
 # GitHub manda un correo al dueño del repo — sin cuentas nuevas ni secretos.
 #
+# ── POR QUÉ AHORA MIDE MÁS COSAS (2026-08-01) ────────────────────────────
+# El 31/07 saltó dos veces, a las 18:42 y a las 22:17 UTC, y ninguna de las
+# dos coincidió con un despliegue. Los dos intentos dieron «HTTP 000» tras
+# agotar los 25 segundos enteros de curl. Y ahí se acabó lo que se sabía.
+#
+# «HTTP 000» no es un diagnóstico, es la ausencia de uno: cabe dentro el DNS
+# que no resuelve, el TCP que no conecta, el TLS que se queda a medias, y el
+# proceso que acepta la conexión y luego no contesta —que son cuatro averías
+# distintas con cuatro culpables distintos—. Una alarma que no dice cuál de
+# los cuatro fue obliga a investigar desde cero cada vez, y una alarma que
+# cuesta una hora investigar se acaba mirando de reojo.
+#
+# Ahora cada intento guarda el desglose de tiempos de curl y su código de
+# salida, y si falla se pregunta otras dos cosas antes de dar la alarma:
+#
+#   · ¿Va el internet DEL RUNNER?  → cloudflare.com/cdn-cgi/trace
+#   · ¿Va la MÁQUINA de EasyPanel? → ets.nodeflow.es, que es otro contenedor
+#     en el mismo servidor (mismo IP, comprobado: 187.124.35.34)
+#
+# Con eso el correo ya no dice «algo falla», dice cuál de estos tres:
+#   A) el contenedor de VoiceCore está colgado  (los dos controles bien)
+#   B) el servidor entero o su proxy está caído (falla también ets)
+#   C) el runner de GitHub se quedó sin red     (falla también Cloudflare)
+#
+# El caso C NO tumba el watchdog: es ruido, y un vigilante que grita por el
+# ruido enseña a ignorarlo justo antes de la vez que importa.
+#
 # LÍMITES, que conviene saberlos:
-#   · El cron de Actions se retrasa (5-15 min es normal en horas punta). Detecta
-#     caídas en ~15-25 min, no en uno. Para vigilancia al minuto hace falta algo
-#     como UptimeRobot, que sí necesita darse de alta.
+#   · Aquí abajo pide cada 10 minutos, pero GitHub NO lo cumple: medido el
+#     31/07, entre ejecución y ejecución pasaron entre 50 y 130 minutos. Los
+#     crons de Actions se encolan y se saltan cuando la cola aprieta. O sea
+#     que esto detecta una caída en una o dos horas, no en diez minutos, y
+#     ve alrededor del 1% del día. Para vigilancia de verdad al minuto hace
+#     falta algo como UptimeRobot, que sí necesita darse de alta.
 #   · GitHub desactiva los crons de repos sin actividad durante 60 días. Este
 #     tiene despliegues casi a diario, pero si algún día para, revisar esto.
 # ══════════════════════════════════════════════════════════════════════════
@@ -34,14 +64,62 @@ jobs:
       - name: ¿Está vivo y sano?
         run: |
           set -uo pipefail
+          # GitHub arranca esto con `bash -e`, y aquí curl VA a fallar a
+          # propósito: es lo que venimos a medir. Con -e puesto, el primer
+          # timeout mataría el script en la línea de la asignación y el correo
+          # de alarma llegaría vacío — sin el diagnóstico que es todo el
+          # sentido de este fichero. El flujo se controla con exit explícitos.
+          set +e
           URL="https://nodeflow.es/health"
+
+          # Un intento, con el desglose de dónde se fue el tiempo. Deja el
+          # cuerpo en $2 y escribe en la salida una línea legible.
+          #
+          # OJO con el código de salida de curl: es la mitad del diagnóstico.
+          #   6  = el DNS no resuelve         28 = se agotó el tiempo
+          #   7  = no se pudo conectar (TCP)  35 = el TLS se rompió
+          # Antes esto se perdía —`|| echo "000"` se comía el código y encima
+          # dejaba escrito «HTTP 000000», que ni siquiera es un número—.
+          probar() {
+            local url="$1" cuerpo="$2"
+            # Vaciar el fichero ANTES. Probando esto en local salió que, cuando
+            # curl no escribe nada, el `cat` de abajo enseñaba el cuerpo del
+            # intento ANTERIOR: un {"status":"ok"} sano impreso justo debajo de
+            # un fallo. Es la peor mentira posible en un correo de alarma —
+            # invita a cerrarlo pensando que fue un falso positivo.
+            : > "$cuerpo"
+            local fmt='%{http_code} %{time_namelookup} %{time_connect} %{time_appconnect} %{time_starttransfer} %{time_total}'
+            local out rc
+            out=$(curl -s -m 25 -o "$cuerpo" -w "$fmt" "$url"); rc=$?
+            [ -n "$out" ] || out="000 - - - - -"
+            echo "$out $rc"
+          }
+
+          # Lee la salida de probar() y la cuenta en cristiano.
+          contar() {
+            read -r code dns conn tls ttfb total rc <<< "$1"
+            echo "   HTTP $code (curl rc=$rc) · dns ${dns}s · conexión ${conn}s · TLS ${tls}s · primer byte ${ttfb}s · total ${total}s"
+            case "$rc" in
+              0)  ;;
+              6)  echo "   → el DNS no resolvió el nombre" ;;
+              7)  echo "   → no se pudo abrir la conexión TCP (nadie escuchando, o cortafuegos)" ;;
+              28) if [ "$conn" = "0.000000" ] || [ "$conn" = "-" ]; then
+                    echo "   → se agotó el tiempo ANTES de conectar: el servidor no acepta conexiones"
+                  else
+                    echo "   → conectó en ${conn}s y luego NO contestó: el proceso está vivo pero atascado"
+                  fi ;;
+              35) echo "   → el handshake TLS falló" ;;
+              *)  echo "   → curl terminó con código $rc" ;;
+            esac
+          }
 
           # Dos intentos separados 30s: un redespliegue o un pico de red no son
           # una caída, y una alarma que salta por eso se acaba ignorando.
           for intento in 1 2; do
             echo "── Intento $intento ──"
-            CODE=$(curl -s -m 25 -o /tmp/health.json -w '%{http_code}' "$URL" || echo "000")
-            echo "HTTP $CODE"
+            R=$(probar "$URL" /tmp/health.json)
+            contar "$R"
+            CODE=${R%% *}
             cat /tmp/health.json 2>/dev/null || true
             echo ""
 
@@ -58,7 +136,46 @@ jobs:
             [ "$intento" = "1" ] && sleep 30
           done
 
+          # ── Falló. Antes de dar la alarma, ¿de quién es la culpa? ──
           echo ""
-          echo "🚨 NodeFlow NO responde correctamente en $URL tras 2 intentos."
-          echo "Último HTTP: $CODE"
+          echo "══ NodeFlow no contesta. Comprobando quién más está en pie ══"
+
+          echo "· Internet del runner (Cloudflare):"
+          RED=$(probar https://www.cloudflare.com/cdn-cgi/trace /tmp/cf.txt)
+          contar "$RED"
+          RED_OK=$([ "${RED%% *}" = "200" ] && echo si || echo no)
+
+          echo "· Otro contenedor del MISMO servidor (ets.nodeflow.es):"
+          HOST=$(probar https://ets.nodeflow.es/ /tmp/ets.html)
+          contar "$HOST"
+          HOST_OK=$([ "${HOST%% *}" = "200" ] && echo si || echo no)
+
+          echo ""
+          # Callarse SÓLO si no responde NADA de fuera. La primera versión de
+          # esto se callaba en cuanto fallaba Cloudflare, y probándolo salió el
+          # fallo: en la prueba Cloudflare no contestaba pero ets.nodeflow.es
+          # sí — o sea que el runner tenía red de sobra, y aun así se iba a
+          # callar. Un vigilante que se calla por el motivo equivocado es peor
+          # que no tenerlo: da por vigilado lo que no ha mirado.
+          if [ "$RED_OK" = "no" ] && [ "$HOST_OK" = "no" ]; then
+            echo "⚠️  El runner no alcanza NADA de fuera, ni Cloudflare ni nuestro servidor:"
+            echo "    es SU red, no la nuestra. No se da la alarma."
+            echo "    Si esto se repite mucho, mirar el estado de GitHub Actions."
+            echo "::warning::watchdog sin red en el runner — no concluyente"
+            exit 0
+          fi
+
+          [ "$RED_OK" = "no" ] && echo "   (nota: Cloudflare no contestó, pero nuestro servidor sí — la red del runner va)"
+
+          if [ "$HOST_OK" = "no" ]; then
+            echo "🚨 CAÍDA DEL SERVIDOR: ni VoiceCore ni ETS Guard responden, y la red del"
+            echo "   runner va bien. Está caída la máquina de EasyPanel o su proxy."
+            echo "   Mirar: panel de EasyPanel (xmehd4.easypanel.host) y el estado del host."
+          else
+            echo "🚨 VOICECORE COLGADO: el servidor responde (ETS Guard va), pero VoiceCore no."
+            echo "   El problema es del contenedor voicecore-api, no de la máquina."
+            echo "   Mirar: logs y reinicios de voicecore/voicecore-api en EasyPanel."
+          fi
+          echo ""
+          echo "   Mientras dure, las llamadas que entren se pierden: Telnyx no alcanza el webhook."
           exit 1
