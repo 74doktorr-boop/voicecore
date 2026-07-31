@@ -1,0 +1,810 @@
+[
+ {
+  "f": "agencia-viajes/index.html",
+  "s": "El 40% de las consultas de viajes ocurren fuera de horario comercial."
+ },
+ {
+  "f": "andoain/index.html",
+  "s": "Los negocios de Andoain que lo usan captan el 23% de sus reservas fuera de horario."
+ },
+ {
+  "f": "privacidad/index.html",
+  "s": "ice(1)===id));\r\n  }\r\n  // Fallback robusto por scroll: elige la sección cuyo inicio esté más cerca\r\n  // (pero por encima) de un punto de referencia ~30% del viewport."
+ },
+ {
+  "f": "blog/asistente-ia-academia-vitoria/index.html",
+  "s": "¿Sabías que el 70% de las consultas en academias son repetitivas y pueden ser automatizadas?"
+ },
+ {
+  "f": "blog/asistente-ia-academia-vitoria/index.html",
+  "s": "Un asistente IA es capaz de gestionar hasta el 60% de las consultas comunes de estudiantes y padres."
+ },
+ {
+  "f": "blog/asistente-ia-centro-medico-privado/index.html",
+  "s": "Con NodeFlow, ese proceso se automatiza para el 80% de los casos estándar."
+ },
+ {
+  "f": "blog/recepcionista-ia-farmacia-bilbao/index.html",
+  "s": "Un cliente que recibe un recordatorio 24 horas antes de su cita tiene entre un 40 y un 60% menos de probabilidades de no presentarse."
+ },
+ {
+  "f": "blog/asistente-ia-centros-estetica-laser/index.html",
+  "s": "Este recordatorio de protocolo reduce las sesiones anuladas por incumplimiento de requisitos, que en algunos centros suponen el 10-15% del total."
+ },
+ {
+  "f": "blog/asistente-ia-centros-yoga-pilates/index.html",
+  "s": "La tasa de renovación de packs en estudios con recordatorios automáticos es entre un 30% y un 50% superior a la de estudios sin ellos."
+ },
+ {
+  "f": "blog/asistente-ia-clinica-dental-donostia/index.html",
+  "s": "¿Sabías que el 30% de las llamadas a clínicas dentales nunca son contestadas?"
+ },
+ {
+  "f": "blog/asistente-ia-clinica-dental-donostia/index.html",
+  "s": "Estudios muestran que hasta el 30% de las llamadas pueden no ser contestadas, especialmente en horas pico."
+ },
+ {
+  "f": "blog/asistente-ia-clinica-estetica-donostia/index.html",
+  "s": "El 85% de las clínicas estéticas en España buscan mejorar su eficiencia operativa."
+ },
+ {
+  "f": "blog/asistente-ia-coaches-terapeutas/index.html",
+  "s": "Estudios del sector indican que el 67% de las personas que llaman a un profesional independiente y no obtienen respuesta no vuelven a intentarlo."
+ },
+ {
+  "f": "blog/asistente-ia-coaches-terapeutas/index.html",
+  "s": "Este sistema de rebooking proactivo puede recuperar entre el 20 y el 30% de los clientes que abandoran antes de completar su proceso."
+ },
+ {
+  "f": "blog/asistente-ia-coaches-terapeutas/index.html",
+  "s": "Una llamada 24 horas antes y un mensaje el mismo día de la sesión convierten el 90% de las reservas en asistencias efectivas, evitando huecos en tu agenda que nunca se recuperan."
+ },
+ {
+  "f": "blog/asistente-ia-empresas-reformas-espana/index.html",
+  "s": "En empresas de reformas que reciben muchas consultas, el 40-50% de las llamadas pueden ser leads no cualificados que se filtran automáticamente, liberando tiempo valioso para los proyectos con potencial real."
+ },
+ {
+  "f": "blog/asistente-ia-estetica-vitoria-gasteiz/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"Con NodeFlow, puedes ahorrar hasta un 40% del tiempo que dedicabas a la gestión de citas, permitiendo que tu personal se enfoque en ofrecer un mejor servicio."
+ },
+ {
+  "f": "blog/asistente-ia-estetica-vitoria-gasteiz/index.html",
+  "s": "¿Sabías que más del 70% de los centros de estética en Vitoria-Gasteiz todavía gestionan sus citas de forma manual?"
+ },
+ {
+  "f": "blog/asistente-ia-estetica-vitoria-gasteiz/index.html",
+  "s": "Con NodeFlow, puedes ahorrar hasta un 40% del tiempo que dedicabas a la gestión de citas, permitiendo que tu personal se enfoque en ofrecer un mejor servicio."
+ },
+ {
+  "f": "blog/asistente-ia-fisioterapia-donostia/index.html",
+  "s": "¿Sabías que más del 70% de las clínicas de fisioterapia en España aún gestionan sus citas manualmente?"
+ },
+ {
+  "f": "blog/asistente-ia-fisioterapia-donostia/index.html",
+  "s": "Las clínicas de fisioterapia en Donostia pueden perder hasta un 30% de su tiempo en la gestión manual de citas."
+ },
+ {
+  "f": "blog/asistente-ia-fisioterapia-donostia/index.html",
+  "s": "Un estudio reciente muestra que el 60% de las clínicas que usan asistentes IA han reducido el tiempo dedicado a la gestión de seguros en un 50%."
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-bilbao/index.html",
+  "s": "¿Sabías que el 70% de los gimnasios en Bilbao pierden potenciales clientes por no responder a tiempo las consultas?"
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-bilbao/index.html",
+  "s": "Un estudio reciente mostró que los gimnasios que utilizan sistemas automatizados aumentaron sus inscripciones en un 25% en solo tres meses."
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-bilbao/index.html",
+  "s": "En un estudio de mercado, se encontró que el 60% de los clientes prefieren obtener información rápidamente a través de sistemas automatizados."
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-donostia/index.html",
+  "s": "¿Sabías que el 70% de los gimnasios en España pierden clientes por una mala gestión de inscripciones y consultas?"
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-donostia/index.html",
+  "s": "Un asistente IA como el de NodeFlow puede gestionar hasta el 80% de las consultas comunes que recibe un gimnasio."
+ },
+ {
+  "f": "blog/asistente-ia-gimnasio-donostia/index.html",
+  "s": "Un estudio reciente muestra que los negocios que adoptan tecnologías de automatización pueden ver un aumento del 20% al 30% en su ROI."
+ },
+ {
+  "f": "blog/asistente-ia-negocio-24-horas-festivos/index.html",
+  "s": "¿Sabías que un 75% de los clientes prefieren contactar con negocios fuera del horario laboral?"
+ },
+ {
+  "f": "blog/asistente-ia-negocio-24-horas-festivos/index.html",
+  "s": "e sectores que ya se benefician de esta tecnología incluyen restaurantes, servicios de limpieza y pequeños comercios que han notado una reducción del 40% en las consultas no resueltas."
+ },
+ {
+  "f": "blog/asistente-ia-negocio-24-horas-festivos/index.html",
+  "s": "Antes de contar con un asistente virtual, el hotel perdía alrededor de un 20% de sus reservas potenciales debido a llamadas no atendidas fuera de horario."
+ },
+ {
+  "f": "blog/asistente-ia-opticas-espana/index.html",
+  "s": "Si una óptica con 800 clientes activos activa recordatorios a los 20 meses y convierte un 30% de ellos en visita efectiva, está generando 240 visitas adicionales al año que de otra forma no habrían ocurrido."
+ },
+ {
+  "f": "blog/asistente-ia-para-gimnasios-centros-deportivos/index.html",
+  "s": "¿Sabías que el 70% de las consultas en gimnasios se repiten?"
+ },
+ {
+  "f": "blog/asistente-ia-para-gimnasios-centros-deportivos/index.html",
+  "s": "Un asistente IA puede gestionar hasta un 80% de estas consultas sin intervención humana."
+ },
+ {
+  "f": "blog/asistente-ia-psicologos-bilbao/index.html",
+  "s": "En Bilbao, donde la demanda de salud mental ha crecido un 40 % en los últimos tres años, muchos psicólogos y terapeutas pierden hasta el 30 % de sus llamadas entrantes por estar en sesión."
+ },
+ {
+  "f": "blog/asistente-ia-restaurante-vitoria/index.html",
+  "s": "El 70% de los clientes prefieren hacer reservas online, pero ¿está tu restaurante en Vitoria-Gasteiz preparado para esta demanda?"
+ },
+ {
+  "f": "blog/asistente-ia-restaurante-vitoria/index.html",
+  "s": "¿Sabías que el 60% de las reservas se realizan fuera del horario comercial?"
+ },
+ {
+  "f": "blog/asistente-ia-taller-mecanico-donostia/index.html",
+  "s": "El resultado es predecible: entre el 25 y el 40% de las llamadas no se contestan, y un porcentaje de esas pertenecen a clientes nuevos que van a llamar al siguiente taller."
+ },
+ {
+  "f": "blog/asistente-virtual-hoteles-rurales-espana/index.html",
+  "s": "¿Sabías que el 70% de los viajeros prefieren alojamientos que ofrezcan procesos de check-in automatizados?"
+ },
+ {
+  "f": "blog/asistente-virtual-hoteles-rurales-espana/index.html",
+  "s": "El 58% de las reservas de alojamientos se realizan online, y la tendencia sigue en aumento."
+ },
+ {
+  "f": "blog/asistente-voz-clinica-dental-pais-vasco/index.html",
+  "s": "¿Sabías que el 30% de las llamadas a clínicas dentales se pierden?"
+ },
+ {
+  "f": "blog/asistente-voz-clinica-dental-pais-vasco/index.html",
+  "s": "Se estima que hasta un 30% de las llamadas se pierden, lo que representa una pérdida significativa de ingresos potenciales."
+ },
+ {
+  "f": "blog/asistente-voz-clinica-dental-pais-vasco/index.html",
+  "s": "Esto se tradujo en un aumento del 20% en la tasa de conversión de nuevos pacientes."
+ },
+ {
+  "f": "blog/asistente-voz-clinica-dental-pais-vasco/index.html",
+  "s": "Un estudio reciente indica que el 75% de los pacientes prefieren interactuar con sistemas automatizados para tareas simples como confirmar citas."
+ },
+ {
+  "f": "blog/automatizar-recordatorios-citas-reducir-no-shows/index.html",
+  "s": "¿Sabías que los no-shows pueden costar a un negocio hasta un 20% de sus ingresos anuales?"
+ },
+ {
+  "f": "blog/automatizar-recordatorios-citas-reducir-no-shows/index.html",
+  "s": "Imagina una clínica dental donde el 10% de las citas se pierden semanalmente."
+ },
+ {
+  "f": "blog/automatizar-recordatorios-citas-reducir-no-shows/index.html",
+  "s": "En un gimnasio, por ejemplo, el 15% de las sesiones de entrenamiento personal no se llevan a cabo debido a cancelaciones de última hora."
+ },
+ {
+  "f": "blog/automatizar-recordatorios-citas-reducir-no-shows/index.html",
+  "s": "Con NodeFlow, puedes esperar una reducción de hasta el 40% en no-shows, lo que significa más citas cumplidas y menos tiempo perdido."
+ },
+ {
+  "f": "blog/automatizar-reservas-restaurante-donostia/index.html",
+  "s": "En Donostia, el 70% de los restaurantes reportan pérdidas de hasta un 20% en ingresos debido a una gestión ineficiente de las reservas."
+ },
+ {
+  "f": "blog/automatizar-reservas-restaurante-donostia/index.html",
+  "s": "Según estudios, el 25% de las reservas manuales sufren algún tipo de error."
+ },
+ {
+  "f": "blog/automatizar-reservas-restaurante-donostia/index.html",
+  "s": "Estudios sugieren que los restaurantes que adoptan sistemas de automatización ven un incremento en las reservas hasta del 15%."
+ },
+ {
+  "f": "blog/automatizar-reservas-restaurante-donostia/index.html",
+  "s": "inalmente, al ofrecer una experiencia de cliente mejorada, puedes aumentar la fidelización y las recomendaciones, lo que se traduce en un aumento del 20% en el boca a boca positivo."
+ },
+ {
+  "f": "blog/como-elegir-asistente-ia-telefono-pyme/index.html",
+  "s": "En 2026, se estima que el 70% de las interacciones con clientes se gestionarán mediante inteligencia artificial."
+ },
+ {
+  "f": "blog/como-elegir-asistente-ia-telefono-pyme/index.html",
+  "s": "El 40% de los consumidores afirma que es más probable que compren a empresas que ofrecen atención en su idioma nativo."
+ },
+ {
+  "f": "blog/como-elegir-ia-voz-negocio-espana-2026/index.html",
+  "s": "El 67 % de los españoles prefiere llamar a un negocio antes que escribir un email o mensaje, y el 42 % abandona si nadie contesta."
+ },
+ {
+  "f": "blog/como-funciona-recepcionista-ia-por-dentro/index.html",
+  "s": "En un mundo donde el 80% de los clientes espera respuestas inmediatas, contar con un sistema como el de NodeFlow puede ser un verdadero salvavidas para tu negocio."
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"El 67% de los clientes no volverá a llamar si su primera llamada no es contestada, lo que puede llevar a pérdidas significativas."
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "¿Sabías que el 62% de las llamadas a pequeñas empresas quedan sin respuesta?"
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "Además, el 67% de los clientes no llamarán de nuevo si su primera llamada no es contestada, lo que agrava aún más las pérdidas potenciales."
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "El 85% de los clientes que no reciben respuesta telefónica buscan alternativas."
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "Además, el 75% de las personas que buscan servicios locales prefieren una interacción telefónica directa."
+ },
+ {
+  "f": "blog/como-no-perder-clientes-llamadas-sin-contestar/index.html",
+  "s": "El 67% de los clientes no volverá a llamar si su primera llamada no es contestada, lo que puede llevar a pérdidas significativas."
+ },
+ {
+  "f": "blog/como-no-perder-llamadas-negocio-euskadi/index.html",
+  "s": "¿Sabías que el 60% de las llamadas perdidas nunca se devuelven?"
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "Representa entre el 18% y el 25% de las llamadas en la mayoría de los negocios."
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "Automatizarlas supone eliminar el 70% de la carga telefónica del negocio de un plumazo."
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "Un estudio de 2024 sobre pymes españolas mostró que los negocios de servicios pierden entre el 22% y el 38% de las llamadas entrantes durante las horas de mayor actividad."
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "En peluquerías y centros de estética, el 78% de las llamadas son automatizables (citas, precios, horarios, productos)."
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "En talleres mecánicos, el 72% son consultas de disponibilidad, presupuestos básicos y horarios."
+ },
+ {
+  "f": "blog/como-reducir-tiempo-gestion-telefonica-negocio/index.html",
+  "s": "En restaurantes, el 68%: reservas, tamaño del grupo, menú del día, horarios."
+ },
+ {
+  "f": "blog/cuanto-ahorra-negocio-recepcionista-ia/index.html",
+  "s": "¿Sabías que el 60% de las llamadas perdidas nunca vuelven a llamar?"
+ },
+ {
+  "f": "blog/cuanto-ahorra-negocio-recepcionista-ia/index.html",
+  "s": "Estudios muestran que un 70% de los clientes prefieren hablar con un asistente virtual si obtienen respuestas rápidas y precisas."
+ },
+ {
+  "f": "blog/cuanto-cuesta-recepcionista-virtual-ia/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"Sí, el ROI puede ser del 200% en el primer año, gracias al ahorro en costes y mejora en eficiencia."
+ },
+ {
+  "f": "blog/cuanto-cuesta-recepcionista-virtual-ia/index.html",
+  "s": "Esto representa un ahorro anual de más del 80%."
+ },
+ {
+  "f": "blog/cuanto-cuesta-recepcionista-virtual-ia/index.html",
+  "s": "Estudios sugieren que el ROI puede ser del 200% en el primer año."
+ },
+ {
+  "f": "blog/cuanto-cuesta-recepcionista-virtual-ia/index.html",
+  "s": "Sí, el ROI puede ser del 200% en el primer año, gracias al ahorro en costes y mejora en eficiencia."
+ },
+ {
+  "f": "blog/diferencia-chatbot-asistente-voz-ia/index.html",
+  "s": "Para reservas y citas, la voz convierte entre un 40% y un 60% más que el chat porque el cliente puede aclarar dudas en tiempo real y la fricción de escritura desaparece."
+ },
+ {
+  "f": "blog/diferencia-chatbot-asistente-voz-ia/index.html",
+  "s": "Un cliente que necesita reservar mesa en un restaurante puede escribir en el chat web, pero el 73% de esos mismos clientes prefieren llamar por teléfono si la reserva es para esa misma tarde."
+ },
+ {
+  "f": "blog/diferencia-chatbot-asistente-voz-ia/index.html",
+  "s": "El 55% de los clientes habituales de negocios de servicios en España tiene más de 45 años."
+ },
+ {
+  "f": "blog/diferencia-chatbot-asistente-voz-ia/index.html",
+  "s": "Esta combinación cubre más del 95% de los contactos entrantes en un negocio de servicios típico, con un coste total que no supera los 150 euros mensuales sumando ambas herramientas."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"Aproximadamente el 20% de las llamadas entrantes pueden convertirse en ventas si se gestionan adecuadamente."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "¿Sabías que el 62% de las llamadas a pequeñas y medianas empresas en España no se contestan?"
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "Se estima que el 30% de las personas que no logran comunicarse en su primer intento no llaman de nuevo."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "El 20% de las llamadas entrantes a las pymes españolas se convierten en ventas, según estimaciones del sector."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "Un estudio revela que las empresas que responden rápidamente a las llamadas entrantes tienen un 70% más de probabilidad de cerrar una venta."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "En una encuesta reciente, el 52% de los consumidores españoles afirmó que no volvería a contactar con una empresa que no respondiera a sus llamadas."
+ },
+ {
+  "f": "blog/estadisticas-llamadas-perdidas-pymes-espana/index.html",
+  "s": "Aproximadamente el 20% de las llamadas entrantes pueden convertirse en ventas si se gestionan adecuadamente."
+ },
+ {
+  "f": "blog/fisioterapia-seguros-adeslas-sanitas-asistente-ia/index.html",
+  "s": "¿Sabías que aproximadamente el 70% de los pacientes de fisioterapia en España utilizan un seguro privado?"
+ },
+ {
+  "f": "blog/google-calendar-citas-automaticas-negocio/index.html",
+  "s": "En 2026, se estima que el 75% de las pymes españolas usarán IA para automatizar procesos, y una de las aplicaciones más populares es la gestión de citas."
+ },
+ {
+  "f": "blog/google-calendar-citas-automaticas-negocio/index.html",
+  "s": "El impacto es palpable: los negocios que han adoptado esta tecnología reportan un aumento del 20% en la satisfacción del cliente y una reducción del 15% en los costes operativos relacionados con la gestión de citas."
+ },
+ {
+  "f": "blog/google-calendar-citas-automaticas-negocio/index.html",
+  "s": "Esto se traduce en un aumento de hasta el 25% en la capacidad de servicio sin necesidad de contratar más personal."
+ },
+ {
+  "f": "blog/guia-elegir-asistente-voz-negocio-2026/index.html",
+  "s": "¿Sabías que el 75% de las pymes españolas ya están integrando asistentes de voz IA en sus operaciones diarias?"
+ },
+ {
+  "f": "blog/guia-elegir-asistente-voz-negocio-2026/index.html",
+  "s": "Según estudios, el 90% de los usuarios prefieren servicios rápidos y eficientes, y NodeFlow se alinea con estas expectativas proporcionando una experiencia impecable."
+ },
+ {
+  "f": "blog/ia-atencion-telefonica-pymes-espana/index.html",
+  "s": "¿Sabías que el 75% de las pymes en España todavía gestionan sus llamadas telefónicas de manera manual?"
+ },
+ {
+  "f": "blog/ia-atencion-telefonica-pymes-espana/index.html",
+  "s": "Otro caso es el de una tienda de moda en Barcelona que, gracias a un asistente virtual, pudo manejar un incremento del 40% en llamadas durante la temporada de rebajas, mejorando la experiencia del cliente y aumentando sus ventas."
+ },
+ {
+  "f": "blog/ia-atiende-llamadas-fuera-horario-negocio/index.html",
+  "s": "¿Sabías que el 60% de las llamadas a negocios en España ocurren fuera del horario comercial?"
+ },
+ {
+  "f": "blog/ia-atiende-llamadas-fuera-horario-negocio/index.html",
+  "s": "Si el 70% de tus llamadas son para agendar citas, asegúrate de que el asistente pueda hacerlo de manera eficiente."
+ },
+ {
+  "f": "blog/ia-atiende-llamadas-fuera-horario-negocio/index.html",
+  "s": "Según estudios, el 80% de las consultas de los clientes se pueden resolver con respuestas automatizadas."
+ },
+ {
+  "f": "blog/ia-para-academias-clases-particulares/index.html",
+  "s": "¿Sabías que el 65% de las consultas en academias son repetitivas?"
+ },
+ {
+  "f": "blog/ia-para-academias-clases-particulares/index.html",
+  "s": "Un estudio reciente indica que las instituciones que han adoptado sistemas de IA han reducido el tiempo de gestión de matrículas en un 40%."
+ },
+ {
+  "f": "blog/ia-para-academias-clases-particulares/index.html",
+  "s": "Un análisis de centros que han implementado IA muestra un aumento del 30% en la satisfacción del estudiante, gracias a la rapidez y precisión en las respuestas."
+ },
+ {
+  "f": "blog/ia-para-inmobiliarias-gestion-llamadas/index.html",
+  "s": "¿Sabías que más del 60% de las llamadas a inmobiliarias no se contestan fuera del horario laboral?"
+ },
+ {
+  "f": "blog/ia-para-inmobiliarias-gestion-llamadas/index.html",
+  "s": "El 40% de las visitas a propiedades se pierden por problemas de coordinación."
+ },
+ {
+  "f": "blog/ia-recepcion-virtual-sector-servicios-espana/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\"@type\": \"Answer\", \"text\": \"Para el 70-80% de las llamadas de una pyme de servicios (citas, horarios, preguntas frecuentes), la IA las gestiona completamente."
+ },
+ {
+  "f": "blog/ia-recepcion-virtual-sector-servicios-espana/index.html",
+  "s": "Para el 20% restante (quejas, situaciones no previstas, ventas complejas), el asistente recoge la información y notifica al humano para que llame de vuelta."
+ },
+ {
+  "f": "blog/ia-recepcion-virtual-sector-servicios-espana/index.html",
+  "s": "Para el 70-80% de las llamadas de una pyme de servicios (citas, horarios, preguntas frecuentes), la IA las gestiona completamente."
+ },
+ {
+  "f": "blog/ia-telefonica-rgpd-cumplimiento-espana/index.html",
+  "s": "\"@type\": \"Answer\",\r\n              \"text\": \"El incumplimiento de la RGPD puede resultar en multas significativas, que pueden alcanzar hasta el 4% de la facturación anual global de tu empresa."
+ },
+ {
+  "f": "blog/ia-telefonica-rgpd-cumplimiento-espana/index.html",
+  "s": "¿Sabías que el 70% de las empresas en España no cumplen completamente con la RGPD?"
+ },
+ {
+  "f": "blog/ia-telefonica-rgpd-cumplimiento-espana/index.html",
+  "s": "Esto es vital, ya que el 60% de las pymes que graban llamadas no gestionan correctamente el almacenamiento de las mismas, lo que puede llevar a sanciones."
+ },
+ {
+  "f": "blog/ia-telefonica-rgpd-cumplimiento-espana/index.html",
+  "s": "Esto es especialmente importante, ya que el 80% de las brechas de seguridad en pymes son debidas a un almacenamiento inadecuado."
+ },
+ {
+  "f": "blog/ia-telefonica-rgpd-cumplimiento-espana/index.html",
+  "s": "El incumplimiento de la RGPD puede resultar en multas significativas, que pueden alcanzar hasta el 4% de la facturación anual global de tu empresa."
+ },
+ {
+  "f": "blog/ia-voz-para-negocios-espana-tendencias-2026/index.html",
+  "s": "En España, el primer semestre de 2026 ha registrado un crecimiento del 180% en el número de pymes que utilizan algún tipo de asistente IA para la atención telefónica."
+ },
+ {
+  "f": "blog/ia-voz-para-negocios-espana-tendencias-2026/index.html",
+  "s": "Las voces actuales pasan el test de Turing telefónico: en estudios independientes, más del 60% de los usuarios no detectan que están hablando con IA si la llamada dura menos de 3 minutos."
+ },
+ {
+  "f": "blog/index.html",
+  "s": "Coger llamadas es solo el 20% de lo que hace NodeFlow."
+ },
+ {
+  "f": "blog/integracion-whatsapp-business-ia-negocio/index.html",
+  "s": "En 2026, se espera que el 80% de las interacciones de atención al cliente se realicen sin intervención humana."
+ },
+ {
+  "f": "blog/integracion-whatsapp-business-ia-negocio/index.html",
+  "s": "Según estudios, las empresas que implementan estrategias omnicanal pueden retener hasta un 89% más de clientes."
+ },
+ {
+  "f": "blog/nodeflow-no-es-solo-recepcionista-ia-empleado-digital/index.html",
+  "s": "meta name=\"description\" content=\"Coger llamadas es solo el 20% de lo que hace NodeFlow."
+ },
+ {
+  "f": "blog/nodeflow-no-es-solo-recepcionista-ia-empleado-digital/index.html",
+  "s": "meta property=\"og:description\" content=\"Coger llamadas es solo el 20% de lo que hace NodeFlow."
+ },
+ {
+  "f": "blog/nodeflow-no-es-solo-recepcionista-ia-empleado-digital/index.html",
+  "s": "meta name=\"twitter:description\" content=\"Coger llamadas es solo el 20% de lo que hace NodeFlow."
+ },
+ {
+  "f": "blog/nodeflow-no-es-solo-recepcionista-ia-empleado-digital/index.html",
+  "s": "\"headline\": \"NodeFlow no es (solo) una recepcionista IA: es tu primer empleado digital\",\r\n        \"description\": \"Coger llamadas es solo el 20% de lo que hace NodeFlow."
+ },
+ {
+  "f": "blog/recepcionista-ia-asesorias-gestoras-espana/index.html",
+  "s": "¿Sabías que más del 60% de las llamadas a asesorías en España son consultas repetitivas?"
+ },
+ {
+  "f": "blog/recepcionista-ia-asesorias-gestoras-espana/index.html",
+  "s": "Implementar un recepcionista virtual puede liberar hasta un 40% del tiempo dedicado a estas tareas, permitiendo que tu equipo se enfoque en tareas más estratégicas."
+ },
+ {
+  "f": "blog/recepcionista-ia-asesorias-gestoras-espana/index.html",
+  "s": "NodeFlow permite a las asesorías laborales automatizar un 30% de sus llamadas, especialmente aquellas relacionadas con consultas sobre normativas laborales y plazos fiscales."
+ },
+ {
+  "f": "blog/recepcionista-ia-asesorias-gestoras-espana/index.html",
+  "s": "Al implementar un recepcionista virtual, las gestorías pueden manejar un 35% más de consultas sin aumentar el personal."
+ },
+ {
+  "f": "blog/recepcionista-ia-autoescuelas-espana/index.html",
+  "s": "\"acceptedAnswer\": {\r\n            \"@type\": \"Answer\",\r\n            \"text\": \"Una autoescuela mediana recibe entre 20 y 50 llamadas diarias, el 80% de las cuales son preguntas repetidas: precios, proceso de matrícula, disponibilidad de clases y estado del examen."
+ },
+ {
+  "f": "blog/recepcionista-ia-autoescuelas-espana/index.html",
+  "s": "Estas cuatro categorías representan entre el 70% y el 85% del volumen total de llamadas."
+ },
+ {
+  "f": "blog/recepcionista-ia-autoescuelas-espana/index.html",
+  "s": "Una autoescuela mediana recibe entre 20 y 50 llamadas diarias, el 80% de las cuales son preguntas repetidas: precios, proceso de matrícula, disponibilidad de clases y estado del examen."
+ },
+ {
+  "f": "blog/recepcionista-ia-clinica-dental-bilbao/index.html",
+  "s": "¿Sabías que hasta un 30% de las llamadas a clínicas dentales quedan sin respuesta?"
+ },
+ {
+  "f": "blog/recepcionista-ia-clinica-dental-bilbao/index.html",
+  "s": "Una recepcionista IA puede gestionar hasta el 90% de las llamadas entrantes, permitiendo a tu personal centrarse en los pacientes en la clínica."
+ },
+ {
+  "f": "blog/recepcionista-ia-clinica-dental-vitoria/index.html",
+  "s": "¿Sabías que el 30% de las llamadas a clínicas dentales son para gestionar citas?"
+ },
+ {
+  "f": "blog/recepcionista-ia-clinica-dental-vitoria/index.html",
+  "s": "Con NodeFlow, las clínicas dentales pueden automatizar hasta el 70% de sus tareas administrativas, permitiendo a los dentistas centrarse en lo que realmente importa: cuidar de sus pacientes."
+ },
+ {
+  "f": "blog/recepcionista-ia-clinica-dental-vitoria/index.html",
+  "s": "Nuestra recepcionista IA puede verificar automáticamente la cobertura del seguro y gestionar autorizaciones, ahorrando hasta un 30% del tiempo administrativo."
+ },
+ {
+  "f": "blog/recepcionista-ia-farmacias-espana/index.html",
+  "s": "¿Sabías que el 70% de las llamadas a farmacias son para preguntar por turnos y disponibilidad de medicamentos?"
+ },
+ {
+  "f": "blog/recepcionista-ia-farmacias-espana/index.html",
+  "s": "Las farmacias que han implementado este sistema reportan una reducción del 50% en el tiempo dedicado a estas consultas."
+ },
+ {
+  "f": "blog/recepcionista-ia-fisioterapia-bilbao/index.html",
+  "s": "¿Sabías que más del 70% de los fisioterapeutas en Bilbao buscan formas de optimizar su gestión diaria?"
+ },
+ {
+  "f": "blog/recepcionista-ia-fisioterapia-vitoria/index.html",
+  "s": "\"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"Al automatizar las reservas y consultas, puedes ahorrar hasta un 30% del tiempo que tu personal dedica a tareas administrativas."
+ },
+ {
+  "f": "blog/recepcionista-ia-fisioterapia-vitoria/index.html",
+  "s": "¿Sabías que el 45% de las clínicas de fisioterapia en Vitoria-Gasteiz reportan problemas con las ausencias de pacientes?"
+ },
+ {
+  "f": "blog/recepcionista-ia-fisioterapia-vitoria/index.html",
+  "s": "En Vitoria-Gasteiz, las clínicas de fisioterapia reportan una tasa de no-show del 15%."
+ },
+ {
+  "f": "blog/recepcionista-ia-fisioterapia-vitoria/index.html",
+  "s": "Al automatizar las reservas y consultas, puedes ahorrar hasta un 30% del tiempo que tu personal dedica a tareas administrativas."
+ },
+ {
+  "f": "blog/recepcionista-ia-nutricionistas-espana/index.html",
+  "s": "Esta tensión genera una de las tasas de abandono más altas del sector sanitario: el 40% de los pacientes no vuelve tras la tercera consulta."
+ },
+ {
+  "f": "blog/recepcionista-ia-nutricionistas-espana/index.html",
+  "s": "Esta automatización puede transformar una consulta donde el 60% de los pacientes tiene revisiones irregulares en una donde el 85% las hace puntualmente."
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-bilbao/index.html",
+  "s": "En Bilbao, el 70% de las peluquerías reportan un aumento de llamadas perdidas en horas pico."
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-bilbao/index.html",
+  "s": "¿Sabías que el 40% de las citas en peluquerías se pierden por falta de respuesta inmediata?"
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-donostia/index.html",
+  "s": "¿Sabías que las peluquerías en España pierden hasta un 15% de los ingresos potenciales por citas no gestionadas adecuadamente?"
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-donostia/index.html",
+  "s": "Imagínate que un 30% de tus clientes reserva fuera del horario comercial."
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-donostia/index.html",
+  "s": "Este tipo de atención personalizada se traduce en clientes más felices y leales, lo que a su vez se refleja en un aumento del 20% en las recomendaciones boca a boca."
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-vitoria/index.html",
+  "s": "¿Sabías que el 60% de las llamadas a peluquerías en España se pierden por no ser atendidas a tiempo?"
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-vitoria/index.html",
+  "s": "Las estadísticas muestran que los negocios que implementan sistemas automatizados ven un aumento del 25% en las reservas confirmadas."
+ },
+ {
+  "f": "blog/recepcionista-ia-peluqueria-vitoria/index.html",
+  "s": "Un estudio reciente sugiere que el 20% de los clientes prefieren interactuar en su lengua materna, lo que puede traducirse en un incremento del 15% en la fidelización del cliente."
+ },
+ {
+  "f": "blog/recepcionista-ia-podologos-espana/index.html",
+  "s": "Sin un recordatorio activo, la clínica de podología pierde entre el 30% y el 50% de las revisiones periódicas que debería estar realizando."
+ },
+ {
+  "f": "blog/recepcionista-ia-podologos-espana/index.html",
+  "s": "Esto elimina una carga significativa de llamadas de consulta previas a la cita, que representan entre el 20% y el 30% de las llamadas totales de una clínica de podología activa con seguros."
+ },
+ {
+  "f": "blog/recepcionista-ia-podologos-espana/index.html",
+  "s": "\" El índice de aceptación de estos recordatorios en podología supera el 60%, muy por encima de la tasa de retorno espontánea."
+ },
+ {
+  "f": "blog/recepcionista-ia-psicologos-terapeutas-espana/index.html",
+  "s": "El resultado práctico es que muchos psicólogos en consulta privada pierden entre el 30% y el 50% de las llamadas entrantes."
+ },
+ {
+  "f": "blog/recepcionista-ia-restaurante-bilbao/index.html",
+  "s": "¿Sabías que el 60% de los clientes de restaurantes prefieren hacer reservas en línea o por teléfono en lugar de ir en persona?"
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-mecanico-bilbao/index.html",
+  "s": "¿Sabías que el 60% de los talleres mecánicos en España pierden clientes por una mala gestión de citas?"
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-mecanico-bilbao/index.html",
+  "s": "Un estudio reciente señala que los talleres que utilizan IA para la gestión de citas reducen los tiempos de espera en un 30%."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-mecanico-bilbao/index.html",
+  "s": "Un 40% de los talleres en Bizkaia que han implementado soluciones de IA reportan un aumento en la precisión de sus presupuestos."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-mecanico-bilbao/index.html",
+  "s": "Según un informe, los talleres que utilizan asistentes virtuales para llamadas de seguimiento experimentan un incremento del 25% en la retención de clientes."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-mecanico-bilbao/index.html",
+  "s": "Un 50% de los talleres que han implementado NodeFlow mencionan que esta integración ha mejorado significativamente su organización interna."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-vitoria/index.html",
+  "s": "¿Sabías que el 60% de las llamadas a talleres mecánicos no son atendidas debido a la falta de personal?"
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-vitoria/index.html",
+  "s": "El 40% de los clientes prefieren reservar sus citas online o a través de un sistema automatizado."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-vitoria/index.html",
+  "s": "El 70% de los clientes prefieren recibir un presupuesto antes de llevar su coche al taller."
+ },
+ {
+  "f": "blog/recepcionista-ia-taller-vitoria/index.html",
+  "s": "El 50% de los clientes afirman que las llamadas de seguimiento aumentan su confianza en un taller."
+ },
+ {
+  "f": "blog/recepcionista-ia-veterinaria-bilbao/index.html",
+  "s": "¿Sabías que el 70% de los dueños de mascotas en Bilbao prefieren gestionar sus citas veterinarias online?"
+ },
+ {
+  "f": "blog/recepcionista-ia-veterinaria-donostia/index.html",
+  "s": "¿Sabías que un 70% de las llamadas a clínicas veterinarias no son atendidas en horas punta?"
+ },
+ {
+  "f": "blog/recepcionista-ia-veterinaria-donostia/index.html",
+  "s": "Esto se traduce en una mejora del 30% en la respuesta a emergencias, algo que no solo salva vidas, sino que también mejora la reputación de la clínica."
+ },
+ {
+  "f": "blog/recepcionista-ia-veterinaria-donostia/index.html",
+  "s": "NodeFlow facilita esta tarea enviando recordatorios automáticos a los dueños de mascotas, lo que resulta en un aumento del 25% en la asistencia a citas de vacunación."
+ },
+ {
+  "f": "blog/recepcionista-ia-vs-secretaria-virtual-humana/index.html",
+  "s": "En un mundo empresarial donde cada minuto cuenta, el 80% de las pymes buscan optimizar sus procesos de atención al cliente."
+ },
+ {
+  "f": "blog/recepcionista-virtual-clinica-fisioterapia/index.html",
+  "s": "¿Sabías que el 70% de las clínicas de fisioterapia en España pierden citas por falta de seguimiento?"
+ },
+ {
+  "f": "blog/recepcionista-virtual-clinica-fisioterapia/index.html",
+  "s": "Según estudios, las clínicas que realizan seguimientos estructurados mejoran la satisfacción del paciente en un 40%."
+ },
+ {
+  "f": "blog/recepcionista-virtual-clinica-fisioterapia/index.html",
+  "s": "NodeFlow permite que el equipo se concentre en ofrecer un mejor servicio, lo que puede traducirse en un aumento del 20% en la satisfacción del cliente."
+ },
+ {
+  "f": "blog/recepcionista-virtual-galicia-galego/index.html",
+  "s": "\",\r\n            \"acceptedAnswer\": {\r\n              \"@type\": \"Answer\",\r\n              \"text\": \"Porque más del 50% de los gallegos prefieren el gallego para las interacciones diarias, lo que puede aumentar la satisfacción y lealtad del cliente."
+ },
+ {
+  "f": "blog/recepcionista-virtual-galicia-galego/index.html",
+  "s": "¿Sabías que el 65% de los gallegos prefieren comunicarse en su lengua materna cuando interactúan con empresas?"
+ },
+ {
+  "f": "blog/recepcionista-virtual-galicia-galego/index.html",
+  "s": "En Galicia, más del 50% de la población habla gallego de forma habitual."
+ },
+ {
+  "f": "blog/recepcionista-virtual-galicia-galego/index.html",
+  "s": "Un estudio reciente mostró que los clientes tienen un 60% más de probabilidades de repetir una compra cuando la atención al cliente se realiza en su idioma nativo."
+ },
+ {
+  "f": "blog/recepcionista-virtual-galicia-galego/index.html",
+  "s": "Porque más del 50% de los gallegos prefieren el gallego para las interacciones diarias, lo que puede aumentar la satisfacción y lealtad del cliente."
+ },
+ {
+  "f": "blog/recepcionista-virtual-para-veterinarias-espana/index.html",
+  "s": "El 70% de las clínicas veterinarias en España han experimentado un aumento en la carga administrativa en los últimos años."
+ },
+ {
+  "f": "blog/recepcionista-virtual-para-veterinarias-espana/index.html",
+  "s": "Un estudio reciente sugiere que un 40% de las clínicas que utilizan IA han mejorado su capacidad de respuesta en urgencias."
+ },
+ {
+  "f": "blog/recepcionista-virtual-para-veterinarias-espana/index.html",
+  "s": "En una encuesta reciente, el 30% de los clientes afirmó que la disponibilidad de servicios en su idioma preferido influye en su elección de clínica."
+ },
+ {
+  "f": "blog/recepcionista-virtual-vs-telefonista-comparativa/index.html",
+  "s": "\"@type\": \"Answer\",\r\n              \"text\": \"Sí, un recepcionista virtual como NodeFlow es generalmente más económico, con costes inferiores al 20% de lo que cuesta un telefonista humano al año."
+ },
+ {
+  "f": "blog/recepcionista-virtual-vs-telefonista-comparativa/index.html",
+  "s": "En 2026, el 65% de las pymes en España han incorporado algún tipo de inteligencia artificial en sus procesos."
+ },
+ {
+  "f": "blog/recepcionista-virtual-vs-telefonista-comparativa/index.html",
+  "s": "En comparación, NodeFlow ofrece un servicio de recepcionista virtual por menos de 200 euros al mes, ahorrando más del 80% en costes anuales."
+ },
+ {
+  "f": "blog/recepcionista-virtual-vs-telefonista-comparativa/index.html",
+  "s": "Un estudio reciente mostró que el 40% de los clientes prefieren empresas que ofrecen atención fuera del horario habitual."
+ },
+ {
+  "f": "blog/recepcionista-virtual-vs-telefonista-comparativa/index.html",
+  "s": "Sí, un recepcionista virtual como NodeFlow es generalmente más económico, con costes inferiores al 20% de lo que cuesta un telefonista humano al año."
+ },
+ {
+  "f": "clinicas/index.html",
+  "s": "En cualquier caso, la integración vía Google Calendar es inmediata y cubre el 100% de la gestión de citas desde el primer día."
+ },
+ {
+  "f": "clinicas/index.html",
+  "s": "Sin recordatorio proactivo, el porcentaje de no-shows en clínicas dentales en España se sitúa entre el 15% y el 20%."
+ },
+ {
+  "f": "clinicas/index.html",
+  "s": "Con 80 llamadas semanales, el 40% son preguntas sobre precios, seguros o disponibilidad."
+ },
+ {
+  "f": "clinicas/index.html",
+  "s": "En cualquier caso, la integración vía Google Calendar es inmediata y cubre el 100% de la gestión de citas desde el primer día de uso, sin necesidad de migrar tu sistema actual."
+ },
+ {
+  "f": "demo.html",
+  "s": "\"\nSERVICIOS Y HONORARIOS:\n- Compraventa: 3% del precio de venta, SOLO si se cierra la operación."
+ },
+ {
+  "f": "demo.html",
+  "s": "Honorarios solo si se vende: 3% del precio de venta."
+ },
+ {
+  "f": "demo.html",
+  "s": "', detalle: 'Para compraventa, los honorarios son del 3% del precio de venta final y solo se cobran cuando se firma ante notario."
+ },
+ {
+  "f": "demo.html",
+  "s": "Nuestro porcentaje es del 20% de lo recuperado."
+ },
+ {
+  "f": "fisioterapia/index.html",
+  "s": "Sin recordatorio proactivo, el no-show en fisioterapia supera el 20%."
+ },
+ {
+  "f": "fisioterapia/index.html",
+  "s": "Con 60 llamadas semanales, el 35% son preguntas sobre cobertura de Adeslas, Sanitas o Mutua."
+ },
+ {
+  "f": "gimnasios/index.html",
+  "s": "Puede atender el 100% o solo el desbordamiento."
+ },
+ {
+  "f": "hoteles/index.html",
+  "s": "Con NodeFlow reservan directo y el hotel se ahorra la comisión del 15-18%."
+ },
+ {
+  "f": "notaria/index.html",
+  "s": "Notaría con 20-30 citas/semana → el asistente gestiona todas las consultas sobre documentación y el 70% de los clientes llegan preparados a la firma."
+ },
+ {
+  "f": "nutricion/index.html",
+  "s": "Consulta con 40 pacientes activos y 30% de abandono mensual → el asistente retiene los que se irían sin recordatorio."
+ },
+ {
+  "f": "peluquerias/vitoria/index.html",
+  "s": "Las cancelaciones de última hora caen un 40% de media."
+ },
+ {
+  "f": "podologia/index.html",
+  "s": "Clínica con 50 pacientes activos y 40% de pacientes crónicos que necesitan revisión cada 90 días → el asistente garantiza que vuelven."
+ },
+ {
+  "f": "psicologia/index.html",
+  "s": "El 40% de las cancelaciones tardías se evitan con un recordatorio 48h antes."
+ },
+ {
+  "f": "restaurantes/index.html",
+  "s": "Con 50 llamadas/semana, el 30% fuera de horario — 15 reservas que antes se perdían llegan ahora de madrugada, domingos y festivos."
+ },
+ {
+  "f": "veterinarias/index.html",
+  "s": "Las consultas veterinarias tienen tasas de no-show de hasta el 25%."
+ }
+]
