@@ -130,6 +130,50 @@ jobs:
               grep -q '"telnyxSignature":"enforced"' /tmp/health.json || echo "::warning::la firma de Telnyx no se está exigiendo"
               grep -q '"billingConfig":"ok"'      /tmp/health.json || echo "::error::billingConfig NO está ok — puede haber excedente que se cuenta y no se cobra"
               echo "✅ NodeFlow responde y se declara sano."
+
+              # ── Y SE LEE LA CAJA NEGRA ─────────────────────────────────────
+              # Aquí está el cambio que de verdad importa. Este vigilante mira
+              # una vez cada hora o dos: ve alrededor del 1% del día, así que
+              # una caída de dos minutos a las 04:00 no la ve NUNCA. Las dos del
+              # 31/07 se cazaron de milagro.
+              #
+              # El latido, en cambio, corre dentro del proceso cada 10 segundos
+              # y se guarda en Redis, o sea que cubre el 100%. Leerlo aquí
+              # convierte este muestreo del 1% en cobertura completa con un par
+              # de horas de retraso: aunque la caída ocurra entre dos pasadas,
+              # la siguiente encuentra el hueco y lo cuenta.
+              #
+              # No tumba el watchdog: el servicio está respondiendo AHORA. Va
+              # como aviso, que es lo que es.
+              echo ""
+              echo "── Caja negra (latidos del propio proceso) ──"
+              LAT=$(probar "https://nodeflow.es/health/latidos" /tmp/lat.json)
+              if [ "${LAT%% *}" = "200" ]; then
+                python3 - <<'PY' || echo "   (no se pudo interpretar el informe de latidos)"
+import json, sys
+try:
+    h = json.load(open('/tmp/lat.json'))
+except Exception as e:
+    print(f'   informe ilegible: {e}'); sys.exit(0)
+print(f"   {h.get('latidos', 0)} latidos · {h.get('desde')} → {h.get('hasta')}")
+print(f"   {h.get('resumen')}")
+if not h.get('persistente'):
+    print("::warning::los latidos NO son persistentes (sin Redis): no podrán demostrar nada de la próxima caída")
+for g in (h.get('huecos') or [])[-5:]:
+    print(f"::error::CAÍDA NO VISTA POR EL VIGILANTE: {g['segundos']}s sin latir hasta {g['hasta']} — {g['veredicto']}")
+for r in (h.get('reinicios') or [])[-5:]:
+    print(f"::warning::el proceso reinició a las {r['cuando']}")
+p = h.get('picosDeRetardo') or []
+if p:
+    peor = max(x['lagMs'] for x in p)
+    print(f"::warning::{len(p)} pico(s) de retardo del bucle de eventos, el peor de {peor} ms — el proceso se atasca a ratos")
+m = h.get('memoriaRssMb')
+if m:
+    print(f"   memoria RSS {m['min']}–{m['max']} MB (ahora {m['ultimo']})")
+PY
+              else
+                echo "   /health/latidos devolvió HTTP ${LAT%% *} — ¿versión anterior desplegada?"
+              fi
               exit 0
             fi
 

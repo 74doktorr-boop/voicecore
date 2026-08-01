@@ -663,6 +663,44 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     });
   });
 
+  // El latido arranca aquí porque aquí está BOOT_ID, que es la mitad del
+  // diagnóstico: sin él, un hueco en la serie no distingue «murió» de «se
+  // atascó». Se salta en los tests para no dejar temporizadores sueltos.
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      require('../monitoring/latido').arrancar({
+        bootId: BOOT_ID,
+        activeCalls: () => pipeline.getActiveCalls().length,
+      });
+    } catch (e) { log.warn(`no se pudo arrancar el latido: ${e.message}`); }
+  }
+
+  // ─── Latido: la caja negra del proceso (no auth, no expone nada sensible) ───
+  //
+  // Contesta la pregunta que las dos caídas del 31/07 dejaron abierta: cuando
+  // nodeflow.es no respondía, ¿estaba el proceso muerto, atascado, o perfecto?
+  // Desde fuera los tres se ven igual («HTTP 000»). Aquí se distinguen, porque
+  // los latidos se guardan en Redis y sobreviven a la muerte del proceso.
+  //
+  // Va SIN autenticación a propósito, igual que /health: si hace falta una clave
+  // para leer la caja negra, no se lee — y esto es justo lo que hay que poder
+  // mirar desde cualquier sitio en mitad de una caída. Publica milisegundos,
+  // megas y marcas de tiempo; ningún dato de nadie.
+  app.get('/health/latidos', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      const { historial } = require('../monitoring/latido');
+      const n = Math.min(2000, Math.max(10, Number(req.query.n) || 2000));
+      const h = await historial(n);
+      // Por defecto se devuelve el ANÁLISIS, no los 2000 latidos crudos: lo que
+      // hace falta a las cuatro de la mañana es el veredicto, no la serie.
+      if (req.query.crudo !== '1') delete h.serie;
+      res.json(h);
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer el latido', detalle: e.message });
+    }
+  });
+
   log.info('API routes configured');
 }
 

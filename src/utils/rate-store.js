@@ -143,6 +143,35 @@ async function take(key) {
   kv.delete(key); return e.value;
 }
 
+// ── Lista acotada (RPUSH + LTRIM): una serie temporal corta que SOBREVIVE al
+// proceso. Es lo que necesita el latido de src/monitoring/latido.js: si el
+// proceso muere, la memoria se va con él y justo entonces es cuando hace falta
+// saber qué pasó antes. En Redis se queda; en el fallback de memoria no, y por
+// eso el latido avisa de que sin Redis no puede demostrar nada.
+const listas = new Map(); // fallback: Map<key, string[]>
+
+async function pushCapped(key, value, max = 1000) {
+  const v = typeof value === 'string' ? value : JSON.stringify(value);
+  if (redis && redisReady) {
+    try {
+      await redis.multi().rpush(key, v).ltrim(key, -max, -1).exec();
+      return;
+    } catch (e) { log.warn(`pushCapped Redis falló (${e.message}) — fallback memoria`); }
+  }
+  const l = listas.get(key) || [];
+  l.push(v);
+  if (l.length > max) l.splice(0, l.length - max);
+  listas.set(key, l);
+}
+
+async function listRange(key, count = 1000) {
+  if (redis && redisReady) {
+    try { return await redis.lrange(key, -count, -1); }
+    catch (e) { log.warn(`listRange Redis falló (${e.message}) — fallback memoria`); }
+  }
+  return (listas.get(key) || []).slice(-count);
+}
+
 function isRedisEnabled() { return !!(redis && redisReady); }
 
-module.exports = { hit, peek, reset, put, get, del, take, isRedisEnabled };
+module.exports = { hit, peek, reset, put, get, del, take, pushCapped, listRange, isRedisEnabled };
