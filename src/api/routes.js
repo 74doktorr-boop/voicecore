@@ -705,6 +705,24 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ─── ¿Funciona el canal de avisos? ──────────────────────────────────────────
+  // El que faltaba. Hasta hoy, la única señal de que los avisos funcionaban era
+  // que llegaran correos — y no recibir ninguno se parece demasiado a que no
+  // pasa nada. Aquí se ve a dónde van, cuándo salió el último y si LLEGÓ
+  // («aceptado» por Resend no es «entregado»: el rebote llega después).
+  //
+  // Sin autenticación, igual que /health y /health/latidos: si hace falta una
+  // clave para mirar si los avisos funcionan, no se mira. Publica direcciones de
+  // aviso del propio negocio, marcas de tiempo y contadores; nada de nadie más.
+  app.get('/health/avisos', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      res.json(await require('../notifications/registro-avisos').informe());
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer el registro de avisos', detalle: e.message });
+    }
+  });
+
   log.info('API routes configured');
 }
 

@@ -114,12 +114,23 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     }
     const { data, error } = await resend.emails.send(payload);
 
+    // Queda RASTRO de cada envío, salga bien o mal. Sin esto, la única señal de
+    // que el canal de avisos funciona es que lleguen correos — y no llegar se
+    // parece demasiado a que no pasa nada. Ver src/notifications/registro-avisos.js.
+    const _anotar = (ok, id, err) => {
+      try { require('./registro-avisos').anotar({ to: dest, subject, ok, id, error: err }); } catch (_) {}
+    };
+
     if (error) {
-      log.error(`Resend error a ${to}: ${error.message}`);
+      log.error(`Resend error a ${dest.join(', ')}: ${error.message}`);
+      _anotar(false, null, error.message);
       return false;
     }
 
-    log.info(`Email enviado a ${to}: ${subject} (id: ${data?.id})`);
+    log.info(`Email enviado a ${dest.join(', ')}: ${subject} (id: ${data?.id})`);
+    // OJO: esto es «aceptado», NO «entregado». El rebote llega minutos después
+    // y hasta hoy se perdía. confirmarEntregas() le pregunta a Resend luego.
+    _anotar(true, data?.id, null);
     return true;
   } catch (e) {
     log.error(`Error enviando email a ${to}`, { error: e.message });
@@ -956,6 +967,7 @@ async function sendSubscriptionCancelled({ email, name, number }, deps = {}) {
 module.exports = {
   sendEmail,
   destinatarios,
+  getResend,
   notifyNuevoCliente,
   sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
   sendAcknowledgement,

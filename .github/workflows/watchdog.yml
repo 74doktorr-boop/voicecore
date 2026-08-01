@@ -179,6 +179,44 @@ jobs:
               else
                 echo "   /health/latidos devolvió HTTP ${LAT%% *} — ¿versión anterior desplegada?"
               fi
+
+              # ── ¿Y FUNCIONA EL CANAL DE AVISOS? ────────────────────────────
+              # Esto tiene que mirarlo alguien de FUERA, y por el mismo motivo
+              # que existe este vigilante: si lo único que te avisaría de un
+              # problema es el correo, y lo roto es el correo, no te enteras
+              # nunca. Un buzón callado se parece exactamente a que todo va bien.
+              #
+              # Pasó de verdad: había dos líneas NOTIFY_EMAIL con direcciones
+              # distintas, mandaba la última, y la otra llevaba meses sin recibir
+              # un solo aviso sin que nadie lo supiera.
+              echo ""
+              echo "── Canal de avisos ──"
+              AVI=$(probar "https://nodeflow.es/health/avisos" /tmp/avi.json)
+              if [ "${AVI%% *}" = "200" ]; then
+                python3 - <<'PY' || echo "   (no se pudo interpretar el informe de avisos)"
+          import json, sys
+          try:
+              h = json.load(open('/tmp/avi.json', encoding='utf-8'))
+          except Exception as e:
+              print(f'   informe ilegible: {e}'); sys.exit(0)
+          dest = h.get('destinatarios') or []
+          print('   los avisos van a: ' + (', '.join(dest) if dest else '¡NADIE!'))
+          if not dest:
+              print('::error::NOTIFY_EMAIL no tiene ningún destinatario — los avisos de producción no llegan a nadie')
+          print(f"   {h.get('resumen')}")
+          if not h.get('persistente'):
+              print('::warning::el registro de avisos no es persistente (sin Redis)')
+          for x in (h.get('noEntregados') or [])[-5:]:
+              print(f"::error::AVISO QUE NO LLEGÓ ({x['estado']}): «{x['asunto']}» a {', '.join(x['a'])} el {x['cuando']}")
+          for x in (h.get('ultimosFallos') or [])[-5:]:
+              print(f"::error::AVISO QUE FALLÓ AL SALIR: «{x['asunto']}» — {x['error']}")
+          d = h.get('diasSinEntregar')
+          if d is not None and d >= 10:
+              print(f'::error::el canal de avisos lleva {d} días sin entregar NADA. El informe es SEMANAL: esto no es que no haya noticias, es que no hay canal.')
+          PY
+              else
+                echo "   /health/avisos devolvió HTTP ${AVI%% *} — ¿versión anterior desplegada?"
+              fi
               exit 0
             fi
 

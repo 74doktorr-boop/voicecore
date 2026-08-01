@@ -862,6 +862,11 @@ startBackupCron();
 const { startWeeklyReportCron } = require('./src/reports/weekly-report');
 startWeeklyReportCron();
 
+// Confirma con Resend si los avisos LLEGARON, no sólo si se aceptaron. Un 200 al
+// mandar no es una entrega: el rebote llega minutos después, y hasta hoy se
+// perdía en el vacío. Ver src/notifications/registro-avisos.js.
+require('./src/notifications/registro-avisos').arrancarConfirmacion();
+
 // Resumen del día a clientes (cada día 08:00 Madrid)
 const { startDailyBriefingCron } = require('./src/reports/daily-briefing');
 startDailyBriefingCron();

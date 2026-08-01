@@ -104,6 +104,13 @@ async function reset(key) {
     catch (e) { log.warn(`reset Redis falló (${e.message}) — fallback memoria`); }
   }
   mem.delete(key);
+  // Y también la lista. En Redis, DEL borra la clave sea del tipo que sea; en el
+  // respaldo de memoria las listas viven en su propio Map, así que sin esta línea
+  // reset() dejaba la lista intacta. Divergencia de las peores: con Redis
+  // funcionaba y sin Redis duplicaba, o sea que el fallo NO aparece en producción
+  // y sí en los tests — o al revés, según por dónde entres. Lo cazó el test de
+  // confirmarEntregas, que releía 8 anotaciones donde había 4.
+  listas.delete(key);
 }
 
 // ── KV con TTL (put/get/del): para sesiones/tokens, compartido multi-réplica.
