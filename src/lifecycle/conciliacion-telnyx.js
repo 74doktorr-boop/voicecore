@@ -206,4 +206,60 @@ async function conciliar(opts = {}) {
   return { ventana: { desde: desde.toISOString(), hasta: hasta.toISOString() }, ...r };
 }
 
-module.exports = { cruzar, conciliar, traerDeTelnyx, traerNuestras, _tel };
+/**
+ * SONDA DE DIAGNÓSTICO: prueba varias formas de preguntar y dice cuál trae
+ * filas. No adivina — mide.
+ *
+ * Existe porque la primera versión devolvió «0 llamadas» en una ventana donde
+ * nosotros teníamos 3 registradas. Con solo un cero no se distingue «no hubo
+ * llamadas» de «la consulta está mal», y averiguarlo a base de despliegues de
+ * cinco minutos es la peor forma posible de gastar una tarde.
+ *
+ * Devuelve la forma de la petición y el número de filas — NUNCA teléfonos.
+ */
+async function sondearTelnyx({ desde, hasta, apiKey, fetch: f } = {}) {
+  const key = apiKey || process.env.TELNYX_API_KEY;
+  const doFetch = f || globalThis.fetch;
+  if (!key) return { error: 'sin TELNYX_API_KEY' };
+
+  const gte = desde.toISOString(), lte = hasta.toISOString();
+  const intentos = [
+    // La forma actual, la que da cero.
+    ['detail_records · record_type=call · date_range gte/lte',
+     `${TELNYX_CDR}?filter[record_type]=call&filter[date_range][gte]=${encodeURIComponent(gte)}&filter[date_range][lte]=${encodeURIComponent(lte)}&page[size]=5`],
+    // Sin filtro de fechas: si esto trae filas, el problema son las fechas.
+    ['detail_records · record_type=call · SIN fechas',
+     `${TELNYX_CDR}?filter[record_type]=call&page[size]=5`],
+    // Otros nombres de tipo.
+    ['detail_records · record_type=call-control', `${TELNYX_CDR}?filter[record_type]=call-control&page[size]=5`],
+    ['detail_records · record_type=voice',        `${TELNYX_CDR}?filter[record_type]=voice&page[size]=5`],
+    // Sin filtro ninguno: dice qué tipos existen de verdad en esta cuenta.
+    ['detail_records · sin filtros',              `${TELNYX_CDR}?page[size]=5`],
+    // El endpoint dedicado de llamadas, por si los CDR van por otro sitio.
+    ['calls (Call Control)',                      'https://api.telnyx.com/v2/calls?page[size]=5'],
+  ];
+
+  const salida = [];
+  for (const [nombre, url] of intentos) {
+    try {
+      const res = await doFetch(url, { headers: { Authorization: `Bearer ${key}` } });
+      const txt = await res.text();
+      let j = null; try { j = JSON.parse(txt); } catch (_) {}
+      salida.push({
+        forma: nombre,
+        http: res.status,
+        filas: j && Array.isArray(j.data) ? j.data.length : null,
+        // Los NOMBRES de campo de la primera fila: con eso se sabe si trae
+        // llamadas y cómo se llaman `from`/`to`/`started_at` en esta versión.
+        campos: j && Array.isArray(j.data) && j.data[0] ? Object.keys(j.data[0]).slice(0, 25) : null,
+        tiposVistos: j && Array.isArray(j.data) ? [...new Set(j.data.map(x => x.record_type).filter(Boolean))] : null,
+        error: j && j.errors ? String(j.errors[0] && (j.errors[0].detail || j.errors[0].title)).slice(0, 160) : null,
+      });
+    } catch (e) {
+      salida.push({ forma: nombre, error: e.message.slice(0, 160) });
+    }
+  }
+  return { ventana: { desde: gte, hasta: lte }, intentos: salida };
+}
+
+module.exports = { cruzar, conciliar, traerDeTelnyx, traerNuestras, sondearTelnyx, _tel };

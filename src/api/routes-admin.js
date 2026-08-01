@@ -110,6 +110,18 @@ function setupAdminRoutes(app, config, assistantManager) {
       const horas = Math.min(720, Math.max(1, Number(req.query.horas) || 6));
       const hasta = new Date(Date.now() - 10 * 60 * 1000);   // el CDR tarda en aparecer
       const desde = new Date(hasta.getTime() - horas * 3600 * 1000);
+      // ?diag=1 — qué contesta Telnyx de verdad.
+      //
+      // Hace falta porque la primera versión devolvió «0 llamadas» en una ventana
+      // donde nosotros teníamos 3: o sea que la consulta estaba mal, no que no
+      // hubiera llamadas. Sin ver la respuesta cruda, lo único que se puede hacer
+      // es adivinar el nombre del filtro a base de despliegues de cinco minutos.
+      // Devuelve formas de petición y cuántas filas da cada una — nunca números
+      // de teléfono.
+      if (req.query.diag === '1') {
+        const { sondearTelnyx } = require('../lifecycle/conciliacion-telnyx');
+        return res.json(await sondearTelnyx({ desde, hasta }));
+      }
       const { conciliar } = require('../lifecycle/conciliacion-telnyx');
       res.json(await conciliar({ desde, hasta }));
     } catch (e) {
