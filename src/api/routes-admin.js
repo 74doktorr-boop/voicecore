@@ -103,7 +103,11 @@ function setupAdminRoutes(app, config, assistantManager) {
   // `?horas=N` para mirar una ventana más larga (por defecto 6).
   app.get('/api/admin/conciliacion', adminAuth, async (req, res) => {
     try {
-      const horas = Math.min(72, Math.max(1, Number(req.query.horas) || 6));
+      // Hasta 30 días. El tope estaba en 72 h y la última llamada real era de
+      // hace 84: con esa ventana la conciliación devolvía «0 llamadas» y no había
+      // forma de distinguir «no hubo ninguna» de «el filtro está mal». Un
+      // instrumento que solo sabe decir cero no se puede verificar.
+      const horas = Math.min(720, Math.max(1, Number(req.query.horas) || 6));
       const hasta = new Date(Date.now() - 10 * 60 * 1000);   // el CDR tarda en aparecer
       const desde = new Date(hasta.getTime() - horas * 3600 * 1000);
       const { conciliar } = require('../lifecycle/conciliacion-telnyx');
