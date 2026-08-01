@@ -296,6 +296,33 @@ function setupBillingRoutes(app, config) {
                   } catch (e) { log.warn(`siembra del onboarding falló: ${e.message}`); }
                 }
 
+                // ── La lista de clientes que subió en el alta ────────────────
+                // Es la victoria de la PRIMERA semana, y llega antes de que suene
+                // el primer teléfono: el dueño entra al portal y ya le espera «de
+                // tus 480 clientes, 47 llevan más de X meses sin volver». Sin
+                // llamar a nadie, sin coste, y con SU propia lista, así que es
+                // comprobable — que es la única forma de que se la crea.
+                //
+                // Se consume una vez y se borra: el CSV lleva datos personales de
+                // clientes ajenos y no tiene por qué sobrevivir a su importación.
+                try {
+                  const store = require('../utils/rate-store');
+                  const csv = await store.take(`nf:alta-clientes:${registro.id}`);
+                  if (csv) {
+                    const { parseImportCsv, importContacts } = require('../lifecycle/contact-import');
+                    const parsed = parseImportCsv(csv);
+                    if (parsed.total) {
+                      const r = await importContacts(org.id, parsed.rows);
+                      log.info(`Clientes del alta importados (${org.id}): ${r.created} nuevos, ${r.updated} actualizados, ${r.skipped} descartados`);
+                    }
+                  }
+                } catch (e) {
+                  // Nunca bloquea el alta: el dueño puede subir el mismo fichero
+                  // desde el portal. Un aprovisionamiento a medias por un CSV raro
+                  // sería un intercambio pésimo.
+                  log.warn(`importación de clientes del alta falló: ${e.message}`);
+                }
+
                 // ── Tier del alta (Básico vs Pro) ──────────────────────────
                 // Básico → tier:'basico' capa el motor de seguimientos.
                 // Pro → registra addons.pro (el checkout ya cobró +36€ en la 2ª

@@ -260,7 +260,7 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios, ticketMedio } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios, ticketMedio, clientesCsv } = req.body;
       // Programa Fundadores (49€ para siempre, primeros 20): el alta llega con
       // fundador:true desde /onboarding.html?...&fundador=1. Se marca en `source`
       // con prefijo 'founder:' (columna que EXISTE seguro; NO se añade columna
@@ -376,6 +376,29 @@ function setupRegistroRoutes(app) {
       });
 
       log.info(`Nuevo registro: ${row.id} — ${negocio} (${plan}) [${effectiveLanguage}${effectiveSource ? ` · src:${effectiveSource}` : ''}]${couponData ? ` [cupón: ${couponData.code}]` : ''}${isFounder ? ' 🏛️ FUNDADOR' : ''}`);
+
+      // ── La lista de clientes del alta ───────────────────────────────────────
+      // Se guarda en Redis con el id del registro, NO en una columna, por tres
+      // motivos que van en este orden:
+      //
+      //   1. Es transitorio de verdad: en cuanto se aprovisiona la organización
+      //      se convierte en contactos y deja de hacer falta. Un CSV con los
+      //      datos personales de 500 clientes ajenos no tiene por qué quedarse
+      //      en una fila para siempre.
+      //   2. No exige migración, y en este repo las migraciones son la parte
+      //      que siempre se queda a medias.
+      //   3. Si se perdiera, no se pierde nada importante: el dueño puede subir
+      //      el mismo fichero desde el portal. Degradar bien es parte del diseño.
+      //
+      // Va después de guardar el registro para tener su id, y nunca bloquea el
+      // alta: si Redis falla, el alta sigue su camino.
+      if (typeof clientesCsv === 'string' && clientesCsv.trim()) {
+        const recorte = clientesCsv.slice(0, 1_000_000);   // ~1 MB, unas 20.000 filas
+        require('../utils/rate-store')
+          .put(`nf:alta-clientes:${row.id}`, recorte, 24 * 3600 * 1000)
+          .then(() => log.info(`Lista de clientes guardada para el alta ${row.id} (${recorte.length} bytes)`))
+          .catch(e => log.warn(`no se pudo guardar la lista de clientes del alta: ${e.message}`));
+      }
 
       // Si entró por un referido, registrar el signup (la conversión se marca al pagar)
       if (referralData) {

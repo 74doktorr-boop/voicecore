@@ -156,6 +156,23 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
          enseña a desconfiar del resto del panel.
          Va OPCIONAL: pedirlo obligatorio añade fricción justo donde más caro
          sale. Sin él, el panel cuenta llamadas y citas, que también vale. -->
+    <!-- ¿Tienes tu lista de clientes? — la victoria del día 1 -->
+    <!-- Es lo único que se le puede enseñar a alguien ANTES de que suene su
+         primer teléfono: a cuántos clientes ha perdido. Y no es una promesa
+         nuestra, sale de SU fichero, así que lo puede comprobar él mismo.
+         Opcional y sin bloquear nada: quien no lo tenga a mano lo sube luego
+         desde el portal. -->
+    <div class="form-group" id="clientesGroup">
+      <label for="clientesFile">¿Tienes tu lista de clientes? <span style="font-weight:400;opacity:.7">(opcional)</span></label>
+      <input type="file" id="clientesFile" accept=".csv,.txt,text/csv" onchange="leerClientes(this)"
+             style="padding:10px 12px;font-size:.85rem">
+      <div style="font-size:12px;opacity:.7;margin-top:6px" id="clientesHint">
+        Un CSV con <b>Nombre, Teléfono</b> y, si la tienes, <b>Última visita</b>. Te decimos ahora mismo a cuántos has perdido.
+      </div>
+      <div id="clientesResul" style="display:none;margin-top:10px;padding:12px 14px;border-radius:10px;
+           background:rgba(196,245,70,.10);border:1px solid rgba(196,245,70,.28);font-size:.9rem"></div>
+    </div>
+
     <div class="form-group" id="ticketGroup">
       <label for="ticketMedio">¿Cuánto te deja de media un cliente? <span style="font-weight:400;opacity:.7">(opcional)</span></label>
       <input type="number" id="ticketMedio" min="1" max="9999" step="1" placeholder="45" inputmode="numeric" style="max-width:180px">
@@ -539,7 +556,7 @@ async function _submitRegistroInner() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices(), ticketMedio: (parseInt(document.getElementById('ticketMedio')?.value, 10) > 0 ? parseInt(document.getElementById('ticketMedio').value, 10) : undefined), fundador: isFounder || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices(), ticketMedio: (parseInt(document.getElementById('ticketMedio')?.value, 10) > 0 ? parseInt(document.getElementById('ticketMedio').value, 10) : undefined), clientesCsv: (_clientesCsv || undefined), fundador: isFounder || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
@@ -626,6 +643,70 @@ function redirectToStripe() {
 </script>
 
 <script>
+
+// ── La lista de clientes del alta ───────────────────────────────────────────
+// El fichero se lee EN EL NAVEGADOR y el recuento se hace aquí: el dueño ve el
+// número antes de pagar y sin que sus datos hayan salido de su ordenador
+// todavía. Solo viaja al servidor cuando envía el alta.
+let _clientesCsv = '';
+
+// Se cuenta «más de 6 meses» y así se DICE. El portal usará después el umbral
+// propio de su sector, que puede ser otro — pero las dos frases serán ciertas.
+// Enseñar aquí un número con una regla y otro distinto en el panel, sin explicar
+// por qué, es la forma más tonta de perder la credibilidad que da este momento.
+const MESES_DORMIDO = 6;
+
+function _fechaSuelta(t) {
+  const s = String(t || '').trim();
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
+}
+
+function leerClientes(input) {
+  const f = input.files && input.files[0];
+  const box = document.getElementById('clientesResul');
+  if (!f) { _clientesCsv = ''; box.style.display = 'none'; return; }
+  if (f.size > 1000000) {
+    box.style.display = 'block';
+    box.innerHTML = 'Ese fichero pesa demasiado (máx. 1 MB). Súbelo desde tu panel en cuanto entres.';
+    _clientesCsv = ''; return;
+  }
+  const fr = new FileReader();
+  fr.onload = () => {
+    _clientesCsv = String(fr.result || '');
+    const lineas = _clientesCsv.split(/\r?\n/).filter(l => l.trim());
+    if (lineas.length < 2) { box.style.display = 'block'; box.innerHTML = 'No he encontrado filas en ese fichero.'; _clientesCsv = ''; return; }
+
+    const sep = (lineas[0].match(/;/g) || []).length >= (lineas[0].match(/,/g) || []).length ? ';' : ',';
+    const cab = lineas[0].split(sep).map(h => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[\s_.-]/g, ''));
+    const iUlt = cab.findIndex(h => ['ultimavisita','ultima','ultimacita','fechaultimavisita','ultimaconsulta','ultimoservicio','lastvisit','ultimavez','fechaultimacita'].includes(h));
+
+    const total = lineas.length - 1;
+    let dormidos = 0;
+    if (iUlt >= 0) {
+      const corte = new Date(); corte.setMonth(corte.getMonth() - MESES_DORMIDO);
+      for (let i = 1; i < lineas.length; i++) {
+        const d = _fechaSuelta((lineas[i].split(sep)[iUlt] || ''));
+        if (d && d < corte) dormidos++;
+      }
+    }
+
+    box.style.display = 'block';
+    box.innerHTML = iUlt >= 0
+      ? '<b>' + total + ' clientes</b> en tu lista' +
+        (dormidos
+          ? ' · <b style="color:#d6ff5c">' + dormidos + ' llevan más de ' + MESES_DORMIDO + ' meses sin volver.</b>' +
+            '<div style="opacity:.75;margin-top:5px;font-size:12px">Los tendrás en tu panel el primer día.</div>'
+          : ' · ninguno lleva más de ' + MESES_DORMIDO + ' meses sin volver. Buena señal.')
+      : '<b>' + total + ' clientes</b> en tu lista. ' +
+        '<span style="opacity:.75">Sin la columna de <b>Última visita</b> no puedo decirte a cuántos has perdido — añádela y vuelve a subirlo si la tienes.</span>';
+  };
+  fr.readAsText(f, 'utf-8');
+}
+
 // ── ¿Qué ofreces? — chips de servicios por sector ─────────────────────────
 // Pre-marcados los típicos; el negocio quita/añade en segundos. Alimenta
 // serviceList desde el DÍA 0: reglas de seguimiento exactas y precios listos.
