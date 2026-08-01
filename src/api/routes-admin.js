@@ -88,6 +88,31 @@ function setupAdminRoutes(app, config, assistantManager) {
     res.json({ token });
   });
 
+  // ─── Conciliación con Telnyx: ¿se nos ha caído alguna llamada? ───────────
+  //
+  // Telnyx sabe de TODAS las llamadas que entraron a nuestros números; nosotros
+  // solo de aquellas cuyo webhook llegó. Cuando el anfitrión se queda
+  // inalcanzable —pasó dos veces el 01/08— la llamada se cae y en nuestros
+  // paneles no queda ni rastro: perder una llamada y no recibir ninguna se ven
+  // exactamente igual.
+  //
+  // Esto cruza las dos listas. Lo que Telnyx vio y nosotros no, es una llamada
+  // perdida con nombre y número.
+  //
+  // Va detrás de adminAuth porque devuelve teléfonos de quien llamó.
+  // `?horas=N` para mirar una ventana más larga (por defecto 6).
+  app.get('/api/admin/conciliacion', adminAuth, async (req, res) => {
+    try {
+      const horas = Math.min(72, Math.max(1, Number(req.query.horas) || 6));
+      const hasta = new Date(Date.now() - 10 * 60 * 1000);   // el CDR tarda en aparecer
+      const desde = new Date(hasta.getTime() - horas * 3600 * 1000);
+      const { conciliar } = require('../lifecycle/conciliacion-telnyx');
+      res.json(await conciliar({ desde, hasta }));
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo conciliar', detalle: e.message });
+    }
+  });
+
   // ─── Stats ───
   app.get('/api/admin/stats', adminAuth, async (req, res) => {
     try {
