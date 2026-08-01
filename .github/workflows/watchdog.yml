@@ -255,14 +255,42 @@ jobs:
           [ "$RED_OK" = "no" ] && echo "   (nota: Cloudflare no contestó, pero nuestro servidor sí — la red del runner va)"
 
           if [ "$HOST_OK" = "no" ]; then
-            echo "🚨 CAÍDA DEL SERVIDOR: ni VoiceCore ni ETS Guard responden, y la red del"
-            echo "   runner va bien. Está caída la máquina de EasyPanel o su proxy."
-            echo "   Mirar: panel de EasyPanel (xmehd4.easypanel.host) y el estado del host."
+            # OJO CON ESTE VEREDICTO — corregido el 01/08 porque afirmaba algo FALSO.
+            #
+            # Antes decía «CAÍDA DEL SERVIDOR». Ese día fallaron tres veces (10:52,
+            # 13:47 y el despliegue de 15:43-15:49, diez intentos seguidos). Pero:
+            #   · desde casa de Unai, a esa MISMA hora, nodeflow.es y ets.nodeflow.es
+            #     respondían en 0,1 s;
+            #   · y la caja negra no tiene NI UN HUECO en esa ventana: el proceso
+            #     siguió latiendo cada 10 s de principio a fin.
+            # O sea que el servidor estaba levantado y sirviendo. Lo que no
+            # funcionaba era la ruta DESDE AQUÍ.
+            #
+            # Un vigilante que dice «servidor caído» cuando el servidor está bien
+            # manda a buscar durante horas una avería que no existe — y la próxima
+            # alarma, la de verdad, llega con la credibilidad ya gastada. Así que
+            # dice lo que sabe y lo que NO puede saber desde un solo sitio.
+            echo "🚨 DESDE AQUÍ NO SE ALCANZA EL SERVIDOR: ni VoiceCore ni ETS Guard"
+            echo "   responden, y la red del runner llega bien a Cloudflare."
+            echo ""
+            echo "   Esto NO prueba todavía que el servidor esté caído. El 01/08 pasó"
+            echo "   tres veces y las tres el servidor estaba sirviendo con normalidad"
+            echo "   desde otra red: lo que fallaba era la ruta desde GitHub."
+            echo ""
+            echo "   PARA SABER CUÁL DE LAS DOS COSAS ES, mirar la caja negra en cuanto"
+            echo "   se vuelva a alcanzar:  curl -s https://nodeflow.es/health/latidos"
+            echo "     · con HUECO en esta franja  → el servidor se cayó de verdad."
+            echo "     · SIN hueco                 → estuvo sirviendo; falló la ruta,"
+            echo "       y entonces las llamadas de Telnyx probablemente entraron bien."
+            echo "   Y para confirmarlo de verdad: /api/admin/conciliacion, que cruza"
+            echo "   con Telnyx si se perdió alguna llamada."
           else
             echo "🚨 VOICECORE COLGADO: el servidor responde (ETS Guard va), pero VoiceCore no."
             echo "   El problema es del contenedor voicecore-api, no de la máquina."
             echo "   Mirar: logs y reinicios de voicecore/voicecore-api en EasyPanel."
           fi
           echo ""
-          echo "   Mientras dure, las llamadas que entren se pierden: Telnyx no alcanza el webhook."
+          echo "   Si el servidor estaba de verdad caído, las llamadas que entraran en esa"
+          echo "   franja se han perdido. La conciliación con Telnyx lo dice con nombres y"
+          echo "   horas en vez de suponerlo: /api/admin/conciliacion"
           exit 1
