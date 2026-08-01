@@ -19,6 +19,15 @@ const { Logger } = require('../utils/logger');
 const log = new Logger('CONTACT-IMPORT');
 
 const DATE_FIELD = 'fecha_caducidad_psicotecnico';
+
+/** 'YYYY-MM-DD' → instante ISO (mediodía: evita saltos de día por zona horaria). */
+function _fechaAIso(d) { return d ? new Date(`${d}T12:00:00Z`).toISOString() : null; }
+/** ¿La fecha del fichero es POSTERIOR a la que ya teníamos? */
+function _mayor(nueva, actual) {
+  if (!nueva) return false;
+  if (!actual) return true;
+  return new Date(`${nueva}T12:00:00Z`).getTime() > new Date(actual).getTime();
+}
 const TYPE_FIELD = 'tipo_psicotecnico';
 
 // Normaliza una cabecera: minúsculas, sin acentos, sin separadores.
@@ -35,6 +44,20 @@ const COLS = {
   tipo:      ['tipo', 'type', 'permiso', 'categoria', 'carnet'],
   email:     ['email', 'correo', 'mail', 'correoelectronico', 'emailcliente'],
   cumple:    ['cumpleanos', 'cumple', 'nacimiento', 'fechanacimiento', 'birthday', 'fechacumpleanos', 'fnac'],
+  // ── ÚLTIMA VISITA ──────────────────────────────────────────────────────────
+  // La columna que faltaba, y sin ella media función del producto no arrancaba.
+  //
+  // El panel cuenta «clientes que no vuelven» mirando `contacts.last_call_at`,
+  // que es la última vez que alguien LLAMÓ a NodeFlow. Un negocio que acaba de
+  // darse de alta no tiene ninguna, así que ese contador salía 0 aunque
+  // importara 500 fichas de gente que lleva un año sin aparecer. Las dos
+  // mitades —la importación y la señal de dormidos— estaban construidas y no
+  // se tocaban.
+  //
+  // Con la fecha de la última visita, la importación deja de ser una lista de
+  // teléfonos y pasa a ser la respuesta a «¿a cuántos he perdido?» el día 1.
+  ultima:    ['ultimavisita', 'ultimavisita', 'ultima', 'ultimacita', 'fechaultimavisita',
+              'ultimaconsulta', 'ultimoservicio', 'lastvisit', 'ultimavez', 'fechaultimacita'],
 };
 
 function _matchCol(header) {
@@ -129,11 +152,25 @@ function parseImportCsv(text) {
       if (iso) sectorData.fecha_cumpleanos = iso;
     }
 
+    // Última visita → alimenta el contador de clientes dormidos. Una fecha
+    // ilegible se ignora en silencio: NO puede tumbar la fila entera, porque el
+    // teléfono y el nombre siguen valiendo y perder el contacto por una fecha
+    // mal escrita sería un pésimo intercambio.
+    let ultimaVisita = null;
+    if (colIdx.ultima !== undefined && cells[colIdx.ultima]) {
+      const iso = _toISO(cells[colIdx.ultima]);
+      // Una fecha en el FUTURO no es una última visita: casi siempre es una
+      // columna de «próxima cita» mal mapeada, y aceptarla dejaría al cliente
+      // como recién visto para siempre — invisible en el contador de dormidos.
+      if (iso && iso <= new Date().toISOString().slice(0, 10)) ultimaVisita = iso;
+    }
+
     rows.push({
       name: colIdx.name !== undefined ? (cells[colIdx.name] || '').slice(0, 120) : '',
       email: colIdx.email !== undefined ? (cells[colIdx.email] || '').trim().slice(0, 160) : '',
       phone,
       sectorData,
+      ultimaVisita,
     });
   }
   return { rows, errors, total: rows.length, columns: colIdx };
@@ -206,7 +243,10 @@ async function importContacts(orgId, rows, opts = {}) {
     const variants = [...new Set(chunk.flatMap(([, r]) => phoneVariants(r.phone)))];
     try {
       const { data } = await db.client.from('contacts')
-        .select('id, phone, name, email, sector_data')
+        // last_call_at y call_count hacen falta para NO retroceder la última visita:
+        // sin ellos, ex.last_call_at sería undefined y el fichero pisaría siempre
+        // la fecha que ya teníamos, resucitando como dormido a un cliente activo.
+        .select('id, phone, name, email, sector_data, last_call_at, call_count')
         .eq('org_id', orgId).in('phone', variants);
       for (const c of (data || [])) {
         const k = normalizePhone(c.phone);
@@ -225,10 +265,26 @@ async function importContacts(orgId, rows, opts = {}) {
         name: ex.name || r.name || null,                                   // solo rellena si estaba vacío
         email: ex.email || r.email || null,                                // idem: no pisa el existente
         sector_data: Object.assign({}, ex.sector_data || {}, r.sectorData), // añade sin borrar
+        // La última visita solo AVANZA, nunca retrocede: si ya nos llamó
+        // después de la fecha del fichero, el fichero está más viejo que
+        // nosotros y pisarlo resucitaría como dormido a un cliente activo.
+        ...(_mayor(r.ultimaVisita, ex.last_call_at)
+              ? { last_call_at: _fechaAIso(r.ultimaVisita), call_count: Math.max(1, ex.call_count || 0) }
+              : {}),
         updated_at: nowISO,
       });
     } else {
-      toInsert.push({ org_id: orgId, phone: r.phone, name: r.name || null, email: r.email || null, sector_data: r.sectorData, call_count: 0 });
+      toInsert.push({
+        org_id: orgId, phone: r.phone, name: r.name || null, email: r.email || null,
+        sector_data: r.sectorData,
+        // `call_count: 1` cuando hay última visita, y NO 0. La señal de clientes
+        // dormidos exige `call_count >= 1`: con 0, una lista entera de gente que
+        // lleva un año sin aparecer seguiría contando CERO dormidos. Ese era
+        // exactamente el fallo — las dos mitades construidas y sin tocarse.
+        ...(r.ultimaVisita
+              ? { last_call_at: _fechaAIso(r.ultimaVisita), call_count: 1 }
+              : { call_count: 0 }),
+      });
     }
   }
 
