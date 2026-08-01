@@ -484,7 +484,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   <!-- Auditoría 2026-07-29: "todo incluido, sin módulos adicionales" se
        contradecía 110 líneas más abajo, en la misma página, con tres extras de
        pago (WhatsApp propio +15€, Voz Premium +10€, minutos extra). -->
-  <p class="deck" style="margin-bottom:clamp(36px,4vw,52px)">Esto es lo que hace el plan. Los extras (WhatsApp con tu número, voz premium) son opcionales y están abajo, con su precio.</p>
+  <p class="deck" style="margin-bottom:clamp(36px,4vw,52px)">Esto es lo que hace el plan. El extra opcional (WhatsApp con tu número) está abajo, con su precio.</p>
   <div class="caps">
     <div class="cap"><div class="n">01</div><div><h3>Agenda citas mientras trabajas</h3><p>Consulta tu disponibilidad real y reserva en tu Google Calendar durante la llamada. El cliente finaliza con su cita ya confirmada.</p></div><div class="tag">Sincroniza con tu calendario</div></div>
     <div class="cap feat"><div class="n">02</div><div><h3>Recuerda a cada cliente <span class="dot">●</span></h3><p>Sabe quién llama, cómo se llama y qué solicitó la última vez. Cada conversación es personalizada, como la de un empleado con experiencia: una memoria que trabaja a tu favor en cada llamada.</p></div><div class="tag">CRM que se completa solo</div></div>
@@ -646,7 +646,7 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
         <li><span class="m">✦</span><span>Plantones + lista de espera</span></li>
         <li><span class="m">✦</span><span>Avisos por entidad (pre-ITV, vacuna…)</span></li>
         <li><span class="m">✦</span><span>Informe completo + integraciones</span></li>
-        <li><span class="m">★</span><span><b>Voz premium + WhatsApp propio incluidos</b></span></li>
+        <li><span class="m">★</span><span><b>WhatsApp con tu número incluido</b></span></li>
       </ul>
       <a href="/onboarding.html?plan=pro" class="btn btn-fill">Empezar en Pro →</a>
     </div>
@@ -654,12 +654,16 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
   <p class="addons-head" id="addonsHead">Extras opcionales <span>— los activas desde tu panel cuando los necesites. No son necesarios para empezar.</span></p>
   <div class="addons">
     <div class="addon addon-proincl"><h4>WhatsApp con tu número <span class="ap">+15€</span></h4><p>Los avisos salen desde el número de tu negocio, no desde uno compartido.</p></div>
-    <div class="addon addon-proincl"><h4>Voz Premium <span class="ap">+10€</span></h4><p>Voces ultrarrealistas de última generación. La estándar ya va incluida.</p></div>
+    <!-- Aquí estaba la tarjeta «Voz Premium +10€ · Voces ultrarrealistas de última
+         generación». Retirada el 2026-08-01 con el nivel entero: sus 13 voces eran
+         todas de ElevenLabs y al quitar su clave el nivel se quedó sin ninguna.
+         Vender desde la página que vende algo que el producto no puede dar es el
+         peor sitio posible para esa mentira. -->
     <!-- Auditoría 2026-07-29: "sin cortes de servicio" era falso — hay un tope
          duro a 8× el plan (1.600 min) que devuelve 402 y no se revelaba en
          ninguna página. Y el IVA se contradecía con las Condiciones, que dicen
          "los precios se muestran sin IVA". -->
-    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si algún mes superas los 200 min, se facturan a 0,15€/min y los ves en tu panel antes de que lleguen a la factura. Por seguridad hay un tope de 1.200 min/mes: si lo alcanzas te avisamos y lo subimos contigo.</p></div>
+    <div class="addon"><h4>Minutos extra <span class="ap">0,15€/min</span></h4><p>Si algún mes superas los 200 min, se facturan a 0,15€/min y los ves en tu panel antes de que lleguen a la factura. Por seguridad hay un tope de 1.600 min/mes: si lo alcanzas te avisamos y lo subimos contigo.</p></div>
   </div>
   <div class="price-foot">Desde <b>49€ al mes</b> + IVA · sin permanencia · cancela cuando quieras. Los extras, opcionales.</div>
 
@@ -792,8 +796,8 @@ footer{border-top:1px solid var(--line);padding:64px 0 48px}
     var one=document.getElementById('priceSingle'), two=document.getElementById('priceTwoTier');
     if(one) one.hidden=true;
     if(two) two.hidden=false;
-    // Coherencia: en dos tiers, voz premium y WhatsApp propio van INCLUIDOS en
-    // Pro → no listarlos como extras de pago. Se quedan solo como extras del
+    // Coherencia: en dos tiers, WhatsApp propio va INCLUIDO en Pro → no
+    // listarlo como extra de pago. (La voz premium se retiró el 01/08.) Se quedan solo como extras del
     // Básico (el de minutos aplica a ambos). Reetiqueta la cabecera.
     document.querySelectorAll('.addon-proincl').forEach(function(el){ el.hidden=true; });
     var vis=document.querySelector('.addons .addon:not([hidden])');

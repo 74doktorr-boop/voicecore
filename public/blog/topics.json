@@ -7,7 +7,7 @@
       "coste asistente virtual telefónico",
       "recepcionista IA España"
     ],
-    "focus": "Comparativa de costes: recepcionista humano vs IA. Desglose por plan, casos reales de ahorro, ROI para pequeños negocios.",
+    "focus": "Comparativa de costes: recepcionista humano vs IA. Desglose por plan, desglose de lo que cuesta cada opción, ROI para pequeños negocios.",
     "sector": null,
     "city": null,
     "generated": true
@@ -267,7 +267,7 @@
       "asistente virtual fuera de horario negocio",
       "atender llamadas festivos IA"
     ],
-    "focus": "Cómo la IA permite a los pequeños negocios atender llamadas de madrugada, fines de semana y festivos sin coste extra. Casos reales y configuración.",
+    "focus": "Cómo la IA permite a los pequeños negocios atender llamadas de madrugada, fines de semana y festivos sin coste extra. y configuración.",
     "sector": null,
     "city": null,
     "generated": true
@@ -636,7 +636,7 @@
       "asistente virtual farmacia Bizkaia",
       "automatizar consultas farmacia Bilbao"
     ],
-    "focus": "Cómo las farmacias de Bilbao pueden usar IA para informar sobre turnos de guardia, disponibilidad de medicamentos, horarios y derivar urgencias. Casos reales.",
+    "focus": "Cómo las farmacias de Bilbao pueden usar IA para informar sobre turnos de guardia, disponibilidad de medicamentos, horarios y derivar urgencias.",
     "sector": "farmacias",
     "city": "bilbao"
   },
@@ -877,7 +877,7 @@
   },
   {
     "slug": "ia-voz-para-negocios-espana-tendencias-2026",
-    "title": "IA de voz para negocios en España: tendencias y casos reales en 2026",
+    "title": "IA de voz para negocios en España: tendencias en 2026",
     "keywords": [
       "IA voz negocios España 2026",
       "tendencias asistente virtual telefónico España",
@@ -921,7 +921,7 @@
       "asistente virtual conectar agenda clínica",
       "automatización citas software médico IA"
     ],
-    "focus": "Cómo conectar un asistente IA telefónico con los sistemas de gestión clínica más habituales en España. Google Calendar como puente universal, APIs disponibles, casos reales.",
+    "focus": "Cómo conectar un asistente IA telefónico con los sistemas de gestión clínica más habituales en España. Google Calendar como puente universal, APIs disponibles, qué cambia en el día a día.",
     "sector": null,
     "city": null
   },
@@ -982,7 +982,7 @@
       "asistente virtual inglés academia",
       "automatizar matrículas academia idiomas IA"
     ],
-    "focus": "Cómo las academias de inglés, francés y otros idiomas pueden automatizar consultas de horarios, niveles, matrículas y precios con IA. Casos reales y ROI.",
+    "focus": "Cómo las academias de inglés, francés y otros idiomas pueden automatizar consultas de horarios, niveles, matrículas y precios con IA. y ROI.",
     "sector": "academias",
     "city": null
   },
@@ -1266,7 +1266,7 @@
       "recepcion multiidioma hotel Pais Vasco",
       "asistente virtual turismo ingles"
     ],
-    "focus": "El turista que llega a Donostia o Bilbao desde Biarritz o de un crucero no habla castellano, y el negocio pequeño no tiene a nadie que le atienda en inglés o francés a las nueve de la noche. Cómo un asistente de voz cubre esas llamadas, qué preguntan de verdad (horarios, disponibilidad, cómo llegar) y por qué se pierden reservas concretas sin ello. NADA de euskera: el producto no lo habla.",
+    "focus": "El turista que llega a Donostia o Bilbao desde Biarritz o de un crucero no habla castellano, y el negocio pequeño no tiene a nadie que le atienda en inglés o francés a las nueve de la noche. Cómo un asistente de voz cubre esas llamadas, qué preguntan de verdad (horarios, disponibilidad, cómo llegar) y por qué se pierden reservas concretas sin ello. NADA de galego: el producto no lo habla.",
     "sector": "hoteles",
     "city": "donostia"
   }

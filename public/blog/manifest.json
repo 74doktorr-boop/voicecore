@@ -58,9 +58,25 @@
     "recepcionista-ia-vs-secretaria-virtual-humana",
     "recepcionista-ia-clinica-dental-vitoria",
     "guia-elegir-asistente-voz-negocio-2026",
-    "recepcionista-ia-farmacia-bilbao"
+    "recepcionista-ia-farmacia-bilbao",
+    "recordatorios-whatsapp-reducir-no-shows-guia"
   ],
   "posts": [
+    {
+      "slug": "recordatorios-whatsapp-reducir-no-shows-guia",
+      "title": "La guía definitiva para reducir no-shows con recordatorios por WhatsApp",
+      "metaTitle": "Reducir no-shows: Recordatorios WhatsApp eficaces",
+      "description": "Descubre cómo reducir no-shows con recordatorios WhatsApp. Automatiza con NodeFlow. Visita nodeflow.es para más info.",
+      "date": "2026-08-01",
+      "keywords": [
+        "reducir no-shows",
+        "recordatorios WhatsApp citas",
+        "clientes que no vienen a la cita"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 5
+    },
     {
       "slug": "recepcionista-ia-farmacia-bilbao",
       "title": "Recepcionista IA para farmacias en Bilbao: Revoluciona tu atención al cliente",
@@ -170,7 +186,7 @@
       "slug": "voces-ia-casi-humanas-por-que-nadie-cuelga",
       "title": "Voces IA casi humanas: por qué a NodeFlow no le cuelgan el teléfono",
       "metaTitle": "Voces IA casi humanas: por qué nadie cuelga a NodeFlow",
-      "description": "La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo y hasta euskera y galego nativos. Así se hace.",
+      "description": "La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural y respuesta en menos de un segundo. Así se hace.",
       "date": "2026-07-18",
       "keywords": [
         "voz IA natural",

@@ -60,7 +60,7 @@ El precio también es de empleado raso, no de consultor: desde 49 euros al mes, 
   },
   post: {
     metaTitle: 'Voces IA casi humanas: por qué nadie cuelga a NodeFlow',
-    metaDescription: 'La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo y hasta euskera y galego nativos. Así se hace.',
+    metaDescription: 'La gente cuelga a los robots en 6 segundos. A NodeFlow no: voz natural, respuesta en menos de un segundo. Así se hace.',
     h1: 'Voces IA casi humanas: por qué a NodeFlow no le cuelgan el teléfono',
     intro: `Todos hemos colgado a un robot. Esa voz metálica que dice «su... llamada... es... importante» dispara un reflejo casi físico: colgar. Los estudios de atención telefónica lo confirman — la mayoría de la gente decide en los primeros segundos si está hablando con algo que merece su tiempo. Para un negocio, cada cuelgue de esos es un cliente que se va a la competencia.
 Por eso, cuando decidimos que NodeFlow atendería el teléfono de negocios reales, pusimos una barra altísima: si la voz no aguanta una conversación natural, el producto no vale. No «suena bien para ser una IA». Suena bien, punto.
