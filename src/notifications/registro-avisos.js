@@ -152,7 +152,21 @@ function analizar(avisos, opts = {}) {
   const ultimaEntrega = entregados.length ? entregados[entregados.length - 1] : null;
 
   const dias = (t) => Math.floor((ahora - t) / 86400_000);
-  const diasSinEntregar = ultimaEntrega ? dias(ultimaEntrega.t) : (l.length ? dias(l[0].t) : null);
+  // OJO con esta distinción, que me la salté en la primera versión y salió en la
+  // prueba real: «no hay ninguna entrega confirmada» NO es «hace 0 días de la
+  // última». Aquel cálculo caía al primer registro cuando no había ninguna
+  // entrega, y el resumen decía «el canal funciona: última entrega confirmada
+  // hace 0 día(s)» con CERO entregadas. O sea, el mismo silencio-que-parece-
+  // salud que vengo a matar, metido dentro del arreglo.
+  //
+  // Hay TRES estados y hay que separarlos, porque confundirlos es o mentir o
+  // dar una falsa alarma:
+  //   · confirmada hace poco      → funciona
+  //   · sin confirmar todavía     → pendiente; no es un fallo (Resend tarda ~1 min)
+  //   · sin ninguna en X días     → el canal está muerto
+  const diasSinEntregar = ultimaEntrega ? dias(ultimaEntrega.t) : null;
+  const diasDesdeElPrimerIntento = l.length ? dias(l[0].t) : null;
+  const sinConfirmarTodavia = !ultimaEntrega && l.length > 0;
 
   const problemas = [];
   if (fallos.length) problemas.push(`${fallos.length} envío(s) fallaron`);
@@ -169,8 +183,16 @@ function analizar(avisos, opts = {}) {
   // negocio activo, esto saltaría sin que el canal estuviera roto. Aun así se
   // deja: que un producto cuyo trabajo es avisar a gente pase diez días sin
   // mandar un solo correo es algo que hay que mirar, se llame como se llame.
-  const calladoDemasiado = diasSinEntregar != null && diasSinEntregar >= DIAS_DE_SILENCIO_SOSPECHOSO;
-  if (calladoDemasiado) problemas.push(`${diasSinEntregar} días sin entregar NADA`);
+  // Se mide contra la última entrega CONFIRMADA; y si nunca hubo ninguna, contra
+  // el primer intento anotado — porque un canal que lleva semanas intentándolo
+  // sin que se confirme una sola entrega está tan roto como uno que no manda.
+  const referencia = diasSinEntregar != null ? diasSinEntregar : diasDesdeElPrimerIntento;
+  const calladoDemasiado = referencia != null && referencia >= DIAS_DE_SILENCIO_SOSPECHOSO;
+  if (calladoDemasiado) {
+    problemas.push(ultimaEntrega
+      ? `${referencia} días sin entregar NADA`
+      : `${referencia} días de envíos SIN UNA SOLA entrega confirmada`);
+  }
 
   return {
     // A dónde van HOY los avisos. Esto es lo que había que poder mirar: la
@@ -189,12 +211,18 @@ function analizar(avisos, opts = {}) {
     ultimoEnviado: ultimoOk ? new Date(ultimoOk.t).toISOString() : null,
     ultimaEntregaConfirmada: ultimaEntrega ? new Date(ultimaEntrega.t).toISOString() : null,
     diasSinEntregar,
+    sinConfirmarTodavia,
     sano: problemas.length === 0 && l.length > 0,
     resumen: !l.length
       ? 'no hay ni un aviso anotado — o no se ha mandado nada todavía, o el registro no está funcionando'
       : problemas.length
         ? problemas.join(' · ')
-        : `el canal de avisos funciona: última entrega confirmada hace ${diasSinEntregar} día(s)`,
+        : sinConfirmarTodavia
+          // Ni «funciona» ni «roto»: pendiente. Resend tarda cerca de un minuto
+          // en dar veredicto, y llamarlo fallo en esa ventana sería una falsa
+          // alarma; llamarlo éxito sería la mentira de siempre.
+          ? `${l.length} aviso(s) enviados, ninguna entrega confirmada TODAVÍA (Resend tarda ~1 min en decirlo)`
+          : `el canal de avisos funciona: última entrega confirmada hace ${diasSinEntregar} día(s)`,
   };
 }
 

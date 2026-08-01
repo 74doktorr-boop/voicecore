@@ -66,6 +66,40 @@ test('el umbral no salta con el ritmo normal (semanal)', () => {
   assert.equal(analizar([aviso({ t: dias(DIAS_DE_SILENCIO_SOSPECHOSO) })], { ahora: AHORA }).sano, false);
 });
 
+// ── El fallo que salió PROBÁNDOLO de verdad, no en los tests ────────────────
+// La primera versión, con CERO entregas confirmadas, decía «el canal de avisos
+// funciona: última entrega confirmada hace 0 día(s)». El cálculo caía al primer
+// registro cuando no había ninguna entrega, así que un canal donde nada llegara
+// nunca se declaraba sano mientras hubiera envíos recientes. O sea: el mismo
+// silencio-que-parece-salud que este fichero viene a matar, metido dentro del
+// arreglo. Y no lo cazó ningún test — lo cazó mirar la salida de la prueba real.
+describe_estados_intermedios();
+function describe_estados_intermedios() {
+  test('enviado pero sin confirmar TODAVÍA: ni funciona ni está roto', () => {
+    // Resend tarda cerca de un minuto en dar veredicto. Llamarlo fallo en esa
+    // ventana sería falsa alarma; llamarlo éxito sería la mentira de siempre.
+    const a = analizar([aviso({ t: AHORA - 30_000, ev: null })], { ahora: AHORA });
+    assert.equal(a.entregados, 0);
+    assert.equal(a.sinConfirmarTodavia, true);
+    assert.equal(a.sano, true, 'no hay nada roto todavía');
+    assert.doesNotMatch(a.resumen, /funciona/, 'no puede decir que funciona sin una sola entrega confirmada');
+    assert.match(a.resumen, /ninguna entrega confirmada TODAV/i);
+  });
+
+  test('semanas enviando SIN una sola entrega confirmada → canal muerto', () => {
+    // Este es el estado que la primera versión declaraba sano.
+    const a = analizar([aviso({ t: dias(25), ev: null }), aviso({ t: dias(1), ev: null })], { ahora: AHORA });
+    assert.equal(a.entregados, 0);
+    assert.equal(a.sano, false);
+    assert.match(a.resumen, /SIN UNA SOLA entrega confirmada/);
+  });
+
+  test('«hace 0 días» solo se dice si HAY una entrega confirmada', () => {
+    assert.equal(analizar([aviso({ t: AHORA - 1000, ev: null })], { ahora: AHORA }).diasSinEntregar, null);
+    assert.equal(analizar([aviso({ t: AHORA - 1000, ev: 'delivered' })], { ahora: AHORA }).diasSinEntregar, 0);
+  });
+}
+
 test('un envío fallido se registra y se ve el motivo', () => {
   const a = analizar([aviso({ ok: false, ev: null, e: 'Invalid `to` field' })], { ahora: AHORA });
   assert.equal(a.fallos, 1);
