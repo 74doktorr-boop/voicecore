@@ -148,6 +148,22 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,input:focus-visible,sele
       </div>
     </div>
 
+    <!-- ¿Cuánto te deja un cliente? — el número que convierte llamadas en euros.
+         Hasta el 01/08 no se preguntaba en NINGÚN sitio: 3 de las 4
+         organizaciones de producción no lo tenían, así que el panel enseñaba un
+         € calculado con 35 genérico y avisando de que era genérico. Una cifra
+         que lleva escrito al lado que es inventada no convence a nadie, y encima
+         enseña a desconfiar del resto del panel.
+         Va OPCIONAL: pedirlo obligatorio añade fricción justo donde más caro
+         sale. Sin él, el panel cuenta llamadas y citas, que también vale. -->
+    <div class="form-group" id="ticketGroup">
+      <label for="ticketMedio">¿Cuánto te deja de media un cliente? <span style="font-weight:400;opacity:.7">(opcional)</span></label>
+      <input type="number" id="ticketMedio" min="1" max="9999" step="1" placeholder="45" inputmode="numeric" style="max-width:180px">
+      <div style="font-size:12px;opacity:.7;margin-top:6px" id="ticketHint">
+        Con esto tu panel te dirá en <b>euros</b> lo que te ha recuperado el asistente, y no solo cuántas llamadas cogió.
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="idioma">Idioma de tu asistente *</label>
       <select id="idioma">
@@ -523,7 +539,7 @@ async function _submitRegistroInner() {
     const resp = await fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices(), fundador: isFounder || undefined }),
+      body: JSON.stringify({ contacto, negocio, sector, telefono, email, idioma, plan: planKey, coupon: coupon || undefined, source: landingSource || undefined, voz: currentVoice, saludo: greetingText(), servicios: selectedServices(), ticketMedio: (parseInt(document.getElementById('ticketMedio')?.value, 10) > 0 ? parseInt(document.getElementById('ticketMedio').value, 10) : undefined), fundador: isFounder || undefined }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Error al guardar');
@@ -635,8 +651,42 @@ const SVC_SUGGEST = {
   inmobiliaria: ['Venta','Alquiler','Tasación','Gestión de alquileres'],
   abogados: ['Civil','Laboral','Familia','Extranjería','Penal'],
 };
+// Orden de magnitud POR SECTOR, solo como marcador de posición del campo —
+// nunca como valor. El precio medio de un taller (≈180 €) y el de una
+// peluquería (≈28 €) se llevan un factor 6: un único número por defecto no
+// puede servir para los dos, y eso fue exactamente el problema del 35 genérico.
+//
+// Es una SUGERENCIA, no un relleno: el campo se queda vacío y esto solo aparece
+// en gris dentro. Si el dueño no escribe nada, no se guarda nada — así lo que
+// acabe en la base es SIEMPRE algo que él ha tecleado.
+const TICKET_SUGERIDO = {
+  peluqueria: 28, barberia: 20, estetica: 45, unas: 25, masajes: 50, spa: 60,
+  dental: 90, fisioterapia: 45, psicologia: 60, nutricion: 50, podologia: 40,
+  veterinaria: 55, optica: 120, clinica: 70, farmacia: 20,
+  taller: 180, neumaticos: 220, chapa: 400, gruas: 120, fontaneria: 130,
+  electricista: 120, cerrajeria: 90, reformas: 900, limpieza: 80,
+  restaurante: 35, bar: 18, catering: 600, hotel: 90,
+  gimnasio: 45, autoescuela: 700, asesoria: 120, abogados: 250,
+  inmobiliaria: 900, academia: 90, guarderia: 350, notaria: 300,
+};
 let _svcSel = new Set();
+
+/** Pone la sugerencia del sector como marcador, sin rellenar el campo. */
+function sugerirTicket() {
+  const inp = document.getElementById('ticketMedio');
+  if (!inp) return;
+  const s = TICKET_SUGERIDO[document.getElementById('sector').value];
+  inp.placeholder = s ? String(s) : '45';
+  const hint = document.getElementById('ticketHint');
+  if (hint && s) {
+    hint.innerHTML = 'Con esto tu panel te dirá en <b>euros</b> lo que te ha recuperado el asistente, '
+      + 'y no solo cuántas llamadas cogió. <span style="opacity:.75">En tu sector suele rondar los '
+      + s + ' €, pero pon el tuyo.</span>';
+  }
+}
+
 function renderSvcChips() {
+  sugerirTicket();
   const sec = document.getElementById('sector').value;
   const grp = document.getElementById('svcGroup');
   const box = document.getElementById('svcChips');

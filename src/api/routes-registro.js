@@ -260,7 +260,7 @@ function setupRegistroRoutes(app) {
   // POST /api/registro — guarda los datos del formulario antes de ir a Stripe
   app.post('/api/registro', registroRateLimit, async (req, res) => {
     try {
-      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios } = req.body;
+      const { sector, negocio, contacto, ciudad, telefono, email, voz, idioma, saludo, horario, coupon, source: formSource, language: formLanguage, servicios, ticketMedio } = req.body;
       // Programa Fundadores (49€ para siempre, primeros 20): el alta llega con
       // fundador:true desde /onboarding.html?...&fundador=1. Se marca en `source`
       // con prefijo 'founder:' (columna que EXISTE seguro; NO se añade columna
@@ -358,6 +358,15 @@ function setupRegistroRoutes(app) {
         saludo: efectivoSaludo,
         horario:  typeof horario === 'object' ? horario : {},
         ...(serviciosClean.length ? { servicios: serviciosClean } : {}),
+        // Precio medio del servicio. Es el número que convierte «12 llamadas
+        // atendidas» en «X € recuperados», y hasta hoy no se preguntaba en
+        // ningún sitio: 3 de las 4 organizaciones de producción no lo tenían, y
+        // el panel acababa enseñando euros calculados con un 35 genérico.
+        //
+        // Va OPCIONAL a propósito: pedirlo como obligatorio en el alta añade
+        // fricción justo donde más caro sale. Si no viene, no se guarda nada y
+        // el panel dice que no lo sabe — que es la verdad.
+        ...(Number(ticketMedio) > 0 ? { ticket_medio: Math.min(9999, Math.round(Number(ticketMedio))) } : {}),
         language: effectiveLanguage,
         ...(storedSource ? { source: storedSource } : {}),
         ...(couponData ? {

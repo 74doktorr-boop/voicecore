@@ -272,17 +272,28 @@ function setupBillingRoutes(app, config) {
                 // clínica sin psicotécnicos nace sin esa regla) y el asistente
                 // conoce su carta. El bloque del número (más abajo) re-lee
                 // automation_config y hace merge, así que esto no se pisa.
+                // Junto con el PRECIO MEDIO, que es el número que convierte
+                // «12 llamadas atendidas» en «X € recuperados». Hasta el 01/08
+                // no se preguntaba en ninguna parte: 3 de las 4 organizaciones
+                // de producción no lo tenían y el panel acababa enseñando euros
+                // calculados con un 35 genérico. Sembrarlo el día 0 es lo que
+                // hace que la primera cifra que ve el dueño sea SUYA.
+                const semilla = {};
                 if (Array.isArray(registro.servicios) && registro.servicios.length) {
+                  semilla.serviceList = registro.servicios.map(name => ({ name }));
+                }
+                if (Number(registro.ticket_medio) > 0) semilla.avgTicket = Number(registro.ticket_medio);
+
+                if (Object.keys(semilla).length) {
                   try {
-                    const serviceList = registro.servicios.map(name => ({ name }));
                     const { data: cur } = await db.client.from('organizations')
                       .select('automation_config').eq('id', org.id).maybeSingle();
                     const ac = (cur && cur.automation_config) || {};
                     await db.client.from('organizations').update({
-                      automation_config: { ...ac, config: { ...(ac.config || {}), serviceList } },
+                      automation_config: { ...ac, config: { ...(ac.config || {}), ...semilla } },
                     }).eq('id', org.id);
-                    log.info(`serviceList sembrada desde el onboarding: ${serviceList.length} servicios (${org.id})`);
-                  } catch (e) { log.warn(`serviceList del onboarding falló: ${e.message}`); }
+                    log.info(`Sembrado desde el onboarding (${org.id}): ${Object.keys(semilla).join(', ')}`);
+                  } catch (e) { log.warn(`siembra del onboarding falló: ${e.message}`); }
                 }
 
                 // ── Tier del alta (Básico vs Pro) ──────────────────────────

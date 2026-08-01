@@ -1280,9 +1280,21 @@ function dashHero(d) {
     '</div>' +
     '<div class="nf-hero-lead">' + lead + '</div>' +
     (wins ? '<div class="nf-wins nf-stagger">' + wins + '</div>' : '') +
-    (wins && d.valueEstToday && d.avgTicketConfigured === false
-      ? '<div class="u-text-sm u-dim u-mt-2">El € está calculado con un ticket medio genérico (35€). ' +
-        '<a onclick="navigate(\'configuracion\')" class="u-accent u-pointer" style="text-decoration:underline">Pon el tuyo</a> y será exacto.</div>'
+    // De dónde sale el €, dicho con precisión. Antes ponía siempre «ticket medio
+    // genérico (35€)», y eso era falso en los dos casos que quedan: o el euro
+    // sale de los precios REALES de sus citas (mediana), o no se enseña euro
+    // ninguno. El 35 genérico ya no existe en ninguna parte — decir que sí lo
+    // usamos sería inventarnos un defecto que hemos quitado.
+    (wins && d.valueEstToday && d.avgTicketSource === 'observed'
+      ? '<div class="u-text-sm u-dim u-mt-2">El € sale de los precios de tus propias citas. ' +
+        '<a onclick="navigate(\'configuracion\')" class="u-accent u-pointer" style="text-decoration:underline">Dinos tu precio medio</a> y será más exacto.</div>'
+      : '') +
+    // Y si no se sabe, se pide — en vez de enseñar un número inventado o de
+    // callarse y que el dueño no entienda por qué no ve euros por ninguna parte.
+    (wins && !d.valueEstToday && !d.avgTicket
+      ? '<div class="u-text-sm u-dim u-mt-2">Para verlo en <b>euros</b>, ' +
+        '<a onclick="navigate(\'configuracion\')" class="u-accent u-pointer" style="text-decoration:underline">dinos cuánto te deja de media un cliente</a>. ' +
+        'Son 10 segundos y a partir de ahí el panel te lo cuenta en dinero.</div>'
       : '') +
   '</div>';
 }
@@ -3204,8 +3216,15 @@ async function loadConfig() {
         // suena al descolgar). Antes cada pantalla guardaba en un sitio
         // distinto y el saludo nuevo nunca llegaba a las llamadas.
         '<small class="form-hint">Es el saludo que oyen tus clientes al llamar — el mismo que ves en <a onclick="navigate(\'asistente\')" class="u-link">Asistente</a>. Para quitarlo y volver al saludo automático, bórralo desde Asistente.</small></div>' +
+      // El campo va VACÍO si no está declarado, y antes se rellenaba con 35.
+      // Parece inofensivo y no lo era: al guardar cualquier otra cosa de esta
+      // pantalla, ese 35 se escribía como si el dueño lo hubiera declarado — y
+      // «lo declarado» es la fuente de MÁXIMA confianza del modelo de valor
+      // (value-model.js). O sea que la interfaz fabricaba la declaración y
+      // colaba un número inventado por la puerta buena.
       '<div class="form-group"><label class="form-label">Precio medio por servicio (€)</label>' +
-        '<input class="form-input" id="cfgAvgTicket" type="number" min="1" max="9999" value="' + (c.avgTicket || 35) + '"></div>' +
+        '<input class="form-input" id="cfgAvgTicket" type="number" min="1" max="9999" placeholder="p. ej. 45" value="' + (c.avgTicket > 0 ? c.avgTicket : '') + '">' +
+        '<small class="form-hint">Lo que te deja de media un cliente. Con esto, el panel puede decirte en <b>euros</b> lo que te ha recuperado el asistente; sin ello, solo puede contarte llamadas y citas.</small></div>' +
       '<div class="form-section-title">Dirección</div>' +
       '<div class="form-group"><label class="form-label">Dirección del negocio</label>' +
         '<input class="form-input" id="cfgAddress" placeholder="Calle Mayor 12, 20140 Andoain"' +
@@ -3463,7 +3482,12 @@ async function saveConfig() {
     sector:         document.getElementById('cfgSector').value,
     serviceList:    collectServiceList(),
     welcomeMessage: document.getElementById('cfgWelcome').value.trim(),
-    avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) || 35,
+    // Vacío significa vacío: NO se inventa un 35. Un ticket sin declarar hace
+    // que el panel no enseñe euros, que es exactamente lo correcto — mejor no
+    // dar una cifra que darla mal y que el dueño deje de creerse las demás.
+    avgTicket:      parseFloat(document.getElementById('cfgAvgTicket').value) > 0
+                      ? parseFloat(document.getElementById('cfgAvgTicket').value)
+                      : null,
     reviewUrl:      document.getElementById('cfgReviewUrl')?.value?.trim()   || '',
     alertPhone:     document.getElementById('cfgAlertPhone')?.value?.trim()  || '',
     notifyEmail:    document.getElementById('cfgNotifyEmail')?.value?.trim() || '',
