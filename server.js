@@ -867,6 +867,11 @@ startWeeklyReportCron();
 // perdía en el vacío. Ver src/notifications/registro-avisos.js.
 require('./src/notifications/registro-avisos').arrancarConfirmacion();
 
+// Cruza cada hora con Telnyx para saber si entró alguna llamada que no llegamos
+// a coger. Es lo que hace COMPROBABLE la promesa del producto — hasta hoy,
+// perder una llamada y no recibir ninguna se veían exactamente igual.
+require('./src/lifecycle/conciliacion-telnyx').arrancarVigilancia();
+
 // Resumen del día a clientes (cada día 08:00 Madrid)
 const { startDailyBriefingCron } = require('./src/reports/daily-briefing');
 startDailyBriefingCron();

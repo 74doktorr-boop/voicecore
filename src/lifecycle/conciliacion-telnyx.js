@@ -291,4 +291,75 @@ async function sondearTelnyx({ desde, hasta, apiKey, fetch: f } = {}) {
   return { ventana: { desde: gte, hasta: lte }, intentos: salida };
 }
 
-module.exports = { cruzar, conciliar, traerDeTelnyx, traerNuestras, sondearTelnyx, _tel };
+// ── Vigilancia continua ─────────────────────────────────────────────────────
+// Se automatiza AHORA y no antes porque primero había que comprobar contra datos
+// reales que el cruce no inventa perdidas. Comprobado el 01/08 sobre 14 días:
+// Telnyx vio 3, nosotros teníamos 3, las 3 conciliadas y ninguna huérfana. Un
+// vigilante que da falsos positivos es peor que no tenerlo, así que el orden
+// —instrumentar, mirar, y sólo entonces automatizar— no era ceremonia.
+const CLAVE_PERDIDAS = 'nf:llamadas-perdidas';
+const store = require('../utils/rate-store');
+
+/** Clave estable de una llamada perdida, para no contarla dos veces. */
+const _huella = (p) => `${p.de}|${p.a}|${p.cuando}`;
+
+/**
+ * Concilia y GUARDA las perdidas nuevas. Idempotente: las ventanas se solapan a
+ * propósito (6 h cada hora) para que un CDR que tarde en aparecer no se escape,
+ * y sin deduplicar se avisaría seis veces de la misma llamada — que es la forma
+ * más rápida de que dejen de leerse los avisos.
+ */
+async function vigilar(opts = {}) {
+  const r = await conciliar(opts);
+  if (!r.perdidas.length) return { ...r, nuevas: [] };
+
+  const yaVistas = new Set((await store.listRange(CLAVE_PERDIDAS, 500))
+    .map(s => { try { return _huella(JSON.parse(s)); } catch (_) { return null; } })
+    .filter(Boolean));
+
+  const nuevas = r.perdidas.filter(p => !yaVistas.has(_huella(p)));
+  for (const p of nuevas) await store.pushCapped(CLAVE_PERDIDAS, p, 500);
+  if (nuevas.length) {
+    log.error(`${nuevas.length} llamada(s) que NO atendimos: ` +
+      nuevas.map(p => `${p.de} a las ${p.cuando}`).join(', '));
+  }
+  return { ...r, nuevas };
+}
+
+/** Lo que se publica en /health/llamadas para que lo lea el vigilante externo. */
+async function informe() {
+  const crudo = await store.listRange(CLAVE_PERDIDAS, 200);
+  const perdidas = [];
+  for (const s of crudo) { try { perdidas.push(typeof s === 'string' ? JSON.parse(s) : s); } catch (_) {} }
+  const ahora = Date.now();
+  const ultimas24h = perdidas.filter(p => ahora - Date.parse(p.cuando) < 86400_000);
+  return {
+    perdidasRegistradas: perdidas.length,
+    ultimas24h: ultimas24h.length,
+    ultimas: perdidas.slice(-10),
+    persistente: store.isRedisEnabled(),
+    resumen: !perdidas.length
+      ? 'ninguna llamada perdida registrada'
+      : `${ultimas24h.length} llamada(s) sin atender en las últimas 24 h · ${perdidas.length} en total`,
+  };
+}
+
+let _timer = null;
+function arrancarVigilancia() {
+  if (_timer) return;
+  const tic = () => {
+    try { if (!require('../utils/leader').isLeader()) return; } catch (_) { return; }
+    if (!process.env.TELNYX_API_KEY) return;    // sin clave no se puede: se calla, no falla
+    vigilar().catch(e => log.warn(`conciliación: ${e.message}`));
+  };
+  _timer = setInterval(tic, 60 * 60 * 1000);
+  _timer.unref?.();
+  setTimeout(tic, 90_000).unref?.();            // una primera pasada al arrancar
+  log.info('Conciliación con Telnyx cada hora');
+}
+function pararVigilancia() { if (_timer) { clearInterval(_timer); _timer = null; } }
+
+module.exports = {
+  cruzar, conciliar, traerDeTelnyx, traerNuestras, sondearTelnyx,
+  vigilar, informe, arrancarVigilancia, pararVigilancia, CLAVE_PERDIDAS, _tel, _huella,
+};

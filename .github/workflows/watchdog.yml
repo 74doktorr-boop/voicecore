@@ -217,6 +217,40 @@ jobs:
               else
                 echo "   /health/avisos devolvió HTTP ${AVI%% *} — ¿versión anterior desplegada?"
               fi
+
+              # ── ¿SE HA PERDIDO ALGUNA LLAMADA? ─────────────────────────────
+              # La promesa del producto es «no pierdas ninguna llamada». Hasta
+              # ahora esa frase no era comprobable ni por nosotros: nf_calls solo
+              # tiene las llamadas cuyo webhook llegó, así que perder una y no
+              # recibir ninguna se veían exactamente igual.
+              #
+              # Cruzando con Telnyx —que las vio todas— deja de ser una promesa
+              # y pasa a ser un número. Y este es el sitio donde mirarlo, porque
+              # si el aviso dependiera del propio servicio no llegaría justo el
+              # día que hace falta.
+              echo ""
+              echo "── Llamadas ──"
+              LLA=$(probar "https://nodeflow.es/health/llamadas" /tmp/lla.json)
+              if [ "${LLA%% *}" = "200" ]; then
+                python3 - <<'PY' || echo "   (no se pudo interpretar el informe de llamadas)"
+          import json, sys
+          try:
+              h = json.load(open('/tmp/lla.json', encoding='utf-8'))
+          except Exception as e:
+              print(f'   informe ilegible: {e}'); sys.exit(0)
+          print(f"   {h.get('resumen')}")
+          n = h.get('ultimas24h') or 0
+          if n:
+              print(f"::error::{n} llamada(s) entraron y NO se atendieron en las últimas 24 h. "
+                    f"Los números están en /api/admin/conciliacion.")
+          for c in (h.get('cuando') or [])[-5:]:
+              print(f'   · sin atender: {c}')
+          if not h.get('persistente'):
+              print('::warning::el registro de llamadas perdidas no es persistente (sin Redis)')
+          PY
+              else
+                echo "   /health/llamadas devolvió HTTP ${LLA%% *} — ¿versión anterior desplegada?"
+              fi
               exit 0
             fi
 

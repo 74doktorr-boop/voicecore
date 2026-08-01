@@ -227,3 +227,49 @@ test('la ventana se acota por started_at, NO por date_range', async () => {
   assert.doesNotMatch(urlPedida, /date_range/, 'ha vuelto el filtro que devuelve cero en silencio');
   assert.match(urlPedida, /record_type\]=call-control/);
 });
+
+// ── Vigilancia continua: no avisar seis veces de la misma llamada ───────────
+// Las ventanas se solapan a propósito (6 h cada hora) para que un CDR que tarde
+// en aparecer no se escape. Sin deduplicar, la misma llamada perdida generaría
+// seis avisos — la forma más rápida de que dejen de leerse.
+describe_vigilancia();
+function describe_vigilancia() {
+  const { vigilar, informe, CLAVE_PERDIDAS, _huella } = require('../src/lifecycle/conciliacion-telnyx');
+  const store = require('../src/utils/rate-store');
+  const unaPerdida = { direction: 'inbound', cli: '+34600111222', cld: '+34943111222',
+                       started_at: '2026-08-01T10:00:00.000Z', call_sec: 12, connected: false };
+
+  test('la primera vez la registra; la segunda NO la duplica', async () => {
+    await store.reset(CLAVE_PERDIDAS);
+    const opts = { traerDeTelnyx: async () => [{
+      from: unaPerdida.cli, to: unaPerdida.cld, started_at: unaPerdida.started_at,
+      duration_millis: 12000, hangup_cause: 'no_contestada' }], traerNuestras: async () => [] };
+
+    const a = await vigilar(opts);
+    assert.equal(a.perdidas.length, 1);
+    assert.equal(a.nuevas.length, 1, 'la primera vez es nueva');
+
+    const b = await vigilar(opts);      // la ventana siguiente vuelve a verla
+    assert.equal(b.perdidas.length, 1, 'sigue estando perdida');
+    assert.equal(b.nuevas.length, 0, 'pero YA no es nueva: no se avisa dos veces');
+
+    const inf = await informe();
+    assert.equal(inf.perdidasRegistradas, 1, 'se ha guardado dos veces la misma');
+    await store.reset(CLAVE_PERDIDAS);
+  });
+
+  test('dos llamadas distintas del mismo número sí son dos', async () => {
+    // La huella lleva el instante: si solo llevara el número, una segunda
+    // llamada perdida del mismo cliente se tragaría en silencio.
+    assert.notEqual(
+      _huella({ de: '+34600111222', a: '+34943111222', cuando: '2026-08-01T10:00:00.000Z' }),
+      _huella({ de: '+34600111222', a: '+34943111222', cuando: '2026-08-01T11:00:00.000Z' }));
+  });
+
+  test('sin perdidas, el informe lo dice sin alarmar', async () => {
+    await store.reset(CLAVE_PERDIDAS);
+    const inf = await informe();
+    assert.equal(inf.perdidasRegistradas, 0);
+    assert.match(inf.resumen, /ninguna llamada perdida/);
+  });
+}

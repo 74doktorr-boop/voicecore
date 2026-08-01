@@ -723,6 +723,30 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ─── ¿Se nos ha caído alguna llamada? ───────────────────────────────────────
+  // La promesa del producto es «no pierdas ninguna llamada», y hasta hoy esa
+  // frase no era comprobable ni por nosotros: `nf_calls` solo tiene las llamadas
+  // cuyo webhook llegó, así que perder una y no recibir ninguna se veían igual.
+  // Esto publica el resultado de cruzar con Telnyx, que sí las vio todas.
+  //
+  // Sin autenticación pero SIN TELÉFONOS: solo cuántas y cuándo. El detalle con
+  // números va en /api/admin/conciliacion, detrás de adminAuth.
+  app.get('/health/llamadas', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      const inf = await require('../lifecycle/conciliacion-telnyx').informe();
+      res.json({
+        perdidasRegistradas: inf.perdidasRegistradas,
+        ultimas24h: inf.ultimas24h,
+        cuando: inf.ultimas.map(p => p.cuando),   // instantes sí, números NO
+        persistente: inf.persistente,
+        resumen: inf.resumen,
+      });
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer la conciliación', detalle: e.message });
+    }
+  });
+
   log.info('API routes configured');
 }
 
