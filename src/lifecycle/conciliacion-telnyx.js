@@ -222,21 +222,21 @@ async function sondearTelnyx({ desde, hasta, apiKey, fetch: f } = {}) {
   const doFetch = f || globalThis.fetch;
   if (!key) return { error: 'sin TELNYX_API_KEY' };
 
+  // Sondeo 2 (01/08, tras el primero): ya se sabe que el tipo es `call-control`
+  // —los demás dan 400— y que SIN fechas trae filas pero CON ellas da cero. O
+  // sea que lo que está mal es el filtro de fechas. Aquí se prueban sus formas.
   const gte = desde.toISOString(), lte = hasta.toISOString();
+  const B = `${TELNYX_CDR}?filter[record_type]=call-control&page[size]=5`;
   const intentos = [
-    // La forma actual, la que da cero.
-    ['detail_records · record_type=call · date_range gte/lte',
-     `${TELNYX_CDR}?filter[record_type]=call&filter[date_range][gte]=${encodeURIComponent(gte)}&filter[date_range][lte]=${encodeURIComponent(lte)}&page[size]=5`],
-    // Sin filtro de fechas: si esto trae filas, el problema son las fechas.
-    ['detail_records · record_type=call · SIN fechas',
-     `${TELNYX_CDR}?filter[record_type]=call&page[size]=5`],
-    // Otros nombres de tipo.
-    ['detail_records · record_type=call-control', `${TELNYX_CDR}?filter[record_type]=call-control&page[size]=5`],
-    ['detail_records · record_type=voice',        `${TELNYX_CDR}?filter[record_type]=voice&page[size]=5`],
-    // Sin filtro ninguno: dice qué tipos existen de verdad en esta cuenta.
-    ['detail_records · sin filtros',              `${TELNYX_CDR}?page[size]=5`],
-    // El endpoint dedicado de llamadas, por si los CDR van por otro sitio.
-    ['calls (Call Control)',                      'https://api.telnyx.com/v2/calls?page[size]=5'],
+    ['sin fechas (control: tiene que traer filas)', B],
+    ['filter[date_range][gte]/[lte]  ← la que da cero',
+     `${B}&filter[date_range][gte]=${encodeURIComponent(gte)}&filter[date_range][lte]=${encodeURIComponent(lte)}`],
+    ['filter[started_at][gte]/[lte]',
+     `${B}&filter[started_at][gte]=${encodeURIComponent(gte)}&filter[started_at][lte]=${encodeURIComponent(lte)}`],
+    ['filter[finished_at][gte]/[lte]  (el campo que sí devuelve)',
+     `${B}&filter[finished_at][gte]=${encodeURIComponent(gte)}&filter[finished_at][lte]=${encodeURIComponent(lte)}`],
+    ['filter[date_range]=last_30_days  (enum, no rango)', `${B}&filter[date_range]=last_30_days`],
+    ['filter[date_range]=yesterday', `${B}&filter[date_range]=yesterday`],
   ];
 
   const salida = [];
@@ -251,7 +251,7 @@ async function sondearTelnyx({ desde, hasta, apiKey, fetch: f } = {}) {
         filas: j && Array.isArray(j.data) ? j.data.length : null,
         // Los NOMBRES de campo de la primera fila: con eso se sabe si trae
         // llamadas y cómo se llaman `from`/`to`/`started_at` en esta versión.
-        campos: j && Array.isArray(j.data) && j.data[0] ? Object.keys(j.data[0]).slice(0, 25) : null,
+        campos: j && Array.isArray(j.data) && j.data[0] ? Object.keys(j.data[0]) : null,
         tiposVistos: j && Array.isArray(j.data) ? [...new Set(j.data.map(x => x.record_type).filter(Boolean))] : null,
         error: j && j.errors ? String(j.errors[0] && (j.errors[0].detail || j.errors[0].title)).slice(0, 160) : null,
       });
