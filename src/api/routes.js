@@ -104,10 +104,14 @@ function setupRoutes(app, pipeline, assistantManager, config) {
       // existe, sin colapsar voces a un fallback ("sonar igual", 2026-07-04).
       const rt = config.ttsRouter || (pipeline && pipeline.ttsRouter);
       const available = new Set(rt && rt.providers ? Array.from(rt.providers.keys()) : []);
-      const voices = renderableVoices(await listVoices(), available);
-      // Los tiers se filtran con las MISMAS voces que se acaban de ofrecer. Sin
-      // esto el portal pintaba un apartado «Premium · +10€/mes» vacío por dentro.
-      const tiers = offerableTiers(getTiers(), voices);
+      // El filtro va en los DOS sentidos, y hacen falta los dos:
+      //   · una voz de un nivel que no se ofrece, no se enseña (3er argumento);
+      //   · un nivel sin ninguna voz que suene, no se anuncia (offerableTiers).
+      // Con solo el segundo, retirar un nivel dejaba sus voces sueltas en el
+      // selector; con solo el primero, un nivel podía anunciarse vacío.
+      const declarados = getTiers();
+      const voices = renderableVoices(await listVoices(), available, declarados);
+      const tiers = offerableTiers(declarados, voices);
       res.set('Cache-Control', 'public, max-age=60');
       res.json({ voices, tiers, count: voices.length });
     } catch (e) {

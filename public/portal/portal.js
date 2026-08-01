@@ -1557,11 +1557,14 @@ async function showVoiceModels() {
   // Cupo premium real de esta org — la cifra coincide con la degradación real.
   var q = null;
   try { var qr = await api('/api/portal/voice-quota'); if (qr && qr.ok) q = qr; } catch (e) { /* fail-open */ }
+  // El nivel Premium se retiró el 2026-08-01: sus 13 voces eran todas de
+  // ElevenLabs y al quitar su clave se quedó sin ninguna. Este modal lo seguía
+  // vendiendo a +10€/mes con su descripción entera. Queda un solo nivel, que es
+  // el que hay — y ya no se presenta como «el barato de dos», sino como lo que
+  // usa el asistente en todas las llamadas.
   var TIERS = [
-    { key: 'estandar', name: 'Estándar', icon: '🎙️', price: 'Incluida en tu plan', col: 'var(--dim)', bd: 'var(--border)',
-      desc: 'Voces naturales de alta calidad y respuesta rápida (Cartesia). Sin límite dentro de tus minutos del mes.' },
-    { key: 'premium', name: 'Premium', icon: '✨', price: '+10€/mes', col: 'var(--accent-l)', bd: 'rgba(196,245,70,.4)',
-      desc: 'Voces ultrarrealistas (ElevenLabs) y tu voz clonada. 40 min/mes incluidos · 200 con el complemento.' },
+    { key: 'estandar', name: 'Voces incluidas', icon: '🎙️', price: 'Sin coste extra', col: 'var(--dim)', bd: 'var(--border)',
+      desc: 'Voces naturales de alta calidad y respuesta rápida. Sin límite dentro de tus minutos del mes.' },
   ];
   var cards = TIERS.map(function (t) {
     var isCur = t.key === curTier;
@@ -1606,7 +1609,10 @@ async function showVoiceModels() {
     curLine +
     quotaLine +
     cards +
-    '<div style="font-size:11px;color:var(--dim);margin:8px 0 12px">¿Se te acaban los minutos de voz premium? Cómpralos en <a onclick="closeModal();navigate(\'facturacion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Facturación</a> (packs desde 5€).</div>' +
+    // Aquí ponía «¿Se te acaban los minutos de voz premium? Cómpralos en
+    // Facturación (packs desde 5€)». Los packs se retiraron con el nivel, así
+    // que ese enlace llevaba a una sección donde ya no hay nada que comprar.
+    '<div style="font-size:11px;color:var(--dim);margin:8px 0 12px">Los minutos de voz son los de tu plan; puedes verlos en <a onclick="closeModal();navigate(\'facturacion\')" style="color:var(--accent-l);cursor:pointer;text-decoration:underline">Facturación</a>.</div>' +
     '<div style="text-align:right"><button class="btn btn-d" onclick="closeModal()">Cerrar</button></div>'
   );
 }
@@ -4920,14 +4926,16 @@ function _voicePlanBar() {
         + ' min/mes</strong> · te quedan <strong>' + rem + ' min</strong> este mes · el minuto extra, ' + rate + '€.';
     }
   } else {
-    line1 = 'La voz que elijas usa los <strong>minutos incluidos en tu plan</strong> — la Premium no gasta más.';
+    line1 = 'La voz que elijas usa los <strong>minutos incluidos en tu plan</strong>.';
   }
   var showCta = !!(u && u.minutesLimit != null && u.minutesLimit < 99999);
   return '<div class="voice-planbar">'
     + '<span class="vpb-ico">📞</span>'
     + '<div class="vpb-txt">'
       + '<div class="vpb-1">' + line1 + '</div>'
-      + '<div class="vpb-2">Voz <strong>estándar incluida</strong> · voces <strong>Premium +10€/mes</strong>, mismas llamadas y mismos minutos.</div>'
+      // Ya no hay dos niveles que comparar: el Premium se retiró el 01/08 por
+      // quedarse sin voces. Todas las que se ofrecen van incluidas.
+      + '<div class="vpb-2">Todas las voces del selector van <strong>incluidas en tu plan</strong>, sin coste extra.</div>'
     + '</div>'
     + (showCta ? '<span class="vpb-cta" onclick="navigate(\'facturacion\')">Ver mis minutos →</span>' : '')
     + '</div>';
@@ -4991,7 +4999,7 @@ function renderVoiceGrid() {
         + '<div class="vc-avatar">' + ico + '</div>'
         + '<div class="vc-id"><div class="vc-name">' + _voiceEsc(v.name) + '</div><div class="vc-sub">' + _voiceEsc(sub) + '</div></div>'
         + '<span class="vc-sel">Tu voz</span>'
-        + '<span class="vc-lock" title="Voz Premium — actívala para usarla">🔒 Premium</span>'
+        + '<span class="vc-lock" title="No disponible ahora mismo">🔒 No disponible</span>'
       + '</div>'
       + '<div class="vc-desc">' + _voiceEsc((v.description || '').slice(0, 88)) + '</div>'
       + (chips ? '<div class="vc-chips">' + chips + '</div>' : '')
@@ -5013,8 +5021,10 @@ function renderVoiceGrid() {
   var TIER_COPY = {
     estandar: { title: 'Incluidas en tu plan', badge: 'Sin coste extra', cls: 'inc',
                 note: 'Voces naturales y rápidas, listas para tus llamadas.' },
-    premium:  { title: 'Voces Premium',        badge: '+10€/mes',        cls: 'prem',
-                note: 'Ultrarrealistas: quien llama cree hablar con una persona. Pruébalas gratis.' },
+    // El bloque `premium` (+10€/mes, «ultrarrealistas… pruébalas gratis») se
+    // quitó el 2026-08-01: el nivel se retiró por quedarse sin voces. Hoy no se
+    // renderiza —solo se pintan niveles con voces dentro— pero dejar el texto de
+    // venta ahí es como dejar el cartel colgado: vuelve solo a la primera.
     ultra:    { title: 'Incluidas en tu plan', badge: 'Sin coste extra', cls: 'inc',
                 note: 'Voces rápidas incluidas en tu plan.' },
   };
@@ -5039,8 +5049,9 @@ function selectVoice(id) {
   // Premium sin add-on: se escucha (gancho) pero no se puede fijar como voz —
   // en vez de dejar que falle al guardar (402), empujamos a activarla.
   if (v && v.tier === 'premium' && !_hasPremiumVoice) {
-    previewVoice(id);
-    toast('🔒 ' + (v.name || 'Esta voz') + ' es Premium. Escúchala y actívala (+10€/mes) en Facturación para usarla.', 'info');
+    // Ya no se puede «activar» nada: el nivel se retiró el 01/08. Estas voces
+    // tampoco se listan, así que llegar aquí significa un id antiguo guardado.
+    toast('Esa voz no está disponible ahora mismo. Las del selector van todas incluidas en tu plan.', 'info');
     return;
   }
   var h = document.getElementById('asis-voice'); if (h) h.value = id;
@@ -5058,16 +5069,17 @@ var _cloneRec = null, _cloneChunks = [], _cloneBlob = null, _cloneTimer = null, 
 function _fmtSecs(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 function openVoiceCloneModal() {
   _cloneBlob = null; _cloneChunks = []; _cloneSecs = 0;
-  // Candado Premium: la voz clonada va con el add-on Voz Premium (+10€/mes).
-  // En vez de dejar al dueño en una voz default, le explicamos y le llevamos.
+  // La voz clonada iba con el complemento Voz Premium, retirado el 2026-08-01
+  // (era de ElevenLabs, y sin su clave no se puede clonar nada). Antes esto
+  // llevaba a activarlo; ahora se dice que no se puede y punto. Mandar a alguien
+  // a comprar lo que no existe es peor que un «no» claro.
   if (!_hasPremiumVoice) {
     openModal(
       '<div style="max-width:440px">' +
         '<h3 style="margin:0 0 6px;font-size:18px">🎙️ Tu voz personalizada</h3>' +
-        '<p style="font-size:13px;line-height:1.6;margin:0 0 14px;color:var(--dim)">Tu negocio contesta con <strong style="color:var(--text)">TU voz</strong>: la clonamos con un minuto de audio. Va incluida en <strong style="color:var(--accent-l)">Voz Premium</strong> (+10€/mes), junto a todas las voces ultrarrealistas.</p>' +
+        '<p style="font-size:13px;line-height:1.6;margin:0 0 14px;color:var(--dim)">Clonar tu voz <strong style="color:var(--text)">no está disponible ahora mismo</strong>: iba con el proveedor de voz premium, que retiramos. Si te interesa, dínoslo y lo tenemos en cuenta.</p>' +
         '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">' +
-          '<button class="btn btn-d btn-sm" onclick="closeModal()">Ahora no</button>' +
-          '<button class="btn btn-accent btn-sm" onclick="closeModal();navigate(\'facturacion\')">Activar Voz Premium →</button>' +
+          '<button class="btn btn-d btn-sm" onclick="closeModal()">Entendido</button>' +
         '</div>' +
       '</div>'
     );
@@ -5901,24 +5913,16 @@ async function loadAddonsBox() {
           '</div>';
         }).join('') +
         '</div>' +
-        // Packs de minutos de voz (compra puntual — amplían el cupo del mes)
-        '<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-          '<div style="font-size:12px;font-weight:700;margin-bottom:2px">🎙️ ¿Se te acaban los minutos de voz premium?</div>' +
-          '<div style="font-size:11px;color:var(--dim);margin-bottom:10px">Compra minutos extra cuando los necesites. Se suman a tu cupo de este mes.</div>' +
-          '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-            '<button class="btn btn-d btn-sm" onclick="buyVoicePack(\'premium\')">+50 min Premium · 5€</button>' +
-            '<button class="btn btn-d btn-sm" onclick="buyVoicePack(\'ultra\')">+100 min Ultra (Cartesia) · 5€</button>' +
-          '</div>' +
-        '</div>' +
+        // AQUÍ HABÍA DOS BOTONES DE COMPRA DE MINUTOS DE VOZ, retirados el
+        // 2026-08-01 con el nivel Premium (ver src/billing/voice-packs.js):
+        //   · «+50 min Premium · 5€» — de un nivel que se quedó sin voces.
+        //   · «+100 min Ultra (Cartesia) · 5€» — peor todavía: el nivel Ultra se
+        //     disolvió y Cartesia pasó a ir INCLUIDA en el plan, o sea que
+        //     cobraba por minutos que el cliente ya tenía pagados.
+        // El candado de verdad está en el servidor (la ruta de checkout devuelve
+        // 400): quitar el botón solo esconde la puerta, no la cierra.
       '</div>';
   } catch (e) { /* fail-open: sin tarjetas */ }
-}
-async function buyVoicePack(kind) {
-  try {
-    var d = await api('/api/portal/voice-pack/' + kind + '/checkout', 'POST', {});
-    if (d && d.url) { window.location.href = d.url; }
-    else { toast((d && d.error) || 'No se pudo iniciar la compra', 'err'); }
-  } catch (e) { toast('❌ ' + e.message, 'err'); }
 }
 async function addonAction(key, action) {
   if (action === 'cancel' && !(await nfConfirm('¿Cancelar este complemento? Dejará de cobrarse desde tu próxima factura.',

@@ -36,7 +36,22 @@ function fakeDb(orgRow, opts = {}) {
 }
 
 describe('PACKS', () => {
-  test('define premium (50) y ultra (100)', () => {
+  // ── Retirados los dos el 2026-08-01, con el nivel Premium ──────────────────
+  // `premium` vendía minutos de un nivel que se quedó sin voces. Y `ultra` era
+  // peor: cobraba 5 € por «100 min voz Ultra (Cartesia)» cuando el nivel Ultra
+  // se disolvió y Cartesia pasó a ir INCLUIDA en el plan — o sea, cobrar por
+  // minutos ya pagados. Se marcan, no se borran: los manejadores de webhook
+  // siguen vivos por si hubiera un pago en vuelo que liquidar.
+  test('ninguno de los dos se puede comprar ya', () => {
+    const { packsOfrecibles } = require('../src/billing/voice-packs');
+    assert.deepStrictEqual(packsOfrecibles(), [], 'todavía hay packs a la venta');
+    assert.ok(PACKS.premium.retirado, 'el pack premium no está marcado como retirado');
+    assert.ok(PACKS.ultra.retirado, 'el pack ultra no está marcado como retirado');
+    assert.match(PACKS.ultra.retirado, /inclu/i,
+      'el motivo del pack ultra tiene que decir que esos minutos ya van incluidos');
+  });
+
+  test('la definición se conserva (para poder liquidar un pago en vuelo)', () => {
     assert.strictEqual(PACKS.premium.minutes, 50);
     assert.strictEqual(PACKS.ultra.minutes, 100);
   });

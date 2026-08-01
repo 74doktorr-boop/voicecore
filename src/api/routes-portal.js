@@ -1687,6 +1687,10 @@ function setupPortalRoutes(app, pipeline, config) {
       const { PACKS } = require('../billing/voice-packs');
       const pack = PACKS[req.params.kind];
       if (!pack) return res.status(400).json({ error: 'Pack desconocido' });
+      // Retirado = no se vende, aunque quede una price id suelta en el entorno.
+      // El candado va en el servidor: quitar el botón del portal no basta,
+      // porque esta ruta se puede llamar a mano.
+      if (pack.retirado) return res.status(400).json({ error: `Ese pack ya no está a la venta: ${pack.retirado}.` });
       const priceId = process.env[pack.envPriceVar];
       if (!priceId) return res.status(400).json({ error: 'Ese pack aún no está disponible online — escríbenos y te lo activamos.' });
       const billing = require('../billing/stripe').getBilling();

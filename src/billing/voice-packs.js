@@ -13,10 +13,31 @@
 const { Logger } = require('../utils/logger');
 const log = new Logger('VOICE-PACKS');
 
+// ── LOS DOS RETIRADOS 2026-08-01 ────────────────────────────────────────────
+// Van con el nivel Premium, que se retiró el mismo día (ver src/billing/addons.js).
+//
+//   · `premium` vendía 50 minutos de un nivel que se quedó sin ninguna voz.
+//   · `ultra` es peor, y es un fallo aparte que salió al mirar este: vendía
+//     «100 min voz Ultra (Cartesia)» por 5 €… cuando el nivel Ultra se disolvió
+//     y Cartesia pasó a ser el nivel INCLUIDO en el plan. O sea, cobrar por
+//     minutos que el cliente ya tiene pagados.
+//
+// Se marcan, no se borran: `applyVoicePack` y `settleMonthlyPack` siguen vivos
+// —son manejadores de webhook e idempotentes, y si algún día hubiera un pago en
+// vuelo tiene que poder liquidarse—. Lo que desaparece es la posibilidad de
+// COMPRARLOS: la ruta de checkout lee PACKS y devuelve 400 si no encuentra el
+// pack ofrecible.
 const PACKS = {
-  premium: { key: 'premium', minutes: 50,  cents: 500, envPriceVar: 'STRIPE_PACK_PREMIUM_PRICE_ID', label: '50 min voz Premium' },
-  ultra:   { key: 'ultra',   minutes: 100, cents: 500, envPriceVar: 'STRIPE_PACK_ULTRA_PRICE_ID',   label: '100 min voz Ultra (Cartesia)' },
+  premium: { key: 'premium', minutes: 50,  cents: 500, envPriceVar: 'STRIPE_PACK_PREMIUM_PRICE_ID', label: '50 min voz Premium',
+             retirado: 'el nivel Premium se retiró: no hay ninguna voz premium que suene' },
+  ultra:   { key: 'ultra',   minutes: 100, cents: 500, envPriceVar: 'STRIPE_PACK_ULTRA_PRICE_ID',   label: '100 min voz Ultra (Cartesia)',
+             retirado: 'el nivel Ultra se disolvió: Cartesia va INCLUIDA en el plan, esos minutos ya están pagados' },
 };
+
+/** Packs que se pueden comprar hoy. Vacío es una respuesta válida. */
+function packsOfrecibles() {
+  return Object.values(PACKS).filter(p => !p.retirado);
+}
 
 /**
  * Suma los minutos de un pack pagado al cupo del negocio. Idempotente.
@@ -134,4 +155,4 @@ async function settleMonthlyPack(orgRow, deps = {}) {
   }
 }
 
-module.exports = { PACKS, applyVoicePack, settleMonthlyPack };
+module.exports = { PACKS, packsOfrecibles, applyVoicePack, settleMonthlyPack };

@@ -128,13 +128,29 @@ function clearCache() { _cache = null; }
  * @param {Array} voices
  * @param {Set<string>|string[]} availableProviders  nombres de proveedores con engine listo
  */
-function renderableVoices(voices, availableProviders) {
+function renderableVoices(voices, availableProviders, tiersOfrecidos) {
   const list = Array.isArray(voices) ? voices : [];
   const avail = availableProviders instanceof Set
     ? availableProviders
     : new Set(availableProviders || []);
-  if (avail.size === 0) return list;
-  return list.filter(v => avail.has(v.provider));
+  let out = avail.size === 0 ? list : list.filter(v => avail.has(v.provider));
+
+  // Y además: una voz de un nivel que NO se ofrece tampoco se enseña.
+  //
+  // Es el otro sentido del filtro de niveles, y hace falta para que el bloque
+  // `tiers` de config/voices.json funcione como INTERRUPTOR de verdad. Sin esto,
+  // el día que alguien vuelva a poner una clave de ElevenLabs reaparecerían las
+  // 13 voces premium en el selector —el nivel se retiró el 01/08, no se vende—
+  // y al elegir una saltaría el candado de `voiceChangeAllowed`: un selector que
+  // ofrece cosas que rechaza al pulsarlas. Mejor no ofrecerlas.
+  //
+  // Fail-open: sin información de niveles no se oculta nada, igual que arriba.
+  // Un selector vacío por un fallo de cableado es peor que uno de más.
+  if (tiersOfrecidos && typeof tiersOfrecidos === 'object') {
+    const claves = tiersOfrecidos instanceof Set ? tiersOfrecidos : new Set(Object.keys(tiersOfrecidos));
+    if (claves.size) out = out.filter(v => claves.has(v.tier || 'premium'));
+  }
+  return out;
 }
 
 /**

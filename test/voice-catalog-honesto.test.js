@@ -62,10 +62,13 @@ describe('catálogo de voces honesto', () => {
     const tiers = getTiers();
     for (const v of catalog.voices) assert.ok(v.tier, `${v.id} sin tier`);
     // El tier "ultra" se disolvió: Cartesia pasó a ser INCLUIDO, no un upsell.
-    assert.deepStrictEqual(Object.keys(tiers).sort(), ['estandar', 'premium']);
+    // Y el 2026-08-01 se retiró también "premium" (decisión de Unai): sus 13
+    // voces eran todas de ElevenLabs y al quitar la clave se quedó sin ninguna.
+    // El bloque `tiers` es el INTERRUPTOR — volver a ponerlo las devuelve.
+    assert.deepStrictEqual(Object.keys(tiers).sort(), ['estandar']);
     assert.strictEqual(tiers.ultra, undefined, 'el tier ultra ya no existe');
+    assert.strictEqual(tiers.premium, undefined, 'el nivel premium se retiró: no hay voces que darle');
     assert.strictEqual(tiers.estandar.monthlyExtra, 0);
-    assert.strictEqual(tiers.premium.monthlyExtra, 10);
     // Antes esto solo pedía «> 0», y con eso pasaba cualquier número. Pasó:
     // el tier decía minutesIncluded 300, el blurb decía «500 min/mes» y el plan
     // real daba 200 (se bajó de 500 a 200 el 29/07 y aquí no se enteró nadie).
@@ -79,10 +82,6 @@ describe('catálogo de voces honesto', () => {
       'los minutos del tier incluido no son los del plan');
     assert.strictEqual(tiers.estandar.overagePerMin, planStripe.overagePerMinute,
       'el precio del minuto extra no es el que cobra Stripe');
-    // Los minutos PREMIUM son otro cupo distinto (voice-quota), no los del plan.
-    const { QUOTA_BASIC } = require('../src/tts/voice-quota');
-    assert.strictEqual(tiers.premium.minutesIncluded, QUOTA_BASIC,
-      'los minutos premium del tier no son el cupo real de voice-quota');
     // Y las cifras NO se repiten dentro del texto: un número escrito a mano en
     // una frase es el que nadie actualiza. Que lo pinte quien lo sabe.
     for (const [k, v] of Object.entries(tiers)) {
@@ -118,6 +117,56 @@ describe('catálogo de voces honesto', () => {
       assert.strictEqual(renderableVoices(sample, new Set()).length, 4);
       assert.strictEqual(renderableVoices(sample).length, 4);
     });
+
+    // ── El otro sentido del filtro, añadido al retirar Premium (01/08) ────────
+    // Sin esto, el bloque `tiers` de voices.json no sería un interruptor de
+    // verdad: bastaría con que alguien volviera a poner una clave de ElevenLabs
+    // para que las 13 voces premium reaparecieran en el selector de un nivel que
+    // ya no se vende — y al elegir una saltaría el candado de voiceChangeAllowed.
+    // Un selector que ofrece cosas que rechaza al pulsarlas es peor que uno corto.
+    const porNivel = [
+      { id: 'e1', provider: 'cartesia', tier: 'estandar' },
+      { id: 'p1', provider: 'elevenlabs', tier: 'premium' },
+      { id: 'sn', provider: 'cartesia' },   // sin tier → cuenta como premium
+    ];
+    const TODOS = new Set(['cartesia', 'elevenlabs']);
+
+    test('una voz de un nivel que NO se ofrece no se enseña', () => {
+      const out = renderableVoices(porNivel, TODOS, { estandar: {} });
+      assert.deepStrictEqual(out.map(v => v.id), ['e1']);
+    });
+
+    test('si el nivel vuelve a ofrecerse, sus voces vuelven solas', () => {
+      const out = renderableVoices(porNivel, TODOS, { estandar: {}, premium: {} });
+      assert.deepStrictEqual(out.map(v => v.id), ['e1', 'p1', 'sn']);
+    });
+
+    test('fail-open también aquí: sin info de niveles no se oculta nada', () => {
+      assert.strictEqual(renderableVoices(porNivel, TODOS).length, 3);
+      assert.strictEqual(renderableVoices(porNivel, TODOS, {}).length, 3);
+      assert.strictEqual(renderableVoices(porNivel, TODOS, null).length, 3);
+    });
+
+    test('los dos filtros se aplican a la vez, no uno u otro', () => {
+      // Proveedor activo Y nivel ofrecido. Que pasen los dos por separado no
+      // demuestra que se apliquen juntos.
+      const out = renderableVoices(porNivel, new Set(['elevenlabs']), { estandar: {}, premium: {} });
+      assert.deepStrictEqual(out.map(v => v.id), ['p1']);
+    });
+  });
+
+  test('EL INTERRUPTOR: con el catálogo REAL no se ofrece ninguna voz premium', () => {
+    // La comprobación de punta a punta, con el fichero de verdad y no con
+    // muestras: hoy `tiers` solo declara "estandar", así que aunque el proveedor
+    // ElevenLabs estuviera activo, sus 13 voces no pueden salir.
+    const { renderableVoices, getTiers, staticCatalog, offerableTiers } = require('../src/tts/voice-catalog');
+    const todosLosProveedores = new Set(['cartesia', 'elevenlabs', 'local']);
+    const ofrecidas = renderableVoices(staticCatalog(), todosLosProveedores, getTiers());
+    assert.ok(ofrecidas.length > 0, 'se ha quedado el selector vacío');
+    assert.ok(ofrecidas.every(v => v.tier === 'estandar'),
+      'vuelve a ofrecerse alguna voz de un nivel retirado: ' +
+      ofrecidas.filter(v => v.tier !== 'estandar').map(v => `${v.id}(${v.tier})`).join(', '));
+    assert.deepStrictEqual(Object.keys(offerableTiers(getTiers(), ofrecidas)), ['estandar']);
   });
 
   describe('offerableTiers — no se anuncia un nivel que no tiene voces dentro', () => {

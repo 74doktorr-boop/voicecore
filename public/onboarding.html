@@ -366,18 +366,29 @@ function goStep(n) {
 }
 
 // ─── Momento wow: escucha tu asistente ───────────────────────────────────
-// Voces PREMIUM de ElevenLabs (catálogo config/voices.json) con muestra PREGRABADA
-// en /audio/voices/{id}.mp3 → calidad real y ultrarrealista al instante (sin TTS
-// en vivo). Es lo primero que oye el cliente: cuanta más calidad, más ventas.
+// Muestras PREGRABADAS en /audio/voices/ → suenan al instante, sin TTS en vivo.
+// Es lo primero que oye el cliente.
+//
+// ESTAS SON LAS SEIS VOCES QUE EXISTEN DE VERDAD, y hasta el 2026-08-01 no lo
+// eran. Aquí había otras seis —Cristina, Laura, Gabriela, Carlos, Marcos,
+// Tony— que eran de ElevenLabs, del nivel Premium retirado. Y esta pantalla no
+// solo las hacía escuchar: GUARDA la voz elegida en el alta (`voz:
+// currentVoice`, más abajo). O sea que quien se diera de alta oía a Cristina,
+// se decidía por Cristina… y su asistente contestaba con otra voz distinta,
+// porque ese id ya no puede sintetizar y el router cae a la de por defecto.
+//
+// Es el peor sitio posible para esa mentira: el minuto en que alguien decide
+// pagar. Ahora se ofrecen las seis de Cartesia que van incluidas en el plan, que
+// son exactamente las que va a oír quien le llame.
 const VOICES = [
-  { id: 'cristina-es', name: 'Cristina', desc: 'Recepción' },
-  { id: 'laura-es',    name: 'Laura',    desc: 'Cálida' },
-  { id: 'gabriela-es', name: 'Gabriela', desc: 'Expresiva' },
-  { id: 'carlos-es',   name: 'Carlos',   desc: 'Profesional' },
-  { id: 'marcos-es',   name: 'Marcos',   desc: 'Firme' },
-  { id: 'tony-es',     name: 'Tony',     desc: 'Cercano' },
+  { id: 'marta-ca',    name: 'Marta',   desc: 'Cercana',      f: 'marta-ca.wav' },
+  { id: 'blanca-ca',   name: 'Blanca',  desc: 'Cálida',       f: 'blanca-ca.wav' },
+  { id: 'nuria-ca',    name: 'Nuria',   desc: 'Serena',       f: 'nuria-ca.wav' },
+  { id: 'alondra-ca',  name: 'Alondra', desc: 'Reconfortante', f: 'alondra-ca.wav' },
+  { id: 'marcos-ca',   name: 'Marcos',  desc: 'Profesional',  f: 'marcos-ca.wav' },
+  { id: 'benito-ca',   name: 'Benito',  desc: 'Afable',       f: 'benito-ca.wav' },
 ];
-let currentVoice = 'cristina-es';
+let currentVoice = 'marta-ca';
 let vpLoading = false;
 const vpAudio = new Audio();
 
@@ -425,8 +436,11 @@ function loadGreeting(autoplay) {
   vpAudio.pause();
   vpLoading = true;
   document.getElementById('vp-play').innerHTML = '<span class="spinner"></span>';
-  // Muestra PREGRABADA de la voz premium → suena al instante, calidad real.
-  vpAudio.src = '/audio/voices/' + currentVoice + '.mp3';
+  // El nombre del fichero sale de la propia lista, NO de pegarle '.mp3' al id.
+  // Las seis voces reales son .wav; con el '.mp3' pegado a mano, el reproductor
+  // pedía un fichero que no existe y el momento wow se quedaba en silencio.
+  const _v = VOICES.find(v => v.id === currentVoice);
+  vpAudio.src = '/audio/voices/' + (_v ? _v.f : currentVoice + '.mp3');
   if (autoplay) {
     const p = vpAudio.play();
     if (p && p.catch) p.catch(function () {
@@ -528,7 +542,9 @@ async function _submitRegistroInner() {
     const basePrice  = (typeof plan.priceEur === 'number') ? plan.priceEur : PRICE_EUR;
     const finalPrice = discountPct ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
     const idiomaLabels = { es: 'Castellano', 'es+gl': 'Castellano + Galego' };
-    const voiceName = (VOICES.find(v => v.id === currentVoice) || {}).name || 'Cristina';
+    // El respaldo es la PRIMERA de la lista, no un nombre escrito a mano: así no
+    // puede volver a quedarse un «Cristina» de una tanda de voces que ya no está.
+    const voiceName = (VOICES.find(v => v.id === currentVoice) || VOICES[0]).name;
     const summary = document.getElementById('summary-rows');
     summary.innerHTML =
       '<div class="summary-row"><span>Plan</span><span class="val">' + plan.name + '</span></div>' +

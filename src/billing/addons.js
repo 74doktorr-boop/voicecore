@@ -19,12 +19,32 @@ const { Logger } = require('../utils/logger');
 const log = new Logger('ADDONS');
 
 const ADDONS = {
+  // ── RETIRADO 2026-08-01 (decisión de Unai) ─────────────────────────────────
+  // Las 13 voces premium eran TODAS de ElevenLabs. Al quitar su clave —cuenta en
+  // plan gratuito, 402 desde siempre, jamás sintetizó una sílaba— se fueron las
+  // 13 a la vez y el nivel se quedó vacío. Producción ofrece 6 voces, todas
+  // Cartesia, todas incluidas en el plan, y suenan bien.
+  //
+  // Este complemento seguía anunciándose a 10 €/mes y, al no haber price id en
+  // Stripe, el portal remataba con «Muy pronto online — escríbenos y lo
+  // activamos hoy». No hay nada que activar. Nadie llegó a pagarlo, así que no
+  // hay dinero que devolver, pero es exactamente lo mismo que el euskera y el
+  // galego —ofrecer lo que el producto no puede dar— y encima con un precio
+  // delante.
+  //
+  // Se MARCA, no se borra: el código tiene que conservar por qué se retiró y qué
+  // lo devolvería. Quitar la línea `retirado` lo revive entero.
+  //
+  // 🔴 Lo que haría falta para revivirlo: un proveedor de voz premium que
+  //    funcione y esté MEDIDO —calidad y coste por minuto— antes de volver a
+  //    prometer «ultra-realistas». Ver la tarea abierta.
   voice_premium: {
     key: 'voice_premium',
     label: 'Voz Premium',
     monthlyCents: 1000,
     envPriceVar: 'STRIPE_ADDON_VOICE_PRICE_ID',
-    blurb: 'Voces ultra-realistas de última generación (ElevenLabs). La voz estándar sigue incluida en tu plan.',
+    retirado: 'No hay ninguna voz premium que suene: las 13 eran de ElevenLabs y su clave se retiró.',
+    blurb: 'Voces ultra-realistas de última generación. La voz estándar sigue incluida en tu plan.',
   },
   growth: {
     key: 'growth',
@@ -51,7 +71,9 @@ const ADDONS = {
     monthlyCents: 3600,
     envPriceVar: 'STRIPE_ADDON_PRO_PRICE_ID',
     hidden: true,
-    blurb: 'Todo desbloqueado: motor de seguimientos completo (reseñas, reactivación, plantones, avisos por entidad), informe completo, integraciones y TODOS los complementos incluidos (voz premium, WhatsApp con tu número) sin coste extra.',
+    // Ya NO dice «voz premium»: se retiró el 01/08 y un plan de 85 € no puede
+    // llevar en su lista de ventajas algo que no existe.
+    blurb: 'Todo desbloqueado: motor de seguimientos completo (reseñas, reactivación, plantones, avisos por entidad), informe completo, integraciones y TODOS los complementos incluidos (WhatsApp con tu número) sin coste extra.',
   },
 };
 
@@ -74,7 +96,11 @@ function hasAddon(org, key) {
 function listAddons(org) {
   const active = _orgAddons(org);
   const pro = require('./plan').hasPro(org);
-  return Object.values(ADDONS).filter(a => !a.hidden).map(a => ({
+  // `retirado` fuera: si no se puede entregar, no se enseña. Antes bastaba con
+  // no tener price id, y entonces el portal ponía «Muy pronto online —
+  // escríbenos y lo activamos hoy», que es peor que no ofrecerlo: invita a
+  // escribir por algo que no existe.
+  return Object.values(ADDONS).filter(a => !a.hidden && !a.retirado).map(a => ({
     key: a.key,
     label: a.label,
     monthlyCents: a.monthlyCents,
@@ -100,9 +126,13 @@ function voiceChangeAllowed(org, voiceId, deps = {}) {
   if (hasAddon(org, 'voice_premium')) return { allowed: true };
   const current = org && org.assistant_config && org.assistant_config.voice;
   if (current === voiceId) return { allowed: true }; // ya la tenía — no degradar
+  // El motivo cambió al retirar el complemento: ya no se puede mandar a nadie a
+  // «Facturación → Complementos», porque ahí no hay nada. Se dice lo que hay.
   return {
     allowed: false,
-    reason: 'Esa voz es Premium (+10€/mes). Actívala en Facturación → Complementos y vuelve a elegirla — tardas un minuto.',
+    reason: ADDONS.voice_premium.retirado
+      ? 'Ese nivel de voz no está disponible ahora mismo. Las voces incluidas en tu plan son naturales y son las que usamos en todas las llamadas.'
+      : 'Esa voz es Premium (+10€/mes). Actívala en Facturación → Complementos y vuelve a elegirla — tardas un minuto.',
   };
 }
 
@@ -143,6 +173,11 @@ async function _saveAddons(db, orgId, org, addons, flowMgr) {
 async function activateAddon(orgId, key, deps = {}) {
   const def = ADDONS[key];
   if (!def) return { ok: false, error: 'Complemento desconocido.' };
+  // Fail-closed: un complemento retirado no se puede dar de alta ni aunque
+  // alguien llame a la ruta a mano o quede una price id suelta en el entorno.
+  // Cobrar por algo que no se puede entregar es el único error que no se puede
+  // arreglar después con un despliegue.
+  if (def.retirado) return { ok: false, error: `${def.label} no está disponible: ${def.retirado}` };
   const priceId = process.env[def.envPriceVar];
   if (!priceId) return { ok: false, error: `${def.label} aún no está disponible para contratación online. Escríbenos y lo activamos.` };
 

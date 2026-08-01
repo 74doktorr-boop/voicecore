@@ -8,14 +8,6 @@
       "minutesIncluded": 200,
       "overagePerMin": 0.15,
       "blurb": "Voces naturales de alta calidad, incluidas en tu plan sin coste extra."
-    },
-    "premium": {
-      "label": "Premium",
-      "badge": "PREMIUM · +10€/mes",
-      "monthlyExtra": 10,
-      "minutesIncluded": 40,
-      "overagePerMin": 0.15,
-      "blurb": "Voces ultra-realistas. La voz estándar sigue incluida en tu plan."
     }
   },
   "voices": [
@@ -410,5 +402,6 @@
     "euskera-femenina": "ane-eu",
     "euskera-masculina": "mikel-eu",
     "galego-masculina": "brais-gl"
-  }
+  },
+  "_nota_tiers": "El bloque `tiers` es el INTERRUPTOR de lo que se ofrece. El nivel \"premium\" se retiro el 2026-08-01 (decision de Unai): sus 13 voces eran todas de ElevenLabs y al quitar su clave se quedo sin ninguna. Las voces siguen aqui abajo con tier \"premium\" a proposito, como dato: volver a poner el bloque premium en `tiers` las devuelve al selector enteras. Sin el bloque, ni se ofrecen ni se pueden elegir (ver renderableVoices y offerableTiers en src/tts/voice-catalog.js)."
 }
