@@ -321,6 +321,41 @@ async function portalAuth(req, res, next) {
 function setupPortalRoutes(app, pipeline, config) {
   config = config || {};
 
+  // ── Lo que tu asistente ha aprendido ───────────────────────
+  //
+  // Es el único artefacto del producto que responde al «no me fío de la IA»
+  // sin discutir: en vez de argumentar, se le enseña al dueño lo que su
+  // asistente ha aprendido de SUS llamadas. En producción hay reglas como
+  // «dar el precio del cobre si está disponible», sacada sola de cinco
+  // llamadas reales a un cerrajero. Eso no se puede explicar en una landing;
+  // se enseña.
+  //
+  // Solo se muestran las ACTIVAS —las que de verdad están en el prompt— y las
+  // de su sector o globales. Las candidatas son cocina interna: enseñar algo
+  // que aún no se aplica sería prometer un comportamiento que no ocurre.
+  app.get('/api/portal/aprendido', portalAuth, async (req, res) => {
+    try {
+      const { listRules } = require('../lifecycle/learned-rules');
+      const sector = req.flowConfig?.sector || req.org?.sector || null;
+      const activas = await listRules({ status: 'active' });
+      const mias = activas.filter(r => !r.sector || r.sector === 'global' || r.sector === sector);
+      res.json({
+        ok: true,
+        total: mias.length,
+        aprendido: mias.slice(0, 30).map(r => ({
+          texto: r.text,
+          desde: r.approved_at || r.created_at,
+          vecesVisto: r.count || 1,
+          // De dónde salió: de sus llamadas o del sector. Sin esto parecería
+          // que se lo inventa alguien, que es justo lo contrario del punto.
+          origen: (!r.sector || r.sector === 'global') ? 'todas las llamadas' : 'tu sector',
+        })),
+      });
+    } catch (e) {
+      res.json({ ok: true, total: 0, aprendido: [] });   // fail-open: nunca rompe el portal
+    }
+  });
+
   // ── Base de conocimiento (RAG) ─────────────────────────────
   // GET: texto guardado + nº de fragmentos. PUT: reemplaza toda la KB del negocio.
   app.get('/api/portal/knowledge', portalAuth, async (req, res) => {

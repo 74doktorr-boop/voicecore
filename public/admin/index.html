@@ -669,11 +669,12 @@ async function loadAttention() {
   const box = document.getElementById('attention');
   if (!box) return;
   const grab = (url) => api(url).catch(() => null);
-  const [onb, health, pool, diag] = await Promise.all([
+  const [onb, health, pool, diag, reglas] = await Promise.all([
     grab('/api/admin/onboarding'),
     grab('/api/admin/client-health'),
     grab('/api/admin/phone-pool'),
     grab('/api/admin/diagnostics'),
+    grab('/api/admin/learned-rules?status=candidate'),
   ]);
 
   const items = []; // {sev:'crit'|'warn'|'info', txt, sub, tab, cta}
@@ -726,6 +727,28 @@ async function loadAttention() {
     const q = g.whatsapp && g.whatsapp.quality;
     if (q && q !== 'GREEN' && q !== 'unreachable') items.push({ sev: q==='RED'?'crit':'warn', tab:'sistema', cta:'Ver',
       txt:'Calidad del número de WhatsApp: ' + q, sub:'Meta puede limitar el volumen de envío' });
+  }
+
+  // ── Lo que el asistente ha APRENDIDO y espera tu visto bueno ─────────────
+  // El bucle de mejora lleva desde julio detectando patrones en llamadas reales
+  // y guardándolos como candidatas. Todo estaba montado —la tabla, la pestaña
+  // Mejora, el botón de aprobar y la inyección en el prompt— y aun así el
+  // 01/08 había 17 candidatas SIN TOCAR desde hace semanas. No porque no
+  // sirvieran: «evitar repetir preguntas ya respondidas» (visto 4 veces),
+  // «dar el precio del cobre si está disponible» (5 veces, aprendido solo de
+  // las llamadas de un cerrajero).
+  //
+  // Faltaba lo de siempre: nada AVISABA de que estaban ahí. Una herramienta que
+  // hay que acordarse de abrir es una herramienta que no se abre. Y esto es lo
+  // único del producto que mejora solo con el uso — dejarlo parado es tirar el
+  // activo que no se puede copiar.
+  const cands = (reglas && reglas.rules) || [];
+  if (cands.length) {
+    const recur = cands.filter(r => r.recurrent || (r.count || 0) >= 3);
+    items.push({ sev: recur.length ? 'warn' : 'info', tab: 'mejora', cta: 'Revisar',
+      txt: cands.length + ' cosa(s) que tu asistente ha aprendido esperan tu visto bueno' +
+           (recur.length ? ' · ' + recur.length + ' ya se repiten' : ''),
+      sub: cands.slice(0, 2).map(r => '“' + String(r.text || '').slice(0, 70) + '”').join(' · ') });
   }
 
   // Render
