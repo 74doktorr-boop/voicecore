@@ -119,8 +119,35 @@ function cruzar(deTelnyx, nuestras, opts = {}) {
 // y su nomenclatura ha cambiado entre versiones de la API. En vez de adivinar a
 // base de despliegues, se prueban los candidatos y se usa el primero que
 // responda — y se DICE cuál fue, para no volver a adivinar nunca.
-const TIPOS_CANDIDATOS = ['call', 'voice', 'call-control', 'calls', 'webrtc'];
+// AVERIGUADO CONTRA PRODUCCIÓN (01/08), no supuesto:
+//   · `call-control` es el ÚNICO tipo que acepta. 'call', 'voice', 'calls' y
+//     'webrtc' devuelven 400 «No matching record type».
+//   · El filtro de fechas es `filter[started_at][gte]/[lte]`. El que yo usaba,
+//     `filter[date_range][gte]/[lte]`, devuelve **HTTP 200 con 0 filas**: un
+//     filtro mal puesto que no da error, que es la peor clase que hay. Se colaba
+//     como «no hubo llamadas» y solo lo delató el contador de «nuestras que
+//     Telnyx no ve» marcando 3.
+//   · Los campos NO se llaman como suponía: `cli`/`caller_number` es quien
+//     llama, `cld`/`dest_number` a quién, la duración es `call_sec` (segundos,
+//     no milisegundos) y hay `connected`/`attempted`, que dicen si la llamada
+//     llegó a atenderse.
+const TIPOS_CANDIDATOS = ['call-control', 'call', 'voice'];
 let _tipoQueFunciona = null;
+
+/** Un CDR de Telnyx → la forma que espera cruzar(). Los nombres son suyos. */
+function _normalizarCdr(r) {
+  return {
+    from: r.cli || r.caller_number || r.from || '',
+    to: r.cld || r.dest_number || r.to || '',
+    started_at: r.started_at || r.finished_at || null,
+    duration_millis: (Number(r.call_sec) || 0) * 1000,
+    // `connected:false` es una señal DIRECTA de que no se atendió, no una
+    // ausencia. Vale la pena conservarla: distingue «no llegó el webhook» de
+    // «el que llamaba colgó antes de que descolgáramos», que no es culpa nuestra.
+    hangup_cause: r.connected === false ? 'no_contestada' : (r.hangup_cause || null),
+    direction: r.direction,
+  };
+}
 
 async function traerDeTelnyx({ desde, hasta, apiKey, fetch: f, tipo } = {}) {
   const key = apiKey || process.env.TELNYX_API_KEY;
@@ -157,9 +184,11 @@ async function _traerConTipo({ desde, hasta, key, doFetch, tipo }) {
   // Techo de páginas: una ventana corta no debería pasar de aquí, y sin tope un
   // filtro mal puesto se convierte en un bucle contra la API de un proveedor.
   while (page <= 20) {
+    // `filter[started_at]`, NO `filter[date_range]`: el segundo devuelve 200 con
+    // cero filas y se lee como «no hubo llamadas». Comprobado contra producción.
     const url = `${TELNYX_CDR}?filter[record_type]=${tipo}`
-      + `&filter[date_range][gte]=${encodeURIComponent(desde.toISOString())}`
-      + `&filter[date_range][lte]=${encodeURIComponent(hasta.toISOString())}`
+      + `&filter[started_at][gte]=${encodeURIComponent(desde.toISOString())}`
+      + `&filter[started_at][lte]=${encodeURIComponent(hasta.toISOString())}`
       + `&page[number]=${page}&page[size]=250`;
     const res = await doFetch(url, { headers: { Authorization: `Bearer ${key}` } });
     if (!res.ok) {
@@ -168,7 +197,7 @@ async function _traerConTipo({ desde, hasta, key, doFetch, tipo }) {
     }
     const j = await res.json();
     const lote = j.data || [];
-    out.push(...lote.filter(r => String(r.direction || '').toLowerCase().startsWith('in')));
+    out.push(...lote.filter(r => String(r.direction || '').toLowerCase().startsWith('in')).map(_normalizarCdr));
     const total = j.meta?.total_pages ?? 1;
     if (page >= total || !lote.length) break;
     page++;

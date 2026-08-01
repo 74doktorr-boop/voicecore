@@ -178,3 +178,52 @@ test('solo se quedan las ENTRANTES', async () => {
   assert.equal(r.length, 1);
   assert.equal(r[0].direction, 'inbound');
 });
+
+// ── Los campos REALES de un CDR de Telnyx ──────────────────────────────────
+// No son los que supuse. Estos nombres salen de una respuesta de producción del
+// 01/08, no de la documentación ni de mi memoria.
+test('un CDR real de Telnyx se traduce bien', async () => {
+  const { traerDeTelnyx } = require('../src/lifecycle/conciliacion-telnyx');
+  const cdrReal = {
+    record_type: 'call-control', direction: 'inbound',
+    cli: '+34666351319', cld: '+34843700849',
+    caller_number: '+34666351319', dest_number: '+34843700849',
+    started_at: '2026-07-29T03:33:32.000Z', finished_at: '2026-07-29T03:34:20.000Z',
+    call_sec: 48, billed_sec: 60, connected: true, completed: true, attempted: true,
+    cost: '0.0072', currency: 'USD', connection_name: 'voicecore',
+  };
+  const r = await traerDeTelnyx({ desde: new Date(0), hasta: new Date(), apiKey: 'k', tipo: 'call-control',
+    fetch: async () => ({ ok: true, json: async () => ({ data: [cdrReal], meta: { total_pages: 1 } }) }) });
+  assert.equal(r.length, 1);
+  assert.equal(r[0].from, '+34666351319');
+  assert.equal(r[0].to, '+34843700849');
+  assert.equal(r[0].started_at, '2026-07-29T03:33:32.000Z');
+  assert.equal(r[0].duration_millis, 48000, 'call_sec son SEGUNDOS, no milisegundos');
+});
+
+test('connected:false se conserva como causa: no se atendió', async () => {
+  // Distingue «no llegó el webhook» de «colgaron antes de descolgar», que no es
+  // lo mismo ni es culpa nuestra.
+  const { traerDeTelnyx, cruzar } = require('../src/lifecycle/conciliacion-telnyx');
+  const r = await traerDeTelnyx({ desde: new Date(0), hasta: new Date(), apiKey: 'k', tipo: 'call-control',
+    fetch: async () => ({ ok: true, json: async () => ({ data: [{
+      direction: 'inbound', cli: '+34600000001', cld: '+34943000001',
+      started_at: '2026-08-01T10:00:00Z', call_sec: 0, connected: false,
+    }], meta: { total_pages: 1 } }) }) });
+  assert.equal(cruzar(r, []).perdidas[0].causa, 'no_contestada');
+});
+
+test('la ventana se acota por started_at, NO por date_range', async () => {
+  // `filter[date_range][gte]/[lte]` devuelve HTTP 200 con CERO filas: un filtro
+  // mal puesto que no da error. Se leía como «no hubo llamadas» y solo lo delató
+  // el contador de «nuestras que Telnyx no ve». Comprobado en producción.
+  const { traerDeTelnyx } = require('../src/lifecycle/conciliacion-telnyx');
+  let urlPedida = '';
+  await traerDeTelnyx({ desde: new Date('2026-07-18T00:00:00Z'), hasta: new Date('2026-08-01T00:00:00Z'),
+    apiKey: 'k', tipo: 'call-control',
+    fetch: async (u) => { urlPedida = decodeURIComponent(u); return { ok: true, json: async () => ({ data: [], meta: { total_pages: 1 } }) }; } });
+  assert.match(urlPedida, /filter\[started_at\]\[gte\]=2026-07-18/);
+  assert.match(urlPedida, /filter\[started_at\]\[lte\]=2026-08-01/);
+  assert.doesNotMatch(urlPedida, /date_range/, 'ha vuelto el filtro que devuelve cero en silencio');
+  assert.match(urlPedida, /record_type\]=call-control/);
+});
