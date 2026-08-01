@@ -76,12 +76,25 @@ jobs:
           AUTH="Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}"
           IMG="ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}"
 
-          # 1. Fijar la nueva imagen — bucle de reintentos resiliente a cortes
-          #    de EasyPanel (HTTP 000). Hasta 10 intentos x ~30s ≈ 5 min de
-          #    tolerancia, suficiente para aguantar caídas transitorias de su API.
-          echo "→ Fijando imagen del servicio (reintentos hasta ~5 min)…"
+          # 1. Fijar la nueva imagen. VENTANA DE 25 MINUTOS, y el número no es arbitrario.
+          #
+          # El 01/08 este paso murió tras 10 intentos: el anfitrión de EasyPanel
+          # estuvo inalcanzable DESDE LOS RUNNERS DE GITHUB de 15:43 a 15:49 —
+          # seis minutos— y la ventana de reintentos era de cinco. Por un minuto.
+          #
+          # Y lo que hacía falta saber para dimensionarla: a esa MISMA hora, desde
+          # otra red, nodeflow.es y ets.nodeflow.es respondían en 0,1 s, y el
+          # proceso no perdió un solo latido. O sea que el servidor estaba
+          # sirviendo y lo que falla es la ruta desde aquí. Esa clase de corte se
+          # arregla sola; solo hay que esperarla.
+          #
+          # 25 minutos con espera creciente (15s → 60s) cubre cuatro veces el
+          # corte más largo medido, y no cuesta nada cuando todo va bien: en el
+          # caso normal el primer intento devuelve 200 y el bucle sale.
+          echo "→ Fijando imagen del servicio (reintentos hasta ~25 min)…"
           STATUS=000
-          for i in $(seq 1 10); do
+          ESPERA=15
+          for i in $(seq 1 30); do
             STATUS=$(curl -sS -o /tmp/upd.txt -w "%{http_code}" \
               --connect-timeout 15 --max-time 40 \
               -X POST "$EP/api/trpc/services.app.updateSourceImage" \
@@ -89,11 +102,26 @@ jobs:
               -d "{\"json\":{\"projectName\":\"voicecore\",\"serviceName\":\"voicecore-api\",\"image\":\"$IMG\"}}")
             echo "   intento $i → HTTP $STATUS"
             [ "$STATUS" = "200" ] && break
-            [ $i -lt 10 ] && sleep 30
+            # Un 401/403 NO se arregla esperando: es el token, y reintentar
+            # treinta veces contra su API solo retrasa el diagnóstico media hora.
+            case "$STATUS" in
+              401|403) echo "::error::EasyPanel rechaza las credenciales (HTTP $STATUS). Revisa EASYPANEL_TOKEN — esperar no lo arregla."; exit 1 ;;
+            esac
+            if [ $i -lt 30 ]; then
+              sleep $ESPERA
+              [ $ESPERA -lt 60 ] && ESPERA=$((ESPERA + 5))
+            fi
           done
           cat /tmp/upd.txt 2>/dev/null; echo
           if [ "$STATUS" != "200" ]; then
-            echo "::error::EasyPanel no respondió tras 10 intentos (HTTP $STATUS). La imagen $IMG está en GHCR; despliega manualmente desde el panel o re-lanza el workflow."
+            echo "::error::EasyPanel no respondió en 25 minutos (HTTP $STATUS)."
+            echo "La imagen $IMG está en GHCR, así que no se ha perdido nada: re-lanza este workflow."
+            echo ""
+            echo "Si esto se repite, NO des por hecho que el servidor está caído: el 01/08"
+            echo "pasó tres veces y las tres estaba sirviendo con normalidad desde otras"
+            echo "redes. Compruébalo antes de tocar nada:"
+            echo "  curl -s https://nodeflow.es/health          # ¿responde desde tu casa?"
+            echo "  curl -s https://nodeflow.es/health/latidos   # ¿perdió algún latido?"
             exit 1
           fi
           echo "   ✓ Imagen fijada."
