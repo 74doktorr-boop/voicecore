@@ -29,6 +29,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "js-yaml": "^4.3.1",
     "pg": "^8.13.1"
   },
   "engines": {

@@ -150,27 +150,32 @@ jobs:
               LAT=$(probar "https://nodeflow.es/health/latidos" /tmp/lat.json)
               if [ "${LAT%% *}" = "200" ]; then
                 python3 - <<'PY' || echo "   (no se pudo interpretar el informe de latidos)"
-import json, sys
-try:
-    h = json.load(open('/tmp/lat.json'))
-except Exception as e:
-    print(f'   informe ilegible: {e}'); sys.exit(0)
-print(f"   {h.get('latidos', 0)} latidos · {h.get('desde')} → {h.get('hasta')}")
-print(f"   {h.get('resumen')}")
-if not h.get('persistente'):
-    print("::warning::los latidos NO son persistentes (sin Redis): no podrán demostrar nada de la próxima caída")
-for g in (h.get('huecos') or [])[-5:]:
-    print(f"::error::CAÍDA NO VISTA POR EL VIGILANTE: {g['segundos']}s sin latir hasta {g['hasta']} — {g['veredicto']}")
-for r in (h.get('reinicios') or [])[-5:]:
-    print(f"::warning::el proceso reinició a las {r['cuando']}")
-p = h.get('picosDeRetardo') or []
-if p:
-    peor = max(x['lagMs'] for x in p)
-    print(f"::warning::{len(p)} pico(s) de retardo del bucle de eventos, el peor de {peor} ms — el proceso se atasca a ratos")
-m = h.get('memoriaRssMb')
-if m:
-    print(f"   memoria RSS {m['min']}–{m['max']} MB (ahora {m['ultimo']})")
-PY
+          import json, sys
+          try:
+              # encoding EXPLÍCITO: `open()` a secas usa el del sistema. En el
+              # runner de Linux es UTF-8 y saldría bien, así que el fallo no se
+              # vería nunca aquí — pero probándolo en Windows salió «aplicaciÃ³n»
+              # y no hay motivo para dejar que el informe dependa de en qué
+              # máquina corre.
+              h = json.load(open('/tmp/lat.json', encoding='utf-8'))
+          except Exception as e:
+              print(f'   informe ilegible: {e}'); sys.exit(0)
+          print(f"   {h.get('latidos', 0)} latidos · {h.get('desde')} → {h.get('hasta')}")
+          print(f"   {h.get('resumen')}")
+          if not h.get('persistente'):
+              print("::warning::los latidos NO son persistentes (sin Redis): no podrán demostrar nada de la próxima caída")
+          for g in (h.get('huecos') or [])[-5:]:
+              print(f"::error::CAÍDA NO VISTA POR EL VIGILANTE: {g['segundos']}s sin latir hasta {g['hasta']} — {g['veredicto']}")
+          for r in (h.get('reinicios') or [])[-5:]:
+              print(f"::warning::el proceso reinició a las {r['cuando']}")
+          p = h.get('picosDeRetardo') or []
+          if p:
+              peor = max(x['lagMs'] for x in p)
+              print(f"::warning::{len(p)} pico(s) de retardo del bucle de eventos, el peor de {peor} ms — el proceso se atasca a ratos")
+          m = h.get('memoriaRssMb')
+          if m:
+              print(f"   memoria RSS {m['min']}–{m['max']} MB (ahora {m['ultimo']})")
+          PY
               else
                 echo "   /health/latidos devolvió HTTP ${LAT%% *} — ¿versión anterior desplegada?"
               fi
