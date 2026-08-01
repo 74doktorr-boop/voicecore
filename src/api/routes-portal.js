@@ -128,6 +128,26 @@ function _atRiskTomorrow(businessId) {
 // Devuelve { count, euros } con € honesto: solo si el negocio configuró ticket
 // medio; sin él, euros=0 y la línea sale sin cifra. Compartida por briefing y
 // task-inbox → una sola fuente de verdad.
+/**
+ * El ticket medio de un negocio, resuelto SIEMPRE igual. UNA sola forma.
+ *
+ * Había tres: la portada usaba `resolveAvgTicket` (declarado → mediana de sus
+ * precios reales → null), mientras las señales de tareas y `/api/portal/recovery`
+ * leían el campo en crudo con `|| 0`. O sea que el mismo negocio podía ver euros
+ * arriba —calculados con la mediana de sus citas— y CERO euros justo debajo, en
+ * la misma pantalla, sin ninguna explicación.
+ *
+ * Un número que cambia según dónde lo mires no es un número: es una razón para
+ * dejar de creerse el panel entero.
+ */
+function _ticketDeLaOrg(flowConfig, precios) {
+  const { resolveAvgTicket } = require('../analytics/value-model');
+  return resolveAvgTicket({
+    configured: flowConfig?.automations?.config?.avgTicket,
+    prices: precios || [],
+  });
+}
+
 async function _inactiveClientsSignal(db, businessId, avgTicket) {
   if (!db.enabled) return { count: 0, euros: 0 };
   const { reactivationThresholdDays } = require('../lifecycle/morning-briefing');
@@ -673,14 +693,41 @@ function setupPortalRoutes(app, pipeline, config) {
     // manda el configurado; si no lo hay, la MEDIANA de los precios reales de
     // sus citas; y si tampoco, se devuelve null para que la UI pida el dato en
     // vez de enseñar un número que el dueño va a desmontar en 10 segundos.
-    const { resolveAvgTicket, estimateBookingValue } = require('../analytics/value-model');
+    const { estimateBookingValue } = require('../analytics/value-model');
     const _prices = scheduler.getAppointments(businessId)
       .filter(a => a.status !== 'cancelled').map(a => a.price);
-    const ticket = resolveAvgTicket({ configured: flowConfig.automations?.config?.avgTicket, prices: _prices });
+    const ticket = _ticketDeLaOrg(flowConfig, _prices);
     const avgTicketConfigured = ticket.source === 'configured';
     const avgTicket     = ticket.value;                 // null si no se sabe
     const _valueToday   = estimateBookingValue(bookedToday, ticket);
     const valueEstToday = _valueToday.value;            // null si no se sabe
+
+    // Lo recuperado en los últimos 30 días, con atribución CONSERVADORA. Va en
+    // su propio try: es la cifra más cara de calcular de esta pantalla y no
+    // puede tumbar la portada si falla — sin ella el panel sigue sirviendo, sin
+    // portada no hay producto.
+    let recuperado30d = null;
+    try {
+      // `db` NO está en el ámbito de este bloque: en esta ruta se pide dentro de
+      // cada try anidado. Usar el de fuera habría lanzado ReferenceError, y mi
+      // propio catch se lo habría tragado — la cifra no aparecería NUNCA y el
+      // panel se vería perfectamente bien. Un fallo silencioso escondido detrás
+      // del try que puse para que nada se cayera.
+      const _db = getDatabase();
+      if (ticket.value && _db.enabled) {
+        const { getCallRecovery } = require('../lifecycle/call-recovery');
+        const { getAttribution }  = require('../lifecycle/followup-attribution');
+        const [rc, at] = await Promise.all([
+          getCallRecovery(businessId, { db: _db, sinceDays: 30, avgTicket: ticket.value }),
+          getAttribution(businessId, { db: _db, sinceDays: 30, avgTicket: ticket.value }),
+        ]);
+        const euros = Math.round((rc.totals?.strongValue || 0) + (at.totals?.value || 0));
+        const cuantas = (rc.totals?.strongCount || 0) + (at.totals?.count || 0);
+        // Solo se publica si hay ALGO. Un «0 €» de portada, cuando además puede
+        // venir de que aún no ha entrado ninguna llamada, desanima sin informar.
+        if (euros > 0) recuperado30d = { euros, cuantas, ticketSource: ticket.source };
+      }
+    } catch (e) { log.warn(`recuperado30d (${businessId}): ${e.message}`); }
     const allBookings   = bizCalls.filter(c => c.outcome === 'booked').length;
 
     res.json({
@@ -695,6 +742,22 @@ function setupPortalRoutes(app, pipeline, config) {
       totalCalls:   bizCalls.length,
       totalBookings: allBookings,
       valueEstToday,
+      // ── Lo recuperado en 30 DÍAS, que es la cifra que justifica la cuota ──
+      //
+      // El panel abría con «hoy». Para un negocio con tres llamadas a la semana
+      // eso es una portada vacía casi todos los días, y un mes entero de trabajo
+      // invisible: nadie renueva por lo que ve hoy, renueva por lo que lleva
+      // recuperado.
+      //
+      // El número ya se calculaba —en /api/portal/recovery, a una pantalla de
+      // distancia— con atribución CONSERVADORA: solo cuenta lo que el negocio
+      // habría perdido sin NodeFlow (llamadas fuera de horario, llamadas en
+      // saturación y citas que trajo el motor de seguimientos). Una cita en
+      // horario y sin solape NO cuenta, porque la habrían cogido igual.
+      //
+      // Se sube a la portada tal cual, sin inflarlo: el número tiene que ser
+      // indiscutible ante el propio dueño, que es quien más sabe de su negocio.
+      recuperado30d,
       avgTicketConfigured,
       // De dónde sale cada número, para que la UI pueda ser explícita en vez de
       // presentar una estimación como si fuera una medición.
@@ -724,9 +787,12 @@ function setupPortalRoutes(app, pipeline, config) {
     const todayStr     = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
     const yesterdayStr = new Date(new Date(todayStr + 'T12:00:00').getTime() - 86400000).toLocaleDateString('sv-SE');
 
-    // € honesto: nº de inactivos × ticket medio SOLO si el negocio lo configuró
-    // (sin ticket no inventamos cifra: la línea sale sin €). Siempre con "~".
-    const avgTicket = Number(flowConfig.automations?.config?.avgTicket) || 0;
+    // € honesto: nº de inactivos × ticket medio. Por el MISMO camino que la
+    // portada — antes leía el campo en crudo y el mismo negocio podía ver euros
+    // arriba (mediana de sus citas) y cero aquí abajo, sin explicación.
+    // Sin ticket no se inventa cifra: la línea sale sin €. Siempre con "~".
+    const avgTicket = _ticketDeLaOrg(flowConfig,
+      scheduler.getAppointments(businessId).filter(x => x.status !== 'cancelled').map(x => x.price)).value || 0;
 
     const results = await Promise.allSettled([
       // 1. Llamadas de AYER + cuántas acabaron en cita (nf_calls)
@@ -4266,7 +4332,10 @@ function setupPortalRoutes(app, pipeline, config) {
       const r = await getAttribution(req.businessId, {
         db: getDatabase(),
         sinceDays: Math.min(90, Math.max(7, parseInt(req.query.days, 10) || 30)),
-        avgTicket: req.flowConfig?.automations?.config?.avgTicket || 0,
+        // Cuarto sitio que leía el ticket en crudo. Mismo resolutor que el
+        // resto: si no lo declaró pero tiene precios en sus citas, la mediana.
+        avgTicket: _ticketDeLaOrg(req.flowConfig,
+          scheduler.getAppointments(req.businessId).filter(x => x.status !== 'cancelled').map(x => x.price)).value || 0,
       });
       res.json({ ok: true, ...r });
     } catch (e) {
@@ -4286,7 +4355,11 @@ function setupPortalRoutes(app, pipeline, config) {
     try {
       const db = getDatabase();
       const days = Math.min(90, Math.max(7, parseInt(req.query.days, 10) || 30));
-      const avgTicket = req.flowConfig?.automations?.config?.avgTicket || 0;
+      // Mismo camino que la portada: si no lo declaró pero tiene precios en sus
+      // citas, se usa la mediana. Antes esto leía el campo en crudo y devolvía
+      // 0 € mientras el panel de arriba sí enseñaba euros.
+      const avgTicket = _ticketDeLaOrg(req.flowConfig,
+        scheduler.getAppointments(req.businessId).filter(x => x.status !== 'cancelled').map(x => x.price)).value || 0;
       const { getCallRecovery } = require('../lifecycle/call-recovery');
       const { getAttribution } = require('../lifecycle/followup-attribution');
       const [calls, followups] = await Promise.all([

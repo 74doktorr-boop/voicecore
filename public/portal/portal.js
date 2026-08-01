@@ -1259,6 +1259,35 @@ function dashHero(d) {
     if (t.hoursSaved)    wins += _win(_fmtHm(t.hoursSaved), 'sin estar tú al teléfono');
   }
 
+  // ── LO RECUPERADO EN 30 DÍAS, arriba del todo ─────────────────────────────
+  // El panel abría con «hoy». Para un negocio con tres llamadas a la semana eso
+  // es una portada vacía casi todos los días y un mes entero de trabajo
+  // invisible: nadie renueva por lo que ve hoy, renueva por lo que lleva
+  // recuperado. Y la cifra ya existía, a una pantalla de distancia.
+  //
+  // Es atribución CONSERVADORA: solo lo que se habría perdido sin NodeFlow
+  // (llamadas fuera de horario, llamadas en saturación, citas que trajo el motor
+  // de seguimientos). Una cita en horario y sin solape no cuenta, porque la
+  // habrían cogido igual. El número tiene que ser indiscutible ante el dueño,
+  // que es quien más sabe de su negocio.
+  var recuperado = '';
+  if (d.recuperado30d && d.recuperado30d.euros > 0) {
+    var r = d.recuperado30d;
+    recuperado =
+      '<div class="nf-recup" style="margin:14px 0 2px;padding:14px 16px;border-radius:12px;' +
+        'background:linear-gradient(180deg,rgba(196,245,70,.10),rgba(196,245,70,.03));' +
+        'border:1px solid rgba(196,245,70,.28)">' +
+        '<div style="font-size:13px;opacity:.8">En los últimos 30 días te he recuperado</div>' +
+        '<div style="font-size:30px;font-weight:800;line-height:1.15;color:var(--accent-l)">' +
+          esc(String(r.euros)) + ' €</div>' +
+        '<div style="font-size:12px;opacity:.75;margin-top:3px">' +
+          esc(String(r.cuantas)) + (r.cuantas === 1 ? ' oportunidad' : ' oportunidades') +
+          ' que se habrían perdido · ' +
+          '<a onclick="navigate(\'informe\')" class="u-accent u-pointer" style="text-decoration:underline">ver cuáles</a>' +
+        '</div>' +
+      '</div>';
+  }
+
   var lead;
   if (d.aiStatus === 'pending') {
     lead = 'Tu asistente está casi listo. Completa los primeros pasos y empezará a atender llamadas.';
@@ -1278,6 +1307,9 @@ function dashHero(d) {
       '<div class="nf-hero-date">' + dateStr + (d.daysActive ? ' · tu asistente lleva ' + d.daysActive + ' días contigo' : '') + '</div></div>' +
       status +
     '</div>' +
+    // El acumulado ANTES que lo de hoy: es lo que justifica la cuota, y lo de
+    // hoy es ruido para quien recibe tres llamadas a la semana.
+    recuperado +
     '<div class="nf-hero-lead">' + lead + '</div>' +
     (wins ? '<div class="nf-wins nf-stagger">' + wins + '</div>' : '') +
     // De dónde sale el €, dicho con precisión. Antes ponía siempre «ticket medio
