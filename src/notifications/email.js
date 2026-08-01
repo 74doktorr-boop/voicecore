@@ -61,6 +61,28 @@ function getGuiaPdfAttachment() {
   return _guiaPdfAttachment;
 }
 
+/**
+ * Normaliza el destinatario a lista, aceptando también «uno, otro» en una sola
+ * cadena.
+ *
+ * Hacía falta por esto: en producción había DOS líneas `NOTIFY_EMAIL` con
+ * direcciones distintas. Como manda la última (comprobado contra producción),
+ * una de las dos llevaba tiempo sin recibir nada — y nadie se entera de que no
+ * le llegan avisos: la ausencia de correo se parece muchísimo a que todo va
+ * bien. Al quitar el duplicado había que elegir una, y elegir mal deja los
+ * avisos de producción cayendo en un buzón que nadie mira.
+ *
+ * Así no hay que elegir: se ponen las dos separadas por coma. Va en sendEmail y
+ * no en cada sitio que lee NOTIFY_EMAIL (hay ocho) porque aquí cubre a todos.
+ */
+function destinatarios(to) {
+  const lista = (Array.isArray(to) ? to : [to])
+    .flatMap(x => String(x == null ? '' : x).split(/[,;]/))
+    .map(s => s.trim())
+    .filter(Boolean);
+  return lista.length ? lista : [];
+}
+
 async function sendEmail({ to, subject, html, text, attachments }) {
   const resend = getResend();
 
@@ -70,10 +92,19 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     return false;
   }
 
+  const dest = destinatarios(to);
+  if (!dest.length) {
+    // Fail-closed y RUIDOSO: sin destinatario no se manda, pero se dice. Un
+    // envío silencioso a la nada es la forma de que un aviso importante se
+    // pierda sin dejar rastro.
+    log.error(`Email SIN destinatario, no se envía: ${subject}`);
+    return false;
+  }
+
   try {
     const payload = {
       from: 'NodeFlow <unai@nodeflow.es>',
-      to: Array.isArray(to) ? to : [to],
+      to: dest,
       subject,
       html,
       text,
@@ -924,6 +955,7 @@ async function sendSubscriptionCancelled({ email, name, number }, deps = {}) {
 
 module.exports = {
   sendEmail,
+  destinatarios,
   notifyNuevoCliente,
   sendBienvenida, sendBienvenidaGl, sendBienvenidaEu,
   sendAcknowledgement,
