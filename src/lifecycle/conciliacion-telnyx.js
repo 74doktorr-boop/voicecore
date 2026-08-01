@@ -115,18 +115,49 @@ function cruzar(deTelnyx, nuestras, opts = {}) {
  * Trae de Telnyx las llamadas ENTRANTES de una ventana.
  * @param {{desde:Date, hasta:Date, apiKey?:string, fetch?:function}} o
  */
-async function traerDeTelnyx({ desde, hasta, apiKey, fetch: f } = {}) {
+// Telnyx no acepta `record_type=voice` («No matching record type was found»),
+// y su nomenclatura ha cambiado entre versiones de la API. En vez de adivinar a
+// base de despliegues, se prueban los candidatos y se usa el primero que
+// responda — y se DICE cuál fue, para no volver a adivinar nunca.
+const TIPOS_CANDIDATOS = ['call', 'voice', 'call-control', 'calls', 'webrtc'];
+let _tipoQueFunciona = null;
+
+async function traerDeTelnyx({ desde, hasta, apiKey, fetch: f, tipo } = {}) {
   const key = apiKey || process.env.TELNYX_API_KEY;
   const doFetch = f || globalThis.fetch;
   if (!key) throw new Error('sin TELNYX_API_KEY: no se puede conciliar');
   if (!doFetch) throw new Error('sin fetch disponible');
 
+  // Un solo intento por tipo, y en cuanto uno va se recuerda.
+  const tipos = tipo ? [tipo] : (_tipoQueFunciona ? [_tipoQueFunciona] : TIPOS_CANDIDATOS);
+  let ultimoError = null;
+  for (const t of tipos) {
+    try {
+      const r = await _traerConTipo({ desde, hasta, key, doFetch, tipo: t });
+      if (_tipoQueFunciona !== t) {
+        _tipoQueFunciona = t;
+        log.info(`Telnyx acepta record_type="${t}" — usando ese de aquí en adelante`);
+      }
+      return r;
+    } catch (e) {
+      ultimoError = e;
+      // Solo se sigue probando si el rechazo es POR EL TIPO. Un 401 o un 429 no
+      // se arreglan cambiando de nombre, y reintentar cinco veces contra el
+      // proveedor por un problema de credenciales es maleducado y además tapa
+      // el error de verdad.
+      if (!/record type|10011|invalid.*filter/i.test(e.message)) throw e;
+    }
+  }
+  throw new Error(`Telnyx no acepta ninguno de los tipos probados (${tipos.join(', ')}). Último: ${ultimoError && ultimoError.message}`);
+}
+
+async function _traerConTipo({ desde, hasta, key, doFetch, tipo }) {
   const out = [];
   let page = 1;
   // Techo de páginas: una ventana corta no debería pasar de aquí, y sin tope un
   // filtro mal puesto se convierte en un bucle contra la API de un proveedor.
   while (page <= 20) {
-    const url = `${TELNYX_CDR}?filter[record_type]=voice`
+    const url = `${TELNYX_CDR}?filter[record_type]=${tipo}`
       + `&filter[date_range][gte]=${encodeURIComponent(desde.toISOString())}`
       + `&filter[date_range][lte]=${encodeURIComponent(hasta.toISOString())}`
       + `&page[number]=${page}&page[size]=250`;

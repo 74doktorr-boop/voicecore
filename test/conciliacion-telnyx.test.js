@@ -134,3 +134,47 @@ test('sólo se miran las ENTRANTES: una saliente nuestra no es una perdida', () 
   // comprueba que el filtro está donde toca, no que se cuele por dos sitios.
   assert.equal(r.perdidas.length, 1, 'cruzar no filtra: el filtro vive en traerDeTelnyx');
 });
+
+// ── El tipo de registro de Telnyx, que no acepta el obvio ───────────────────
+// Probado contra producción: `record_type=voice` da «10011 No matching record
+// type». Su nomenclatura ha cambiado entre versiones, así que en vez de adivinar
+// a base de despliegues se prueban los candidatos y se recuerda el que va.
+test('prueba varios record_type hasta dar con el que Telnyx acepta', async () => {
+  const { traerDeTelnyx } = require('../src/lifecycle/conciliacion-telnyx');
+  const pedidos = [];
+  const fetchFalso = async (url) => {
+    const t = decodeURIComponent(url).match(/record_type\]=([^&]+)/)[1];
+    pedidos.push(t);
+    if (t !== 'call') {
+      return { ok: false, status: 400, text: async () => '{"errors":[{"code":"10011","detail":"No matching record type was found matching given record type"}]}' };
+    }
+    return { ok: true, json: async () => ({ data: [{ direction: 'inbound', from: '+1', to: '+2', started_at: new Date().toISOString() }], meta: { total_pages: 1 } }) };
+  };
+  const r = await traerDeTelnyx({ desde: new Date(0), hasta: new Date(), apiKey: 'k', fetch: fetchFalso });
+  assert.equal(r.length, 1);
+  assert.ok(pedidos.length >= 1 && pedidos.includes('call'), `probó: ${pedidos.join(', ')}`);
+});
+
+test('un 401 NO se reintenta con otros tipos: no se arregla cambiando de nombre', async () => {
+  // Reintentar cinco veces contra el proveedor por un problema de credenciales
+  // es maleducado y además tapa el error de verdad, que es el que hay que ver.
+  const { traerDeTelnyx } = require('../src/lifecycle/conciliacion-telnyx');
+  let intentos = 0;
+  const fetchFalso = async () => { intentos++; return { ok: false, status: 401, text: async () => 'Authentication failed' }; };
+  await assert.rejects(
+    () => traerDeTelnyx({ desde: new Date(0), hasta: new Date(), apiKey: 'mala', fetch: fetchFalso, tipo: undefined }),
+    /401/);
+  assert.equal(intentos, 1, `ha reintentado ${intentos} veces un fallo de credenciales`);
+});
+
+test('solo se quedan las ENTRANTES', async () => {
+  const { traerDeTelnyx } = require('../src/lifecycle/conciliacion-telnyx');
+  const fetchFalso = async () => ({ ok: true, json: async () => ({
+    data: [
+      { direction: 'inbound',  from: '+1', to: '+2', started_at: '2026-08-01T10:00:00Z' },
+      { direction: 'outbound', from: '+2', to: '+3', started_at: '2026-08-01T10:01:00Z' },
+    ], meta: { total_pages: 1 } }) });
+  const r = await traerDeTelnyx({ desde: new Date(0), hasta: new Date(), apiKey: 'k', fetch: fetchFalso, tipo: 'call' });
+  assert.equal(r.length, 1);
+  assert.equal(r[0].direction, 'inbound');
+});
