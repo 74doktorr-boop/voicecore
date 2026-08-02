@@ -293,6 +293,54 @@ jobs:
               else
                 echo "   /health/voz devolvió HTTP ${VOZ%% *} — ¿versión anterior desplegada?"
               fi
+
+              # ── ¿ESTÁ DESPLEGADO LO QUE CREEMOS QUE ESTÁ DESPLEGADO? ─────────
+              # Un despliegue que falla no hace ruido: la imagen queda a salvo en
+              # GHCR, el servidor sigue sirviendo tan campante, y producción se
+              # queda con la versión anterior sin que nadie lo note. Pasó el 02/08
+              # cuando la ruta desde los runners hasta EasyPanel se cortó, y ya
+              # había pasado antes: la tarea 24 de la lista se llama literalmente
+              # «producción va 8 commits por detrás».
+              #
+              # Es la misma familia que todo lo demás de este fichero: **la
+              # ausencia se parece a que no pasó nada**. Un arreglo que no llega a
+              # producción no está arreglado, por muy verde que salga el commit.
+              echo ""
+              echo "── Versión desplegada ──"
+              HEAD_JSON=$(curl -sS --max-time 20 \
+                -H "Authorization: Bearer ${{ github.token }}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${{ github.repository }}/commits/master")
+              echo "$HEAD_JSON" > /tmp/head.json
+              PROD_SHA=$(grep -o '"sha":"[^"]*"' /tmp/health.json | head -1 | cut -d'"' -f4)
+              echo "   producción: ${PROD_SHA:-desconocida}"
+              PROD_SHA="$PROD_SHA" python3 - <<'PY' || echo "   (no se pudo comparar la versión)"
+          import json, os, sys
+          from datetime import datetime, timezone
+          prod = (os.environ.get('PROD_SHA') or '').strip()
+          try:
+              h = json.load(open('/tmp/head.json', encoding='utf-8'))
+              head = h['sha']
+              cuando = datetime.fromisoformat(h['commit']['committer']['date'].replace('Z', '+00:00'))
+          except Exception as e:
+              print(f'   no se pudo leer el último commit: {e}'); sys.exit(0)
+          print(f"   master    : {head[:7]}")
+          if not prod:
+              print('::warning::/health no dice qué versión sirve: no se puede saber si el despliegue llegó')
+              sys.exit(0)
+          if head.startswith(prod) or prod.startswith(head[:7]):
+              print('   ✓ producción sirve el último commit')
+              sys.exit(0)
+          # Recién empujado NO es un problema: el despliegue tarda ~2 min. Solo se
+          # grita cuando ya ha pasado tiempo de sobra y sigue sin llegar.
+          edad = (datetime.now(timezone.utc) - cuando).total_seconds() / 60
+          if edad < 20:
+              print(f'   master es de hace {edad:.0f} min — el despliegue puede estar en curso')
+          else:
+              print(f"::error::PRODUCCIÓN ATRASADA: sirve {prod} y master va por {head[:7]}, "
+                    f"empujado hace {edad/60:.1f} h. El despliegue no llegó — revisa Actions y re-lánzalo. "
+                    f"La imagen está en GHCR, no se ha perdido nada.")
+          PY
               exit 0
             fi
 
