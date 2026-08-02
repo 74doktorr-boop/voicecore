@@ -211,13 +211,20 @@ test('si al arrancar todavía no hay líder, la primera pasada REINTENTA', async
   let preguntas = 0;
   leader.isLeader = () => { preguntas++; return preguntas >= 3; };  // líder al 3.º
   let corrio = false;
+  // Los temporizadores del reintento llevan unref() —correcto: un vigilante no
+  // debe impedir que el proceso termine— y eso significa que NO mantienen vivo
+  // el bucle de eventos. En CI, sin nada más pendiente, el bucle se vació y la
+  // promesa se quedó colgada («Promise resolution is still pending»); en local
+  // pasaba por suerte de temporización, que es peor que fallar. Este latido lo
+  // mantiene despierto durante el test y se apaga al acabar.
+  const vivo = setInterval(() => {}, 5);
   try {
     await mod._primeraPasada({
       esperaMs: 1,
       db: { enabled: true, client: { from: () => ({ select: () => ({ eq: async () => { corrio = true; return { data: [] }; } }) }) } },
       router: {},
     });
-  } finally { leader.isLeader = original; }
+  } finally { leader.isLeader = original; clearInterval(vivo); }
   assert.equal(corrio, true, 'se rindió sin ser líder: la prueba no correría hasta dentro de 24 h');
   assert.equal(preguntas, 3, `preguntó ${preguntas} veces por el liderazgo`);
 });
@@ -228,8 +235,9 @@ test('si NUNCA llega a ser líder, se rinde en vez de reintentar para siempre', 
   const original = leader.isLeader;
   let preguntas = 0;
   leader.isLeader = () => { preguntas++; return false; };
+  const vivo = setInterval(() => {}, 5);          // ver arriba: los timers van unref
   try { await mod._primeraPasada({ esperaMs: 1, router: {} }); }
-  finally { leader.isLeader = original; }
+  finally { leader.isLeader = original; clearInterval(vivo); }
   assert.equal(preguntas, 10, `reintentó ${preguntas} veces: el tope son 10`);
 });
 
