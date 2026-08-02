@@ -72,7 +72,19 @@ jobs:
         run: |
           set +e  # gestionamos los errores a mano; la imagen ya está a salvo en GHCR
 
-          EP="https://xmehd4.easypanel.host"
+          # NUESTRO dominio, no el del proveedor. El 02/08 `easypanel.host`
+          # apareció APARCADO y en venta: su nombre dejó de apuntar a nuestro
+          # servidor y con él se cayó todo el plano de control. Los despliegues
+          # se quedaron bloqueados horas, y no por una avería nuestra — la
+          # máquina estaba sirviendo perfectamente todo el rato.
+          #
+          # De paso se llevó por delante `begira.nodeflow.es`, que era un CNAME
+          # a ese mismo dominio y acabó sirviendo un anuncio de venta de
+          # dominios con nuestra marca encima.
+          #
+          # La regla que queda: **nada nuestro puede depender del nombre de un
+          # tercero.** Ni un webhook, ni un CNAME, ni el despliegue.
+          EP="https://panel.nodeflow.es"
           AUTH="Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}"
           IMG="ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}"
 
