@@ -31,14 +31,20 @@
 //   · ¿el IDIOMA de la voz es el del asistente? (el caso de Greg, el inglés)
 //   · ¿sale audio de verdad?                  (el caso de `nova`, el silencio)
 //
-// LA FRASE LLEVA LA FECHA A PROPÓSITO. El router cachea por (texto, voz,
-// proveedor, idioma), así que una frase fija daría en la caché a partir de la
-// segunda vez y la prueba pasaría en verde con el proveedor caído. Una prueba
+// LA FRASE LLEVA UN SELLO DE TIEMPO A PROPÓSITO. El router cachea por (texto,
+// voz, proveedor, idioma), así que una frase fija daría en la caché a partir de
+// la segunda vez y la prueba pasaría en verde con el proveedor caído. Una prueba
 // que puede aprobar sin ejecutar nada no es una prueba.
 //
-// LO QUE CUESTA: unos 60 caracteres por organización y pasada, una vez al día.
-// Con cuatro organizaciones son ~240 caracteres diarios — céntimos al año. Se
-// deja escrito porque esto GASTA DINERO, poco pero gasta, y eso no se esconde.
+// El sello empezó siendo el DÍA y hubo que bajarlo a los MINUTOS al verlo fallar:
+// el 02/08, con cuatro despliegues seguidos, las tres pasadas posteriores a la
+// primera devolvieron el audio guardado en 0 ms. Verdes sin sintetizar nada — es
+// decir, un despliegue que rompiera la voz habría pasado la prueba.
+//
+// LO QUE CUESTA: unos 67 caracteres por síntesis. Como las organizaciones sin voz
+// propia comparten la de reserva, una pasada son DOS síntesis reales, no cuatro:
+// ~130 caracteres al día. Céntimos al año, pero se escribe, porque esto GASTA
+// DINERO —poco, pero gasta— y eso no se esconde.
 // ============================================================================
 'use strict';
 
@@ -50,9 +56,31 @@ const log = new Logger('PRUEBA-VOZ');
 const CLAVE = 'nf:prueba-voz';
 const CADA_MS = 24 * 60 * 60 * 1000;   // una vez al día
 
-/** Frase corta y con fecha: corta por el coste, con fecha para no dar en caché. */
-function _frase(hoy) {
-  return `Hola, gracias por llamar. Comprobación de voz del ${hoy}.`;
+/**
+ * Frase corta y CON SELLO DE TIEMPO. Corta por el coste; sellada para que no dé
+ * en la caché.
+ *
+ * El sello lleva la hora y el minuto, no solo el día, y eso se corrigió después
+ * de verlo fallar de verdad: el 02/08 hubo cuatro despliegues seguidos, y las
+ * tres pasadas posteriores a la primera devolvieron el audio guardado en 0 ms.
+ * Salieron en verde sin haber sintetizado nada.
+ *
+ * Con un sello diario eso significa que **el día que un despliegue rompa la voz,
+ * si ya hubo una pasada antes, la prueba lo aprobaría**. Que es exactamente el
+ * escenario para el que existe. Con minutos, cada pasada sintetiza de verdad.
+ */
+function _frase(sello) {
+  return `Hola, gracias por llamar. Comprobación de voz del ${sello}.`;
+}
+
+/** Sello con minutos, en hora de Madrid: 2026-08-02 05:41 */
+function _sello(fecha) {
+  const f = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(fecha || new Date());
+  return f.replace(',', '');
 }
 
 /**
@@ -180,7 +208,14 @@ function resumir(resultados, cuando) {
     conProblemas: malas.length,
     problemas: malas.map(x => ({ org: x.org, voz: x.voz, motivo: x.motivo })),
     avisos: avisos.map(x => ({ org: x.org, aviso: x.aviso })),
-    detalle: r.map(x => ({ org: x.org, voz: x.voz, ok: x.ok, bytes: x.bytes || 0, ms: x.ms || null })),
+    // `x.ms || null` convertía un 0 legítimo en «no medido», y esos ceros eran
+    // justo la señal de que la síntesis había dado en la caché: el dato que más
+    // importaba se borraba a sí mismo. Se distingue medido-en-0 de no-medido.
+    detalle: r.map(x => ({
+      org: x.org, voz: x.voz, ok: x.ok,
+      bytes: Number.isFinite(x.bytes) ? x.bytes : 0,
+      ms: Number.isFinite(x.ms) ? x.ms : null,
+    })),
     resumen: !r.length
       ? 'no se ha revisado ninguna organización todavía'
       : malas.length
@@ -204,12 +239,11 @@ async function pasada(deps = {}) {
     idioma: (o.assistant_config || {}).language || (o.assistant_config || {}).idioma || 'es',
   }));
 
-  const hoy = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
   const d = {
     router,
     resolver: deps.resolver || require('../tts/voice-catalog').resolveVoiceEntry,
     sintetizar: deps.sintetizar || (p => router.synthesize(p)),
-    hoy,
+    hoy: deps.hoy || _sello(),
   };
 
   const resultados = [];
@@ -288,4 +322,4 @@ function parar() {
   if (_reintento) { clearTimeout(_reintento); _reintento = null; }
 }
 
-module.exports = { revisarOrg, resumir, pasada, informe, arrancar, parar, _frase, _primeraPasada, CLAVE };
+module.exports = { revisarOrg, resumir, pasada, informe, arrancar, parar, _frase, _sello, _primeraPasada, CLAVE };

@@ -18,7 +18,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { revisarOrg, resumir, _frase } = require('../src/monitoring/prueba-de-voz');
+const { revisarOrg, resumir, _frase, _sello } = require('../src/monitoring/prueba-de-voz');
 
 const CATALOGO = {
   'marta-ca':  { provider: 'cartesia', providerVoiceId: 'de38f545-1111', gender: 'female', language: 'es' },
@@ -147,6 +147,33 @@ test('si la síntesis revienta, la prueba lo cuenta en vez de morirse', async ()
 });
 
 // ── LA CACHÉ: por qué la frase lleva la fecha ───────────────────────────────
+
+test('EL SELLO LLEVA MINUTOS, no solo el día — lo aprendimos fallando', () => {
+  // El 02/08 hubo cuatro despliegues seguidos. Con sello diario, las tres pasadas
+  // posteriores a la primera devolvieron el audio guardado EN 0 ms: verdes sin
+  // haber sintetizado nada. O sea que un despliegue que rompiera la voz habría
+  // pasado la prueba — justo el escenario para el que existe.
+  const t = new Date('2026-08-02T10:00:00Z');
+  const mismoDiaOtraHora = new Date('2026-08-02T12:00:00Z');
+  assert.notEqual(_sello(t), _sello(mismoDiaOtraHora),
+    'dos pasadas del mismo día comparten frase: la segunda daría en la caché');
+  assert.match(_sello(t), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  // Y un minuto de diferencia ya basta.
+  assert.notEqual(_sello(t), _sello(new Date(t.getTime() + 60_000)));
+});
+
+test('el informe distingue MEDIDO EN 0 ms de NO MEDIDO', () => {
+  // `ms: x.ms || null` convertía un 0 legítimo en «no medido», y esos ceros eran
+  // precisamente la señal de que la síntesis había dado en la caché: el dato que
+  // más importaba se borraba a sí mismo, y por eso el fallo de arriba tardó en
+  // verse. Un 0 es un 0.
+  const r = resumir([
+    { org: 'A', voz: 'x', ok: true, bytes: 100, ms: 0 },
+    { org: 'B', voz: 'y', ok: true, bytes: 100 },
+  ], '2026-08-02T10:00:00Z');
+  assert.equal(r.detalle[0].ms, 0, 'un 0 medido se está enseñando como «no medido»');
+  assert.equal(r.detalle[1].ms, null);
+});
 
 test('LA FRASE CAMBIA CADA DÍA — si no, la prueba daría en la caché y no probaría nada', async () => {
   // El router cachea por (texto, voz, proveedor, idioma). Con una frase fija, la
