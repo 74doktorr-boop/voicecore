@@ -194,3 +194,49 @@ test('sin datos NO dice que todo va bien', async () => {
   assert.doesNotMatch(r.resumen, /bien|correct|ok/i);
   assert.match(r.resumen, /no se ha revisado/);
 });
+
+// ── EL ARRANQUE: no repetir el bug de PILOTO-12 ─────────────────────────────
+// Aquella siega no corría NUNCA: salía antes de que se eligiera líder y se
+// quedaba esperando su siguiente turno. Con un vigilante horario eso cuesta una
+// hora. Con uno diario cuesta un día, y encima el aviso de «hace más de 30 h»
+// acabaría acusando al cron cuando el fallo fue el arranque.
+
+test('si al arrancar todavía no hay líder, la primera pasada REINTENTA', async () => {
+  // Se llama a _primeraPasada DE VERDAD, con la espera acortada. Una versión de
+  // este test que reimplementara el bucle pasaría aunque borraras la función:
+  // comprobaría el test, no el código.
+  const mod = require('../src/monitoring/prueba-de-voz');
+  const leader = require('../src/utils/leader');
+  const original = leader.isLeader;
+  let preguntas = 0;
+  leader.isLeader = () => { preguntas++; return preguntas >= 3; };  // líder al 3.º
+  let corrio = false;
+  try {
+    await mod._primeraPasada({
+      esperaMs: 1,
+      db: { enabled: true, client: { from: () => ({ select: () => ({ eq: async () => { corrio = true; return { data: [] }; } }) }) } },
+      router: {},
+    });
+  } finally { leader.isLeader = original; }
+  assert.equal(corrio, true, 'se rindió sin ser líder: la prueba no correría hasta dentro de 24 h');
+  assert.equal(preguntas, 3, `preguntó ${preguntas} veces por el liderazgo`);
+});
+
+test('si NUNCA llega a ser líder, se rinde en vez de reintentar para siempre', async () => {
+  const mod = require('../src/monitoring/prueba-de-voz');
+  const leader = require('../src/utils/leader');
+  const original = leader.isLeader;
+  let preguntas = 0;
+  leader.isLeader = () => { preguntas++; return false; };
+  try { await mod._primeraPasada({ esperaMs: 1, router: {} }); }
+  finally { leader.isLeader = original; }
+  assert.equal(preguntas, 10, `reintentó ${preguntas} veces: el tope son 10`);
+});
+
+test('arrancar() y parar() no dejan temporizadores colgando', () => {
+  const mod = require('../src/monitoring/prueba-de-voz');
+  mod.arrancar({ router: {} });
+  mod.arrancar({ router: {} });   // idempotente
+  mod.parar();
+  mod.parar();                    // parar dos veces tampoco revienta
+});

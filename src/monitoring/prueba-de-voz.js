@@ -84,6 +84,10 @@ async function _revisarReserva(org, deps, base) {
   }
 
   try {
+    // Se mide el tiempo también aquí. Una voz que funciona pero tarda seis
+    // segundos suena a línea muerta: el que llama cuelga antes de oírla, y en el
+    // informe se vería «ok» igual que una que responde en un segundo.
+    const t0 = Date.now();
     const audio = await deps.sintetizar({
       callId: `prueba-voz-reserva-${org.id}`,
       text: _frase(deps.hoy),
@@ -91,11 +95,12 @@ async function _revisarReserva(org, deps, base) {
       voice: elegida.providerVoiceId,
       language: org.idioma || 'es',
     });
+    const ms = Date.now() - t0;
     if (!audio || !audio.length) {
-      return { ...base, ok: false, proveedor: elegida.provider,
+      return { ...base, ok: false, proveedor: elegida.provider, ms,
         motivo: 'la voz de RESERVA devolvió CERO bytes: quien llame oirá silencio' };
     }
-    return { ...base, ok: true, aviso, proveedor: elegida.provider, bytes: audio.length };
+    return { ...base, ok: true, aviso, proveedor: elegida.provider, bytes: audio.length, ms };
   } catch (e) {
     return { ...base, ok: false, proveedor: elegida.provider,
       motivo: `la voz de RESERVA falló: ${String(e.message).slice(0, 120)}` };
@@ -232,21 +237,55 @@ async function informe() {
   }
 }
 
+function _esLider() {
+  try { return require('../utils/leader').isLeader(); } catch (_) { return false; }
+}
+
 let _timer = null;
+let _reintento = null;
+
+/**
+ * La primera pasada, con REINTENTO mientras no haya líder.
+ *
+ * Esto ya nos mordió una vez: en PILOTO-12, la siega del arranque no corría
+ * NUNCA porque salía antes de que se eligiera líder y luego se quedaba esperando
+ * a su siguiente turno. Con un vigilante horario eso cuesta una hora; con uno
+ * DIARIO cuesta un día entero — y encima el aviso de «hace más de 30 h» acabaría
+ * culpando al cron cuando el problema fue el arranque.
+ */
+function _primeraPasada(deps = {}, intento = 1) {
+  if (_esLider()) {
+    return pasada(deps).catch(e => log.warn(`prueba de voz: ${e.message}`));
+  }
+  if (intento >= 10) {                    // ~20 min esperando a ser líder
+    log.info('Prueba de voz: esta instancia no es líder; la hará quien lo sea');
+    return Promise.resolve(null);
+  }
+  // `esperaMs` existe para que el test pueda recorrer ESTE bucle, no una copia
+  // suya. Un test que reimplementa el bucle pasa aunque borres la función.
+  const espera = deps.esperaMs || 2 * 60 * 1000;
+  return new Promise(res => {
+    _reintento = setTimeout(() => res(_primeraPasada(deps, intento + 1)), espera);
+    _reintento.unref?.();
+  });
+}
+
 function arrancar(deps = {}) {
   if (_timer) return;
-  const tic = () => {
-    try { if (!require('../utils/leader').isLeader()) return; } catch (_) { return; }
+  _timer = setInterval(() => {
+    if (!_esLider()) return;
     pasada(deps).catch(e => log.warn(`prueba de voz: ${e.message}`));
-  };
-  _timer = setInterval(tic, CADA_MS);
+  }, CADA_MS);
   _timer.unref?.();
-  // La primera, a los 3 minutos del arranque: da tiempo a que los proveedores
-  // se registren y a que un despliegue se asiente, y así un cambio de voz que
-  // rompa algo se ve el mismo día, no al siguiente.
-  setTimeout(tic, 3 * 60 * 1000).unref?.();
+  // La primera, a los 3 minutos del arranque: da tiempo a que los proveedores se
+  // registren y a que el despliegue se asiente, y así un cambio de voz que rompa
+  // algo se ve el mismo día, no al siguiente.
+  setTimeout(() => _primeraPasada(deps), 3 * 60 * 1000).unref?.();
   log.info('Prueba de voz diaria activada');
 }
-function parar() { if (_timer) { clearInterval(_timer); _timer = null; } }
+function parar() {
+  if (_timer) { clearInterval(_timer); _timer = null; }
+  if (_reintento) { clearTimeout(_reintento); _reintento = null; }
+}
 
-module.exports = { revisarOrg, resumir, pasada, informe, arrancar, parar, _frase, CLAVE };
+module.exports = { revisarOrg, resumir, pasada, informe, arrancar, parar, _frase, _primeraPasada, CLAVE };
