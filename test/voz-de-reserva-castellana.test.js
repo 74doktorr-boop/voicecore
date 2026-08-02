@@ -108,3 +108,51 @@ test('si el catálogo fallara, la última reserva sigue siendo castellana', () =
   assert.equal(m[1], resolveVoiceEntry('blanca-ca').providerVoiceId,
     'la reserva última ya no es Blanca: verifícala contra Cartesia antes de cambiarla');
 });
+
+// ── EL ASISTENTE DE RESERVA SE QUEDABA MUDO ────────────────────────────────
+// Es el que atiende cuando una llamada no encaja con ningún asistente: un número
+// mal configurado, una org a medio aprovisionar. O sea, justo cuando algo ya ha
+// ido mal. Y tenía `voice: 'nova'`, que es un nombre de OpenAI.
+//
+// Con solo Cartesia registrada, ese nombre le llegaba tal cual y su API devolvía
+// «400 — voice ID must be a valid UUID». La cadena se agotaba y el resultado
+// medido el 02/08 fueron CERO bytes: quien llamaba oía silencio. El único
+// asistente que no podía hablar era el de emergencia.
+describe_reserva_mudo();
+function describe_reserva_mudo() {
+  const CASTELLANAS_UUID = new Set(
+    staticCatalog()
+      .filter(v => v.provider === 'cartesia' && (v.tier === 'estandar' || !v.tier))
+      .map(v => (resolveVoiceEntry(v.id) || {}).providerVoiceId).filter(Boolean));
+
+  test('un nombre que NO es UUID nunca llega a Cartesia', () => {
+    // Su API lo dice explícitamente: el id tiene que ser un UUID. Cualquier otra
+    // cosa —nombres de OpenAI heredados, ids de nuestro catálogo, basura— se
+    // cambia por la reserva en vez de provocar un 400 y silencio.
+    for (const basura of ['nova', 'marta-ca', 'shimmer', 'alloy', '', 'no-existe']) {
+      const p = router._buildParams('cartesia', basura, 1.0, 'es');
+      assert.ok(CASTELLANAS_UUID.has(p.voice),
+        `«${basura}» llegaría a Cartesia como ${p.voice} y devolvería 400`);
+    }
+  });
+
+  test('un UUID legítimo NO se toca, aunque no esté en el catálogo', () => {
+    // Si alguien pega un id válido de Cartesia que no hemos curado, se respeta:
+    // la guarda existe para evitar el 400, no para imponer nuestro catálogo.
+    const ajeno = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    assert.equal(router._buildParams('cartesia', ajeno, 1.0, 'es').voice, ajeno);
+  });
+
+  test('el asistente de reserva de Telnyx usa una voz del catálogo', () => {
+    const src = fs.readFileSync(path.join(RAIZ, 'src/telephony/telnyx-handler.js'), 'utf8');
+    // Ventana amplia: entre el id y la voz hay un comentario que explica por qué
+    // esa voz importa, y un límite corto haría fallar el test por la LONGITUD DEL
+    // COMENTARIO, no por el código. Un test que se rompe al documentar algo
+    // enseña a no documentar.
+    const m = src.match(/id: 'default-fallback'[\s\S]{0,1500}?voice: '([^']+)'/);
+    assert.ok(m, 'no se encuentra la voz del asistente de reserva');
+    assert.ok(resolveVoiceEntry(m[1]), `su voz («${m[1]}») no existe en el catálogo`);
+    assert.equal(resolveVoiceEntry(m[1]).provider, 'cartesia',
+      'la voz del asistente de reserva debe ser de un proveedor que esté activo');
+  });
+}

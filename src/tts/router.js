@@ -125,6 +125,11 @@ function costeDeConsumo(consumo, tarifas) {
 // no un valor por defecto que nadie ha mirado.**
 const _RESERVA_ULTIMA = '538a8872-3799-4df5-b373-b78493b766c6';  // Blanca, es, femenina
 
+/** ¿Es un id de voz de Cartesia? Su API exige UUID y lo dice en el error. */
+function _esUuid(v) {
+  return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
 function _reservaCastellana(genero) {
   try {
     const { staticCatalog } = require('./voice-catalog');
@@ -508,7 +513,20 @@ class TTSRouter {
         // que sobrevivió a todo. Ahora la reserva es una voz castellana de las
         // que ofrecemos, y se elige por GÉNERO para que, cuando una voz
         // desaparezca, el cambio no cante más de lo imprescindible.
-        params.voice = voice ?? _reservaCastellana(voiceGender);
+        // Y además: si lo que llega NO es un UUID, no es una voz de Cartesia.
+        //
+        // Lo dice su propia API: «voice ID must be a valid UUID». El asistente
+        // de reserva —el que atiende cuando una llamada no encaja con ninguno—
+        // tenía `voice: 'nova'`, que es un nombre de OpenAI. Con solo Cartesia
+        // registrada, ese nombre le llegaba tal cual, Cartesia devolvía 400, la
+        // cadena se agotaba y el resultado era **cero bytes de audio**: quien
+        // llamaba oía SILENCIO. Comprobado sintetizando de verdad el 02/08.
+        //
+        // Vale para cualquier id heredado que ande suelto (nombres de OpenAI en
+        // configuraciones viejas, ids de otro proveedor que se cuelen). Mejor
+        // una voz distinta que ninguna: el silencio es la peor respuesta posible
+        // en un producto cuya promesa es coger el teléfono.
+        params.voice = _esUuid(voice) ? voice : _reservaCastellana(voiceGender);
         params.language = idiomaProveedor;
         break;
       case 'elevenlabs':

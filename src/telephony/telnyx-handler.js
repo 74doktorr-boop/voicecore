@@ -142,7 +142,13 @@ function setupTelnyxStreams(wss, pipeline, assistantManager) {
                 name: 'NodeFlow Asistente',
                 systemPrompt: 'Eres un asistente telefónico amable de NodeFlow. Responde en español de forma concisa y natural. Ayuda al cliente con lo que necesite.',
                 firstMessage: 'Hola, gracias por llamar a NodeFlow. ¿En qué puedo ayudarte?',
-                voice: 'nova',
+                // Una voz REAL del catálogo. Aquí ponía 'nova', que es un nombre
+                // de OpenAI: con solo Cartesia registrada le llegaba tal cual,
+                // Cartesia devolvía 400 («voice ID must be a valid UUID») y la
+                // llamada acababa en CERO bytes de audio. El asistente de
+                // reserva —el que atiende justo cuando algo ya ha ido mal— era
+                // el único que no podía hablar.
+                voice: 'marta-ca',
                 language: 'es',
                 model: 'gpt-4o-mini',
               };
