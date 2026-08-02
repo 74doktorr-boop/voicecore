@@ -15,7 +15,7 @@ const http  = require('http');
 const fs    = require('fs');
 const path  = require('path');
 
-const SERVER  = process.env.SERVER_URL || 'https://voicecore-voicecore-api.xmehd4.easypanel.host';
+const SERVER  = process.env.SERVER_URL || 'https://nodeflow.es';
 const API_KEY = process.env.API_KEY    || 'vc_nodeflow_prod_2026';
 const target  = process.argv[2]        || 'lumina-estetica';
 

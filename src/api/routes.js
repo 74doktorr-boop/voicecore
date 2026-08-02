@@ -265,7 +265,13 @@ function setupRoutes(app, pipeline, assistantManager, config) {
 
   // ─── Telnyx Webhooks (TeXML — same as TwiML) ───
   // Configure in Telnyx dashboard:
-  //   Voice → Connection → Webhook URL: https://xmehd4.easypanel.host/voice/telnyx
+  //   Voice → Connection → Webhook URL: https://nodeflow.es/voice/telnyx
+  //
+  // OJO: aquí ponía `https://xmehd4.easypanel.host/voice/telnyx`. El 02/08 el
+  // dominio easypanel.host apareció APARCADO y en venta, así que ese nombre dejó
+  // de apuntar a nuestro servidor. Si alguien hubiera seguido esta instrucción,
+  // las llamadas entrantes habrían dejado de llegar sin que ningún panel lo
+  // dijera. Nunca configures un webhook contra el dominio de un tercero.
   //   Webhook HTTP Method: POST
   //
   // Optional: set TELNYX_API_KEY in .env to enable outbound calls via API

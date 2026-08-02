@@ -75,7 +75,7 @@ async function sendAlert(type, info) {
             <tr><td style="color:#999;padding:4px 0;">Fallos consecutivos</td><td>${info.failures}</td></tr>
             <tr><td style="color:#999;padding:4px 0;">Hora</td><td>${new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}</td></tr>
           </table>
-          <a href="https://xmehd4.easypanel.host" style="display:inline-block;margin-top:16px;background:#6c5ce7;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">
+          <a href="https://panel.nodeflow.es" style="display:inline-block;margin-top:16px;background:#6c5ce7;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;">
             Abrir EasyPanel →
           </a>
         </div>

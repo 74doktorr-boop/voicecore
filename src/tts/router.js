@@ -108,6 +108,41 @@ function costeDeConsumo(consumo, tarifas) {
   return { total: +total.toFixed(4), desglose };
 }
 
+// ── LA VOZ DE RESERVA, y por qué merece una función propia ──────────────────
+//
+// Cuando la voz que eligió el cliente no se puede usar —su proveedor no está
+// activo, o el id es de otro— hay que poner alguna. Hasta el 02/08 esa «alguna»
+// era un UUID escrito a fuego en mitad del router que resultó ser
+// **«Greg - Supporter», idioma `en`**. Un hombre inglés leyendo castellano al
+// teléfono. Nadie lo eligió nunca: es un literal de la primera integración con
+// Cartesia que sobrevivió a todos los cambios posteriores.
+//
+// Ahora sale del catálogo curado —las mismas voces que se ofrecen en el
+// selector—, se elige por género, y si el catálogo fallara se cae a Blanca, que
+// está verificada contra la API de Cartesia como `language: es`.
+//
+// La regla, que es la del charter: **una reserva es una decisión de producto,
+// no un valor por defecto que nadie ha mirado.**
+const _RESERVA_ULTIMA = '538a8872-3799-4df5-b373-b78493b766c6';  // Blanca, es, femenina
+
+function _reservaCastellana(genero) {
+  try {
+    const { staticCatalog } = require('./voice-catalog');
+    const castellanas = staticCatalog().filter(v =>
+      v.provider === 'cartesia' && (v.tier === 'estandar' || !v.tier));
+    if (!castellanas.length) return _RESERVA_ULTIMA;
+    const mismoGenero = genero ? castellanas.filter(v => v.gender === genero) : [];
+    const elegida = (mismoGenero[0] || castellanas[0]);
+    // El catálogo guarda el id de NodeFlow y el del proveedor; a Cartesia hay
+    // que darle el suyo.
+    const { resolveVoiceEntry } = require('./voice-catalog');
+    const e = resolveVoiceEntry(elegida.id);
+    return (e && e.providerVoiceId) || _RESERVA_ULTIMA;
+  } catch (_) {
+    return _RESERVA_ULTIMA;
+  }
+}
+
 class TTSRouter {
   constructor(config = {}) {
     this.providers = new Map();
@@ -399,6 +434,7 @@ class TTSRouter {
   }
 
   _buildParams(providerName, voice, speed, language) {
+    // (la reserva castellana vive fuera de la clase — ver _reservaCastellana)
     const params = { speed: speed ?? 1.0 };
 
     // Una voz de un proveedor NO vale en otro.
@@ -419,10 +455,16 @@ class TTSRouter {
     // defecto: mejor una voz distinta que ninguna. La preferencia del cliente
     // NO se toca en la base de datos — el día que se contrate el plan, su voz
     // vuelve sola.
+    // Se guarda el GÉNERO de la voz que el cliente eligió antes de descartarla:
+    // si hay que caer a una de reserva, al menos que sea del mismo género. Un
+    // negocio que eligió voz femenina y de pronto contesta un hombre es un
+    // cambio que se nota en la primera sílaba.
+    let voiceGender = null;
     if (voice) {
       try {
         const { resolveVoiceEntry } = require('./voice-catalog');
         const entrada = resolveVoiceEntry(voice);
+        if (entrada) voiceGender = entrada.gender || null;
         if (entrada && entrada.provider && entrada.provider !== providerName) voice = null;
       } catch (_) { /* sin catálogo se sigue como antes */ }
     }
@@ -448,7 +490,25 @@ class TTSRouter {
 
     switch (providerName) {
       case 'cartesia':
-        params.voice = voice ?? 'a0e99841-438c-4a64-b679-ae501e7d6091';
+        // La voz de reserva sale del CATÁLOGO, no de un literal.
+        //
+        // Aquí había escrito a fuego `a0e99841-438c-4a64-b679-ae501e7d6091`.
+        // Preguntado a Cartesia el 02/08, resulta ser **«Greg - Supporter»,
+        // idioma `en`**: un hombre inglés. Así que cualquier organización cuya
+        // voz no se resolviera atendía el teléfono con una voz INGLESA leyendo
+        // castellano. Suena a inglés con acento español y calidad pésima, que
+        // es exactamente como sonó al llamar al número de producción.
+        //
+        // Y no era un caso raro: la única org con llamadas reales tiene guardada
+        // `ana-es`, de ElevenLabs, cuya clave se retiró. La guarda que impide
+        // pasarle un id ajeno a Cartesia hace lo correcto —deja la voz en
+        // null— y justo por eso caía aquí, en la reserva inglesa.
+        //
+        // Nadie eligió nunca esa voz: es un literal de la primera integración
+        // que sobrevivió a todo. Ahora la reserva es una voz castellana de las
+        // que ofrecemos, y se elige por GÉNERO para que, cuando una voz
+        // desaparezca, el cambio no cante más de lo imprescindible.
+        params.voice = voice ?? _reservaCastellana(voiceGender);
         params.language = idiomaProveedor;
         break;
       case 'elevenlabs':
