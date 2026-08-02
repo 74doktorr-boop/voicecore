@@ -24,6 +24,16 @@ const log = new Logger('LEARNED-RULES');
 const TABLE = 'nf_learned_rules';
 const CACHE_TTL_MS = 60 * 1000;
 
+/** Cubo de las reglas cuyo sector no se sabe. NO se inyecta a nadie. */
+const SIN_CLASIFICAR = 'sin-clasificar';
+
+/** 'global' solo por decisión humana; lo automático cae en sin-clasificar. */
+function _sectorSeguro(sector) {
+  const s = String(sector || '').trim();
+  if (!s || s === 'global') return SIN_CLASIFICAR;
+  return s;
+}
+
 /** Clave normalizada de una regla (para deduplicar "la misma" dicha distinto). */
 function ruleKey(text) {
   return String(text || '').toLowerCase()
@@ -41,7 +51,22 @@ function _db(deps) { return deps.db || require('../db/database').getDatabase(); 
 async function upsertCandidates(sector, rules, deps = {}) {
   const db = _db(deps);
   if (!db.enabled || !Array.isArray(rules) || !rules.length) return 0;
-  const sec = sector || 'global';
+
+  // NADA ENTRA EN 'global' SOLO. Una regla en 'global' se inyecta en el prompt
+  // de TODOS los clientes, y hasta el 02/08 se llegaba ahí por dos caminos, los
+  // dos automáticos: el agregador escribía ahí las reglas mezcladas de todo el
+  // mundo, y además un sector vacío caía en 'global' por defecto.
+  //
+  // El resultado estaba en la cola de aprobación, listo para que alguien le
+  // diera al botón sin mirar: «Proporcionar información sobre el precio del
+  // cobre», aprendida de un chatarrero, esperando a aplicarse a las clínicas de
+  // fisioterapia. Con 9 apariciones, de las más frecuentes de la lista.
+  //
+  // Un dato que falta no puede convertirse en el alcance MÁS amplio posible: es
+  // el mismo error que un fallback silencioso que gasta dinero, pero en el
+  // alcance. Ahora cae en 'sin-clasificar', que no se inyecta a nadie, y llevar
+  // algo a 'global' es una decisión de producto que toma una persona.
+  const sec = _sectorSeguro(sector);
   let added = 0;
   for (const r of rules) {
     const text = (r && r.rule) || (typeof r === 'string' ? r : '');
@@ -130,4 +155,5 @@ async function activeRulesBlock(sector, deps = {}) {
   } catch (_) { return ''; }
 }
 
-module.exports = { ruleKey, upsertCandidates, listRules, getRule, setStatus, activeRulesBlock, _invalidate };
+module.exports = {
+  SIN_CLASIFICAR, _sectorSeguro, ruleKey, upsertCandidates, listRules, getRule, setStatus, activeRulesBlock, _invalidate };

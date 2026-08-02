@@ -228,7 +228,9 @@ async function runImprovementCycle(deps = {}) {
   // no resucita las ya decididas (lo gestiona learned-rules). Best-effort.
   try {
     const LR = require('./learned-rules');
-    await LR.upsertCandidates('global', agg.candidateRules, { db });
+    // Estas vienen de mezclar TODOS los clientes, así que no son de nadie en
+    // concreto: van al cubo sin clasificar, no a 'global'. Ver upsertCandidates.
+    await LR.upsertCandidates(LR.SIN_CLASIFICAR, agg.candidateRules, { db });
     for (const [sec, s] of Object.entries(agg.bySector)) {
       await LR.upsertCandidates(sec, s.candidateRules, { db });
     }
