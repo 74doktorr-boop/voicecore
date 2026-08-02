@@ -56,6 +56,53 @@ function _frase(hoy) {
 }
 
 /**
+ * El camino de la RESERVA: el que usa una org que no ha elegido voz.
+ *
+ * No se comprueba «que exista una reserva», que sería trivial y siempre verde.
+ * Se le pregunta al router LA VOZ QUE USARÍA —el mismo `_buildParams` que corre
+ * en una llamada de verdad— y se juzga esa: idioma primero, audio después.
+ * Cualquier cosa que no recorra ese camino comprobaría otro producto.
+ */
+async function _revisarReserva(org, deps, base) {
+  const idiomaOrg = String(org.idioma || 'es').split('+')[0];
+  const aviso = 'sin voz configurada — se comprueba la de reserva';
+
+  let elegida = null;
+  try {
+    const prov = deps.proveedorPorDefecto || 'cartesia';
+    const p = deps.router._buildParams(prov, null, 1.0, org.idioma || 'es');
+    elegida = { provider: prov, providerVoiceId: p.voice };
+    // `resolver` busca por id NUESTRO o por id del proveedor, así que el UUID
+    // que devuelve el router se resuelve tal cual.
+    const entrada = deps.resolver(p.voice);
+    if (entrada && entrada.language && entrada.language !== idiomaOrg) {
+      return { ...base, ok: false, proveedor: prov,
+        motivo: `la voz de RESERVA habla "${entrada.language}" y el asistente atiende en "${idiomaOrg}" — esto es exactamente el fallo del 02/08` };
+    }
+  } catch (e) {
+    return { ...base, ok: false, motivo: `no se pudo averiguar la voz de reserva: ${String(e.message).slice(0, 100)}` };
+  }
+
+  try {
+    const audio = await deps.sintetizar({
+      callId: `prueba-voz-reserva-${org.id}`,
+      text: _frase(deps.hoy),
+      provider: elegida.provider,
+      voice: elegida.providerVoiceId,
+      language: org.idioma || 'es',
+    });
+    if (!audio || !audio.length) {
+      return { ...base, ok: false, proveedor: elegida.provider,
+        motivo: 'la voz de RESERVA devolvió CERO bytes: quien llame oirá silencio' };
+    }
+    return { ...base, ok: true, aviso, proveedor: elegida.provider, bytes: audio.length };
+  } catch (e) {
+    return { ...base, ok: false, proveedor: elegida.provider,
+      motivo: `la voz de RESERVA falló: ${String(e.message).slice(0, 120)}` };
+  }
+}
+
+/**
  * Revisa UNA organización. Núcleo comprobable: recibe todo inyectado.
  * @param {{id:string, nombre:string, voz:string, idioma:string}} org
  * @param {{router:object, resolver:function, sintetizar:function, hoy:string}} deps
@@ -64,9 +111,15 @@ async function revisarOrg(org, deps) {
   const base = { org: org.nombre || org.id, voz: org.voz || null };
 
   if (!org.voz) {
-    // Sin voz configurada se usa la de reserva, que ahora es castellana. No es
-    // un fallo, pero conviene verlo: es el camino que sonaba en inglés.
-    return { ...base, ok: true, aviso: 'sin voz configurada — usará la de reserva' };
+    // OJO CON ESTE CAMINO. Es tentador despacharlo con un aviso y seguir —«no
+    // ha elegido voz, no hay nada que comprobar»— pero es justo al revés: tres
+    // de las cuatro organizaciones están así, y la voz de reserva es la que
+    // estuvo contestando EN INGLÉS. Saltárselo dejaría sin vigilancia
+    // precisamente el trozo que se rompió.
+    //
+    // Así que se le pregunta al router qué voz usaría de verdad, y se comprueba
+    // esa: que sea del idioma del negocio, y que suene.
+    return await _revisarReserva(org, deps, base);
   }
 
   const entrada = deps.resolver(org.voz);

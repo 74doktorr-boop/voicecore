@@ -34,7 +34,13 @@ function entorno(opts = {}) {
     llamadas,
     deps: {
       router: { providers: new Map((opts.activos || ['cartesia']).map(p => [p, {}])) },
-      resolver: id => CATALOGO[id] || null,
+      // Busca por NUESTRO id y por el del proveedor, igual que resolveVoiceEntry.
+      // Un doble más permisivo que la realidad no verifica: tranquiliza. La
+      // primera versión de esto solo miraba las claves, y con eso el test de la
+      // reserva inglesa pasaba en verde — que es justo el fallo que persigue.
+      resolver: id => CATALOGO[id]
+        || Object.values(CATALOGO).find(v => v.providerVoiceId === id)
+        || null,
       sintetizar: async p => { llamadas.push(p); return opts.audio === undefined ? Buffer.alloc(4000) : opts.audio; },
       hoy: opts.hoy || '2026-08-02',
     },
@@ -100,14 +106,37 @@ test('una voz que no existe en el catálogo se nombra, no se traga', async () =>
   assert.match(r.motivo, /no existe en el catálogo/);
 });
 
-test('sin voz configurada no es un fallo, pero se AVISA', async () => {
-  // Tres de las cuatro orgs están así. No es un error —cae en la reserva, que
-  // desde hoy es castellana— pero es justo el camino que sonaba en inglés, y
-  // conviene que se vea en vez de contarlo como verde.
+// ── EL CAMINO DE LA RESERVA ─────────────────────────────────────────────────
+// Tres de las cuatro orgs no tienen voz configurada. Sería cómodo despacharlas
+// con un aviso, pero la voz de reserva es LA QUE ESTUVO CONTESTANDO EN INGLÉS:
+// saltárselas dejaría sin vigilar justo el trozo que se rompió.
+
+test('sin voz configurada, la reserva SE COMPRUEBA de verdad (no se despacha con un aviso)', async () => {
   const e = entorno();
+  e.deps.router._buildParams = () => ({ voice: 'de38f545-1111' });   // marta-ca, es
   const r = await revisarOrg({ id: '1', nombre: 'Demo', voz: null, idioma: 'es' }, e.deps);
-  assert.equal(r.ok, true);
+  assert.equal(r.ok, true, r.motivo);
   assert.match(r.aviso, /reserva/);
+  assert.equal(e.llamadas.length, 1, 'la reserva tiene que sintetizar igual que cualquier otra voz');
+});
+
+test('EL FALLO DEL 02/08: si la reserva volviera a ser inglesa, salta', async () => {
+  // La regresión que importa. Si alguien vuelve a dejar un UUID inglés de
+  // reserva —como estuvo meses— esto se pone rojo el mismo día, en vez de
+  // esperar a que un cliente coja el teléfono y lo note.
+  const e = entorno();
+  e.deps.router._buildParams = () => ({ voice: 'a0e99841-2222' });   // greg-en
+  const r = await revisarOrg({ id: '1', nombre: 'Demo', voz: null, idioma: 'es' }, e.deps);
+  assert.equal(r.ok, false);
+  assert.match(r.motivo, /RESERVA habla "en"/);
+});
+
+test('si la reserva se queda muda, también salta', async () => {
+  const e = entorno({ audio: Buffer.alloc(0) });
+  e.deps.router._buildParams = () => ({ voice: 'de38f545-1111' });
+  const r = await revisarOrg({ id: '1', nombre: 'Demo', voz: null, idioma: 'es' }, e.deps);
+  assert.equal(r.ok, false);
+  assert.match(r.motivo, /RESERVA.*CERO bytes/);
 });
 
 test('si la síntesis revienta, la prueba lo cuenta en vez de morirse', async () => {
