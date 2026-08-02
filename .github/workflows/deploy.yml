@@ -8,6 +8,24 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/74doktorr-boop/voicecore
 
+# UN DESPLIEGUE A LA VEZ, Y GANA EL ÚLTIMO COMMIT.
+#
+# Sin esto, dos empujones seguidos lanzan dos despliegues en paralelo y el orden
+# de llegada lo decide el azar: si el viejo termina después del nuevo, producción
+# se queda con la versión ANTERIOR. Un despliegue correcto pisado por uno que ya
+# estaba obsoleto, y sin ninguna señal de que ha pasado.
+#
+# Estuvo a punto de ocurrir el 02/08: la ruta hasta EasyPanel se cortó, un
+# despliegue se quedó 25 min reintentando, y mientras tanto se empujó el
+# siguiente. Los dos vivos a la vez.
+#
+# `cancel-in-progress` porque cuando hay un commit nuevo el anterior ya no
+# interesa. Cancelar es seguro: fijar la imagen es idempotente y el run siguiente
+# fija la suya de todos modos.
+concurrency:
+  group: despliegue-produccion
+  cancel-in-progress: true
+
 jobs:
   # ── PUERTA DE CALIDAD (auditoría 2026-07-29, F1) ────────────────────────────
   # Hasta ahora la suite —casi 2.800 casos— NO se ejecutaba NUNCA: ni aquí ni en
@@ -88,7 +106,7 @@ jobs:
           AUTH="Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}"
           IMG="ghcr.io/74doktorr-boop/voicecore:${{ github.sha }}"
 
-          # 1. Fijar la nueva imagen. VENTANA DE 25 MINUTOS, y el número no es arbitrario.
+          # 1. Fijar la nueva imagen. La ventana no es arbitraria.
           #
           # El 01/08 este paso murió tras 10 intentos: el anfitrión de EasyPanel
           # estuvo inalcanzable DESDE LOS RUNNERS DE GITHUB de 15:43 a 15:49 —
@@ -100,10 +118,20 @@ jobs:
           # sirviendo y lo que falla es la ruta desde aquí. Esa clase de corte se
           # arregla sola; solo hay que esperarla.
           #
-          # 25 minutos con espera creciente (15s → 60s) cubre cuatro veces el
-          # corte más largo medido, y no cuesta nada cuando todo va bien: en el
-          # caso normal el primer intento devuelve 200 y el bucle sale.
-          echo "→ Fijando imagen del servicio (reintentos hasta ~25 min)…"
+          # 30 intentos con espera creciente (15s → 60s). Los `sleep` suman 25 min,
+          # pero el reloj de pared es MÁS: cada intento fallido gasta además su
+          # propio timeout de curl, así que el techo real está entre 33 y 45 min
+          # según si la conexión se rechaza rápido o se queda colgada.
+          #
+          # El comentario decía «25 minutos» a secas y era engañoso: el 02/08
+          # estuve dando por agotada una ventana que aún tenía veinte minutos por
+          # delante. Un número que solo cuenta una parte del tiempo hace tomar
+          # decisiones equivocadas mientras esperas.
+          #
+          # Aun así sobra: cubre varias veces el corte más largo medido (6 min) y
+          # no cuesta nada cuando todo va bien — en el caso normal el primer
+          # intento devuelve 200 y el bucle sale.
+          echo "→ Fijando imagen del servicio (hasta ~45 min de reintentos)…"
           STATUS=000
           ESPERA=15
           for i in $(seq 1 30); do
@@ -126,7 +154,7 @@ jobs:
           done
           cat /tmp/upd.txt 2>/dev/null; echo
           if [ "$STATUS" != "200" ]; then
-            echo "::error::EasyPanel no respondió en 25 minutos (HTTP $STATUS)."
+            echo "::error::EasyPanel no respondió tras 30 intentos (HTTP $STATUS)."
             echo "La imagen $IMG está en GHCR, así que no se ha perdido nada: re-lanza este workflow."
             echo ""
             echo "Si esto se repite, NO des por hecho que el servidor está caído: el 01/08"
