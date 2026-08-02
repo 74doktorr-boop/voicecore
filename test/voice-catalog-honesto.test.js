@@ -211,10 +211,26 @@ describe('catálogo de voces honesto', () => {
   test('resolveVoiceEntry decide el proveedor por voz (Cartesia ↔ ElevenLabs ↔ local)', () => {
     const { resolveVoiceEntry } = require('../src/tts/voice-catalog');
     assert.deepStrictEqual(resolveVoiceEntry('blanca-ca'),
-      { provider: 'cartesia', providerVoiceId: '538a8872-3799-4df5-b373-b78493b766c6', tier: 'estandar', gender: 'female' });
+      { provider: 'cartesia', providerVoiceId: '538a8872-3799-4df5-b373-b78493b766c6', tier: 'estandar', gender: 'female', language: 'es' });
     assert.strictEqual(resolveVoiceEntry('cristina-es').provider, 'elevenlabs');
     assert.strictEqual(resolveVoiceEntry('ane-eu').provider, 'local');
     assert.strictEqual(resolveVoiceEntry('no-existe'), null);
+  });
+
+  test('la entrada trae el IDIOMA, y normalizado', () => {
+    const { resolveVoiceEntry, staticCatalog } = require('../src/tts/voice-catalog');
+    // No es un campo de adorno: la prueba de voz compara el idioma de la voz
+    // con el del asistente, y es la ÚNICA comprobación que habría cazado a
+    // «Greg», la voz inglesa que estuvo contestando el teléfono en castellano.
+    // El fichero guarda 'es-ES' y el asistente guarda 'es', así que si no se
+    // normaliza aquí la comparación falla siempre y la prueba grita en falso.
+    assert.strictEqual(resolveVoiceEntry('marta-ca').language, 'es');
+    assert.strictEqual(resolveVoiceEntry('ane-eu').language, 'eu');
+    assert.strictEqual(resolveVoiceEntry('brais-gl').language, 'gl');
+    for (const v of staticCatalog()) {
+      assert.ok(resolveVoiceEntry(v.id).language,
+        `la voz «${v.id}» no declara idioma: la prueba de voz no puede juzgarla`);
+    }
   });
 
   test('los alias del catálogo antiguo siguen sonando (y distintos entre sí)', () => {

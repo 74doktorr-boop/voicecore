@@ -251,6 +251,48 @@ jobs:
               else
                 echo "   /health/llamadas devolvió HTTP ${LLA%% *} — ¿versión anterior desplegada?"
               fi
+
+              # ── ¿Y lo que se OYE? ───────────────────────────────────────────
+              # El 02/08 el asistente estuvo contestando en inglés, y antes de
+              # eso el de reserva contestaba con silencio. Ni un panel ni un test
+              # ni un aviso dijeron nada: se descubrió llamando por teléfono.
+              # Todo lo demás de este vigilante mira si el servicio VIVE; esto
+              # mira si SIRVE, que no es lo mismo y es lo único que paga nadie.
+              echo ""
+              echo "── Voz ──"
+              VOZ=$(probar "https://nodeflow.es/health/voz" /tmp/voz.json)
+              if [ "${VOZ%% *}" = "200" ]; then
+                python3 - <<'PY' || echo "   (no se pudo interpretar la prueba de voz)"
+          import json, sys
+          try:
+              h = json.load(open('/tmp/voz.json', encoding='utf-8'))
+          except Exception as e:
+              print(f'   informe ilegible: {e}'); sys.exit(0)
+          print(f"   {h.get('resumen')}")
+          for p in (h.get('problemas') or []):
+              print(f"::error::VOZ · {p.get('org')}: {p.get('motivo')}")
+          for a in (h.get('avisos') or []):
+              print(f"   · {a.get('org')}: {a.get('aviso')}")
+          # Una prueba que dejó de ejecutarse se ve EXACTAMENTE igual que una que
+          # sale bien: cero problemas. Por eso se mira la fecha y no solo el
+          # recuento — sin esto, el día que el cron muera nadie se entera.
+          cuando = h.get('cuando')
+          if not cuando:
+              print('::warning::la prueba de voz no se ha ejecutado todavía')
+          else:
+              from datetime import datetime, timezone
+              try:
+                  t = datetime.fromisoformat(cuando.replace('Z', '+00:00'))
+                  horas = (datetime.now(timezone.utc) - t).total_seconds() / 3600
+                  if horas > 30:
+                      print(f'::warning::la última prueba de voz es de hace {horas:.0f} h '
+                            f'— debería correr cada 24 h. El cron puede estar muerto.')
+              except Exception:
+                  pass
+          PY
+              else
+                echo "   /health/voz devolvió HTTP ${VOZ%% *} — ¿versión anterior desplegada?"
+              fi
               exit 0
             fi
 

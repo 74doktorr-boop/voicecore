@@ -70,7 +70,18 @@ function resolveVoiceEntry(voiceId) {
   if (!voiceId) return null;
   try {
     const v = (_readStaticFile().voices || []).find(x => x.id === voiceId || x.providerVoiceId === voiceId);
-    return v ? { provider: v.provider, providerVoiceId: v.providerVoiceId, tier: v.tier || 'premium', gender: v.gender || null } : null;
+    // `language` se expone NORMALIZADO ('es-ES' → 'es'). Faltaba, y por eso la
+    // prueba de voz no podía comparar el idioma de la voz con el del asistente
+    // — que es justo la comprobación que habría cazado a «Greg», la voz inglesa
+    // que estuvo atendiendo el teléfono en castellano. Un dato que está en el
+    // fichero pero no sale por la función es un dato que no existe.
+    return v ? {
+      provider: v.provider,
+      providerVoiceId: v.providerVoiceId,
+      tier: v.tier || 'premium',
+      gender: v.gender || null,
+      language: v.language ? String(v.language).split('-')[0].toLowerCase() : null,
+    } : null;
   } catch { return null; }
 }
 

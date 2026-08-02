@@ -753,6 +753,25 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ─── ¿Lo que se OYE está bien? ─────────────────────────────────────────────
+  // El último hueco de la familia. Ya sabíamos si el proceso late, si los
+  // correos llegan y si se pierde alguna llamada — pero no si quien llama oye
+  // algo, y en qué idioma. El 02/08 esa ignorancia costó tres fallos seguidos
+  // en producción que solo se descubrieron llamando por teléfono: una voz
+  // inglesa atendiendo en castellano, un asistente que devolvía silencio, y una
+  // org apuntando a un proveedor apagado.
+  //
+  // Sin autenticación pero sin datos de cliente: nombres de organización y el
+  // motivo del fallo, que es lo que necesita el vigilante externo para avisar.
+  app.get('/health/voz', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      res.json(await require('../monitoring/prueba-de-voz').informe());
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer la prueba de voz', detalle: e.message });
+    }
+  });
+
   log.info('API routes configured');
 }
 

@@ -872,6 +872,16 @@ require('./src/notifications/registro-avisos').arrancarConfirmacion();
 // perder una llamada y no recibir ninguna se veían exactamente igual.
 require('./src/lifecycle/conciliacion-telnyx').arrancarVigilancia();
 
+// Y una vez al día: coger la voz de CADA organización y sintetizar de verdad.
+// Es el instrumento que faltaba. El resto de la familia mira si el proceso vive,
+// si los correos salen y si se pierde alguna llamada; ninguno mira lo único que
+// el cliente oye. El 02/08 esa ignorancia dejó pasar tres fallos a la vez —una
+// voz inglesa, un asistente mudo y una org con el proveedor apagado— y los tres
+// se descubrieron con un teléfono en la mano, que es la peor forma de enterarse.
+// Se le pasa el router porque la prueba tiene que recorrer el MISMO camino que
+// una llamada: uno paralelo probaría otra cosa.
+require('./src/monitoring/prueba-de-voz').arrancar({ router: ttsRouter });
+
 // Resumen del día a clientes (cada día 08:00 Madrid)
 const { startDailyBriefingCron } = require('./src/reports/daily-briefing');
 startDailyBriefingCron();
