@@ -723,7 +723,8 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   app.get('/health/avisos', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     try {
-      res.json(await require('../notifications/registro-avisos').informe());
+      // La versión SIN direcciones: esto es público. Las enteras, en el panel.
+      res.json(await require('../notifications/registro-avisos').informePublico());
     } catch (e) {
       res.status(500).json({ error: 'no se pudo leer el registro de avisos', detalle: e.message });
     }
@@ -766,7 +767,10 @@ function setupRoutes(app, pipeline, assistantManager, config) {
   app.get('/health/voz', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     try {
-      res.json(await require('../monitoring/prueba-de-voz').informe());
+      // Sin nombres de organización: hasta el 02/08 esto enumeraba la cartera
+      // de clientes a quien preguntara. El motivo del fallo sí se publica —es lo
+      // accionable—; quién es requiere sesión.
+      res.json(await require('../monitoring/prueba-de-voz').informePublico());
     } catch (e) {
       res.status(500).json({ error: 'no se pudo leer la prueba de voz', detalle: e.message });
     }

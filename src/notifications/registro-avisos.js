@@ -240,6 +240,21 @@ async function informe(opts = {}) {
   };
 }
 
+/**
+ * El mismo informe, pero con los destinatarios ENMASCARADOS: es lo que se
+ * publica sin autenticar.
+ *
+ * Hasta el 02/08 este endpoint daba las direcciones enteras a quien preguntara.
+ * No se borran del todo a propósito: el fallo que motivó todo esto fue tener DOS
+ * líneas NOTIFY_EMAIL distintas, y sin ver el dominio «los avisos llegan» y «los
+ * avisos llegan al buzón equivocado» volverían a parecerse.
+ */
+async function informePublico(opts = {}) {
+  const { correo } = require('../monitoring/sin-identidades');
+  const i = await informe(opts);
+  return { ...i, destinatarios: (i.destinatarios || []).map(correo).filter(Boolean) };
+}
+
 // ── Cron: confirmar entregas cada 10 min ────────────────────────────────────
 // Va aparte del envío a propósito. Preguntar a Resend justo después de mandar
 // devuelve siempre «sent» y no dice nada: el rebote tarda. Y bloquear el envío
@@ -260,7 +275,7 @@ function arrancarConfirmacion() {
 function pararConfirmacion() { if (_timer) { clearInterval(_timer); _timer = null; } }
 
 module.exports = {
-  anotar, leer, analizar, informe, confirmarEntregas,
+  anotar, leer, analizar, informe, informePublico, confirmarEntregas,
   arrancarConfirmacion, pararConfirmacion,
   CLAVE, DIAS_DE_SILENCIO_SOSPECHOSO,
 };

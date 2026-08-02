@@ -141,7 +141,7 @@ async function _revisarReserva(org, deps, base) {
  * @param {{router:object, resolver:function, sintetizar:function, hoy:string}} deps
  */
 async function revisarOrg(org, deps) {
-  const base = { org: org.nombre || org.id, voz: org.voz || null };
+  const base = { org: org.nombre || org.id, orgId: org.id, voz: org.voz || null };
 
   if (!org.voz) {
     // OJO CON ESTE CAMINO. Es tentador despacharlo con un aviso y seguir —«no
@@ -206,13 +206,13 @@ function resumir(resultados, cuando) {
     cuando: cuando || null,
     revisadas: r.length,
     conProblemas: malas.length,
-    problemas: malas.map(x => ({ org: x.org, voz: x.voz, motivo: x.motivo })),
-    avisos: avisos.map(x => ({ org: x.org, aviso: x.aviso })),
+    problemas: malas.map(x => ({ org: x.org, orgId: x.orgId, voz: x.voz, motivo: x.motivo })),
+    avisos: avisos.map(x => ({ org: x.org, orgId: x.orgId, aviso: x.aviso })),
     // `x.ms || null` convertía un 0 legítimo en «no medido», y esos ceros eran
     // justo la señal de que la síntesis había dado en la caché: el dato que más
     // importaba se borraba a sí mismo. Se distingue medido-en-0 de no-medido.
     detalle: r.map(x => ({
-      org: x.org, voz: x.voz, ok: x.ok,
+      org: x.org, orgId: x.orgId, voz: x.voz, ok: x.ok,
       bytes: Number.isFinite(x.bytes) ? x.bytes : 0,
       ms: Number.isFinite(x.ms) ? x.ms : null,
     })),
@@ -275,6 +275,26 @@ function _esLider() {
   try { return require('../utils/leader').isLeader(); } catch (_) { return false; }
 }
 
+/**
+ * Lo mismo, pero SIN NOMBRES: es lo que se publica sin autenticar.
+ *
+ * El motivo se conserva entero —es lo accionable de la alarma— y el nombre se
+ * cambia por una referencia estable, para poder cruzarla con el panel sin
+ * publicar la cartera de clientes. Hasta el 02/08 este endpoint enumeraba a
+ * todos los clientes a quien preguntara.
+ */
+async function informePublico() {
+  const { ref } = require('./sin-identidades');
+  const i = await informe();
+  const anon = (x) => { const { org, orgId, ...resto } = x; return { ref: ref(orgId), ...resto }; };
+  return {
+    ...i,
+    problemas: (i.problemas || []).map(anon),
+    avisos: (i.avisos || []).map(anon),
+    detalle: (i.detalle || []).map(anon),
+  };
+}
+
 let _timer = null;
 let _reintento = null;
 
@@ -322,4 +342,4 @@ function parar() {
   if (_reintento) { clearTimeout(_reintento); _reintento = null; }
 }
 
-module.exports = { revisarOrg, resumir, pasada, informe, arrancar, parar, _frase, _sello, _primeraPasada, CLAVE };
+module.exports = { revisarOrg, resumir, pasada, informe, informePublico, arrancar, parar, _frase, _sello, _primeraPasada, CLAVE };

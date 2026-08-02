@@ -101,6 +101,26 @@ function setupAdminRoutes(app, config, assistantManager) {
   //
   // Va detrás de adminAuth porque devuelve teléfonos de quien llamó.
   // `?horas=N` para mirar una ventana más larga (por defecto 6).
+  // La prueba de voz CON NOMBRES. El endpoint público (/health/voz) da el mismo
+  // veredicto con referencias opacas: sirve para que un vigilante externo avise,
+  // no para que nadie liste tus clientes. Aquí, con sesión, se ve quién es quién.
+  app.get('/api/admin/prueba-voz', adminAuth, async (req, res) => {
+    try {
+      res.json(await require('../monitoring/prueba-de-voz').informe());
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer la prueba de voz', detalle: e.message });
+    }
+  });
+
+  // Y los avisos con las direcciones enteras, por el mismo motivo.
+  app.get('/api/admin/avisos', adminAuth, async (req, res) => {
+    try {
+      res.json(await require('../notifications/registro-avisos').informe());
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo leer el registro de avisos', detalle: e.message });
+    }
+  });
+
   app.get('/api/admin/conciliacion', adminAuth, async (req, res) => {
     try {
       // Hasta 30 días. El tope estaba en 72 h y la última llamada real era de
