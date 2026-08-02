@@ -269,10 +269,14 @@ jobs:
           except Exception as e:
               print(f'   informe ilegible: {e}'); sys.exit(0)
           print(f"   {h.get('resumen')}")
+          # `ref` y no `org`: el endpoint público dejó de publicar los nombres de
+          # los clientes el 02/08, y este bloque siguió pidiendo `org` — imprimía
+          # «None». Es la avería de siempre: se cambia el que produce el dato y se
+          # olvida el que lo consume. La referencia se cruza en /api/admin/prueba-voz.
           for p in (h.get('problemas') or []):
-              print(f"::error::VOZ · {p.get('org')}: {p.get('motivo')}")
+              print(f"::error::VOZ · cliente {p.get('ref') or '?'}: {p.get('motivo')}")
           for a in (h.get('avisos') or []):
-              print(f"   · {a.get('org')}: {a.get('aviso')}")
+              print(f"   · cliente {a.get('ref') or '?'}: {a.get('aviso')}")
           # Una prueba que dejó de ejecutarse se ve EXACTAMENTE igual que una que
           # sale bien: cero problemas. Por eso se mira la fecha y no solo el
           # recuento — sin esto, el día que el cron muera nadie se entera.
