@@ -59,9 +59,25 @@
     "recepcionista-ia-clinica-dental-vitoria",
     "guia-elegir-asistente-voz-negocio-2026",
     "recepcionista-ia-farmacia-bilbao",
-    "recordatorios-whatsapp-reducir-no-shows-guia"
+    "recordatorios-whatsapp-reducir-no-shows-guia",
+    "asistente-ia-farmacia-donostia"
   ],
   "posts": [
+    {
+      "slug": "asistente-ia-farmacia-donostia",
+      "title": "Transforma tu farmacia en Donostia con un asistente IA",
+      "metaTitle": "Asistente IA para farmacias en Donostia",
+      "description": "Descubre cómo un asistente IA optimiza tu farmacia en Donostia. Automatiza consultas y mejora el servicio. Visita nodeflow.es",
+      "date": "2026-08-03",
+      "keywords": [
+        "asistente IA farmacia Donostia",
+        "recepcionista virtual farmacia San Sebastián",
+        "turno guardia farmacia IA Gipuzkoa"
+      ],
+      "sector": "farmacias",
+      "city": "donostia",
+      "readingMinutes": 7
+    },
     {
       "slug": "recordatorios-whatsapp-reducir-no-shows-guia",
       "title": "La guía definitiva para reducir no-shows con recordatorios por WhatsApp",
