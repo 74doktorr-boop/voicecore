@@ -587,6 +587,37 @@ class VoicePipeline {
     }
   }
 
+  /**
+   * Un segundo intento cuando el LLM devuelve vacío. Devuelve el texto o ''.
+   *
+   * SIN herramientas y sin streaming a propósito: aquí no se quiere ejecutar
+   * ninguna acción, solo recuperar una frase para no dejar al cliente colgado.
+   * Nunca lanza — si el reintento también falla, el que llama sigue con su
+   * camino de recuperación de siempre.
+   */
+  async _reintentarRespuesta(callId, session) {
+    try {
+      session.metrics.reintentos = (session.metrics.reintentos || 0) + 1;
+      let texto = '';
+      for await (const chunk of this.llmRouter.streamCompletion({
+        callId,
+        messages: session.messages,
+        model: session.assistant.model,
+        temperature: session.assistant.temperature || 0.7,
+        maxTokens: 220,
+      })) {
+        if (session.interrupted) return '';
+        if (chunk.type === 'text') texto += chunk.content || '';
+        if (chunk.type === 'done' && chunk.content) texto = chunk.content;
+        if (chunk.type === 'error') return '';
+      }
+      return String(texto || '').trim();
+    } catch (e) {
+      log.warn(`[${callId}] reintento falló: ${e.message}`);
+      return '';
+    }
+  }
+
   async _processTurn(callId, userText, meta = {}) {
     const session = this.activeCalls.get(callId);
     if (!session) return;
@@ -903,11 +934,36 @@ class VoicePipeline {
         // de la escalera de STT y podía repetir "¿me lo puede repetir?" sin fin
         // (caso real: STT bien, LLM vacío en bucle). Ahora, tras N turnos sin
         // respuesta seguidos, escala a recado con la misma salida de gracia.
-        if (session._consecRecovery >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
+        // REINTENTAR ANTES DE RENDIRSE. Medido el 03/08 sobre 54 llamadas: los
+        // 8 «¿me lo puede repetir?» de producción salieron TODOS de aquí, de un
+        // turno en el que el LLM devolvió vacío — no de un fallo de audio. La
+        // confianza del reconocimiento bajó de 0,55 UNA sola vez en 260 turnos.
+        //
+        // O sea que le pedíamos al cliente que repitiera un fallo nuestro. Y ahí
+        // está el bucle que se ve en las transcripciones: el cliente repite lo
+        // mismo, el LLM vuelve a fallar, y se choca con el mismo muro:
+        //
+        //     cliente: Sí, por favor.     asist.: ¿Me lo puede repetir?
+        //     cliente: Sí, por favor.     asist.: ¿Me lo puede repetir?
+        //
+        // Repetir no podía funcionar: el cliente nunca fue el problema. Un
+        // reintento sí, porque una respuesta vacía casi siempre es transitoria —
+        // y si sale bien, el cliente no se entera de nada.
+        const segundoIntento = await this._reintentarRespuesta(callId, session);
+        if (segundoIntento) {
+          session.metrics.reintentosConExito = (session.metrics.reintentosConExito || 0) + 1;
+          session._consecRecovery = 0;
+          log.info(`[${callId}] Turno vacío recuperado al segundo intento`);
+          await this._speakText(callId, segundoIntento);
+          session.addAssistantMessage(segundoIntento);
+        } else if (session._consecRecovery >= ESCALATE_AFTER && !session._escalatedTakeMessage) {
           await this._takeMessageAndNotify(callId, session, turnMetrics, `${session._consecRecovery} turnos sin respuesta seguidos`);
         } else {
-          const recovery = 'Perdone, no le he escuchado bien. ¿Me lo puede repetir?';
-          log.warn(`[${callId}] Turno sin respuesta del LLM — recuperación (${session._consecRecovery})`);
+          // Y si aun así no hay respuesta, se dice la verdad. «No le he
+          // escuchado bien» era mentira —se le escuchó perfectamente, está en la
+          // transcripción— y encima invitaba a repetir lo que ya había fallado.
+          const recovery = 'Perdone, ha sido un fallo mío, no suyo. ¿Me lo repite, por favor?';
+          log.warn(`[${callId}] Turno sin respuesta del LLM tras reintentar (${session._consecRecovery})`);
           await this._speakText(callId, recovery);
           session.addAssistantMessage(recovery);
         }
