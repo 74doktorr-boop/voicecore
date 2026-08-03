@@ -79,9 +79,19 @@ function intencion(frase) {
 /** Las preguntas de un turno del asistente (frases que acaban en '?'). */
 function preguntasDe(texto) {
   const s = String(texto || '');
-  // Se parte por interrogación de cierre, conservando la frase entera anterior.
-  // El castellano abre con '¿' pero las transcripciones no siempre lo traen.
-  return s.split(/(?<=\?)/).map(x => x.trim()).filter(x => x.endsWith('?'));
+  // Se parte en FRASES, no solo por el cierre de interrogación.
+  //
+  // La primera versión partía únicamente por '?', así que «No ofrecemos
+  // descuentos. ¿Te gustaría agendar?» salía como UNA sola pieza con la
+  // afirmación pegada delante. Para clasificar daba igual; para QUITAR la
+  // oferta y dejar la respuesta —que es lo que hace el tope de insistencia—
+  // era fatal: quitarla se llevaba también la respuesta, así que el filtro
+  // decidía callar y luego no callaba nada. Contaba bien y actuaba mal.
+  return s.split(/(?<=[.!?…])\s+/)
+    .map(x => x.trim())
+    .filter(x => x.endsWith('?'))
+    // Si la frase arrastra un trozo afirmativo antes del '¿', se recorta.
+    .map(x => { const i = x.lastIndexOf('¿'); return i > 0 ? x.slice(i) : x; });
 }
 
 /**

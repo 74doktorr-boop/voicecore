@@ -563,6 +563,30 @@ class VoicePipeline {
   /**
    * Process a conversation turn: LLM → (Tools) → TTS
    */
+  /**
+   * Aplica el tope de insistencia a UNA frase. Devuelve lo que hay que decir,
+   * o '' si el remate se calla entero.
+   *
+   * El estado va en la sesión, así que el contador es POR LLAMADA: cada cliente
+   * empieza de cero. Fail-open en cualquier error — un tope que enmudezca al
+   * asistente sería mucho peor que la insistencia que viene a corregir.
+   */
+  _limitarInsistencia(session, frase, userText) {
+    try {
+      const limite = require('./limite-insistencia');
+      session._cierres = session._cierres || {};
+      const r = limite.filtrar(session._cierres, frase, userText);
+      if (r.callado) {
+        session._turnCallado = true;
+        session.metrics.rematesCallados = (session.metrics.rematesCallados || 0) + 1;
+      }
+      return r.texto;
+    } catch (e) {
+      log.warn(`tope de insistencia fail-open: ${e.message}`);
+      return frase;
+    }
+  }
+
   async _processTurn(callId, userText, meta = {}) {
     const session = this.activeCalls.get(callId);
     if (!session) return;
@@ -598,6 +622,10 @@ class VoicePipeline {
     // Cadena de habla limpia por turno (F10): una cadena del turno anterior no
     // debe encadenar el habla de este. Cada turno espera SU cola al terminar.
     session._speechChain = Promise.resolve();
+    // Lo que de verdad se ha dicho en este turno, para que el historial no
+    // guarde frases que el tope de insistencia calló.
+    session._turnDicho = [];
+    session._turnCallado = false;
 
     // Add user message
     session.addUserMessage(userText);
@@ -735,11 +763,21 @@ class VoicePipeline {
             spokeFirstFragment = true;
             for (const sentence of sentences.complete) {
               if (session.interrupted) break;
+              // TOPE DE INSISTENCIA: se aplica AQUÍ, frase a frase, porque aquí
+              // es donde se habla. Medido el 03/08: el asistente remataba cada
+              // respuesta ofreciendo cita —diez veces en una misma llamada— y
+              // eso era el 63% de todas sus repeticiones. Ver limite-insistencia.
+              //
+              // Quita el remate, no la respuesta. Fail-open: si algo falla, se
+              // dice la frase tal cual (callar por un bug sería mucho peor).
+              const dicho = this._limitarInsistencia(session, sentence, userText);
+              if (!dicho) continue;                       // remate callado entero
+              session._turnDicho.push(dicho);
               // SIN await (F10): esperar aquí SUSPENDE el generador del LLM, así
               // que la síntesis de cada frase entraba en el camino crítico de la
               // siguiente. Se encola preservando el orden y el LLM sigue
               // generando mientras tanto. Ver _speakQueued.
-              this._speakQueued(callId, sentence);
+              this._speakQueued(callId, dicho);
             }
             accumulatedText = sentences.remaining;
           } else if (!spokeFirstFragment) {
@@ -751,6 +789,7 @@ class VoicePipeline {
             if (frag) {
               turnMetrics.llmFirstFragmentMs = Date.now() - turnStart;
               spokeFirstFragment = true;
+              session._turnDicho.push(frag[1]);
               this._speakQueued(callId, frag[1]);
               accumulatedText = accumulatedText.slice(frag[0].length);
             }
@@ -843,7 +882,15 @@ class VoicePipeline {
         }
       } else if (fullResponse) {
         session._consecRecovery = 0; // respuesta real → rompe cualquier racha de recuperación
-        session.addAssistantMessage(fullResponse);
+        // Lo que se guarda es lo que el cliente OYÓ, no lo que el modelo generó.
+        // Si el tope de insistencia calló un remate y el historial siguiera
+        // guardando el texto entero, la transcripción mentiría sobre la llamada
+        // — y encima el medidor de repeticiones leería un remate que nadie dijo,
+        // así que la mejora sería invisible en su propia medida.
+        session.addAssistantMessage(
+          session._turnCallado && session._turnDicho.length
+            ? session._turnDicho.join(' ')
+            : fullResponse);
       }
 
       // Red de seguridad ANTI-SILENCIO: si el turno terminó sin decir nada
