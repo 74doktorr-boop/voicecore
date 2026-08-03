@@ -776,6 +776,23 @@ function setupRoutes(app, pipeline, assistantManager, config) {
     }
   });
 
+  // ─── ¿Se repite el asistente? ──────────────────────────────────────────────
+  // Los dos arreglos del 03/08 —el tope de insistencia y el reintento del turno
+  // vacío— se validaron SIMULANDO sobre llamadas ya ocurridas. El número de
+  // verdad solo lo dan las llamadas nuevas, y hasta ahora eso requería que
+  // alguien ejecutara un script a mano: o sea, no era una medida.
+  //
+  // Sin identidades, como el resto: recuentos y nada más. Ni nombres, ni
+  // teléfonos, ni una sola frase de ninguna conversación.
+  app.get('/health/conversacion', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      res.json(await require('../monitoring/salud-conversacion').informe());
+    } catch (e) {
+      res.status(500).json({ error: 'no se pudo medir la conversación', detalle: e.message });
+    }
+  });
+
   log.info('API routes configured');
 }
 
