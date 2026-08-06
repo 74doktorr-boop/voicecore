@@ -60,9 +60,25 @@
     "guia-elegir-asistente-voz-negocio-2026",
     "recepcionista-ia-farmacia-bilbao",
     "recordatorios-whatsapp-reducir-no-shows-guia",
-    "asistente-ia-farmacia-donostia"
+    "asistente-ia-farmacia-donostia",
+    "reactivar-clientes-dormidos-guia-practica"
   ],
   "posts": [
+    {
+      "slug": "reactivar-clientes-dormidos-guia-practica",
+      "title": "Cómo Reactivar Clientes Antiguos y Recuperar Ingresos Perdidos",
+      "metaTitle": "Reactivar clientes antiguos y aumentar ingresos",
+      "description": "Descubre cómo reactivar clientes antiguos con NodeFlow. Recupera clientes perdidos y aumenta tus ingresos. ¡Visita nodeflow.es!",
+      "date": "2026-08-06",
+      "keywords": [
+        "reactivar clientes antiguos",
+        "recuperar clientes perdidos",
+        "campaña reactivación clientes"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "asistente-ia-farmacia-donostia",
       "title": "Transforma tu farmacia en Donostia con un asistente IA",
