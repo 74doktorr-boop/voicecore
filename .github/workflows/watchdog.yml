@@ -360,6 +360,25 @@ jobs:
           contar "$RED"
           RED_OK=$([ "${RED%% *}" = "200" ] && echo si || echo no)
 
+          # DESDE QUÉ IP se está intentando. Es gratis —la respuesta de
+          # Cloudflare ya la trae— y es la única pista que faltaba para
+          # distinguir las dos explicaciones que llevamos una semana sin poder
+          # separar:
+          #
+          #   · si los fallos salen SIEMPRE desde direcciones distintas, es la
+          #     ruta o el proveedor, y no hay nada que tocar;
+          #   · si se repiten desde el mismo rango, es que el servidor está
+          #     BLOQUEANDO esas direcciones — y entonces se arregla en el
+          #     cortafuegos del VPS, no esperando.
+          #
+          # La segunda encaja con lo medido: `curl rc=28` es tiempo agotado ANTES
+          # de conectar, que es lo que hace un cortafuegos que DESCARTA paquetes.
+          # Un servidor caído RECHAZA la conexión (rc=7) — es otra avería y otro
+          # código. Y falla también ets.nodeflow.es, o sea el mismo servidor por
+          # otro nombre, mientras desde otras redes responde en 0,3 s.
+          IP_RUNNER=$(grep -o '^ip=.*' /tmp/cf.txt 2>/dev/null | cut -d= -f2)
+          echo "   este intento sale desde la IP: ${IP_RUNNER:-desconocida}"
+
           echo "· Otro contenedor del MISMO servidor (ets.nodeflow.es):"
           HOST=$(probar https://ets.nodeflow.es/ /tmp/ets.html)
           contar "$HOST"
