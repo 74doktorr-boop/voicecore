@@ -61,9 +61,25 @@
     "recepcionista-ia-farmacia-bilbao",
     "recordatorios-whatsapp-reducir-no-shows-guia",
     "asistente-ia-farmacia-donostia",
-    "reactivar-clientes-dormidos-guia-practica"
+    "reactivar-clientes-dormidos-guia-practica",
+    "asistente-ia-taller-mecanico-donostia"
   ],
   "posts": [
+    {
+      "slug": "asistente-ia-taller-mecanico-donostia",
+      "title": "Optimiza tu Taller Mecánico en Donostia con Asistente IA",
+      "metaTitle": "Asistente IA para Taller Mecánico en Donostia",
+      "description": "Automatiza citas y gestiona tu taller en Donostia con asistente IA. Descubre NodeFlow y optimiza tu negocio.",
+      "date": "2026-08-08",
+      "keywords": [
+        "asistente IA taller mecánico Donostia",
+        "recepcionista virtual taller San Sebastián",
+        "automatizar citas taller Gipuzkoa"
+      ],
+      "sector": "talleres",
+      "city": "donostia",
+      "readingMinutes": 8
+    },
     {
       "slug": "reactivar-clientes-dormidos-guia-practica",
       "title": "Cómo Reactivar Clientes Antiguos y Recuperar Ingresos Perdidos",
