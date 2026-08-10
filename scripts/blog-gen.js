@@ -37,7 +37,7 @@ let   manifest = fs.existsSync(MANIFEST) ? JSON.parse(fs.readFileSync(MANIFEST, 
 if (!manifest.posts) manifest.posts = [];
 
 if (listOnly) {
-  const pending = topics.filter(t => !manifest.published.includes(t.slug));
+  const pending = topics.filter(t => !lib.yaPublicado(t.slug));
   console.log(`\nPending topics (${pending.length}/${topics.length}):\n`);
   pending.forEach(t => console.log(`  - ${t.slug}`));
   console.log(`\nPublished (${manifest.published.length}):\n`);
@@ -192,7 +192,7 @@ async function generateAndPublish(topic) {
   try {
     if (genAll) {
       // Generate all pending topics sequentially
-      const pending = topics.filter(t => !manifest.published.includes(t.slug));
+      const pending = topics.filter(t => !lib.yaPublicado(t.slug));
       if (!pending.length) {
         console.log('✅ All topics already published!');
         process.exit(0);
@@ -213,7 +213,7 @@ async function generateAndPublish(topic) {
         topic = topics.find(t => t.slug === forcedSlug);
         if (!topic) { console.error(`Topic not found: ${forcedSlug}`); process.exit(1); }
       } else {
-        const pending = topics.filter(t => !manifest.published.includes(t.slug));
+        const pending = topics.filter(t => !lib.yaPublicado(t.slug));
         if (!pending.length) { console.log('All topics published. Add more to topics.json'); process.exit(0); }
         topic = pending[0];
       }

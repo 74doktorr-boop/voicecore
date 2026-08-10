@@ -604,8 +604,46 @@ function buildBlogIndex() {
 }
 
 // ── Publish (write post + sitemap + manifest + index) ────────────────────────
-function publishPost(topic, post) {
+/**
+ * ¿Ya existe este artículo? El DISCO manda, no el manifiesto.
+ *
+ * El manifiesto se quedó corto: el 11/08 había 101 directorios publicados y
+ * solo 64 slugs en `manifest.published`. Los 37 que faltaban se veían como
+ * «pendientes» y se volvían a generar ENCIMA del artículo vivo.
+ */
+function yaPublicado(slug) {
+  try {
+    if (fs.existsSync(path.join(BLOG_DIR, slug, 'index.html'))) return true;
+    const m = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
+    return (m.published || []).includes(slug);
+  } catch (_) { return false; }
+}
+
+function publishPost(topic, post, opts = {}) {
   const postDir = path.join(BLOG_DIR, topic.slug);
+
+  // NO SE PISA UN ARTÍCULO PUBLICADO.
+  //
+  // Medido el 11/08 sobre el historial: de 18 ejecuciones del blog, DOCE
+  // reescribieron un artículo existente en vez de publicar uno nuevo. Y no era
+  // una actualización: metían un texto distinto en la misma URL y le cambiaban
+  // `datePublished` a la fecha de hoy. El del 08/08 se llevó por delante uno
+  // que llevaba vivo desde el 29 de mayo — con su posicionamiento y todo — y
+  // encima dejó el esquema mintiendo sobre cuándo se escribió.
+  //
+  // Nadie se enteró porque el resultado se PARECE a publicar: el cron sale en
+  // verde, hay un commit, el índice se regenera. Lo único que no cambia es el
+  // número de artículos, y eso no lo miraba nadie.
+  //
+  // La guarda va AQUÍ, en el paso obligatorio de escribir, y no solo al elegir
+  // el tema: cualquier camino que llegue hasta aquí queda cubierto.
+  if (fs.existsSync(path.join(postDir, 'index.html')) && !opts.sobrescribir) {
+    throw new Error(
+      `"${topic.slug}" YA está publicado: no se pisa.
+` +
+      `   Si de verdad quieres reescribirlo, pásalo con --sobrescribir.`);
+  }
+
   if (!fs.existsSync(postDir)) fs.mkdirSync(postDir, { recursive: true });
 
   const html = buildHtml(topic, post);
@@ -619,4 +657,4 @@ function publishPost(topic, post) {
   console.log(`  ✅ Published: https://nodeflow.es/blog/${topic.slug}`);
 }
 
-module.exports = { buildHtml, addToSitemap, updateManifest, buildBlogIndex, publishPost, BLOG_DIR, MANIFEST, SITEMAP, TODAY, YEAR };
+module.exports = { buildHtml, addToSitemap, updateManifest, buildBlogIndex, publishPost, yaPublicado, BLOG_DIR, MANIFEST, SITEMAP, TODAY, YEAR };
