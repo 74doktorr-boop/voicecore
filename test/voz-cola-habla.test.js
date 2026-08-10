@@ -39,6 +39,10 @@ function fakePipeline(demoras = {}, session = {}) {
     },
     _speakQueued: VoicePipeline.prototype._speakQueued,
     _drainSpeech: VoicePipeline.prototype._drainSpeech,
+    // Desde el 06/08, _speakQueued es el cuello de botella por donde pasa TODO
+    // lo que dice el LLM, así que aplica también el tope de insistencia. Este
+    // doble tiene que traerlo: sin él probaría un _speakQueued que no existe.
+    _limitarInsistencia: VoicePipeline.prototype._limitarInsistencia,
   };
   return p;
 }

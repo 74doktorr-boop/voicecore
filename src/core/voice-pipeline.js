@@ -657,6 +657,9 @@ class VoicePipeline {
     // guarde frases que el tope de insistencia calló.
     session._turnDicho = [];
     session._turnCallado = false;
+    // Lo necesita el tope desde _speakQueued: si el cliente ha sacado el tema,
+    // ofrecerle cita no es insistir.
+    session._ultimoTextoCliente = userText;
 
     // Add user message
     session.addUserMessage(userText);
@@ -794,21 +797,11 @@ class VoicePipeline {
             spokeFirstFragment = true;
             for (const sentence of sentences.complete) {
               if (session.interrupted) break;
-              // TOPE DE INSISTENCIA: se aplica AQUÍ, frase a frase, porque aquí
-              // es donde se habla. Medido el 03/08: el asistente remataba cada
-              // respuesta ofreciendo cita —diez veces en una misma llamada— y
-              // eso era el 63% de todas sus repeticiones. Ver limite-insistencia.
-              //
-              // Quita el remate, no la respuesta. Fail-open: si algo falla, se
-              // dice la frase tal cual (callar por un bug sería mucho peor).
-              const dicho = this._limitarInsistencia(session, sentence, userText);
-              if (!dicho) continue;                       // remate callado entero
-              session._turnDicho.push(dicho);
               // SIN await (F10): esperar aquí SUSPENDE el generador del LLM, así
               // que la síntesis de cada frase entraba en el camino crítico de la
               // siguiente. Se encola preservando el orden y el LLM sigue
               // generando mientras tanto. Ver _speakQueued.
-              this._speakQueued(callId, dicho);
+              this._speakQueued(callId, sentence);
             }
             accumulatedText = sentences.remaining;
           } else if (!spokeFirstFragment) {
@@ -820,7 +813,6 @@ class VoicePipeline {
             if (frag) {
               turnMetrics.llmFirstFragmentMs = Date.now() - turnStart;
               spokeFirstFragment = true;
-              session._turnDicho.push(frag[1]);
               this._speakQueued(callId, frag[1]);
               accumulatedText = accumulatedText.slice(frag[0].length);
             }
@@ -1210,8 +1202,26 @@ class VoicePipeline {
   _speakQueued(callId, text, opts = {}) {
     const session = this.activeCalls.get(callId);
     if (!session) return Promise.resolve();
+
+    // EL TOPE DE INSISTENCIA VA AQUÍ, y no donde estaba.
+    //
+    // Se puso primero en el bucle de frases del turno principal, y con eso
+    // quedaban CUATRO caminos sin cubrir — entre ellos el que corre DESPUÉS de
+    // ejecutar una herramienta, o sea justo después de reservar una cita, que es
+    // el sitio con más papeletas de soltar un «¿le ayudo en algo más?».
+    //
+    // Es el error de siempre en versión pequeña: poner la guarda en un sitio en
+    // vez de en el paso obligatorio. Por aquí sale TODO lo que genera el LLM y
+    // solo eso —los saludos, las frases-puente y los mensajes de recuperación
+    // van por _speakText—, así que un camino nuevo queda cubierto sin que nadie
+    // se acuerde de cablearlo.
+    const dicho = this._limitarInsistencia(session, text, session._ultimoTextoCliente);
+    if (!dicho) return Promise.resolve();          // remate callado entero
+    session._turnDicho = session._turnDicho || [];
+    session._turnDicho.push(dicho);
+
     session._speechChain = (session._speechChain || Promise.resolve())
-      .then(() => this._speakText(callId, text, opts))
+      .then(() => this._speakText(callId, dicho, opts))
       .catch((e) => { log.warn(`[${callId}] TTS en cola falló: ${e.message}`); });
     return session._speechChain;
   }

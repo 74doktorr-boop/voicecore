@@ -17,14 +17,42 @@ const DAY = 864e5;
 
 describe('trigger from_signup — calculateScheduledFor', () => {
   test('alta reciente → programa a los N días del alta', () => {
-    const created = new Date(Date.now() - 10 * DAY); // dado de alta hace 10 días
+    // OJO CON LA ARITMÉTICA DE FECHAS. Este test comparaba contra
+    // `created.getTime() + 90 * DAY`, o sea milisegundos a pelo, y eso IGNORA el
+    // cambio de hora. El código usa `setDate(getDate() + 90)`, que conserva la
+    // hora LOCAL — que es lo que espera una persona cuando le dicen «dentro de
+    // 90 días»: si te dieron de alta a la una, te toca a la una.
+    //
+    // Las dos cosas se separan una hora en cuanto la fecha objetivo cruza el
+    // último domingo de octubre, y si la hora del alta cae cerca de medianoche,
+    // esa hora es UN DÍA ENTERO de diferencia. El 06/08/2026 el test falló por
+    // esto en Madrid y ACUSABA AL CÓDIGO, que estaba bien; en CI (UTC, sin
+    // cambio de hora) pasaba tan tranquilo. Un test que depende de la zona
+    // horaria de quien lo ejecuta no protege: entrena a mirar para otro lado.
+    //
+    // Al arreglarlo caí DOS VECES en la misma trampa: primero fijé el día
+    // esperado leyendo la fecha en UTC (en Madrid ese instante ya es el día
+    // siguiente), y luego lo dejé clavado a un día concreto, que volvía a
+    // depender de la zona. Se comprueba la INVARIANTE, que es lo que de verdad
+    // se promete, y no un día del calendario.
+    const created = new Date('2026-07-31T23:11:50.000Z');
     const d = calculateScheduledFor(
       { trigger: 'from_signup', days: 90 }, {}, null,
-      { contactCreatedAt: created.toISOString() }
+      { contactCreatedAt: created.toISOString() },
     );
     assert.ok(d, 'debe programarse');
-    const expected = new Date(created.getTime() + 90 * DAY);
-    assert.strictEqual(d.toISOString().slice(0, 10), expected.toISOString().slice(0, 10));
+
+    // 1) A la MISMA hora local, aunque por medio se cambie la hora. Esto es lo
+    //    que rompía la aritmética de milisegundos.
+    assert.strictEqual(d.getHours(), created.getHours(),
+      'el aviso se ha movido de hora al cruzar el cambio horario');
+    assert.strictEqual(d.getMinutes(), created.getMinutes());
+
+    // 2) Y exactamente 90 días de CALENDARIO después, contados en local. Se
+    //    cuenta a mediodía a propósito: así la resta no puede caer dentro de la
+    //    hora que el cambio horario añade o quita.
+    const aMediodia = (x) => Date.UTC(x.getFullYear(), x.getMonth(), x.getDate());
+    assert.strictEqual((aMediodia(d) - aMediodia(created)) / DAY, 90);
   });
 
   test('alta muy antigua (la fecha ya pasó) → no se programa en el pasado', () => {
