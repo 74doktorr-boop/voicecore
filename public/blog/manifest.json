@@ -62,9 +62,25 @@
     "recordatorios-whatsapp-reducir-no-shows-guia",
     "asistente-ia-farmacia-donostia",
     "reactivar-clientes-dormidos-guia-practica",
-    "asistente-ia-taller-mecanico-donostia"
+    "asistente-ia-taller-mecanico-donostia",
+    "resenas-google-automatizar-peticion-momento-justo"
   ],
   "posts": [
+    {
+      "slug": "resenas-google-automatizar-peticion-momento-justo",
+      "title": "Consigue Reseñas Google en Piloto Automático",
+      "metaTitle": "Consigue reseñas Google en piloto automático",
+      "description": "Automatiza la petición de reseñas Google y mejora tu reputación online. Descubre cómo con NodeFlow.",
+      "date": "2026-08-10",
+      "keywords": [
+        "conseguir reseñas Google",
+        "automatizar petición reseñas",
+        "reputación online negocio local"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 8
+    },
     {
       "slug": "asistente-ia-taller-mecanico-donostia",
       "title": "Optimiza tu Taller Mecánico en Donostia con Asistente IA",

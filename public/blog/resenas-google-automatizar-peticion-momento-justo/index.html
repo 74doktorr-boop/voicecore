@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consigue reseñas Google en piloto automático | NodeFlow Blog</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="Automatiza la petición de reseñas Google y mejora tu reputación online. Descubre cómo con NodeFlow.">
+  <meta name="keywords" content="conseguir reseñas Google, automatizar petición reseñas, reputación online negocio local">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NodeFlow">
+  <link rel="canonical" href="https://nodeflow.es/blog/resenas-google-automatizar-peticion-momento-justo">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://nodeflow.es/blog/resenas-google-automatizar-peticion-momento-justo">
+  <meta property="og:title" content="Consigue reseñas Google en piloto automático">
+  <meta property="og:description" content="Automatiza la petición de reseñas Google y mejora tu reputación online. Descubre cómo con NodeFlow.">
+  <meta property="og:image" content="https://nodeflow.es/og-image.png">
+  <meta property="og:site_name" content="NodeFlow">
+  <meta property="article:published_time" content="2026-08-10T09:00:00+02:00">
+  <meta property="article:author" content="NodeFlow">
+  <meta property="article:section" content="producto">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Consigue reseñas Google en piloto automático">
+  <meta name="twitter:description" content="Automatiza la petición de reseñas Google y mejora tu reputación online. Descubre cómo con NodeFlow.">
+  <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": "https://nodeflow.es/blog/resenas-google-automatizar-peticion-momento-justo#article",
+        "headline": "Consigue Reseñas Google en Piloto Automático",
+        "description": "Automatiza la petición de reseñas Google y mejora tu reputación online. Descubre cómo con NodeFlow.",
+        "url": "https://nodeflow.es/blog/resenas-google-automatizar-peticion-momento-justo",
+        "datePublished": "2026-08-10",
+        "dateModified": "2026-08-10",
+        "author": {"@type": "Organization", "name": "NodeFlow", "url": "https://nodeflow.es"},
+        "publisher": {
+          "@type": "Organization",
+          "name": "NodeFlow",
+          "url": "https://nodeflow.es",
+          "logo": {"@type": "ImageObject", "url": "https://nodeflow.es/favicon.svg"}
+        },
+        "image": {"@type": "ImageObject", "url": "https://nodeflow.es/og-image.png", "width": 1200, "height": 630},
+        "keywords": "conseguir reseñas Google, automatizar petición reseñas, reputación online negocio local",
+        "wordCount": 1600,
+        "timeRequired": "PT8M"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "NodeFlow", "item": "https://nodeflow.es"},
+          {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://nodeflow.es/blog"},
+          {"@type": "ListItem", "position": 3, "name": "Consigue Reseñas Google en Piloto Automático", "item": "https://nodeflow.es/blog/resenas-google-automatizar-peticion-momento-justo"}
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Cómo afectan las reseñas en Google a mi negocio?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Las reseñas en Google pueden influir en la decisión de compra de potenciales clientes y mejorar tu posición en los resultados de búsqueda."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cuándo es el mejor momento para pedir una reseña a un cliente?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "El mejor momento es justo después de que el cliente haya completado su visita, cuando la experiencia está fresca en su memoria."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿NodeFlow puede enviar mensajes a todos mis clientes?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NodeFlow envía mensajes solo a aquellos clientes cuya visita se ha completado, asegurando así que el feedback sea positivo y relevante."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Es difícil configurar NodeFlow para mi negocio?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No, NodeFlow está diseñado para ser fácil de configurar y usar, permitiéndote centrarte en tu negocio mientras automatiza las peticiones de reseñas."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Puedo personalizar los mensajes que envía NodeFlow?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sí, puedes personalizar los mensajes para que se adapten al tono y estilo de tu negocio, asegurando una comunicación auténtica con tus clientes."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZPKHPG2BLC"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ZPKHPG2BLC');</script>
+  <!-- Plausible -->
+  <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
+
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{--bg:#0F110C;--card:#191E14;--accent:#c4f546;--accent-l:#A8DC2A;--glow:rgba(196,245,70,0.22);--green:#c4f546;--text:#EEF3E4;--dim:#818B76;--muted:#818B76;--border:rgba(226,236,214,0.11);--border-accent:rgba(196,245,70,0.22)}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Satoshi',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+    /* Ancho de lectura. Medido: 94 caracteres por línea en un artículo largo. El rango cómodo es 65-75; por encima, la vista pierde el salto de línea y se abandona. Es el motor de tráfico: que se lea importa. */
+    .article-body,.post-body{max-width:600px;font-size:17px}
+    .article-body p,.post-body p{margin-bottom:1.15em}
+    .container{max-width:760px;margin:0 auto;padding:0 24px}
+    .container-wide{max-width:1100px;margin:0 auto;padding:0 24px}
+    a{text-decoration:none;color:inherit}
+    /* Progress bar */
+    .progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green));z-index:9999;transition:width .1s linear;width:0%}
+    
+    @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,-2%)}40%{transform:translate(2%,3%)}60%{transform:translate(-1%,2%)}80%{transform:translate(3%,-1%)}}
+    
+    
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;transition:all .4s}
+    nav::before{content:'';position:absolute;inset:0;background:rgba(7,7,14,0.9);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+    .logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text)}
+    .logo em{color:var(--accent-l);font-style:normal}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;transition:all .25s;cursor:pointer;border:none}
+    .btn-primary{background:var(--accent);color:#0F110C;box-shadow:0 4px 20px var(--glow)}
+    .btn-primary:hover{background:#7c6cf7;transform:translateY(-1px)}
+    .breadcrumb{padding:90px 0 0;position:relative;z-index:2}
+    .bc-list{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap;list-style:none}
+    .bc-list a{color:var(--accent-l);transition:color .2s}
+    .bc-list a:hover{color:#fff}
+    .post-header{padding:32px 0 40px;position:relative;z-index:2}
+    .post-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+    .tag{font-size:11px;padding:4px 10px;border-radius:100px;background:rgba(108,92,231,0.15);border:1px solid rgba(196,245,70,0.22);color:var(--accent-l);font-weight:500}
+    .post-header h1{font-family:'Clash Display',system-ui,sans-serif;font-size:clamp(26px,5vw,50px);font-weight:600;letter-spacing:-.035em;line-height:1.1;margin-bottom:18px;color:#fff}
+    .post-meta{display:flex;gap:20px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+    .post-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    /* ToC */
+    .toc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin:0 0 40px}
+    .toc-title{font-weight:700;font-size:13px;color:var(--accent-l);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+    .toc ol{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+    .toc li{font-size:14px}
+    .toc a{color:var(--dim);transition:color .2s}
+    .toc a:hover{color:var(--accent-l)}
+    /* Post body */
+    .post-body{padding:0 0 80px;position:relative;z-index:2}
+    .post-body p{font-size:17px;line-height:1.85;color:#c8c8d8;margin-bottom:22px}
+    .post-body h2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.8px;margin:52px 0 18px;color:#fff;padding-top:8px;border-top:1px solid var(--border);scroll-margin-top:90px}
+    .post-body h2:first-of-type{border-top:none}
+    .post-section{margin-bottom:8px}
+    .post-divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+    /* Mid CTA */
+    .cta-mid{background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);border-radius:14px;padding:24px 28px;margin:40px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .cta-mid p{color:var(--dim);font-size:14px;flex:1;min-width:200px;margin:0}
+    .cta-mid strong{color:var(--text);display:block;margin-bottom:4px;font-size:15px}
+    /* Main CTA */
+    .cta-box{background:linear-gradient(135deg,rgba(108,92,231,0.14),rgba(0,206,201,0.07));border:1px solid var(--border-accent);border-radius:20px;padding:44px 40px;text-align:center;margin:48px 0}
+    .cta-box h3{font-size:24px;font-weight:900;margin-bottom:12px;letter-spacing:-0.5px}
+    .cta-box p{color:var(--dim);margin-bottom:24px;font-size:15px}
+    .btn-lg{padding:14px 32px;font-size:15px;border-radius:12px}
+    /* FAQ */
+    .faq-section{margin:48px 0}
+    .faq-section>h2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-0.8px;margin-bottom:24px;color:#fff;padding-top:8px;border-top:1px solid var(--border);scroll-margin-top:90px}
+    .faq-list{display:flex;flex-direction:column;gap:8px}
+    .faq-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
+    .faq-item:hover{border-color:rgba(196,245,70,0.22)}
+    .faq-q{width:100%;background:var(--card);border:none;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer;text-align:left;color:var(--text);font-size:15px;font-weight:600;font-family:inherit;transition:background .2s}
+    .faq-q:hover{background:#1F251A}
+    .faq-icon{color:var(--accent-l);font-size:20px;font-weight:300;flex-shrink:0;transition:transform .3s}
+    .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .3s}
+    .faq-a.open{max-height:300px;padding:4px 22px 18px}
+    .faq-a p{font-size:15px;color:var(--dim);line-height:1.7;margin:0}
+    /* Related */
+    .related-links{margin:40px 0;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:14px}
+    .related-grid{display:flex;flex-wrap:wrap;gap:10px}
+    .related-link{font-size:13px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;color:var(--accent-l);transition:all .2s;background:rgba(108,92,231,0.05)}
+    .related-link:hover{border-color:var(--border-accent);background:rgba(108,92,231,0.12)}
+    /* Float WA */
+    .wa-float{position:fixed;bottom:24px;right:24px;z-index:200;width:56px;height:56px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:28px;text-decoration:none;box-shadow:0 4px 24px rgba(37,211,102,0.5);transition:transform .2s}
+    .wa-float:hover{transform:scale(1.1)}
+    footer{border-top:1px solid var(--border);padding:32px 0}
+    .footer-inner{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+    .footer-links{display:flex;gap:16px;flex-wrap:wrap}
+    .footer-links a{font-size:13px;color:var(--dim)}
+    .footer-links a:hover{color:var(--text)}
+    .footer-copy{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="progress-bar" id="pb"></div>
+
+<nav>
+  <div class="container-wide">
+    <div class="nav-inner">
+      <a href="https://nodeflow.es" class="logo">Node<em>Flow</em></a>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a href="/blog" style="font-size:14px;color:var(--dim)">Blog</a>
+        <a href="https://nodeflow.es/#contacto" class="btn btn-primary">Empezar gratis →</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="bc-list">
+        <li><a href="https://nodeflow.es">NodeFlow</a></li>
+        <li aria-hidden="true" style="color:var(--muted)">›</li>
+        <li><a href="/blog">Blog</a></li>
+        <li aria-hidden="true" style="color:var(--muted)">›</li>
+        <li aria-current="page" style="color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px">Consigue Reseñas Google en Piloto Automático</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<header class="post-header">
+  <div class="container">
+    <div class="post-tags"><span class="tag">conseguir reseñas Google</span><span class="tag">automatizar petición reseñas</span><span class="tag">reputación online negocio local</span></div>
+    <h1>Consigue Reseñas Google en Piloto Automático</h1>
+    <div class="post-meta">
+      <span>NodeFlow Blog</span>
+      <span class="dot"></span>
+      <time datetime="2026-08-10">2026-08-10</time>
+      <span class="dot"></span>
+      <span>8 min de lectura</span>
+    </div>
+  </div>
+</header>
+
+<article class="post-body" itemscope itemtype="https://schema.org/Article">
+  <div class="container">
+    
+    <nav class="toc" aria-label="Tabla de contenidos">
+      <div class="toc-title">📋 En este artículo</div>
+      <ol><li><a href="#s1">La importancia de las reseñas en Google para tu negocio</a></li>
+        <li><a href="#s2">¿Por qué cuesta tanto pedir reseñas?</a></li>
+        <li><a href="#s3">NodeFlow: Automatiza la petición en el momento perfecto</a></li>
+        <li><a href="#s4">Reputación online construida mes a mes</a></li>
+        <li><a href="#faq">Preguntas frecuentes</a></li>
+      </ol>
+    </nav>
+    <p>Imagínate al final de un largo día en tu negocio, cerrando la caja registradora. De repente, recuerdas que deberías haber pedido a los clientes que dejaron su opinión en Google. Pero claro, entre la multitud de tareas, se te pasó. ¿Te suena? Las reseñas en Google pueden ser la diferencia entre recibir una llamada de un nuevo cliente o que se decante por la competencia. Sin embargo, pedirlas puede resultar incómodo y fácil de olvidar. Aquí es donde NodeFlow entra en escena, automatizando el proceso y asegurándose de que el mensaje llegue justo en el momento adecuado: tras la visita del cliente.</p>
+
+    <div class="cta-mid">
+      <div>
+        <strong>¿Quieres automatizar tu negocio ahora mismo?</strong>
+        <p>NodeFlow configura tu recepcionista IA en pocos minutos. Sin hardware, sin cambiar tu número.</p>
+      </div>
+      <a href="https://nodeflow.es/#contacto" class="btn btn-primary" style="white-space:nowrap">Ver planes →</a>
+    </div>
+
+    
+    <div class="post-section" id="s1">
+      <h2>La importancia de las reseñas en Google para tu negocio</h2>
+      <p>Las reseñas en Google actúan como un escaparate virtual de tu negocio. La primera impresión que un cliente potencial tiene de ti suele ser a través de lo que otros dicen. Por eso, una buena colección de reseñas puede ser un potente imán para nuevos clientes. Además, estas reseñas no solo influyen en las decisiones de los clientes, sino que también impactan en tu posicionamiento en los resultados de búsqueda. Así que, mantener una buena reputación online es fundamental para destacar en un mercado competitivo.</p>
+    </div>
+
+    <div class="post-section" id="s2">
+      <h2>¿Por qué cuesta tanto pedir reseñas?</h2>
+      <p>A muchos dueños de negocios les da corte pedir una reseña directamente, o simplemente se les olvida en el ajetreo del día a día. No es fácil encontrar el momento adecuado para hacerlo sin parecer insistente. Además, los clientes también pueden olvidarse de dejar su opinión una vez salen por la puerta. Aquí es donde NodeFlow puede marcar la diferencia, enviando un mensaje automatizado justo cuando el recuerdo de la visita está fresco en la mente del cliente.</p>
+    </div>
+
+    <div class="post-section" id="s3">
+      <h2>NodeFlow: Automatiza la petición en el momento perfecto</h2>
+      <p>NodeFlow se encarga de enviar un mensaje a tus clientes justo después de su visita, preguntándoles por su experiencia y facilitando un enlace directo para que dejen su reseña en Google. Este enfoque no solo aumenta la probabilidad de que te dejen una reseña, sino que también asegura que el feedback sea positivo, ya que se seleccionan solo a aquellos clientes cuya visita se ha completado satisfactoriamente. Así, no solo consigues más reseñas, sino que también mejoras la calidad de las mismas.</p>
+    </div>
+
+    <div class="post-section" id="s4">
+      <h2>Reputación online construida mes a mes</h2>
+      <p>La constancia es clave. Con NodeFlow, no tienes que preocuparte por recordar pedir reseñas. El sistema lo hace por ti, de manera regular y automática. Esto significa que mes a mes, tu reputación online se fortalece sin que tengas que levantar un dedo. A largo plazo, esta estrategia de automatización no solo incrementa tu visibilidad, sino que también consolida la confianza de tus clientes, haciendo que vuelvan y te recomienden.</p>
+    </div>
+
+    <hr class="post-divider">
+
+    
+    <section class="faq-section" id="faq" itemscope itemtype="https://schema.org/FAQPage">
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq-list">
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <button class="faq-q" onclick="toggleFaq(0)" aria-expanded="false" aria-controls="faq-a-0">
+          <span itemprop="name">¿Cómo afectan las reseñas en Google a mi negocio?</span>
+          <span class="faq-icon" id="faq-icon-0">+</span>
+        </button>
+        <div class="faq-a" id="faq-a-0" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Las reseñas en Google pueden influir en la decisión de compra de potenciales clientes y mejorar tu posición en los resultados de búsqueda.</p>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <button class="faq-q" onclick="toggleFaq(1)" aria-expanded="false" aria-controls="faq-a-1">
+          <span itemprop="name">¿Cuándo es el mejor momento para pedir una reseña a un cliente?</span>
+          <span class="faq-icon" id="faq-icon-1">+</span>
+        </button>
+        <div class="faq-a" id="faq-a-1" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">El mejor momento es justo después de que el cliente haya completado su visita, cuando la experiencia está fresca en su memoria.</p>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <button class="faq-q" onclick="toggleFaq(2)" aria-expanded="false" aria-controls="faq-a-2">
+          <span itemprop="name">¿NodeFlow puede enviar mensajes a todos mis clientes?</span>
+          <span class="faq-icon" id="faq-icon-2">+</span>
+        </button>
+        <div class="faq-a" id="faq-a-2" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">NodeFlow envía mensajes solo a aquellos clientes cuya visita se ha completado, asegurando así que el feedback sea positivo y relevante.</p>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <button class="faq-q" onclick="toggleFaq(3)" aria-expanded="false" aria-controls="faq-a-3">
+          <span itemprop="name">¿Es difícil configurar NodeFlow para mi negocio?</span>
+          <span class="faq-icon" id="faq-icon-3">+</span>
+        </button>
+        <div class="faq-a" id="faq-a-3" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">No, NodeFlow está diseñado para ser fácil de configurar y usar, permitiéndote centrarte en tu negocio mientras automatiza las peticiones de reseñas.</p>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <button class="faq-q" onclick="toggleFaq(4)" aria-expanded="false" aria-controls="faq-a-4">
+          <span itemprop="name">¿Puedo personalizar los mensajes que envía NodeFlow?</span>
+          <span class="faq-icon" id="faq-icon-4">+</span>
+        </button>
+        <div class="faq-a" id="faq-a-4" role="region" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Sí, puedes personalizar los mensajes para que se adapten al tono y estilo de tu negocio, asegurando una comunicación auténtica con tus clientes.</p>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    
+
+    <div class="cta-box">
+      <h3>¿Listo para no perder ni una llamada más?</h3>
+      <p>NodeFlow configura tu asistente de voz IA en pocos minutos. Sin hardware, sin cambiar tu número de teléfono. Desde 49€/mes.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="https://nodeflow.es/#contacto" class="btn btn-primary btn-lg">Empezar gratis 14 días →</a>
+        <a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20el%20blog%20de%20NodeFlow%20y%20quiero%20m%C3%A1s%20informaci%C3%B3n" class="btn btn-lg" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text)">💬 WhatsApp</a>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:14px;margin-bottom:0">Desde 49€/mes · Sin permanencia · Activo en minutos</p>
+    </div>
+  </div>
+</article>
+
+<footer>
+  <div class="container-wide">
+    <div class="footer-inner">
+      <div style="font-weight:700;font-size:15px">⚡ Node<span style="color:var(--accent-l)">Flow</span></div>
+      <div class="footer-links">
+        <a href="https://nodeflow.es">Inicio</a>
+        <a href="/blog">Blog</a>
+        <a href="https://nodeflow.es/bilbao">Bilbao</a>
+        <a href="https://nodeflow.es/donostia">Donostia</a>
+        <a href="https://nodeflow.es/vitoria">Vitoria</a>
+        <a href="https://nodeflow.es/privacidad">Privacidad</a>
+      </div>
+      <div class="footer-copy">© 2026 NodeFlow · unai@nodeflow.es</div>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/34666351319?text=Hola%20Unai%2C%20vi%20el%20blog%20de%20NodeFlow" class="wa-float" target="_blank" rel="noopener" title="WhatsApp NodeFlow">💬</a>
+
+<script>
+// Reading progress bar
+(function(){
+  var pb=document.getElementById('pb');
+  if(!pb)return;
+  function upd(){
+    var s=document.documentElement,b=document.body;
+    var st=s.scrollTop||b.scrollTop;
+    var sh=s.scrollHeight||b.scrollHeight;
+    var ch=s.clientHeight||b.clientHeight;
+    var pct=sh-ch>0?(st/(sh-ch)*100):100;
+    pb.style.width=Math.min(pct,100)+'%';
+  }
+  window.addEventListener('scroll',upd,{passive:true});
+  upd();
+})();
+
+// FAQ accordion
+function toggleFaq(i){
+  var a=document.getElementById('faq-a-'+i);
+  var ic=document.getElementById('faq-icon-'+i);
+  var btn=a.previousElementSibling;
+  var isOpen=a.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-a').forEach(function(el,idx){
+    el.classList.remove('open');
+    var icon=document.getElementById('faq-icon-'+idx);
+    if(icon)icon.style.transform='';
+    el.previousElementSibling.setAttribute('aria-expanded','false');
+  });
+  if(!isOpen){
+    a.classList.add('open');
+    ic.style.transform='rotate(45deg)';
+    btn.setAttribute('aria-expanded','true');
+  }
+}
+</script>
+</body>
+</html>
