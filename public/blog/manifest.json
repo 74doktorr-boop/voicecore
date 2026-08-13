@@ -63,9 +63,25 @@
     "asistente-ia-farmacia-donostia",
     "reactivar-clientes-dormidos-guia-practica",
     "asistente-ia-taller-mecanico-donostia",
-    "resenas-google-automatizar-peticion-momento-justo"
+    "resenas-google-automatizar-peticion-momento-justo",
+    "atencion-fuera-horario-donde-se-pierden-clientes"
   ],
   "posts": [
+    {
+      "slug": "atencion-fuera-horario-donde-se-pierden-clientes",
+      "title": "¿Llamadas fuera de horario? No pierdas clientes",
+      "metaTitle": "Llamadas fuera de horario: no pierdas clientes",
+      "description": "Atiende clientes 24 horas con NodeFlow, evita perder clientes por horario. Descubre cómo en nodeflow.es.",
+      "date": "2026-08-13",
+      "keywords": [
+        "llamadas fuera de horario",
+        "atender clientes 24 horas",
+        "perder clientes por horario"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "resenas-google-automatizar-peticion-momento-justo",
       "title": "Consigue Reseñas Google en Piloto Automático",
