@@ -64,9 +64,25 @@
     "reactivar-clientes-dormidos-guia-practica",
     "asistente-ia-taller-mecanico-donostia",
     "resenas-google-automatizar-peticion-momento-justo",
-    "atencion-fuera-horario-donde-se-pierden-clientes"
+    "atencion-fuera-horario-donde-se-pierden-clientes",
+    "irse-de-vacaciones-sin-cerrar-el-telefono"
   ],
   "posts": [
+    {
+      "slug": "irse-de-vacaciones-sin-cerrar-el-telefono",
+      "title": "Cómo irte de vacaciones sin cerrar el teléfono de tu negocio",
+      "metaTitle": "Vacaciones negocio autónomo: desconecta sin cerrar",
+      "description": "Descubre cómo un autónomo puede irse de vacaciones sin cerrar el negocio. NodeFlow es la clave. Conócela ahora.",
+      "date": "2026-08-15",
+      "keywords": [
+        "vacaciones negocio autónomo",
+        "cerrar por vacaciones clientes",
+        "atención clientes agosto"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 6
+    },
     {
       "slug": "atencion-fuera-horario-donde-se-pierden-clientes",
       "title": "¿Llamadas fuera de horario? No pierdas clientes",
