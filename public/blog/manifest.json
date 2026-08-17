@@ -65,9 +65,25 @@
     "asistente-ia-taller-mecanico-donostia",
     "resenas-google-automatizar-peticion-momento-justo",
     "atencion-fuera-horario-donde-se-pierden-clientes",
-    "irse-de-vacaciones-sin-cerrar-el-telefono"
+    "irse-de-vacaciones-sin-cerrar-el-telefono",
+    "siete-mitos-ia-negocios-locales"
   ],
   "posts": [
+    {
+      "slug": "siete-mitos-ia-negocios-locales",
+      "title": "Desmontando mitos sobre la IA en negocios locales",
+      "metaTitle": "7 mitos sobre la IA en negocios locales y la verdad",
+      "description": "Descubre la verdad sobre los mitos inteligencia artificial en pymes. Mejora tu negocio con NodeFlow. ¡Descúbrelo ahora!",
+      "date": "2026-08-17",
+      "keywords": [
+        "mitos inteligencia artificial",
+        "IA para pymes verdad",
+        "miedos IA negocio"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 6
+    },
     {
       "slug": "irse-de-vacaciones-sin-cerrar-el-telefono",
       "title": "Cómo irte de vacaciones sin cerrar el teléfono de tu negocio",
