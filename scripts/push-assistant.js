@@ -16,8 +16,15 @@ const fs    = require('fs');
 const path  = require('path');
 
 const SERVER  = process.env.SERVER_URL || 'https://nodeflow.es';
-const API_KEY = process.env.API_KEY    || 'vc_nodeflow_prod_2026';
+const API_KEY = process.env.API_KEY;
 const target  = process.argv[2]        || 'lumina-estetica';
+
+// Nunca una clave por defecto: este repositorio es público y un `|| 'clave'`
+// la publica. Si falta la variable, el script falla en vez de usar una escrita.
+if (!API_KEY) {
+  console.error('✖  Falta API_KEY.\n   Uso:  API_KEY=tu_clave node scripts/push-assistant.js ' + target);
+  process.exit(1);
+}
 
 // ─── HTTP helper ─────────────────────────────────────────────────────────────
 function request(urlStr, method, body, extraHeaders = {}) {

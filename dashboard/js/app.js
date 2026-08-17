@@ -1,7 +1,10 @@
 // NodeFlow IA — Dashboard Logic v2
 const API_BASE = window.location.origin;
-const DEFAULT_KEY = 'vc_nodeflow_prod_2026';
-let apiKey = localStorage.getItem('nodeflow_api_key') || DEFAULT_KEY;
+// Sin clave por defecto. El servidor sirve este fichero en /dashboard
+// (server.js: app.use('/dashboard', express.static(...))), así que cualquier
+// valor escrito aquí queda publicado. La clave la introduce el usuario en la
+// pantalla de login y vive solo en su localStorage.
+let apiKey = localStorage.getItem('nodeflow_api_key') || '';
 let refreshInterval = null;
 let allAssistants = [];
 let selectedAssistantId = null;
@@ -11,12 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (stored && stored !== 'voicecore-dev') {
     apiKey = stored;
     hidLoginScreen();
+    const keyInput = document.getElementById('apiKeyInput');
+    if (keyInput) keyInput.value = apiKey;
+    refreshAll(); startAutoRefresh();
   } else {
+    // Sin clave no se pide nada al servidor. Antes se refrescaba igual, y las
+    // peticiones salían con la clave por defecto aunque el login estuviera puesto.
+    apiKey = '';
     showLoginScreen();
   }
-  const keyInput = document.getElementById('apiKeyInput');
-  if (keyInput) keyInput.value = apiKey;
-  refreshAll(); startAutoRefresh();
 });
 
 // ─── Login ───
@@ -78,6 +84,9 @@ function showPage(page) {
 
 // ─── API ───
 async function api(endpoint, opts={}) {
+  // refreshAll() también se llama desde showPage('dashboard'), así que el corte
+  // va aquí y no solo en el arranque: sin clave no sale ninguna petición.
+  if (!apiKey) { showLoginScreen(); return null; }
   const headers = {'x-api-key':apiKey,'Content-Type':'application/json',...opts.headers};
   try { const r = await fetch(`${API_BASE}${endpoint}`,{...opts,headers}); if(r.status===401){showPage('settings');return null;} return await r.json(); }
   catch(e) { console.error(`API:${endpoint}`,e); return null; }
