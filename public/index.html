@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NodeFlow — Software que hace el trabajo</title>
-<meta name="description" content="NodeFlow construye sistemas que atienden, ejecutan y dejan constancia de cada decisión: recepción con voz para negocios, central de mando de seguridad y visión artificial. En producción, no en una demo.">
-<meta name="keywords" content="NodeFlow, software IA, inteligencia artificial aplicada, recepcionista IA, atención telefónica, visión artificial">
+<meta name="description" content="Dos productos en producción y uno en piloto: contestan el teléfono de tu negocio, llevan la operación de equipos de seguridad y miran por las cámaras que ya tienes. Hecho en Gipuzkoa.">
 <meta name="author" content="NodeFlow IA">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0a0b0d">
@@ -16,558 +15,663 @@
 <meta property="og:site_name" content="NodeFlow">
 <meta property="og:url" content="https://nodeflow.es/">
 <meta property="og:title" content="NodeFlow — Software que hace el trabajo">
-<meta property="og:description" content="Sistemas que atienden, ejecutan y dejan constancia de cada decisión. En producción, no en una demo.">
+<meta property="og:description" content="Contesta. Registra. Mira. Dos productos en producción y uno en piloto, hechos en Gipuzkoa.">
 <meta property="og:image" content="https://nodeflow.es/og-image.png">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NodeFlow — Software que hace el trabajo">
-<meta name="twitter:description" content="Sistemas que atienden, ejecutan y dejan constancia. En producción, no en una demo.">
+<meta name="twitter:description" content="Contesta. Registra. Mira. Dos productos en producción y uno en piloto, hechos en Gipuzkoa.">
 <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software que construye sistemas en producción: recepción con voz, central de mando de seguridad y visión artificial.","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
+{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software: recepción con voz para negocios (en producción), central de mando de seguridad (en producción) y visión artificial (en piloto).","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
 </script>
-<script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.js"></script>
+<script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.tagged-events.js"></script>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<!-- La hoja de las fuentes no bloquea el primer pintado: llega como print y se
+     promociona al cargar. Sin JS, el noscript la carga en bloqueo normal. -->
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet"></noscript>
+<script>
+/* Marca temprana: .js habilita los estados previos de animación. Sin JS, todo
+   el documento es visible y legible tal cual — regla de la casa. */
+document.documentElement.classList.add('js');
+if (matchMedia('(prefers-reduced-motion: reduce)').matches)
+  document.documentElement.classList.add('reduced');
+</script>
 
 <style>
 /* ══════════════════════════════════════════════════════════════════════════
-   NODEFLOW — CORPORATIVA
+   NODEFLOW — ROTATIVA
    ──────────────────────────────────────────────────────────────────────────
-   Concepto: CASA DE INFRAESTRUCTURA. Lo que hace que una empresa parezca
-   grande no son las métricas: es la contención. Tipografía monumental, líneas
-   finas, mucho aire, el producto real a lo ancho de la pantalla y ni un solo
-   dato que no podamos sostener delante de un comprador.
+   Concepto: la tipografía es el único material. Palabras del tamaño de la
+   pantalla, tinta lima sobre negro y negro sobre lima, y UN pulso global
+   (--pulse) que hace que todo lo que se mueve responda a la energía real del
+   visitante y al audio real de la demo. Nada late porque sí: la señal sale
+   del scroll, del reloj o de la voz. El espectáculo y la honestidad son la
+   misma cosa.
 
-   La escala no se afirma; se compone. Por eso el hero es una sola frase, los
-   productos son un índice y la honestidad tiene sección propia: decir en
-   grande lo que NO hay en la página es el gesto de una empresa que no
-   necesita inflarse.
+   Arquitectura de movimiento: un solo requestAnimationFrame escribe una sola
+   variable CSS; los consumidores son clip-path y transform. Dos curvas en
+   toda la página y ninguna animación fuera de ellas.
    ══════════════════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#0a0b0d; --bg-2:#0e1013; --surf:#12151a; --surf-2:#171b21;
-  --line:rgba(232,242,238,.10); --line-2:rgba(232,242,238,.20);
+  --bg:#0a0b0d; --bg-2:#0e1013; --surf:#12151a;
+  --line:rgba(232,242,238,.10); --line-2:rgba(232,242,238,.22);
   --ink:#f4f7f5; --ink-2:#b9c2bf; --ink-3:#7d8783;
-  /* Lima: estado vivo, acción hecha y la acción principal. Nada más. */
   --lime:#c4f546; --lime-d:#a8dc2a; --lime-ink:#0a0b0d;
-  /* Ámbar semántico: pendiente / programado. No es marca. */
-  --wait:#e8b84b;
   --disp:'Clash Display',ui-sans-serif,system-ui,sans-serif;
   --sans:'Satoshi',ui-sans-serif,system-ui,-apple-system,sans-serif;
   --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-  /* El ancho se calcula contra el viewport: las webs que transmiten escala no
-     flotan en una columna, llegan al borde. */
-  --pad:clamp(24px,4.4vw,80px);
+  --pad:clamp(20px,4.5vw,72px);
   --wrap:1560px;
+  /* La señal viva de la página: 0..1. La escribe el JS; en reposo (o con
+     movimiento reducido, o sin JS) vale 0.12 y la página respira quieta. */
+  --pulse:0.12;
+  --e-out:cubic-bezier(.16,1,.3,1);     /* revelados */
+  --e-corte:cubic-bezier(.83,0,.17,1);  /* cortes, tachones, swaps de tinta */
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
-body{background:var(--bg);color:var(--ink-2);font-family:var(--sans);font-size:17px;line-height:1.65;overflow-x:hidden}
+body{background:var(--bg);color:var(--ink-2);font-family:var(--sans);font-size:17px;line-height:1.6;overflow-x:hidden}
 img{max-width:100%;height:auto;display:block}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--lime);color:var(--lime-ink)}
-:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:3px}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:2px}
+/* Sobre lima, el anillo de foco lima sería invisible: tinta negra. */
+.cartel-lima :focus-visible,.freno :focus-visible,.diga :focus-visible{outline-color:var(--lime-ink)}
+.top.sobre-lima :focus-visible{outline-color:var(--lime-ink)}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
-/* Enlace de salto: oculto recortándolo, no a -9999px — no puede provocar
-   desbordamiento horizontal en ningún ancho. */
 .skip{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .skip:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;clip-path:none;z-index:99;background:var(--lime);color:var(--lime-ink);padding:10px 16px;border-radius:6px;font-weight:700}
-
-/* ── Navegación ─────────────────────────────────────────────────────────*/
-.nav{position:sticky;top:0;z-index:20;background:rgba(10,11,13,.82);border-bottom:1px solid transparent;transition:border-color .25s}
-.nav.stuck{border-bottom-color:var(--line);backdrop-filter:blur(12px)}
-.nav-in{display:flex;align-items:center;gap:28px;height:70px;max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
-.logo{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)}
-.logo b{color:var(--lime)}
-.nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px}
-.nav-links a{color:var(--ink-3);transition:color .18s}
-.nav-links a:hover{color:var(--ink)}
-.nav-cta{font-size:14.5px;font-weight:700;color:var(--lime);white-space:nowrap}
-@media (max-width:820px){.nav-links{display:none}.nav-cta{margin-left:auto}}
-
-/* ── Tipografía ─────────────────────────────────────────────────────────*/
-h1,h2,h3{font-family:var(--disp);color:var(--ink);text-wrap:balance;font-weight:600}
-h1{font-size:clamp(2.8rem,8vw,6rem);line-height:.99;letter-spacing:-.035em}
-h2{font-size:clamp(1.9rem,4.2vw,3.4rem);line-height:1.06;letter-spacing:-.03em}
-h3{font-size:1.12rem;line-height:1.3;letter-spacing:-.015em}
-p{text-wrap:pretty}
-.lead{font-size:clamp(1.05rem,1.8vw,1.28rem);line-height:1.55;color:var(--ink-2);max-width:58ch}
-.small{font-size:14px;color:var(--ink-3);line-height:1.5}
 strong{color:var(--ink);font-weight:700}
 .num{font-variant-numeric:tabular-nums}
-section{padding:clamp(76px,10vw,140px) 0;position:relative}
-section+section{border-top:1px solid var(--line)}
-.h-gap{margin-top:20px}
 
-/* ── Botones ────────────────────────────────────────────────────────────*/
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:0 24px;border-radius:7px;font-size:15px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:var(--sans);transition:transform .12s cubic-bezier(.2,.8,.3,1),background .18s,border-color .18s}
-.btn:active{transform:translateY(1px)}
-.btn-1{background:var(--lime);color:var(--lime-ink)}
-.btn-1:hover{background:var(--lime-d)}
-.btn-2{color:var(--ink);border-color:var(--line-2)}
-.btn-2:hover{border-color:var(--ink-3);background:var(--surf)}
-.btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+/* ── La línea de pulso ──────────────────────────────────────────────────
+   Borde izquierdo, 2px, lima. Es la lectura visible de --pulse: respira en
+   reposo, crece con tu scroll y canta con la voz. mix-blend-difference la
+   invierte sola sobre las secciones lima. */
+.pulso-linea{position:fixed;left:0;top:0;bottom:0;width:2px;background:var(--lime);
+  transform-origin:bottom;transform:scaleY(var(--pulse));
+  mix-blend-mode:difference;z-index:40;pointer-events:none}
 
-/* ── HERO ───────────────────────────────────────────────────────────────
-   Una sola idea por pantalla. La frase, el argumento, y debajo la franja de
-   hechos: lo único que se afirma es lo que está medido. */
-.hero{border-bottom:1px solid var(--line)}
-.hero-in{max-width:var(--wrap);margin:0 auto;padding:clamp(84px,12vh,150px) var(--pad) clamp(64px,9vh,110px)}
-.hero h1{max-width:12ch}
-.hero .lead{margin-top:30px;max-width:52ch}
-.hero-note{margin-top:16px;font-size:13.5px;color:var(--ink-3)}
+/* ── Barra superior ─────────────────────────────────────────────────────*/
+.top{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;
+  padding:12px var(--pad);pointer-events:none}
+.top>*{pointer-events:auto}
+.top .logo{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink);
+  text-shadow:0 1px 14px rgba(10,11,13,.9)}
+.top .logo b{color:var(--lime)}
+.top-cta{margin-left:auto;display:inline-flex;align-items:center;min-height:44px;
+  font-size:13.5px;font-weight:700;color:var(--lime);border:1px solid rgba(196,245,70,.45);
+  border-radius:999px;padding:0 18px;background:rgba(10,11,13,.7);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:background .2s,color .2s}
+.top-cta:hover{background:var(--lime);color:var(--lime-ink)}
+.top.sobre-lima .logo,.top.sobre-lima .logo b{color:var(--lime-ink);text-shadow:none}
+.top.sobre-lima .top-cta{color:var(--lime-ink);border-color:rgba(10,11,13,.5);background:rgba(196,245,70,.7)}
 
-/* Muestra de voz real: es la prueba, no un adorno */
-.play{display:inline-flex;align-items:center;gap:12px;padding:11px 18px 11px 12px;background:var(--surf);border:1px solid var(--line-2);border-radius:999px;cursor:pointer;font-family:var(--sans);font-size:14.5px;font-weight:600;color:var(--ink);transition:border-color .18s,background .18s}
-.play:hover{border-color:var(--lime);background:var(--surf-2)}
-.play-ico{width:26px;height:26px;flex:none;border-radius:50%;background:var(--lime);color:var(--lime-ink);display:grid;place-items:center;font-size:10px}
-.play-bars{display:flex;align-items:flex-end;gap:2px;height:15px}
-.play-bars i{width:2px;height:5px;background:var(--ink-3);border-radius:1px}
-.play[data-on="1"] .play-bars i{background:var(--lime);animation:vu .9s ease-in-out infinite}
-.play[data-on="1"] .play-bars i:nth-child(2){animation-delay:.12s}
-.play[data-on="1"] .play-bars i:nth-child(3){animation-delay:.24s}
-.play[data-on="1"] .play-bars i:nth-child(4){animation-delay:.36s}
-@keyframes vu{0%,100%{height:4px}50%{height:15px}}
+/* ── HERO ───────────────────────────────────────────────────────────────*/
+.hero{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  padding:calc(64px + 4svh) var(--pad) 0;position:relative;overflow:hidden}
+.hero-in{max-width:var(--wrap);margin:0 auto;width:100%}
+.palabras{font-family:var(--disp);font-weight:600;text-transform:uppercase;
+  font-size:clamp(2.6rem,14vw,11.5rem);line-height:.9;letter-spacing:-.02em}
+.w{position:relative;display:block;width:fit-content}
+.w-base{display:block}
+.w1 .w-base{color:var(--ink)}
+.w2 .w-base{color:transparent;-webkit-text-stroke:1.5px var(--lime)}
+@supports not (-webkit-text-stroke:1px #000){ .w2 .w-base{color:var(--lime);opacity:.55} }
+.w3 .w-base{color:var(--lime)}
+/* El relleno: un duplicado recortado desde abajo por --pulse, con ganancia
+   distinta por palabra — la voz barre el titular como una ola, no como un
+   vúmetro plano. Con la demo sonando, las letras cantan. */
+.w-fill{position:absolute;inset:0;pointer-events:none;will-change:clip-path}
+.w1 .w-fill{color:var(--lime);clip-path:inset(calc((1 - min(1,var(--pulse)*1.35))*100%) 0 0 0)}
+.w2 .w-fill{color:var(--lime);-webkit-text-stroke:0;clip-path:inset(calc((1 - min(1,var(--pulse)))*100%) 0 0 0)}
+.w3 .w-fill{color:var(--ink);clip-path:inset(calc((1 - min(1,var(--pulse)*.8))*100%) 0 0 0)}
+/* Entrada: máscara dura por palabra, sin fades blandos. Solo con JS. */
+.js:not(.reduced) .w{overflow:hidden}
+.js:not(.reduced) .w-in{display:block;transform:translateY(112%);animation:sube .75s var(--e-out) forwards}
+.js:not(.reduced) .w2 .w-in{animation-delay:.09s}
+.js:not(.reduced) .w3 .w-in{animation-delay:.18s}
+@keyframes sube{to{transform:none}}
+.hero-sub{margin-top:26px;max-width:58ch;font-size:clamp(1rem,1.7vw,1.2rem);line-height:1.55}
+.hero-sub .reloj{color:var(--ink);font-weight:700}
+.hero-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:30px}
+.js:not(.reduced) .hero-sub,.js:not(.reduced) .hero-acciones{opacity:0;animation:aparece .6s var(--e-out) .45s forwards}
+@keyframes aparece{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.btn-lima{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 26px;
+  background:var(--lime);color:var(--lime-ink);font-weight:700;font-size:15.5px;border-radius:999px;
+  transition:transform .15s var(--e-out),background .2s}
+.btn-lima:hover{background:var(--lime-d);transform:translateY(-1px)}
+.btn-lima:active{transform:scale(.98)}
+.play{display:inline-flex;align-items:center;gap:12px;padding:0 22px 0 15px;min-height:52px;
+  background:transparent;border:1.5px solid var(--lime);border-radius:999px;cursor:pointer;
+  font-family:var(--sans);font-size:15px;font-weight:700;color:var(--lime);
+  transition:background .2s,color .2s}
+.play:hover{background:var(--lime);color:var(--lime-ink)}
+.play-ico{width:30px;height:30px;flex:none;border-radius:50%;background:var(--lime);
+  color:var(--lime-ink);display:grid;place-items:center;transition:transform .2s var(--e-out)}
+.play-ico svg{display:block;margin-left:2px}
+.play:hover .play-ico{transform:scale(1.08)}
+.play[data-on="1"]{background:var(--lime);color:var(--lime-ink)}
+/* Sin JS los botones de reproducir no hacen nada: fuera. Queda el <audio> nativo. */
+html:not(.js) .play{display:none}
+.hero-nota{font-size:13px;color:var(--ink-3);max-width:46ch}
 
-/* La franja de hechos. Cada celda es un dato defendible; por eso puede ir en
-   la primera pantalla. Formato de tabla, no de tarjeta: esto se lee como una
-   especificación, no como marketing. */
-.facts{border-top:1px solid var(--line)}
-.facts-in{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad);display:grid;grid-template-columns:repeat(4,1fr)}
-.fact{padding:26px clamp(14px,2vw,28px) 28px 0;border-left:1px solid var(--line)}
-.fact:first-child{border-left:0;padding-left:0}
-.fact:not(:first-child){padding-left:clamp(14px,2vw,28px)}
-.fact b{display:block;font-family:var(--disp);font-size:clamp(1.5rem,2.6vw,2.2rem);color:var(--ink);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
-.fact span{display:block;margin-top:9px;font-size:13.5px;color:var(--ink-3);line-height:1.45}
-@media (max-width:820px){
-  .facts-in{grid-template-columns:1fr 1fr}
-  .fact{border-left:0;border-top:1px solid var(--line);padding-left:0}
-  .fact:nth-child(-n+2){border-top:0}
-  .fact:nth-child(even){border-left:1px solid var(--line);padding-left:18px}
+/* ── La cinta (marquee de afirmaciones verdaderas) ──────────────────────
+   Un toque la pausa (WCAG 2.2.2); en escritorio, el hover también. */
+.cinta{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:13px 0;white-space:nowrap;user-select:none;cursor:pointer}
+.cinta-track{display:inline-flex;animation:cinta 38s linear infinite;will-change:transform}
+.cinta.pausada .cinta-track{animation-play-state:paused}
+@media (hover:hover){.cinta:hover .cinta-track{animation-play-state:paused}}
+.cinta-seg{font-family:var(--disp);font-weight:500;font-size:clamp(14px,1.6vw,19px);
+  letter-spacing:.04em;color:var(--ink-3);padding-right:.5em}
+.cinta-seg b{color:var(--lime);font-weight:500}
+@keyframes cinta{to{transform:translateX(-50%)}}
+.hero .cinta{margin:auto calc(-1*var(--pad)) 0;border-bottom:0}
+.reduced .cinta-track,html:not(.js) .cinta-track{animation:none}
+
+/* ── Interludio ─────────────────────────────────────────────────────────*/
+.interludio{padding:clamp(90px,14vh,150px) var(--pad)}
+.interludio p{max-width:34ch;margin:0 auto;text-align:center;
+  font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1.4;color:var(--ink-2)}
+
+/* ── Cartelera: tres pósters ────────────────────────────────────────────
+   En escritorio se apilan (sticky). En móvil fluyen como bloques normales:
+   un cartel más alto que el viewport clavado en top:0 dejaría su tercio
+   inferior — la captura, la prueba — imposible de ver. */
+.pila{position:relative}
+.cartel{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:center;
+  overflow:hidden;border-top:1px solid var(--line);padding:calc(60px + 4svh) var(--pad) 56px}
+@media (min-width:941px){.cartel{position:sticky;top:0}}
+@media (max-width:940px){.cartel{min-height:0}}
+.cartel-negro{background:var(--bg)}
+.cartel-lima{background:var(--lime);border-top-color:rgba(10,11,13,.15)}
+.num-bg{position:absolute;top:-3vw;right:-2.5vw;z-index:0;font-family:var(--disp);font-weight:700;
+  font-size:36vw;line-height:.82;color:transparent;-webkit-text-stroke:1.5px rgba(196,245,70,.22);
+  user-select:none;pointer-events:none}
+.cartel-lima .num-bg{-webkit-text-stroke:1.5px rgba(10,11,13,.22)}
+@supports not (-webkit-text-stroke:1px #000){
+  .num-bg{color:rgba(196,245,70,.07)}
+  .cartel-lima .num-bg{color:rgba(10,11,13,.07)}
 }
+.cartel-in{position:relative;z-index:1;max-width:var(--wrap);margin:0 auto;width:100%;
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(28px,4.5vw,64px);align-items:center}
+@media (max-width:940px){.cartel-in{grid-template-columns:1fr;gap:26px}}
+.chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--lime);
+  border:1px solid rgba(196,245,70,.4);border-radius:999px;padding:6px 12px}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--lime);
+  transform:scale(calc(.8 + var(--pulse)*.5))}
+.chip-piloto{color:var(--ink-2);border-color:var(--line-2)}
+.chip-piloto i{background:var(--ink-2)}
+.cartel-lima .chip{color:var(--lime-ink);border-color:rgba(10,11,13,.45)}
+.cartel-lima .chip i{background:var(--lime-ink)}
+.cartel h2{font-family:var(--disp);font-weight:600;text-transform:uppercase;
+  font-size:clamp(2rem,5.6vw,4.6rem);line-height:.96;letter-spacing:-.02em;color:var(--ink);
+  margin-top:18px;text-wrap:balance}
+.cartel-lima h2{color:var(--lime-ink)}
+.cartel .copy{margin-top:18px;max-width:52ch;font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.55}
+.copy-nota{margin-top:10px;max-width:52ch;font-size:14px;line-height:1.55}
+.cartel-lima .copy,.cartel-lima .copy-nota{color:rgba(10,11,13,.78)}
+.cartel-lima .copy strong{color:var(--lime-ink)}
+.hechos{margin-top:20px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-3);line-height:2}
+.cartel-lima .hechos{color:rgba(10,11,13,.62)}
+.cartel-cta{display:inline-flex;align-items:center;gap:8px;margin-top:26px;min-height:44px;
+  font-weight:700;font-size:15.5px;color:var(--lime);transition:gap .2s var(--e-out)}
+.cartel-cta:hover{gap:14px}
+.cartel-lima .cartel-cta{color:var(--lime-ink)}
+.marco{border:2px solid var(--ink);overflow:hidden;background:var(--surf)}
+.cartel-lima .marco{border-color:var(--lime-ink)}
+/* La captura se revela con un barrido lateral duro */
+.js:not(.reduced) .marco img{clip-path:inset(0 100% 0 0);transition:clip-path .8s var(--e-out) .15s}
+.js:not(.reduced) .in .marco img{clip-path:inset(0)}
+.marco figcaption{padding:10px 14px;border-top:2px solid var(--ink);font-size:12.5px;color:var(--ink-3)}
+.cartel-lima .marco figcaption{border-top-color:var(--lime-ink);color:rgba(10,11,13,.65);background:var(--lime)}
+/* Captura de móvil: formato teléfono, no pantalla */
+.marco-movil{max-width:300px;margin:0 auto;width:100%}
+/* Visor de Begira: cámara fija honesta — un gráfico, no una captura */
+.visor{position:relative;aspect-ratio:16/10;background:#0d0f12;border:2px solid var(--ink);overflow:hidden}
+.visor-l{position:absolute;width:26px;height:26px;border:2px solid var(--lime)}
+.visor-l.a{top:12px;left:12px;border-right:0;border-bottom:0}
+.visor-l.b{top:12px;right:12px;border-left:0;border-bottom:0}
+.visor-l.c{bottom:12px;left:12px;border-right:0;border-top:0}
+.visor-l.d{bottom:12px;right:12px;border-left:0;border-top:0}
+.visor-rec{position:absolute;top:16px;right:48px;display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--lime)}
+/* El punto REC no lleva keyframe propio: respira con el bus de la página. */
+.visor-rec i{width:8px;height:8px;border-radius:50%;background:var(--lime);
+  opacity:calc(.25 + var(--pulse)*.75)}
+.visor-tag{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
+  font-family:var(--mono);font-size:clamp(11px,1.3vw,13px);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);line-height:2}
+.visor-tag b{display:block;color:var(--ink-2);font-weight:400}
 
-/* ── La franja de producto: real, a lo ancho ────────────────────────────*/
-.band{padding:0;border-bottom:1px solid var(--line)}
-.band-vis{position:relative;max-height:72vh;overflow:hidden;background:var(--surf)}
-.band-vis img{width:100%;height:100%;object-fit:cover;object-position:center top}
-.band-cap{display:flex;align-items:center;gap:9px;max-width:var(--wrap);margin:0 auto;padding:15px var(--pad);font-size:13px;color:var(--ink-3);line-height:1.4;border-top:1px solid var(--line)}
-.band-cap i{width:6px;height:6px;border-radius:50%;background:var(--lime);flex:none}
-.band-cap b{color:var(--ink-2)}
+/* ── La demo (karaoke sobre la conversación real del producto) ──────────*/
+.llamada{padding:clamp(90px,13vh,160px) var(--pad);border-top:1px solid var(--line);position:relative;background:var(--bg)}
+.llamada-in{max-width:1100px;margin:0 auto}
+.llamada h2{font-family:var(--disp);font-weight:600;
+  font-size:clamp(1.9rem,5vw,4rem);line-height:1;letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
+.llamada-sub{margin-top:18px;max-width:58ch;font-size:clamp(1rem,1.5vw,1.15rem)}
+.setecientos{display:flex;align-items:baseline;gap:14px;margin:clamp(40px,6vh,64px) 0 8px;flex-wrap:wrap}
+.setecientos b{font-family:var(--disp);font-weight:700;font-size:clamp(4.6rem,16vw,12rem);line-height:.8;
+  color:transparent;-webkit-text-stroke:2px var(--lime);letter-spacing:-.02em}
+.setecientos b .menos{font-size:.55em;vertical-align:.12em;letter-spacing:0}
+@supports not (-webkit-text-stroke:1px #000){ .setecientos b{color:var(--lime)} }
+.setecientos i{font-style:normal;font-family:var(--disp);font-weight:600;font-size:clamp(1.6rem,4.5vw,3.2rem);color:var(--lime)}
+.setecientos-nota{font-size:14px;color:var(--ink-3);max-width:46ch}
+.karaoke{margin-top:clamp(44px,7vh,72px)}
+.tira-wrap{position:relative}
+.tira{display:block;width:100%;height:76px;cursor:pointer;touch-action:manipulation}
+.tira-tiempo{position:absolute;right:0;top:-24px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.guion{margin-top:30px;display:flex;flex-direction:column;gap:14px}
+.frase{display:grid;grid-template-columns:88px 1fr;gap:16px;align-items:baseline;
+  background:none;border:0;text-align:left;cursor:pointer;font:inherit;padding:0;color:inherit}
+.frase:disabled{cursor:default}
+.frase-quien{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+/* En reposo la transcripción SE LEE (es la prueba); solo se atenúa el resto
+   mientras suena la reproducción. */
+.frase-txt{position:relative;width:fit-content;font-size:clamp(1.05rem,2.4vw,1.7rem);line-height:1.35;
+  color:var(--ink-2);opacity:.85;transition:opacity .25s;text-wrap:pretty}
+.frase.ia .frase-txt{font-family:var(--disp);font-weight:500;color:var(--lime)}
+.guion.playing .frase:not(.act) .frase-txt{opacity:.3}
+.frase.act .frase-txt{opacity:1}
+.frase-txt::after{content:"";position:absolute;left:0;bottom:-5px;height:2px;width:100%;
+  background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .35s var(--e-corte)}
+.frase.act .frase-txt::after{transform:scaleX(1)}
+@media (hover:hover){.frase:not(:disabled):hover .frase-txt{opacity:1}}
+@media (max-width:600px){.frase{grid-template-columns:1fr;gap:2px}}
+.karaoke-acciones{display:flex;align-items:center;gap:14px;margin-top:34px;flex-wrap:wrap}
+.karaoke-nota{font-size:13px;color:var(--ink-3)}
+/* Sin JS: reproductor nativo visible; el JS lo sustituye por el suyo */
+.nativo{margin-top:26px;width:100%}
+.js .nativo{display:none}
 
-/* ── El índice de productos ─────────────────────────────────────────────
-   Un índice, no un catálogo: los números son de verdad un orden (el orden en
-   que existen). Nombres a tamaño de titular — la cartera ES la empresa. */
-.index{margin-top:52px;border-top:1px solid var(--line)}
-.row{display:grid;grid-template-columns:74px minmax(0,1.15fr) minmax(0,1fr) auto;gap:clamp(14px,3vw,44px);align-items:baseline;padding:clamp(26px,3.4vw,42px) 0;border-bottom:1px solid var(--line);transition:background .2s}
-.row:hover{background:var(--bg-2)}
-.row-i{font-family:var(--mono);font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.row-n b{display:block;font-family:var(--disp);font-weight:600;font-size:clamp(1.6rem,3.4vw,2.7rem);color:var(--ink);letter-spacing:-.03em;line-height:1.05}
-.state{display:inline-flex;align-items:center;gap:7px;margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--lime)}
-.state i{width:5px;height:5px;border-radius:50%;background:var(--lime)}
-.state.soon{color:var(--wait)}.state.soon i{background:var(--wait)}
-.row p{font-size:15px;color:var(--ink-2);align-self:center}
-.row-go{color:var(--ink-3);font-size:14px;white-space:nowrap;align-self:center;transition:color .18s,transform .18s}
-.row:hover .row-go{color:var(--lime);transform:translateX(4px)}
-@media (max-width:900px){
-  .row{grid-template-columns:1fr;gap:10px;padding:26px 0}
-  .row-i{display:none}
-  .row:hover .row-go{transform:none}
-}
+/* ── El freno: tres verbos ──────────────────────────────────────────────*/
+.freno{background:var(--lime);color:var(--lime-ink);border-top:1px solid rgba(10,11,13,.15);position:relative}
+.freno-sticky{padding:clamp(80px,11vh,130px) var(--pad)}
+.freno-head{max-width:var(--wrap);margin:0 auto}
+.freno-head h2{font-family:var(--disp);font-weight:600;
+  font-size:clamp(1.5rem,3.4vw,2.6rem);letter-spacing:-.015em;color:var(--lime-ink)}
+.freno-ind{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(10,11,13,.7);margin-top:8px;display:none}
+.pasos{max-width:var(--wrap);margin:0 auto;position:relative}
+.paso{padding:clamp(36px,5vh,56px) 0;border-top:1px solid rgba(10,11,13,.2)}
+.paso:first-child{border-top:0;margin-top:clamp(28px,4vh,44px)}
+.paso h3{font-family:var(--disp);font-weight:700;text-transform:uppercase;
+  font-size:clamp(2.6rem,10.5vw,8.5rem);line-height:.9;letter-spacing:-.02em;color:var(--lime-ink)}
+.paso p{margin-top:14px;max-width:52ch;font-size:clamp(1rem,1.6vw,1.2rem);color:rgba(10,11,13,.75)}
+/* Modo teatro (solo escritorio con JS y sin movimiento reducido): los tres
+   verbos se suceden por corte duro mientras la sección queda pegada. La
+   visibility lleva su propio retardo para que el barrido de salida SE VEA. */
+.teatro .freno{height:220vh}
+.teatro .freno-sticky{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.teatro .freno-ind{display:block}
+.teatro .pasos{flex:1;display:grid;align-items:center;margin-top:0}
+.teatro .paso{grid-area:1/1;border-top:0;margin-top:0;padding:0;visibility:hidden;
+  clip-path:inset(0 0 100% 0);
+  transition:clip-path .3s var(--e-corte),visibility 0s .3s}
+.teatro .paso.act{clip-path:inset(0);visibility:visible;transition:clip-path .3s var(--e-corte),visibility 0s}
+.teatro .paso.fue{clip-path:inset(100% 0 0 0)}
 
-/* ── La escena: la línea de vida de una llamada ─────────────────────────
-   Componente firma. Es una secuencia REAL, así que los tiempos son
-   información, no decoración. */
-.scene{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.04fr);gap:clamp(26px,4vw,54px);align-items:start;margin-top:48px}
-@media (max-width:960px){.scene{grid-template-columns:1fr}}
-.life{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding-bottom:2px;overflow:hidden;position:relative}
-.life-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--lime);flex:none;animation:pulso 2.4s ease-out infinite}
-@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(196,245,70,.5)}70%{box-shadow:0 0 0 9px rgba(196,245,70,0)}100%{box-shadow:0 0 0 0 rgba(196,245,70,0)}}
-.life-head span{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--ink-3)}
-.life-head b{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3);font-weight:400}
-.step{display:grid;grid-template-columns:62px 1fr;gap:14px;padding:13px 18px;position:relative}
-.step+.step::before{content:"";position:absolute;left:31px;top:-8px;width:1px;height:16px;background:var(--line-2)}
-.step-t{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);padding-top:3px;font-variant-numeric:tabular-nums}
-.step-b{min-width:0}
-.step-b b{display:block;color:var(--ink);font-weight:600;font-size:15px;line-height:1.35}
-.step-b em{display:block;font-style:normal;font-size:13.5px;color:var(--ink-3);margin-top:3px;line-height:1.45}
-.tag{display:inline-block;margin-top:7px;padding:3px 9px;border-radius:4px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
-.tag-ok{background:rgba(196,245,70,.13);color:var(--lime)}
-.tag-wait{background:rgba(232,184,75,.13);color:var(--wait)}
-.life-foot{padding:15px 18px;border-top:1px solid var(--line);font-size:14.5px;color:var(--ink-2);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.life-foot p{margin:0}
-.life-foot b{color:var(--lime)}
-/* En móvil la hora deja de ser una columna y pasa a ir encima: en 375 px se
-   comía 62 de 327 y el texto quedaba en un canal demasiado estrecho. */
-@media (max-width:560px){
-  .step{grid-template-columns:1fr;gap:4px;padding:12px 16px}
-  .step+.step::before{left:16px;top:-7px;height:14px}
-  .step-t{padding-top:0;font-size:11px;letter-spacing:.04em}
-  .life-head b{font-size:11.5px}
-}
-/* ── La llamada se REPRODUCE ────────────────────────────────────────────
-   Regla que gobierna todo lo de abajo: el HTML por defecto trae la llamada
-   ENTERA y TERMINADA. Todo lo que se esconde se esconde con la clase .repro,
-   que sólo pone el JS. Si el JS no corre, si es un rastreador, si la pestaña
-   está en segundo plano o si el usuario pidió menos movimiento, se lee la
-   escena completa. Se rebobina para reproducir; nunca se construye vacía.
-   (.repro y NO .play: .play ya existe en esta hoja y es inline-flex — ponerla
-   aquí colocaría los siete pasos en fila.) */
-.life-bar{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden}
-.life-bar i{display:block;height:100%;width:0;background:var(--lime)}
-.life.repro .life-bar i{transition:width .2s linear}
-.wave{display:none;gap:2px;align-items:center;height:13px;margin-left:2px}
-.life.repro .wave{display:flex}
-.wave i{width:2px;height:3px;border-radius:1px;background:var(--line-2)}
-.life.live .wave i{background:var(--lime);animation:wv .9s ease-in-out infinite}
-.wave i:nth-child(2){animation-delay:.12s}
-.wave i:nth-child(3){animation-delay:.28s}
-.wave i:nth-child(4){animation-delay:.07s}
-.wave i:nth-child(5){animation-delay:.34s}
-@keyframes wv{0%,100%{height:3px;opacity:.55}50%{height:12px;opacity:1}}
-/* En móvil la cabecera no cabe con todo: fuera el nivel de audio (decoración)
-   y el número (atmósfera); queda el reloj, que es lo que importa. */
-@media (max-width:560px){ .life.repro .wave,.life-head .tel{display:none} }
-#lifeClock{font-variant-numeric:tabular-nums}
-.life.live #lifeClock{color:var(--lime)}
-.life.repro .dot{animation:none;background:var(--line-2)}
-.life.repro.live .dot{background:var(--lime);animation:pulso 2.4s ease-out infinite}
-.life.repro .step{opacity:0;transform:translateY(9px)}
-.life.repro .step.on{opacity:1;transform:none;
-  transition:opacity .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1)}
-.life.repro .step .tag{opacity:0}
-.life.repro .step.on .tag{opacity:1;transition:opacity .3s .38s}
-.life.repro .life-foot{opacity:0}
-.life.repro .life-foot.on{opacity:1;transition:opacity .55s}
-.replay{display:none;margin-left:auto;align-items:center;gap:7px;background:none;
-  border:1px solid var(--line-2);color:var(--ink-3);border-radius:6px;padding:6px 11px;
-  font:inherit;font-size:12.5px;cursor:pointer;transition:color .2s,border-color .2s}
-.life.repro .replay{display:inline-flex}
-.replay:hover{color:var(--ink);border-color:var(--ink-3)}
-.replay:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
-/* Al acabar la llamada, la captura se enciende un instante: lo contado se
-   convierte en una fila del panel. */
-.shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf);transition:border-color .6s}
-.shot figcaption{padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3);line-height:1.5}
-.shot figcaption b{color:var(--ink-2)}
-.shot.linked{border-color:rgba(196,245,70,.45)}
-.shot.linked figcaption b{color:var(--lime);transition:color .6s}
-@media (prefers-reduced-motion:reduce){
-  .life.repro .step,.life.repro .life-foot,.life.repro .step .tag{opacity:1;transform:none}
-  .life.repro .wave,.life.repro .replay{display:none}
-  .wave i,.dot{animation:none}
-}
+/* ── Lo que no verás ────────────────────────────────────────────────────*/
+.noveras{padding:clamp(90px,13vh,160px) var(--pad);border-top:1px solid var(--line);background:var(--bg)}
+.noveras-in{max-width:var(--wrap);margin:0 auto}
+.noveras h2{font-family:var(--disp);font-weight:600;
+  font-size:clamp(1.9rem,5vw,4rem);line-height:1;letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
+.tachados{margin-top:clamp(36px,6vh,56px);display:flex;flex-direction:column;gap:clamp(14px,2.6vh,26px)}
+.tachado{position:relative;width:fit-content;max-width:100%;font-family:var(--disp);font-weight:600;
+  font-size:clamp(1.5rem,4.6vw,3.6rem);line-height:1.06;letter-spacing:-.015em;color:rgba(244,247,245,.45)}
+.tachado svg{position:absolute;left:-2%;top:50%;width:104%;height:26px;transform:translateY(-50%);
+  overflow:visible;pointer-events:none}
+.tachado svg .t{stroke:var(--lime);stroke-linecap:round;fill:none}
+.js:not(.reduced) .tachado svg .t{stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset .5s var(--e-corte)}
+.js:not(.reduced) .tachado.in svg .t{stroke-dashoffset:0}
+.js:not(.reduced) .tachado.in svg .t2{transition-delay:.15s}
+.noveras-si{margin-top:clamp(40px,6vh,60px);max-width:64ch;font-size:clamp(1.05rem,1.8vw,1.3rem);
+  line-height:1.55;color:var(--ink)}
+.noveras-si b{color:var(--lime);font-weight:700}
 
-/* ── Método: tres columnas separadas por regla, no tarjetas ─────────────*/
-.method{display:grid;grid-template-columns:repeat(3,1fr);margin-top:48px;border-top:1px solid var(--line)}
-.mcol{padding:30px clamp(18px,2.4vw,36px) 8px 0;border-left:1px solid var(--line)}
-.mcol:first-child{border-left:0}
-.mcol:not(:first-child){padding-left:clamp(18px,2.4vw,36px)}
-.mcol h3{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-.mcol h3 i{width:7px;height:7px;border-radius:50%;flex:none}
-.mcol.auto h3 i{background:var(--lime)}
-.mcol.appr h3 i{background:var(--wait)}
-.mcol.log h3 i{background:var(--ink-3)}
-.mcol li{list-style:none;font-size:14.5px;color:var(--ink-2);padding:8px 0;border-top:1px solid var(--line)}
-.mcol li:first-child{border-top:0}
+/* ── Tres respuestas (las objeciones de verdad) ─────────────────────────*/
+.respuestas{padding:clamp(70px,10vh,120px) var(--pad);border-top:1px solid var(--line);background:var(--bg)}
+.respuestas-in{max-width:var(--wrap);margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.resp{padding:0 clamp(18px,2.4vw,36px) 0 0;border-left:1px solid var(--line)}
+.resp:first-child{border-left:0}
+.resp:not(:first-child){padding-left:clamp(18px,2.4vw,36px)}
+.resp h3{font-family:var(--disp);font-weight:600;font-size:1.15rem;color:var(--ink);letter-spacing:-.01em}
+.resp p{margin-top:10px;font-size:14.5px;line-height:1.6}
 @media (max-width:880px){
-  .method{grid-template-columns:1fr}
-  .mcol{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:24px}
-  .mcol:first-child{border-top:0;padding-top:24px}
+  .respuestas-in{grid-template-columns:1fr;gap:26px}
+  .resp{border-left:0;padding:0}
+  .resp:not(:first-child){padding:0;border-top:1px solid var(--line);padding-top:26px}
 }
 
-/* ── Honestidad: decir en grande lo que NO hay ──────────────────────────*/
-.not{margin-top:48px;border-top:1px solid var(--line)}
-.not-r{display:flex;align-items:baseline;gap:clamp(16px,3vw,36px);padding:clamp(18px,2.6vw,30px) 0;border-bottom:1px solid var(--line)}
-.not-r i{font-family:var(--mono);font-style:normal;font-size:15px;color:var(--ink-3);flex:none}
-.not-r b{font-family:var(--disp);font-weight:600;font-size:clamp(1.25rem,2.6vw,2rem);letter-spacing:-.025em;color:var(--ink-3);line-height:1.15}
-.honest{margin-top:34px;font-size:clamp(1rem,1.6vw,1.15rem);color:var(--ink-2);max-width:66ch;line-height:1.6}
+/* ── ¿DIGA? — el cierre ─────────────────────────────────────────────────*/
+.diga{background:var(--lime);color:var(--lime-ink);text-align:center;
+  padding:0 var(--pad) clamp(70px,10vh,110px);overflow:hidden}
+.diga .cinta{margin:0 calc(-1*var(--pad)) clamp(56px,9vh,90px);border-color:rgba(10,11,13,.25)}
+.diga .cinta-seg{color:rgba(10,11,13,.66)}
+.diga .cinta-seg b{color:var(--lime-ink)}
+.diga h2{font-family:var(--disp);font-weight:700;font-size:clamp(4.4rem,24vw,19rem);
+  line-height:.85;letter-spacing:-.03em;color:var(--lime-ink)}
+.diga-sub{margin-top:22px;font-size:clamp(1.05rem,1.9vw,1.3rem);color:rgba(10,11,13,.75)}
+.diga-botones{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:38px}
+.btn-negro{display:inline-flex;align-items:center;justify-content:center;min-height:58px;padding:0 30px;
+  background:var(--lime-ink);color:var(--lime);font-family:var(--disp);font-weight:600;font-size:clamp(15px,1.8vw,19px);
+  letter-spacing:.01em;border-radius:6px;transition:transform .15s var(--e-out)}
+.btn-negro:hover{transform:translateY(-2px)}
+.btn-negro:active{transform:scale(.98)}
+.btn-borde{display:inline-flex;align-items:center;justify-content:center;min-height:58px;padding:0 26px;
+  border:2px solid var(--lime-ink);color:var(--lime-ink);font-weight:700;font-size:15px;border-radius:6px;
+  transition:background .2s,color .2s}
+.btn-borde:hover{background:var(--lime-ink);color:var(--lime)}
+.diga-nota{margin-top:22px;font-size:13.5px;color:rgba(10,11,13,.66)}
+@media (max-width:640px){.diga-botones{flex-direction:column;align-items:stretch}}
 
-/* ── Pie ────────────────────────────────────────────────────────────────*/
-footer{border-top:1px solid var(--line);padding:56px 0 40px;font-size:14px}
-.f-grid{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:32px}
-@media (max-width:840px){.f-grid{grid-template-columns:1fr 1fr;gap:26px}}
+/* ── Créditos (footer) ──────────────────────────────────────────────────*/
+footer{background:var(--bg);border-top:1px solid var(--line);padding:56px 0 42px;font-size:14px}
+.f-grid{display:grid;grid-template-columns:1.5fr repeat(4,1fr);gap:28px}
+@media (max-width:940px){.f-grid{grid-template-columns:1fr 1fr;gap:26px}}
 .f-grid h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;font-weight:400}
 .f-grid li{list-style:none;padding:5px 0}
 .f-grid a{color:var(--ink-2);transition:color .18s}
 .f-grid a:hover{color:var(--lime)}
+.f-logo{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)}
+.f-logo b{color:var(--lime)}
+.f-wink{margin-top:16px;max-width:38ch;font-size:13px;color:var(--ink-3);line-height:1.6}
 .f-bot{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;color:var(--ink-3);font-size:13px}
 
-/* ── Movimiento ─────────────────────────────────────────────────────────
-   El contenido es VISIBLE por defecto. La ocultación previa sólo se activa si
-   el JS la enciende (html.anim), y aun así hay una red de seguridad por
-   tiempo: una pestaña en segundo plano, un rastreador o un navegador que no
-   compone imagen nunca disparan el observador — y la página entera se
-   quedaría en blanco. Una animación puede fallar; el contenido no. */
-.rev{transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1)}
-html.anim .rev{opacity:0;transform:translateY(14px)}
-html.anim .rev.in{opacity:1;transform:none}
+/* ── Revelados ──────────────────────────────────────────────────────────
+   El contenido es VISIBLE por defecto. Solo con JS (y sin movimiento
+   reducido) los .rev parten ocultos, y aun así hay una red de seguridad:
+   si en 1,2 s el observador no ha destapado nada, se destapa LO QUE ESTÁ
+   EN PANTALLA (no toda la página: destapar lo de abajo mataría los
+   revelados por scroll — pasó, y lo cazó la crítica). */
+.rev{transition:opacity .55s var(--e-out),transform .55s var(--e-out)}
+.js:not(.reduced) .rev{opacity:0;transform:translateY(22px)}
+.js:not(.reduced) .rev.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .rev{opacity:1;transform:none;transition:none}
-  .dot,.play-bars i{animation:none}
-  .row,.row-go{transition:none}
+  .rev,.js .rev{opacity:1;transform:none;transition:none}
+  .js:not(.reduced) .w-in{animation:none;transform:none}
+  .js:not(.reduced) .hero-sub,.js:not(.reduced) .hero-acciones{animation:none;opacity:1}
+  .js:not(.reduced) .marco img{clip-path:inset(0);transition:none}
+  .cinta-track{animation:none}
+  .pulso-linea{display:none}
 }
 </style>
 </head>
 <body>
 
 <a class="skip" href="#contenido">Saltar al contenido</a>
+<div class="pulso-linea" aria-hidden="true"></div>
 
-<header class="nav" id="nav">
-  <div class="nav-in">
-    <a class="logo" href="/">node<b>flow</b></a>
-    <nav class="nav-links" aria-label="Principal">
-      <a href="#productos">Productos</a>
-      <a href="#llamada">Una llamada real</a>
-      <a href="#metodo">Método</a>
-      <a href="/blog">Blog</a>
-    </nav>
-    <a class="nav-cta" href="https://wa.me/34666351319">Hablar con nosotros →</a>
-  </div>
+<header class="top" id="top">
+  <a class="logo" href="/">node<b>flow</b></a>
+  <a class="top-cta plausible-event-name=CTA+Top" href="/recepcion">Probar Recepción</a>
 </header>
 
 <main id="contenido">
 
-<!-- ══ HERO ══ Una sola frase. La tesis de la empresa, no un eslogan. -->
-<section class="hero" style="border-top:0;padding:0">
+<!-- ══ HERO ══ Tres verbos del tamaño de la pantalla. Con la demo sonando,
+     las letras se llenan de lima al ritmo de la voz. -->
+<section class="hero" aria-label="NodeFlow">
   <div class="hero-in">
-    <h1 class="rev">Software que hace el trabajo.</h1>
-    <p class="lead rev h-gap">
-      No otro panel que mirar: <strong>sistemas que atienden, ejecutan y dejan
-      constancia de cada decisión</strong>. Contestan el teléfono de un negocio,
-      llevan la operación de un servicio de seguridad y vigilan por las cámaras
-      que ya existen. En producción — no en una demo.
+    <h1 class="palabras">
+      <span class="w w1"><span class="w-in"><span class="w-base">Contesta.</span><span class="w-fill" aria-hidden="true">Contesta.</span></span></span>
+      <span class="w w2"><span class="w-in"><span class="w-base">Registra.</span><span class="w-fill" aria-hidden="true">Registra.</span></span></span>
+      <span class="w w3"><span class="w-in"><span class="w-base">Mira.</span><span class="w-fill" aria-hidden="true">Mira.</span></span></span>
+    </h1>
+    <p class="hero-sub">
+      <span id="relojLinea">A cualquier hora del día hay software nuestro de guardia.</span>
+      Contesta las llamadas que pierdes mientras trabajas, deja la ronda del vigilante
+      escrita y mira por las cámaras que ya tienes. Dos sistemas en producción, uno en
+      piloto. <strong>Hechos en Gipuzkoa</strong>, atienden en castellano y galego.
     </p>
-    <div class="btns rev">
-      <a class="btn btn-1" href="#productos">Ver los productos</a>
-      <button class="play" id="play" type="button">
-        <span class="play-ico" aria-hidden="true">▶</span>
-        <span id="play-txt">Escuchar una llamada real</span>
-        <span class="play-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <div class="hero-acciones">
+      <a class="btn-lima plausible-event-name=CTA+Hero" href="/recepcion">Probar Recepción · 49 €/mes</a>
+      <button class="play plausible-event-name=Play+Hero" id="play" type="button" disabled>
+        <span class="play-ico" aria-hidden="true"><svg width="10" height="12" viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12 Z" fill="currentColor"/></svg></span>
+        <span id="playTxt">Escucha cómo suena · 28 s</span>
       </button>
-    </div>
-    <p class="hero-note rev">La grabación es de una llamada atendida por NodeFlow. Sin guion y sin retocar.</p>
-  </div>
-
-  <!-- La franja de hechos: sólo lo medido o comprobable. -->
-  <div class="facts" aria-label="Datos comprobables">
-    <div class="facts-in">
-      <div class="fact rev"><b class="num">&lt;700&nbsp;ms</b><span>en responder cuando terminas de hablar. Medido en producción, no estimado.</span></div>
-      <div class="fact rev"><b class="num">24/7</b><span>Madrugadas, festivos y agosto incluidos. No coge vacaciones.</span></div>
-      <div class="fact rev"><b>es&nbsp;·&nbsp;gl</b><span>Castellano y galego. Cambia de idioma si el cliente cambia.</span></div>
-      <div class="fact rev"><b>UE</b><span>Los datos se guardan en la Unión Europea. La visión artificial corre en máquina propia.</span></div>
+      <p class="hero-nota">Una demo guionizada con la voz real del producto, sin retocar.
+        Al sonar, las letras cantan.</p>
     </div>
   </div>
-</section>
 
-<!-- ══ EL PRODUCTO, A LO ANCHO ══ Real y sin retocar. -->
-<section class="band">
-  <div class="band-vis">
-    <img src="/guia-img/dashboard.jpg" width="1400" height="940" fetchpriority="high" decoding="async"
-         alt="Panel de NodeFlow de una clínica dental: 6 llamadas atendidas, 3 citas reservadas, 4 avisos enviados, 240 € en reservas y 1 hora y media sin estar el dueño al teléfono.">
-  </div>
-  <p class="band-cap"><i aria-hidden="true"></i><span><b>Producto real, sin retocar.</b> El panel de una clínica, un lunes por la mañana.</span></p>
-</section>
-
-<!-- ══ ÍNDICE DE PRODUCTOS ══ La cartera es la empresa. -->
-<section id="productos" style="border-top:0">
-  <div class="wrap">
-    <h2 class="rev">Tres productos.<br>Cada uno se sostiene solo.</h2>
-    <p class="lead rev h-gap">
-      No hacemos «una IA para todo». Cada producto resuelve un problema de arriba
-      abajo y se mide por lo que ahorra o por lo que hace ganar.
-    </p>
-
-    <div class="index">
-      <a class="row rev" href="/recepcion">
-        <span class="row-i num">01</span>
-        <span class="row-n">
-          <b>Recepción</b>
-          <span class="state"><i aria-hidden="true"></i>En producción</span>
-        </span>
-        <p>Atiende el teléfono cuando tu equipo está ocupado, reserva la cita en tu agenda y hace el seguimiento después. Voz, WhatsApp y web.</p>
-        <span class="row-go">Ver producto →</span>
-      </a>
-
-      <a class="row rev" href="/guard">
-        <span class="row-i num">02</span>
-        <span class="row-n">
-          <b>Guard</b>
-          <span class="state"><i aria-hidden="true"></i>En producción</span>
-        </span>
-        <p>Central de mando para equipos de seguridad: incidencias, rondas con puntos de control, fichajes con GPS y botón de emergencia. Funcionando en el transporte público.</p>
-        <span class="row-go">Ver producto →</span>
-      </a>
-
-      <a class="row rev" href="https://begira.nodeflow.es">
-        <span class="row-i num">03</span>
-        <span class="row-n">
-          <b>Begira</b>
-          <span class="state soon"><i aria-hidden="true"></i>En piloto</span>
-        </span>
-        <p>Las cámaras que ya tienes, avisando: intrusión, sabotaje, aglomeración. Se procesa en local — ni nube ni biometría.</p>
-        <span class="row-go">Ver Begira →</span>
-      </a>
+  <!-- La cinta: solo afirmaciones que podemos sostener. Un toque la pausa. -->
+  <div class="cinta" id="cinta1" role="button" tabindex="0" aria-pressed="false"
+       aria-label="Cinta de datos comprobables de NodeFlow. Pulsa para pausarla o reanudarla.">
+    <div class="cinta-track">
+      <span class="cinta-seg">RESPONDE EN MENOS DE <b>700 MS</b> — MEDIDO · ATIENDE <b>24/7</b> · DATOS EN LA <b>UE</b> · SIN PERMANENCIA · CASTELLANO Y GALEGO · RECEPCIÓN <b>49 €/MES</b> · HECHO EN ANDOAIN, GIPUZKOA · </span>
+      <span class="cinta-seg" aria-hidden="true">RESPONDE EN MENOS DE <b>700 MS</b> — MEDIDO · ATIENDE <b>24/7</b> · DATOS EN LA <b>UE</b> · SIN PERMANENCIA · CASTELLANO Y GALEGO · RECEPCIÓN <b>49 €/MES</b> · HECHO EN ANDOAIN, GIPUZKOA · </span>
     </div>
   </div>
 </section>
 
-<!-- ══ LA LLAMADA ══ La demostración: una llamada real, segundo a segundo. -->
-<section id="llamada">
-  <div class="wrap">
-    <h2 class="rev">Entra una llamada.<br>Esto es lo que pasa después.</h2>
-    <p class="lead rev h-gap">
-      Nadie de la clínica puede descolgar: están los tres con pacientes. La coge
-      NodeFlow y sigue sola hasta el final.
-    </p>
+<!-- ══ INTERLUDIO ══ Un respiro en voz baja entre dos gritos. -->
+<section class="interludio">
+  <p class="rev">No hacemos «software de gestión».<br>
+  <strong>Hacemos software que hace el trabajo.</strong></p>
+</section>
 
-    <div class="scene">
-      <!-- Los data-at son segundos desde que descuelga. La llamada dura 138 s
-           (12:47:02 → 12:49:20), que es exactamente lo que marca la primera
-           fila de la captura de al lado: 2m 18s. -->
-      <div class="life rev" id="life" data-dur="138">
-        <div class="life-bar" aria-hidden="true"><i></i></div>
-        <div class="life-head">
-          <i class="dot" aria-hidden="true"></i>
-          <span id="lifeState">LLAMADA ATENDIDA</span>
-          <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-          <b><span id="lifeClock">02:18</span><span class="tel"> · +34 6·· ··· 114</span></b>
-        </div>
+<!-- ══ CARTELERA ══ Tres pósters: cada producto, a gritos. -->
+<section class="pila" id="productos" aria-label="Productos">
 
-        <div class="step" data-at="0">
-          <div class="step-t">12:47:02</div>
-          <div class="step-b"><b>Descuelga al segundo tono</b>
-            <em>Saluda con el nombre de la clínica. Y dice que es una IA, siempre.</em></div>
-        </div>
-        <div class="step" data-at="7">
-          <div class="step-t">12:47:09</div>
-          <div class="step-b"><b>Reconoce a Aitor por su número</b>
-            <em>Ya vino en marzo. Recupera su ficha antes de la segunda frase.</em></div>
-        </div>
-        <div class="step" data-at="39">
-          <div class="step-t">12:47:41</div>
-          <div class="step-b"><b>Entiende que quiere una limpieza</b>
-            <em>Mira huecos reales en la agenda, no una lista inventada.</em></div>
-        </div>
-        <div class="step" data-at="113">
-          <div class="step-t">12:48:55</div>
-          <div class="step-b"><b>Reserva: miércoles 15, a las 12:30</b>
-            <em>Escribe la cita en el calendario que la clínica ya usaba.</em>
-            <span class="tag tag-ok">hecho</span></div>
-        </div>
-        <div class="step" data-at="132">
-          <div class="step-t">12:49:14</div>
-          <div class="step-b"><b>Le manda la confirmación por WhatsApp</b>
-            <em>Con la dirección y cómo cambiarla si no le viene bien.</em>
-            <span class="tag tag-ok">hecho</span></div>
-        </div>
-        <div class="step" data-at="136">
-          <div class="step-t">12:49:18</div>
-          <div class="step-b"><b>Programa el recordatorio de 24 horas antes</b>
-            <em>El plantón se evita el martes, no el miércoles.</em>
-            <span class="tag tag-wait">programado</span></div>
-        </div>
-        <div class="step" data-at="138">
-          <div class="step-t">12:49:20</div>
-          <div class="step-b"><b>Deja escrito por qué hizo cada cosa</b>
-            <em>Decisión por decisión, revisable. Es la parte que deja dormir tranquilo.</em>
-            <span class="tag tag-ok">registrado</span></div>
-        </div>
-
-        <div class="life-foot">
-          <p><b>2 minutos y 18 segundos.</b> Ni un teléfono sonando en la sala.</p>
-          <button class="replay" type="button" id="replay">↻ Repetir</button>
-        </div>
+  <article class="cartel cartel-negro">
+    <span class="num-bg" aria-hidden="true">01</span>
+    <div class="cartel-in rev">
+      <div>
+        <span class="chip"><i aria-hidden="true"></i>En producción</span>
+        <h2>El teléfono deja de sonar en vano.</h2>
+        <p class="copy"><strong>Recepción</strong> contesta cuando tú no puedes: entiende
+          qué quiere el cliente, agenda la cita en tu calendario y la confirma por
+          WhatsApp. Y después hace el seguimiento.</p>
+        <p class="hechos">24/7 · castellano y galego · 49 €/mes · sin permanencia</p>
+        <a class="cartel-cta plausible-event-name=CTA+Cartel" href="/recepcion">Probar Recepción <span aria-hidden="true">→</span></a>
       </div>
-
-      <figure class="shot rev" id="shot">
+      <figure class="marco">
         <img src="/guia-img/llamadas.jpg" width="1400" height="940" loading="lazy" decoding="async"
-             alt="Pantalla de llamadas de NodeFlow: seis llamadas con su duración, el resultado de cada una (reserva, info, abandonada), el detalle de la cita reservada y el contacto.">
-        <figcaption><b>Así queda registrada.</b> El panel es producto real, sin retocar: resultado,
-          duración, transcripción y contacto de cada llamada. La reconstrucción de la izquierda
-          sigue su primera fila, minuto a minuto.</figcaption>
+             alt="Pantalla de llamadas de NodeFlow Recepción: seis llamadas con su duración, resultado, detalle de la cita reservada y contacto.">
+        <figcaption>El panel de llamadas. Interfaz real, datos de demostración.</figcaption>
       </figure>
     </div>
+  </article>
+
+  <article class="cartel cartel-lima">
+    <span class="num-bg" aria-hidden="true">02</span>
+    <div class="cartel-in rev">
+      <div>
+        <span class="chip"><i aria-hidden="true"></i>En producción</span>
+        <h2>La ronda queda escrita.</h2>
+        <p class="copy"><strong>Guard</strong> es la central de mando de un equipo de
+          seguridad: rondas verificadas con GPS, incidencias con evidencia, fichajes
+          y botón de emergencia. Cada acción queda sellada: quién, cuándo y dónde.</p>
+        <p class="hechos">Funcionando en el transporte público</p>
+        <p class="copy-nota">El nombre del cliente no está aquí: los contratos de
+          seguridad están para cumplirlos. ¿Tienes un contrato de vigilancia que
+          necesitas poder auditar? <a href="tel:+34666351319" style="text-decoration:underline"><strong>Llámanos: 666 351 319</strong></a>.</p>
+        <a class="cartel-cta" href="/guard">Ver Guard <span aria-hidden="true">→</span></a>
+      </div>
+      <figure class="marco marco-movil">
+        <img src="/guard-img/movil-rondas.jpg" width="560" height="1212" loading="lazy" decoding="async"
+             alt="Aplicación móvil de NodeFlow Guard: lista de rondas con sus puntos de control, duración estimada y botón de emergencia.">
+        <figcaption>La app del vigilante. Interfaz real, datos de demostración.</figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <article class="cartel cartel-negro">
+    <span class="num-bg" aria-hidden="true">03</span>
+    <div class="cartel-in rev">
+      <div>
+        <span class="chip chip-piloto"><i aria-hidden="true"></i>En piloto</span>
+        <h2>Tus cámaras, con alguien mirando.</h2>
+        <p class="copy"><strong>Begira</strong> pone visión artificial sobre las cámaras
+          que ya tienes: intrusión, sabotaje, aglomeración. El vídeo se procesa en tu
+          edificio — sin nube y sin biometría.</p>
+        <p class="hechos">Procesado en local · sin nube · sin biometría</p>
+        <a class="cartel-cta" href="https://begira.nodeflow.es">Ver Begira <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="visor" role="img" aria-label="Visor de cámara con la señal marcada como local: el vídeo se procesa en el propio edificio.">
+        <span class="visor-l a"></span><span class="visor-l b"></span>
+        <span class="visor-l c"></span><span class="visor-l d"></span>
+        <span class="visor-rec"><i></i>REC</span>
+        <span class="visor-tag"><b>SEÑAL LOCAL</b>se procesa en tu edificio</span>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<!-- ══ LA DEMO ══ La conversación con su transcripción, frase a frase. -->
+<section class="llamada" id="llamada">
+  <div class="llamada-in">
+    <h2 class="rev">Esto no es un vídeo de producto.<br>Así suena una llamada.</h2>
+    <p class="llamada-sub rev">Veintiocho segundos, seis frases, una cita cerrada.
+      Una demo guionizada, con su transcripción tal cual: <strong>la voz que contesta
+      es la de nuestra IA, sin retocar</strong>.</p>
+
+    <div class="setecientos rev" aria-label="Menos de 700 milisegundos">
+      <b class="num" aria-hidden="true"><span class="menos">&lt;</span>700</b><i aria-hidden="true">ms</i>
+      <span class="setecientos-nota">en responder cuando terminas de hablar —
+        medido en producción, no prometido en la web.</span>
+    </div>
+
+    <div class="karaoke rev">
+      <div class="tira-wrap">
+        <span class="tira-tiempo num" id="tiraTiempo">00:00 / 00:28</span>
+        <canvas class="tira" id="tira" aria-label="Forma de onda de la demo. Pulsa para saltar a un punto de la conversación."></canvas>
+      </div>
+
+      <div class="guion" id="guion">
+        <button class="frase cliente" data-i="0" type="button" disabled>
+          <span class="frase-quien">Cliente</span>
+          <span class="frase-txt">«Hola, necesitaría pedir una revisión con el dentista, por favor.»</span>
+        </button>
+        <button class="frase ia" data-i="1" type="button" disabled>
+          <span class="frase-quien">La IA</span>
+          <span class="frase-txt">«¡Hola! Soy la recepcionista virtual de Clínica Dental Etxe. ¿Eres paciente de la clínica o sería tu primera visita?»</span>
+        </button>
+        <button class="frase cliente" data-i="2" type="button" disabled>
+          <span class="frase-quien">Cliente</span>
+          <span class="frase-txt">«Soy paciente. Me llamo Mikel Urrutia.»</span>
+        </button>
+        <button class="frase ia" data-i="3" type="button" disabled>
+          <span class="frase-quien">La IA</span>
+          <span class="frase-txt">«¡Hola, Mikel! Te encuentro en el sistema. Tengo disponible el martes a las nueve de la mañana, o el jueves a las cuatro de la tarde. ¿Cuál te viene mejor?»</span>
+        </button>
+        <button class="frase cliente" data-i="4" type="button" disabled>
+          <span class="frase-quien">Cliente</span>
+          <span class="frase-txt">«El martes a las nueve, perfecto.»</span>
+        </button>
+        <button class="frase ia" data-i="5" type="button" disabled>
+          <span class="frase-quien">La IA</span>
+          <span class="frase-txt">«Anotado. Revisión el martes a las nueve con el doctor. Te llegará un recordatorio el lunes. ¡Hasta pronto, Mikel!»</span>
+        </button>
+      </div>
+
+      <div class="karaoke-acciones">
+        <button class="play plausible-event-name=Play+Demo" id="playCall" type="button" disabled>
+          <span class="play-ico" aria-hidden="true"><svg width="10" height="12" viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12 Z" fill="currentColor"/></svg></span>
+          <span id="playCallTxt">Reproducir la demo</span>
+        </button>
+        <span class="karaoke-nota">Los nombres son de guion; la clínica es un ejemplo.
+          Pulsa una frase para saltar a ella.</span>
+      </div>
+
+      <!-- Sin JS: la conversación se escucha igual, con el reproductor del navegador -->
+      <audio class="nativo" controls preload="none" src="/audio/demo-clinica/0.mp3"
+        aria-label="Primera frase de la demo. Sin JavaScript solo se reproduce la primera frase; la transcripción completa está arriba."></audio>
+    </div>
   </div>
 </section>
 
-<!-- ══ MÉTODO ══ La ventaja real, y está construida. -->
-<section id="metodo">
-  <div class="wrap">
-    <h2 class="rev">Primero el freno,<br>después el motor.</h2>
-    <p class="lead rev h-gap">
-      Dejar a un sistema hablando con tus clientes —o llevando tu operación— da
-      respeto, y hace bien. Por eso construimos al revés que casi todo el mundo:
-      <strong>no te pedimos que te fíes; te pedimos que lo revises</strong>.
-    </p>
-
-    <div class="method">
-      <div class="mcol auto rev">
-        <h3><i aria-hidden="true"></i>Hace solo</h3>
-        <ul>
-          <li>Atender, informar y agendar</li>
-          <li>Confirmar y recordar citas</li>
-          <li>Actualizar la ficha del cliente</li>
-          <li>Avisar al responsable</li>
-        </ul>
+<!-- ══ EL FRENO ══ El método, en tres verbos. En escritorio, un teatro de
+     cortes; en móvil y sin JS, tres bloques que se leen del tirón. -->
+<section class="freno" id="freno" aria-label="Primero el freno, después el motor">
+  <div class="freno-sticky">
+    <div class="freno-head">
+      <h2>Primero el freno, después el motor.</h2>
+      <p class="freno-ind num" id="frenoInd">1 / 3</p>
+    </div>
+    <div class="pasos" id="pasos">
+      <div class="paso act">
+        <h3>Trabaja solo.</h3>
+        <p>Lo repetitivo no te espera: contesta, agenda, confirma, avisa y apunta.
+          Para eso está.</p>
       </div>
-      <div class="mcol appr rev">
-        <h3><i aria-hidden="true"></i>Se frena</h3>
-        <ul>
-          <li>Si el gasto del mes llega al tope que pusiste</li>
-          <li>Si no puede comprobar cuánto lleva gastado, no llama</li>
-          <li>Ante cualquier cosa que no sepa hacer con seguridad</li>
-          <li>Y entonces te pasa la decisión a ti</li>
-        </ul>
+      <div class="paso">
+        <h3>Se frena.</h3>
+        <p>En cuanto hay dinero, dudas o riesgo, se detiene y te pasa la decisión.
+          Si no puede comprobar cuánto lleva gastado, no llama.</p>
       </div>
-      <div class="mcol log rev">
-        <h3><i aria-hidden="true"></i>Queda registrado</h3>
-        <ul>
-          <li>Cada decisión, con su porqué</li>
-          <li>La conversación entera</li>
-          <li>Qué escribió y dónde lo escribió</li>
-          <li>Revisable cuando quieras, sin pedírnoslo</li>
-        </ul>
+      <div class="paso">
+        <h3>Queda registrado.</h3>
+        <p>Cada acción deja rastro: qué hizo, cuándo y por qué. Lo tienes en tu
+          panel, sin pedírnoslo.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ HONESTIDAD ══ Decir en grande lo que NO hay. Es el gesto de una
-     empresa que no necesita inflarse. -->
-<section>
-  <div class="wrap">
-    <h2 class="rev">Lo que no verás<br>en esta página.</h2>
-
-    <div class="not">
-      <div class="not-r rev"><i aria-hidden="true">—</i><b>Testimonios inventados.</b></div>
-      <div class="not-r rev"><i aria-hidden="true">—</i><b>Logos de empresas que no son clientes.</b></div>
-      <div class="not-r rev"><i aria-hidden="true">—</i><b>Porcentajes sin decir de dónde salen.</b></div>
+<!-- ══ LO QUE NO VERÁS ══ La honestidad, tachada en lima. -->
+<section class="noveras" aria-label="Lo que no verás en esta página">
+  <div class="noveras-in">
+    <h2 class="rev">Lo que no verás en esta página.</h2>
+    <div class="tachados">
+      <p class="tachado rev">Testimonios inventados.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 16 Q 50 10 100 12" stroke-width="3" pathLength="120"/></svg></p>
+      <p class="tachado rev">Logos de clientes falsos.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 10 L100 17" stroke-width="2.6" pathLength="120"/></svg></p>
+      <p class="tachado rev">Citas a estudios que nadie puede enseñar.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 14 Q 40 18 100 11" stroke-width="3.4" pathLength="120"/><path class="t t2" d="M0 18 L100 16" stroke-width="2.2" pathLength="120"/></svg></p>
+      <p class="tachado rev">Contadores que suben solos.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 12 L100 14" stroke-width="3.1" pathLength="120"/></svg></p>
+      <p class="tachado rev">Porcentajes sin fuente.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 15 Q 60 9 100 15" stroke-width="2.8" pathLength="120"/></svg></p>
     </div>
-
-    <p class="honest rev">
-      Somos una empresa joven y preferimos enseñarlo a contarlo: <strong>escucha una
-      llamada, mira el producto por dentro</strong>. Y si quieres hablar con alguien
-      que ya lo usa, pídelo y te lo ponemos al teléfono.
-    </p>
+    <p class="noveras-si rev">Lo que sí verás: <b>una demo que puedes escuchar</b>,
+      el panel tal y como es —con datos de demostración—, un precio (49 €/mes),
+      menos de 700 ms medidos en producción y <b>un sistema funcionando hoy en el
+      transporte público</b>. Con eso salimos a vender.</p>
   </div>
 </section>
 
-<!-- ══ CIERRE ══ -->
-<section>
-  <div class="wrap">
-    <h2 class="rev">Ponnos a trabajar.</h2>
-    <p class="lead rev h-gap">
-      Empieza por donde más te duela: el teléfono que no puedes coger o la
-      operación que no puedes ver.
-    </p>
-    <div class="btns rev">
-      <a class="btn btn-1" href="/recepcion">Probar NodeFlow Recepción</a>
-      <a class="btn btn-2" href="https://wa.me/34666351319">Escribirnos por WhatsApp</a>
+<!-- ══ TRES RESPUESTAS ══ Las objeciones que de verdad frenan la compra. -->
+<section class="respuestas" aria-label="Preguntas frecuentes">
+  <div class="respuestas-in rev">
+    <div class="resp">
+      <h3>¿Tengo que cambiar de número?</h3>
+      <p>No. Conservas el tuyo: NodeFlow entra cuando tú no puedes contestar.</p>
     </div>
-    <p class="hero-note rev">Sin permanencia. Y si tu negocio no lo necesita, te lo decimos.</p>
+    <div class="resp">
+      <h3>¿Es complicado de poner?</h3>
+      <p>El alta es online, sin técnico y sin permanencia. Si tu negocio no lo
+        necesita, te lo decimos.</p>
+    </div>
+    <div class="resp">
+      <h3>¿Y si no sabe qué contestar?</h3>
+      <p>Se frena: toma el recado, te avisa al momento y no se inventa la respuesta.</p>
+    </div>
   </div>
+</section>
+
+<!-- ══ ¿DIGA? ══ El cierre: la página abre con lo que hace el software y
+     cierra con lo que oye el cliente. -->
+<section class="diga" aria-label="Cierre">
+  <div class="cinta" id="cinta2" aria-hidden="true">
+    <div class="cinta-track">
+      <span class="cinta-seg">UNA CONVERSACIÓN · SEIS FRASES · <b>UNA CITA CERRADA</b> · VEINTIOCHO SEGUNDOS · UNA CONVERSACIÓN · SEIS FRASES · <b>UNA CITA CERRADA</b> · VEINTIOCHO SEGUNDOS · </span>
+      <span class="cinta-seg">UNA CONVERSACIÓN · SEIS FRASES · <b>UNA CITA CERRADA</b> · VEINTIOCHO SEGUNDOS · UNA CONVERSACIÓN · SEIS FRASES · <b>UNA CITA CERRADA</b> · VEINTIOCHO SEGUNDOS · </span>
+    </div>
+  </div>
+  <h2 class="rev">¿Diga?</h2>
+  <p class="diga-sub rev">Ponlo a coger tu teléfono.</p>
+  <div class="diga-botones rev">
+    <a class="btn-negro plausible-event-name=CTA+Cierre" href="/recepcion">PROBAR RECEPCIÓN → 49 €/mes</a>
+    <a class="btn-borde plausible-event-name=WhatsApp+Cierre" href="https://wa.me/34666351319?text=Hola%2C%20vengo%20de%20nodeflow.es%20y%20quiero%20probar%20Recepci%C3%B3n">Escríbenos por WhatsApp</a>
+  </div>
+  <p class="diga-nota rev">Sin permanencia · Datos en la UE · Castellano y galego.
+    Y si tu negocio no lo necesita, te lo decimos.</p>
 </section>
 
 </main>
@@ -576,10 +680,9 @@ html.anim .rev.in{opacity:1;transform:none}
   <div class="wrap">
     <div class="f-grid">
       <div>
-        <a class="logo" href="/">node<b>flow</b></a>
-        <p class="small" style="margin-top:14px;max-width:34ch">
-          Software que hace el trabajo, no que lo espera.
-        </p>
+        <a class="f-logo" href="/">node<b>flow</b></a>
+        <p class="f-wink">Esta página es un único fichero HTML escrito a mano.
+          Sin frameworks, sin build. Si sabes lo que es Ctrl+U, compruébalo.</p>
       </div>
       <div>
         <h3>Productos</h3>
@@ -603,8 +706,17 @@ html.anim .rev.in{opacity:1;transform:none}
         <ul>
           <li><a href="/blog">Blog</a></li>
           <li><a href="/guia.html">Guía del producto</a></li>
-          <li><a href="https://wa.me/34666351319">666 351 319</a></li>
+          <li><a href="https://wa.me/34666351319?text=Hola%2C%20vengo%20de%20nodeflow.es">WhatsApp</a></li>
+          <li><a href="tel:+34666351319">666 351 319</a></li>
           <li><a href="/portal">Acceder</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Legal</h3>
+        <ul>
+          <li><a href="/aviso-legal/">Aviso legal</a></li>
+          <li><a href="/privacidad/">Privacidad</a></li>
+          <li><a href="/terminos/">Términos</a></li>
         </ul>
       </div>
     </div>
@@ -616,160 +728,332 @@ html.anim .rev.in{opacity:1;transform:none}
 </footer>
 
 <script>
-// Separación de la navegación al despegarse de arriba.
 (function(){
-  var n=document.getElementById('nav');
-  var f=function(){ n.classList.toggle('stuck', scrollY>8); };
-  f(); addEventListener('scroll', f, {passive:true});
+'use strict';
+var reduced = document.documentElement.classList.contains('reduced');
+var esTactil = matchMedia('(hover:none) and (pointer:coarse)').matches;
+
+/* ════════════════════════════════════════════════════════════════════════
+   EL PULSO — un bus de señal 0..1 que alimenta toda la cinética.
+   idle: un latido en reposo (72 ppm). scroll: tu propia energía, con
+   fricción. audio: la envolvente REAL de la voz. value = max de las tres.
+   Un solo rAF escribe UNA variable CSS; los consumidores (letras del hero,
+   cintas, línea del borde, puntos de estado) son clip-path y transform.
+   Economía: con la página asentada y sin audio, se escribe 1 de cada 6
+   frames — el latido a 10 fps es indistinguible y la batería lo nota.
+   ════════════════════════════════════════════════════════════════════════ */
+var pulse = { v:0.12, scrollE:0, audioE:0, raf:0, cintas:null, skip:0, lastRate:1 };
+
+var audioCtx=null, analyser=null, tdata=null, conectado=false;
+function contexto(){
+  if(audioCtx) return audioCtx;
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.8;
+    analyser.connect(audioCtx.destination);
+    tdata = new Uint8Array(analyser.fftSize);
+  }catch(e){ audioCtx=null; }
+  return audioCtx;
+}
+/* En táctil NO se enruta el audio por Web Audio: el interruptor de silencio
+   del iPhone y el estado 'interrupted' de Safari pueden dejar el grafo mudo
+   con el botón diciendo «Sonando…». La envolvente pre-horneada mueve los
+   visuales igual y el sonido va por el <audio> a pelo, que es el fiable. */
+function conectar(el){
+  if(esTactil) return false;
+  if(!contexto()) return false;
+  try{
+    if(!el._src){ el._src = audioCtx.createMediaElementSource(el); el._src.connect(analyser); }
+    if(audioCtx.state!=='running') audioCtx.resume();
+    conectado = true;
+    return true;
+  }catch(e){ return false; }
+}
+function rmsAnalyser(){
+  analyser.getByteTimeDomainData(tdata);
+  var s=0,i;
+  for(i=0;i<tdata.length;i+=4){ var d=(tdata[i]-128)/128; s+=d*d; }
+  return Math.min(1, Math.sqrt(s/(tdata.length/4))*2.6);
+}
+
+var lastY = scrollY, motorSonando = false; // lo pone el motor de audio
+function frame(t){
+  pulse.raf = requestAnimationFrame(frame);
+  // economía: asentado y en silencio → 1 de cada 6 frames
+  var quieto = !motorSonando && pulse.scrollE < 0.02;
+  if(quieto && (pulse.skip = (pulse.skip+1)%6)) return;
+  var idle = 0.08 + 0.05*Math.sin(t/1000*2*Math.PI*1.2);
+  pulse.scrollE *= 0.92;
+  var au = motorSonando ? (conectado ? rmsAnalyser() : pulse.audioE) : (pulse.audioE *= 0.9);
+  var v = Math.max(idle, Math.min(1,pulse.scrollE), au);
+  pulse.v += (v - pulse.v) * 0.25;
+  document.documentElement.style.setProperty('--pulse', pulse.v.toFixed(3));
+  if(pulse.cintas){
+    var r = 1 + 2*pulse.v;
+    if(Math.abs(r - pulse.lastRate) > 0.05){
+      pulse.lastRate = r;
+      pulse.cintas.forEach(function(a){ a.playbackRate = r; });
+    }
+  }
+}
+if(!reduced){
+  addEventListener('scroll', function(){
+    var dy = Math.abs(scrollY-lastY); lastY=scrollY;
+    pulse.scrollE = Math.min(1.2, pulse.scrollE + dy/240);
+  }, {passive:true});
+  try{
+    pulse.cintas = [];
+    document.querySelectorAll('.cinta-track').forEach(function(el){
+      var a = el.getAnimations && el.getAnimations()[0]; if(a) pulse.cintas.push(a);
+    });
+    if(!pulse.cintas.length) pulse.cintas=null;
+  }catch(e){ pulse.cintas=null; }
+  pulse.raf = requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ cancelAnimationFrame(pulse.raf); }
+    else { pulse.raf = requestAnimationFrame(frame); }
+  });
+}
+
+/* ── Las cintas se pausan con un toque (y con hover, por CSS) ─────────── */
+document.querySelectorAll('.cinta').forEach(function(c){
+  function alterna(){
+    var p = c.classList.toggle('pausada');
+    if(c.getAttribute('role')==='button') c.setAttribute('aria-pressed', p?'true':'false');
+  }
+  c.addEventListener('click', alterna);
+  c.addEventListener('keydown', function(e){
+    if(e.key===' '||e.key==='Enter'){ e.preventDefault(); alterna(); }
+  });
+});
+
+/* ── El reloj real (1 Hz, alineado al segundo) ─────────────────────────── */
+(function(){
+  var linea = document.getElementById('relojLinea'); if(!linea) return;
+  function pinta(){
+    var d=new Date(), p=function(n){return ('0'+n).slice(-2);};
+    linea.innerHTML = 'Son las <span class="reloj num">'+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())+'</span> y hay software nuestro de guardia.';
+  }
+  function tic(){ pinta(); setTimeout(tic, 1000 - (Date.now()%1000)); }
+  tic();
 })();
 
-// Aparición escalonada. Sin IntersectionObserver o con movimiento reducido,
-// TODO visible: el contenido nunca depende de que una animación se dispare.
+/* ── Revelados + red de seguridad que respeta el scroll ────────────────── */
 (function(){
   var els=[].slice.call(document.querySelectorAll('.rev'));
-  if(!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches){
-    return; // sin JS de aparición: el contenido ya se ve, no hay nada que hacer
+  if(reduced || !('IntersectionObserver' in window)){
+    els.forEach(function(e){e.classList.add('in');}); return;
   }
-  // A partir de aquí SÍ se oculta para animar. Y se pone una red de seguridad:
-  // si en 1,2 s el observador no ha destapado algo (pestaña en segundo plano,
-  // navegador sin composición), se destapa todo igualmente.
-  document.documentElement.classList.add('anim');
-  setTimeout(function(){ els.forEach(function(e){ e.classList.add('in'); }); }, 1200);
+  var ioVivo = false;
+  // Si el observador no ha dado señales de vida en 1,2 s, se destapa SOLO
+  // lo que está en pantalla: destapar toda la página mataría los revelados
+  // por scroll de las secciones de abajo.
+  var red = setTimeout(function(){
+    if(ioVivo) return;
+    els.forEach(function(e){
+      if(e.getBoundingClientRect().top < innerHeight) e.classList.add('in');
+    });
+  }, 1200);
   var io=new IntersectionObserver(function(ents){
+    ioVivo = true;
     ents.forEach(function(en){
       if(!en.isIntersecting) return;
-      var p=en.target.parentElement;
-      var i=p?[].indexOf.call(p.children,en.target):0;
-      en.target.style.transitionDelay=Math.min(i,5)*55+'ms';
-      en.target.classList.add('in');
-      io.unobserve(en.target);
+      en.target.classList.add('in'); io.unobserve(en.target);
     });
-  },{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  },{rootMargin:'0px 0px -10% 0px',threshold:.15});
   els.forEach(function(e){ io.observe(e); });
 })();
 
-// La llamada se REPRODUCE, no se enseña.
-//
-// Los siete pasos ya están en el HTML, terminados. Esto los rebobina y los
-// suelta con el reloj corriendo. Dos decisiones que no son de adorno:
-//
-//  · Se sale ANTES de ocultar nada si no hay observador o si el usuario pidió
-//    menos movimiento. Ocultar primero y confiar en que algo lo destape es
-//    justo el error que deja páginas en blanco para los rastreadores.
-//  · Los huecos reales de la llamada son de 7, 32, 74, 19, 4 y 2 segundos. A
-//    escala real esto duraría 2 minutos y 18: nadie lo mira. Repartir el
-//    tiempo por igual mataría lo único interesante, el ritmo desigual. Se
-//    comprime cada hueco por separado, con suelo y techo: se conserva la
-//    FORMA del ritmo aunque no la duración.
+/* ── El estado de la barra superior sobre secciones lima ───────────────── */
 (function(){
-  var life=document.getElementById('life'); if(!life) return;
-  var pasos=[].slice.call(life.querySelectorAll('.step'));
-  var reloj=document.getElementById('lifeClock');
-  var estado=document.getElementById('lifeState');
-  var barra=life.querySelector('.life-bar i');
-  var pie=life.querySelector('.life-foot');
-  var boton=document.getElementById('replay');
-  var shot=document.getElementById('shot');
-  var total=parseInt(life.dataset.dur,10)||138;
-
-  if(!('IntersectionObserver' in window) ||
-     matchMedia('(prefers-reduced-motion: reduce)').matches) return; // se queda entera
-
-  var mmss=function(s){ s=Math.max(0,Math.round(s));
-    return ('0'+Math.floor(s/60)).slice(-2)+':'+('0'+(s%60)).slice(-2); };
-
-  // Hueco real (s) → espera en pantalla (ms). El techo evita que la espera de
-  // 74 s se haga eterna; el suelo evita que los últimos pasos salgan de golpe.
-  var espera=function(seg){ return Math.min(2000, Math.max(560, seg*95)); };
-
-  var timers=[], raf=0;
-  function parar(){ timers.forEach(clearTimeout); timers=[]; cancelAnimationFrame(raf); }
-
-  function correrReloj(desde,hasta,ms){
-    var t0=performance.now();
-    (function paso(t){
-      var k=Math.min(1,(t-t0)/ms);
-      var s=desde+(hasta-desde)*k;
-      reloj.textContent=mmss(s);
-      barra.style.width=(s/total*100)+'%';
-      if(k<1) raf=requestAnimationFrame(paso);
-    })(t0);
-  }
-
-  function reproducir(){
-    parar();
-    life.classList.add('repro','live');
-    pasos.forEach(function(p){ p.classList.remove('on'); });
-    pie.classList.remove('on'); if(shot) shot.classList.remove('linked');
-    reloj.textContent='00:00'; barra.style.width='0%';
-    estado.textContent='LLAMADA EN CURSO';
-
-    var acc=380, previo=0;
-    pasos.forEach(function(p,i){
-      var at=parseInt(p.dataset.at,10)||0;
-      var ms=i?espera(at-previo):0, desde=previo, inicio=acc;
-      acc+=ms;
-      // El reloj avanza DURANTE la espera, no al aterrizar: si sólo saltara con
-      // cada paso, los 74 segundos de mirar la agenda serían una pausa muerta.
-      if(i) timers.push(setTimeout(function(){ correrReloj(desde,at,ms); }, inicio));
-      timers.push(setTimeout(function(){
-        p.classList.add('on');
-        reloj.textContent=mmss(at); barra.style.width=(at/total*100)+'%';
-      }, acc));
-      previo=at;
+  var top=document.getElementById('top');
+  var limas=[].slice.call(document.querySelectorAll('.cartel-lima,.freno,.diga'));
+  if(!limas.length) return;
+  function mira(){
+    var y = 34;
+    var sobre = limas.some(function(s){
+      var r=s.getBoundingClientRect(); return r.top<y && r.bottom>y;
     });
-
-    timers.push(setTimeout(function(){
-      life.classList.remove('live');
-      estado.textContent='LLAMADA ATENDIDA';
-      pie.classList.add('on');
-      if(shot) shot.classList.add('linked');
-    }, acc+520));
+    top.classList.toggle('sobre-lima', sobre);
   }
-
-  // Saltar al final: quien no quiera esperar, toca y lo tiene entero.
-  life.addEventListener('click', function(e){
-    if(e.target.closest('#replay') || !life.classList.contains('live')) return;
-    parar();
-    pasos.forEach(function(p){ p.classList.add('on'); });
-    reloj.textContent=mmss(total); barra.style.width='100%';
-    life.classList.remove('live'); estado.textContent='LLAMADA ATENDIDA';
-    pie.classList.add('on'); if(shot) shot.classList.add('linked');
-  });
-  if(boton) boton.addEventListener('click', reproducir);
-
-  // El disparo NO usa IntersectionObserver, y es a propósito: con esta tarjeta
-  // (~2600 px de alto) los umbrales razonables no se cumplen nunca en móvil, y
-  // con umbral 0 el observador ya falló en pruebas con la tarjeta a la vista.
-  // Medir la posición a mano siempre funciona, cuesta un rAF por scroll y se
-  // desengancha en cuanto arranca.
-  var pedido=0;
-  function mirar(){
-    pedido=0;
-    var r=life.getBoundingClientRect();
-    var alto=innerHeight||document.documentElement.clientHeight;
-    if(r.top<alto*0.78 && r.bottom>0){
-      removeEventListener('scroll',alScroll); removeEventListener('resize',alScroll);
-      reproducir();
-    }
-  }
-  function alScroll(){ if(!pedido) pedido=requestAnimationFrame(mirar); }
-  addEventListener('scroll',alScroll,{passive:true});
-  addEventListener('resize',alScroll);
-  mirar(); // por si ya está a la vista al cargar
+  addEventListener('scroll', mira, {passive:true});
+  addEventListener('resize', mira);
+  mira();
 })();
 
-// Muestra de voz real. El audio se carga SÓLO al pulsar: cero peso en la
-// primera carga de la página.
+/* ── EL MOTOR DE LA DEMO ──────────────────────────────────────────────────
+   UNA sola conversación (6 ficheros reales con transcripción verificada) y
+   UN solo motor: lo disparan el botón del hero y el de la sección, así que
+   no pueden sonar dos voces a la vez. La sincronización del karaoke es
+   exacta por construcción: la frase N se ilumina mientras suena su fichero.
+   La tira pinta los picos REALES del audio (pre-calculados con ffmpeg de
+   los mismos ficheros, 16 muestras/s) y también conduce las letras del hero
+   cuando no hay grafo de Web Audio. */
+var PEAKS='20,99,78,38,3,3,17,19,13,10,4,42,28,54,38,46,38,40,32,32,22,32,18,10,20,19,23,28,24,21,19,12,19,16,1,14,3,17,5,9,23,24,20,7,2,0,0,0,0,0,72,85,99,79,24,7,1,38,71,49,58,40,21,35,9,3,39,37,32,3,21,38,46,11,7,45,43,25,32,5,33,42,39,6,34,24,23,9,34,26,22,3,1,14,18,8,1,1,1,1,0,64,57,22,4,54,10,40,54,23,37,42,44,29,15,47,48,31,6,37,19,3,28,44,29,27,11,28,44,34,34,30,25,3,22,14,9,14,4,1,1,1,0,10,69,60,78,40,48,99,93,30,26,16,7,26,43,66,61,48,54,17,59,45,33,59,69,10,93,88,32,2,1,1,0,0,74,95,99,65,67,53,4,30,33,21,3,1,0,21,50,40,18,60,46,16,45,48,47,28,3,23,2,2,33,25,20,11,2,1,1,1,2,47,48,45,28,20,2,21,40,41,26,34,35,38,42,32,12,13,8,13,24,23,11,27,28,25,23,29,29,23,17,21,22,22,19,12,4,1,1,1,6,40,26,5,31,32,25,3,20,20,11,3,14,25,7,23,21,20,16,3,12,10,10,9,4,1,0,0,0,0,0,0,0,0,0,34,35,10,34,31,34,34,34,15,4,19,14,3,1,0,0,0,0,0,54,51,99,77,26,58,17,46,57,29,13,42,40,27,11,3,0,27,19,4,48,5,1,19,5,0,0,0,0,57,75,55,37,28,91,59,21,21,7,1,1,1,1,2,1,1,2,2,2,1,6,43,99,81,73,8,49,68,78,94,83,90,53,5,47,6,40,40,23,35,55,44,55,7,42,42,41,29,28,5,3,40,30,5,3,2,1,2,1,2,2,1,1,71,85,88,51,60,64,59,38,66,9,56,44,47,6,43,41,52,46,45,32,35,23,16,5,2,2,2,1,1,1,1,1,1,74,27,6,72,12,60,86,64,26,52,53,39,5,27,26,14,4,2,1,1,0'.split(',').map(Number);
+var CUES=[0,3.019,8.870,10.821,18.901,20.759], TOTAL=28.096, N=6;
+
 (function(){
-  var b=document.getElementById('play'), t=document.getElementById('play-txt'), a=null;
-  if(!b) return;
-  function off(){ b.dataset.on='0'; t.textContent='Escuchar una llamada real'; }
-  b.addEventListener('click', function(){
-    if(!a){ a=new Audio('/demo.mp3'); a.addEventListener('ended', off); a.addEventListener('error', function(){ t.textContent='No se pudo cargar el audio'; }); }
-    if(a.paused){ a.play().then(function(){ b.dataset.on='1'; t.textContent='Sonando…'; }).catch(function(){ t.textContent='No se pudo reproducir'; }); }
-    else { a.pause(); off(); }
+  var canvas=document.getElementById('tira'); if(!canvas) return;
+  var ctx2=canvas.getContext('2d');
+  var frases=[].slice.call(document.querySelectorAll('.frase'));
+  var guion=document.getElementById('guion');
+  var bHero=document.getElementById('play'), tHero=document.getElementById('playTxt');
+  var bCall=document.getElementById('playCall'), tCall=document.getElementById('playCallTxt');
+  var tiempo=document.getElementById('tiraTiempo');
+
+  // Los botones nacen disabled en el HTML (sin JS no hacen nada); el motor
+  // los enciende al arrancar.
+  [bHero,bCall].concat(frases).forEach(function(b){ b.removeAttribute('disabled'); });
+
+  var a=new Audio(); a.preload='none';
+  var pre=null;                       // prefetch del segmento siguiente
+  var idx=-1, playing=false, raf=0, gen=0, offsetPendiente=0, termino=false;
+
+  function src(i){ return '/audio/demo-clinica/'+i+'.mp3'; }
+  function globalT(){ return idx<0 ? (termino?TOTAL:0) : Math.min(TOTAL, CUES[idx] + (a.currentTime||0)); }
+  function mmss(s){ s=Math.max(0,Math.round(s)); return ('0'+Math.floor(s/60)).slice(-2)+':'+('0'+(s%60)).slice(-2); }
+
+  function tamano(){
+    var r=canvas.getBoundingClientRect(), dpr=Math.min(2,devicePixelRatio||1);
+    canvas.width=Math.round(r.width*dpr); canvas.height=Math.round(76*dpr);
+    ctx2.setTransform(dpr,0,0,dpr,0,0);
+    pinta();
+  }
+  function pinta(){
+    var w=canvas.width/Math.min(2,devicePixelRatio||1), h=76, mid=h/2;
+    ctx2.clearRect(0,0,w,h);
+    var n=PEAKS.length, bw=w/n, prog=globalT()/TOTAL;
+    for(var i=0;i<n;i++){
+      var v=Math.max(2, PEAKS[i]/99*(h-10));
+      ctx2.fillStyle = (i/n)<=prog ? '#c4f546' : 'rgba(232,242,238,.18)';
+      ctx2.fillRect(i*bw, mid-v/2, Math.max(1,bw-1.2), v);
+    }
+    if(tiempo) tiempo.textContent = mmss(globalT())+' / '+mmss(TOTAL);
+  }
+  function marca(i){
+    frases.forEach(function(f,j){ f.classList.toggle('act', j===i); });
+  }
+  function rotulos(){
+    if(playing){
+      bHero.dataset.on='1'; tHero.textContent='Sonando… (toca para parar)';
+      bCall.dataset.on='1'; tCall.textContent='Sonando…';
+      guion.classList.add('playing');
+    } else {
+      bHero.dataset.on='0'; tHero.textContent='Escucha cómo suena · 28 s';
+      bCall.dataset.on='0'; tCall.textContent= termino ? 'Volver a escucharla' : 'Reproducir la demo';
+      guion.classList.remove('playing');
+    }
+  }
+  function loop(){
+    pinta();
+    if(!conectado && playing){
+      var k=Math.floor(globalT()*16);
+      pulse.audioE=(PEAKS[k]||0)/99;
+    }
+    if(playing) raf=requestAnimationFrame(loop);
+  }
+  function precarga(i){
+    if(i<N){ try{ pre=new Audio(src(i)); pre.preload='auto'; pre.load(); }catch(e){} }
+  }
+  function reproduce(i, offset){
+    termino=false;
+    var g=++gen;
+    var mismo = (i===idx && a.src);
+    if(!mismo){ idx=i; a.src=src(i); a.preload='auto'; }
+    marca(i); offsetPendiente = offset||0;
+    conectar(a);
+    a.play().then(function(){
+      if(g!==gen) return;
+      if(offsetPendiente>0.2 && a.duration){ a.currentTime=Math.min(offsetPendiente, a.duration-0.05); offsetPendiente=0; }
+      if(!playing){ playing=true; motorSonando=true; rotulos(); raf=requestAnimationFrame(loop); }
+      precarga(i+1);
+    }).catch(function(err){
+      if(g!==gen) return;
+      if(err && err.name==='AbortError') return;
+      para();
+      tCall.textContent='No se pudo reproducir';
+    });
+  }
+  function para(){
+    gen++;
+    if(playing){ playing=false; motorSonando=false; }
+    cancelAnimationFrame(raf);
+    a.pause(); rotulos(); pinta();
+  }
+  function alterna(){
+    if(playing){ para(); }
+    else if(idx>=0 && idx<N && a.src && a.currentTime>0 && !a.ended){
+      // reanudar donde estaba, sin recargar el fichero
+      var g=++gen;
+      conectar(a);
+      a.play().then(function(){ if(g!==gen) return;
+        playing=true; motorSonando=true; rotulos(); raf=requestAnimationFrame(loop);
+      }).catch(function(err){ if(g!==gen||!err||err.name==='AbortError') return; para(); });
+    }
+    else reproduce(0);
+  }
+  a.addEventListener('ended', function(){
+    if(idx<N-1){ reproduce(idx+1); }
+    else {
+      playing=false; motorSonando=false; termino=true; idx=-1;
+      marca(-1); rotulos(); pinta();
+    }
   });
+  a.addEventListener('error', function(){ if(playing){ para(); tCall.textContent='No se pudo cargar el audio'; } });
+
+  bHero.addEventListener('click', alterna);
+  bCall.addEventListener('click', alterna);
+  frases.forEach(function(f){
+    f.addEventListener('click', function(){ reproduce(parseInt(f.dataset.i,10)); });
+  });
+  canvas.addEventListener('click', function(e){
+    var r=canvas.getBoundingClientRect();
+    var t=(e.clientX-r.left)/r.width*TOTAL, i=0;
+    for(var j=N-1;j>=0;j--){ if(t>=CUES[j]){ i=j; break; } }
+    reproduce(i, t-CUES[i]);
+  });
+
+  addEventListener('resize', function(){ clearTimeout(canvas._rz); canvas._rz=setTimeout(tamano,150); });
+  tamano();
+})();
+
+/* ── El freno: teatro de cortes en escritorio ──────────────────────────── */
+(function(){
+  if(reduced) return;
+  var mq=matchMedia('(min-width:900px)');
+  var freno=document.getElementById('freno');
+  var pasos=[].slice.call(document.querySelectorAll('#pasos .paso'));
+  var ind=document.getElementById('frenoInd');
+  if(!freno||pasos.length!==3) return;
+  var activo=-1;
+  function estado(i){
+    if(i===activo) return; activo=i;
+    pasos.forEach(function(p,j){
+      p.classList.toggle('act', j===i);
+      p.classList.toggle('fue', j<i);
+    });
+    if(ind) ind.textContent=(i+1)+' / 3';
+  }
+  function mira(){
+    if(!document.documentElement.classList.contains('teatro')) return;
+    var r=freno.getBoundingClientRect();
+    var total=r.height-innerHeight;
+    var p=Math.min(1,Math.max(0,-r.top/Math.max(1,total)));
+    estado(p<1/3?0:p<2/3?1:2);
+  }
+  function modo(){
+    var teatro=mq.matches;
+    document.documentElement.classList.toggle('teatro', teatro);
+    if(teatro){ activo=-1; estado(0); mira(); }
+    else pasos.forEach(function(p){ p.classList.remove('fue'); p.classList.add('act'); });
+  }
+  addEventListener('scroll', mira, {passive:true});
+  addEventListener('resize', mira);
+  mq.addEventListener ? mq.addEventListener('change',modo) : mq.addListener(modo);
+  modo();
+})();
+
 })();
 </script>
 </body>
