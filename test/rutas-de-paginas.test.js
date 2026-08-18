@@ -28,7 +28,9 @@ const PUBLIC = path.join(raiz, 'public');
 const servidor = fs.readFileSync(path.join(raiz, 'server.js'), 'utf8');
 
 // Páginas cuyos enlaces se auditan: las que reciben tráfico de verdad.
-const PAGINAS = ['index.html', 'recepcion/index.html', 'guard/index.html'];
+// (/guard salió de la lista el 2026-08-18: la página se RETIRÓ entera —
+// ver el test de la retirada al final de este fichero.)
+const PAGINAS = ['index.html', 'recepcion/index.html'];
 
 // Prefijos que NO se comprueban aquí y por qué:
 //  · /api y /webhook   → no son páginas.
@@ -113,7 +115,7 @@ for (const pagina of PAGINAS) {
 test('cada página de producto enlazada desde la portada tiene su ruta', () => {
   // Las de producto son las que se anuncian y por las que entra gente desde
   // fuera. Que una caiga en 404 es perder la visita entera, no un enlace roto.
-  const PRODUCTO = ['/recepcion', '/guard'];
+  const PRODUCTO = ['/recepcion'];
   const sinRuta = PRODUCTO.filter(p => !tieneRuta(p));
   assert.deepEqual(sinRuta, [],
     `Páginas de producto sin ruta declarada en server.js: ${sinRuta.join(', ')}`);
@@ -122,9 +124,34 @@ test('cada página de producto enlazada desde la portada tiene su ruta', () => {
 test('las páginas de producto están en el calentamiento de arranque', () => {
   // No es rendimiento por gusto: getPage baja el HTML de GitHub raw y la
   // primera visita tras un reinicio se come esa latencia entera.
-  for (const p of ['/recepcion/index.html', '/guard/index.html']) {
+  for (const p of ['/recepcion/index.html']) {
     assert.ok(servidor.includes(`'${p}'`),
       `${p} no está en la lista de warm-up: la primera visita tras cada ` +
       'reinicio pagará la descarga desde GitHub.');
+  }
+});
+
+test('/guard está RETIRADA: sin ficheros, sin enlaces y con 410 declarado', () => {
+  // Decisión de Unai (2026-08-18): la página de Guard y sus capturas (que
+  // llevaban la marca del cliente) se borran de la web pública. Este test
+  // vigila las tres formas de deshacer la retirada sin querer:
+  //  1. que las carpetas resuciten en public/,
+  //  2. que la ruta 410 desaparezca de server.js (quedaría un 404 blando y
+  //     Google tardaría meses en soltar la URL),
+  //  3. que alguna página principal vuelva a enlazarla.
+  assert.ok(!fs.existsSync(path.join(PUBLIC, 'guard')),
+    'public/guard/ ha vuelto: la página se retiró el 2026-08-18.');
+  assert.ok(!fs.existsSync(path.join(PUBLIC, 'guard-img')),
+    'public/guard-img/ ha vuelto: esas capturas llevan la marca del cliente.');
+  // La ruta es una regex literal en server.js: app.get(/^\/guard(?:-img)?…
+  // seguida de un status 410 en su manejador.
+  const ruta410 = servidor.match(/app\.get\(\/\^\\\/guard[\s\S]{0,220}?res\.status\(410\)/);
+  assert.ok(ruta410,
+    'server.js ya no declara la ruta 410 de /guard: sin ella quedaría un 404 ' +
+    'blando y Google tardaría meses en soltar la URL.');
+  for (const pagina of PAGINAS) {
+    const html = fs.readFileSync(path.join(PUBLIC, pagina), 'utf8');
+    assert.ok(!/href="\/guard(?:["\/]|-img)/.test(html),
+      `${pagina} vuelve a enlazar /guard, que está retirada.`);
   }
 });

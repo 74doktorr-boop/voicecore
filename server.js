@@ -249,7 +249,7 @@ function serveGitHubPage(publicPath, fallbackFile) {
 
 // Warm-up de las páginas más visitadas al arrancar
 [
-  '/index.html', '/recepcion/index.html', '/guard/index.html', '/onboarding.html',
+  '/index.html', '/recepcion/index.html', '/onboarding.html',
   '/hementxe/index.html', '/hementxe/anuncio.html',
   '/gracias/index.html', '/portal/index.html',
   '/galiza/index.html',
@@ -302,13 +302,14 @@ app.get('/', (req, res) => {
 app.get(['/recepcion', '/recepcion/'],
   serveGitHubPage('/recepcion/index.html', path.join(__dirname, 'public', 'recepcion', 'index.html')));
 
-// ─── NodeFlow Guard — página de producto ───
-// OJO: dejar el fichero en public/ NO basta. Aquí las páginas se sirven por
-// ruta declarada, no por índice de directorio: /guard existía como archivo,
-// sus imágenes daban 200, y la página daba 404. Se comprobó en local contra un
-// servidor estático —que sí resuelve directorios— y por eso no se vio.
-app.get(['/guard', '/guard/'],
-  serveGitHubPage('/guard/index.html', path.join(__dirname, 'public', 'guard', 'index.html')));
+// ─── /guard — RETIRADA (decisión de Unai, 2026-08-18) ───
+// La página y sus capturas se borraron del repo. 410 Gone, no 404: le dice a
+// Google que la retirada es definitiva y la saca antes del índice. La regex
+// cubre también /guard-img/ (las capturas llevaban la marca del cliente) y NO
+// casa con /guarderia-canina (tras «guard» exige «-img», «/» o fin de ruta).
+app.get(/^\/guard(?:-img)?(?:\/|$)/, (req, res) => {
+  res.status(410).sendFile(path.join(__dirname, 'public', '404.html'));
+});
 
 // ─── Hementxe (campaign) ───
 app.get(['/hementxe', '/hementxe/'],        serveGitHubPage('/hementxe/index.html',   path.join(__dirname, 'public', 'hementxe', 'index.html')));
