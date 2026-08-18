@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NodeFlow — Software que hace el trabajo</title>
-<meta name="description" content="Dos productos en producción y uno en piloto: contestan el teléfono de tu negocio, llevan la operación de equipos de seguridad y miran por las cámaras que ya tienes. Hecho en Gipuzkoa.">
+<meta name="description" content="Software que contesta el teléfono de tu negocio y mira por las cámaras que ya tienes. Un producto en producción y otro en piloto. Hecho en Gipuzkoa.">
 <meta name="author" content="NodeFlow IA">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0a0b0d">
@@ -15,15 +15,15 @@
 <meta property="og:site_name" content="NodeFlow">
 <meta property="og:url" content="https://nodeflow.es/">
 <meta property="og:title" content="NodeFlow — Software que hace el trabajo">
-<meta property="og:description" content="Contesta. Registra. Mira. Dos productos en producción y uno en piloto, hechos en Gipuzkoa.">
+<meta property="og:description" content="Contesta. Mira. Un producto en producción y otro en piloto, hechos en Gipuzkoa.">
 <meta property="og:image" content="https://nodeflow.es/og-image.png">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NodeFlow — Software que hace el trabajo">
-<meta name="twitter:description" content="Contesta. Registra. Mira. Dos productos en producción y uno en piloto, hechos en Gipuzkoa.">
+<meta name="twitter:description" content="Contesta. Mira. Un producto en producción y otro en piloto, hechos en Gipuzkoa.">
 <meta name="twitter:image" content="https://nodeflow.es/og-image.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software: recepción con voz para negocios (en producción), central de mando de seguridad (en producción) y visión artificial (en piloto).","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
+{"@context":"https://schema.org","@type":"Organization","name":"NodeFlow","legalName":"NodeFlow IA S.L.","url":"https://nodeflow.es","logo":"https://nodeflow.es/favicon.svg","areaServed":"ES","description":"Empresa de software: recepción con voz para negocios (en producción) y visión artificial (en piloto).","contactPoint":{"@type":"ContactPoint","telephone":"+34-666-351-319","contactType":"sales"}}
 </script>
 <script defer data-domain="nodeflow.es" src="https://plausible.io/js/script.tagged-events.js"></script>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
@@ -79,7 +79,7 @@ a{color:inherit;text-decoration:none}
 ::selection{background:var(--lime);color:var(--lime-ink)}
 :focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:2px}
 /* Sobre lima, el anillo de foco lima sería invisible: tinta negra. */
-.cartel-lima :focus-visible,.freno :focus-visible,.diga :focus-visible{outline-color:var(--lime-ink)}
+.freno :focus-visible,.diga :focus-visible{outline-color:var(--lime-ink)}
 .top.sobre-lima :focus-visible{outline-color:var(--lime-ink)}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad)}
 .skip{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -122,19 +122,16 @@ strong{color:var(--ink);font-weight:700}
 .w1 .w-base{color:var(--ink)}
 .w2 .w-base{color:transparent;-webkit-text-stroke:1.5px var(--lime)}
 @supports not (-webkit-text-stroke:1px #000){ .w2 .w-base{color:var(--lime);opacity:.55} }
-.w3 .w-base{color:var(--lime)}
 /* El relleno: un duplicado recortado desde abajo por --pulse, con ganancia
    distinta por palabra — la voz barre el titular como una ola, no como un
    vúmetro plano. Con la demo sonando, las letras cantan. */
 .w-fill{position:absolute;inset:0;pointer-events:none;will-change:clip-path}
 .w1 .w-fill{color:var(--lime);clip-path:inset(calc((1 - min(1,var(--pulse)*1.35))*100%) 0 0 0)}
-.w2 .w-fill{color:var(--lime);-webkit-text-stroke:0;clip-path:inset(calc((1 - min(1,var(--pulse)))*100%) 0 0 0)}
-.w3 .w-fill{color:var(--ink);clip-path:inset(calc((1 - min(1,var(--pulse)*.8))*100%) 0 0 0)}
+.w2 .w-fill{color:var(--lime);-webkit-text-stroke:0;clip-path:inset(calc((1 - min(1,var(--pulse)*.9))*100%) 0 0 0)}
 /* Entrada: máscara dura por palabra, sin fades blandos. Solo con JS. */
 .js:not(.reduced) .w{overflow:hidden}
 .js:not(.reduced) .w-in{display:block;transform:translateY(112%);animation:sube .75s var(--e-out) forwards}
 .js:not(.reduced) .w2 .w-in{animation-delay:.09s}
-.js:not(.reduced) .w3 .w-in{animation-delay:.18s}
 @keyframes sube{to{transform:none}}
 .hero-sub{margin-top:26px;max-width:58ch;font-size:clamp(1rem,1.7vw,1.2rem);line-height:1.55}
 .hero-sub .reloj{color:var(--ink);font-weight:700}
@@ -189,14 +186,11 @@ html:not(.js) .play{display:none}
 @media (min-width:941px){.cartel{position:sticky;top:0}}
 @media (max-width:940px){.cartel{min-height:0}}
 .cartel-negro{background:var(--bg)}
-.cartel-lima{background:var(--lime);border-top-color:rgba(10,11,13,.15)}
 .num-bg{position:absolute;top:-3vw;right:-2.5vw;z-index:0;font-family:var(--disp);font-weight:700;
   font-size:36vw;line-height:.82;color:transparent;-webkit-text-stroke:1.5px rgba(196,245,70,.22);
   user-select:none;pointer-events:none}
-.cartel-lima .num-bg{-webkit-text-stroke:1.5px rgba(10,11,13,.22)}
 @supports not (-webkit-text-stroke:1px #000){
   .num-bg{color:rgba(196,245,70,.07)}
-  .cartel-lima .num-bg{color:rgba(10,11,13,.07)}
 }
 .cartel-in{position:relative;z-index:1;max-width:var(--wrap);margin:0 auto;width:100%;
   display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(28px,4.5vw,64px);align-items:center}
@@ -208,32 +202,20 @@ html:not(.js) .play{display:none}
   transform:scale(calc(.8 + var(--pulse)*.5))}
 .chip-piloto{color:var(--ink-2);border-color:var(--line-2)}
 .chip-piloto i{background:var(--ink-2)}
-.cartel-lima .chip{color:var(--lime-ink);border-color:rgba(10,11,13,.45)}
-.cartel-lima .chip i{background:var(--lime-ink)}
 .cartel h2{font-family:var(--disp);font-weight:600;text-transform:uppercase;
   font-size:clamp(2rem,5.6vw,4.6rem);line-height:.96;letter-spacing:-.02em;color:var(--ink);
   margin-top:18px;text-wrap:balance}
-.cartel-lima h2{color:var(--lime-ink)}
 .cartel .copy{margin-top:18px;max-width:52ch;font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.55}
-.copy-nota{margin-top:10px;max-width:52ch;font-size:14px;line-height:1.55}
-.cartel-lima .copy,.cartel-lima .copy-nota{color:rgba(10,11,13,.78)}
-.cartel-lima .copy strong{color:var(--lime-ink)}
 .hechos{margin-top:20px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink-3);line-height:2}
-.cartel-lima .hechos{color:rgba(10,11,13,.62)}
 .cartel-cta{display:inline-flex;align-items:center;gap:8px;margin-top:26px;min-height:44px;
   font-weight:700;font-size:15.5px;color:var(--lime);transition:gap .2s var(--e-out)}
 .cartel-cta:hover{gap:14px}
-.cartel-lima .cartel-cta{color:var(--lime-ink)}
 .marco{border:2px solid var(--ink);overflow:hidden;background:var(--surf)}
-.cartel-lima .marco{border-color:var(--lime-ink)}
 /* La captura se revela con un barrido lateral duro */
 .js:not(.reduced) .marco img{clip-path:inset(0 100% 0 0);transition:clip-path .8s var(--e-out) .15s}
 .js:not(.reduced) .in .marco img{clip-path:inset(0)}
 .marco figcaption{padding:10px 14px;border-top:2px solid var(--ink);font-size:12.5px;color:var(--ink-3)}
-.cartel-lima .marco figcaption{border-top-color:var(--lime-ink);color:rgba(10,11,13,.65);background:var(--lime)}
-/* Captura de móvil: formato teléfono, no pantalla */
-.marco-movil{max-width:300px;margin:0 auto;width:100%}
 /* Visor de Begira: cámara fija honesta — un gráfico, no una captura */
 .visor{position:relative;aspect-ratio:16/10;background:#0d0f12;border:2px solid var(--ink);overflow:hidden}
 .visor-l{position:absolute;width:26px;height:26px;border:2px solid var(--lime)}
@@ -422,14 +404,13 @@ footer{background:var(--bg);border-top:1px solid var(--line);padding:56px 0 42px
   <div class="hero-in">
     <h1 class="palabras">
       <span class="w w1"><span class="w-in"><span class="w-base">Contesta.</span><span class="w-fill" aria-hidden="true">Contesta.</span></span></span>
-      <span class="w w2"><span class="w-in"><span class="w-base">Registra.</span><span class="w-fill" aria-hidden="true">Registra.</span></span></span>
-      <span class="w w3"><span class="w-in"><span class="w-base">Mira.</span><span class="w-fill" aria-hidden="true">Mira.</span></span></span>
+      <span class="w w2"><span class="w-in"><span class="w-base">Mira.</span><span class="w-fill" aria-hidden="true">Mira.</span></span></span>
     </h1>
     <p class="hero-sub">
       <span id="relojLinea">A cualquier hora del día hay software nuestro de guardia.</span>
-      Contesta las llamadas que pierdes mientras trabajas, deja la ronda del vigilante
-      escrita y mira por las cámaras que ya tienes. Dos sistemas en producción, uno en
-      piloto. <strong>Hechos en Gipuzkoa</strong>, atienden en castellano y galego.
+      Contesta las llamadas que pierdes mientras trabajas y mira por las cámaras que
+      ya tienes. Un sistema en producción y otro en piloto, <strong>hechos en
+      Gipuzkoa</strong>. Recepción atiende en castellano y galego.
     </p>
     <div class="hero-acciones">
       <a class="btn-lima plausible-event-name=CTA+Hero" href="/recepcion">Probar Recepción · 49 €/mes</a>
@@ -481,31 +462,8 @@ footer{background:var(--bg);border-top:1px solid var(--line);padding:56px 0 42px
     </div>
   </article>
 
-  <article class="cartel cartel-lima">
-    <span class="num-bg" aria-hidden="true">02</span>
-    <div class="cartel-in rev">
-      <div>
-        <span class="chip"><i aria-hidden="true"></i>En producción</span>
-        <h2>La ronda queda escrita.</h2>
-        <p class="copy"><strong>Guard</strong> es la central de mando de un equipo de
-          seguridad: rondas verificadas con GPS, incidencias con evidencia, fichajes
-          y botón de emergencia. Cada acción queda sellada: quién, cuándo y dónde.</p>
-        <p class="hechos">Funcionando en el transporte público</p>
-        <p class="copy-nota">El nombre del cliente no está aquí: los contratos de
-          seguridad están para cumplirlos. ¿Tienes un contrato de vigilancia que
-          necesitas poder auditar? <a href="tel:+34666351319" style="text-decoration:underline"><strong>Llámanos: 666 351 319</strong></a>.</p>
-        <a class="cartel-cta" href="/guard">Ver Guard <span aria-hidden="true">→</span></a>
-      </div>
-      <figure class="marco marco-movil">
-        <img src="/guard-img/movil-rondas.jpg" width="560" height="1212" loading="lazy" decoding="async"
-             alt="Aplicación móvil de NodeFlow Guard: lista de rondas con sus puntos de control, duración estimada y botón de emergencia.">
-        <figcaption>La app del vigilante. Interfaz real, datos de demostración.</figcaption>
-      </figure>
-    </div>
-  </article>
-
   <article class="cartel cartel-negro">
-    <span class="num-bg" aria-hidden="true">03</span>
+    <span class="num-bg" aria-hidden="true">02</span>
     <div class="cartel-in rev">
       <div>
         <span class="chip chip-piloto"><i aria-hidden="true"></i>En piloto</span>
@@ -630,9 +588,8 @@ footer{background:var(--bg);border-top:1px solid var(--line);padding:56px 0 42px
       <p class="tachado rev">Porcentajes sin fuente.<svg aria-hidden="true" viewBox="0 0 100 26" preserveAspectRatio="none"><path class="t" d="M0 15 Q 60 9 100 15" stroke-width="2.8" pathLength="120"/></svg></p>
     </div>
     <p class="noveras-si rev">Lo que sí verás: <b>una demo que puedes escuchar</b>,
-      el panel tal y como es —con datos de demostración—, un precio (49 €/mes),
-      menos de 700 ms medidos en producción y <b>un sistema funcionando hoy en el
-      transporte público</b>. Con eso salimos a vender.</p>
+      el panel tal y como es —con datos de demostración—, un precio (49 €/mes) y
+      <b>menos de 700 ms medidos en producción</b>. Con eso salimos a vender.</p>
   </div>
 </section>
 
@@ -688,7 +645,6 @@ footer{background:var(--bg);border-top:1px solid var(--line);padding:56px 0 42px
         <h3>Productos</h3>
         <ul>
           <li><a href="/recepcion">NodeFlow Recepción</a></li>
-          <li><a href="/guard">NodeFlow Guard</a></li>
           <li><a href="https://begira.nodeflow.es">Begira</a></li>
         </ul>
       </div>
@@ -868,7 +824,7 @@ document.querySelectorAll('.cinta').forEach(function(c){
 /* ── El estado de la barra superior sobre secciones lima ───────────────── */
 (function(){
   var top=document.getElementById('top');
-  var limas=[].slice.call(document.querySelectorAll('.cartel-lima,.freno,.diga'));
+  var limas=[].slice.call(document.querySelectorAll('.freno,.diga'));
   if(!limas.length) return;
   function mira(){
     var y = 34;

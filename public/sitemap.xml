@@ -21,14 +21,6 @@
     <priority>0.9</priority>
   </url>
 
-  <!-- ── Producto: NodeFlow Guard ── -->
-  <url>
-    <loc>https://nodeflow.es/guard</loc>
-    <lastmod>2026-07-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
   <!-- ── Onboarding / registro ── -->
   <url>
     <loc>https://nodeflow.es/onboarding</loc>
