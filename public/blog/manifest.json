@@ -66,9 +66,25 @@
     "resenas-google-automatizar-peticion-momento-justo",
     "atencion-fuera-horario-donde-se-pierden-clientes",
     "irse-de-vacaciones-sin-cerrar-el-telefono",
-    "siete-mitos-ia-negocios-locales"
+    "siete-mitos-ia-negocios-locales",
+    "checklist-rgpd-automatizar-comunicaciones-clientes"
   ],
   "posts": [
+    {
+      "slug": "checklist-rgpd-automatizar-comunicaciones-clientes",
+      "title": "RGPD en comunicaciones con clientes: checklist esencial",
+      "metaTitle": "RGPD y automatización: checklist infalible",
+      "description": "Domina el RGPD en comunicaciones clientes. Aprende a automatizar mensajes legalmente. Descubre NodeFlow ya.",
+      "date": "2026-08-20",
+      "keywords": [
+        "RGPD comunicaciones clientes",
+        "automatizar mensajes legal",
+        "consentimiento WhatsApp clientes"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "siete-mitos-ia-negocios-locales",
       "title": "Desmontando mitos sobre la IA en negocios locales",
