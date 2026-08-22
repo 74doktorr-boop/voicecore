@@ -67,9 +67,25 @@
     "atencion-fuera-horario-donde-se-pierden-clientes",
     "irse-de-vacaciones-sin-cerrar-el-telefono",
     "siete-mitos-ia-negocios-locales",
-    "checklist-rgpd-automatizar-comunicaciones-clientes"
+    "checklist-rgpd-automatizar-comunicaciones-clientes",
+    "bonos-sesiones-gestion-automatica-fisio-estetica"
   ],
   "posts": [
+    {
+      "slug": "bonos-sesiones-gestion-automatica-fisio-estetica",
+      "title": "Gestionar bonos de sesiones sin Excel: la solución NodeFlow",
+      "metaTitle": "Gestionar bonos de sesiones sin Excel con NodeFlow",
+      "description": "Gestiona bonos de sesiones de fisioterapia y estética sin Excel. Descubre cómo NodeFlow automatiza tu negocio. Visita nodeflow.es",
+      "date": "2026-08-22",
+      "keywords": [
+        "gestionar bonos sesiones",
+        "bono 10 sesiones control",
+        "software bonos fisioterapia estética"
+      ],
+      "sector": "producto",
+      "city": null,
+      "readingMinutes": 7
+    },
     {
       "slug": "checklist-rgpd-automatizar-comunicaciones-clientes",
       "title": "RGPD en comunicaciones con clientes: checklist esencial",
